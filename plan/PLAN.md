@@ -1,0 +1,697 @@
+# Outgun Web — Plano do Projeto
+
+> Port do **Outgun 1.0.3** (C++/Allegro, CTF 2D multiplayer até 32 jogadores) para um jogo **web, online, jogável no navegador**, com cadastro, ranking e paridade de regras com o original.
+>
+> Este arquivo é a fonte única de verdade do projeto: visão, stack, arquitetura, **regras de negócio**, metodologia ágil, roadmap e índice de cards. Os detalhes de cada card ficam em [`cards/`](cards/).
+
+---
+
+## Sumário
+
+0. [Como usar este documento](#0-como-usar-este-documento)
+1. [Visão do produto](#1-visão-do-produto)
+2. [Diagnóstico do código original](#2-diagnóstico-do-código-original)
+3. [Skills de engenharia reversa](#3-skills-de-engenharia-reversa)
+4. [Stack tecnológica](#4-stack-tecnológica)
+5. [Arquitetura alvo](#5-arquitetura-alvo)
+6. [Regras de negócio](#6-regras-de-negócio)
+7. [Requisitos não funcionais](#7-requisitos-não-funcionais)
+8. [Metodologia ágil](#8-metodologia-ágil)
+9. [Épicos e roadmap](#9-épicos-e-roadmap)
+10. [Backlog — índice de cards](#10-backlog--índice-de-cards)
+11. [Riscos](#11-riscos)
+12. [Decisões em aberto](#12-decisões-em-aberto)
+13. [Glossário](#13-glossário)
+14. [Mapa do código-fonte original](#14-mapa-do-código-fonte-original)
+
+---
+
+## 0. Como usar este documento
+
+**Para humanos (PO / devs):**
+1. Leia as seções 1, 4, 5 e 8 para entender o produto, a stack e o processo.
+2. O quadro do sprint está na [seção 10](#10-backlog--índice-de-cards). A coluna **Status** é atualizada a cada mudança de estado de um card.
+3. Cada card em `cards/OG-XXX-*.md` traz história, referências ao código original, critérios de aceite e regras de negócio (RN) relacionadas.
+
+**Para agentes (Claude Code):**
+1. Antes de qualquer card, use a skill `outgun-card-workflow` (`.claude/skills/outgun-card-workflow`).
+2. Cards que portam comportamento do original **exigem** a skill `outgun-re-spec` antes da implementação, gerando uma spec em `plan/specs/`.
+3. Cards da simulação (épico E2) só fecham com testes da skill `outgun-parity-harness`.
+4. Cards de conteúdo/assets usam a skill `outgun-asset-pipeline`.
+
+**Regra de ouro:** quando o código original e a documentação HTML (`doc/`) divergirem, **o código vence** — registre a divergência na spec e em [Decisões em aberto](#12-decisões-em-aberto).
+
+---
+
+## 1. Visão do produto
+
+### 1.1 Declaração de visão
+Levar o Outgun para o navegador sem instalação, mantendo a sensação de jogo do original (física, armas, power-ups, CTF) e adicionando o que uma plataforma web moderna espera: contas, ranking persistente, lobby de salas, replays compartilháveis.
+
+### 1.2 Objetivos
+| # | Objetivo | Métrica de sucesso |
+|---|----------|--------------------|
+| O1 | Paridade de gameplay | Testes de paridade (golden traces) passando para física, tiro, dano, power-ups e bandeiras; jogadores veteranos validam a sensação de jogo no beta |
+| O2 | Multiplayer online estável | 32 jogadores numa sala, tick de 10 Hz sem atraso, p95 do tempo de tick < 5 ms |
+| O3 | Plataforma | Cadastro/login, perfil, ranking com temporadas, histórico de partidas |
+| O4 | Acesso | Roda nos navegadores atuais (Chrome, Firefox, Safari, Edge) em desktop; carga inicial < 5 MB |
+
+### 1.3 Escopo
+**Dentro do escopo (paridade com o original):**
+- Modo CTF por equipes (vermelho × azul) com bandeiras de time e bandeiras selvagens (verdes).
+- Física, armas (1 a 9 foguetes), 7 power-ups, deathbringer, colisões especiais.
+- Todos os mapas de `maps/` e `cmaps/`, formato de mapa original e gerador de mapas aleatórios.
+- Rotação e votação de mapas, troca e balanceamento de times, chat (geral e de time), comandos `/`, moderação (kick/ban/mute), idle kick.
+- Bots.
+- Estatísticas por jogador e por time (telas F3/F4), placar, minimapa.
+- Replays e modo espectador.
+- Temas gráficos, tema de som, fontes, 4 idiomas (en, fi, it, pt-BR).
+- Configuração de servidor (gamemod) → **presets de sala**.
+
+**Novo na versão web:**
+- Contas de usuário, nick protegido, clan tag.
+- Ranking global persistente com temporadas.
+- Lobby de salas públicas/privadas e matchmaking simples.
+- Painel admin web.
+
+**Fora do escopo (v1):**
+- Compatibilidade de rede com clientes/servidores C++ originais (protocolo UDP leetnet).
+- Servidores hospedados pelo usuário em máquina própria (substituído por "salas privadas").
+- Relay de replays ao vivo (`relay.cpp`), srvmonit e admin shell TCP (substituídos pelo painel admin).
+- Joystick legado do Allegro (substituído pela Gamepad API).
+
+### 1.4 Personas
+- **Veterano**: jogou o Outgun original; exige física idêntica e mapas clássicos.
+- **Casual**: chega por um link, quer jogar em 10 segundos como convidado.
+- **Competitivo**: quer ranking, estatísticas, clã.
+- **Admin/moderador**: gerencia salas, presets e punições.
+
+---
+
+## 2. Diagnóstico do código original
+
+### 2.1 Visão geral
+- ~52 mil linhas de C++ (pré-C++11, `throw ()` em tudo), arquivos em **ISO-8859-1 com CRLF**.
+- Bibliotecas: Allegro 4 (gráficos, som, input), HawkNL (sockets), pthreads.
+- Licença: **GNU GPL v2 ou posterior** (`COPYING`).
+- Modelo de rede: **servidor autoritativo** a **10 frames/s** (1 frame = 0,1 s), UDP com camada confiável própria (`leetnet/rudp.cpp`). O cliente faz **extrapolação/predição** do próprio jogador usando um histórico circular de 256 controles (`ClientWorld::extrapolate`).
+
+### 2.2 Módulos principais
+| Arquivo | Linhas | Responsabilidade |
+|---|---:|---|
+| `src/world.cpp/.h` | 5,4k | **Núcleo da simulação**: mapa, paredes, física, foguetes, dano, power-ups, bandeiras, captura, estatísticas |
+| `src/servnet.cpp/.h` | 4,1k | Rede do servidor: mensagens, frames por cliente, ranking HTTP, master server |
+| `src/server.cpp/.h` | 2,5k | Lógica de servidor: pontuação, rotação/votação de mapas, times, comandos admin, idle kick |
+| `src/server_settings.cpp` | 0,5k | **Registro de todas as configurações** (gamemod), com faixas válidas |
+| `src/clientbase.cpp/.h` | 2,0k | Cliente: processamento de frames, predição, lag |
+| `src/guiclient.cpp/.h` | 5,6k | Cliente gráfico: loop, input, HUD, menus in-game |
+| `src/graphics.cpp/.h` | 4,2k | Renderização (procedural + texturas de tema) |
+| `src/robot.cpp/.h`, `bot_support.*` | 2,8k | Bots (AreaMap, navegação, mira) |
+| `src/mapgen.cpp` + `mapgen/*.txt` | 0,5k | Gerador de mapas aleatórios a partir de 60 blocos de sala |
+| `src/auth.cpp/.h` | 0,3k | Nomes protegidos por senha, classes de admin, bans |
+| `src/protocol.h` | 0,2k | Enum de mensagens de rede (`Network_data_code`) |
+| `src/commont.h` | 0,4k | Constantes globais (tamanho da sala, raios, limites) |
+| `src/client_menus.*`, `menu.*` | 3,4k | Menus (servidores, opções, controles, temas, idioma, replays) |
+| `src/leetnet/*` | 3,0k | Transporte UDP confiável (não será portado) |
+| `src/tools/*` | 2,4k | `mapconv`, `mapgen-main`, `relay`, `srvmonit` |
+
+### 2.3 Assets e formatos
+| Pasta | Formato | Conversão necessária |
+|---|---|---|
+| `maps/` (20), `cmaps/` (25) | Texto próprio (spec em `doc/maps.html`) | Parser TS; manter `.txt` como fonte |
+| `mapgen/` (60) | Blocos de sala para o gerador | Parser TS |
+| `graphics/<tema>/` (6 temas) | PCX 8/24 bits, magenta `#FF00FF` = transparente | PNG/WebP com canal alpha |
+| `sound/Visa/` | WAV PCM 16 bits mono 22 kHz + `.txt` de alias | OGG/Opus + fallback AAC/MP3; resolver aliases |
+| `fonts/` (25) | Datafile Allegro compactado (`slh.ALL`, LZSS) | Atlas de fonte bitmap (BMFont) |
+| `languages/` | Texto próprio, chave = linha em `en.txt` | JSON i18n |
+| `config/` | `gamemod.txt`, `client.cfg`, `auth.txt` | Presets de sala, defaults do cliente |
+| `doc/` | HTML | Referência de regras e UI |
+
+### 2.4 Pontos de atenção encontrados
+- **Defaults divergentes**: os valores no código (`PhysicalSettings()`, `WorldSettings::reset()`, `PowerupSettings::reset()`) diferem do `config/gamemod.txt` distribuído (ex.: `friction` 0.20 no código × 0.45 no gamemod; `flag_return_delay` 1.0 × 0; `pups_player_max` ilimitado × 6). **A experiência "clássica" é a do gamemod distribuído** → ver RN-CFG-01.
+- **Configurações não documentadas** existem em `server_settings.cpp` (`pup_team_*`, `carry_own_team_flag`, `capture_away_from_base` etc.). O registro de settings do código é a referência.
+- **Times por índice**: o time do jogador é `pid / TSIZE` (metade dos slots para cada time). Na versão web, o time será um campo explícito.
+- **Aleatoriedade** via `rand()`/`random_shuffle` da libc: para testes de paridade é preciso reproduzir o `rand()` da glibc em TS (ver skill `outgun-parity-harness`).
+- **Mapa toroidal**: sair por uma borda leva à borda oposta (`positiveModulo`), salvo paredes.
+- Código de compatibilidade com protocolos antigos (`protocolExtensionsLevel < 0`) deve ser **ignorado**.
+
+---
+
+## 3. Skills de engenharia reversa
+
+O repositório não tinha nenhuma skill. Adicionamos quatro em `.claude/skills/`, focadas em reduzir o principal risco do projeto: **divergência silenciosa de regras**.
+
+| Skill | Quando usar | O que entrega |
+|---|---|---|
+| [`outgun-re-spec`](../.claude/skills/outgun-re-spec/SKILL.md) | Antes de portar qualquer comportamento | Spec em `plan/specs/<tema>.md` com citações `arquivo:linha`, constantes, pseudocódigo, ordem no frame, casos de borda e vetores de teste |
+| [`outgun-parity-harness`](../.claude/skills/outgun-parity-harness/SKILL.md) | Cards do épico E2 (simulação) e OG-003/OG-100 | Build do original em Docker, gravação de golden traces (JSONL) e comparação com a sim TS |
+| [`outgun-asset-pipeline`](../.claude/skills/outgun-asset-pipeline/SKILL.md) | Cards de conteúdo (E1) | Conversão PCX/WAV/DAT/idiomas e manifesto de assets |
+| [`outgun-card-workflow`](../.claude/skills/outgun-card-workflow/SKILL.md) | Sempre, ao pegar/fechar um card | Fluxo de status, DoR/DoD, convenções de branch/commit |
+
+**Ferramentas complementares recomendadas** (não são skills): `clangd`/`ctags` para navegar no C++; `bear` + `compile_commands.json` gerado no build Docker (OG-002) para "go to definition" confiável.
+
+---
+
+## 4. Stack tecnológica
+
+### 4.1 Recomendação
+**TypeScript de ponta a ponta**, num monorepo. O motivo decisivo é que **a mesma simulação roda no servidor (autoritativa) e no cliente (predição)**, exatamente como no original (`WorldBase` compartilhado entre `ServerWorld` e `ClientWorld`). Uma única base de código para a física elimina a classe de bugs "cliente e servidor discordam".
+
+| Camada | Tecnologia | Justificativa |
+|---|---|---|
+| Monorepo | pnpm workspaces + Turborepo | Pacotes compartilhados (`sim`, `protocol`, `content`) com build incremental |
+| Simulação | `packages/sim` — TS puro, sem dependências, determinístico, RNG injetável | Roda em Node e no browser; testável isoladamente |
+| Game server | Node.js 22 LTS + **uWebSockets.js** (alternativa: `ws`) | WebSocket binário de alto desempenho; uma sala por loop, várias salas por processo, `worker_threads` para escalar |
+| Protocolo | Binário próprio (`packages/protocol`, DataView), versionado | Pacotes pequenos a 10 Hz; mapeamento direto do `Network_data_code` original |
+| Transporte | WebSocket (v1); avaliar **WebTransport** com datagramas (v2) | WS funciona em todo lugar; a 10 Hz o head-of-line blocking do TCP é aceitável |
+| API de plataforma | **Fastify** + **Drizzle ORM** + **PostgreSQL 16** | Contas, ranking, partidas, salas; tipagem ponta a ponta |
+| Cache/tempo real | **Redis** | Sessões, registro de salas (substitui o master server), leaderboards (sorted sets), pub/sub API ↔ game servers |
+| Auth | Sessões em cookie httpOnly + argon2id (lib Better Auth ou implementação própria); OAuth opcional (Google/Discord) | Seguro e simples; game server recebe ticket JWT de curta duração |
+| Front-end (UI) | **Vite + React 18** + React Router + TanStack Query + Zustand | Menus, lobby, perfil, ranking, opções |
+| Render do jogo | **PixiJS v8** (WebGL/WebGPU) num `<canvas>` | Só renderização 2D rápida; o React **não** participa do loop do jogo |
+| Áudio | Web Audio API (wrapper fino ou Howler.js) | Baixa latência, controle de volume por categoria |
+| i18n | i18next | 4 idiomas do original |
+| Testes | Vitest (unit/paridade), Playwright (E2E), k6 ou Artillery (carga WS) | |
+| Observabilidade | pino (logs), Prometheus/Grafana (métricas de tick), Sentry (erros cliente/servidor) | |
+| Infra | Docker; Fly.io (regiões, bom para WebSocket) ou VPS (Hetzner) + Caddy; Postgres gerenciado (Neon/Supabase/RDS) | |
+| CI/CD | GitHub Actions | lint, typecheck, testes, paridade, build de imagens |
+
+### 4.2 Alternativas consideradas
+| Alternativa | Prós | Contras | Veredito |
+|---|---|---|---|
+| **Colyseus** (framework de salas Node) | Salas, matchmaking e reconexão prontos | Sincronização de estado genérica (schema delta) foge do modelo de frames de 10 Hz + AOI por sala; menos controle do protocolo | Plano B para OG-040 se o time preferir velocidade a controle |
+| **Rust/Go no servidor + sim em WASM** | Performance, tipagem forte | Dois ecossistemas; a sim precisaria existir em WASM para o cliente; 32 jogadores a 10 Hz não exigem isso | Não recomendado para v1 |
+| **Compilar o C++ original com Emscripten** | Paridade "grátis" | Código acoplado a Allegro, pthreads, sockets e `server.h` dentro de `world.cpp`; difícil de manter e estender | Usar o original **apenas como oráculo de testes** (OG-002/003) |
+| **Godot/Unity (export web)** | Editor, ferramentas | Bundle pesado, UI web (cadastro/ranking) fica fora do motor, menos controle de rede | Não recomendado |
+| **Phaser** em vez de PixiJS | Cenas, input, áudio inclusos | Traz física e loop que não usaremos | PixiJS é mais enxuto para "só render" |
+| **Next.js** em vez de Vite | SSR/SEO para páginas públicas de ranking/perfil | Complexidade extra para uma SPA de jogo | Opcional depois: páginas públicas de ranking podem ser SSR |
+
+---
+
+## 5. Arquitetura alvo
+
+### 5.1 Visão de componentes
+```
+                ┌──────────────────────────── Navegador ────────────────────────────┐
+                │  React (menus, lobby, perfil, ranking, opções, chat UI)            │
+                │        │                                                           │
+                │        ▼                                                           │
+                │  GameClient ── packages/sim (predição) ── PixiJS renderer ── Audio │
+                └───────┬───────────────────────────────┬────────────────────────────┘
+                   HTTPS│REST/JSON                       │WSS binário (10 Hz)
+                        ▼                                ▼
+              ┌──────────────────┐   ticket JWT   ┌─────────────────────────┐
+              │  apps/api        │◄──────────────►│ apps/game-server (N)    │
+              │  Fastify         │   resultados   │ salas, loop 10 Hz,      │
+              │  auth, ranking,  │◄───────────────│ packages/sim autoritativa│
+              │  salas, admin    │                │ bots, replays           │
+              └──┬──────────┬────┘                └──────────┬──────────────┘
+                 │          │                                │ heartbeat/registro
+                 ▼          ▼                                ▼
+            PostgreSQL     Redis  ◄──────────────────────────┘
+            (contas,       (sessões, registro de salas, leaderboards, pub/sub)
+             partidas,
+             ranking)      Object storage (replays, assets versionados)
+```
+
+### 5.2 Layout do monorepo
+```
+outgun-web/
+├─ apps/
+│  ├─ web/            # Vite + React + PixiJS
+│  ├─ game-server/    # Node + uWebSockets.js
+│  └─ api/            # Fastify + Drizzle
+├─ packages/
+│  ├─ sim/            # simulação determinística (núcleo portado de world.cpp)
+│  ├─ protocol/       # mensagens binárias, encoder/decoder, versão
+│  ├─ content/        # parser de mapas, gerador, manifesto de assets
+│  ├─ settings/       # schema de configurações (gamemod) + presets
+│  └─ i18n/           # traduções
+├─ tools/
+│  ├─ asset-pipeline/ # conversores PCX/WAV/DAT/idiomas
+│  └─ parity/         # harness de golden traces (Docker + C++ patch)
+├─ legacy/            # este repositório original, intocado (fonte de referência)
+└─ plan/              # este plano, cards e specs
+```
+> O código original deve permanecer **intocado** (em `legacy/` ou na raiz atual). Patches para o harness de paridade ficam em `tools/parity/patches/`.
+
+### 5.3 Modelo de rede (preserva o original)
+- **Tick do servidor:** 10 Hz (100 ms), igual ao original. Todas as durações configuradas em segundos são convertidas para frames (`× 10`).
+- **Entrada do cliente:** a cada frame o cliente envia um byte de controles (bitmask: cima, baixo, esquerda, direita, correr, strafe) + flags de tiro + número de sequência. Nunca posição.
+- **Snapshot por cliente:** número do frame, eco da última entrada processada, dados completos dos jogadores **na mesma sala**, posições de minimapa limitadas (`minimap_send_limit`), vida/energia do próprio jogador. Eventos (kill, captura, power-up, som) como mensagens confiáveis.
+- **Interesse por sala (AOI):** o cliente só recebe detalhes de quem está na mesma sala (e foguetes até `see_rockets_distance` salas). Isso preserva o power-up shadow e evita "wallhack".
+- **Cliente:** renderiza a 60+ fps, interpolando entidades remotas entre os dois últimos snapshots e **predizendo** o próprio jogador com `packages/sim` + histórico de entradas não confirmadas (reconciliação ao receber o snapshot).
+
+### 5.4 Fluxo de entrada na partida
+1. Usuário (logado ou convidado) escolhe uma sala no lobby → `POST /rooms/:id/join` na API.
+2. API valida (senha da sala, ban, capacidade) e devolve `{ wsUrl, ticket }` (JWT, 60 s, contém userId, nick, flags de ranking).
+3. Cliente abre WSS no game server com o ticket; o servidor valida a assinatura e aloca o time (RN-TIM-01).
+4. Ao fim da partida o game server envia o resultado assinado para a API (`POST /internal/matches`), que atualiza ranking e histórico.
+
+---
+
+## 6. Regras de negócio
+
+> Convenções: **frame** = 0,1 s. Distâncias em pixels lógicos. Sala = **472 × 354** px (`plw`, `plh`, `src/commont.h:282`). Valores entre parênteses são os do **preset Clássico** (gamemod distribuído). Cada RN cita a fonte; cards referenciam RNs pelo ID.
+
+### 6.1 Mapa e mundo (RN-MAP)
+- **RN-MAP-01** — O mapa é uma grade de `width × height` salas; cada sala tem 472×354 px. Coordenadas: `(sala.x, sala.y, x local, y local)`. (`world.h:53-95`)
+- **RN-MAP-02** — O mundo é **toroidal**: ao cruzar uma borda da sala o jogador entra na sala vizinha; ao cruzar a borda do mapa, entra na sala do lado oposto. (`world.cpp:2780-2825`, `positiveModulo`)
+- **RN-MAP-03** — Formato de mapa: comandos `P width/height/title/author` (obrigatórios: width, height, title), `S` (escala), `R` (sala ativa), `:label` + `X` (grupos reutilizáveis), `W`/`G` retângulo, `T W/G` triângulo, `C W/G` círculo/anel/setor (ângulo 0 = topo, horário), `flag team rx ry x y`, `spawn team rx ry x y`, `V respawn ...` (áreas de respawn). Times: 0 = vermelho, 1 = azul, 2 = selvagem/ambos. Comentários com `;`. (`doc/maps.html`, `world.cpp:375-775`)
+- **RN-MAP-04** — Texturas de chão 0–7 (normal1–3, red, blue, ice, sand, mud) e de parede 0–7 (normal1–3, red, blue, metal, wood, rubber). **Texturas não afetam a física.**
+- **RN-MAP-05** — Bandeiras e spawns não podem estar sobre paredes; áreas de respawn não podem estar totalmente sobre paredes. Mapa inválido é rejeitado com erro legível (equivalente a `data_broken_map`).
+- **RN-MAP-06** — Mapas aleatórios: `random_map w h p` gera mapa com blocos de `mapgen/`, com simetria (vertical, horizontal ou rotacional) e opção de bandeira verde. (`mapgen.cpp`)
+
+### 6.2 Física (RN-FIS)
+Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `world.cpp:1209`):
+- **RN-FIS-01** — `accel = acceleration (2.00)`; × `turbo_acceleration (1.45)` com turbo; × `run_acceleration (1.70)` correndo; correndo **e** carregando bandeira inimiga ou selvagem: × `flag_acceleration (0.90)` adicional.
+- **RN-FIS-02** — Arrasto: `vel *= 1 − drag (0.10)`.
+- **RN-FIS-03** — Atrito constante: se `|vel| ≤ friction (0.45)` ou `|vel| < 0.001` → `vel = 0`; senão `vel *= 1 − friction/|vel|`.
+- **RN-FIS-04** — Jogador sob efeito de deathbringer não acelera (só desliza).
+- **RN-FIS-05** — Direção: `side = direita − esquerda`, `forw = cima − baixo`; diagonal normalizada por √2. Modo mundo (padrão): `acc = (side, −forw)`. Com `free_turning` e o jogador em modo arma: aceleração relativa à direção da arma.
+- **RN-FIS-06** — Se o jogador está em movimento, a aceleração é decomposta em componente paralela e perpendicular à velocidade: frear (paralela oposta) × `brake_acceleration (1.00)`; virar (perpendicular) × `turn_acceleration (1.00)`. `vel += acc × accel`.
+- **RN-FIS-07** — Velocidade máxima de corrida: `max_run_speed = (run_mul × accel − fric) / drag`. Limite rígido por eixo: `max_run_speed × turbo_mul × 4`. (`world.cpp:1449, 2734`)
+- **RN-FIS-08** — Raio do jogador 15 px; shield adiciona 9 px ao raio visual/colisão de escudo; foguete 4 px (power: 6 px); power-up e bandeira 15 px. (`commont.h:284-286`, `world.h:39`)
+- **RN-FIS-09** — Colisão com paredes por tempo-de-impacto contínuo (sub-frame) com retângulos, triângulos e círculos/anéis/setores; o jogador quica (reflexão). (`world.cpp:1069-1165, 2826-3050`)
+- **RN-FIS-10** — Colisão entre jogadores: `player_collisions` = `no` (atravessam), `normal` (quicam), `special` (quicam + efeitos da RN-FIS-11). Jogadores em proteção de spawn não colidem.
+- **RN-FIS-11** — Efeitos especiais de colisão (só em `special`, `world.cpp:2545`): shadow fica visível ao colidir com inimigo e compartilha 3 s de shadow com aliado (se tiver mais de 3 s); turbo arremessa o outro (força ×2); portador de deathbringer "infecta" inimigo por 1 s; shield causa dano `60 × velocidade relativa` (normalizada pela máxima); power sem shield causa dano `80 × velocidade` a inimigo sem shield/power ("humilhação").
+
+### 6.3 Tiro e foguetes (RN-TIR)
+- **RN-TIR-01** — Tiro exige `frame ≥ next_shoot_frame`. Custo: `shooting_energy_base (7)`; cada foguete extra custa `shooting_energy_per_extra_rocket (1)` enquanto houver energia; sem energia sai **um** foguete só. (`world.cpp:3180-3200`)
+- **RN-TIR-02** — Intervalo entre tiros: `shoot_interval_with_energy (0.5 s)` se ainda há energia, senão `shoot_interval (0.5 s)`.
+- **RN-TIR-03** — Nível de arma 1–9 define a formação: 1→1 frontal; 2→2 paralelos; 3→3 paralelos; 4→2 + ±1 direção; 5→3 + ±2; 6→2 + ±1, ±2; 7→3 + ±2, ±3; 8→2 + ±1, ±2, ±3; 9→3 + ±1, ±2, ±3 (unidade = 1 octante = 45°, via `GunDirection.adjust`; nível 9 atira em leque quase completo). (`world.cpp:1377`)
+- **RN-TIR-04** — Velocidade do foguete: `rocket_speed (50)` px/frame. O foguete nasce avançado 15 px (não acerta quem está colado). Foguetes paralelos deslocados lateralmente `PLAYER_RADIUS + ROCKET_RADIUS − 2` px.
+- **RN-TIR-05** — Dano: `rocket_damage (70)`; foguete power × `pup_power_damage (2.0)`; aliado × `friendly_fire (0)`. Acertar aliado não conta como acerto nas estatísticas.
+- **RN-TIR-06** — Foguete que acerta empurra o alvo: `vel += vel_foguete × 15 / rocket_speed` (× friendly_fire para aliado).
+- **RN-TIR-07** — Ser atingido (exceto por colisão) trava a arma por `hit_stun_time (1.0 s)`.
+- **RN-TIR-08** — Foguete some ao bater em parede ou sair do mapa. Máximo 256 foguetes simultâneos.
+- **RN-TIR-09** — Atirar revela o jogador com shadow (visibilidade máxima momentânea).
+- **RN-TIR-10** — Direção da arma: 8 direções pelo teclado; strafe mantém a direção; com `free_turning` a direção é contínua (precisão 1/256 de octante na rede).
+
+### 6.4 Vida e energia (RN-VID)
+- **RN-VID-01** — Spawn com `start_health (100)` e `start_energy (100)`; máximos `health_max (300)`, `energy_max (300)`.
+- **RN-VID-02** — Regeneração por frame (0,1 s), em ordem de prioridade, consumindo o tempo do frame: vida 0→100 a 10/s; energia 0→100 a 10/s; energia 100→200 a 5/s; vida 100→200 a 1/s; energia 200→max a 0/s; vida 200→max a 0/s. Sem regeneração durante efeito de deathbringer. (`world.cpp:3087`)
+- **RN-VID-03** — Correr consome energia a `run_energy_degradation (15/s)`; sem energia, consome vida a `run_health_degradation (15/s)` até o piso `min_health_for_run_penalty (40)`.
+- **RN-VID-04** — Shield: dano vai para a **energia**; se energia ≤ 0, perde o shield. Com `pup_shield_one_hit = N > 0`, o shield aguenta N acertos.
+- **RN-VID-05** — Megahealth: bônus `pup_health_bonus (160)` distribuído 5 pontos/frame alternando vida e energia até os máximos; bônus não acumula quando vida e energia estão no máximo.
+
+### 6.5 Power-ups (RN-PUP)
+- **RN-PUP-01** — Tipos e pesos de sorteio: shield 16, turbo 14, shadow 14, power 14, weapon 18, megahealth 13, deathbringer 11. (`world.cpp:1541`)
+- **RN-PUP-02** — Quantidade no mapa: mínimo = `max(pups_min, nº de jogadores)` limitado a `pups_max`; percentuais são relativos ao nº de salas (`pups_min 20%`, `pups_max 80%`, máximo absoluto 32). Reaparecem após `pups_respawn_time (25 s)`.
+- **RN-PUP-03** — Local de spawn: sala aleatória sem jogadores e sem outros power-ups (relaxa após tentativas), posição longe de paredes.
+- **RN-PUP-04** — Coleta por toque (raio 15 + 15). Jogador sob deathbringer não coleta.
+- **RN-PUP-05** — Efeitos: **shield** (vida mínima 100, +100 energia até 200); **turbo**, **shadow**, **power** — tempo `+pup_add_time (40 s)` acumulável até `pup_max_time (100 s)`; **weapon** (+1 nível até `pup_weapon_max (9)`, +100 energia até 200); **megahealth** (RN-VID-05); **deathbringer** (liga; com `pup_deathbringer_switch` pegar de novo **desliga**).
+- **RN-PUP-06** — Limite `pups_player_max (6)` power-ups simultâneos; ao exceder, descarta o "pior": primeiro o temporizado que expira antes (turbo/shadow/power), depois deathbringer, depois shield, depois arma volta a 1.
+- **RN-PUP-07** — Shadow: visibilidade cai 10/frame até o mínimo (7 de 255); atirar, pegar bandeira ou levar dano revela.
+- **RN-PUP-08** — `pups_drop_at_death`: ao morrer, larga um power-up. `pup_team_*`: o power-up é aplicado a todos os aliados vivos.
+- **RN-PUP-09** — Power-ups iniciais configuráveis (`pup_start_*`).
+
+### 6.6 Deathbringer (RN-DB)
+- **RN-DB-01** — Ao morrer carregando deathbringer, cria uma explosão na posição da morte; raio: `t = frames/10`; `t < 1 → 100·t`; senão `100 + 800·(t−1)²`; expira após 18 frames. (`world.cpp:1421`)
+- **RN-DB-02** — Atinge jogadores da **mesma sala** quando o anel passa por eles (inimigos; aliados só se `friendly_deathbringer > 0`). Efeito: duração `pup_deathbringer_time (5 s) × [0,9–1,1)` (× friendly_db para aliados), arma travada pelo mesmo tempo, empurrão com velocidade 40 para fora do centro, dano de 3/frame (12/frame se tiver shield).
+- **RN-DB-03** — Portador de deathbringer: vida/energia acima de 100 degradam 2,5/s; regeneração limitada a 100.
+- **RN-DB-04** — Quem morre com deathbringer (ou por suicídio) espera `waiting_time_deathbringer (4 s)` extra para renascer.
+- **RN-DB-05** — Sob efeito: não acelera, não pega power-up, não pega/captura/larga/devolve bandeira.
+
+### 6.7 Bandeiras e captura (RN-FLG)
+- **RN-FLG-01** — Tipos: bandeira vermelha (0), azul (1), selvagem/verde (2). Pode haver várias de cada. Estados: na base, carregada, largada.
+- **RN-FLG-02** — Pegar: tocar (raio 15 + 15) na bandeira inimiga ou selvagem não carregada. Um jogador carrega no máximo uma. `lock_team_flags`/`lock_wild_flags` impedem pegar. Quem acabou de largar precisa sair do raio antes de pegar de novo. Pegar revela shadow.
+- **RN-FLG-03** — Devolver: tocar na própria bandeira largada fora da base a devolve, após `flag_return_delay (0 s)` desde a queda. Bandeiras selvagens não são devolvidas.
+- **RN-FLG-04** — Largar: morrer, suicidar ou tecla de largar (Page Down). Largar voluntariamente desfaz o ponto de pegar (−1 frag).
+- **RN-FLG-05** — Captura (padrão `capture_on_team_flag 1`): portador da bandeira inimiga toca **a própria bandeira na base**. Não captura se a própria bandeira foi roubada. Tabela completa das 13 combinações (inimiga/própria/selvagem × base) em `world.cpp:3335-3350`; implementar exatamente.
+- **RN-FLG-06** — `min_capture_time (0 s)`: tempo mínimo entre pegar e capturar.
+- **RN-FLG-07** — Assistência: aliado que carregava a bandeira-alvo, ou o portador anterior da bandeira capturada, ou o portador anterior da bandeira-alvo.
+- **RN-FLG-08** — `carrying_score_time (0 = off)`: em mapas só com bandeiras selvagens, o time ganha 1 ponto a cada N segundos de posse.
+- **RN-FLG-09** — `random_wild_flag`, `capture_on_wild_flag`, `carry_own_team_flag`, `capture_away_from_base`, `always_send_flag_location`: variantes de modo; todas devem existir nos presets.
+- **RN-FLG-10** — `respawn_on_capture`: após captura, todos os mortos renascem no frame seguinte.
+
+### 6.8 Pontuação de jogador (frags) (RN-PTS)
+| Evento | Frags | Fonte |
+|---|---:|---|
+| Matar inimigo | +1 | `world.cpp:2274` |
+| Matar aliado | −2 | idem |
+| Matar inimigo na sala onde um aliado carrega bandeira (defesa do portador) | +1 (uma vez) | idem |
+| Matar inimigo na sala com a própria bandeira no chão (defesa) | +1 | idem |
+| Matar inimigo na sala com a bandeira inimiga no chão (ataque) | +1 | idem |
+| Matar portador de bandeira inimigo | +1 extra | idem |
+| Matar portador aliado | −1 extra | idem |
+| Pegar bandeira | +1 | `world.cpp:3639` |
+| Largar voluntariamente | −1 | `world.cpp:1758` |
+| Devolver própria bandeira | +1 | `world.cpp:3306` |
+| Capturar | +3 (capturador) | `world.cpp:3650` |
+| Assistência | +3 | idem |
+| Captura do próprio time | +2 para cada membro | idem |
+| Suicídio | −1 | `world.cpp:2392` |
+
+- **RN-PTS-02** — **Pontos negativos** (usados no ranking): morrer +1 neg; morrer com bandeira +1 neg extra; bandeira do seu time capturada +1 neg para cada membro (exceto captura de bandeira selvagem).
+- **RN-PTS-03** — Placar do time = nº de capturas (+ pontos de posse, RN-FLG-08).
+
+### 6.9 Partida e condições de fim (RN-PAR)
+- **RN-PAR-01** — Vitória por captura: time atinge `capture_limit (8)` **e** está à frente por `win_score_difference (1)`.
+- **RN-PAR-02** — Limite de tempo `time_limit (0 = sem limite)` minutos. Avisos aos 5 min (se limite ≥ 10 min), 1 min (≥ 2 min) e 30 s (≥ 1 min). Só conta com 2+ jogadores.
+- **RN-PAR-03** — Empate no fim do tempo: se `extra_time > 0`, prorrogação (pode ter vários períodos); se `sudden_death`, a próxima captura vence; senão termina empatado.
+- **RN-PAR-04** — Fim de partida: placa de game over por `game_end_delay (5 s)`, estatísticas enviadas a todos, troca de mapa (RN-VOT).
+- **RN-PAR-05** — Início do mapa: jogadores nascem nos spawn points do time (round-robin); sem spawn points, posição aleatória.
+
+### 6.10 Spawn e respawn (RN-SPW)
+- **RN-SPW-01** — Tempo de respawn: `respawn_time (2 s)` + `extra_respawn_time_alone (0)` + `respawn_balancing_time × (meu time − time inimigo) / time inimigo` quando meu time é maior. (`world.cpp:1627`)
+- **RN-SPW-02** — Respawn ocorre em ordem justa entre os times (fila ordenada por tempo extra; `world.cpp:3516-3545`).
+- **RN-SPW-03** — Local: áreas `V respawn` do time, se houver; senão sala aleatória **desocupada**, longe de paredes.
+- **RN-SPW-04** — `spawn_safe_time (0 s)`: invulnerável e sem atirar após nascer.
+- **RN-SPW-05** — Ao nascer: vida/energia iniciais, arma `pup_start_weapon`, power-ups iniciais.
+
+### 6.11 Times (RN-TIM)
+- **RN-TIM-01** — Ao entrar: vai para o time com menos jogadores; empate → time onde só há humanos+bots e o outro não tem humanos; senão o time com menos humanos; empate total → time com menor força (modificador de ranking, RN-RNK-03).
+- **RN-TIM-02** — Troca de time (Ctrl+End): se o outro time tem 2+ a menos, move; se há alguém querendo trocar no outro time, troca os dois; se o outro tem 1 a menos, move; senão troca com um bot (prioridade: morto, sem bandeira, qualquer). (`server.cpp:255-390`)
+- **RN-TIM-03** — `balance_teams`: `no` / `balance` (move aleatórios até diferença ≤ 1) / `shuffle` (embaralha a cada mapa).
+- **RN-TIM-04** — Máx. jogadores: par entre 2 e 32; cada time = metade.
+- **RN-TIM-05** — Cores: time vermelho/azul + cor pessoal escolhida das cores favoritas do jogador, sem repetir no time.
+
+### 6.12 Mapas: rotação e votação (RN-VOT)
+- **RN-VOT-01** — Cada jogador vota em um mapa da lista (F2) e pode votar para sair do mapa atual (F8).
+- **RN-VOT-02** — Troca de mapa quando votos "sair" de humanos > contra (bots não votam), respeitando `vote_block_time`; com `require_specific_map_vote`, só conta quem votou num mapa específico.
+- **RN-VOT-03** — Próximo mapa: o mais votado; empate → o jogado há mais tempo; se ainda empatado, sorteio (excluindo o atual). Sem votos: próximo da lista, pulando mapas com votos negativos.
+- **RN-VOT-04** — `random_maprot`: 0 = em ordem, 1 = aleatória, 2 = primeiro mapa aleatório.
+- **RN-VOT-05** — Admin pode forçar troca (`/forcemap`) ou reinício.
+
+### 6.13 Chat e moderação (RN-CHT)
+- **RN-CHT-01** — Mensagem até 200 caracteres. Iniciada com `.` → só para o time. Iniciada com `/` → comando.
+- **RN-CHT-02** — Anti-flood: "temperatura" sobe a cada mensagem e esfria 0,1/frame; acima de 10 → bloqueio temporário ("too much talk"). Mensagem com o mesmo caractere repetido 7+ vezes é descartada. (`server.cpp`, `commont.cpp:202`)
+- **RN-CHT-03** — Comandos de jogador: `/help`, `/info`, `/time`, `/sayadmin`. Admin: `/list`, `/kick`, `/ban ID min` (até 1 semana), `/mute`, `/smute` (silencioso: só o próprio vê), `/unmute`, `/forcemap`, `/set` (alterar settings permitidos).
+- **RN-CHT-04** — Ações de admin são registradas em log (auditoria).
+
+### 6.14 Inatividade (RN-IDL)
+- **RN-IDL-01** — `idlekick_time (120 s)`: jogador sem input é avisado e depois desconectado, somente se há ≥ `idlekick_playerlimit (4)` humanos.
+
+### 6.15 Nomes e identidade (RN-NOM)
+- **RN-NOM-01** — Nome: até 15 caracteres, imprimíveis, não pode ser vazio/só espaços nem começar/terminar com espaço. (`commont.cpp:190`)
+- **RN-NOM-02** — Web: o **nick da conta é único** (comparação case-insensitive e normalizada) e protegido; convidados recebem nick com sufixo e não podem usar nick registrado.
+- **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat.
+
+### 6.16 Ranking (RN-RNK)
+Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
+- **RN-RNK-01** — A partida conta para o ranking só se: sala ranqueada, ≥ `ranking_minhumans (2)` humanos distintos e ≥ `ranking_minplayers (4)` jogadores (humanos + bots). O jogador precisa estar logado e com participação ativa.
+- **RN-RNK-02** — Cada frag positivo soma ao **score** multiplicado pelo modificador do time; cada ponto negativo soma ao **neg** sem modificador.
+- **RN-RNK-03** — Força do jogador = `(score+1)/(neg+1)` (ou 1,0 se score < 100). Força do time = soma (ou média se `respawn_balancing_time ≥ 5`). Modificador do time = `força_inimiga / força_própria` limitado a **[1/3, 3]** — o time mais fraco ganha mais.
+- **RN-RNK-04** — Deltas enviados ao fim de cada partida e na saída do jogador.
+- **Web (novo):** ranking por **temporadas**; leaderboard ordenado por `rating = (score+1)/(neg+1)` com mínimo de 100 pontos positivos para aparecer, desempate por score (ver Decisão D-02). Histórico e estatísticas agregadas por jogador.
+
+### 6.17 Estatísticas (RN-STA)
+- **RN-STA-01** — Por jogador: frags, kills, deaths, maior sequência de kills/mortes, suicídios, capturas, assistências, bandeiras pegas/largadas/devolvidas, portadores mortos, tiros, acertos, precisão, tiros recebidos, tempo de vida (médio), tempo de jogo, distância percorrida, velocidade média, tempo carregando bandeira. (`world.h:266`)
+- **RN-STA-02** — Por time: as mesmas agregações + lista de capturas com tempo e nome (capturador + assistente).
+- **RN-STA-03** — Ao fim de cada partida, as estatísticas são persistidas (equivalente a `save_stats`) e exibidas em F3 (time) / F4 (jogador).
+
+### 6.18 Bots (RN-BOT)
+- **RN-BOT-01** — `min_bots`: mínimo de bots; `bots_fill`: completa até N jogadores; `balance_bot`: adiciona bot para equilibrar times. Um humano entrando com sala cheia substitui um bot.
+- **RN-BOT-02** — Bots simulam ping `bot_ping (300 ms)` e jogam com a mesma interface de controles de um cliente (sem acesso a informação extra).
+- **RN-BOT-03** — Nomes de bots: listas `classic` ou `fi` (`names.cpp`), marcados como bot na UI. Bots não contam para ranking como humanos e não votam.
+
+### 6.19 Visibilidade e minimapa (RN-VIS)
+- **RN-VIS-01** — Na tela: apenas a sala atual (configurável no cliente para ver salas vizinhas, como `visible_rooms`).
+- **RN-VIS-02** — Minimapa mostra aliados e inimigos vistos por aliados; com shadow, mostra todos os inimigos sem shadow. Limite `minimap_send_limit (32)` por frame.
+- **RN-VIS-03** — Bandeiras: posição conhecida conforme visibilidade; `always_send_flag_location` envia sempre.
+
+### 6.20 Configuração de sala (RN-CFG)
+- **RN-CFG-01** — Toda sala é criada a partir de um **preset**. O preset **Clássico** = `config/gamemod.txt` distribuído. Outros presets sugeridos: Duelo, Insta (dano alto), Caos (power-ups em dobro), Sem power-ups.
+- **RN-CFG-02** — Cada setting tem tipo, faixa válida e default conforme `server_settings.cpp`; valores fora da faixa são rejeitados.
+- **RN-CFG-03** — Salas privadas: senha (máx. 15 caracteres no original), dono pode alterar settings permitidos; salas ranqueadas usam somente presets oficiais travados.
+
+### 6.21 Plataforma web (RN-PLT) — novas
+- **RN-PLT-01** — Cadastro com e-mail + senha (mín. 10 caracteres, argon2id), confirmação por e-mail; login também via OAuth (opcional).
+- **RN-PLT-02** — Convidado pode jogar em salas não ranqueadas sem cadastro.
+- **RN-PLT-03** — Recuperação de senha por link de uso único (expira em 30 min).
+- **RN-PLT-04** — Exclusão de conta (LGPD): remove dados pessoais; partidas históricas ficam anonimizadas.
+- **RN-PLT-05** — Bans de plataforma (conta + IP/dispositivo) gerenciados no painel admin; bans de sala expiram (máx. 1 semana, como no original).
+
+---
+
+## 7. Requisitos não funcionais
+| Categoria | Requisito |
+|---|---|
+| Desempenho servidor | Tick de 10 Hz; p95 do tempo de simulação + serialização < 5 ms com 32 jogadores; ≥ 20 salas cheias por vCPU |
+| Desempenho cliente | 60 fps em notebook médio com 32 jogadores; bundle inicial < 5 MB (assets sob demanda) |
+| Rede | Jogável até 150 ms de RTT; tolerante a 2% de perda; tráfego < 10 KB/s por cliente |
+| Disponibilidade | 99,5% mensal para API e lobby |
+| Segurança | Servidor autoritativo; validação e rate limit de todas as mensagens; OWASP ASVS nível 1 na API |
+| Privacidade | LGPD: consentimento, exportação e exclusão de dados |
+| Compatibilidade | Últimas 2 versões de Chrome, Firefox, Safari, Edge (desktop). Mobile: fora do v1 (input por toque é card futuro) |
+| i18n | en, pt-BR, fi, it |
+| Acessibilidade | Menus navegáveis por teclado; remapeamento total de teclas; opção de alto contraste |
+| Licença | GPL-2.0-or-later; link para o código-fonte no rodapé do jogo |
+
+---
+
+## 8. Metodologia ágil
+
+### 8.1 Modelo
+**Scrum com quadro Kanban** ("Scrumban"):
+- **Sprints de 2 semanas.** Planning na segunda-feira, review + retro na sexta da semana 2.
+- **Papéis:** PO (prioriza, aceita cards), Tech Lead (arquitetura, revisão), Devs, **Agentes IA** (executam cards seguindo as skills; nunca movem card para Done).
+- **Limite de WIP:** máx. 2 cards "Em andamento" por pessoa/agente.
+
+### 8.2 Fluxo de status
+```
+Backlog → Pronto (Ready) → Em andamento → Em revisão → Concluído
+                               │
+                               └→ Bloqueado (com motivo e card/decisão que bloqueia)
+```
+A mudança de status é feita **no cabeçalho do card e na tabela da seção 10** no mesmo commit.
+
+### 8.3 Definition of Ready (DoR)
+- [ ] História e critérios de aceite claros e testáveis.
+- [ ] Dependências em "Concluído" (ou explicitamente paralelizáveis).
+- [ ] Referências ao código original identificadas (quando for port).
+- [ ] Estimativa feita.
+
+### 8.4 Definition of Done (DoD)
+- [ ] Critérios de aceite atendidos e demonstrados.
+- [ ] Spec em `plan/specs/` criada/atualizada (cards de port).
+- [ ] Testes unitários; **testes de paridade** para cards da simulação.
+- [ ] Lint, typecheck e CI verdes.
+- [ ] Sem divergência silenciosa: divergências intencionais registradas na seção 12.
+- [ ] Documentação do card ("Notas de implementação") atualizada.
+- [ ] Revisado por outra pessoa e aceito pelo PO.
+
+### 8.5 Estimativa
+Story points em Fibonacci (1, 2, 3, 5, 8, 13). Cards de 13 devem ser quebrados antes de entrar em sprint. Velocidade inicial assumida: **~30 pts/sprint** para 2 devs + agentes; recalibrar após o Sprint 2.
+
+### 8.6 Convenções
+- **IDs:** `OG-NNN`. Épicos `E0`–`E7`. Regras de negócio `RN-<GRUPO>-NN`. Decisões `D-NN`.
+- **Branch:** `og-021-movimento-jogador`. **Commit:** `OG-021: implementa atrito e arrasto`.
+- **PR:** linka o card, lista RNs cobertas e anexa o resultado da paridade quando aplicável.
+- **Prioridade (MoSCoW):** Must / Should / Could / Won't (v1).
+
+### 8.7 Template de card
+```markdown
+# OG-XXX — Título
+
+| Campo | Valor |
+|---|---|
+| Épico | Ex |
+| Tipo | Feature / Port / Infra / Spike / Conteúdo |
+| Prioridade | Must / Should / Could |
+| Estimativa | N pts |
+| Sprint | Sx |
+| Status | Backlog |
+| Dependências | OG-YYY |
+| Regras de negócio | RN-... |
+| Skills | outgun-re-spec, ... |
+
+## História
+Como <persona>, quero <ação>, para <benefício>.
+
+## Contexto e referências no original
+## Escopo
+## Critérios de aceite
+## Notas técnicas
+## Notas de implementação
+(preenchido durante a execução)
+```
+
+### 8.8 Cerimônias e artefatos
+| Cerimônia | Entrada | Saída |
+|---|---|---|
+| Planning | Seção 10, velocidade | Cards do sprint em "Pronto" |
+| Daily (assíncrona) | Quadro | Bloqueios registrados nos cards |
+| Review | Cards em revisão | Demo; cards aceitos → Concluído |
+| Retro | — | Ações registradas em `plan/retros/Sx.md` |
+| Refinamento (semanal) | Backlog | Cards quebrados, estimados, com DoR |
+
+---
+
+## 9. Épicos e roadmap
+
+### 9.1 Épicos
+| Épico | Nome | Objetivo |
+|---|---|---|
+| E0 | Fundação e engenharia reversa | Monorepo, original compilando em Docker, harness de paridade, licença |
+| E1 | Conteúdo e assets | Mapas, gerador, gráficos, sons, fontes, idiomas |
+| E2 | Simulação (`packages/sim`) | Port fiel de `world.cpp` com paridade comprovada |
+| E3 | Servidor de jogo | Salas, loop 10 Hz, protocolo, times, votação, chat, bots |
+| E4 | Cliente web | Render, input, predição, HUD, menus, áudio |
+| E5 | Plataforma | Contas, nick, ranking, perfil, lobby, admin |
+| E6 | Replays e espectador | Gravação, player de replay, espectador ao vivo |
+| E7 | Qualidade, operação e lançamento | Paridade no CI, E2E, carga, observabilidade, deploy, segurança, beta |
+
+### 9.2 Roadmap por sprint
+| Sprint | Tema | Cards | Marco |
+|---|---|---|---|
+| S0 | Fundação | OG-001, OG-002, OG-005 | |
+| S1 | Engenharia reversa + conteúdo | OG-003, OG-004, OG-010, OG-012 | |
+| S2 | Simulação I | OG-020, OG-021, OG-030, OG-100, OG-013 | |
+| S3 | Simulação II | OG-022, OG-023, OG-024, OG-014 | |
+| S4 | Simulação III | OG-025, OG-026, OG-027 | |
+| S5 | Simulação IV + servidor | OG-028, OG-029, OG-040, OG-041 | **M1 — Simulação com paridade** |
+| S6 | Cliente jogável | OG-060, OG-061, OG-062, OG-063, OG-042, OG-043 | |
+| S7 | Multiplayer completo | OG-064, OG-065, OG-044, OG-045, OG-067 | **M2 — Alpha interno jogável** |
+| S8 | Contas | OG-080, OG-081, OG-082, OG-083, OG-046, OG-047 | |
+| S9 | Ranking e social | OG-084, OG-085, OG-086, OG-066, OG-068, OG-069 | **M3 — Contas e ranking** |
+| S10 | Bots, gerador e replays | OG-048, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
+| S11 | Endurecimento | OG-101, OG-102, OG-103, OG-104, OG-087 | |
+| S12 | Beta e lançamento | OG-105 | **M5 — Lançamento público** |
+
+> Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
+
+---
+
+## 10. Backlog — índice de cards
+
+| ID | Título | Épico | Pts | Prio | Sprint | Depende de | Status |
+|---|---|---|---:|---|---|---|---|
+| [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Pronto |
+| [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Pronto |
+| [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Backlog |
+| [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Backlog |
+| [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Pronto |
+| [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Backlog |
+| [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Backlog |
+| [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Backlog |
+| [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Backlog |
+| [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Backlog |
+| [OG-020](cards/OG-020-geometry-walls.md) | Geometria e paredes (colisão contínua) | E2 | 8 | Must | S2 | OG-004, OG-010 | Backlog |
+| [OG-021](cards/OG-021-player-movement.md) | Movimento do jogador e troca de sala | E2 | 5 | Must | S2 | OG-020 | Backlog |
+| [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Backlog |
+| [OG-023](cards/OG-023-player-collisions.md) | Colisões entre jogadores (none/normal/special) | E2 | 5 | Must | S3 | OG-021 | Backlog |
+| [OG-024](cards/OG-024-health-energy-damage.md) | Vida, energia, dano e shield | E2 | 3 | Must | S3 | OG-022 | Backlog |
+| [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Backlog |
+| [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Backlog |
+| [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Backlog |
+| [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
+| [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |
+| [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Backlog |
+| [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Backlog |
+| [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Backlog |
+| [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Backlog |
+| [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Backlog |
+| [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Backlog |
+| [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Backlog |
+| [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Backlog |
+| [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Backlog |
+| [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
+| [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Backlog |
+| [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Backlog |
+| [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Backlog |
+| [OG-063](cards/OG-063-input.md) | Input: teclado, remapeamento e gamepad | E4 | 3 | Must | S6 | OG-060 | Backlog |
+| [OG-064](cards/OG-064-prediction-interpolation.md) | Predição, reconciliação e interpolação | E4 | 8 | Must | S7 | OG-042, OG-043 | Backlog |
+| [OG-065](cards/OG-065-hud.md) | HUD: barras, timers, placar, minimapa, chat | E4 | 5 | Must | S7 | OG-062 | Backlog |
+| [OG-066](cards/OG-066-overlays-stats.md) | Telas F1–F5, Tab e lista de mapas | E4 | 5 | Should | S9 | OG-065 | Backlog |
+| [OG-067](cards/OG-067-audio.md) | Áudio | E4 | 3 | Must | S7 | OG-012 | Backlog |
+| [OG-068](cards/OG-068-player-options.md) | Opções do jogador | E4 | 3 | Should | S9 | OG-060 | Backlog |
+| [OG-069](cards/OG-069-lobby.md) | Lobby de salas | E4 | 5 | Must | S9 | OG-086 | Backlog |
+| [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Backlog |
+| [OG-081](cards/OG-081-auth.md) | Cadastro e login | E5 | 5 | Must | S8 | OG-080 | Backlog |
+| [OG-082](cards/OG-082-nick-protection.md) | Nick protegido e clan tag | E5 | 2 | Must | S8 | OG-081 | Backlog |
+| [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Backlog |
+| [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Backlog |
+| [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Backlog |
+| [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Backlog |
+| [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Backlog |
+| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Backlog |
+| [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Backlog |
+| [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Backlog |
+| [OG-100](cards/OG-100-parity-ci.md) | Paridade automatizada no CI | E7 | 3 | Must | S2 | OG-003 | Backlog |
+| [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Backlog |
+| [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Backlog |
+| [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Backlog |
+| [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Backlog |
+| [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento | E7 | 5 | Must | S12 | todos Must | Backlog |
+
+**Total:** 57 cards, 270 pontos.
+
+---
+
+## 11. Riscos
+| # | Risco | Prob. | Impacto | Mitigação |
+|---|---|---|---|---|
+| R1 | Física "parecida mas não igual" frustra veteranos | Alta | Alto | Harness de paridade (OG-003/100) desde o S1; beta com veteranos |
+| R2 | Original não compila em toolchain moderna | Média | Alto | Docker com GCC antigo (ex.: `gcc:4.9`/Debian antigo) e Allegro 4.4; plano B: build só do servidor dedicado (`DEDICATED_SERVER_ONLY`) |
+| R3 | `sin`/`cos`/`sqrt` diferem entre libm e V8 | Média | Médio | Tolerância 1e-9 e ressincronização por frame no comparador; testes por função |
+| R4 | Latência de WebSocket (TCP) em redes ruins | Média | Médio | 10 Hz + predição tolera; WebTransport no v2 |
+| R5 | Trapaça (bots, speedhack) | Média | Alto | Servidor autoritativo, AOI, validação de taxa de input, detecção de anomalias |
+| R6 | Licença GPL mal aplicada | Baixa | Alto | OG-005 antes de qualquer publicação |
+| R7 | Port dos bots (2,1k linhas de IA) maior que o estimado | Alta | Médio | Card de 13 pts quebrado no refinamento; bots simples primeiro |
+| R8 | Escopo de plataforma cresce (social, clãs...) | Média | Médio | MoSCoW rígido; itens novos vão para v2 |
+
+---
+
+## 12. Decisões em aberto
+| ID | Decisão | Opções | Recomendação | Dono |
+|---|---|---|---|---|
+| D-01 | Defaults: código ou `gamemod.txt`? | Código / gamemod | **gamemod distribuído** como preset Clássico; defaults do código documentados | PO |
+| D-02 | Ordenação do leaderboard (script PHP do master não está no repo) | Rating clássico / Glicko-2 / TrueSkill | **Rating clássico** `(score+1)/(neg+1)` na v1; avaliar Glicko-2 na v2 | PO |
+| D-03 | Framework de salas | Próprio (uWS) / Colyseus | **Próprio** | Tech Lead |
+| D-04 | Hospedagem | Fly.io / Hetzner / AWS | Fly.io no beta (regiões e WS simples) | Tech Lead |
+| D-05 | Visão de salas vizinhas por padrão | Só a sala atual (original) / zoom | Original por padrão; zoom como opção não ranqueada? | PO |
+| D-06 | Suporte a mobile/touch | v1 / v2 | v2 | PO |
+
+---
+
+## 13. Glossário
+| Termo | Significado |
+|---|---|
+| Frame | Passo da simulação, 0,1 s |
+| Sala (room/screen) | Célula de 472×354 px; a tela mostra uma sala |
+| Frag | Ponto individual |
+| Neg | Ponto negativo (usado no ranking) |
+| Pup | Power-up |
+| Deathbringer (DB) | Power-up que explode ao morrer, atordoando inimigos |
+| Bandeira selvagem/verde | Bandeira do time 2, capturável por ambos conforme config |
+| gamemod | Arquivo de configuração do servidor original |
+| AOI | Area of interest: o que cada cliente pode receber |
+| Golden trace | Registro do estado frame a frame produzido pelo original, usado como referência |
+| TSIZE | Metade de `maxplayers`; no original, `pid / TSIZE` = time |
+
+---
+
+## 14. Mapa do código-fonte original
+| Assunto | Onde olhar |
+|---|---|
+| Constantes globais | `src/commont.h:280-320` |
+| Classes do mundo | `src/world.h` (Map 205, Statistics 266, GunDirection 387, PlayerBase 422, Flag 640, Powerup 780, Deathbringer 809, PhysicalSettings 832, WorldBase 892, WorldSettings 1033) |
+| Parser de mapa | `src/world.cpp:375-775` |
+| Colisão com paredes | `src/world.cpp:120-375, 1069-1210` |
+| Aceleração | `src/world.cpp:1209` |
+| Foguetes | `src/world.cpp:1342-1410, 2402-2460, 2510` |
+| Respawn | `src/world.cpp:1807-1915, 2228` |
+| Power-ups | `src/world.cpp:1928-2215` |
+| Dano/morte | `src/world.cpp:2228-2400` |
+| Colisão entre jogadores | `src/world.cpp:2545-2735` |
+| Loop de física por sala | `src/world.cpp:2740-3070` |
+| Pré/pós-física do jogador | `src/world.cpp:3087-3365` |
+| Captura | `src/world.cpp:3367-3445, 3639-3700` |
+| Frame do servidor | `src/world.cpp:3447-3615` |
+| Predição do cliente | `src/world.cpp:3697-3750`, `src/clientbase.cpp:420-560` |
+| Estatísticas | `src/world.cpp:3752-3910, 4069-4211` |
+| Pontuação/ranking | `src/server.cpp:450-515`, `src/servnet.cpp:924-960, 1700-1770, 2400-2430` |
+| Rotação/votação | `src/server.cpp:565-790` |
+| Times | `src/server.cpp:216-390`, `src/servnet.cpp:1333-1420` |
+| Chat/comandos | `src/server.cpp:1188-1530` |
+| Idle kick | `src/server.cpp:1640-1660` |
+| Registro de settings | `src/server_settings.cpp` |
+| Mensagens de rede | `src/protocol.h`, `src/servnet.cpp`, `src/clientbase.cpp` |
+| Frame por cliente | `src/servnet.cpp:1937-2345` |
+| Bots | `src/robot.cpp`, `src/bot_support.cpp` |
+| Gerador de mapas | `src/mapgen.cpp`, `src/tools/mapgen-main.cpp`, `mapgen/` |
+| Render | `src/graphics.cpp` (`draw_player`, `draw_rocket`, `draw_pup`, efeitos) |
+| Menus | `src/client_menus.*`, `src/menu.*` |
+| Docs do usuário | `doc/*.html` (game, gamemod, maps, map-tutorial, admin, menus) |
