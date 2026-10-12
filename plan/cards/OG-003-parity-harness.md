@@ -33,6 +33,8 @@ Como dev da simulação, quero traces frame a frame produzidos pelo original, pa
 - [ ] Documentado como gravar um novo cenário em < 5 minutos.
 
 ## Notas técnicas
+- **Descoberto no OG-002:** o servidor tem a opção não documentada `-bottest` (`src/main.cpp:317`): lockstep com os bots e tempo acelerado (~0,07 s por partida de 2 min), restart no frame 100, replays mantidos sem humanos. Usar como modo de execução do harness.
+- **Descoberto no OG-002:** o build original usa `-ffast-math`. Gravar os primeiros traces com e sem a flag e medir a divergência antes de escolher a referência; registrar a escolha em PLAN seção 12.
 - Para paridade de RNG, a sim TS usa `GlibcRand` (OG-004). Em produção, qualquer PRNG.
 - Ordem de jogadores é embaralhada por frame (`random_shuffle`) — o trace deve registrar a ordem resultante.
 

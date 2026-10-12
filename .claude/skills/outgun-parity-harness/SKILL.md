@@ -18,9 +18,15 @@ tools/parity/
 └─ compare.ts               # roda packages/sim com o mesmo cenário e compara
 ```
 
+## Oráculo (pronto no OG-002)
+`pnpm oracle build` constrói a imagem; `pnpm oracle help` lista os modos (`server`, `replay`, `mappic`, `mapgen`, `compile-commands`). Detalhes e comportamentos descobertos em `tools/parity/README.md`. Pontos-chave:
+- `server --bottest` usa a opção não documentada `-bottest` do original: lockstep com bots e tempo acelerado. Use-a para gerar traces rapidamente.
+- O build original usa `-ffast-math`; compile uma variante sem a flag (`--build-arg OUTGUN_CXXFLAGS=...`) para medir o impacto na paridade.
+- O container roda sem rede (`--network none`).
+
 ## Gravar um trace
 1. Escreva `scenarios/<nome>.json`: `map`, `settings` (preset + overrides), `seed`, `players` (time, nome), `inputs` (por frame: bitmask de controles, fire, drop, suicide) e `frames` (duração).
-2. Rode no container: `docker run --rm -v $PWD/tools/parity:/p outgun-oracle trace /p/scenarios/<nome>.json > /p/traces/<nome>.jsonl` e comprima.
+2. Rode no container (modo `trace`, a ser criado no OG-003 sobre `tools/parity/oracle.sh`), gerando `traces/<nome>.jsonl`, e comprima.
 3. Cada linha do JSONL é um frame: `frame`, `order` (ordem de jogadores após `random_shuffle`), `players[]` (pos sala/x/y, vel, gundir, health, energy, itens e tempos, dead, frags), `rockets[]`, `powerups[]`, `flags[]`, `teams[]` (score), `events[]` (kill, capture, take, return, drop, pup, db).
 
 O patch de trace deve:

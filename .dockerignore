@@ -1,0 +1,12 @@
+# Contexto do build do oráculo (tools/parity/docker/Dockerfile): só o jogo original e os scripts do oráculo.
+**/node_modules
+.git
+.github
+.turbo
+apps
+packages
+plan
+tools/legacy-integrity
+tools/parity/out
+**/dist
+*.dll

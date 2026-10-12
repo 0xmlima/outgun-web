@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:legacy": "node tools/legacy-integrity/check.mjs",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:legacy"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:legacy",
+    "oracle": "bash tools/parity/oracle.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
