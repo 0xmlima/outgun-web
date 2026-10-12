@@ -1,0 +1,181 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+import { fileURLToPath } from 'node:url';
+import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
+import { Position } from '@outgun/sim';
+import { describe, expect, it } from 'vitest';
+import { loadMaps } from './maps.js';
+import { Room, type Connection } from './room.js';
+import { RoomManager } from './rooms.js';
+
+const MAPS = fileURLToPath(new URL('../../../maps', import.meta.url));
+const maps = loadMaps(MAPS, ['outgun1']);
+
+class TestConnection implements Connection {
+  received: AnyMessage[] = [];
+  closed: [number, string] | null = null;
+  send(data: Uint8Array): void {
+    const r = decodeFrame(data, 's2c');
+    if (!r.ok) throw new Error(r.error);
+    this.received.push(...r.messages);
+  }
+  close(code: number, reason: string): void {
+    this.closed = [code, reason];
+  }
+  of<T extends AnyMessage['type']>(type: T): Extract<AnyMessage, { type: T }>[] {
+    return this.received.filter((m): m is Extract<AnyMessage, { type: T }> => m.type === type);
+  }
+  lastFrame() {
+    return this.of('frame').at(-1);
+  }
+}
+
+function room(preset = 'classic') {
+  return new Room({ id: 'r', preset, maps, maxPlayers: 16, seed: 7 });
+}
+
+function join(r: Room, name: string) {
+  const conn = new TestConnection();
+  const result = r.join(conn, { name, accountId: null });
+  if (!result.ok) throw new Error(result.text);
+  r.handle(result.pid, [message('clientReady', {})]);
+  return { conn, pid: result.pid };
+}
+
+describe('Room', () => {
+  it('entrada: times alternados, boas-vindas com configuração, mapa e bandeiras', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    expect([a.pid, b.pid]).toEqual([0, 8]);
+    const types = a.conn.received.map((m) => m.type);
+    expect(types.slice(0, 4)).toEqual(['welcome', 'serverSettings', 'mapChange', 'playersPresent']);
+    expect(a.conn.of('flagUpdate')).toHaveLength(3);
+    expect(b.conn.of('playerJoined').map((m) => m.name)).toContain('Ana');
+  });
+
+  it('nasce na base depois do clientReady e recebe frames com o próprio estado', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    for (let i = 0; i < 3; i++) r.tick();
+    const f = a.conn.lastFrame();
+    expect(f?.skipped).toBe(false);
+    expect(f?.self).not.toBeNull();
+    expect(a.conn.of('spawn').map((m) => m.pid)).toContain(0);
+    const red = maps[0]!.teams[0].spawn.map((s) => `${s.room.x},${s.room.y}`);
+    expect(red).toContain(`${f?.self?.roomX},${f?.self?.roomY}`);
+  });
+
+  it('duas conexões veem o mesmo estado da sala', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    for (let i = 0; i < 3; i++) r.tick();
+    // coloca os dois na mesma sala
+    r.world.players[8]!.pos = new Position(2, 2, 300, 100);
+    r.world.players[0]!.pos = new Position(2, 2, 100, 100);
+    r.handle(0, [message('input', { clientFrame: 1, controls: 8, gundir: 0 })]);
+    for (let i = 0; i < 5; i++) r.tick();
+    const fa = a.conn.lastFrame()!;
+    const fb = b.conn.lastFrame()!;
+    expect(fa.frame).toBe(fb.frame);
+    expect(fa.players).toEqual(fb.players);
+    expect(fa.players.map((p) => p.pid)).toEqual([0, 8]);
+    expect(fa.players[0]!.x).toBeGreaterThan(100); // andou para a direita
+    expect(fa.lastClientFrame).toBe(1);
+  });
+
+  it('tiro e morte viram eventos; frags são enviados quando mudam', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    join(r, 'Bia');
+    for (let i = 0; i < 3; i++) r.tick();
+    r.world.players[0]!.pos = new Position(2, 2, 100, 177);
+    r.world.players[8]!.pos = new Position(2, 2, 200, 177);
+    r.world.players[8]!.health = 1;
+    r.world.players[0]!.gundir = 0;
+    r.handle(0, [message('fire', { on: true })]);
+    for (let i = 0; i < 10; i++) r.tick();
+    expect(a.conn.of('kill')).toEqual([expect.objectContaining({ attacker: 0, target: 8, cause: 'rocket' })]);
+    expect(a.conn.of('frags').at(-1)).toEqual({ type: 'frags', pid: 0, frags: 1 });
+  });
+
+  it('saída larga a bandeira e avisa os outros; Ranked recusa convidado', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.tick();
+    r.leave(b.pid);
+    r.tick();
+    expect(a.conn.of('playerLeft')).toEqual([{ type: 'playerLeft', pid: 8 }]);
+    expect(r.world.players[8]).toBeUndefined();
+    expect(room('ranked').join(new TestConnection(), { name: 'x', accountId: null })).toMatchObject({ ok: false, reason: 'rankedNeedsAccount' });
+  });
+
+  it('sala cheia recusa', () => {
+    const r = new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 2, seed: 1 });
+    join(r, 'a');
+    join(r, 'b');
+    expect(r.join(new TestConnection(), { name: 'c', accountId: null })).toMatchObject({ ok: false, reason: 'serverFull' });
+  });
+
+  it('fim de partida: placar, troca de mapa, sem simulação durante o placar e recomeço', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    join(r, 'Bia');
+    r.tick();
+    // captura com limite 1
+    (r.settings.world as { captureLimit: number }).captureLimit = 1;
+    const blue = r.world.teams[1].flags[0]!;
+    const home = r.world.teams[0].flags[0]!.home;
+    r.world.players[0]!.pos = new Position(home.roomX, home.roomY, home.x + 5, home.y);
+    blue.take(0, 0);
+    r.world.players[0]!.stats.carriedFlag = 2;
+    r.tick();
+    expect(a.conn.of('gameOver')).toHaveLength(1);
+    expect(r.results).toHaveLength(1);
+    expect(r.results[0]!.winner).toBe(0);
+    const frameAtEnd = r.frame;
+    for (let i = 0; i < 49; i++) r.tick();
+    expect(a.conn.lastFrame()?.skipped).toBe(true);
+    expect(a.conn.of('startGame')).toHaveLength(1); // só o do segundo jogador
+    r.tick();
+    expect(a.conn.of('startGame')).toHaveLength(2);
+    // 50 frames de placar depois do frame do fim (como match-sudden-death no original)
+    expect(r.world.mapStartFrame).toBe(frameAtEnd - 1 + 50);
+    // precisa confirmar o mapa novo antes de nascer
+    r.handle(a.pid, [message('clientReady', {})]);
+    for (let i = 0; i < 2; i++) r.tick();
+    expect(a.conn.lastFrame()?.skipped).toBe(false);
+  });
+});
+
+describe('RoomManager', () => {
+  it('encerra sala vazia depois do tempo configurado; salas fixas ficam', () => {
+    let t = 0;
+    const clock = { now: () => t, setTimeout: () => 0, clearTimeout: () => {} };
+    const m = new RoomManager({ emptyTimeoutMs: 1000, clock, seed: () => 1 });
+    m.create({ id: 'temp', preset: 'classic', maps, maxPlayers: 16 });
+    m.create({ id: 'fixa', preset: 'classic', maps, maxPlayers: 16, persistent: true });
+    const conn = new TestConnection();
+    m.get('temp')!.join(conn, { name: 'a', accountId: null });
+    m.tickAll();
+    m.get('temp')!.leave(0);
+    for (; t < 1000; t += 100) m.tickAll();
+    expect(m.get('temp')).toBeDefined();
+    m.tickAll();
+    expect(m.get('temp')).toBeUndefined();
+    expect(m.get('fixa')).toBeDefined();
+    expect(m.metrics().rooms).toBe(1);
+  });
+
+  it('encerrar a sala avisa e fecha as conexões', () => {
+    const m = new RoomManager({ emptyTimeoutMs: 1000, seed: () => 1 });
+    const r = m.create({ id: 'x', preset: 'classic', maps, maxPlayers: 16 });
+    const conn = new TestConnection();
+    r.join(conn, { name: 'a', accountId: null });
+    m.close('x');
+    expect(conn.of('disconnecting')).toEqual([{ type: 'disconnecting', reason: 'shutdown', seconds: 0 }]);
+    expect(conn.closed?.[0]).toBe(1001);
+  });
+});
+

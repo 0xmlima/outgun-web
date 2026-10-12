@@ -39,22 +39,31 @@ function isAllowed(expression) {
 
 const problems = [];
 
-// 1. Dependências de produção
-const output = execFileSync('pnpm', ['licenses', 'list', '--json', '--prod'], {
-  cwd: repoRoot,
-  encoding: 'utf8',
-});
-const byLicense = output.trim() ? JSON.parse(output) : {};
-let packages = 0;
-for (const [license, entries] of Object.entries(byLicense)) {
-  for (const entry of entries) {
-    packages++;
-    if (!isAllowed(license)) {
-      problems.push(
-        `licença não permitida: ${entry.name}@${entry.versions.join(',')} (${license})`,
-      );
-    }
+// 1. Dependências de produção. `pnpm licenses list` não enxerga dependências vindas do GitHub (e
+// devolve vazio no pnpm 12): percorre a árvore de `pnpm ls` e lê o package.json de cada pacote.
+const tree = JSON.parse(
+  execFileSync('pnpm', ['ls', '--prod', '--json', '--recursive', '--depth', 'Infinity'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  }),
+);
+const seen = new Map();
+const walk = (deps) => {
+  for (const [name, info] of Object.entries(deps ?? {})) {
+    if (info.version?.startsWith('link:') || seen.has(info.path)) continue; // pacotes do workspace
+    seen.set(info.path, name);
+    walk(info.dependencies);
   }
+};
+for (const project of tree) walk(project.dependencies);
+let packages = 0;
+for (const [path, name] of seen) {
+  packages++;
+  const pkg = JSON.parse(readFileSync(join(path, 'package.json'), 'utf8'));
+  const license =
+    typeof pkg.license === 'string' ? pkg.license : (pkg.license?.type ?? 'desconhecida');
+  if (!isAllowed(license))
+    problems.push(`licença não permitida: ${name}@${pkg.version} (${license})`);
 }
 
 // 2. Cabeçalho SPDX nos arquivos de código do port

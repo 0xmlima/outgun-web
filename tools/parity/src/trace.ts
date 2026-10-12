@@ -141,6 +141,10 @@ export interface TraceState {
   /** `get_time()` do original durante o frame (relógio do servidor, em segundos). */
   time: number;
   mapStartTime: number;
+  /** Período de prorrogação (traces gravados a partir do OG-029; antes, 1). */
+  extraTimePeriod?: number;
+  /** `MapTeam::lastspawn` dos dois times (a partir do OG-029). */
+  lastSpawn?: [number, number];
   players: TracePlayer[];
   rockets: TraceRocket[];
   powerups: TracePowerup[];

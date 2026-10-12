@@ -123,8 +123,8 @@ diff --color -ruN a/timer.h b/timer.h
      void advanceArtificially(double seconds) throw () { base -= seconds; refresh(); }
 diff --color -ruN a/trace.cpp b/trace.cpp
 --- a/trace.cpp	1970-01-01 01:00:00
-+++ b/trace.cpp	2026-10-12 18:20:43
-@@ -0,0 +1,515 @@
++++ b/trace.cpp	2026-10-12 18:54:50
+@@ -0,0 +1,542 @@
 +/*
 + *  trace.cpp - Outgun Web: gravaÃ§Ã£o de golden traces para o harness de paridade (card OG-003).
 + *  NÃ£o faz parte do Outgun original; aplicado como patch sÃ³ dentro do orÃ¡culo Docker.
@@ -273,9 +273,19 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +    return o.str();
 +}
 +
++// current_extra_time_period fica na parte privada implícita da classe; recuperado pelos getters públicos.
++int extraTimePeriod(const ServerWorld& w) {
++    const WorldSettings& c = w.getConfig();
++    if (c.getExtraTime() == 0)
++        return 1;
++    return int(w.getExtraTimeLeft() - int(c.getTimeLimit()) + w.getMapTime()) / int(c.getExtraTime());
++}
++
 +std::string state(const ServerWorld& w) {
 +    std::ostringstream o;
 +    o << "{\"frame\":" << w.frame << ",\"time\":" << num(get_time()) << ",\"mapStartTime\":" << w.map_start_time
++      << ",\"extraTimePeriod\":" << extraTimePeriod(w)
++      << ",\"lastSpawn\":[" << w.map.tinfo[0].lastspawn << ',' << w.map.tinfo[1].lastspawn << ']'
 +      << ",\"players\":[";
 +    bool first = true;
 +    for (int i = 0; i < w.maxplayers; ++i)
@@ -493,6 +503,14 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +            ist >> f;
 +            actions.insert(std::make_pair(f, a));
 +        }
++        else if (cmd == "flagreset") {  // flagreset F  (portadores largam e todas as bandeiras voltam à base)
++            unsigned f;
++            Action a;
++            a.pid = -1;
++            a.field = "flagreset";
++            ist >> f;
++            actions.insert(std::make_pair(f, a));
++        }
 +        else if (cmd == "suicide") {    // suicide F PID  (mensagem data_suicide)
 +            unsigned f;
 +            Action a;
@@ -515,12 +533,21 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +        it.pos = WorldCoords(int(value(a, 2)), int(value(a, 3)), value(a, 4), value(a, 5));
 +        return;
 +    }
++    if (a.field == "flagreset") {
++        for (int i = 0; i < w.maxplayers; ++i)
++            if (w.player[i].used)
++                w.dropFlagIfAny(i);
++        w.returnAllFlags();
++        return;
++    }
 +    if (a.field == "pupclear") {
 +        for (int i = 0; i < MAX_POWERUPS; ++i)
 +            w.item[i].kind = Powerup::pup_unused;
 +        return;
 +    }
 +    ServerPlayer& p = w.player[a.pid];
++    if (!p.used)    // PID vazio (a divisão dos bots entre os times varia): ignora
++        return;
 +    if (a.field == "suicide") {
 +        if (!p.under_deathbringer_effect(get_time()))
 +            w.suicide(a.pid);

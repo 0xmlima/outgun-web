@@ -1,3 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-/** Versão do protocolo web. Incrementar a cada mudança incompatível (card OG-041). */
-export const PROTOCOL_VERSION = 1;
+// Protocolo binário cliente/servidor do Outgun Web (OG-041). Catálogo em messages.ts, documentado
+// em MESSAGES.md (gerado).
+export * from './codec.js';
+export * from './frame.js';
+export * from './messages.js';
+export * from './docs.js';

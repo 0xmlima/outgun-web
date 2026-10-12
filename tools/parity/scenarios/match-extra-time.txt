@@ -1,0 +1,22 @@
+# Tempo esgotado com empate: aviso de 30 s, fim do tempo normal (começa a prorrogação), segundo
+# período por empate e fim da prorrogação (game over). Todos parados, placar 0 a 0.
+map outgun1
+bots 4
+start 440
+frames 1540
+flagreset 440
+seconds 280
+seed 81
+# o mapa começa no frame ~151: aviso de 30 s no ~451, tempo normal no ~751, períodos no ~1351 e ~1951
+gamemod time_limit 1
+gamemod extra_time 1
+gamemod extra_time_periods 2
+players 0 1 2 3 8 9 10 11
+input 440 0 0 0
+input 440 1 0 0
+input 440 2 0 0
+input 440 3 0 0
+input 440 8 0 0
+input 440 9 0 0
+input 440 10 0 0
+input 440 11 0 0

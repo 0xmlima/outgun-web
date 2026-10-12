@@ -1,29 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Lógica de servidor do frame (`ServerWorld`, src/world.cpp:1228-3365): tiro e foguetes (OG-022),
 // colisões especiais entre jogadores (OG-023), vida, energia, dano e morte (OG-024), power-ups
-// (OG-025), deathbringer (OG-026) e bandeiras (OG-027). O que ainda não foi portado (respawn, OG-029)
-// lança `NotPortedError` se for exercitado, para que a falta apareça nos testes de paridade.
+// (OG-025), deathbringer (OG-026), bandeiras (OG-027) e ciclo da partida (OG-029). O que fica fora
+// da sim (troca de mapa, votação, placar final) é avisado pelos `ServerHooks`.
 import type { GameSettings } from '@outgun/settings';
-import { FLAG_RADIUS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
+import { FLAG_RADIUS, MAX_PLAYERS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
 import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
-import type { WorldCoords } from '../map/map.js';
+import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
+import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
-import { CarriedFlag, DeathbringerExplosion, FlagState, Position, PowerupKind, type PlayerState, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
+import { CarriedFlag, DeathbringerExplosion, FlagState, newStats, PlayerState, Position, PowerupKind, type GameOverReason, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
 
 /** Alpha do jogador com shadow quando é revelado (atirou, foi atingido...). */
 export const MAXIMUM_SHADOW_VISIBILITY = 254;
 
 export const DamageType = { rocket: 0, deathbringer: 1, collision: 2 } as const;
 export type DamageType = (typeof DamageType)[keyof typeof DamageType];
-
-export class NotPortedError extends Error {
-  constructor(what: string, card: string) {
-    super(`${what}: ainda não portado (${card})`);
-  }
-}
 
 /** Efeitos de pontuação para fora da sim (ranking, OG-084) e eventos para a rede/áudio. */
 export interface ServerHooks {
@@ -41,8 +36,23 @@ export interface ServerHooks {
   flagCaptured?(pid: number, flagTeam: number, assistPid: number): void;
   /** Suicídio (`broadcast_suicide`), com a bandeira que o jogador carregava. */
   suicide?(pid: number, flag: CarriedFlag): void;
-  /** Limite de capturas (ou morte súbita) atingido: o servidor troca de mapa (`server_next_map`). */
-  captureLimitReached?(): void;
+  /** Morte com atacante (`broadcast_kill`): bônus de defesa entram na mensagem do original. */
+  kill?(attacker: number, target: number, cause: DamageType, carriedFlag: CarriedFlag, carrierDefended: boolean, flagDefended: boolean): void;
+  /** Jogador entrou em jogo (`broadcast_spawn`); não é chamado no reset do mapa. */
+  playerSpawned?(pid: number): void;
+  /** Aviso de tempo restante: 5 min, 1 min ou 30 s (`broadcast_5_min_left`...). */
+  timeWarning?(secondsLeft: 300 | 60 | 30): void;
+  /** Fim do tempo normal com empate: começa a prorrogação ou a morte súbita (`broadcast_normal_time_out`). */
+  normalTimeOut?(suddenDeath: boolean): void;
+  /** Novo período de prorrogação por empate (`send_map_time`). */
+  extraTimePeriodStarted?(period: number): void;
+  /**
+   * Fim de partida (`server_next_map`): limite de capturas/morte súbita, tempo ou prorrogação.
+   * Chamado no meio do frame, como no original: o servidor escolhe o próximo mapa e chama
+   * `changeMap` aqui mesmo, e o resto do frame já roda no mapa reiniciado. `result` traz as
+   * estatísticas finais (já fechadas com `finish_stats`) para placar, ranking e histórico.
+   */
+  gameOver?(reason: GameOverReason, result: MatchResult): void;
 }
 
 /** Formações de tiro por nível de arma (src/world.cpp:1380): foguetes à frente e desvios em oitavos. */
@@ -260,6 +270,7 @@ export class ServerSim {
     // O original passa o tempo truncado para inteiro aqui (`static_cast<int>(get_time())`).
     addDeath(t, type === DamageType.deathbringer, Math.trunc(this.time));
     world.teams[tateam].deaths++;
+    this.hooks.kill?.(attacker, target, type, t.stats.carriedFlag, carrierDefended, flagDefended);
     this.killPlayer(target, false);
   }
 
@@ -563,7 +574,7 @@ export class ServerSim {
       if (target.status === 'carried') this.dropFlagIfAny(assistPid, true, true);
       if (!reverse && target.status !== 'base') this.returnFlag(targetTeam, targetIndex);
       else if (reverse) this.returnFlag(carriedTeam, carriedIndex);
-      if (this.captureLimitReached(myteam)) this.hooks.captureLimitReached?.();
+      if (this.captureLimitReached(myteam)) this.endGame('captureLimit');
       return true;
     }
     return false;
@@ -643,7 +654,7 @@ export class ServerSim {
         flag.carryingTime = 0;
         this.teamGetsCarryingPoint(team);
         if (this.captureLimitReached(team)) {
-          this.hooks.captureLimitReached?.();
+          this.endGame('captureLimit');
           return true;
         }
       }
@@ -1090,7 +1101,7 @@ export class ServerSim {
     this.respawnCountdown(order);
     for (const pl of order) this.postPhysics(pl);
     if (this.carryingScore()) return;
-    // limites de tempo e fim de partida: OG-029
+    this.checkTimeLimit();
   }
 
   /** Jogadores atingidos pelo anel da explosão neste frame (src/world.cpp:3468-3512). */
@@ -1156,8 +1167,200 @@ export class ServerSim {
     }
   }
 
-  respawnPlayer(pid: number): void {
-    throw new NotPortedError(`respawn do jogador ${pid}`, 'OG-029');
+  // ---------------------------------------------------------------- ciclo da partida (OG-029)
+
+  /**
+   * `ServerWorld::respawnPlayer` (src/world.cpp:1807): no ponto de spawn seguinte (início do mapa),
+   * numa área de respawn sorteada do time ou numa sala desocupada sorteada, longe de paredes.
+   */
+  respawnPlayer(pid: number, dontInformClients = false): void {
+    const world = this.world;
+    const map = world.map;
+    const pl = this.player(pid);
+    const team = this.teamOf(pid);
+    const mapTeam = map.teams[team];
+    let pos: Position;
+    if (mapTeam.spawn.length === 0) pl.respawnToBase = false;
+    if (pl.respawnToBase) {
+      if (++world.lastSpawn[team] >= mapTeam.spawn.length) world.lastSpawn[team] = 0;
+      const c = mapTeam.spawn[world.lastSpawn[team]] as WorldCoords;
+      pos = new Position(c.room.x, c.room.y, c.x, c.y);
+    } else if (mapTeam.respawn.length > 0) {
+      const area = mapTeam.respawn[this.rng.rand() % mapTeam.respawn.length] as WorldRect;
+      let x: number;
+      let y: number;
+      // as áreas são validadas na carga para não terem parede demais: logo acha um lugar
+      do {
+        x = area.x1 + (this.rng.rand() % (Math.trunc(area.x2 - area.x1) + 1));
+        y = area.y1 + (this.rng.rand() % (Math.trunc(area.y2 - area.y1) + 1));
+      } while (map.fallOnWallCirc({ room: area.room, x, y }, PLAYER_RADIUS));
+      pos = new Position(area.room.x, area.room.y, x, y);
+    } else {
+      // sala sem jogadores (nas primeiras 200 tentativas) e posição fora das paredes
+      const occupied = new Array<boolean>(map.width * map.height).fill(false);
+      for (const p of world.players) {
+        if (p && p.pos.roomX >= 0 && p.pos.roomY >= 0 && p.pos.roomX < map.width && p.pos.roomY < map.height) occupied[p.pos.roomY * map.width + p.pos.roomX] = true;
+      }
+      let runaway = 400;
+      let rx: number;
+      let ry: number;
+      let x: number;
+      let y: number;
+      do {
+        let ridx: number;
+        do {
+          ridx = this.rng.rand() % (map.width * map.height);
+        } while (runaway-- > 200 && occupied[ridx]);
+        rx = ridx % map.width;
+        ry = Math.trunc(ridx / map.width);
+        x = PLAYER_RADIUS + (this.rng.rand() % (ROOM_WIDTH - 2 * PLAYER_RADIUS));
+        y = PLAYER_RADIUS + (this.rng.rand() % (ROOM_HEIGHT - 2 * PLAYER_RADIUS));
+        if (!map.fallOnWallCirc({ room: { x: rx, y: ry }, x, y }, PLAYER_RADIUS)) break;
+      } while (runaway-- > 0);
+      pos = new Position(rx, ry, x, y);
+    }
+
+    const w = this.settings.world;
+    const p = this.settings.powerups;
+    const time = this.time;
+    pl.pos = pos;
+    pl.vel = new Vec(0, 0);
+    pl.health = w.startHealth;
+    pl.energy = w.startEnergy;
+    pl.megabonus = 0;
+    pl.weapon = p.startWeapon;
+    pl.shield = p.startShield ? 1 : 0; // bool copiado para o contador de acertos
+    pl.power = p.startPower !== 0;
+    pl.powerTime = time + p.startPower;
+    pl.turbo = p.startTurbo !== 0;
+    pl.turboTime = time + p.startTurbo;
+    pl.visibility = p.startShadow ? w.shadowMinimum : 255;
+    pl.shadowTime = time + p.startShadow;
+    pl.deathbringer = p.startDeathbringer;
+    pl.deathbringerEnd = 0;
+    pl.respawnToBase = false;
+    // proteção de spawn: sem tiro nem dano até lá
+    pl.nextShootFrame = pl.startTakeDamageFrame = this.frame + iround(w.spawnSafeTime * 10);
+    pl.attackOnce = false;
+    pl.dead = false;
+    pl.stats.spawnTime = time;
+    pl.stats.dead = false;
+    if (!dontInformClients) this.hooks.playerSpawned?.(pid);
+  }
+
+  /**
+   * `ServerWorld::reset` (início de mapa, `ctf_game_restart`): bandeiras na base, placar e
+   * estatísticas zerados, sem itens nem foguetes, e todos mortos esperando para nascer na base.
+   */
+  resetWorld(): void {
+    const world = this.world;
+    this.returnAllFlags();
+    for (const team of world.teams) {
+      Object.assign(team, { score: 0, kills: 0, deaths: 0, suicides: 0, flagsTaken: 0, flagsDropped: 0, flagsReturned: 0, shots: 0, hits: 0, shotsTaken: 0, movement: 0 });
+      team.captures = [];
+    }
+    for (const item of world.items) item.kind = PowerupKind.unused;
+    for (const rk of world.rockets) rk.owner = -1;
+    world.explosions = [];
+    world.extraTimePeriod = 1;
+    for (const pl of world.players) {
+      if (!pl) continue;
+      const startTime = pl.stats.startTime;
+      pl.stats = { ...newStats(), startTime };
+      pl.respawnToBase = true;
+      this.respawnPlayer(pl.pid, true); // vai para um spawn esperar o jogo
+      this.resetPlayer(pl.pid, -1e10); // morto, sem espera: nasce assim que o cliente estiver pronto
+      pl.respawnToBase = true; // no começo do mapa sempre nasce na base
+    }
+  }
+
+  /**
+   * Troca de mapa no fim da partida (`load_rotation_map` + `ctf_game_restart`): o relógio do mapa
+   * recomeça, as bandeiras são as do novo mapa e o mundo é reiniciado. O balanceamento de times
+   * fica com o servidor de sala, antes desta chamada.
+   */
+  changeMap(map: GameMap): void {
+    const world = this.world;
+    world.map = map;
+    world.mapStartFrame = this.frame;
+    world.lastSpawn = [0, 0];
+    this.loadMapFlags();
+    this.resetWorld();
+  }
+
+  /**
+   * Jogador entra na sala (parte do mundo de `client_connected`): vai para um spawn e fica morto
+   * até o cliente carregar o mapa (`clientReady`); nasce na base. O pid e o time são escolhidos
+   * pelo servidor de sala.
+   */
+  addPlayer(pid: number): PlayerState {
+    const world = this.world;
+    if (world.players[pid]) throw new Error(`pid ${pid} ocupado`);
+    const pl = new PlayerState(pid, world.teamOf(pid));
+    pl.stats.startTime = this.time;
+    pl.awaitingClientReadies = 1; // `send_map_change_message` ao entrar
+    world.players[pid] = pl;
+    pl.respawnToBase = true;
+    this.respawnPlayer(pid, true);
+    this.resetPlayer(pid, -1e10);
+    pl.respawnToBase = true;
+    pl.stats.lifetime = 0;
+    this.checkPowerupCreation(false);
+    return pl;
+  }
+
+  /** `ServerWorld::removePlayer`: foguetes do jogador somem, deathbringers ficam sem dono e a bandeira cai. */
+  removePlayer(pid: number): void {
+    const world = this.world;
+    this.player(pid);
+    world.rockets.forEach((rk, rid) => {
+      if (rk.owner === pid) this.deleteRocket(rid);
+    });
+    if (world.maxPlayers < MAX_PLAYERS) {
+      // pid fictício para o atacante das mortes que ainda vão acontecer
+      for (const db of world.explosions) if (db.ownerPid === pid) db.ownerPid = MAX_PLAYERS - 1;
+      for (const p of world.players) if (p && p.deathbringerAttacker === pid) p.deathbringerAttacker = MAX_PLAYERS - 1;
+    }
+    this.dropFlagIfAny(pid, true);
+    this.resetCarrierData(pid);
+    world.players[pid] = undefined;
+  }
+
+  /** `ServerWorld::start_game`: o relógio do mapa começa e os power-ups iniciais aparecem. */
+  startGame(): void {
+    this.world.mapStartFrame = this.frame;
+    this.world.gameOver = null;
+    this.checkPowerupCreation(true);
+  }
+
+  private endGame(reason: GameOverReason): void {
+    this.world.gameOver = reason;
+    const result = finishMatch(this.world, reason, this.time);
+    this.hooks.gameOver?.(reason, result);
+  }
+
+  /** Limite de tempo, avisos, prorrogação e morte súbita (fim de `simulateFrame`). */
+  private checkTimeLimit(): void {
+    const world = this.world;
+    const w = this.settings.world;
+    const timeLimit = w.timeLimit;
+    if (!(world.playerCount() > 1 && timeLimit > 0)) return; // sozinho não há limite de tempo
+    const timeLeft = timeLimit - world.mapTime();
+    const tied = world.teams[0].score === world.teams[1].score;
+    if (timeLimit >= 10 * 60 * 10 && timeLeft === 5 * 60 * 10) this.hooks.timeWarning?.(300);
+    else if (timeLimit >= 2 * 60 * 10 && timeLeft === 60 * 10) this.hooks.timeWarning?.(60);
+    else if (timeLimit >= 60 * 10 && timeLeft === 30 * 10) this.hooks.timeWarning?.(30);
+    // acaba no fim do tempo se não houver empate ou não houver prorrogação nem morte súbita
+    else if (timeLeft === 0 && (!tied || (w.extraTime === 0 && !w.suddenDeath))) this.endGame('timeOut');
+    else if (timeLimit + world.extraTimePeriod * w.extraTime - world.mapTime() === 0 && w.extraTime > 0) {
+      if (w.extraTimePeriods > world.extraTimePeriod && tied) {
+        world.extraTimePeriod++;
+        this.hooks.extraTimePeriodStarted?.(world.extraTimePeriod);
+      } else this.endGame('extraTimeOut');
+    } else if (timeLeft === 0) {
+      world.extraTimePeriod = 1;
+      this.hooks.normalTimeOut?.(w.suddenDeath);
+    }
   }
 
   /** Callbacks de física do servidor (`ServerPhysicsCallbacks`). */

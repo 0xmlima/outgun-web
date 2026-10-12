@@ -342,9 +342,9 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 |---|---:|---|
 | Matar inimigo | +1 | `world.cpp:2274` |
 | Matar aliado | −2 | idem |
-| Matar inimigo na sala onde um aliado carrega bandeira (defesa do portador) | +1 (uma vez) | idem |
-| Matar inimigo na sala com a própria bandeira no chão (defesa) | +1 | idem |
-| Matar inimigo na sala com a bandeira inimiga no chão (ataque) | +1 | idem |
+| Matar inimigo na sala onde um aliado carrega bandeira (defesa do portador) | +1 | idem |
+| Matar inimigo na sala com a própria bandeira no chão ou na base (defesa) | +1 | idem |
+| Matar inimigo na sala com a bandeira inimiga no chão ou na base (ataque) | +1 | idem |
 | Matar portador de bandeira inimigo | +1 extra | idem |
 | Matar portador aliado | −1 extra | idem |
 | Pegar bandeira | +1 | `world.cpp:3639` |
@@ -354,8 +354,11 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 | Assistência | +3 | idem |
 | Captura do próprio time | +2 para cada membro | idem |
 | Suicídio | −1 | `world.cpp:2392` |
+| Ponto por posse da selvagem (RN-FLG-08) | +2 para cada membro | `world.cpp:3684` |
 
-- **RN-PTS-02** — **Pontos negativos** (usados no ranking): morrer +1 neg; morrer com bandeira +1 neg extra; bandeira do seu time capturada +1 neg para cada membro (exceto captura de bandeira selvagem).
+- **RN-PTS-01** — Os três bônus de sala (portador, defesa, ataque) valem no máximo +1 no total, nessa prioridade; os dois de bandeira não valem com `lock_team_flags` em efeito. "Portador" é quem carrega qualquer bandeira.
+
+- **RN-PTS-02** — **Pontos negativos** (usados no ranking): morrer +1 neg (inclusive suicídio); morrer com bandeira +1 neg extra; bandeira do seu time capturada +1 neg para cada membro (exceto captura de bandeira selvagem); ponto de posse da selvagem do adversário +1 neg para cada membro.
 - **RN-PTS-03** — Placar do time = nº de capturas (+ pontos de posse, RN-FLG-08).
 
 ### 6.9 Partida e condições de fim (RN-PAR)
@@ -363,10 +366,10 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 - **RN-PAR-02** — Limite de tempo `time_limit (0 = sem limite)` minutos. Avisos aos 5 min (se limite ≥ 10 min), 1 min (≥ 2 min) e 30 s (≥ 1 min). Só conta com 2+ jogadores.
 - **RN-PAR-03** — Empate no fim do tempo: se `extra_time > 0`, prorrogação (pode ter vários períodos); se `sudden_death`, a próxima captura vence; senão termina empatado.
 - **RN-PAR-04** — Fim de partida: placa de game over por `game_end_delay (5 s)`, estatísticas enviadas a todos, troca de mapa (RN-VOT).
-- **RN-PAR-05** — Início do mapa: jogadores nascem nos spawn points do time (round-robin); sem spawn points, posição aleatória.
+- **RN-PAR-05** — Início do mapa: jogadores nascem nos spawn points do time (round-robin, a partir do segundo ponto); sem spawn points, como no respawn (RN-SPW-03).
 
 ### 6.10 Spawn e respawn (RN-SPW)
-- **RN-SPW-01** — Tempo de respawn: `respawn_time (2 s)` + `extra_respawn_time_alone (0)` + `respawn_balancing_time × (meu time − time inimigo) / time inimigo` quando meu time é maior. (`world.cpp:1627`)
+- **RN-SPW-01** — Tempo de respawn: `respawn_time (2 s)` + tempo extra = `extra_respawn_time_alone (0)` + `respawn_balancing_time × (meu time − time inimigo) / time inimigo` quando meu time é maior. O tempo extra é descontado de quem espera junto com alguém do outro time (RN-SPW-02), por isso só pesa para quem morre "sozinho". (`world.cpp:1627`)
 - **RN-SPW-02** — Respawn ocorre em ordem justa entre os times (fila ordenada por tempo extra; `world.cpp:3516-3545`).
 - **RN-SPW-03** — Local: áreas `V respawn` do time, se houver; senão sala aleatória **desocupada**, longe de paredes.
 - **RN-SPW-04** — `spawn_safe_time (0 s)`: invulnerável e sem atirar após nascer.
@@ -589,11 +592,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Concluído |
 | [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Concluído |
 | [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Concluído |
-| [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
-| [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |
+| [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Em revisão |
+| [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Em revisão |
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |
-| [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Backlog |
-| [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Backlog |
+| [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Em revisão |
+| [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Em revisão |
 | [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Backlog |
 | [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Backlog |
 | [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Backlog |

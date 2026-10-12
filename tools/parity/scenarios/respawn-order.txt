@@ -1,0 +1,26 @@
+# Ordem de respawn entre os times: todos se matam no mesmo frame, com tempo extra de equilíbrio
+# para o time maior (3 bots: 2 contra 1) e tempo extra de quem está sozinho. Os PIDs variam
+# entre gravações; o roteiro mata os que existirem entre 0, 1, 8 e 9.
+map outgun1
+bots 3
+start 200
+frames 80
+seed 89
+gamemod respawn_time 2
+gamemod respawn_balancing_time 2
+gamemod extra_respawn_time_alone 1
+gamemod waiting_time_deathbringer 0.5
+players 0 1 2 3 8 9 10 11
+input 200 0 0 0
+input 200 1 0 0
+input 200 2 0 0
+input 200 3 0 0
+input 200 8 0 0
+input 200 9 0 0
+input 200 10 0 0
+input 200 11 0 0
+flagreset 200
+suicide 205 0
+suicide 205 1
+suicide 205 8
+suicide 205 9

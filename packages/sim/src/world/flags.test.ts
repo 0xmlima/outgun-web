@@ -260,10 +260,25 @@ describe('pegar, largar e devolver', () => {
     expect(w.wildFlags[0]?.home).toEqual(new Position(7 % 3, 0, 100, 50));
   });
 
+  it('morte súbita: depois do tempo normal, qualquer captura encerra', () => {
+    const reasons: string[] = [];
+    const { w, sim } = world({ settings: (s) => Object.assign(s.world, { timeLimit: 600, suddenDeath: true }) });
+    sim.hooks.gameOver = (reason) => reasons.push(reason);
+    w.mapStartFrame = 0; // frame 1000: o tempo normal já acabou
+    const carrier = addPlayer(w, 0, 0, 246, 177);
+    (w.teams[1].flags[0] as FlagState).take(0, 0);
+    carrier.stats.carriedFlag = CarriedFlag.Enemy;
+    sim.postPhysics(carrier);
+    expect(reasons).toEqual(['captureLimit']);
+  });
+
   it('limite de capturas avisa o servidor (diferença mínima de placar)', () => {
     let reached = 0;
     const { w, sim } = world({ settings: (s) => Object.assign(s.world, { captureLimit: 2, winScoreDifference: 2 }) });
-    sim.hooks.captureLimitReached = () => reached++;
+    sim.hooks.gameOver = (reason) => {
+      expect(reason).toBe('captureLimit');
+      reached++;
+    };
     w.time = 100;
     w.teams[0].score = 1;
     w.teams[1].score = 0;

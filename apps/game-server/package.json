@@ -7,8 +7,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/rooms.d.ts",
+      "default": "./dist/rooms.js"
     }
   },
   "files": [
@@ -17,12 +17,17 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "start": "node dist/main.js"
   },
   "dependencies": {
-    "@outgun/sim": "workspace:*",
+    "@outgun/content": "workspace:*",
     "@outgun/protocol": "workspace:*",
     "@outgun/settings": "workspace:*",
-    "@outgun/content": "workspace:*"
+    "@outgun/sim": "workspace:*",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
   }
 }
