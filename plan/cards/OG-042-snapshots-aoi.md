@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S6 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-040](OG-040-game-server-core.md), [OG-041](OG-041-binary-protocol.md) |
 | Regras de negócio | RN-VIS-01, RN-VIS-02, RN-VIS-03 |
 | Skills | `outgun-re-spec` |
