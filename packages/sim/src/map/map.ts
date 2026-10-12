@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Modelo do mapa (src/world.h:53-242): grade de salas com paredes, áreas de chão, bandeiras,
 // spawns e áreas de respawn. Construído pelo parser de @outgun/content.
+import { noBounce, type BounceData } from '../geometry/bounce.js';
 import { Vec } from '../geometry/vec.js';
 import type { Wall } from './walls.js';
 
@@ -39,6 +40,27 @@ export class Room {
   /** Checagem por círculo; tão precisa quanto `intersectsCirc` de cada parede. */
   fallOnWallCirc(center: Vec, r: number): boolean {
     return this.walls.some((wall) => wall.intersectsCirc(center, r));
+  }
+
+  /**
+   * Primeiro impacto de um círculo de raio `radius` saindo de `center` com velocidade `vel`, dentro
+   * de `maxFraction` frames (`Room::genGetTimeTillWall`, src/world.cpp:347). Paredes fora da caixa
+   * do movimento são descartadas antes; empates ficam com a parede que vem antes no arquivo.
+   */
+  timeTillWall(center: Vec, vel: Vec, radius: number, maxFraction: number): BounceData {
+    let best = noBounce();
+    if (vel.x === 0 && vel.y === 0) return best;
+    const endX = center.x + vel.x * maxFraction;
+    const endY = center.y + vel.y * maxFraction;
+    const x0 = Math.min(center.x - radius, endX - radius);
+    const y0 = Math.min(center.y - radius, endY - radius);
+    const x1 = Math.max(center.x + radius, endX + radius);
+    const y1 = Math.max(center.y + radius, endY + radius);
+    for (const wall of this.walls) {
+      if (!wall.intersectsRect(x0, y0, x1, y1)) continue;
+      best = wall.tryBounce(best, center, vel, radius);
+    }
+    return best;
   }
 }
 

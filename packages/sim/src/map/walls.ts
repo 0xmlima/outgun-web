@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Paredes e áreas de chão do mapa (src/world.h:96-169, src/world.cpp:60-290). Este card (OG-010)
-// cobre construção e testes de interseção, usados para validar mapas e posicionar spawns e
-// power-ups. O quique contínuo (`tryBounce`) entra no OG-020.
+// Paredes e áreas de chão do mapa (src/world.h:96-169, src/world.cpp:60-290, 1069-1161):
+// construção, testes de interseção (validação de mapas, spawns, power-ups) e o quique contínuo
+// (`tryBounce`: tempo até um círculo em movimento tocar a parede).
 import { N_PI } from '../constants.js';
+import { bounceFromArc, bounceFromLine, bounceFromPoint, type BounceData } from '../geometry/bounce.js';
 import { cross, dot, Vec } from '../geometry/vec.js';
+
+/** `add_rv()` do original: só troca por um impacto estritamente mais cedo. */
+const earlier = (best: BounceData, candidate: BounceData): BounceData => (candidate.time < best.time ? candidate : best);
 
 export type WallKind = 'rect' | 'tri' | 'circ';
 
@@ -15,6 +19,11 @@ interface WallCommon {
   readonly alpha: number;
   intersectsRect(x1: number, y1: number, x2: number, y2: number): boolean;
   intersectsCirc(center: Vec, r: number): boolean;
+  /**
+   * Devolve `best` ou um impacto mais cedo do círculo de raio `plyRadius` que parte de `st` com
+   * movimento `m` (`WallBase::tryBounce`).
+   */
+  tryBounce(best: BounceData, st: Vec, m: Vec, plyRadius: number): BounceData;
 }
 
 export type Wall = RectWall | TriWall | CircWall;
@@ -56,6 +65,33 @@ export class RectWall implements WallCommon {
       if (center.sub(new Vec(c, d)).mag2() <= r2) return true;
     }
     return false;
+  }
+
+  tryBounce(best: BounceData, st: Vec, m: Vec, plyRadius: number): BounceData {
+    const { a, b, c, d } = this;
+    // Mesma sequência do original, inclusive o reaproveitamento de `rv` entre os dois testes.
+    let rv: BounceData | undefined;
+    let onLine = false;
+    if (m.x > 0 && a > st.x) rv = bounceFromLine(new Vec(a, b).sub(st), new Vec(a, d).sub(st), m, plyRadius);
+    else if (m.x < 0 && c < st.x) rv = bounceFromLine(new Vec(c, b).sub(st), new Vec(c, d).sub(st), m, plyRadius);
+    if (rv && rv.time < 1e10) {
+      onLine = true;
+      best = earlier(best, rv);
+    }
+    if (m.y > 0 && b > st.y) rv = bounceFromLine(new Vec(a, b).sub(st), new Vec(c, b).sub(st), m, plyRadius);
+    else if (m.y < 0 && d < st.y) rv = bounceFromLine(new Vec(a, d).sub(st), new Vec(c, d).sub(st), m, plyRadius);
+    if (rv && rv.time < 1e10) {
+      onLine = true;
+      best = earlier(best, rv);
+    }
+    if (!onLine) {
+      // cantos
+      best = earlier(best, bounceFromPoint(new Vec(a, b).sub(st), m, plyRadius));
+      best = earlier(best, bounceFromPoint(new Vec(c, b).sub(st), m, plyRadius));
+      best = earlier(best, bounceFromPoint(new Vec(a, d).sub(st), m, plyRadius));
+      best = earlier(best, bounceFromPoint(new Vec(c, d).sub(st), m, plyRadius));
+    }
+    return best;
   }
 }
 
@@ -181,6 +217,19 @@ export class TriWall implements WallCommon {
     const abc = bc + ca + ab < 0 ? -1 : 1;
     return abc * (bc - bp + cp) > 0 && abc * (ca - cp + ap) > 0 && abc * (ab - ap + bp) > 0;
   }
+
+  tryBounce(best: BounceData, st: Vec, m: Vec, plyRadius: number): BounceData {
+    const p1 = this.p1.sub(st);
+    const p2 = this.p2.sub(st);
+    const p3 = this.p3.sub(st);
+    best = earlier(best, bounceFromLine(p1, p2, m, plyRadius));
+    best = earlier(best, bounceFromLine(p1, p3, m, plyRadius));
+    best = earlier(best, bounceFromLine(p2, p3, m, plyRadius));
+    best = earlier(best, bounceFromPoint(p1, m, plyRadius));
+    best = earlier(best, bounceFromPoint(p2, m, plyRadius));
+    best = earlier(best, bounceFromPoint(p3, m, plyRadius));
+    return best;
+  }
 }
 
 /**
@@ -258,5 +307,22 @@ export class CircWall implements WallCommon {
   intersectsRect(x1: number, y1: number, x2: number, y2: number): boolean {
     const halfDiagonal = new Vec((x2 - x1) / 2, (y2 - y1) / 2);
     return this.intersectsCirc(new Vec(x1, y1).add(halfDiagonal), halfDiagonal.mag());
+  }
+
+  tryBounce(best: BounceData, st: Vec, m: Vec, plyRadius: number): BounceData {
+    const { center: c, ro, ri, va1, va2 } = this;
+    const d = c.sub(st);
+    best = earlier(best, bounceFromArc(d, m, this.midvec, this.anglecos, ro, plyRadius, true)); // por fora
+    if (ri > plyRadius) best = earlier(best, bounceFromArc(d, m, this.midvec, this.anglecos, ri, plyRadius, false)); // por dentro
+    if (this.angles[0] === this.angles[1]) return best; // sem setor
+    // Lados e cantos do setor; va1/va2 têm y invertido (coordenadas de mapa).
+    for (const va of [va1, va2]) {
+      const p1 = new Vec(c.x + ro * va.x - st.x, c.y - ro * va.y - st.y);
+      const p2 = new Vec(c.x + ri * va.x - st.x, c.y - ri * va.y - st.y);
+      best = earlier(best, bounceFromLine(p1, p2, m, plyRadius));
+      best = earlier(best, bounceFromPoint(p1, m, plyRadius));
+      best = earlier(best, bounceFromPoint(p2, m, plyRadius));
+    }
+    return best;
   }
 }

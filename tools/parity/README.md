@@ -52,6 +52,11 @@ Ajustes de build, todos dentro da imagem (o repositório não é alterado):
 
 ## Atenção para paridade
 
-- **`-ffast-math`:** o build usa a flag, como o jogo distribuído. Ela permite ao compilador reordenar operações de ponto flutuante. Até agora não causou diferença: geometria, interseções e parser bateram bit a bit. Se uma divergência mínima aparecer na física (OG-020+), compile uma variante sem a flag (`docker build --build-arg OUTGUN_CXXFLAGS=...`) para isolar a causa.
+- **`-ffast-math`:** o build usa a flag, como o jogo distribuído. Nos quiques em paredes (OG-020) ela gera diferenças de até 1e-13 (troca divisões por multiplicação pelo inverso). A variante sem a flag coincide bit a bit com o port:
+  ```bash
+  docker build -f tools/parity/docker/Dockerfile --build-arg OUTGUN_CXXFLAGS="-W -Wall -O3 -fno-enforce-eh-specs -std=gnu++98 -fpermissive" -t outgun-oracle:nofastmath .
+  OUTGUN_ORACLE_IMAGE=outgun-oracle:nofastmath pnpm oracle fixture bounces ...
+  ```
+  Referência padrão: o jogo real (com a flag), comparado com tolerância de 1e-9; use a variante para provar exatidão quando surgir dúvida.
 - **Relógio:** a simulação original usa `get_time()`, o relógio do servidor, para expiração de power-ups, deathbringer e outros tempos. Os traces gravam esse valor por frame; no `-bottest` ele é exatamente `frame × 0,1` mais uma constante. A versão web usa relógio determinístico (decisão D-09).
 - **`rand()` compartilhado:** o original reinicia a semente a cada thread criada (`src/thread.cpp:39`), e bots e simulação compartilham o mesmo estado. Os traces gravam os valores consumidos pela simulação.
