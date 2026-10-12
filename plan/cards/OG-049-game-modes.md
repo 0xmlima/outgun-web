@@ -24,7 +24,7 @@ Como jogador competitivo, quero um modo Ranked sem power-ups e só com contas, p
 - Preset **Ranked** (OG-030) aplicado e travado nas salas Ranked: o servidor recusa `/set` e alterações do dono; rotação de mapas oficial do Ranked.
 - Entrada: o game server rejeita, em sala Ranked, ticket de convidado ou sem conta (motivo explícito para a UI).
 - Sinalização de partida ranqueada: só salas Ranked enviam resultado para o ranking (OG-084); salas Casual enviam só estatísticas.
-- Aplicar a decisão D-11 (bots em Ranked) quando tomada; até lá, bots desligados no Ranked.
+- Bots proibidos no Ranked (D-11, RN-MOD-06): o servidor não adiciona bots e recusa comandos/settings que os ativem; no Casual seguem o original.
 - Testes de integração cobrindo todas as regras RN-MOD.
 
 ## Critérios de aceite
@@ -33,6 +33,7 @@ Como jogador competitivo, quero um modo Ranked sem power-ups e só com contas, p
 - [ ] `/set` e alterações do dono são recusados em Ranked e funcionam em Casual (salas privadas).
 - [ ] Partida Casual não altera o ranking; partida Ranked que cumpre os mínimos altera.
 - [ ] Lobby e registro de salas exibem/filtram o modo.
+- [ ] Sala Ranked nunca tem bots, mesmo com poucos jogadores ou comando de admin; sala Casual adiciona bots como no original.
 
 ## Notas técnicas
 - A simulação não muda: Ranked é só um preset. Os golden traces do original continuam valendo; o cenário `bots-match` com `gamemod pups_max 0` pode servir de trace do Ranked se for preciso.

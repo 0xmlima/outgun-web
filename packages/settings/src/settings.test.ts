@@ -144,11 +144,11 @@ describe('presets por modo (D-10)', () => {
     expect(hasNoPowerups(presetSettings('classic'))).toBe(false);
   });
 
-  it('Ranked difere do Clássico só nos power-ups', () => {
+  it('Ranked difere do Clássico só nos power-ups e nos bots (D-11)', () => {
     const classic = classicSettings();
     const ranked: GameSettings = presetSettings('ranked');
     expect(ranked.world).toEqual(classic.world);
     expect(ranked.physics).toEqual(classic.physics);
-    expect(ranked.server).toEqual(classic.server);
+    expect(ranked.server).toEqual({ ...classic.server, minBots: 0, botsFill: 0 });
   });
 });
