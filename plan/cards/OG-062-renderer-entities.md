@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S6 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-061](OG-061-renderer-world.md) |
 | Regras de negócio | RN-TIM-05, RN-PUP-07 |
 | Skills | `outgun-re-spec`, `outgun-asset-pipeline` |
