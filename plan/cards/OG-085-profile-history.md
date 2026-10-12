@@ -19,7 +19,7 @@ Como jogador, quero ver meu perfil, estatísticas acumuladas e histórico de par
 - `save_stats` (HTML de estatísticas do servidor, `world.cpp:3752`) e `server_stats/stats.css`, `client_stats/stats.css`.
 
 ## Escopo
-- Página de perfil pública (nick, clã, posição, estatísticas agregadas).
+- Página de perfil pública (nome, clã, posição no ranking, estatísticas agregadas **separadas por modo**: Ranked e Casual).
 - Lista de partidas com placar e estatísticas detalhadas (equivalente ao HTML do original).
 - Link para replay quando houver.
 

@@ -16,6 +16,7 @@
 Como jogador, quero os 7 power-ups com os mesmos efeitos, durações e frequências do original.
 
 ## Contexto e referências no original
+- Power-ups valem para o modo **Casual**; o Ranked não tem power-ups (D-10, RN-MOD-02). A paridade continua obrigatória, pois o Casual é o jogo original completo.
 - `PowerupSettings` (`world.h:994`, `world.cpp:1494-1576`).
 - `respawn_powerup`, `check_powerup_creation`, `game_touch_powerup`, `drop_worst_powerup`, `drop_powerup` (`world.cpp:1928-2215`).
 - Expiração e shadow em `simulatePlayerPrePhysics` (`world.cpp:3122`).

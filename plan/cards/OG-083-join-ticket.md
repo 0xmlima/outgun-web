@@ -25,7 +25,7 @@ Como sistema, quero que o game server confie na identidade do jogador sem consul
 
 ## Critérios de aceite
 - [ ] Ticket expirado/adulterado é rejeitado.
-- [ ] Convidado só entra em salas não ranqueadas.
+- [ ] Convidado só entra em salas Casual; o ticket informa se o jogador tem conta (requisito do Ranked, RN-MOD-03).
 
 ## Notas técnicas
 - —

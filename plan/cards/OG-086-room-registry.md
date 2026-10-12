@@ -19,7 +19,8 @@ Como plataforma, quero saber quais salas existem e onde, para listar no lobby e 
 - Master server do original (`servnet.cpp:2481-2580`, `config/master.txt`).
 
 ## Escopo
-- Game servers registram salas e heartbeat no Redis (jogadores, mapa, preset, região).
+- Game servers registram salas e heartbeat no Redis (modo, jogadores, mapa, preset, região).
+- Salas Ranked são criadas pela plataforma com o preset Ranked; "Jogar agora" funciona por modo.
 - API cria salas sob demanda no servidor menos carregado.
 - "Jogar agora": sala pública com vagas mais próxima do ping do jogador.
 

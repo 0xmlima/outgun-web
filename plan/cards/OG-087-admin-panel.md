@@ -20,7 +20,7 @@ Como moderador, quero gerenciar salas, presets, jogadores e punições pelo nave
 
 ## Escopo
 - Lista de salas ao vivo com jogadores; kick/ban/mute; mensagens do servidor.
-- CRUD de presets oficiais; gestão de mapas na rotação.
+- CRUD de presets Casual; o preset Ranked só muda por decisão do PO (versionado, com auditoria). Gestão das rotações de mapas Casual e Ranked.
 - Log de auditoria; papéis (admin, moderador).
 
 ## Critérios de aceite

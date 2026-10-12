@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S1 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-001](OG-001-monorepo-setup.md) |
 | Regras de negócio | RN-MAP-01, RN-MAP-03, RN-MAP-04, RN-MAP-05 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness`, `outgun-asset-pipeline` |

@@ -69,7 +69,8 @@ Levar o Outgun para o navegador sem instalação, mantendo a sensação de jogo 
 - Configuração de servidor (gamemod) → **presets de sala**.
 
 **Novo na versão web:**
-- Contas de usuário, nick protegido, clan tag.
+- **Dois modos de jogo** (divergência D-10): **Casual**, com power-ups e presets variados, aberto a convidados; e **Ranked**, obrigatoriamente **sem power-ups**, só para jogadores com conta, e o único que conta para o ranking.
+- Contas com nome de usuário + senha e e-mail para recuperação de senha; clan tag.
 - Ranking global persistente com temporadas.
 - Lobby de salas públicas/privadas e matchmaking simples.
 - Painel admin web.
@@ -166,7 +167,7 @@ O repositório não tinha nenhuma skill. Adicionamos quatro em `.claude/skills/`
 | Transporte | WebSocket (v1); avaliar **WebTransport** com datagramas (v2) | WS funciona em todo lugar; a 10 Hz o head-of-line blocking do TCP é aceitável |
 | API de plataforma | **Fastify** + **Drizzle ORM** + **PostgreSQL 16** | Contas, ranking, partidas, salas; tipagem ponta a ponta |
 | Cache/tempo real | **Redis** | Sessões, registro de salas (substitui o master server), leaderboards (sorted sets), pub/sub API ↔ game servers |
-| Auth | Sessões em cookie httpOnly + argon2id (lib Better Auth ou implementação própria); OAuth opcional (Google/Discord) | Seguro e simples; game server recebe ticket JWT de curta duração |
+| Auth | Sessões em cookie httpOnly + argon2id (lib Better Auth ou implementação própria); usuário + senha, e-mail só para recuperação (D-10); e-mail transacional via SMTP/provedor (Resend, SES ou similar) | Seguro e simples; game server recebe ticket JWT de curta duração |
 | Front-end (UI) | **Vite + React 18** + React Router + TanStack Query + Zustand | Menus, lobby, perfil, ranking, opções |
 | Render do jogo | **PixiJS v8** (WebGL/WebGPU) num `<canvas>` | Só renderização 2D rápida; o React **não** participa do loop do jogo |
 | Áudio | Web Audio API (wrapper fino ou Howler.js) | Baixa latência, controle de volume por categoria |
@@ -255,6 +256,15 @@ O monorepo fica **na raiz deste repositório, ao lado do código original** (dec
 
 > Convenções: **frame** = 0,1 s. Distâncias em pixels lógicos. Sala = **472 × 354** px (`plw`, `plh`, `src/commont.h:282`). Valores entre parênteses são os do **preset Clássico** (gamemod distribuído). Cada RN cita a fonte; cards referenciam RNs pelo ID.
 
+### 6.0 Modos de jogo (RN-MOD) — divergência intencional D-10
+O original tem um único modo, configurado pelo gamemod do servidor. A versão web separa dois modos:
+- **RN-MOD-01** — **Casual**: salas criadas a partir de qualquer preset Casual (padrão: **Clássico** = `config/gamemod.txt`, com power-ups). Aberto a convidados e contas. Não altera o ranking.
+- **RN-MOD-02** — **Ranked**: salas usam somente o preset **Ranked** = Clássico **sem power-ups**: `pups_min 0`, `pups_max 0`, todos os `pup_start_*` desligados (`pup_start_weapon 1`), `pups_drop_at_death 0`. Nenhum power-up aparece, é dado no spawn ou largado; o resto das regras (física, tiro, bandeiras, pontuação) é idêntico ao Clássico.
+- **RN-MOD-03** — Ranked exige **conta logada** (nome de usuário + senha). Convidados não entram em salas Ranked.
+- **RN-MOD-04** — O preset Ranked é **travado**: nem dono de sala nem `/set` alteram settings; mapas vêm da rotação oficial Ranked; não há salas Ranked privadas com regras próprias.
+- **RN-MOD-05** — Só partidas Ranked alimentam o ranking (RN-RNK). Estatísticas de partidas Casual podem aparecer no perfil, separadas.
+- **RN-MOD-06** — Bots em salas Ranked: ver decisão D-11.
+
 ### 6.1 Mapa e mundo (RN-MAP)
 - **RN-MAP-01** — O mapa é uma grade de `width × height` salas; cada sala tem 472×354 px. Coordenadas: `(sala.x, sala.y, x local, y local)`. (`world.h:53-95`)
 - **RN-MAP-02** — O mundo é **toroidal**: ao cruzar uma borda da sala o jogador entra na sala vizinha; ao cruzar a borda do mapa, entra na sala do lado oposto. (`world.cpp:2780-2825`, `positiveModulo`)
@@ -297,6 +307,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 - **RN-VID-05** — Megahealth: bônus `pup_health_bonus (160)` distribuído 5 pontos/frame alternando vida e energia até os máximos; bônus não acumula quando vida e energia estão no máximo.
 
 ### 6.5 Power-ups (RN-PUP)
+> Valem para o modo **Casual**. No modo **Ranked** não há power-ups (RN-MOD-02).
 - **RN-PUP-01** — Tipos e pesos de sorteio: shield 16, turbo 14, shadow 14, power 14, weapon 18, megahealth 13, deathbringer 11. (`world.cpp:1541`)
 - **RN-PUP-02** — Quantidade no mapa: mínimo = `max(pups_min, nº de jogadores)` limitado a `pups_max`; percentuais são relativos ao nº de salas (`pups_min 20%`, `pups_max 80%`, máximo absoluto 32). Reaparecem após `pups_respawn_time (25 s)`.
 - **RN-PUP-03** — Local de spawn: sala aleatória sem jogadores e sem outros power-ups (relaxa após tentativas), posição longe de paredes.
@@ -386,12 +397,12 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 
 ### 6.15 Nomes e identidade (RN-NOM)
 - **RN-NOM-01** — Nome: até 15 caracteres, imprimíveis, não pode ser vazio/só espaços nem começar/terminar com espaço. (`commont.cpp:190`)
-- **RN-NOM-02** — Web: o **nick da conta é único** (comparação case-insensitive e normalizada) e protegido; convidados recebem nick com sufixo e não podem usar nick registrado.
+- **RN-NOM-02** — Web: o **nome de usuário é o nick em jogo**: único (comparação case-insensitive e normalizada) e protegido; convidados recebem nick com sufixo e não podem usar nick registrado.
 - **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat.
 
 ### 6.16 Ranking (RN-RNK)
 Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
-- **RN-RNK-01** — A partida conta para o ranking só se: sala ranqueada, ≥ `ranking_minhumans (2)` humanos distintos e ≥ `ranking_minplayers (4)` jogadores (humanos + bots). O jogador precisa estar logado e com participação ativa.
+- **RN-RNK-01** — A partida conta para o ranking só se: sala **Ranked** (RN-MOD-02, sem power-ups), ≥ `ranking_minhumans (2)` humanos distintos e ≥ `ranking_minplayers (4)` jogadores (humanos + bots, se D-11 permitir bots). O jogador precisa estar logado e com participação ativa.
 - **RN-RNK-02** — Cada frag positivo soma ao **score** multiplicado pelo modificador do time; cada ponto negativo soma ao **neg** sem modificador.
 - **RN-RNK-03** — Força do jogador = `(score+1)/(neg+1)` (ou 1,0 se score < 100). Força do time = soma (ou média se `respawn_balancing_time ≥ 5`). Modificador do time = `força_inimiga / força_própria` limitado a **[1/3, 3]** — o time mais fraco ganha mais.
 - **RN-RNK-04** — Deltas enviados ao fim de cada partida e na saída do jogador.
@@ -413,14 +424,15 @@ Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
 - **RN-VIS-03** — Bandeiras: posição conhecida conforme visibilidade; `always_send_flag_location` envia sempre.
 
 ### 6.20 Configuração de sala (RN-CFG)
-- **RN-CFG-01** — Toda sala é criada a partir de um **preset**. O preset **Clássico** = `config/gamemod.txt` distribuído. Outros presets sugeridos: Duelo, Insta (dano alto), Caos (power-ups em dobro), Sem power-ups.
+- **RN-CFG-01** — Toda sala é criada a partir de um **preset**, que pertence a um modo. **Casual:** **Clássico** = `config/gamemod.txt` distribuído (padrão); sugeridos Duelo, Insta (dano alto), Caos (power-ups em dobro). **Ranked:** um único preset, **Ranked** = Clássico sem power-ups (RN-MOD-02), travado.
 - **RN-CFG-02** — Cada setting tem tipo, faixa válida e default conforme `server_settings.cpp`; valores fora da faixa são rejeitados.
-- **RN-CFG-03** — Salas privadas: senha (máx. 15 caracteres no original), dono pode alterar settings permitidos; salas ranqueadas usam somente presets oficiais travados.
+- **RN-CFG-03** — Salas privadas (só Casual): senha (máx. 15 caracteres no original), dono pode alterar settings permitidos. Salas Ranked usam somente o preset Ranked travado (RN-MOD-04).
 
 ### 6.21 Plataforma web (RN-PLT) — novas
-- **RN-PLT-01** — Cadastro com e-mail + senha (mín. 10 caracteres, argon2id), confirmação por e-mail; login também via OAuth (opcional).
-- **RN-PLT-02** — Convidado pode jogar em salas não ranqueadas sem cadastro.
-- **RN-PLT-03** — Recuperação de senha por link de uso único (expira em 30 min).
+- **RN-PLT-01** — **Login simples**: cadastro com **nome de usuário** (regras RN-NOM-01, único), **senha** (mín. 8 caracteres, guardada com argon2id) e **e-mail** (obrigatório, único, usado **apenas** para recuperação de senha). Login com usuário + senha. Sem login social (OAuth fora do v1) e sem confirmação obrigatória de e-mail: o cadastro libera o jogo na hora.
+- **RN-PLT-02** — Convidado joga só no modo **Casual**, sem cadastro (RN-MOD-01/03).
+- **RN-PLT-03** — Recuperação de senha: o jogador informa usuário ou e-mail; um link de uso único (expira em 30 min) é enviado ao e-mail cadastrado; a resposta da tela é sempre a mesma, exista ou não a conta (não revela cadastros). Trocar a senha encerra as outras sessões.
+- **RN-PLT-06** — Proteção do login: limite de tentativas por usuário e por IP (ex. 5 falhas → espera crescente); mensagens de erro genéricas ("usuário ou senha inválidos").
 - **RN-PLT-04** — Exclusão de conta (LGPD): remove dados pessoais; partidas históricas ficam anonimizadas.
 - **RN-PLT-05** — Bans de plataforma (conta + IP/dispositivo) gerenciados no painel admin; bans de sala expiram (máx. 1 semana, como no original).
 
@@ -546,7 +558,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S6 | Cliente jogável | OG-060, OG-061, OG-062, OG-063, OG-042, OG-043 | |
 | S7 | Multiplayer completo | OG-064, OG-065, OG-044, OG-045, OG-067 | **M2 — Alpha interno jogável** |
 | S8 | Contas | OG-080, OG-081, OG-082, OG-083, OG-046, OG-047 | |
-| S9 | Ranking e social | OG-084, OG-085, OG-086, OG-066, OG-068, OG-069 | **M3 — Contas e ranking** |
+| S9 | Ranking e social | OG-049, OG-084, OG-085, OG-086, OG-066, OG-068, OG-069 | **M3 — Contas e ranking** |
 | S10 | Bots, gerador e replays | OG-048, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
 | S11 | Endurecimento | OG-101, OG-102, OG-103, OG-104, OG-087 | |
 | S12 | Beta e lançamento | OG-105 | **M5 — Lançamento público** |
@@ -561,12 +573,12 @@ Como <persona>, quero <ação>, para <benefício>.
 |---|---|---|---:|---|---|---|---|
 | [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Concluído |
 | [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Concluído |
-| [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Em revisão |
-| [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Em revisão |
+| [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Concluído |
+| [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Concluído |
 | [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Concluído |
-| [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Em revisão |
+| [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Backlog |
-| [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Em revisão |
+| [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Backlog |
 | [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Backlog |
 | [OG-020](cards/OG-020-geometry-walls.md) | Geometria e paredes (colisão contínua) | E2 | 8 | Must | S2 | OG-004, OG-010 | Backlog |
@@ -589,6 +601,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Backlog |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Backlog |
 | [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
+| [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Backlog |
 | [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Backlog |
 | [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Backlog |
 | [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Backlog |
@@ -600,8 +613,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-068](cards/OG-068-player-options.md) | Opções do jogador | E4 | 3 | Should | S9 | OG-060 | Backlog |
 | [OG-069](cards/OG-069-lobby.md) | Lobby de salas | E4 | 5 | Must | S9 | OG-086 | Backlog |
 | [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Backlog |
-| [OG-081](cards/OG-081-auth.md) | Cadastro e login | E5 | 5 | Must | S8 | OG-080 | Backlog |
-| [OG-082](cards/OG-082-nick-protection.md) | Nick protegido e clan tag | E5 | 2 | Must | S8 | OG-081 | Backlog |
+| [OG-081](cards/OG-081-auth.md) | Cadastro, login e recuperação de senha | E5 | 5 | Must | S8 | OG-080 | Backlog |
+| [OG-082](cards/OG-082-nick-protection.md) | Nome de usuário em jogo, troca de nome e clan tag | E5 | 2 | Must | S8 | OG-081 | Backlog |
 | [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Backlog |
 | [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Backlog |
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Backlog |
@@ -617,7 +630,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Backlog |
 | [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento | E7 | 5 | Must | S12 | todos Must | Backlog |
 
-**Total:** 57 cards, 270 pontos.
+**Total:** 58 cards, 273 pontos.
 
 ---
 
@@ -640,13 +653,16 @@ Como <persona>, quero <ação>, para <benefício>.
 |---|---|---|---|---|
 | D-01 | Defaults: código ou `gamemod.txt`? | Código / gamemod | ✅ **Decidido em 2026-10-12:** o preset Clássico segue o `config/gamemod.txt` distribuído; defaults do código ficam documentados no schema | PO |
 | D-02 | Ordenação do leaderboard (script PHP do master não está no repo) | Rating clássico / Glicko-2 / TrueSkill | ✅ **Decidido em 2026-10-12:** rating clássico `(score+1)/(neg+1)` na v1; avaliar Glicko-2 na v2 | PO |
-| D-03 | Framework de salas | Próprio (uWS) / Colyseus | **Próprio** | Tech Lead |
-| D-04 | Hospedagem | Fly.io / Hetzner / AWS | Fly.io no beta (regiões e WS simples) | Tech Lead |
-| D-05 | Visão de salas vizinhas por padrão | Só a sala atual (original) / zoom | Original por padrão; zoom como opção não ranqueada? | PO |
-| D-06 | Suporte a mobile/touch | v1 / v2 | v2 | PO |
-| D-07 | Licença do servidor: GPL ou AGPL? | GPL-2.0-or-later / AGPL-3.0-or-later | **GPL-2.0-or-later** em todo o monorepo (mesma do original, sem combinações de versões). A GPL não obriga a publicar o código de um servidor que não é distribuído, mas o projeto publica tudo por decisão própria (link no jogo). AGPL só se quisermos obrigar forks hospedados a publicar o código | PO |
-| D-08 | Uso do nome "Outgun" e contato com os autores | Usar o nome / nome derivado | Tentar contato com Niko Ritari e Jani Rivinoja (README.txt) antes do beta público; até lá, usar "Outgun Web" com créditos completos (`CREDITS.md`) | PO |
+| D-03 | Framework de salas | Próprio (uWS) / Colyseus | ✅ **Aprovado pelo PO em 2026-10-12:** **Próprio** | Tech Lead |
+| D-04 | Hospedagem | Fly.io / Hetzner / AWS | ✅ **Aprovado pelo PO em 2026-10-12:** Fly.io no beta (regiões e WS simples) | Tech Lead |
+| D-05 | Visão de salas vizinhas por padrão | Só a sala atual (original) / zoom | ✅ **Aprovado pelo PO em 2026-10-12:** Original por padrão; zoom como opção não ranqueada? | PO |
+| D-06 | Suporte a mobile/touch | v1 / v2 | ✅ **Aprovado pelo PO em 2026-10-12:** v2 | PO |
+| D-07 | Licença do servidor: GPL ou AGPL? | GPL-2.0-or-later / AGPL-3.0-or-later | ✅ **Aprovado pelo PO em 2026-10-12:** **GPL-2.0-or-later** em todo o monorepo (mesma do original, sem combinações de versões). A GPL não obriga a publicar o código de um servidor que não é distribuído, mas o projeto publica tudo por decisão própria (link no jogo). AGPL só se quisermos obrigar forks hospedados a publicar o código | PO |
+| D-08 | Uso do nome "Outgun" e contato com os autores | Usar o nome / nome derivado | ✅ **Aprovado pelo PO em 2026-10-12:** Tentar contato com Niko Ritari e Jani Rivinoja (README.txt) antes do beta público; até lá, usar "Outgun Web" com créditos completos (`CREDITS.md`) | PO |
 | D-09 | Relógio da simulação | Relógio de parede como o original (`get_time()`) / determinístico (`frame / 10`) | ✅ **Decidido no OG-003 (divergência intencional):** determinístico. O original mede expirações com o relógio do servidor, que oscila alguns ms entre frames e pode mudar uma expiração em ±1 frame; a versão web usa `tempo = frame / 10`. O harness alimenta a sim TS com o tempo gravado, então a paridade não é afetada | Tech Lead |
+| D-10 | Power-ups e modos de jogo | Modo único como o original / Casual com power-ups + Ranked sem power-ups | ✅ **Decidido pelo PO em 2026-10-12 (divergência intencional):** dois modos (RN-MOD). Ranked é obrigatoriamente sem power-ups e exige conta com usuário + senha (e-mail só para recuperação). Casual mantém power-ups e aceita convidados | PO |
+| D-11 | Bots em salas Ranked | Proibidos / permitidos só para completar times (sem contar para ranking) / permitidos como no original | **Recomendação: proibidos no Ranked.** Bots alteram o resultado e o modificador de time do ranking; no Casual continuam como no original. Em aberto | PO |
+| D-12 | Sons em WAV | WAV / OGG+AAC | ✅ **Aprovado pelo PO em 2026-10-12:** WAV (768 KB, suportado por todos os navegadores); compressão vira card se o orçamento exigir | PO |
 
 ---
 

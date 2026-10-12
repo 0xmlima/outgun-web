@@ -1,4 +1,4 @@
-# OG-082 — Nick protegido e clan tag
+# OG-082 — Nome de usuário em jogo, troca de nome e clan tag
 
 | Campo | Valor |
 |---|---|
@@ -13,13 +13,16 @@
 | Skills | `outgun-re-spec` |
 
 ## História
-Como jogador registrado, quero que ninguém use meu nick, e quero exibir a tag do meu clã.
+Como jogador registrado, quero que meu nome de usuário seja meu nome em jogo e que ninguém o use, e quero exibir a tag do meu clã.
 
 ## Contexto e referências no original
 - `check_name` (`commont.cpp:190`), `AuthorizationDatabase::makeComparable` (`auth.cpp`).
 
 ## Escopo
-- Validação de nick (RN-NOM-01), unicidade normalizada, troca de nick com cooldown, clan tag.
+- O nome de usuário da conta (OG-081) é o nome em jogo (RN-NOM-02); validação RN-NOM-01 e unicidade normalizada ficam no cadastro.
+- Convidados (só Casual) recebem nome com sufixo e não podem usar nome registrado.
+- Troca de nome de usuário com cooldown (ex. 30 dias); o nome antigo fica reservado por um tempo.
+- Clan tag.
 
 ## Critérios de aceite
 - [ ] Convidado não consegue usar nick registrado (comparação normalizada).

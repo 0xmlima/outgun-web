@@ -9,7 +9,7 @@
 | Sprint | S9 |
 | Status | Backlog |
 | Dependências | [OG-083](OG-083-join-ticket.md), [OG-028](OG-028-scoring-stats.md) |
-| Regras de negócio | RN-RNK-01, RN-RNK-02, RN-RNK-03, RN-RNK-04, RN-PTS-02 |
+| Regras de negócio | RN-RNK-01, RN-RNK-02, RN-RNK-03, RN-RNK-04, RN-PTS-02, RN-MOD-05 |
 | Skills | `outgun-re-spec` |
 
 ## História
@@ -21,6 +21,7 @@ Como jogador competitivo, quero um ranking global justo por temporada.
 - Participação (`data_ranking_participation`).
 
 ## Escopo
+- Só salas **Ranked** (sem power-ups, RN-MOD-02/05) geram deltas; salas Casual nunca alteram o ranking.
 - Game server calcula deltas (score com modificador de time, neg) e envia resultado assinado ao fim da partida e na saída do jogador.
 - API aplica de forma idempotente (id da partida + jogador).
 - Leaderboard em Redis (sorted set) + persistência em Postgres; temporadas.
@@ -29,6 +30,7 @@ Como jogador competitivo, quero um ranking global justo por temporada.
 ## Critérios de aceite
 - [ ] Testes reproduzindo o cálculo do original para cenários com times desbalanceados (modificador limitado a [1/3, 3]).
 - [ ] Partida abaixo dos mínimos de humanos/jogadores não altera ranking.
+- [ ] Partida Casual não altera ranking.
 - [ ] Reenvio do mesmo resultado não duplica pontos.
 
 ## Notas técnicas

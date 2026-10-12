@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S1 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-002](OG-002-build-original-docker.md) |
 | Regras de negócio | RN-FIS-*, RN-TIR-*, RN-VID-* |
 | Skills | `outgun-parity-harness`, `outgun-re-spec` |

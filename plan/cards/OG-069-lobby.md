@@ -19,8 +19,9 @@ Como jogador, quero ver salas abertas (jogadores, mapa, ping, ranqueada ou não)
 - `Menu_serverList` (`client_menus.h:137`), master server (`servnet.cpp:2481-2580`).
 
 ## Escopo
-- Lista de salas com filtros, ping por região, botão "Jogar agora" (matchmaking simples).
-- Criar sala privada (preset, senha, mapas).
+- Abas/filtro por modo (**Casual** e **Ranked**); Ranked pede login antes de entrar.
+- Lista de salas com filtros, ping por região, botão "Jogar agora" (matchmaking simples) por modo.
+- Criar sala privada Casual (preset, senha, mapas); não existe sala privada Ranked.
 - Link de convite.
 
 ## Critérios de aceite
