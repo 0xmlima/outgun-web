@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S0 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S0 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-parity-harness` |
