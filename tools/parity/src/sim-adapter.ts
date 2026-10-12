@@ -8,17 +8,15 @@ import { fileURLToPath } from 'node:url';
 import { parseMapFile } from '@outgun/content';
 import { applyGamemod, codeDefaults, type GameSettings } from '@outgun/settings';
 import {
-  applyPhysics,
+  CarriedFlag,
   FlagState,
-  PLAYER_RADIUS,
   PlayerState,
   Position,
-  randomShuffle,
+  ServerSim,
   Vec,
   WorldState,
   type GameMap,
-  type PhysicsCallbacks,
-  type PhysicsContext,
+  type RocketState,
   type Rng,
 } from '@outgun/sim';
 import type { SimAdapter } from './run.js';
@@ -53,61 +51,21 @@ function toFlag(f: TraceFlag): FlagState {
   return flag;
 }
 
-/** Callbacks do servidor (`ServerPhysicsCallbacks`, src/world.cpp:1636), no que já foi portado. */
-class ServerCallbacks implements PhysicsCallbacks {
-  constructor(private readonly world: WorldState) {}
-  collideToRockets() {
-    return true;
-  }
-  collidesToRockets(pid: number) {
-    return this.world.frame >= (this.world.players[pid] as PlayerState).startTakeDamageFrame;
-  }
-  collidesToPlayers(pid: number) {
-    return this.collidesToRockets(pid);
-  }
-  gatherMovementDistance() {
-    return true;
-  }
-  allowRoomChange() {
-    return true;
-  }
-  addMovementDistance(pid: number, distance: number) {
-    const pl = this.world.players[pid] as PlayerState;
-    pl.stats.movement += distance;
-    this.world.teams[pl.team].movement += distance;
-  }
-  playerScreenChange() {}
-  rocketHitWall(rid: number) {
-    (this.world.rockets[rid] as { owner: number }).owner = -1;
-  }
-  rocketHitPlayer(): boolean {
-    throw new Error('foguete acertando jogador: ainda não portado (OG-022/OG-024)');
-  }
-  playerHitWall() {}
-  playerHitPlayer() {
-    // `player_collisions normal`; os efeitos de `special` entram no OG-023.
-    return { deaths: [false, false] as [boolean, boolean], bounceStrength1: 1, bounceStrength2: 1 };
-  }
-  rocketOutOfBounds(rid: number) {
-    (this.world.rockets[rid] as { owner: number }).owner = -1;
-  }
-  shouldApplyPhysicsToPlayer(pid: number) {
-    return !(this.world.players[pid] as PlayerState).dead;
-  }
-}
+/** Power-ups reais (não vazios nem reaparecendo). */
+const REAL_POWERUP_KINDS = new Set([0, 1, 2, 3, 4, 5, 6]);
 
 export class SimTraceAdapter implements SimAdapter {
   private settings!: GameSettings;
   private map!: GameMap;
   private header!: TraceHeader;
   private world!: WorldState;
+  private sim!: ServerSim;
   private pre!: TraceState;
 
   setup(header: TraceHeader): void {
     this.header = header;
     this.map = mapByCrc(header.mapCrc);
-    const result = applyGamemod(codeDefaults(), header.gamemod);
-    this.settings = result.settings;
+    this.settings = applyGamemod(codeDefaults(), header.gamemod).settings;
   }
 
   load(state: TraceState): void {
@@ -121,7 +79,7 @@ export class SimTraceAdapter implements SimAdapter {
       world.players[p.pid] = pl;
     }
     state.rockets.forEach((r) => {
-      const rk = world.rockets[r.id]!;
+      const rk = world.rockets[r.id] as RocketState;
       rk.owner = r.owner;
       rk.team = r.team;
       rk.power = r.power !== 0;
@@ -131,11 +89,14 @@ export class SimTraceAdapter implements SimAdapter {
     });
     state.teams.forEach((t, i) => {
       const team = world.teams[i as 0 | 1];
-      team.movement = t.movement;
+      Object.assign(team, { score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement });
       team.flags.push(...t.flags.map(toFlag));
     });
     world.wildFlags.push(...state.wildFlags.map(toFlag));
     this.world = world;
+    this.sim = new ServerSim(world, this.settings, { rand: () => 0 });
+    this.sim.deathbringerExplosions = state.deathbringers.length;
+    this.sim.powerupPositions = state.powerups.filter((p) => REAL_POWERUP_KINDS.has(p.kind)).map((p) => toPosition(p.pos));
   }
 
   applyInputs(state: TraceState): void {
@@ -144,23 +105,14 @@ export class SimTraceAdapter implements SimAdapter {
       const pl = this.world.players[p.pid];
       if (pl) this.copyInputs(pl, p);
     }
+    this.sim.powerupPositions = state.powerups.filter((p) => REAL_POWERUP_KINDS.has(p.kind)).map((p) => toPosition(p.pos));
   }
 
   step(rng: Rng, time: number): TraceState {
-    const world = this.world;
-    world.frame = this.pre.frame;
-    world.time = time;
-    // ServerWorld::simulateFrame: ordem aleatória dos jogadores (n - 1 chamadas a rand())
-    const order = world.players.filter((p): p is PlayerState => p !== undefined);
-    randomShuffle(order, rng);
-    // simulatePlayerPrePhysics: expiração de turbo e power (afeta a aceleração deste frame)
-    for (const pl of order) {
-      if (pl.turbo && time > pl.turboTime) pl.turbo = false;
-      if (pl.power && time > pl.powerTime) pl.power = false;
-    }
-    const ctx: PhysicsContext = { world, physics: this.settings.physics };
-    applyPhysics(ctx, new ServerCallbacks(world), PLAYER_RADIUS, 1);
-    world.frame++;
+    this.world.frame = this.pre.frame;
+    this.world.time = time;
+    this.sim.rng = rng;
+    this.sim.simulateFrame();
     return this.snapshot();
   }
 
@@ -170,6 +122,7 @@ export class SimTraceAdapter implements SimAdapter {
     pl.vel = new Vec(p.vel[0], p.vel[1]);
     pl.health = p.health;
     pl.energy = p.energy;
+    pl.megabonus = p.megabonus;
     pl.weapon = p.weapon;
     pl.shield = p.shield;
     pl.power = p.power !== 0;
@@ -183,7 +136,13 @@ export class SimTraceAdapter implements SimAdapter {
     pl.deathbringerAttacker = p.deathbringerAttacker;
     pl.nextShootFrame = p.nextShootFrame;
     pl.startTakeDamageFrame = p.startTakeDamageFrame;
-    pl.stats.movement = p.stats.movement;
+    pl.framesToRespawn = p.framesToRespawn;
+    pl.extraFramesToRespawn = p.extraFramesToRespawn;
+    pl.respawnToBase = p.respawnToBase !== 0;
+    pl.dropKey = p.dropKey !== 0;
+    pl.droppedFlag = p.droppedFlag !== 0;
+    pl.awaitingClientReadies = p.awaitingClientReadies;
+    pl.stats = { ...p.stats, dead: p.stats.dead !== 0, carriedFlag: p.stats.carriedFlag as CarriedFlag };
   }
 
   private copyInputs(pl: PlayerState, p: TracePlayer): void {
@@ -195,24 +154,43 @@ export class SimTraceAdapter implements SimAdapter {
     pl.attackGunDir = p.attackGunDir;
   }
 
-  /** Estado no formato do trace: o "pre" com os campos que a sim já calcula substituídos. */
+  /** Estado no formato do trace: o "pre" com tudo o que a sim calcula substituído. */
   private snapshot(): TraceState {
     const out = structuredClone(this.pre);
+    const w = this.world;
     out.players = out.players.map((p) => {
-      const pl = this.world.players[p.pid] as PlayerState;
+      const pl = w.players[p.pid] as PlayerState;
       return {
         ...p,
+        dead: Number(pl.dead),
         pos: toCoords(pl.pos),
         vel: [pl.vel.x, pl.vel.y],
-        turbo: Number(pl.turbo),
+        attackOnce: Number(pl.attackOnce),
+        health: pl.health,
+        energy: pl.energy,
+        megabonus: pl.megabonus,
+        weapon: pl.weapon,
+        shield: pl.shield,
         power: Number(pl.power),
-        stats: { ...p.stats, movement: pl.stats.movement },
+        turbo: Number(pl.turbo),
+        visibility: pl.visibility,
+        shadowTime: pl.shadowTime,
+        deathbringerEnd: pl.deathbringerEnd,
+        deathbringerAttacker: pl.deathbringerAttacker,
+        nextShootFrame: pl.nextShootFrame,
+        startTakeDamageFrame: pl.startTakeDamageFrame,
+        framesToRespawn: pl.framesToRespawn,
+        extraFramesToRespawn: pl.extraFramesToRespawn,
+        stats: { ...pl.stats, dead: Number(pl.stats.dead), carriedFlag: pl.stats.carriedFlag },
       };
     });
-    out.teams = [
-      { ...out.teams[0], movement: this.world.teams[0].movement },
-      { ...out.teams[1], movement: this.world.teams[1].movement },
-    ];
+    out.rockets = w.rockets.flatMap((r, id) =>
+      r.owner === -1 ? [] : [{ id, owner: r.owner, team: r.team, power: Number(r.power), pos: toCoords(r.pos), vel: [r.vel.x, r.vel.y] as [number, number], direction: r.direction }],
+    );
+    out.teams = [0, 1].map((i) => {
+      const t = w.teams[i as 0 | 1];
+      return { ...out.teams[i as 0 | 1], score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement };
+    }) as TraceState['teams'];
     return out;
   }
 }
@@ -221,4 +199,22 @@ export class SimTraceAdapter implements SimAdapter {
 export const movementFields = (s: TraceState) => ({
   players: s.players.map((p) => ({ pid: p.pid, pos: p.pos, vel: p.vel, movement: p.stats.movement })),
   teamMovement: s.teams.map((t) => t.movement),
+});
+
+/** Tiro e foguetes (OG-022): foguetes completos, intervalo de tiro e contagem de tiros. */
+export const rocketFields = (s: TraceState) => ({
+  ...movementFields(s),
+  rockets: s.rockets,
+  shooters: s.players.map((p) => ({ pid: p.pid, nextShootFrame: p.nextShootFrame, attackOnce: p.attackOnce, shots: p.stats.shots })),
+  teamShots: s.teams.map((t) => t.shots),
+});
+
+/** Vida, energia, dano e morte (OG-024): o jogador inteiro, menos o que depende de cards futuros. */
+export const combatFields = (s: TraceState) => ({
+  ...rocketFields(s),
+  players: s.players.map((p) => {
+    const { color: _c, bot: _b, wantChangeTeams: _w, awaitingClientReadies: _a, ...rest } = p;
+    return rest;
+  }),
+  teams: s.teams.map((t) => ({ kills: t.kills, deaths: t.deaths, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement, score: t.score })),
 });

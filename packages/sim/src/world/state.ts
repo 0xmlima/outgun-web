@@ -41,15 +41,72 @@ export class Position {
 
 export type AccelerationMode = 'world' | 'gun';
 
+/** Bandeira carregada, como `Statistics::FlagType`. */
+export const CarriedFlag = { None: 0, Own: 1, Enemy: 2, Wild: 3 } as const;
+export type CarriedFlag = (typeof CarriedFlag)[keyof typeof CarriedFlag];
+
+/** `Statistics` (src/world.h:266); nomes iguais aos do trace. Tempos em segundos do relógio da sim. */
 export interface PlayerStats {
   frags: number;
   kills: number;
   deaths: number;
+  dbKills: number;
+  dbDeaths: number;
+  consKills: number;
+  curConsKills: number;
+  consDeaths: number;
+  curConsDeaths: number;
+  suicides: number;
+  captures: number;
+  assists: number;
+  flagsTaken: number;
+  flagsDropped: number;
+  flagsReturned: number;
+  carriersKilled: number;
   shots: number;
   hits: number;
   shotsTaken: number;
+  spawnTime: number;
+  lifetime: number;
   /** Distância percorrida em pixels (`total_movement`). */
   movement: number;
+  startTime: number;
+  dead: boolean;
+  carriedFlag: CarriedFlag;
+  flagCarryingTime: number;
+  flagTakeTime: number;
+}
+
+export function newStats(): PlayerStats {
+  return {
+    frags: 0,
+    kills: 0,
+    deaths: 0,
+    dbKills: 0,
+    dbDeaths: 0,
+    consKills: 0,
+    curConsKills: 0,
+    consDeaths: 0,
+    curConsDeaths: 0,
+    suicides: 0,
+    captures: 0,
+    assists: 0,
+    flagsTaken: 0,
+    flagsDropped: 0,
+    flagsReturned: 0,
+    carriersKilled: 0,
+    shots: 0,
+    hits: 0,
+    shotsTaken: 0,
+    spawnTime: 0,
+    lifetime: 0,
+    movement: 0,
+    startTime: 0,
+    dead: true,
+    carriedFlag: CarriedFlag.None,
+    flagCarryingTime: 0,
+    flagTakeTime: 0,
+  };
 }
 
 export class PlayerState {
@@ -83,7 +140,16 @@ export class PlayerState {
   deathbringerAttacker = -1;
   nextShootFrame = 0;
   startTakeDamageFrame = 0;
-  stats: PlayerStats = { frags: 0, kills: 0, deaths: 0, shots: 0, hits: 0, shotsTaken: 0, movement: 0 };
+  framesToRespawn = 0;
+  extraFramesToRespawn = 0;
+  respawnToBase = false;
+  /** Esperando o cliente confirmar o carregamento do mapa (não renasce). */
+  awaitingClientReadies = 0;
+  /** Tecla de largar bandeira pressionada. */
+  dropKey = false;
+  /** Largou a bandeira e ainda está sobre ela (não a pega de volta). */
+  droppedFlag = false;
+  stats: PlayerStats = newStats();
 
   constructor(
     readonly pid: number,
@@ -122,7 +188,21 @@ export class FlagState {
 
 export interface TeamState {
   flags: FlagState[];
+  score: number;
+  kills: number;
+  deaths: number;
+  suicides: number;
+  flagsTaken: number;
+  flagsDropped: number;
+  flagsReturned: number;
+  shots: number;
+  hits: number;
+  shotsTaken: number;
   movement: number;
+}
+
+export function newTeam(): TeamState {
+  return { flags: [], score: 0, kills: 0, deaths: 0, suicides: 0, flagsTaken: 0, flagsDropped: 0, flagsReturned: 0, shots: 0, hits: 0, shotsTaken: 0, movement: 0 };
 }
 
 export class WorldState {
@@ -132,10 +212,7 @@ export class WorldState {
   /** Jogadores indexados por pid; undefined = vaga livre. */
   readonly players: (PlayerState | undefined)[];
   readonly rockets: RocketState[] = Array.from({ length: MAX_ROCKETS }, () => new RocketState());
-  readonly teams: [TeamState, TeamState] = [
-    { flags: [], movement: 0 },
-    { flags: [], movement: 0 },
-  ];
+  readonly teams: [TeamState, TeamState] = [newTeam(), newTeam()];
   readonly wildFlags: FlagState[] = [];
 
   constructor(
@@ -149,6 +226,11 @@ export class WorldState {
   /** `TSIZE` do original. */
   get teamSize(): number {
     return this.maxPlayers / 2;
+  }
+
+  /** Time de um pid (`pid / TSIZE`). */
+  teamOf(pid: number): 0 | 1 {
+    return Math.trunc(pid / this.teamSize) as 0 | 1;
   }
 
   /** O jogador carrega uma bandeira inimiga ou selvagem? (penalidade de aceleração ao correr) */

@@ -2,7 +2,7 @@
 // O que cada golden trace verifica hoje na simulação TS. Cada card do épico E2 amplia esta tabela:
 // troca `pending` por um recorte de campos (ou amplia o recorte) e o CI passa a exigir paridade.
 import type { ParityMode } from './run.js';
-import { movementFields } from './sim-adapter.js';
+import { movementFields, rocketFields } from './sim-adapter.js';
 import type { TraceState } from './trace.js';
 
 export interface CoverageEntry {
@@ -10,6 +10,8 @@ export interface CoverageEntry {
   /** Campos comparados; ausente = trace ainda não coberto pela sim. */
   select?: (state: TraceState) => unknown;
   modes: ParityMode[];
+  /** Só os primeiros N frames (o resto depende de um card futuro, indicado em `note`). */
+  frames?: number;
   /** Card que cobre (ou cobrirá) o trace. */
   card: string;
   note?: string;
@@ -28,8 +30,8 @@ export const COVERAGE: readonly CoverageEntry[] = [
   movement('bounce-triangle'),
   movement('bounce-circle'),
   movement('wrap-edge'),
-  { trace: 'shoot-level1', modes: [], card: 'OG-022', note: 'tiro, foguetes e energia' },
-  { trace: 'shoot-level9', modes: [], card: 'OG-022', note: 'formação de 9 foguetes' },
+  { trace: 'shoot-level1', select: rocketFields, modes: ['resync', 'free'], card: 'OG-022' },
+  { trace: 'shoot-level9', select: rocketFields, modes: ['resync', 'free'], card: 'OG-022', frames: 48, note: 'frame 248+: o jogador pega um power-up (OG-025)' },
   { trace: 'rocket-hit', modes: [], card: 'OG-024', note: 'dano, morte e respawn (OG-029)' },
   { trace: 'flag-capture', modes: [], card: 'OG-027', note: 'bandeiras e captura' },
   { trace: 'bots-match', modes: [], card: 'OG-029', note: 'partida completa' },

@@ -26,12 +26,13 @@ export function parityReport(): ReportRow[] {
     const details: string[] = [];
     let ok = true;
     for (const mode of entry.modes) {
-      const result = runParity(trace, new SimTraceAdapter(), { mode, select: entry.select, checkRandCount: false });
+      const result = runParity(trace, new SimTraceAdapter(), { mode, select: entry.select, checkRandCount: false, ...(entry.frames !== undefined ? { maxFrames: entry.frames } : {}) });
       if (result.failure) {
         ok = false;
         details.push(`${mode}: ${formatFailure(entry.trace, result).replace(/\n\s*/g, ' | ')}`);
-      } else details.push(`${mode}: ${result.framesChecked} frames`);
+      } else details.push(`${mode}: ${result.framesChecked}${entry.frames !== undefined ? ` de ${trace.frames.length}` : ''} frames`);
     }
+    if (entry.note) details.push(entry.note);
     rows.push({ trace: entry.trace, card: entry.card, status: ok ? 'ok' : 'divergência', detail: details.join('; ') });
   }
   for (const name of listTraces()) {

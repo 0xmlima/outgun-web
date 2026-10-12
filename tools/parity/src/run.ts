@@ -57,6 +57,8 @@ export interface ParityOptions extends CompareOptions {
   select?: (state: TraceState) => unknown;
   /** Exige que a simulação consuma exatamente os rand() do frame (padrão: true). */
   checkRandCount?: boolean;
+  /** Compara só os primeiros N frames (partes posteriores dependem de cards ainda não feitos). */
+  maxFrames?: number;
 }
 
 export interface ParityFailure {
@@ -77,7 +79,8 @@ export function runParity(trace: Trace, adapter: SimAdapter, options: ParityOpti
   const select = options.select ?? ((state: TraceState) => state);
   adapter.setup(trace.header);
   let previous: TraceState | undefined;
-  for (const [index, frame] of trace.frames.entries()) {
+  const frames = options.maxFrames !== undefined ? trace.frames.slice(0, options.maxFrames) : trace.frames;
+  for (const [index, frame] of frames.entries()) {
     if (mode === 'resync' || index === 0) adapter.load(frame.pre);
     else adapter.applyInputs?.(frame.pre);
     const rng = new RecordedRng(frame.rand);
@@ -105,7 +108,7 @@ export function runParity(trace: Trace, adapter: SimAdapter, options: ParityOpti
     }
     previous = frame.post;
   }
-  return { framesChecked: trace.frames.length };
+  return { framesChecked: frames.length };
 }
 
 /** Mensagem legível para relatórios de teste e de CI. */
