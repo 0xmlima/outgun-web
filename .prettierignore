@@ -31,3 +31,6 @@ coverage/
 
 # Dados de referência gerados pelo oráculo (tools/parity/fixtures): não reformatar.
 **/__fixtures__/
+
+# Gerado a partir do catálogo (teste confere byte a byte).
+packages/protocol/MESSAGES.md

@@ -2,7 +2,7 @@
   "name": "@outgun/protocol",
   "version": "0.0.0",
   "private": true,
-  "description": "Protocolo bin\u00e1rio cliente/servidor (card OG-041).",
+  "description": "Protocolo binário cliente/servidor do Outgun Web (card OG-041).",
   "license": "GPL-2.0-or-later",
   "type": "module",
   "exports": {
@@ -17,6 +17,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "gen:messages": "pnpm build && node --input-type=module -e \"import { writeFileSync } from 'node:fs'; import { generateMessagesMd } from './dist/index.js'; writeFileSync('MESSAGES.md', generateMessagesMd());\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
   }
 }
