@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S5 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | [OG-001](OG-001-monorepo-setup.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec` |

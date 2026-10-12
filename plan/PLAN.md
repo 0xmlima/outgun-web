@@ -596,7 +596,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Em revisão |
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |
 | [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Backlog |
-| [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Em andamento |
+| [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Em revisão |
 | [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Backlog |
 | [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Backlog |
 | [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Backlog |
