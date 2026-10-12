@@ -6,3 +6,6 @@ export * from './geometry/bounce.js';
 export * from './geometry/vec.js';
 export * from './map/map.js';
 export * from './map/walls.js';
+export * from './world/controls.js';
+export * from './world/physics.js';
+export * from './world/state.js';

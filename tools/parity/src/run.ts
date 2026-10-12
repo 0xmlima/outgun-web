@@ -33,6 +33,11 @@ export interface SimAdapter {
   setup(header: TraceHeader): void;
   /** Carrega o estado do original ("pre" do frame). */
   load(state: TraceState): void;
+  /**
+   * Modo `free`: aplica só as entradas do frame (controles, tiro) vindas do "pre" do original,
+   * mantendo o estado físico simulado. Necessário em cenários roteirizados com entradas variáveis.
+   */
+  applyInputs?(state: TraceState): void;
   /** Simula um frame com a aleatoriedade e o tempo informados e devolve o estado no formato do trace. */
   step(rng: Rng, time: number): TraceState;
 }
@@ -74,6 +79,7 @@ export function runParity(trace: Trace, adapter: SimAdapter, options: ParityOpti
   let previous: TraceState | undefined;
   for (const [index, frame] of trace.frames.entries()) {
     if (mode === 'resync' || index === 0) adapter.load(frame.pre);
+    else adapter.applyInputs?.(frame.pre);
     const rng = new RecordedRng(frame.rand);
     let actual: TraceState;
     try {

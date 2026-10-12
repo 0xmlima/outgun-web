@@ -17,3 +17,4 @@ export function listTraces(): string[] {
     .map((name) => name.replace(/\.jsonl\.gz$/, ''))
     .sort();
 }
+export * from './sim-adapter.js';

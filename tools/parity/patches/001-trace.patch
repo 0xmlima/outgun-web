@@ -92,10 +92,39 @@ diff --color -ruN a/servnet.cpp b/servnet.cpp
      if (LOG_MESSAGE_TRAFFIC)
          log("Message from client, code = %i", code);
      switch (code) {
+diff --color -ruN a/timer.cpp b/timer.cpp
+--- a/timer.cpp	2026-10-12 13:59:28
++++ b/timer.cpp	2026-10-12 14:41:21
+@@ -39,3 +39,5 @@
+ void removeQuickSleepDelay() throw () {
+     quickSleepDelay = false;
+ }
++
++volatile bool g_timeFrozen = false; // Outgun Web (OG-003): true enquanto um frame gravado simula
+diff --color -ruN a/timer.h b/timer.h
+--- a/timer.h	2026-10-12 13:59:28
++++ b/timer.h	2026-10-12 14:41:21
+@@ -31,6 +31,7 @@
+ };
+ 
+ extern SystemTimer* g_systemTimer; // defined in timer.cpp; created in platInit()
++extern volatile bool g_timeFrozen; // Outgun Web (OG-003): defined in timer.cpp
+ 
+ class TimeCounter { // usable only when g_systemTimer is, that is after platInit()
+     double value, base;
+@@ -38,7 +39,7 @@
+ public:
+     TimeCounter() throw () : value(0), base(0) { }
+     void setZero() throw () { base = g_systemTimer->read(); value = 0; }
+-    void refresh() throw () { value = g_systemTimer->read() - base; }
++    void refresh() throw () { if (!g_timeFrozen) value = g_systemTimer->read() - base; }   // Outgun Web (OG-003): rel�gio congelado durante frames gravados
+     double read() const throw () { return value; }
+ 
+     void advanceArtificially(double seconds) throw () { base -= seconds; refresh(); }
 diff --color -ruN a/trace.cpp b/trace.cpp
 --- a/trace.cpp	1970-01-01 01:00:00
-+++ b/trace.cpp	2026-10-12 14:26:22
-@@ -0,0 +1,458 @@
++++ b/trace.cpp	2026-10-12 14:41:21
+@@ -0,0 +1,462 @@
 +/*
 + *  trace.cpp - Outgun Web: gravação de golden traces para o harness de paridade (card OG-003).
 + *  Não faz parte do Outgun original; aplicado como patch só dentro do oráculo Docker.
@@ -531,6 +560,9 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +        if (in != pi->second.begin() && w.player[pi->first].used)
 +            applyInput(w.player[pi->first], (--in)->second);
 +    }
++    // Congela o relógio até o fim do frame: o original deixa outras threads avançarem get_time() no
++    // meio do frame (microssegundos), o que torna expirações no limite não determinísticas.
++    g_timeFrozen = true;
 +    std::fprintf(out, "{\"type\":\"frame\",\"frame\":%u,\"pre\":%s,", w.frame, state(w).c_str());
 +    randValues.clear();
 +    simThread = pthread_self();
@@ -545,6 +577,7 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +    for (unsigned i = 0; i < randValues.size(); ++i)
 +        std::fprintf(out, "%s%d", i ? "," : "", randValues[i]);
 +    std::fprintf(out, "],\"post\":%s}\n", state(w).c_str());
++    g_timeFrozen = false;
 +    if (frameCount && ++recorded >= frameCount) {
 +        std::fclose(out);
 +        out = 0;
