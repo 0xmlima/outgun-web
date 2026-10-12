@@ -90,15 +90,16 @@ const parts = [];
 for (let x = 0; x < map.width; x++) {
   for (let y = 0; y < map.height; y++) {
     const room = map.room({ x, y });
-    const ox = x * ROOM_W;
-    const oy = y * ROOM_H;
-    parts.push(
-      `<rect x="${ox}" y="${oy}" width="${ROOM_W}" height="${ROOM_H}" fill="${FLOOR[0]}"/>`,
+    // Cada sala é recortada no próprio retângulo, como no jogo: formas podem ultrapassar a borda
+    // (ex. anéis dos cantos arredondados) e não devem invadir as salas vizinhas.
+    const inner = [`<rect width="${ROOM_W}" height="${ROOM_H}" fill="${FLOOR[0]}"/>`];
+    for (const g of room.ground) inner.push(shape(g, 0, 0, FLOOR[g.texture] ?? FLOOR[0]));
+    for (const w of room.walls) inner.push(shape(w, 0, 0, WALL[w.texture] ?? WALL[0]));
+    inner.push(
+      `<rect width="${ROOM_W}" height="${ROOM_H}" fill="none" stroke="#000" stroke-opacity="0.35" stroke-width="2"/>`,
     );
-    for (const g of room.ground) parts.push(shape(g, ox, oy, FLOOR[g.texture] ?? FLOOR[0]));
-    for (const w of room.walls) parts.push(shape(w, ox, oy, WALL[w.texture] ?? WALL[0]));
     parts.push(
-      `<rect x="${ox}" y="${oy}" width="${ROOM_W}" height="${ROOM_H}" fill="none" stroke="#000" stroke-opacity="0.35" stroke-width="2"/>`,
+      `<svg x="${x * ROOM_W}" y="${y * ROOM_H}" width="${ROOM_W}" height="${ROOM_H}" overflow="hidden">${inner.join('')}</svg>`,
     );
   }
 }
