@@ -559,7 +559,7 @@ Como <persona>, quero <ação>, para <benefício>.
 
 | ID | Título | Épico | Pts | Prio | Sprint | Depende de | Status |
 |---|---|---|---:|---|---|---|---|
-| [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Em andamento |
+| [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Em revisão |
 | [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Em andamento |
 | [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Backlog |
 | [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Backlog |
