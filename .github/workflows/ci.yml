@@ -23,3 +23,11 @@ jobs:
       - run: pnpm build
       - run: pnpm check:legacy
       - run: pnpm check:licenses
+      - name: Relatório de paridade com o Outgun original
+        if: always()
+        run: pnpm parity --report tools/parity/out/parity-report.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-report
+          path: tools/parity/out/parity-report.md

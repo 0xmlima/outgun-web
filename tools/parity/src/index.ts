@@ -18,3 +18,5 @@ export function listTraces(): string[] {
     .sort();
 }
 export * from './sim-adapter.js';
+export * from './coverage.js';
+export * from './report.js';

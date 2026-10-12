@@ -1,0 +1,23 @@
+name: Regravar golden traces
+
+# Manual: reconstrói o oráculo (Outgun original em Docker) e regrava todos os cenários de
+# tools/parity/scenarios. O resultado vem como artefato para revisão antes de versionar.
+on:
+  workflow_dispatch:
+
+jobs:
+  traces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir o oráculo
+        run: bash tools/parity/oracle.sh build
+      - name: Gravar cenários
+        run: |
+          for s in tools/parity/scenarios/*.txt; do
+            bash tools/parity/oracle.sh trace "$(basename "$s" .txt)"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden-traces
+          path: tools/parity/traces/
