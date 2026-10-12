@@ -127,11 +127,20 @@ describe('build completo', () => {
     return { dir, manifest: buildAssets(repoRoot, dir) };
   };
 
-  it('converte os 6 temas gráficos e o tema de som com as regras do original', () => {
+  it('converte os 6 temas gráficos e o tema de som com as regras do original', { timeout: 30_000 }, () => {
     const { dir, manifest } = build();
     expect(Object.keys(manifest.graphics)).toEqual(['Colors', 'Grass', 'Grid', 'Grid 2', 'Ice', 'Metal']);
     expect(Object.values(manifest.graphics).reduce((n, t) => n + Object.keys(t.graphics).length, 0)).toBe(109);
     expect(manifest.graphics.Ice?.colours?.menu_background).toBe('#000040');
+    // Cores de fábrica (src/colour_def.inc): chão e paredes verdes do Outgun clássico.
+    expect(manifest.defaultColours.ground).toBe('#104000');
+    expect(manifest.defaultColours.wall).toBe('#30C000');
+    expect(manifest.defaultColours.team_red_basic).toBe('#FF0000');
+    expect(Object.keys(manifest.defaultColours).length).toBeGreaterThan(100);
+    // Mapas copiados sem alteração (o cliente os interpreta com @outgun/content).
+    expect(manifest.maps.coliseu?.dir).toBe('maps');
+    expect(manifest.maps.arena?.dir).toBe('cmaps');
+    expect(readFileSync(join(dir, manifest.maps.coliseu!.file))).toEqual(readFileSync(join(repoRoot, 'maps/coliseu.txt')));
     const visa = manifest.sounds.Visa!;
     expect(visa.name).toBe('Outgun sounds, by Visa-Valtteri Pimia');
     expect(Object.keys(visa.samples)).toEqual([...SAMPLES]);
@@ -145,7 +154,8 @@ describe('build completo', () => {
     expect(readPng(readFileSync(join(dir, player.file))).width).toBe(256);
   });
 
-  it('é determinístico', () => {
+  // Dois builds completos (temas, sons, fontes e mapas): mais lento que o limite padrão de 5 s.
+  it('é determinístico', { timeout: 30_000 }, () => {
     expect(build().manifest).toEqual(build().manifest);
   });
 });

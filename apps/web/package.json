@@ -17,11 +17,13 @@
     "@outgun/i18n": "workspace:*",
     "@outgun/protocol": "workspace:*",
     "@outgun/sim": "workspace:*",
+    "pixi.js": "^8.22.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

@@ -18,8 +18,10 @@ Oráculo do Outgun 1.0.3 original. Comandos:
       avançam assim que todos os bots reagem (tempo acelerado), o jogo reinicia no frame 100 e o
       replay é mantido mesmo sem humanos. Sem ele, replays sem humanos são descartados pelo servidor.
 
-  replay ARQUIVO [--shots N] [--interval S]
+  replay ARQUIVO [--shots N] [--interval S] [--cfg "N VALOR"]... [--prefix NOME]
       Reproduz um replay no cliente original sob Xvfb e salva N screenshots PNG em /out/screens/.
+      --cfg troca a linha N do config/client.cfg (índices de ClientCfgSetting em
+      src/client_menus.h; ex.: "13 Ice" = tema gráfico, "64 1" = salas visíveis no replay).
 
   mappic
       Gera a imagem (PCX + PNG) de todos os mapas de maps/ e cmaps/ em /out/mappic/.
@@ -81,6 +83,12 @@ cmd_server() {
     esac
   done
   write_gamemod "$bots" "$time_limit" "${overrides[@]+"${overrides[@]}"}"
+  # O servidor só carrega mapas de maps/; mapas de cmaps/ pedidos com --map são copiados para lá.
+  for o in "${overrides[@]+"${overrides[@]}"}"; do
+    case "$o" in map\ *) local m="${o#map }"
+      [ ! -e "$GAME/maps/$m.txt" ] && [ -e "$GAME/cmaps/$m.txt" ] && cp "$GAME/cmaps/$m.txt" "$GAME/maps/$m.txt" ;;
+    esac
+  done
   cd "$GAME"
   echo "servidor dedicado por ${seconds}s, ${bots} bots, time_limit ${time_limit} min"
   # SIGINT encerra o servidor de forma limpa (fecha o replay e grava estatísticas).
@@ -106,15 +114,23 @@ start_xvfb() {
 cmd_replay() {
   local file="${1:?informe o arquivo de replay}"
   shift
-  local shots=6 interval=5
+  local shots=6 interval=5 prefix=replay
+  local cfg=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --shots) shots="$2"; shift 2 ;;
       --interval) interval="$2"; shift 2 ;;
+      --cfg) cfg+=("$2"); shift 2 ;;
+      --prefix) prefix="$2"; shift 2 ;;
       *) echo "opção desconhecida: $1" >&2; exit 2 ;;
     esac
   done
   prepare_client
+  for line in "${cfg[@]+"${cfg[@]}"}"; do
+    local key="${line%% *}"
+    sed -i "/^$key /d" "$GAME/config/client.cfg"
+    printf '%s\n' "$line" >> "$GAME/config/client.cfg"
+  done
   start_xvfb
   mkdir -p "$OUT/screens"
   cd "$GAME"
@@ -125,7 +141,7 @@ cmd_replay() {
   xdotool key Return 2> /dev/null || true
   for i in $(seq 1 "$shots"); do
     sleep "$interval"
-    xwd -root -silent | convert xwd:- "$OUT/screens/replay-$(printf '%02d' "$i").png"
+    xwd -root -silent | convert xwd:- "$OUT/screens/$prefix-$(printf '%02d' "$i").png"
     echo "screenshot $i"
   done
   kill "$pid" 2> /dev/null || true

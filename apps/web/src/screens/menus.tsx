@@ -3,7 +3,9 @@
 // OG-069, OG-091, OG-081 e OG-063; aqui aparecem desabilitados ou como placeholder.
 import { ORIGINAL_CREDITS } from '@outgun/content';
 import { catalog, LOCALES } from '@outgun/i18n';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { loadManifest } from '../assets.js';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { usePrefs } from '../app/prefs.js';
 import { useFontNames } from '../ui/fonts.js';
@@ -13,6 +15,19 @@ import { TextLines, TextPage } from '../ui/TextPage.js';
 function cycle<T>(list: readonly T[], current: T, delta: number): T {
   const index = list.indexOf(current);
   return list[(index + delta + list.length) % list.length] ?? current;
+}
+
+/** Temas gráficos do manifesto (vazio sem assets). */
+function useGraphicsThemes(): readonly string[] {
+  const [names, setNames] = useState<readonly string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void loadManifest().then((m) => alive && setNames(m ? Object.keys(m.graphics) : []));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return names;
 }
 
 export function HomeScreen() {
@@ -35,6 +50,7 @@ export function OptionsScreen() {
   const { t, prefs, setPrefs } = usePrefs();
   const navigate = useNavigate();
   const fonts = useFontNames();
+  const themes = ['', ...useGraphicsThemes()];
   const items: MenuItem[] = [
     {
       kind: 'choice',
@@ -48,6 +64,25 @@ export function OptionsScreen() {
       value: prefs.menuFont,
       disabled: fonts.length === 0,
       onChange: (delta) => setPrefs({ menuFont: cycle(fonts, prefs.menuFont, delta) }),
+    },
+    {
+      kind: 'choice',
+      label: t('Theme'),
+      value: prefs.graphicsTheme || t('<no theme>'),
+      disabled: themes.length === 1,
+      onChange: (delta) => setPrefs({ graphicsTheme: cycle(themes, prefs.graphicsTheme, delta) }),
+    },
+    {
+      kind: 'choice',
+      label: t('Rooms on screen in each direction in game'),
+      value: String(prefs.visibleRooms),
+      onChange: (delta) => setPrefs({ visibleRooms: Math.min(20, Math.max(1, prefs.visibleRooms + delta)) }),
+    },
+    {
+      kind: 'choice',
+      label: t('Continuous textures between rooms'),
+      value: prefs.continuousTextures ? '[X]' : '[ ]',
+      onChange: () => setPrefs({ continuousTextures: !prefs.continuousTextures }),
     },
     { kind: 'action', label: t('Controls'), onActivate: () => {}, disabled: true, note: t('Coming soon') },
   ];

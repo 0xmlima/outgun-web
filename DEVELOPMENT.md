@@ -53,6 +53,8 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - `pnpm assets` uma vez (gera `apps/web/public/assets/`, ignorado pelo git: fontes, gráficos e sons convertidos). Sem ele o cliente funciona, mas os textos usam uma fonte CSS no lugar das fontes bitmap do original.
 - `pnpm --filter @outgun/web dev` — servidor de desenvolvimento do Vite (http://localhost:5173).
 - `pnpm --filter @outgun/web build` e `pnpm --filter @outgun/web preview` — build de produção e servidor local dele (http://localhost:4173).
+- `/play?map=NOME&theme=TEMA&rooms=N&room=X,Y` mostra um mapa (até a conexão com o servidor no OG-064): setas trocam de sala, PageUp/PageDown mudam quantas salas aparecem.
+- Comparação visual com o cliente original (`tools/visual-compare`, precisa do Docker do oráculo e do Chrome; `CHROME_PATH` e `WEB_URL` opcionais): `pnpm --filter @outgun/visual-compare refs` gera os prints do original, `compare` gera os lados a lado e a % de pixels diferentes em `tools/parity/out/prints/og061/`, `fps` mede quadros por segundo. Rode com o build servido por `preview`.
 - `VITE_SOURCE_URL` (opcional, no build): endereço público do código-fonte para o link "Código-fonte (GPL)"; sem ele o link abre a página `/source`.
 
 ## Utilitários de desenvolvimento (`tools/dev/`)

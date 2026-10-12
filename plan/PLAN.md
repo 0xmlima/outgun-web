@@ -666,6 +666,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-10 | Power-ups e modos de jogo | Modo único como o original / Casual com power-ups + Ranked sem power-ups | ✅ **Decidido pelo PO em 2026-10-12 (divergência intencional):** dois modos (RN-MOD). Ranked é obrigatoriamente sem power-ups e exige conta com usuário + senha (e-mail só para recuperação). Casual mantém power-ups e aceita convidados | PO |
 | D-11 | Bots em salas Ranked | Proibidos / permitidos só para completar times (sem contar para ranking) / permitidos como no original | ✅ **Decidido pelo PO em 2026-10-12:** **proibidos no Ranked** (RN-MOD-06). Bots alteram o resultado e o modificador de time do ranking; no Casual continuam como no original. | PO |
 | D-12 | Sons em WAV | WAV / OGG+AAC | ✅ **Aprovado pelo PO em 2026-10-12:** WAV (768 KB, suportado por todos os navegadores); compressão vira card se o orçamento exigir | PO |
+| D-13 | Render de salas: antialiasing e escala das texturas | Cobertura exata como o `SceneAntialiaser` / antialiasing do Canvas 2D | ✅ **Decidido no OG-061 (divergência intencional):** Canvas 2D do navegador, com paredes da mesma textura unidas num só caminho (sem costuras); texturas com 1 texel = 1 pixel CSS (em telas de alta densidade ficam do tamanho aparente do original); sem o modo sem antialiasing e sem o modo info do mapa. Comparação com o original: ≤ 0,5% de pixels diferentes (plan/specs/render-salas.md) | Tech Lead |
 
 ---
 

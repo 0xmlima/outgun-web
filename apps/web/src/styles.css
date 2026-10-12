@@ -187,10 +187,12 @@ body {
   position: fixed;
   inset: 0;
 }
+.game-host {
+  position: absolute;
+  inset: 0;
+}
 .game-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
 }
 .game-overlay {
   position: absolute;

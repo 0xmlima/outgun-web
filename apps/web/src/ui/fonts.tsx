@@ -2,6 +2,7 @@
 // Carrega o manifesto de assets (`pnpm assets`, OG-012/013) e as fontes bitmap sob demanda. Sem os
 // assets (ex.: build de CI), os textos caem para a fonte CSS do tema.
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { ASSETS, loadImage, loadManifest } from '../assets.js';
 import { parseFnt, type BitmapFontData } from './bitmap-font.js';
 
 export interface LoadedFont {
@@ -9,26 +10,7 @@ export interface LoadedFont {
   readonly image: HTMLImageElement;
 }
 
-interface FontFiles {
-  readonly fnt: string;
-  readonly png: string;
-}
-
-interface Manifest {
-  readonly fonts: Readonly<Record<string, { readonly font: FontFiles }>>;
-}
-
-const ASSETS = '/assets/';
-
-let manifestPromise: Promise<Manifest | null> | undefined;
 const fontPromises = new Map<string, Promise<LoadedFont | null>>();
-
-function loadManifest(): Promise<Manifest | null> {
-  manifestPromise ??= fetch(`${ASSETS}manifest.json`)
-    .then((res) => (res.ok ? (res.json() as Promise<Manifest>) : null))
-    .catch(() => null);
-  return manifestPromise;
-}
 
 function loadFont(name: string): Promise<LoadedFont | null> {
   let promise = fontPromises.get(name);
@@ -38,12 +20,7 @@ function loadFont(name: string): Promise<LoadedFont | null> {
       if (!files) return null;
       const [text, image] = await Promise.all([
         fetch(ASSETS + files.fnt).then((res) => res.text()),
-        new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = ASSETS + files.png;
-        }),
+        loadImage(ASSETS + files.png),
       ]);
       return { data: parseFnt(text), image };
     });

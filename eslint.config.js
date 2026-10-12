@@ -28,6 +28,11 @@ export default tseslint.config(
     },
   },
   {
+    // Scripts que dirigem o navegador: partes rodam dentro da página (page.evaluate).
+    files: ['tools/visual-compare/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     // packages/sim roda no navegador e no Node: nada de APIs de plataforma nem aleatoriedade global.
     files: ['packages/sim/src/**/*.ts'],
     languageOptions: {
