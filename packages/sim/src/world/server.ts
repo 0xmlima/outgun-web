@@ -546,7 +546,7 @@ export class ServerSim {
     const count = owned.filter((has, kind) => has && kind !== PowerupKind.megahealth).length;
     if (!owned[it.kind] && count >= p.pupsPlayerMax) this.dropWorstPowerup(pl);
 
-    let share = false;
+    let share: boolean;
     switch (it.kind) {
       case PowerupKind.shield:
         share = p.teamShield;
