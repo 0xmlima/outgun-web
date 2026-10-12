@@ -1,0 +1,18 @@
+{
+  "name": "@outgun/visual-compare",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Comparação visual do cliente web com o cliente original (oráculo) e medição de quadros (OG-061).",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "scripts": {
+    "refs": "bash refshots.sh",
+    "compare": "node compare.mjs",
+    "fps": "node fps.mjs",
+    "shot": "node shot.mjs",
+    "keys": "node keys.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

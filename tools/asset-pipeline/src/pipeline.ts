@@ -84,6 +84,16 @@ export interface AssetManifest {
   graphics: Record<string, GraphicsTheme>;
   sounds: Record<string, SoundTheme>;
   fonts: Record<string, FontEntry>;
+  /**
+   * Cores de fábrica do original (`src/colour_def.inc`), `#RRGGBB`. Valem sem tema de cores; o
+   * `colours.txt` de um tema substitui só as cores que lista.
+   */
+  defaultColours: Record<string, string>;
+  /**
+   * Arquivos de mapa originais (`maps/` = rotação padrão, `cmaps/` = extras), copiados como estão
+   * para o cliente desenhar o mapa que o servidor anunciar. A chave é o nome sem `.txt`.
+   */
+  maps: Record<string, { file: string; dir: 'maps' | 'cmaps' }>;
 }
 
 const contentHash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex').slice(0, 10);
@@ -132,11 +142,27 @@ function parseColours(path: string): Record<string, string> {
   return colours;
 }
 
+/** `COL(nome, 0xRR, 0xGG, 0xBB)` de src/colour_def.inc. */
+export function parseColourDefs(text: string): Record<string, string> {
+  const colours: Record<string, string> = {};
+  const hex = (v: string) => Number(v).toString(16).toUpperCase().padStart(2, '0');
+  for (const m of text.matchAll(/COL\(\s*(\w+)\s*,\s*(0x[0-9A-Fa-f]+)\s*,\s*(0x[0-9A-Fa-f]+)\s*,\s*(0x[0-9A-Fa-f]+)\s*\)/g))
+    colours[m[1] as string] = `#${hex(m[2] as string)}${hex(m[3] as string)}${hex(m[4] as string)}`;
+  return colours;
+}
+
 /** Converte `graphics/` e `sound/` de `gameRoot` para `outDir` e devolve o manifesto. */
 export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
   if (existsSync(outDir)) rmSync(outDir, { recursive: true });
   mkdirSync(outDir, { recursive: true });
-  const manifest: AssetManifest = { version: 1, graphics: {}, sounds: {}, fonts: {} };
+  const manifest: AssetManifest = {
+    version: 1,
+    graphics: {},
+    sounds: {},
+    fonts: {},
+    defaultColours: parseColourDefs(readFileSync(join(gameRoot, 'src/colour_def.inc'), 'latin1')),
+    maps: {},
+  };
 
   const graphicsRoot = join(gameRoot, 'graphics');
   for (const theme of readdirSync(graphicsRoot).sort()) {
@@ -201,6 +227,15 @@ export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
       return { fnt, png, height: data.height };
     };
     manifest.fonts[face] = border ? { font: write(font, ''), border: write(border, '-border') } : { font: write(font, '') };
+  }
+
+  for (const dir of ['maps', 'cmaps'] as const) {
+    for (const file of readdirSync(join(gameRoot, dir)).sort()) {
+      if (!file.endsWith('.txt')) continue;
+      const name = basename(file, '.txt');
+      const bytes = readFileSync(join(gameRoot, dir, file));
+      manifest.maps[name] = { file: writeHashed(outDir, dir, name, 'txt', bytes), dir };
+    }
   }
 
   writeFileSync(join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);

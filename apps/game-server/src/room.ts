@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Uma sala: mundo autoritativo (`ServerSim`), conexões e o ciclo da partida, como o `Server` do
-// original (src/server.cpp) para um único mapa em rotação. Times, votação, chat, AOI completo e
-// validação de entrada chegam nos cards OG-042..047; aqui fica o núcleo: entrar, sair, aplicar
-// entradas, simular a 10 Hz, mandar frames e eventos, fim de partida e troca de mapa.
+// original (src/server.cpp) para um único mapa em rotação. Times, votação, chat e validação de
+// entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
+// mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { presetSettings, PRESETS, type GameMode, type GameSettings } from '@outgun/settings';
+import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
+import { InputGuard, isNewerOrSame } from './input-guard.js';
 import {
   CarriedFlag,
   clearModifiersIfIdle,
@@ -49,11 +51,32 @@ interface Client {
   lastClientFrame: number;
   /** Frags na última mensagem enviada (`oldfrags`). */
   sentFrags: number;
+  /** Rodízio do minimapa e propriedades já informadas. */
+  rs: RecipientState;
+  /** Eventos só deste jogador, enviados com o próximo frame. */
+  queue: AnyMessage[];
+  /** Bytes enviados desde a entrada (medição de tráfego). */
+  bytes: number;
+  joinedFrame: number;
+  /** Limite de taxa e validação das mensagens (OG-043). */
+  guard: InputGuard;
+  /** Já chegou algum `input` (o primeiro é aceito com qualquer número de frame). */
+  hasInput: boolean;
+  /** Último frame com ação do jogador (para o idle kick, RN-IDL-01). */
+  lastActivityFrame: number;
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
 const CAUSE = { [DamageType.rocket]: 'rocket', [DamageType.deathbringer]: 'deathbringer', [DamageType.collision]: 'collision' } as const;
 const FLAG_TEAM = ['red', 'blue', 'wild'] as const;
+/** Ações que contam como atividade do jogador (o idle kick do original olha os controles). */
+function isActivity(m: AnyMessage): boolean {
+  if (m.type === 'input') return (m.controls & 0x3f) !== 0;
+  if (m.type === 'fire') return m.on;
+  return m.type === 'suicide' || m.type === 'dropFlag' || m.type === 'changeTeam';
+}
+
+const POWERUP_KIND = ['shield', 'turbo', 'shadow', 'power', 'weapon', 'megahealth', 'deathbringer'] as const;
 
 export class Room {
   readonly id: string;
@@ -68,6 +91,10 @@ export class Room {
   /** Placar de fim de partida: até este frame o mundo não é simulado. */
   private gameOverUntil: number | null = null;
   private outbox: AnyMessage[] = [];
+  /** Expulsões por `client_misbehavior` (para log e métricas). */
+  readonly kicks: { pid: number; name: string; reason: string }[] = [];
+  /** Jogadores que conhecem cada foguete (`Rocket::vislist`). */
+  private readonly rocketViewers: Set<number>[] = [];
 
   constructor(private readonly options: RoomOptions) {
     const preset = PRESETS.find((p) => p.id === options.preset);
@@ -91,6 +118,26 @@ export class Room {
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
       normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' })),
       gameOver: (reason, result) => this.onGameOver(reason, result),
+      rocketsFired: (owner, rids, gunDir, power, pos) => {
+        // quem vê o tiro fica guardado no foguete (`vislist`) para a remoção e as trocas de sala
+        const viewers = this.viewers((p) => seesRocket(this.world, this.settings, p, pos.roomX, pos.roomY));
+        for (const rid of rids) this.rocketViewers[rid] = new Set(viewers);
+        const msg = message('rocketFire', { owner, rockets: [...rids], gundir: iround(gunDir * 256) % 2048, frame: this.world.frame, power, roomX: pos.roomX, roomY: pos.roomY, x: pos.x, y: pos.y });
+        for (const pid of viewers) this.queueTo(pid, msg);
+      },
+      rocketRemoved: (rid, x, y, target) => {
+        const msg = message('rocketDelete', { rocket: rid, target: target < 0 ? 255 : target, x, y });
+        for (const pid of this.rocketViewers[rid] ?? []) this.queueTo(pid, msg);
+        this.rocketViewers[rid] = new Set();
+      },
+      powerupAppeared: (index) => {
+        const it = this.world.items[index]!;
+        for (const pid of this.viewers((p) => p.pos.sameRoom(it.pos))) this.queueTo(pid, this.powerupVisible(index));
+      },
+      powerupPicked: (index, pos) => {
+        for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
+      },
+      playerScreenChange: (pid) => this.screenChanged(pid),
     });
     this.sim.loadMapFlags();
     this.sim.startGame();
@@ -120,7 +167,7 @@ export class Room {
     }
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
 
-    this.clients.set(pid, { conn, identity, lastClientFrame: 0, sentFrags: 0 });
+    this.clients.set(pid, { conn, identity, lastClientFrame: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame });
     this.sim.addPlayer(pid);
     this.send(pid, this.welcomeMessages(pid));
     this.broadcast(message('playerJoined', { pid, name: identity.name, color: 0, bot: false }));
@@ -167,8 +214,10 @@ export class Room {
 
   /** Saída (`client_disconnected` → `removePlayer`). */
   leave(pid: number): void {
-    if (!this.clients.delete(pid)) return;
-    this.sim.removePlayer(pid);
+    if (!this.clients.has(pid)) return;
+    this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
+    this.clients.delete(pid);
+    for (const viewers of this.rocketViewers) viewers?.delete(pid);
     this.broadcast(message('playerLeft', { pid }));
   }
 
@@ -178,8 +227,17 @@ export class Room {
     const client = this.clients.get(pid);
     if (!pl || !client) return;
     for (const m of messages) {
+      const verdict = client.guard.check(m);
+      if (!verdict.ok) {
+        this.kick(pid, verdict.reason);
+        return;
+      }
+      if (isActivity(m)) client.lastActivityFrame = this.world.frame;
       switch (m.type) {
         case 'input': {
+          // fora de ordem ou duplicado antigo: ignora (`incoming_client_data`)
+          if (client.hasInput && !isNewerOrSame(client.lastClientFrame, m.clientFrame)) break;
+          client.hasInput = true;
           client.lastClientFrame = m.clientFrame;
           pl.controls = clearModifiersIfIdle(m.controls & 0x3f);
           pl.accelerationMode = (m.gundir & 0x800) !== 0 && this.settings.physics.allowFreeTurning ? 'gun' : 'world';
@@ -202,6 +260,9 @@ export class Room {
         case 'suicide':
           if (!pl.underDeathbringerEffect(this.world.time)) this.sim.suicide(pid);
           break;
+        case 'minimapBandwidth':
+          client.rs.minimapPerFrame = Math.min(32, m.playersPerFrame);
+          break;
         case 'clientReady':
           if (pl.awaitingClientReadies > 0) pl.awaitingClientReadies--;
           break;
@@ -214,9 +275,30 @@ export class Room {
     if (!pl.attackOnce) pl.attackGunDir = pl.gundir;
   }
 
+  /** Mensagem que nem decodificou (formato inválido): expulsão. */
+  misbehaved(pid: number, reason: string): void {
+    this.kick(pid, reason);
+  }
+
+  /** Expulsa por mensagem inválida ou excesso (`disconnect_client_misbehavior`). */
+  private kick(pid: number, reason: string): void {
+    const c = this.clients.get(pid);
+    if (!c) return;
+    this.kicks.push({ pid, name: c.identity.name, reason });
+    c.conn.send(encodeFrame(message('disconnecting', { reason: 'misbehavior', seconds: 0 })));
+    c.conn.close(4003, 'client_misbehavior');
+    this.leave(pid);
+  }
+
+  /** Último frame com ação de cada jogador (idle kick, OG-047). */
+  lastActivity(pid: number): number | undefined {
+    return this.clients.get(pid)?.lastActivityFrame;
+  }
+
   /** Um frame (`simulate_and_broadcast_frame`). */
   tick(): void {
     const world = this.world;
+    for (const c of this.clients.values()) c.guard.tick();
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       this.sim.startGame();
@@ -235,51 +317,14 @@ export class Room {
       }
     }
     this.flush();
-    for (const pid of this.clients.keys()) this.send(pid, [this.frameFor(pid, running)]);
+    const views = minimapViews(world, this.settings);
+    for (const [pid, c] of this.clients) {
+      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, ping: null });
+      const extra = properties.length ? [message('minimapProperties', { players: properties })] : [];
+      this.send(pid, [...c.queue, message('frame', frame), ...extra]);
+      c.queue = [];
+    }
     world.frame++;
-  }
-
-  /**
-   * Frame de um jogador. Por enquanto: os jogadores na mesma sala, sem shadow nem minimapa
-   * (AOI completo no OG-042).
-   */
-  private frameFor(pid: number, running: boolean): AnyMessage {
-    const world = this.world;
-    const me = world.players[pid] as PlayerState;
-    const client = this.clients.get(pid) as Client;
-    const skipped = !running || me.awaitingClientReadies > 0;
-    const players = skipped
-      ? []
-      : world.players
-          .filter((p): p is PlayerState => p !== undefined && p.pos.sameRoom(me.pos))
-          .map((p) => ({
-            pid: p.pid,
-            x: p.pos.x,
-            y: p.pos.y,
-            vx: p.vel.x,
-            vy: p.vel.y,
-            dead: p.dead,
-            deathbringer: p.deathbringer,
-            deathbringerAffected: p.deathbringerEnd > world.time,
-            shield: p.shield !== 0,
-            turbo: p.turbo,
-            power: p.power,
-            controls: p.dead ? 0 : p.controls,
-            gundir: iround(p.gundir * 256) % 2048, // `toNetworkLongForm`
-            visibility: world.frame < p.startTakeDamageFrame ? (world.frame & 2 ? 128 : 220) : p.visibility,
-          }));
-    return message('frame', {
-      frame: world.frame,
-      lastClientFrame: client.lastClientFrame,
-      frameOffset: 0,
-      skipped,
-      self: skipped
-        ? null
-        : { roomX: me.pos.roomX, roomY: me.pos.roomY, x: me.pos.x, y: me.pos.y, vx: me.vel.x, vy: me.vel.y, health: Math.round(me.health), energy: Math.round(me.energy) },
-      players,
-      minimap: [],
-      ping: null,
-    });
   }
 
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
@@ -312,7 +357,54 @@ export class Room {
   }
 
   private send(pid: number, messages: AnyMessage[]): void {
-    this.clients.get(pid)?.conn.send(encodeFrame(...messages));
+    const c = this.clients.get(pid);
+    if (!c) return;
+    const data = encodeFrame(...messages);
+    c.bytes += data.length;
+    c.conn.send(data);
+  }
+
+  /** Evento para um jogador só, junto do próximo frame. */
+  private queueTo(pid: number, msg: AnyMessage): void {
+    this.clients.get(pid)?.queue.push(msg);
+  }
+
+  /** Jogadores conectados que satisfazem `test`. */
+  private viewers(test: (p: PlayerState) => boolean): number[] {
+    return [...this.clients.keys()].filter((pid) => {
+      const p = this.world.players[pid];
+      return p !== undefined && test(p);
+    });
+  }
+
+  private powerupVisible(index: number): AnyMessage {
+    const it = this.world.items[index]!;
+    return message('powerupVisible', { id: index, kind: POWERUP_KIND[it.kind as 0], roomX: it.pos.roomX, roomY: it.pos.roomY, x: Math.trunc(it.pos.x), y: Math.trunc(it.pos.y) });
+  }
+
+  /** `game_player_screen_change`: power-ups da nova sala e foguetes que ele passa a ver. */
+  private screenChanged(pid: number): void {
+    const pl = this.world.players[pid];
+    if (!pl || !this.clients.has(pid)) return;
+    this.world.items.forEach((it, i) => {
+      if (it.isReal() && it.pos.sameRoom(pl.pos)) this.queueTo(pid, this.powerupVisible(i));
+    });
+    this.world.rockets.forEach((rk, rid) => {
+      const viewers = (this.rocketViewers[rid] ??= new Set());
+      if (rk.owner === -1 || viewers.has(pid) || !seesRocket(this.world, this.settings, pl, rk.pos.roomX, rk.pos.roomY)) return;
+      viewers.add(pid);
+      this.queueTo(pid, message('rocketVisible', { rocket: rid, team: rk.team === 0 ? 'red' : 'blue', power: rk.power, gundir: iround(rk.direction * 256) % 2048, frame: this.world.frame, roomX: rk.pos.roomX, roomY: rk.pos.roomY, x: Math.trunc(rk.pos.x), y: Math.trunc(rk.pos.y) }));
+    });
+  }
+
+  /** Tráfego médio por cliente (bytes/s) desde que cada um entrou. */
+  traffic(): { clients: number; avgBytesPerSecond: number; maxBytesPerSecond: number } {
+    const rates = [...this.clients.values()].map((c) => (c.bytes * 10) / Math.max(1, this.world.frame - c.joinedFrame));
+    return {
+      clients: rates.length,
+      avgBytesPerSecond: rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0,
+      maxBytesPerSecond: rates.length ? Math.max(...rates) : 0,
+    };
   }
 
   /** Encerra a sala: avisa e fecha todas as conexões. */

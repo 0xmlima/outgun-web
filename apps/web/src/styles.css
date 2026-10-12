@@ -1,0 +1,226 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Tokens de cor dos menus: graphics/Ice/colours.txt do original. */
+:root {
+  --screen-bg: #000015;
+  --menu-bg: #000040;
+  --menu-border-shadow: #000030;
+  --menu-border-highlight: #4040b0;
+  --menu-caption: #ffffff;
+  --menu-caption-bg: #000090;
+  --menu-item: #9090ff;
+  --menu-active: #00ffff;
+  --menu-disabled: #777777;
+  --menu-value: #ffffff;
+  --menu-shortcut: #b0d0b0;
+  --menu-shortcut-disabled: #506050;
+  --scrollbar: #0000ff;
+  --scrollbar-bg: #000077;
+  --px: 1;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--screen-bg);
+  color: var(--menu-item);
+  /* Usada só enquanto a fonte bitmap carrega ou sem os assets. */
+  font: calc(var(--px) * 13px) / 1.25 'Courier New', monospace;
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Texto bitmap: um pixel da fonte vira --px pixels de CSS, sem suavização. */
+.btext {
+  display: inline-block;
+  vertical-align: middle;
+  white-space: pre;
+}
+.btext canvas {
+  display: block;
+  width: calc(var(--w) * var(--px) * 1px);
+  height: calc(var(--h) * var(--px) * 1px);
+  image-rendering: pixelated;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.shell-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: calc(var(--px) * 8px);
+}
+.shell-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: calc(var(--px) * 4px) calc(var(--px) * 8px);
+  color: var(--menu-disabled);
+}
+.shell-footer a,
+.text-link a {
+  color: var(--menu-item);
+  text-decoration: none;
+}
+.shell-footer a:hover,
+.shell-footer a:focus-visible,
+.text-link a:hover,
+.text-link a:focus-visible {
+  color: var(--menu-active);
+  outline: none;
+}
+
+/* Caixa de menu com borda em relevo, como src/menu.cpp. */
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: calc(var(--px) * 300px);
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--menu-bg);
+  border: calc(var(--px) * 2px) solid;
+  border-color: var(--menu-border-highlight) var(--menu-border-shadow) var(--menu-border-shadow)
+    var(--menu-border-highlight);
+}
+.menu-caption {
+  margin: 0;
+  padding: calc(var(--px) * 3px) calc(var(--px) * 8px);
+  background: var(--menu-caption-bg);
+  color: var(--menu-caption);
+  font-size: inherit;
+  font-weight: normal;
+  text-align: center;
+}
+.menu-items {
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-color: var(--scrollbar) var(--scrollbar-bg);
+  margin: 0;
+  padding: calc(var(--px) * 6px) 0;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--px) * 6px);
+  width: 100%;
+  padding: calc(var(--px) * 2px) calc(var(--px) * 10px) calc(var(--px) * 2px) calc(var(--px) * 6px);
+  border: 0;
+  background: none;
+  color: var(--menu-item);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:focus {
+  outline: none;
+}
+.menu-item.active {
+  color: var(--menu-active);
+}
+.menu-item.active:focus-visible {
+  outline: calc(var(--px) * 1px) dotted var(--menu-active);
+  outline-offset: calc(var(--px) * -1px);
+}
+.menu-item.disabled {
+  color: var(--menu-disabled);
+  cursor: default;
+}
+.menu-shortcut {
+  min-width: calc(var(--px) * 10px);
+  color: var(--menu-shortcut);
+}
+.menu-item.disabled .menu-shortcut {
+  color: var(--menu-shortcut-disabled);
+}
+.menu-label {
+  flex: 1;
+}
+.menu-value {
+  color: var(--menu-value);
+}
+.menu-note {
+  color: var(--menu-disabled);
+}
+
+.text-page {
+  width: calc(var(--px) * 624px);
+  height: 100%;
+}
+.text-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(var(--px) * 6px) calc(var(--px) * 8px);
+  color: var(--menu-value);
+  scrollbar-color: var(--scrollbar) var(--scrollbar-bg);
+}
+.text-body:focus-visible {
+  outline: calc(var(--px) * 1px) dotted var(--menu-active);
+}
+.text-gap {
+  height: calc(var(--px) * 8px);
+}
+.text-link {
+  margin: calc(var(--px) * 8px) 0 0;
+}
+
+.game {
+  position: fixed;
+  inset: 0;
+}
+.game-host {
+  position: absolute;
+  inset: 0;
+}
+.game-canvas {
+  display: block;
+}
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.game-overlay > * {
+  pointer-events: auto;
+}
+.game-hint {
+  position: absolute;
+  bottom: calc(var(--px) * 8px);
+  margin: 0;
+  color: var(--menu-disabled);
+}
+.menu-help {
+  margin: 0;
+  padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
+  color: var(--menu-disabled);
+}
+.game-toast {
+  position: absolute;
+  top: calc(var(--px) * 8px);
+  margin: 0;
+  color: var(--menu-value);
+}

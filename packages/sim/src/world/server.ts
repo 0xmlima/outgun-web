@@ -53,6 +53,19 @@ export interface ServerHooks {
    * estatísticas finais (já fechadas com `finish_stats`) para placar, ranking e histórico.
    */
   gameOver?(reason: GameOverReason, result: MatchResult): void;
+  /**
+   * Tiro (`sendRocketMessage`): chamado antes de criar os foguetes, com a posição de saída (inteira,
+   * como o cliente recebe). Foguetes que batem na parede ao nascer não geram outro aviso.
+   */
+  rocketsFired?(owner: number, rockets: readonly number[], gunDir: number, power: boolean, pos: Position): void;
+  /** Foguete acertou um jogador (`blink` falso se ele tinha escudo) ou sumiu porque o dono saiu (`target` −1). */
+  rocketRemoved?(rid: number, x: number, y: number, target: number, blink: boolean): void;
+  /** Power-up apareceu no chão (reaparecimento ou caiu de quem morreu). */
+  powerupAppeared?(index: number): void;
+  /** Power-up pego, na sala `pos` (não chamado para o aliado que pega junto). */
+  powerupPicked?(index: number, pos: Position): void;
+  /** Jogador mudou de sala ou renasceu (`game_player_screen_change`). */
+  playerScreenChange?(pid: number): void;
 }
 
 /** Formações de tiro por nível de arma (src/world.cpp:1380): foguetes à frente e desvios em oitavos. */
@@ -175,6 +188,7 @@ export class ServerSim {
     const cb = this.callbacks();
     const team = this.teamOf(pl.pid);
     const dir = pl.attackGunDir;
+    this.hooks.rocketsFired?.(pl.pid, rids, dir, pl.power, pos);
     const form = FORMATIONS[shots - 1];
     if (!form) throw new Error(`nível de arma inválido: ${shots}`);
     const add = (index: number, direction: number, xdelta: number) =>
@@ -667,6 +681,7 @@ export class ServerSim {
     const rk = this.world.rockets[rid] as RocketState;
     const pl = this.player(pid);
     const physics = this.settings.physics;
+    const hadShield = pl.shield !== 0;
     const sameTeam = rk.team === this.teamOf(pid);
     let damage = this.settings.world.rocketDamage;
     if (rk.power) damage = Math.trunc(this.settings.powerups.pupPowerDamage * damage);
@@ -684,6 +699,7 @@ export class ServerSim {
       const mul = (15 / physics.rocketSpeed) * (sameTeam ? physics.friendlyFire : 1);
       pl.vel = pl.vel.add(rk.vel.mul(mul));
     }
+    this.hooks.rocketRemoved?.(rid, Math.trunc(rk.pos.x), Math.trunc(rk.pos.y), pid, !hadShield);
     this.deleteRocket(rid);
     return pl.dead;
   }
@@ -896,6 +912,7 @@ export class ServerSim {
     }
     item.kind = this.choosePowerupKind();
     item.pos = pos;
+    this.hooks.powerupAppeared?.(index);
   }
 
   /** `PowerupSettings::addTime`. */
@@ -910,6 +927,7 @@ export class ServerSim {
     const pl = this.player(pid);
     const p = this.settings.powerups;
     const time = this.time;
+    if (!teammateTouched) this.hooks.powerupPicked?.(k, it.pos.clone());
     // power-ups que o jogador já tem (megahealth não conta para o limite)
     const owned = [pl.shield !== 0, pl.turbo, pl.hasShadow(), pl.power, pl.weapon > 1, true, pl.deathbringer];
     const count = owned.filter((has, kind) => has && kind !== PowerupKind.megahealth).length;
@@ -1010,6 +1028,7 @@ export class ServerSim {
     if (!slot) return;
     slot.kind = candidates[this.rng.rand() % candidates.length] as PowerupKind;
     slot.pos = new Position(pl.pos.roomX, pl.pos.roomY, Math.trunc(pl.pos.x), Math.trunc(pl.pos.y));
+    this.hooks.powerupAppeared?.(this.world.items.indexOf(slot));
   }
 
   // ---------------------------------------------------------------- etapas do frame
@@ -1246,6 +1265,7 @@ export class ServerSim {
     pl.stats.spawnTime = time;
     pl.stats.dead = false;
     if (!dontInformClients) this.hooks.playerSpawned?.(pid);
+    this.hooks.playerScreenChange?.(pid);
   }
 
   /**
@@ -1314,7 +1334,9 @@ export class ServerSim {
     const world = this.world;
     this.player(pid);
     world.rockets.forEach((rk, rid) => {
-      if (rk.owner === pid) this.deleteRocket(rid);
+      if (rk.owner !== pid) return;
+      this.hooks.rocketRemoved?.(rid, 0, 0, -1, false);
+      this.deleteRocket(rid);
     });
     if (world.maxPlayers < MAX_PLAYERS) {
       // pid fictício para o atacante das mortes que ainda vão acontecer
@@ -1377,7 +1399,7 @@ export class ServerSim {
         pl.stats.movement += distance;
         world.teams[this.teamOf(pid)].movement += distance;
       },
-      playerScreenChange: () => {},
+      playerScreenChange: (pid) => this.hooks.playerScreenChange?.(pid),
       rocketHitWall: (rid) => this.deleteRocket(rid),
       rocketHitPlayer: (rid, pid) => this.rocketHitPlayer(rid, pid),
       playerHitWall: () => {},

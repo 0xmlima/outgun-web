@@ -597,18 +597,18 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |
 | [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Concluído |
 | [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Concluído |
-| [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Pronto |
-| [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Pronto |
+| [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Em revisão |
+| [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Em revisão |
 | [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Backlog |
 | [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Backlog |
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Backlog |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Backlog |
 | [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
 | [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Backlog |
-| [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Pronto |
-| [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Pronto |
-| [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Pronto |
-| [OG-063](cards/OG-063-input.md) | Input: teclado, remapeamento e gamepad | E4 | 3 | Must | S6 | OG-060 | Pronto |
+| [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Em revisão |
+| [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Em revisão |
+| [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Em revisão |
+| [OG-063](cards/OG-063-input.md) | Input: teclado, remapeamento e gamepad | E4 | 3 | Must | S6 | OG-060 | Em revisão |
 | [OG-064](cards/OG-064-prediction-interpolation.md) | Predição, reconciliação e interpolação | E4 | 8 | Must | S7 | OG-042, OG-043 | Backlog |
 | [OG-065](cards/OG-065-hud.md) | HUD: barras, timers, placar, minimapa, chat | E4 | 5 | Must | S7 | OG-062 | Backlog |
 | [OG-066](cards/OG-066-overlays-stats.md) | Telas F1–F5, Tab e lista de mapas | E4 | 5 | Should | S9 | OG-065 | Backlog |
@@ -666,6 +666,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-10 | Power-ups e modos de jogo | Modo único como o original / Casual com power-ups + Ranked sem power-ups | ✅ **Decidido pelo PO em 2026-10-12 (divergência intencional):** dois modos (RN-MOD). Ranked é obrigatoriamente sem power-ups e exige conta com usuário + senha (e-mail só para recuperação). Casual mantém power-ups e aceita convidados | PO |
 | D-11 | Bots em salas Ranked | Proibidos / permitidos só para completar times (sem contar para ranking) / permitidos como no original | ✅ **Decidido pelo PO em 2026-10-12:** **proibidos no Ranked** (RN-MOD-06). Bots alteram o resultado e o modificador de time do ranking; no Casual continuam como no original. | PO |
 | D-12 | Sons em WAV | WAV / OGG+AAC | ✅ **Aprovado pelo PO em 2026-10-12:** WAV (768 KB, suportado por todos os navegadores); compressão vira card se o orçamento exigir | PO |
+| D-13 | Render de salas: antialiasing e escala das texturas | Cobertura exata como o `SceneAntialiaser` / antialiasing do Canvas 2D | ✅ **Decidido no OG-061 (divergência intencional):** Canvas 2D do navegador, com paredes da mesma textura unidas num só caminho (sem costuras); texturas com 1 texel = 1 pixel CSS (em telas de alta densidade ficam do tamanho aparente do original); sem o modo sem antialiasing e sem o modo info do mapa. Comparação com o original: ≤ 0,5% de pixels diferentes (plan/specs/render-salas.md) | Tech Lead |
+| D-14 | Render de entidades: suavização e sorteios visuais | Pixel a pixel como a Allegro / formas suavizadas | ✅ **Decidido no OG-062 (divergência intencional):** formas procedurais suavizadas (Graphics do PixiJS) e sprites girados com filtro linear; sorteios só visuais (cor das explosões, tremor do turbo e do escudo, fumaça) com `Math.random`, fora da simulação. Marcadores de vizinhos, bandeiras desaparecidas e mira do giro livre vão para o OG-065 (plan/specs/render-entidades.md) | Tech Lead |
+| D-15 | Teclas no navegador | Só as do original / remapeáveis + gamepad | ✅ **Decidido no OG-063 (divergência intencional):** esquema Clássico (teclas do original) por padrão e esquema Navegador (Espaço/Z/X, sem Ctrl/Alt); tudo remapeável e salvo no navegador; gamepad padrão (botões 0/1/2 = tiro/correr/esquiva, como o joystick do original); teclas por posição física. Atalhos que o navegador não deixa capturar (Ctrl+W/T/N) têm o **modo foco** (F10: tela cheia + `keyboard.lock`) e confirmação ao fechar a aba; captura de tela em F9; sem mira por mouse na v1 (plan/specs/entrada.md) | Tech Lead |
+| D-16 | Formato do snapshot e do minimapa | Bits do original / campos do protocolo v1 | ✅ **Decidido no OG-042 (divergência intencional):** mesmas regras de visibilidade do `broadcast_frame` (sala, shadow, portadores, rodízio do minimapa, propriedades remotas, eventos só para quem vê); minimapa como lista de pids (sem a máscara compactada) e rodízio sem o arredondamento para múltiplos de 4; `rocketDelete` sem o código 252 (o alvo com escudo vai como alvo normal; o pisca fica a cargo do cliente pelo escudo). Tráfego medido: 4,4 KB/s por cliente com 32 jogadores (plan/specs/snapshots-aoi.md) | Tech Lead |
+| D-17 | Entrada do cliente no servidor | Como o original / com limite de taxa e histórico redundante | ✅ **Decidido no OG-043 (divergência intencional):** ordem dos inputs como o original (janela de 128 num contador de 8 bits), limite de taxa por tipo de mensagem (balde de fichas por tick) e expulsão por `client_misbehavior`; **sem histórico redundante de inputs**: os controles são estado absoluto (basta o mais novo), os eventos discretos (tiro, largar bandeira, suicídio, troca de time) vão no canal confiável, o WebSocket não perde pacotes e, num transporte sem garantia (v2), a regra de ordem já descarta os atrasados; um histórico só gastaria banda e abriria espaço para reescrever frames passados. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/entrada-servidor.md) | Tech Lead |
 
 ---
 
