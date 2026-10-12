@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S4 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-024](OG-024-health-energy-damage.md) |
 | Regras de negócio | RN-PUP-01, RN-PUP-02, RN-PUP-03, RN-PUP-04, RN-PUP-05, RN-PUP-06, RN-PUP-07, RN-PUP-08, RN-PUP-09 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

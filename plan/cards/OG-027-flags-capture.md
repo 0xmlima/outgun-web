@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S4 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-024](OG-024-health-energy-damage.md) |
 | Regras de negócio | RN-FLG-01, RN-FLG-02, RN-FLG-03, RN-FLG-04, RN-FLG-05, RN-FLG-06, RN-FLG-07, RN-FLG-08, RN-FLG-09, RN-FLG-10 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

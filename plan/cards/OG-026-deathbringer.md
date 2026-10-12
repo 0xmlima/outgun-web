@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S4 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-025](OG-025-powerups.md) |
 | Regras de negócio | RN-DB-01, RN-DB-02, RN-DB-03, RN-DB-04, RN-DB-05 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
