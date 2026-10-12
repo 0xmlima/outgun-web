@@ -213,7 +213,8 @@ export class DeathbringerExplosion {
   constructor(
     readonly frame0: number,
     readonly pos: Position,
-    readonly ownerPid: number,
+    /** Dono; trocado por um pid fictício se ele sair (`pidChange`). */
+    public ownerPid: number,
     readonly ownerTeam: number,
   ) {}
 

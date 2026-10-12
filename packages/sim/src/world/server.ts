@@ -4,7 +4,7 @@
 // (OG-025), deathbringer (OG-026), bandeiras (OG-027) e ciclo da partida (OG-029). O que fica fora
 // da sim (troca de mapa, votação, placar final) é avisado pelos `ServerHooks`.
 import type { GameSettings } from '@outgun/settings';
-import { FLAG_RADIUS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
+import { FLAG_RADIUS, MAX_PLAYERS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
@@ -12,7 +12,7 @@ import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
 import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
 import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
-import { CarriedFlag, DeathbringerExplosion, FlagState, newStats, Position, PowerupKind, type PlayerState, type GameOverReason, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
+import { CarriedFlag, DeathbringerExplosion, FlagState, newStats, PlayerState, Position, PowerupKind, type GameOverReason, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
 
 /** Alpha do jogador com shadow quando é revelado (atirou, foi atingido...). */
 export const MAXIMUM_SHADOW_VISIBILITY = 254;
@@ -36,6 +36,8 @@ export interface ServerHooks {
   flagCaptured?(pid: number, flagTeam: number, assistPid: number): void;
   /** Suicídio (`broadcast_suicide`), com a bandeira que o jogador carregava. */
   suicide?(pid: number, flag: CarriedFlag): void;
+  /** Morte com atacante (`broadcast_kill`): bônus de defesa entram na mensagem do original. */
+  kill?(attacker: number, target: number, cause: DamageType, carriedFlag: CarriedFlag, carrierDefended: boolean, flagDefended: boolean): void;
   /** Jogador entrou em jogo (`broadcast_spawn`); não é chamado no reset do mapa. */
   playerSpawned?(pid: number): void;
   /** Aviso de tempo restante: 5 min, 1 min ou 30 s (`broadcast_5_min_left`...). */
@@ -268,6 +270,7 @@ export class ServerSim {
     // O original passa o tempo truncado para inteiro aqui (`static_cast<int>(get_time())`).
     addDeath(t, type === DamageType.deathbringer, Math.trunc(this.time));
     world.teams[tateam].deaths++;
+    this.hooks.kill?.(attacker, target, type, t.stats.carriedFlag, carrierDefended, flagDefended);
     this.killPlayer(target, false);
   }
 
@@ -1283,6 +1286,44 @@ export class ServerSim {
     world.lastSpawn = [0, 0];
     this.loadMapFlags();
     this.resetWorld();
+  }
+
+  /**
+   * Jogador entra na sala (parte do mundo de `client_connected`): vai para um spawn e fica morto
+   * até o cliente carregar o mapa (`clientReady`); nasce na base. O pid e o time são escolhidos
+   * pelo servidor de sala.
+   */
+  addPlayer(pid: number): PlayerState {
+    const world = this.world;
+    if (world.players[pid]) throw new Error(`pid ${pid} ocupado`);
+    const pl = new PlayerState(pid, world.teamOf(pid));
+    pl.stats.startTime = this.time;
+    pl.awaitingClientReadies = 1; // `send_map_change_message` ao entrar
+    world.players[pid] = pl;
+    pl.respawnToBase = true;
+    this.respawnPlayer(pid, true);
+    this.resetPlayer(pid, -1e10);
+    pl.respawnToBase = true;
+    pl.stats.lifetime = 0;
+    this.checkPowerupCreation(false);
+    return pl;
+  }
+
+  /** `ServerWorld::removePlayer`: foguetes do jogador somem, deathbringers ficam sem dono e a bandeira cai. */
+  removePlayer(pid: number): void {
+    const world = this.world;
+    this.player(pid);
+    world.rockets.forEach((rk, rid) => {
+      if (rk.owner === pid) this.deleteRocket(rid);
+    });
+    if (world.maxPlayers < MAX_PLAYERS) {
+      // pid fictício para o atacante das mortes que ainda vão acontecer
+      for (const db of world.explosions) if (db.ownerPid === pid) db.ownerPid = MAX_PLAYERS - 1;
+      for (const p of world.players) if (p && p.deathbringerAttacker === pid) p.deathbringerAttacker = MAX_PLAYERS - 1;
+    }
+    this.dropFlagIfAny(pid, true);
+    this.resetCarrierData(pid);
+    world.players[pid] = undefined;
   }
 
   /** `ServerWorld::start_game`: o relógio do mapa começa e os power-ups iniciais aparecem. */

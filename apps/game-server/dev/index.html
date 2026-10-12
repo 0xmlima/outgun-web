@@ -1,0 +1,137 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+<!-- Página de depuração do game server (OG-040): conecta numa sala e desenha os jogadores da sala
+     atual a partir dos frames. Não é o cliente do jogo (E4). Abra em duas abas para ver o mesmo estado. -->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Outgun Web — depuração do servidor</title>
+    <style>
+      body {
+        background: #111;
+        color: #ddd;
+        font:
+          14px system-ui,
+          sans-serif;
+        margin: 16px;
+      }
+      canvas {
+        background: #20331f;
+        border: 1px solid #3fae3f;
+        image-rendering: pixelated;
+        max-width: 100%;
+      }
+      #log {
+        white-space: pre-wrap;
+        font:
+          12px ui-monospace,
+          monospace;
+        max-height: 12em;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      Sala <input id="room" value="main" size="8" /> Nome <input id="name" value="" size="12" />
+      <button id="go">Entrar</button> · setas/WASD movem, Shift corre, espaço atira, Q larga a
+      bandeira
+    </p>
+    <canvas id="view" width="472" height="354"></canvas>
+    <p id="status">desconectado</p>
+    <div id="log"></div>
+    <script type="module">
+      import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION } from '/protocol/index.js';
+
+      const canvas = document.getElementById('view');
+      const ctx = canvas.getContext('2d');
+      const status = document.getElementById('status');
+      const log = (t) => {
+        const el = document.getElementById('log');
+        el.textContent = `${t}\n${el.textContent}`.slice(0, 4000);
+      };
+      document.getElementById('name').value = `Aba${Math.floor(Math.random() * 1000)}`;
+      const keys = new Set();
+      addEventListener('keydown', (e) => keys.add(e.key.toLowerCase()));
+      addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+      const names = new Map();
+      let me = -1;
+      let clientFrame = 0;
+
+      document.getElementById('go').onclick = () => {
+        const room = document.getElementById('room').value;
+        const ws = new WebSocket(
+          `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/rooms/${room}`,
+        );
+        ws.binaryType = 'arraybuffer';
+        ws.onopen = () =>
+          ws.send(
+            encodeFrame(
+              message('hello', {
+                protocol: PROTOCOL_VERSION,
+                ticket: `dev:${document.getElementById('name').value}`,
+                client: 'debug-page',
+              }),
+            ),
+          );
+        ws.onclose = (e) => (status.textContent = `desconectado (${e.code} ${e.reason})`);
+        let firing = false;
+        let dropping = false;
+        setInterval(() => {
+          if (ws.readyState !== 1 || me < 0) return;
+          const k = (a, b) => keys.has(a) || keys.has(b);
+          const controls =
+            (k('arrowup', 'w') ? 1 : 0) |
+            (k('arrowdown', 's') ? 2 : 0) |
+            (k('arrowleft', 'a') ? 4 : 0) |
+            (k('arrowright', 'd') ? 8 : 0) |
+            (keys.has('shift') ? 16 : 0);
+          const out = [message('input', { clientFrame: clientFrame++ & 255, controls, gundir: 0 })];
+          if (keys.has(' ') !== firing) out.push(message('fire', { on: (firing = keys.has(' ')) }));
+          if (keys.has('q') !== dropping)
+            out.push(message('dropFlag', { on: (dropping = keys.has('q')) }));
+          ws.send(encodeFrame(...out));
+        }, 100);
+        ws.onmessage = (e) => {
+          const r = decodeFrame(new Uint8Array(e.data), 's2c');
+          if (!r.ok) return log(`erro: ${r.error}`);
+          for (const m of r.messages) {
+            if (m.type === 'welcome') {
+              me = m.pid;
+              log(`entrei como pid ${me} (${m.mode})`);
+            } else if (m.type === 'mapChange') {
+              ws.send(encodeFrame(message('clientReady', {})));
+              log(`mapa ${m.title}`);
+            } else if (m.type === 'playerJoined') names.set(m.pid, m.name);
+            else if (m.type === 'frame') draw(m);
+            else if (m.type !== 'frags') log(JSON.stringify(m));
+          }
+        };
+      };
+
+      function draw(f) {
+        ctx.fillStyle = '#20331f';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const p of f.players) {
+          ctx.globalAlpha = Math.max(0.25, p.visibility / 255);
+          ctx.fillStyle = p.pid < 16 ? '#e03030' : '#3060f0';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#fff';
+          ctx.fillText(
+            `${names.get(p.pid) ?? p.pid}${p.pid === me ? ' (eu)' : ''}`,
+            p.x - 20,
+            p.y - 20,
+          );
+        }
+        const s = f.self;
+        status.textContent = s
+          ? `frame ${f.frame} · sala ${s.roomX},${s.roomY} · vida ${s.health} · energia ${s.energy} · ${f.players.length} na sala`
+          : `frame ${f.frame} · esperando`;
+      }
+    </script>
+  </body>
+</html>
