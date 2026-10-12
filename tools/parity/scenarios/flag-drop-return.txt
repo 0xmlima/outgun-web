@@ -1,0 +1,25 @@
+# Largar e devolver: o vermelho pega a bandeira azul e a larga (tecla); enquanto está em cima não a
+# pega de volta, depois sai (droppedFlag é limpo). O azul chega antes do flag_return_delay (3 s),
+# fica por cima e só a devolve quando o prazo vence.
+# Sem teletransportes depois do início: vale também no modo free (largar vem da entrada).
+map outgun1
+bots 2
+start 200
+frames 70
+seed 41
+gamemod flag_return_delay 3
+players 0 8
+at 200 0 pos 4 4 196 177
+at 200 0 vel 0 0
+at 200 8 pos 4 4 236 330
+at 200 8 vel 0 0
+input 200 0 8 0
+input 204 0 0 0
+input 210 0 0 0 1
+input 212 0 0 0
+input 214 0 4 0
+input 222 0 0 0
+input 200 8 0 0
+input 212 8 17 0
+input 220 8 2 0
+input 223 8 0 0

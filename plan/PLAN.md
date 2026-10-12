@@ -328,7 +328,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 ### 6.7 Bandeiras e captura (RN-FLG)
 - **RN-FLG-01** — Tipos: bandeira vermelha (0), azul (1), selvagem/verde (2). Pode haver várias de cada. Estados: na base, carregada, largada.
 - **RN-FLG-02** — Pegar: tocar (raio 15 + 15) na bandeira inimiga ou selvagem não carregada. Um jogador carrega no máximo uma. `lock_team_flags`/`lock_wild_flags` impedem pegar. Quem acabou de largar precisa sair do raio antes de pegar de novo. Pegar revela shadow.
-- **RN-FLG-03** — Devolver: tocar na própria bandeira largada fora da base a devolve, após `flag_return_delay (0 s)` desde a queda. Bandeiras selvagens não são devolvidas.
+- **RN-FLG-03** — Devolver: tocar na própria bandeira largada fora da base a devolve, após `flag_return_delay (0 s)` desde a queda. Bandeiras selvagens não são devolvidas, e com `carry_own_team_flag` não há devolução por toque.
 - **RN-FLG-04** — Largar: morrer, suicidar ou tecla de largar (Page Down). Largar voluntariamente desfaz o ponto de pegar (−1 frag).
 - **RN-FLG-05** — Captura (padrão `capture_on_team_flag 1`): portador da bandeira inimiga toca **a própria bandeira na base**. Não captura se a própria bandeira foi roubada. Tabela completa das 13 combinações (inimiga/própria/selvagem × base) em `world.cpp:3335-3350`; implementar exatamente.
 - **RN-FLG-06** — `min_capture_time (0 s)`: tempo mínimo entre pegar e capturar.
@@ -588,7 +588,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-024](cards/OG-024-health-energy-damage.md) | Vida, energia, dano e shield | E2 | 3 | Must | S3 | OG-022 | Concluído |
 | [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Em revisão |
 | [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Em revisão |
-| [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Backlog |
+| [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Em andamento |
 | [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
 | [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |

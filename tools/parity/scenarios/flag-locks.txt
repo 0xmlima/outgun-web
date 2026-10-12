@@ -1,0 +1,19 @@
+# lock_team_flags 1 com os três tipos: bandeiras de time não podem ser pegas, só a selvagem, que
+# é capturada na base vermelha.
+map 3x2
+bots 2
+start 200
+frames 30
+seed 67
+gamemod lock_team_flags 1
+players 0 8
+at 200 0 pos 2 0 236 88
+at 200 0 vel 0 0
+at 200 8 pos 0 0 236 300
+at 200 8 vel 0 0
+input 200 0 0 0
+input 200 8 0 0
+at 203 0 pos 1 0 236 88
+at 203 0 vel 0 0
+at 216 0 pos 0 0 236 110
+at 216 0 vel 0 0

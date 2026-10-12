@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Adaptador entre os golden traces e a simulação TS (`@outgun/sim`). Cresce a cada card do épico
-// E2: hoje cobre o que já foi portado (movimento, quiques, troca de sala, expiração de power-ups
-// temporizados). Partes ainda não portadas lançam erro se forem exercitadas.
+// E2: hoje cobre movimento, tiro, colisões, dano, power-ups, deathbringer e bandeiras. Partes ainda
+// não portadas (respawn, OG-029) lançam erro se forem exercitadas.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,7 +51,28 @@ function toFlag(f: TraceFlag): FlagState {
   const flag = new FlagState(toPosition(f.home), toPosition(f.pos));
   flag.status = f.status === 0 ? 'base' : f.status === 1 ? 'carried' : 'dropped';
   flag.carrier = f.carrier;
+  flag.prevCarrier = f.prevCarrier;
+  flag.prevPrevCarrier = f.prevPrevCarrier;
+  flag.grabTime = f.grabTime;
+  flag.dropTime = f.dropTime;
+  flag.carryingTeam = f.carryingTeam;
+  flag.carryingTime = f.carryingTime;
   return flag;
+}
+
+function fromFlag(f: FlagState): TraceFlag {
+  return {
+    status: f.status === 'base' ? 0 : f.status === 'carried' ? 1 : 2,
+    carrier: f.carrier,
+    prevCarrier: f.prevCarrier,
+    prevPrevCarrier: f.prevPrevCarrier,
+    grabTime: f.grabTime,
+    dropTime: f.dropTime,
+    home: toCoords(f.home),
+    pos: toCoords(f.pos),
+    carryingTeam: f.carryingTeam,
+    carryingTime: f.carryingTime,
+  };
 }
 
 export class SimTraceAdapter implements SimAdapter {
@@ -72,6 +93,7 @@ export class SimTraceAdapter implements SimAdapter {
     this.pre = state;
     const world = new WorldState(this.map, this.header.maxplayers);
     world.frame = state.frame;
+    world.mapStartFrame = state.mapStartTime;
     for (const p of state.players) {
       const pl = new PlayerState(p.pid, p.team as 0 | 1);
       this.copyPhysical(pl, p);
@@ -90,9 +112,11 @@ export class SimTraceAdapter implements SimAdapter {
     state.teams.forEach((t, i) => {
       const team = world.teams[i as 0 | 1];
       Object.assign(team, { score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement });
-      team.flags.push(...t.flags.map(toFlag));
+      team.flags = t.flags.map(toFlag);
+      // o trace guarda o nome do capturador, que a sim não conhece: só o tempo é conferido
+      team.captures = t.captures.map(([time]) => ({ time, pid: -1, assistPid: -1 }));
     });
-    world.wildFlags.push(...state.wildFlags.map(toFlag));
+    world.wildFlags = state.wildFlags.map(toFlag);
     this.world = world;
     this.sim = new ServerSim(world, this.settings, { rand: () => 0 });
     world.explosions = state.deathbringers.map((db) => {
@@ -110,9 +134,24 @@ export class SimTraceAdapter implements SimAdapter {
 
   applyInputs(state: TraceState): void {
     this.pre = state;
+    // largar bandeira e suicídio acontecem antes do frame, com o relógio do "pre"
+    this.world.frame = state.frame;
+    this.world.time = state.time;
     for (const p of state.players) {
       const pl = this.world.players[p.pid];
-      if (pl) this.copyInputs(pl, p);
+      if (!pl) continue;
+      this.copyInputs(pl, p);
+      const carrying = pl.stats.carriedFlag;
+      this.sim.setDropKey(p.pid, p.dropKey !== 0);
+      // morto no "pre" mas vivo na sim: só a diretiva `suicide` do roteiro mata entre dois frames
+      const suicide = p.dead !== 0 && !pl.dead;
+      if (suicide) this.sim.suicide(p.pid);
+      // Largar e suicídio chegam pela rede, fora do frame: o original usa o relógio de parede, alguns
+      // microssegundos antes do "pre" (D-09). Os tempos acumulados vêm do trace nesses eventos.
+      if (suicide || pl.stats.carriedFlag !== carrying) {
+        pl.stats.flagCarryingTime = p.stats.flagCarryingTime;
+        pl.stats.lifetime = p.stats.lifetime;
+      }
     }
   }
 
@@ -192,6 +231,8 @@ export class SimTraceAdapter implements SimAdapter {
         startTakeDamageFrame: pl.startTakeDamageFrame,
         framesToRespawn: pl.framesToRespawn,
         extraFramesToRespawn: pl.extraFramesToRespawn,
+        dropKey: Number(pl.dropKey),
+        droppedFlag: Number(pl.droppedFlag),
         stats: { ...pl.stats, dead: Number(pl.stats.dead), carriedFlag: pl.stats.carriedFlag },
       };
     });
@@ -202,8 +243,9 @@ export class SimTraceAdapter implements SimAdapter {
     out.powerups = w.items.flatMap((it, id) => (it.kind === 7 ? [] : [{ id, kind: it.kind, respawnTime: it.respawnTime, pos: toCoords(it.pos) }]));
     out.teams = [0, 1].map((i) => {
       const t = w.teams[i as 0 | 1];
-      return { ...out.teams[i as 0 | 1], score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement };
+      return { ...out.teams[i as 0 | 1], score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement, flags: t.flags.map(fromFlag), captures: t.captures.map((c) => [c.time, `pid ${c.pid}`] as [number, string]) };
     }) as TraceState['teams'];
+    out.wildFlags = w.wildFlags.map(fromFlag);
     return out;
   }
 }
@@ -234,4 +276,18 @@ export const combatFields = (s: TraceState) => ({
     return rest;
   }),
   teams: s.teams.map((t) => ({ kills: t.kills, deaths: t.deaths, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement, score: t.score })),
+});
+
+/**
+ * Bandeiras (OG-027): tudo do combate mais as bandeiras completas e as estatísticas de time. Das
+ * capturas compara só o tempo (o trace tem o nome do jogador, que a sim não conhece). `grabTime` de
+ * bandeira que nunca saiu da base é lixo de memória no original e é copiado, não calculado.
+ */
+export const flagFields = (s: TraceState) => ({
+  ...combatFields(s),
+  teams: s.teams.map((t) => {
+    const { captures, ...rest } = t;
+    return { ...rest, captures: captures.map(([time]) => time) };
+  }),
+  wildFlags: s.wildFlags,
 });

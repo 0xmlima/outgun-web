@@ -230,13 +230,81 @@ export class DeathbringerExplosion {
 
 export type FlagStatus = 'base' | 'carried' | 'dropped';
 
+/** `Flag` (src/world.h:640): estado, portadores (para a assistência) e posse de bandeira selvagem. */
 export class FlagState {
   status: FlagStatus = 'base';
+  /** Portador atual; −1 se não está sendo carregada. */
   carrier = -1;
+  /** Último portador (candidato a assistente na captura). */
+  prevCarrier = -1;
+  /** Penúltimo portador, para quando o mesmo jogador larga e pega de novo. */
+  prevPrevCarrier = -1;
+  /** Quando foi tirada da base (o original não inicializa; só é lida depois de uma pegada na base). */
+  grabTime = 0;
+  /** Quando foi largada (em `frame / 10`; só bandeiras de time). */
+  dropTime = -1e10;
+  /** Time que carregou a bandeira selvagem por último (−1 = ninguém) e há quantos frames. */
+  carryingTeam = -1;
+  carryingTime = 0;
+
   constructor(
     readonly home: Position,
     public pos: Position,
   ) {}
+
+  /** `Flag::take(carrier, time)`: a hora da pegada só conta se ela estava na base. */
+  take(carrier: number, time: number): void {
+    if (this.status === 'base') this.grabTime = time;
+    this.status = 'carried';
+    this.carrier = carrier;
+    // mantém como anterior um jogador diferente do portador
+    if (this.prevCarrier === carrier) this.prevCarrier = this.prevPrevCarrier;
+    this.prevPrevCarrier = -1;
+  }
+
+  /** `Flag::return_to_base`. */
+  returnToBase(): void {
+    this.status = 'base';
+    this.pos = this.home.clone();
+    this.carrier = -1;
+    this.prevCarrier = -1;
+    this.prevPrevCarrier = -1;
+    this.carryingTeam = -1;
+  }
+
+  /** `Flag::move` + `Flag::drop`. */
+  dropAt(pos: Position): void {
+    this.pos = pos;
+    this.status = 'dropped';
+    if (this.prevCarrier !== this.carrier) this.prevPrevCarrier = this.prevCarrier;
+    else if (this.prevPrevCarrier === this.carrier) this.prevPrevCarrier = -1;
+    this.prevCarrier = this.carrier;
+    this.carrier = -1;
+  }
+
+  /** `Flag::add_carrying_time`: troca de time zera a contagem. */
+  addCarryingTime(team: number): void {
+    if (this.carryingTeam !== team) {
+      this.carryingTeam = team;
+      this.carryingTime = 0;
+    }
+    ++this.carryingTime;
+  }
+
+  /** `Team::reset_prev_carrier` / laço de `resetCarrierData` para uma bandeira. */
+  forgetCarrier(pid: number): void {
+    if (this.prevCarrier === pid) this.prevCarrier = -1;
+    else if (this.prevPrevCarrier === pid) this.prevPrevCarrier = -1;
+  }
+}
+
+/** Captura registrada no placar do time (`Team::caps`). */
+export interface Capture {
+  /** Tempo de mapa em segundos inteiros (`getMapTime() / 10`). */
+  time: number;
+  pid: number;
+  /** Assistente; −1 = sem assistência. */
+  assistPid: number;
 }
 
 export interface TeamState {
@@ -252,10 +320,11 @@ export interface TeamState {
   hits: number;
   shotsTaken: number;
   movement: number;
+  captures: Capture[];
 }
 
 export function newTeam(): TeamState {
-  return { flags: [], score: 0, kills: 0, deaths: 0, suicides: 0, flagsTaken: 0, flagsDropped: 0, flagsReturned: 0, shots: 0, hits: 0, shotsTaken: 0, movement: 0 };
+  return { flags: [], score: 0, kills: 0, deaths: 0, suicides: 0, flagsTaken: 0, flagsDropped: 0, flagsReturned: 0, shots: 0, hits: 0, shotsTaken: 0, movement: 0, captures: [] };
 }
 
 export class WorldState {
@@ -269,7 +338,9 @@ export class WorldState {
   /** Explosões de deathbringer ativas, da mais antiga para a mais nova. */
   explosions: DeathbringerExplosion[] = [];
   readonly teams: [TeamState, TeamState] = [newTeam(), newTeam()];
-  readonly wildFlags: FlagState[] = [];
+  wildFlags: FlagState[] = [];
+  /** Frame em que o mapa atual começou (`map_start_time`). */
+  mapStartFrame = 0;
 
   constructor(
     readonly map: GameMap,
@@ -292,6 +363,16 @@ export class WorldState {
   /** Time de um pid (`pid / TSIZE`). */
   teamOf(pid: number): 0 | 1 {
     return Math.trunc(pid / this.teamSize) as 0 | 1;
+  }
+
+  /** `getMapTime()`: frames desde o início do mapa. */
+  mapTime(): number {
+    return this.frame - this.mapStartFrame;
+  }
+
+  /** Bandeiras do time 0, 1 ou das selvagens (2), como os índices de time do original. */
+  flagsOf(team: number): FlagState[] {
+    return team === 2 ? this.wildFlags : (this.teams[team as 0 | 1] as TeamState).flags;
   }
 
   /** O jogador carrega uma bandeira inimiga ou selvagem? (penalidade de aceleração ao correr) */

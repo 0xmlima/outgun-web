@@ -2,7 +2,7 @@
 // O que cada golden trace verifica hoje na simulação TS. Cada card do épico E2 amplia esta tabela:
 // troca `pending` por um recorte de campos (ou amplia o recorte) e o CI passa a exigir paridade.
 import type { ParityMode } from './run.js';
-import { combatFields } from './sim-adapter.js';
+import { combatFields, flagFields } from './sim-adapter.js';
 import type { TraceState } from './trace.js';
 
 export interface CoverageEntry {
@@ -49,7 +49,15 @@ export const COVERAGE: readonly CoverageEntry[] = [
   { trace: 'pup-drop-at-death', select: combatFields, modes: ['resync', 'free'], card: 'OG-025', frames: 24, note: 'frame 224+: respawn do alvo (OG-029)' },
   { trace: 'db-explosion', select: combatFields, modes: ['resync', 'free'], card: 'OG-026' },
   { trace: 'db-friendly', select: combatFields, modes: ['resync', 'free'], card: 'OG-026' },
-  { trace: 'flag-capture', modes: [], card: 'OG-027', note: 'bandeiras e captura' },
+  { trace: 'flag-capture', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
+  { trace: 'flag-drop-return', select: flagFields, modes: ['resync', 'free'], card: 'OG-027' },
+  { trace: 'flag-suicide', select: flagFields, modes: ['resync', 'free'], card: 'OG-027' },
+  { trace: 'flag-assist', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
+  { trace: 'flag-wild-capture', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
+  { trace: 'flag-wild-base', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
+  { trace: 'flag-carry-own', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
+  { trace: 'flag-locks', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
+  { trace: 'flag-carrying-score', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
   { trace: 'bots-match', modes: [], card: 'OG-029', note: 'partida completa' },
   { trace: 'settings-classic', modes: [], card: 'OG-030', note: 'cabeçalho conferido em @outgun/settings', external: true },
   { trace: 'settings-edge', modes: [], card: 'OG-030', note: 'cabeçalho conferido em @outgun/settings', external: true },

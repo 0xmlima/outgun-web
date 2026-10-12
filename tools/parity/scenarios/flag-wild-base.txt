@@ -1,0 +1,22 @@
+# capture_on_wild_flag 1: o vermelho captura a bandeira azul na base selvagem (enemy flag to wild
+# flag on wild base); o azul pega a selvagem e a captura na própria base.
+map 3x2
+bots 2
+start 200
+frames 40
+seed 59
+gamemod capture_on_wild_flag 1
+players 0 8
+at 200 0 pos 2 0 236 88
+at 200 0 vel 0 0
+at 200 8 pos 1 0 300 300
+at 200 8 vel 0 0
+input 200 0 0 0
+input 200 8 0 0
+at 212 0 pos 1 0 236 110
+at 212 0 vel 0 0
+at 213 0 pos 1 0 60 300
+at 220 8 pos 1 0 236 88
+at 220 8 vel 0 0
+at 222 8 pos 2 0 236 110
+at 222 8 vel 0 0

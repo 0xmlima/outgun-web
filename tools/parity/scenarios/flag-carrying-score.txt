@@ -1,0 +1,23 @@
+# carrying_score_time 2 num mapa só com a bandeira selvagem (3x2 com lock_team_flags 1 e
+# capture_on_team_flag 0 remove as de time): segurá-la dá um ponto ao time a cada 2 s. O vermelho
+# segura e pontua, larga; o azul pega (troca de time zera a contagem) e pontua.
+# (random_wild_flag com bots derruba o servidor original: ver plan/specs/bandeiras-captura.md.)
+map 3x2
+bots 2
+start 200
+frames 60
+seed 71
+gamemod lock_team_flags 1
+gamemod capture_on_team_flag 0
+gamemod carrying_score_time 2
+players 0 8
+at 200 0 pos 1 0 236 88
+at 200 0 vel 0 0
+at 200 8 pos 1 0 236 300
+at 200 8 vel 0 0
+input 200 0 0 0
+input 200 8 0 0
+input 225 0 0 0 1
+at 228 8 pos 1 0 236 88
+at 228 8 vel 0 0
+at 229 0 pos 1 0 400 300
