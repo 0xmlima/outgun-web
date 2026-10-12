@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Preferências do jogador guardadas no navegador (idioma, fonte dos menus, opções gráficas). As opções completas do
-// jogador chegam no OG-068; o remapeamento de teclas no OG-063.
+// jogador chegam no OG-068.
 import { detectLocale, LOCALES, translate, type Locale } from '@outgun/i18n';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
 
 /** Fonte padrão dos menus (uma das 25 fontes do original convertidas no OG-013). */
 export const DEFAULT_MENU_FONT = 'Kulmikas';
@@ -15,6 +16,8 @@ export interface Prefs {
   /** Salas na tela em cada direção (1 no `client.cfg` distribuído; D-05). */
   readonly visibleRooms: number;
   readonly continuousTextures: boolean;
+  /** Teclas de cada ação (OG-063). */
+  readonly bindings: Bindings;
 }
 
 const STORAGE_KEY = 'outgun.prefs';
@@ -26,6 +29,7 @@ function load(): Prefs {
     graphicsTheme: '',
     visibleRooms: 1,
     continuousTextures: true,
+    bindings: CLASSIC_BINDINGS,
   };
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Prefs>;
@@ -39,6 +43,7 @@ function load(): Prefs {
           : fallback.visibleRooms,
       continuousTextures:
         typeof saved.continuousTextures === 'boolean' ? saved.continuousTextures : fallback.continuousTextures,
+      bindings: parseBindings(saved.bindings ? JSON.stringify(saved.bindings) : null),
     };
   } catch {
     return fallback;

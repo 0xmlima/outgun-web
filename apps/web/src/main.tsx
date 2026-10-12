@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { PrefsProvider } from './app/prefs.js';
 import { Root, Shell } from './app/Shell.js';
+import { ControlsScreen } from './screens/ControlsScreen.js';
 import {
   CreditsScreen,
   HelpScreen,
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <HomeScreen /> },
           { path: 'options', element: <OptionsScreen /> },
+          { path: 'options/controls', element: <ControlsScreen /> },
           { path: 'help', element: <HelpScreen /> },
           { path: 'credits', element: <CreditsScreen /> },
           { path: 'source', element: <SourceScreen /> },

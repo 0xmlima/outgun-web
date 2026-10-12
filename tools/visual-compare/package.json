@@ -9,7 +9,8 @@
     "refs": "bash refshots.sh",
     "compare": "node compare.mjs",
     "fps": "node fps.mjs",
-    "shot": "node shot.mjs"
+    "shot": "node shot.mjs",
+    "keys": "node keys.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^24.0.0"

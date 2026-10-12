@@ -6,7 +6,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
-import { DEFAULT_MAP, mountGame, type GameStatus } from '../game/host.js';
+import { DEFAULT_MAP, mountGame, type GameHost, type GameStatus } from '../game/host.js';
+import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 
@@ -17,6 +18,10 @@ export default function GameScreen() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const host = useRef<GameHost | null>(null);
+  const tRef = useRef(t);
+  tRef.current = t;
 
   // demonstração num mapa com bandeiras e áreas de time
   const map = params.get('map') ?? (params.has('demo') || !params.size ? 'sisso' : DEFAULT_MAP);
@@ -28,7 +33,7 @@ export default function GameScreen() {
   useEffect(() => {
     if (!hostRef.current) return;
     const [rx, ry] = room.split(',').map(Number);
-    const host = mountGame(hostRef.current, {
+    const game = mountGame(hostRef.current, {
       map,
       theme,
       visibleRooms: rooms,
@@ -37,10 +42,36 @@ export default function GameScreen() {
       demoPlayers: demo,
       demoStress: params.get('stress') === '1',
       font: prefs.menuFont,
+      bindings: prefs.bindings,
       onStatus: setStatus,
+      onAction: (action) => {
+        const t = tRef.current;
+        if (action === 'menu') setMenuOpen(true);
+        else if (action === 'focusMode') setToast(t('Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).'));
+        // telas e mensagens dos cards OG-044/045/065/066/067
+        else if (action !== 'suicide') setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
+      },
     });
-    return () => host.destroy();
+    host.current = game;
+    return () => game.destroy();
   }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont]);
+
+  useEffect(() => host.current?.setBindings(prefs.bindings), [prefs.bindings]);
+  useEffect(() => host.current?.setInputEnabled(!menuOpen), [menuOpen]);
+
+  // aviso curto das ações (some em 2 s)
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2000);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  // fechar a aba no meio da partida (ex.: Ctrl+W com o tiro apertado) pede confirmação
+  useEffect(() => {
+    const guard = (ev: BeforeUnloadEvent) => ev.preventDefault();
+    addEventListener('beforeunload', guard);
+    return () => removeEventListener('beforeunload', guard);
+  }, []);
 
   useEffect(() => {
     if (menuOpen) return;
@@ -63,6 +94,11 @@ export default function GameScreen() {
     <div className="game" data-status={status?.kind ?? 'loading'}>
       <div ref={hostRef} className="game-host" />
       <div className="game-overlay">
+        {toast && !menuOpen && (
+          <p className="game-toast" role="status">
+            <BitmapText text={toast} />
+          </p>
+        )}
         {menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
         ) : (

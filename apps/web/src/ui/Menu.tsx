@@ -13,6 +13,8 @@ export type MenuItem =
       readonly disabled?: boolean;
       /** Texto à direita (ex.: "em breve"). */
       readonly note?: string;
+      /** Delete sobre o item (ex.: voltar a tecla ao padrão). */
+      readonly onDelete?: () => void;
     }
   | {
       readonly kind: 'choice';
@@ -51,6 +53,12 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
 
   const onKeyDown = (ev: KeyboardEvent) => {
     if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    const item = items[current];
+    if (ev.key === 'Delete' && item?.kind === 'action' && item.onDelete) {
+      ev.preventDefault();
+      item.onDelete();
+      return;
+    }
     const action = menuKey(items, current, ev);
     if (!action) return;
     ev.preventDefault();

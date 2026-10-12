@@ -84,7 +84,7 @@ export function OptionsScreen() {
       value: prefs.continuousTextures ? '[X]' : '[ ]',
       onChange: () => setPrefs({ continuousTextures: !prefs.continuousTextures }),
     },
-    { kind: 'action', label: t('Controls'), onActivate: () => {}, disabled: true, note: t('Coming soon') },
+    { kind: 'action', label: t('Controls'), onActivate: () => void navigate('/options/controls') },
   ];
   return <Menu caption={t('Options')} items={items} onBack={() => void navigate('/')} />;
 }

@@ -3,9 +3,11 @@
 // simulação de verdade (@outgun/sim, preset Clássico) com jogadores de controles aleatórios.
 import { presetSettings } from '@outgun/settings';
 import {
+  clearModifiersIfIdle,
   CONTROL,
   GlibcRand,
   gunDirectionFromControls,
+  isStrafe,
   ROOM_HEIGHT,
   ServerSim,
   Vec,
@@ -50,6 +52,8 @@ export class LocalDemo {
   private readonly returnTime = new Map<string, number>();
   private readonly nextTurn = new Map<number, number>();
   private events: DemoEvent[] = [];
+  /** Controles do jogador local (`me`); `null` = controles aleatórios como os outros. */
+  private myInput: { controls: number; fire: boolean; dropFlag: boolean } | null = null;
   /** Placar de fim de partida: até este frame o mundo fica parado (`game_end_delay`). */
   private restartAt: number | null = null;
 
@@ -98,6 +102,20 @@ export class LocalDemo {
     world.time = time; // relógio determinístico (D-09), como `Room.tick`
     for (const pl of this.world.players) {
       if (!pl) continue;
+      if (pl.pid === this.me && this.myInput) {
+        // como `Room.handle` faz com as mensagens `input` e `fire` do cliente
+        const input = this.myInput;
+        pl.controls = clearModifiersIfIdle(input.controls);
+        if (!pl.dead && !isStrafe(pl.controls)) pl.gundir = gunDirectionFromControls(pl.gundir, pl.controls);
+        if (input.fire && !pl.attack) {
+          pl.attackOnce = true;
+          pl.attackGunDir = pl.gundir;
+        }
+        pl.attack = input.fire;
+        if (!pl.attackOnce) pl.attackGunDir = pl.gundir;
+        this.sim.setDropKey(pl.pid, input.dropFlag);
+        continue;
+      }
       if (time >= (this.nextTurn.get(pl.pid) ?? 0)) {
         this.nextTurn.set(pl.pid, time + 0.5 + Math.random() * 1.5);
         const dirs = [CONTROL.up, CONTROL.down, CONTROL.left, CONTROL.right];
@@ -132,6 +150,17 @@ export class LocalDemo {
     const out = new Map<string, string>();
     for (const team of [0, 1, 2] as const) this.world.flagsOf(team).forEach((f, i) => out.set(`${team}.${i}`, f.status));
     return out;
+  }
+
+  /** Passa o jogador local para os controles do teclado/gamepad. */
+  setMyInput(input: { controls: number; fire: boolean; dropFlag: boolean }): void {
+    this.myInput = input;
+  }
+
+  /** Delete: suicídio (bloqueado sob efeito de deathbringer, como no servidor). */
+  suicide(): void {
+    const pl = this.world.players[this.me];
+    if (pl && !pl.dead && !pl.underDeathbringerEffect(this.world.time)) this.sim.suicide(this.me);
   }
 
   /** Posição do jogador seguido pela câmera. */

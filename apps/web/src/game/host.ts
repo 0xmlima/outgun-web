@@ -7,6 +7,8 @@ import { positiveModulo, type GameMap } from '@outgun/sim';
 import { Application, Assets, type BitmapFont } from 'pixi.js';
 import { ASSETS, loadManifest } from '../assets.js';
 import { LocalDemo } from './demo.js';
+import type { Bindings, PressAction } from './input/bindings.js';
+import { GameInput, toggleFocusMode } from './input/input.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
@@ -15,6 +17,9 @@ import { loadRoomTheme } from './render/theme.js';
 import { WorldRenderer } from './render/world-renderer.js';
 
 export interface GameHost {
+  /** Com o menu aberto o jogo não lê teclas. */
+  setInputEnabled(enabled: boolean): void;
+  setBindings(bindings: Bindings): void;
   /** Para o laço e solta o canvas. */
   destroy(): void;
 }
@@ -35,6 +40,9 @@ export interface GameOptions {
   readonly demoStress?: boolean;
   /** Fonte bitmap dos nomes e contagens (uma das fontes do original). */
   readonly font?: string;
+  readonly bindings: Bindings;
+  /** Ações de toque (F1, F2...) e o botão Start do gamepad (`menu`). */
+  readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
   readonly onStatus?: (status: GameStatus) => void;
 }
@@ -76,6 +84,12 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   let world: WorldRenderer | undefined;
   let entities: EntityRenderer | undefined;
   let demo: LocalDemo | undefined;
+  const input = new GameInput(opts.bindings);
+  input.onAction((action) => {
+    if (action === 'suicide') demo?.suicide();
+    else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
+    opts.onAction?.(action);
+  });
   let visible = opts.visibleRooms;
   let view = { x: opts.room?.[0] ?? 0, y: opts.room?.[1] ?? 0 };
 
@@ -147,6 +161,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           simTime += Math.min(ticker.deltaMS, 250);
           while (simTime >= 100) {
             simTime -= 100;
+            demo.setMyInput(input.sample());
             for (const ev of demo.step()) entities.addEffect(ev.kind, ev.pos, ev.team, demo.world.frame / 10);
           }
           topLeft = viewTopLeft(world.layout, demo.mePosition(), VIEW);
@@ -155,6 +170,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           // contadores para as medições (tools/visual-compare/fps.mjs)
           container.dataset.players = String(frame.players.length);
           container.dataset.rockets = String(frame.rockets.length);
+          const me = frame.players.find((p) => p.me);
+          if (me) container.dataset.me = `${me.pos.room.x},${me.pos.room.y},${Math.round(me.pos.x)},${Math.round(me.pos.y)},${me.dead ? 'morto' : 'vivo'},${me.gundir}`;
         }
         const missing = world?.render(topLeft) ?? 1;
         // "pronto" quando todas as salas da primeira vista já foram pintadas
@@ -170,8 +187,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
 
   addEventListener('keydown', onKey);
   return {
+    setInputEnabled: (enabled) => input.setEnabled(enabled),
+    setBindings: (bindings) => input.setBindings(bindings),
     destroy() {
       destroyed = true;
+      input.destroy();
       removeEventListener('keydown', onKey);
       world?.destroy();
       entities?.destroy();
