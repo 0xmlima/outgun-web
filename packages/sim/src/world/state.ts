@@ -327,6 +327,9 @@ export function newTeam(): TeamState {
   return { flags: [], score: 0, kills: 0, deaths: 0, suicides: 0, flagsTaken: 0, flagsDropped: 0, flagsReturned: 0, shots: 0, hits: 0, shotsTaken: 0, movement: 0, captures: [] };
 }
 
+/** Por que a partida acabou (no original todas levam a `server_next_map`). */
+export type GameOverReason = 'captureLimit' | 'timeOut' | 'extraTimeOut';
+
 export class WorldState {
   frame = 0;
   /** Relógio da simulação em segundos (`get_time()` no original; ver D-09). */
@@ -341,9 +344,16 @@ export class WorldState {
   wildFlags: FlagState[] = [];
   /** Frame em que o mapa atual começou (`map_start_time`). */
   mapStartFrame = 0;
+  /** Período de prorrogação atual, a partir de 1 (`current_extra_time_period`). */
+  extraTimePeriod = 1;
+  /** Último ponto de spawn usado por time (`MapTeam::lastspawn`); o próximo é o seguinte. */
+  lastSpawn: [number, number] = [0, 0];
+  /** Partida encerrada neste mapa; o servidor de sala mostra o placar e troca de mapa. */
+  gameOver: GameOverReason | null = null;
 
   constructor(
-    readonly map: GameMap,
+    /** Mapa atual; trocado por `ServerSim.changeMap` no fim da partida. */
+    public map: GameMap,
     /** Vagas (`maxplayers`); o time de um pid é `pid / (maxplayers / 2)`. */
     readonly maxPlayers: number,
   ) {

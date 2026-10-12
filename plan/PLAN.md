@@ -363,10 +363,10 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 - **RN-PAR-02** — Limite de tempo `time_limit (0 = sem limite)` minutos. Avisos aos 5 min (se limite ≥ 10 min), 1 min (≥ 2 min) e 30 s (≥ 1 min). Só conta com 2+ jogadores.
 - **RN-PAR-03** — Empate no fim do tempo: se `extra_time > 0`, prorrogação (pode ter vários períodos); se `sudden_death`, a próxima captura vence; senão termina empatado.
 - **RN-PAR-04** — Fim de partida: placa de game over por `game_end_delay (5 s)`, estatísticas enviadas a todos, troca de mapa (RN-VOT).
-- **RN-PAR-05** — Início do mapa: jogadores nascem nos spawn points do time (round-robin); sem spawn points, posição aleatória.
+- **RN-PAR-05** — Início do mapa: jogadores nascem nos spawn points do time (round-robin, a partir do segundo ponto); sem spawn points, como no respawn (RN-SPW-03).
 
 ### 6.10 Spawn e respawn (RN-SPW)
-- **RN-SPW-01** — Tempo de respawn: `respawn_time (2 s)` + `extra_respawn_time_alone (0)` + `respawn_balancing_time × (meu time − time inimigo) / time inimigo` quando meu time é maior. (`world.cpp:1627`)
+- **RN-SPW-01** — Tempo de respawn: `respawn_time (2 s)` + tempo extra = `extra_respawn_time_alone (0)` + `respawn_balancing_time × (meu time − time inimigo) / time inimigo` quando meu time é maior. O tempo extra é descontado de quem espera junto com alguém do outro time (RN-SPW-02), por isso só pesa para quem morre "sozinho". (`world.cpp:1627`)
 - **RN-SPW-02** — Respawn ocorre em ordem justa entre os times (fila ordenada por tempo extra; `world.cpp:3516-3545`).
 - **RN-SPW-03** — Local: áreas `V respawn` do time, se houver; senão sala aleatória **desocupada**, longe de paredes.
 - **RN-SPW-04** — `spawn_safe_time (0 s)`: invulnerável e sem atirar após nascer.
@@ -590,7 +590,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Concluído |
 | [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Concluído |
 | [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
-| [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |
+| [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Em andamento |
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |
 | [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Backlog |
 | [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Backlog |

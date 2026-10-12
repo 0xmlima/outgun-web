@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S5 |
-| Status | Backlog |
+| Status | Em andamento |
 | Dependências | [OG-027](OG-027-flags-capture.md) |
 | Regras de negócio | RN-PAR-*, RN-SPW-* |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
@@ -28,11 +28,16 @@ Como jogador, quero que a partida comece, tenha tempo, prorrogação, morte súb
 - Limites de captura/tempo, prorrogação, morte súbita, avisos de tempo, estado de game over.
 
 ## Critérios de aceite
-- [ ] Traces de partidas com time_limit + extra_time + sudden_death idênticos.
-- [ ] Ordem de respawn entre times idêntica.
+- [x] Traces de partidas com time_limit + extra_time + sudden_death idênticos.
+- [x] Ordem de respawn entre times idêntica.
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- Spec: [ciclo-partida.md](../specs/ciclo-partida.md). Código em `packages/sim/src/world/server.ts` (seção "ciclo da partida").
+- Paridade: `respawn-order`, `match-time-win`, `match-sudden-death`, `match-extra-time` e `bots-match` (partida livre de 6 bots, 600 frames) idênticos ao original; `rocket-hit` e `pup-drop-at-death` deixaram de ser limitados. Total: 40 de 44 traces idênticos, 4 conferidos em @outgun/settings, nenhum pendente.
+- Achado: no original o fim de partida (`server_next_map`) roda no meio do frame, e o resto do frame já acontece no mapa reiniciado. A sim reproduz isso com o hook síncrono `gameOver`, dentro do qual o servidor chama `changeMap`.
+- Oráculo: o trace passou a gravar `extraTimePeriod` e `lastSpawn`; nova diretiva `flagreset F` (os bots jogam antes do `start` e pegam bandeiras); `at`/`suicide` ignoram PIDs vazios (slots vazios do original têm `dead = false`). `trace-schema.md` atualizado com todas as diretivas.
+- Os traces com reinício de mapa só rodam em resync: o `start_game` acontece fora do frame gravado e sorteia power-ups com `rand()` não registrado.
+- Balanceamento de times no reinício (`balance_teams`), votação de mapas e placar de fim de partida ficam com o servidor de sala (OG-040 e cards de E3).

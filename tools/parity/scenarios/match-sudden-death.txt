@@ -1,0 +1,24 @@
+# Morte súbita: tempo normal acaba empatado (sem prorrogação) e a primeira captura encerra a
+# partida; depois do placar o mapa recomeça e todos nascem nos pontos de spawn da base.
+map outgun1
+bots 4
+start 740
+frames 160
+seconds 170
+seed 83
+gamemod time_limit 1
+gamemod sudden_death 1
+players 0 1 2 3 8 9 10 11
+flagreset 740
+at 770 0 pos 4 4 236 177
+at 770 0 vel 0 0
+at 790 0 pos 1 1 236 177
+at 790 0 vel 0 0
+input 740 0 0 0
+input 740 1 0 0
+input 740 2 0 0
+input 740 3 0 0
+input 740 8 0 0
+input 740 9 0 0
+input 740 10 0 0
+input 740 11 0 0

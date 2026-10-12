@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Adaptador entre os golden traces e a simulação TS (`@outgun/sim`). Cresce a cada card do épico
-// E2: hoje cobre movimento, tiro, colisões, dano, power-ups, deathbringer e bandeiras. Partes ainda
-// não portadas (respawn, OG-029) lançam erro se forem exercitadas.
+// E2: movimento, tiro, colisões, dano, power-ups, deathbringer, bandeiras e ciclo da partida.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -94,6 +93,8 @@ export class SimTraceAdapter implements SimAdapter {
     const world = new WorldState(this.map, this.header.maxplayers);
     world.frame = state.frame;
     world.mapStartFrame = state.mapStartTime;
+    world.extraTimePeriod = state.extraTimePeriod ?? 1;
+    world.lastSpawn = state.lastSpawn ? [...state.lastSpawn] : [0, 0];
     for (const p of state.players) {
       const pl = new PlayerState(p.pid, p.team as 0 | 1);
       this.copyPhysical(pl, p);
@@ -118,7 +119,8 @@ export class SimTraceAdapter implements SimAdapter {
     });
     world.wildFlags = state.wildFlags.map(toFlag);
     this.world = world;
-    this.sim = new ServerSim(world, this.settings, { rand: () => 0 });
+    // fim de partida: o servidor do oráculo tem um mapa só na rotação e o recarrega no mesmo frame
+    this.sim = new ServerSim(world, this.settings, { rand: () => 0 }, { gameOver: () => this.sim.changeMap(this.map) });
     world.explosions = state.deathbringers.map((db) => {
       const e = new DeathbringerExplosion(db.frame0, toPosition(db.pos), db.owner, db.team);
       e.outsideMask = db.outsideMask;
@@ -232,6 +234,7 @@ export class SimTraceAdapter implements SimAdapter {
         framesToRespawn: pl.framesToRespawn,
         extraFramesToRespawn: pl.extraFramesToRespawn,
         dropKey: Number(pl.dropKey),
+        respawnToBase: Number(pl.respawnToBase),
         droppedFlag: Number(pl.droppedFlag),
         stats: { ...pl.stats, dead: Number(pl.stats.dead), carriedFlag: pl.stats.carriedFlag },
       };
@@ -246,6 +249,8 @@ export class SimTraceAdapter implements SimAdapter {
       return { ...out.teams[i as 0 | 1], score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement, flags: t.flags.map(fromFlag), captures: t.captures.map((c) => [c.time, `pid ${c.pid}`] as [number, string]) };
     }) as TraceState['teams'];
     out.wildFlags = w.wildFlags.map(fromFlag);
+    if (out.extraTimePeriod !== undefined) out.extraTimePeriod = w.extraTimePeriod;
+    if (out.lastSpawn !== undefined) out.lastSpawn = [...w.lastSpawn];
     return out;
   }
 }

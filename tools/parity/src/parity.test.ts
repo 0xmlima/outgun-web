@@ -49,7 +49,11 @@ describe('golden traces gravados', () => {
     it(`${name}: estrutura consistente`, () => {
       expect(trace.frames.length).toBeGreaterThan(0);
       trace.frames.forEach((frame, i) => {
-        expect(frame.frame).toBe(trace.header.startFrame + i);
+        const prev = trace.frames[i - 1];
+        // frames seguidos, salvo o placar de fim de partida: o mapa recomeçou no frame anterior
+        if (!prev) expect(frame.frame).toBe(trace.header.startFrame);
+        else if (frame.frame !== prev.frame + 1) expect(prev.post.mapStartTime, `salto depois do frame ${prev.frame}`).toBe(prev.frame);
+        else expect(frame.frame).toBe(prev.frame + 1);
         expect(frame.pre.frame).toBe(frame.frame);
         expect(frame.post.frame).toBe(frame.frame);
         // ServerWorld::simulateFrame embaralha os jogadores com random_shuffle: n - 1 chamadas a rand().

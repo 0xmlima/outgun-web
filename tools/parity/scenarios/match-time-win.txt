@@ -1,0 +1,23 @@
+# Fim do tempo com o vermelho na frente (1 a 0): game over por tempo; o mapa recomeça.
+map outgun1
+bots 4
+start 700
+frames 160
+# o mapa começa no frame ~151: o tempo de 1 min acaba no ~751; o reinício vem após o placar (5 s)
+seconds 150
+seed 87
+gamemod time_limit 1
+players 0 1 2 3 8 9 10 11
+flagreset 700
+at 705 0 pos 4 4 236 177
+at 705 0 vel 0 0
+at 720 0 pos 1 1 236 177
+at 720 0 vel 0 0
+input 700 0 0 0
+input 700 1 0 0
+input 700 2 0 0
+input 700 3 0 0
+input 700 8 0 0
+input 700 9 0 0
+input 700 10 0 0
+input 700 11 0 0
