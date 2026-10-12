@@ -2,3 +2,5 @@
 export * from './pcx.js';
 export * from './pipeline.js';
 export * from './png.js';
+export * from './datafile.js';
+export * from './font.js';

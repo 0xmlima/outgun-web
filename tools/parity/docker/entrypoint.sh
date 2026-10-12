@@ -37,6 +37,10 @@ Oráculo do Outgun 1.0.3 original. Comandos:
       todos os objetos do servidor dedicado original (menos main.o), e executa com ARGS. Qualquer
       função do original pode ser chamada para gerar dados de referência; a saída vai para stdout.
 
+  allegro NOME [ARGS...]
+      Compila /fixtures/NOME.cpp sozinho, ligado à Allegro 4 (sem o código do jogo), e executa.
+      Usado para extrair referências de assets (ex.: fontdump, OG-013).
+
   compile-commands
       Copia o compile_commands.json do build (para clangd) para /out/.
 
@@ -186,6 +190,16 @@ cmd_fixture() {
   "$bin" "$@"
 }
 
+cmd_allegro() {
+  local name="${1:?informe o nome do programa}"
+  shift
+  local src="/fixtures/$name.cpp" bin="/tmp/allegro-$name"
+  [ -e "$src" ] || { echo "programa não encontrado: $src" >&2; exit 2; }
+  # shellcheck disable=SC2046
+  g++ -O2 -w -o "$bin" "$src" $(allegro-config --libs)
+  "$bin" "$@"
+}
+
 cmd_compile_commands() {
   cp "$GAME/src/compile_commands.json" "$OUT/compile_commands.json"
   echo "compile_commands.json copiado (caminhos do container: /outgun/src)"
@@ -203,6 +217,7 @@ case "$cmd" in
   mapgen) cmd_mapgen "$@" ;;
   fixture) cmd_fixture "$@" ;;
   trace) cmd_trace "$@" ;;
+  allegro) cmd_allegro "$@" ;;
   compile-commands) cmd_compile_commands ;;
   shell) exec bash ;;
   help | -h | --help) usage ;;

@@ -9,6 +9,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { readOutgunFont, toBmFont } from './font.js';
 import { decodePcx } from './pcx.js';
 import { encodePng } from './png.js';
 
@@ -65,10 +66,24 @@ export interface SoundTheme {
   samples: Record<string, string | null>;
 }
 
+export interface FontFiles {
+  /** Descritor BMFont (`.fnt`) e atlas PNG, para `PIXI.BitmapFont`. */
+  fnt: string;
+  png: string;
+  height: number;
+}
+
+export interface FontEntry {
+  font: FontFiles;
+  /** Contorno desenhado atrás do texto (`border` no datafile), quando existe. */
+  border?: FontFiles;
+}
+
 export interface AssetManifest {
   version: 1;
   graphics: Record<string, GraphicsTheme>;
   sounds: Record<string, SoundTheme>;
+  fonts: Record<string, FontEntry>;
 }
 
 const contentHash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex').slice(0, 10);
@@ -121,7 +136,7 @@ function parseColours(path: string): Record<string, string> {
 export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
   if (existsSync(outDir)) rmSync(outDir, { recursive: true });
   mkdirSync(outDir, { recursive: true });
-  const manifest: AssetManifest = { version: 1, graphics: {}, sounds: {} };
+  const manifest: AssetManifest = { version: 1, graphics: {}, sounds: {}, fonts: {} };
 
   const graphicsRoot = join(gameRoot, 'graphics');
   for (const theme of readdirSync(graphicsRoot).sort()) {
@@ -170,6 +185,24 @@ export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
     manifest.sounds[theme] = sound;
   }
 
+  const fontsRoot = join(gameRoot, 'fonts');
+  for (const file of readdirSync(fontsRoot).sort()) {
+    if (!file.endsWith('.dat')) continue;
+    const face = basename(file, '.dat');
+    const { font, border } = readOutgunFont(readFileSync(join(fontsRoot, file)));
+    if (!font) continue;
+    const write = (data: NonNullable<typeof font>, suffix: string): FontFiles => {
+      const slug = `${face}${suffix}`;
+      const pngName = `${slug}.png`;
+      const bm = toBmFont(data, slug, pngName);
+      const png = writeHashed(outDir, 'fonts', slug, 'png', bm.png);
+      // O .fnt referencia o PNG pelo nome final (com hash), relativo à mesma pasta.
+      const fnt = writeHashed(outDir, 'fonts', slug, 'fnt', new TextEncoder().encode(bm.fnt.replace(`file="${pngName}"`, `file="${basename(png)}"`)));
+      return { fnt, png, height: data.height };
+    };
+    manifest.fonts[face] = border ? { font: write(font, ''), border: write(border, '-border') } : { font: write(font, '') };
+  }
+
   writeFileSync(join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   writeFileSync(join(outDir, 'preview.html'), previewPage(manifest));
   return manifest;
@@ -196,6 +229,9 @@ function previewPage(manifest: AssetManifest): string {
       return `<h2>Sons: ${esc(theme)} — ${esc(s.name)}</h2><ul class="sounds">${rows}</ul>`;
     })
     .join('\n');
+  const fonts = Object.entries(manifest.fonts)
+    .map(([face, f]) => `<figure class="font"><img src="${esc(f.font.png)}" alt="${esc(face)}"><figcaption>${esc(face)}<br><small>${f.font.height} px${f.border ? ' + contorno' : ''}</small></figcaption></figure>`)
+    .join('\n');
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -209,6 +245,8 @@ figure { margin: 0; width: 140px; text-align: center; }
 img { width: 128px; height: 128px; object-fit: contain; image-rendering: pixelated;
   background: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) 0 0 / 16px 16px; }
 figure.alpha img { background: #800; }
+figure.font { width: 270px; }
+figure.font img { width: 256px; height: auto; background: #224; }
 .sounds { list-style: none; padding: 0; columns: 2; }
 .sounds li { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
 .sounds span { width: 80px; }
@@ -218,6 +256,7 @@ figure.alpha img { background: #800; }
 <h1>Assets convertidos do Outgun original</h1>
 <p>Gerado por <code>pnpm assets</code> (card OG-012). Sprites sobre fundo xadrez (magenta virou transparente); mapas de alpha sobre vermelho.</p>
 ${themes}
+<h2>Fontes (atlas BMFont)</h2><div class="grid">${fonts}</div>
 ${sounds}
 </body>
 </html>

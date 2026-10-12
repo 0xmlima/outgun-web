@@ -27,7 +27,7 @@ Como jogador, quero ver vida, energia, power-ups, placar, tempo, minimapa e mens
 - [ ] Mensagens traduzidas (OG-014).
 
 ## Notas técnicas
-- —
+- Texto com contorno como o original (OG-013): `border` em (x−1, y−1) por caractere, avançando pela fonte principal; sem contorno, 8 cópias deslocadas.
 
 ## Notas de implementação
 _(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_

@@ -5,6 +5,7 @@
 #   help                  lista os comandos do container (server, replay, mappic, mapgen, ...)
 #   compile-commands      gera compile_commands.json na raiz (para clangd navegar em src/)
 #   trace CENÁRIO         grava tools/parity/traces/CENÁRIO.jsonl.gz a partir de tools/parity/scenarios/CENÁRIO.txt
+#   allegro NOME [ARGS]   compila tools/parity/fixtures/NOME.cpp só com a Allegro (fontes em /game-fonts)
 #   fixture NOME [ARGS]   compila e roda tools/parity/fixtures/NOME.cpp ligado ao código original (stdout)
 #   <outro>               repassado ao container; resultados em tools/parity/out/ (= /out no container)
 # O container roda sem rede (--network none): o original tenta falar com master server e ranking antigos.
@@ -36,6 +37,7 @@ case "$cmd" in
   *)
     mkdir -p "$OUT"
     docker run --rm --network none -v "$OUT:/out" -v "$ROOT/tools/parity/fixtures:/fixtures:ro" \
-      -v "$ROOT/tools/parity/scenarios:/scenarios:ro" -v "$ROOT/tools/parity/traces:/traces" "$IMAGE" "$@"
+      -v "$ROOT/tools/parity/scenarios:/scenarios:ro" -v "$ROOT/tools/parity/traces:/traces" \
+      -v "$ROOT/fonts:/game-fonts:ro" "$IMAGE" "$@"
     ;;
 esac
