@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S7 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-012](OG-012-graphics-sound-pipeline.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec`, `outgun-asset-pipeline` |

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S7 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-VOT-01, RN-VOT-02, RN-VOT-03, RN-VOT-04, RN-VOT-05 |
 | Skills | `outgun-re-spec` |
@@ -28,7 +28,7 @@ Como jogador, quero votar no próximo mapa e para encerrar o atual.
 - [ ] Bots não contam na votação.
 
 ## Notas técnicas
-- —
+- Bots (IA) são do OG-048 (S10): para o critério 2 basta um jogador marcado como bot na sala, sem IA.
 
 ## Notas de implementação
 _(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_

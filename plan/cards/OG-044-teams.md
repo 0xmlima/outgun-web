@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S7 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-TIM-01, RN-TIM-02, RN-TIM-03, RN-TIM-05 |
 | Skills | `outgun-re-spec` |
@@ -28,7 +28,7 @@ Como jogador, quero ser colocado num time equilibrado e poder trocar de time, co
 - [ ] Entrada com sala cheia de bots substitui um bot.
 
 ## Notas técnicas
-- —
+- Bots (IA) são do OG-048 (S10): para o critério 2 basta um jogador marcado como bot na sala (`playerJoined.bot`), sem IA; a regra de substituição fica pronta para o OG-048.
 
 ## Notas de implementação
 _(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_

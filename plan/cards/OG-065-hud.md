@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S7 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-062](OG-062-renderer-entities.md) |
 | Regras de negócio | RN-VIS-02, RN-PAR-02, RN-CHT-01 |
 | Skills | `outgun-re-spec` |
