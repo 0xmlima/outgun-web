@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S5 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-029](OG-029-match-lifecycle.md) |
 | Regras de negócio | RN-TIM-04 |
 | Skills | `outgun-card-workflow` |
