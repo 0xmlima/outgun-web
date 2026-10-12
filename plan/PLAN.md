@@ -263,7 +263,7 @@ O original tem um único modo, configurado pelo gamemod do servidor. A versão w
 - **RN-MOD-03** — Ranked exige **conta logada** (nome de usuário + senha). Convidados não entram em salas Ranked.
 - **RN-MOD-04** — O preset Ranked é **travado**: nem dono de sala nem `/set` alteram settings; mapas vêm da rotação oficial Ranked; não há salas Ranked privadas com regras próprias.
 - **RN-MOD-05** — Só partidas Ranked alimentam o ranking (RN-RNK). Estatísticas de partidas Casual podem aparecer no perfil, separadas.
-- **RN-MOD-06** — Bots em salas Ranked: ver decisão D-11.
+- **RN-MOD-06** — Bots são proibidos em salas Ranked (D-11): o servidor não adiciona bots, recusa comandos que os ativem e o preset Ranked trava `min_bots` e `bots_fill` em 0. No Casual os bots continuam como no original.
 
 ### 6.1 Mapa e mundo (RN-MAP)
 - **RN-MAP-01** — O mapa é uma grade de `width × height` salas; cada sala tem 472×354 px. Coordenadas: `(sala.x, sala.y, x local, y local)`. (`world.h:53-95`)
@@ -328,7 +328,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 ### 6.7 Bandeiras e captura (RN-FLG)
 - **RN-FLG-01** — Tipos: bandeira vermelha (0), azul (1), selvagem/verde (2). Pode haver várias de cada. Estados: na base, carregada, largada.
 - **RN-FLG-02** — Pegar: tocar (raio 15 + 15) na bandeira inimiga ou selvagem não carregada. Um jogador carrega no máximo uma. `lock_team_flags`/`lock_wild_flags` impedem pegar. Quem acabou de largar precisa sair do raio antes de pegar de novo. Pegar revela shadow.
-- **RN-FLG-03** — Devolver: tocar na própria bandeira largada fora da base a devolve, após `flag_return_delay (0 s)` desde a queda. Bandeiras selvagens não são devolvidas.
+- **RN-FLG-03** — Devolver: tocar na própria bandeira largada fora da base a devolve, após `flag_return_delay (0 s)` desde a queda. Bandeiras selvagens não são devolvidas, e com `carry_own_team_flag` não há devolução por toque.
 - **RN-FLG-04** — Largar: morrer, suicidar ou tecla de largar (Page Down). Largar voluntariamente desfaz o ponto de pegar (−1 frag).
 - **RN-FLG-05** — Captura (padrão `capture_on_team_flag 1`): portador da bandeira inimiga toca **a própria bandeira na base**. Não captura se a própria bandeira foi roubada. Tabela completa das 13 combinações (inimiga/própria/selvagem × base) em `world.cpp:3335-3350`; implementar exatamente.
 - **RN-FLG-06** — `min_capture_time (0 s)`: tempo mínimo entre pegar e capturar.
@@ -402,7 +402,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 
 ### 6.16 Ranking (RN-RNK)
 Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
-- **RN-RNK-01** — A partida conta para o ranking só se: sala **Ranked** (RN-MOD-02, sem power-ups), ≥ `ranking_minhumans (2)` humanos distintos e ≥ `ranking_minplayers (4)` jogadores (humanos + bots, se D-11 permitir bots). O jogador precisa estar logado e com participação ativa.
+- **RN-RNK-01** — A partida conta para o ranking só se: sala **Ranked** (RN-MOD-02, sem power-ups), ≥ `ranking_minhumans (2)` humanos distintos e ≥ `ranking_minplayers (4)` jogadores (só humanos: não há bots no Ranked, D-11). O jogador precisa estar logado e com participação ativa.
 - **RN-RNK-02** — Cada frag positivo soma ao **score** multiplicado pelo modificador do time; cada ponto negativo soma ao **neg** sem modificador.
 - **RN-RNK-03** — Força do jogador = `(score+1)/(neg+1)` (ou 1,0 se score < 100). Força do time = soma (ou média se `respawn_balancing_time ≥ 5`). Modificador do time = `força_inimiga / força_própria` limitado a **[1/3, 3]** — o time mais fraco ganha mais.
 - **RN-RNK-04** — Deltas enviados ao fim de cada partida e na saída do jogador.
@@ -586,9 +586,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Concluído |
 | [OG-023](cards/OG-023-player-collisions.md) | Colisões entre jogadores (none/normal/special) | E2 | 5 | Must | S3 | OG-021 | Concluído |
 | [OG-024](cards/OG-024-health-energy-damage.md) | Vida, energia, dano e shield | E2 | 3 | Must | S3 | OG-022 | Concluído |
-| [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Backlog |
-| [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Backlog |
-| [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Backlog |
+| [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Em revisão |
+| [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Em revisão |
+| [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Em revisão |
 | [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
 | [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |
@@ -661,7 +661,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-08 | Uso do nome "Outgun" e contato com os autores | Usar o nome / nome derivado | ✅ **Aprovado pelo PO em 2026-10-12:** Tentar contato com Niko Ritari e Jani Rivinoja (README.txt) antes do beta público; até lá, usar "Outgun Web" com créditos completos (`CREDITS.md`) | PO |
 | D-09 | Relógio da simulação | Relógio de parede como o original (`get_time()`) / determinístico (`frame / 10`) | ✅ **Decidido no OG-003 (divergência intencional):** determinístico. O original mede expirações com o relógio do servidor, que oscila alguns ms entre frames e pode mudar uma expiração em ±1 frame; a versão web usa `tempo = frame / 10`. O harness alimenta a sim TS com o tempo gravado, então a paridade não é afetada | Tech Lead |
 | D-10 | Power-ups e modos de jogo | Modo único como o original / Casual com power-ups + Ranked sem power-ups | ✅ **Decidido pelo PO em 2026-10-12 (divergência intencional):** dois modos (RN-MOD). Ranked é obrigatoriamente sem power-ups e exige conta com usuário + senha (e-mail só para recuperação). Casual mantém power-ups e aceita convidados | PO |
-| D-11 | Bots em salas Ranked | Proibidos / permitidos só para completar times (sem contar para ranking) / permitidos como no original | **Recomendação: proibidos no Ranked.** Bots alteram o resultado e o modificador de time do ranking; no Casual continuam como no original. Em aberto | PO |
+| D-11 | Bots em salas Ranked | Proibidos / permitidos só para completar times (sem contar para ranking) / permitidos como no original | ✅ **Decidido pelo PO em 2026-10-12:** **proibidos no Ranked** (RN-MOD-06). Bots alteram o resultado e o modificador de time do ranking; no Casual continuam como no original. | PO |
 | D-12 | Sons em WAV | WAV / OGG+AAC | ✅ **Aprovado pelo PO em 2026-10-12:** WAV (768 KB, suportado por todos os navegadores); compressão vira card se o orçamento exigir | PO |
 
 ---

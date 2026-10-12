@@ -29,7 +29,8 @@ Como jogador, quero bots que completem as salas e joguem CTF de forma crível.
 - [ ] Bots não consomem mais que 1 ms por tick com 30 bots.
 
 ## Notas técnicas
+- `robot.cpp:750` usa `Coords(rand() % S_W, rand() % S_H)`: o primeiro `rand()` vai para o y (avaliação da direita para a esquerda no GCC, descoberto no OG-025).
 - Usar o modo `botTestMode` do original (`server.cpp`) para gerar estatísticas de referência.
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- Achado do OG-027: no original, `random_wild_flag 1` com bots derruba o servidor ao iniciar (segfault reproduzido no oráculo). A IA dos bots precisa lidar com bandeiras removidas na carga do mapa (`random_wild_flag` e locks) — ver [bandeiras-captura.md](../specs/bandeiras-captura.md).

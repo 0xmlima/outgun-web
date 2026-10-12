@@ -1,0 +1,20 @@
+# Power-up largado ao morrer (pups_drop_at_death 1): alvo com power e arma 5 é abatido.
+map outgun1
+start 200
+seed 31
+bots 2
+frames 30
+gamemod pups_drop_at_death 1
+players 0 8
+pupclear 200
+at 200 0 pos 2 2 100 177
+at 200 0 vel 0 0
+at 200 0 gundir 0
+at 200 8 pos 2 2 380 177
+at 200 8 vel 0 0
+at 200 8 health 60
+at 200 8 energy 0
+at 200 8 power 40
+at 200 8 weapon 5
+input 200 0 0 1
+input 200 8 0 0

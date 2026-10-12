@@ -1,0 +1,17 @@
+# Portador se mata (suicide): larga a bandeira onde está, conta morte e suicídio; o azul a devolve.
+map outgun1
+bots 2
+start 200
+frames 30
+seed 47
+gamemod respawn_time 10
+players 0 8
+at 200 0 pos 4 4 236 177
+at 200 0 vel 0 0
+at 200 8 pos 4 4 236 300
+at 200 8 vel 0 0
+input 200 0 0 0
+input 200 8 0 0
+suicide 205 0
+input 208 8 1 0
+input 220 8 0 0

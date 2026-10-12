@@ -1,0 +1,16 @@
+# Reaparecimento: após uma coleta, novos power-ups surgem em salas aleatórias (pups_respawn_time 1).
+map outgun1
+start 200
+seed 31
+bots 2
+frames 60
+gamemod pups_respawn_time 1
+players 0 8
+pupclear 200
+pup 200 0 4 2 2 120 177
+at 200 0 pos 2 2 60 177
+at 200 0 vel 0 0
+at 200 8 pos 4 4 236 177
+input 200 0 8 0
+input 210 0 0 0
+input 200 8 0 0

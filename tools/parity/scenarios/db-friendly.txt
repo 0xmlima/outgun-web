@@ -1,0 +1,28 @@
+# Deathbringer com fogo amigo (friendly_deathbringer 0.5): atinge o aliado do portador pela metade e o inimigo com shield.
+map outgun1
+start 200
+seed 42
+bots 4
+frames 45
+gamemod friendly_deathbringer 0.5
+players 0 1 8 9
+pupclear 200
+at 200 0 pos 2 2 100 177
+at 200 0 vel 0 0
+at 200 0 gundir 0
+at 200 0 shield 1
+at 200 0 energy 200
+at 200 1 pos 3 3 236 177
+at 200 1 vel 0 0
+at 200 8 pos 2 2 330 177
+at 200 8 vel 0 0
+at 200 8 health 60
+at 200 8 energy 0
+at 200 8 deathbringer 1
+at 200 9 pos 2 2 330 90
+at 200 9 vel 0 0
+input 200 0 0 1
+input 203 0 0 0
+input 200 1 0 0
+input 200 8 0 0
+input 200 9 0 0

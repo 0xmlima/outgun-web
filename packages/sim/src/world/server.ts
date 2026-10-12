@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Lógica de servidor do frame (`ServerWorld`, src/world.cpp:1228-3365): tiro e foguetes (OG-022),
-// colisões especiais entre jogadores (OG-023), vida, energia, dano e morte (OG-024). As partes de
-// outros cards (power-ups, deathbringer, bandeiras, respawn) lançam `NotPortedError` se forem
-// exercitadas, para que a falta apareça nos testes de paridade em vez de passar despercebida.
+// colisões especiais entre jogadores (OG-023), vida, energia, dano e morte (OG-024), power-ups
+// (OG-025), deathbringer (OG-026) e bandeiras (OG-027). O que ainda não foi portado (respawn, OG-029)
+// lança `NotPortedError` se for exercitado, para que a falta apareça nos testes de paridade.
 import type { GameSettings } from '@outgun/settings';
-import { N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, SHOT_DELTA_X } from '../constants.js';
+import { FLAG_RADIUS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
 import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
+import type { WorldCoords } from '../map/map.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
-import { CarriedFlag, Position, type FlagState, type PlayerState, type RocketState, type WorldState } from './state.js';
+import { CarriedFlag, DeathbringerExplosion, FlagState, Position, PowerupKind, type PlayerState, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
 
 /** Alpha do jogador com shadow quando é revelado (atirou, foi atingido...). */
 export const MAXIMUM_SHADOW_VISIBILITY = 254;
@@ -30,6 +31,18 @@ export interface ServerHooks {
   scoreFrag?(pid: number, amount: number): void;
   /** Ponto negativo do ranking (`Server::score_neg`). */
   scoreNeg?(pid: number, amount: number): void;
+  /** Bandeira pega (`broadcast_flag_take`). */
+  flagTaken?(pid: number, flag: CarriedFlag): void;
+  /** Bandeira largada de propósito ou entregue numa captura (`broadcast_flag_drop`). */
+  flagDropped?(pid: number, flag: CarriedFlag, captureDrop: boolean): void;
+  /** Bandeira do próprio time devolvida (`broadcast_flag_return`). */
+  flagReturned?(pid: number): void;
+  /** Captura (`broadcast_capture`); `flagTeam` 2 = selvagem, `assistPid` −1 = sem assistência. */
+  flagCaptured?(pid: number, flagTeam: number, assistPid: number): void;
+  /** Suicídio (`broadcast_suicide`), com a bandeira que o jogador carregava. */
+  suicide?(pid: number, flag: CarriedFlag): void;
+  /** Limite de capturas (ou morte súbita) atingido: o servidor troca de mapa (`server_next_map`). */
+  captureLimitReached?(): void;
 }
 
 /** Formações de tiro por nível de arma (src/world.cpp:1380): foguetes à frente e desvios em oitavos. */
@@ -255,8 +268,8 @@ export class ServerSim {
     const t = this.player(target);
     this.scoreNeg(target, 1);
     if (this.dropFlagIfAny(target)) this.scoreNeg(target, 1);
-    if (t.deathbringer) throw new NotPortedError('explosão de deathbringer', 'OG-026');
-    if (this.settings.powerups.pupsDropAtDeath) throw new NotPortedError('power-up largado na morte', 'OG-025');
+    if (t.deathbringer) this.world.explosions.push(new DeathbringerExplosion(this.frame, t.pos.clone(), target, t.team));
+    if (this.settings.powerups.pupsDropAtDeath) this.dropPowerup(t);
     this.resetPlayer(target, t.deathbringer || timePenalty ? this.settings.world.waitingTimeDeathbringer : 0);
   }
 
@@ -287,10 +300,355 @@ export class ServerSim {
     t.dead = true;
   }
 
-  /** `dropFlagIfAny`: no S3 só há suporte a quem não carrega bandeira. */
-  dropFlagIfAny(pid: number): boolean {
-    if (this.player(pid).stats.carriedFlag === CarriedFlag.None) return false;
-    throw new NotPortedError('largar bandeira', 'OG-027');
+  /** `ServerWorld::suicide`: −1 frag, conta como morte e suicídio, com a penalidade de tempo. */
+  suicide(pid: number): void {
+    const pl = this.player(pid);
+    if (pl.dead) return;
+    this.scoreFrag(pid, -1);
+    addDeath(pl, false, Math.trunc(this.time));
+    pl.stats.suicides++;
+    const team = this.world.teams[this.teamOf(pid)];
+    team.suicides++;
+    team.deaths++;
+    this.hooks.suicide?.(pid, pl.stats.carriedFlag);
+    this.killPlayer(pid, true);
+  }
+
+  // ---------------------------------------------------------------- bandeiras (OG-027)
+
+  /**
+   * Bandeiras do mapa no início da partida (`Server::load_rotation_map`): com `random_wild_flag`, só
+   * uma selvagem sorteada; com os três tipos, remove os que os locks tornariam inúteis.
+   */
+  loadMapFlags(): void {
+    const world = this.world;
+    const map = world.map;
+    const w = this.settings.world;
+    const toFlag = (c: WorldCoords) => new FlagState(new Position(c.room.x, c.room.y, c.x, c.y), new Position(c.room.x, c.room.y, c.x, c.y));
+    world.teams[0].flags = map.teams[0].flags.map(toFlag);
+    world.teams[1].flags = map.teams[1].flags.map(toFlag);
+    world.wildFlags = map.wildFlags.map(toFlag);
+    if (w.randomWildFlag) {
+      world.teams[0].flags = [];
+      world.teams[1].flags = [];
+      world.wildFlags = [];
+      this.addRandomFlag(2);
+      return;
+    }
+    if (!this.allKindsOfFlagsExist()) return;
+    if (w.lockTeamFlags && (w.lockWildFlags || !w.captureOnTeamFlag)) {
+      world.teams[0].flags = [];
+      world.teams[1].flags = [];
+      if (w.lockWildFlags) world.wildFlags = [];
+    } else if (w.lockWildFlags && !w.captureOnWildFlag) world.wildFlags = [];
+  }
+
+  /** `add_random_flag`: até 100 sorteios de sala e posição fora das paredes. */
+  addRandomFlag(team: number): void {
+    const map = this.world.map;
+    for (let i = 0; i < 100; ++i) {
+      const rx = this.rng.rand() % map.width;
+      const ry = this.rng.rand() % map.height;
+      const x = this.rng.rand() % ROOM_WIDTH;
+      const y = this.rng.rand() % ROOM_HEIGHT;
+      if (!map.fallOnWallCirc({ room: { x: rx, y: ry }, x, y }, FLAG_RADIUS)) {
+        this.world.flagsOf(team).push(new FlagState(new Position(rx, ry, x, y), new Position(rx, ry, x, y)));
+        return;
+      }
+    }
+  }
+
+  private lockWildFlagsInEffect(): boolean {
+    return this.settings.world.lockWildFlags && this.allKindsOfFlagsExist();
+  }
+
+  private captureOnTeamFlagsInEffect(): boolean {
+    return this.settings.world.captureOnTeamFlag || !this.allKindsOfFlagsExist();
+  }
+
+  private captureOnWildFlagsInEffect(): boolean {
+    return this.settings.world.captureOnWildFlag || !this.allKindsOfFlagsExist();
+  }
+
+  /** Bandeira carregada pelo jogador, procurando nos times 0, 1 e nas selvagens, nessa ordem. */
+  private carriedFlagOf(pid: number): { team: number; index: number } | undefined {
+    for (let team = 0; team < 3; team++) {
+      const index = this.world.flagsOf(team).findIndex((f) => f.carrier === pid);
+      if (index !== -1) return { team, index };
+    }
+    return undefined;
+  }
+
+  private flagType(pid: number, flagTeam: number): CarriedFlag {
+    return flagTeam === 2 ? CarriedFlag.Wild : flagTeam === this.teamOf(pid) ? CarriedFlag.Own : CarriedFlag.Enemy;
+  }
+
+  /** `ServerWorld::returnFlag`. */
+  returnFlag(team: number, index: number): void {
+    (this.world.flagsOf(team)[index] as FlagState).returnToBase();
+  }
+
+  /** `ServerWorld::returnAllFlags`. */
+  returnAllFlags(): void {
+    for (let team = 0; team < 3; team++) for (const f of this.world.flagsOf(team)) f.returnToBase();
+  }
+
+  /** `ServerWorld::dropFlag`: só bandeiras de time guardam a hora (em frames / 10) para a devolução. */
+  private dropFlag(team: number, index: number, pos: Position): void {
+    const flag = this.world.flagsOf(team)[index] as FlagState;
+    flag.dropAt(pos);
+    if (team !== 2) flag.dropTime = this.frame / 10;
+  }
+
+  /**
+   * `dropFlagIfAny`: larga a bandeira onde o jogador está. `purpose`: largou de propósito (desfaz o
+   * frag ganho ao pegar); `captureDrop`: entregou numa captura (não conta como largada).
+   */
+  dropFlagIfAny(pid: number, purpose = false, captureDrop = false): boolean {
+    const pl = this.player(pid);
+    if (pl.stats.carriedFlag === CarriedFlag.None) return false;
+    const carried = this.carriedFlagOf(pid);
+    if (!carried) throw new Error(`jogador ${pid} marcado como portador sem bandeira`);
+    addFlagDrop(pl.stats, this.time, !captureDrop);
+    if (!captureDrop) this.world.teams[this.teamOf(pid)].flagsDropped++;
+    this.dropFlag(carried.team, carried.index, pl.pos.clone());
+    if (purpose) {
+      // morrendo, os clientes já sabem que a bandeira caiu
+      this.hooks.flagDropped?.(pid, this.flagType(pid, carried.team), captureDrop);
+      if (!captureDrop) this.scoreFrag(pid, -1);
+    }
+    return true;
+  }
+
+  /** Tecla de largar bandeira (`data_drop_flag` / `data_stop_drop_flag`), aplicada com os controles. */
+  setDropKey(pid: number, pressed: boolean): void {
+    const pl = this.player(pid);
+    if (pressed && !pl.dropKey) {
+      pl.dropKey = true;
+      if (!pl.underDeathbringerEffect(this.time)) {
+        pl.droppedFlag = true;
+        this.dropFlagIfAny(pid, true);
+      }
+    } else if (!pressed) pl.dropKey = false;
+  }
+
+  /** `resetCarrierData`: esquece o jogador como portador anterior (saiu ou trocou de time). */
+  resetCarrierData(pid: number): void {
+    for (const f of this.world.flagsOf(1 - this.teamOf(pid))) f.forgetCarrier(pid);
+    for (const f of this.world.wildFlags) f.forgetCarrier(pid);
+  }
+
+  /** `check_flag_touch`: na mesma sala e a menos de 30 px; portadores aliados só precisam se tocar. */
+  private checkFlagTouch(flag: FlagState, pl: PlayerState): boolean {
+    const carried = flag.status === 'carried';
+    const pos = carried ? this.player(flag.carrier).pos : flag.pos;
+    if (!this.sameRoom(pos, pl.pos)) return false;
+    if (carried && this.carrierCollisions.has(`${pl.pid},${flag.carrier}`)) return true;
+    return pos.local().sub(pl.pos.local()).mag2() < sqr(PLAYER_RADIUS + FLAG_RADIUS);
+  }
+
+  /** `player_steals_flag`: +1 frag (desfeito se largar de propósito) e revela o shadow. */
+  private playerStealsFlag(pid: number, team: number, index: number): void {
+    const pl = this.player(pid);
+    this.scoreFrag(pid, 1);
+    const type = this.flagType(pid, team);
+    addFlagTake(pl.stats, this.time, type);
+    this.world.teams[this.teamOf(pid)].flagsTaken++;
+    this.hooks.flagTaken?.(pid, type);
+    (this.world.flagsOf(team)[index] as FlagState).take(pid, this.time);
+    if (pl.hasShadow()) pl.visibility = MAXIMUM_SHADOW_VISIBILITY;
+  }
+
+  /**
+   * `player_captures_flag`: +2 para o time, −1 de ranking para o adversário (exceto selvagem), +3 para
+   * o capturador e o assistente; ponto e registro no placar; devolve a bandeira capturada.
+   */
+  private playerCapturesFlag(pid: number, team: number, index: number, assistPid: number): void {
+    const world = this.world;
+    const myteam = this.teamOf(pid);
+    // só um aliado pode ser assistente (−1 / TSIZE é 0 em C++, como Math.trunc)
+    const assist = this.teamOf(assistPid) !== myteam ? -1 : assistPid;
+    world.players.forEach((p, i) => {
+      if (!p) return;
+      if (this.teamOf(i) === myteam) this.scoreFrag(i, 2);
+      else if (team !== 2) this.scoreNeg(i, 1);
+    });
+    this.scoreFrag(pid, 3);
+    if (assist !== -1) {
+      this.scoreFrag(assist, 3);
+      this.player(assist).stats.assists++;
+    }
+    addCapture(this.player(pid).stats, this.time);
+    const t = world.teams[myteam];
+    t.score++;
+    t.captures.push({ time: Math.trunc(world.mapTime() / 10), pid, assistPid: assist });
+    this.returnFlag(team, index);
+    this.hooks.flagCaptured?.(pid, team, assist);
+    if (this.settings.world.respawnOnCapture) {
+      for (const p of world.players) {
+        if (!p) continue;
+        p.framesToRespawn = 0; // os mortos renascem no próximo frame
+        p.extraFramesToRespawn = 0;
+      }
+    }
+  }
+
+  /** `team_gets_carrying_point`: ponto por segurar a bandeira selvagem por `carrying_score_time`. */
+  private teamGetsCarryingPoint(team: 0 | 1): void {
+    this.world.players.forEach((p, i) => {
+      if (!p) return;
+      if (this.teamOf(i) === team) this.scoreFrag(i, 2);
+      else this.scoreNeg(i, 1);
+    });
+    this.world.teams[team].score++;
+  }
+
+  /** O time atingiu o limite de capturas com a diferença mínima, ou é morte súbita na prorrogação. */
+  private captureLimitReached(team: 0 | 1): boolean {
+    const w = this.settings.world;
+    const teams = this.world.teams;
+    const score = teams[team].score;
+    return (score >= w.captureLimit && w.captureLimit > 0 && score - teams[(1 - team) as 0 | 1].score >= w.winScoreDifference) || this.extraTimeAndSuddenDeath();
+  }
+
+  /** `extra_time_and_sudden_death`: morte súbita e o tempo do mapa acabou. */
+  private extraTimeAndSuddenDeath(): boolean {
+    return this.settings.world.suddenDeath && this.settings.world.timeLimit - this.world.mapTime() < 0;
+  }
+
+  /** `is_near_base_for_capture`: na base (ou, com `carry_own_team_flag`/selvagem, a até 15 px de uma). */
+  private isNearBaseForCapture(flag: FlagState, team: number): boolean {
+    if (!this.settings.world.carryOwnTeamFlag && team !== 2) return flag.status === 'base';
+    // a bandeira pode ser de outro time que o da base, então status 'base' não serve de atalho
+    const pos = flag.status === 'carried' ? this.player(flag.carrier).pos : flag.pos;
+    return this.world.flagsOf(team).some((f) => this.sameRoom(pos, f.home) && pos.local().sub(f.home.local()).mag2() <= FLAG_RADIUS * FLAG_RADIUS);
+  }
+
+  /**
+   * `try_capture` (src/world.cpp:3367): o portador leva a bandeira do time `carriedTeam` até uma
+   * bandeira do time `targetTeam` na base `targetBase`. Quando alvo e base diferem é uma captura
+   * reversa: a bandeira-alvo é a capturada.
+   */
+  private tryCapture(carrier: PlayerState, carriedTeam: number, carriedIndex: number, targetTeam: number, targetBase: number): boolean {
+    const w = this.settings.world;
+    const myteam = carrier.team;
+    const enemyTeam = 1 - myteam;
+    if (this.captureOnTeamFlagsInEffect() && targetBase === myteam && (targetTeam === myteam || carriedTeam === myteam)) {
+      // ok
+    } else if (this.captureOnWildFlagsInEffect() && targetBase === 2 && (targetTeam === 2 || carriedTeam === 2)) {
+      // ok
+    } else return false;
+
+    const reverse = targetTeam !== targetBase;
+    const carried = this.world.flagsOf(carriedTeam)[carriedIndex] as FlagState;
+    const targets = this.world.flagsOf(targetTeam);
+    const time = this.time;
+    for (let targetIndex = 0; targetIndex < targets.length; targetIndex++) {
+      const target = targets[targetIndex] as FlagState;
+      const nearBase = w.captureAwayFromBase || this.isNearBaseForCapture(target, targetBase) || this.isNearBaseForCapture(carried, targetBase);
+      if (!nearBase) continue;
+      if (target.status === 'carried' && this.teamOf(target.carrier) !== myteam) continue; // com inimigo
+      if (carriedTeam === targetTeam && carriedIndex === targetIndex) continue; // sobre ela mesma
+      if (carriedTeam === myteam && target.status === 'carried') continue; // quem traz a inimiga/selvagem captura
+      if (carriedTeam === 2 && targetTeam === enemyTeam && target.status === 'carried') continue; // idem
+      if (!this.checkFlagTouch(target, carrier)) continue;
+      if (time < carried.grabTime + w.minCaptureTime && (target.status === 'base' || time < target.grabTime + w.minCaptureTime)) continue;
+
+      // assistente: aliado que carrega a bandeira-alvo, ou o portador anterior da bandeira trazida,
+      // ou o portador anterior da bandeira-alvo
+      let assistPid = carried.prevCarrier;
+      if (target.status === 'carried') assistPid = target.carrier;
+      else if ((assistPid === -1 || this.teamOf(assistPid) !== myteam) && target.prevCarrier !== carrier.pid) assistPid = target.prevCarrier;
+      this.playerCapturesFlag(carrier.pid, reverse ? targetTeam : carriedTeam, reverse ? targetIndex : carriedIndex, assistPid);
+      if (target.status === 'carried') this.dropFlagIfAny(assistPid, true, true);
+      if (!reverse && target.status !== 'base') this.returnFlag(targetTeam, targetIndex);
+      else if (reverse) this.returnFlag(carriedTeam, carriedIndex);
+      if (this.captureLimitReached(myteam)) this.hooks.captureLimitReached?.();
+      return true;
+    }
+    return false;
+  }
+
+  /** Pegar, devolver e capturar bandeiras (fim de `simulatePlayerPostPhysics`). */
+  private flagInteractions(pl: PlayerState): void {
+    const world = this.world;
+    const w = this.settings.world;
+    const myteam = pl.team;
+    const enemyteam = (1 - myteam) as 0 | 1;
+
+    // pegar: ft 0 = inimiga, 1 = selvagem, 2 = do próprio time (com carry_own_team_flag)
+    let touchesFlag = false;
+    for (let ft = 0; ft < 3; ft++) {
+      if (pl.stats.carriedFlag !== CarriedFlag.None) break;
+      if ((ft === 0 || ft === 2) && this.lockTeamFlagsInEffect()) continue;
+      if (ft === 1 && this.lockWildFlagsInEffect()) continue;
+      let flagTeam: number;
+      if (ft === 0) flagTeam = enemyteam;
+      else if (ft === 1) flagTeam = 2;
+      else {
+        if (!w.carryOwnTeamFlag) continue;
+        flagTeam = myteam;
+      }
+      const flags = world.flagsOf(flagTeam);
+      for (let f = 0; f < flags.length; f++) {
+        const flag = flags[f] as FlagState;
+        if (flag.status === 'carried' || !this.checkFlagTouch(flag, pl)) continue;
+        touchesFlag = true;
+        // quem acabou de largar não pega de volta até sair de cima
+        if (!pl.droppedFlag && !pl.dropKey) {
+          this.playerStealsFlag(pl.pid, flagTeam, f);
+          break; // uma bandeira só
+        }
+      }
+    }
+    if (!pl.dropKey && !touchesFlag) pl.droppedFlag = false;
+
+    // devolver (selvagens não são devolvidas)
+    if (!w.carryOwnTeamFlag) {
+      world.teams[myteam].flags.forEach((flag, f) => {
+        if (flag.status === 'dropped' && this.checkFlagTouch(flag, pl) && this.frame / 10 >= flag.dropTime + w.flagReturnDelay) {
+          this.scoreFrag(pl.pid, 1);
+          pl.stats.flagsReturned++;
+          world.teams[myteam].flagsReturned++;
+          this.hooks.flagReturned?.(pl.pid);
+          this.returnFlag(myteam, f);
+        }
+      });
+    }
+
+    if (pl.stats.carriedFlag === CarriedFlag.None) return; // capturas são só para portadores
+    const carried = this.carriedFlagOf(pl.pid);
+    if (!carried) throw new Error(`jogador ${pl.pid} marcado como portador sem bandeira`);
+    const { team: flagTeam, index } = carried;
+    // As 13 combinações de captura válidas estão em plan/specs/bandeiras-captura.md.
+    if (flagTeam === 2) {
+      void (this.tryCapture(pl, 2, index, myteam, myteam) || this.tryCapture(pl, 2, index, enemyteam, 2) || this.tryCapture(pl, 2, index, 2, 2));
+    } else if (flagTeam === enemyteam) {
+      void (this.tryCapture(pl, flagTeam, index, myteam, myteam) || this.tryCapture(pl, flagTeam, index, 2, 2));
+    } else {
+      void (this.tryCapture(pl, flagTeam, index, enemyteam, myteam) || this.tryCapture(pl, flagTeam, index, 2, myteam));
+    }
+  }
+
+  /** Pontos por segurar a bandeira selvagem (só em mapas sem bandeiras de time). Devolve se a partida acabou. */
+  private carryingScore(): boolean {
+    const world = this.world;
+    const w = this.settings.world;
+    if (!(w.carryingScoreTime > 0 && world.teams[0].flags.length === 0 && world.teams[1].flags.length === 0)) return false;
+    for (const flag of world.wildFlags) {
+      if (flag.status !== 'carried') continue;
+      const team = this.teamOf(flag.carrier);
+      flag.addCarryingTime(team);
+      if (flag.carryingTime >= 10 * w.carryingScoreTime) {
+        flag.carryingTime = 0;
+        this.teamGetsCarryingPoint(team);
+        if (this.captureLimitReached(team)) {
+          this.hooks.captureLimitReached?.();
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** `ServerWorld::rocketHitPlayerCallback`: dano, estatísticas, empurrão e remoção do foguete. */
@@ -450,6 +808,199 @@ export class ServerSim {
     if (pl.health > w.minHealthForRunPenalty) pl.health = Math.max(w.minHealthForRunPenalty, pl.health - w.runHealthDegradation * timeLeft);
   }
 
+  // ---------------------------------------------------------------- power-ups (OG-025)
+
+  /** `PowerupSettings::choose_powerup_kind`: sorteio ponderado pelas chances. */
+  choosePowerupKind(): PowerupKind {
+    const p = this.settings.powerups;
+    const weights = [p.pupChanceShield, p.pupChanceTurbo, p.pupChanceShadow, p.pupChancePower, p.pupChanceWeapon, p.pupChanceMegahealth];
+    const max = weights.reduce((a, b) => a + b, 0) + p.pupChanceDeathbringer;
+    let chance = 1 + (this.rng.rand() % max);
+    for (let kind = 0; kind < weights.length; kind++) {
+      chance -= weights[kind] as number;
+      if (chance <= 0) return kind as PowerupKind;
+    }
+    return PowerupKind.deathbringer;
+  }
+
+  /** `pups_by_percent`: porcentagem do número de salas, arredondada; ao menos 1 se > 0%; no máximo 32. */
+  private pupsByPercent(percentage: number): number {
+    const map = this.world.map;
+    const result = Math.trunc((map.width * map.height * percentage + 50) / 100);
+    if (result === 0 && percentage > 0) return 1;
+    return Math.min(result, MAX_POWERUPS);
+  }
+
+  private minPups(): number {
+    const p = this.settings.powerups;
+    return p.pupsMinPercentage ? this.pupsByPercent(p.pupsMin) : p.pupsMin;
+  }
+
+  private maxPups(): number {
+    const p = this.settings.powerups;
+    return p.pupsMaxPercentage ? this.pupsByPercent(p.pupsMax) : p.pupsMax;
+  }
+
+  /**
+   * `check_powerup_creation`: garante ao menos max(mínimo, nº de jogadores) power-ups (limitado ao
+   * máximo), marcando slots livres para reaparecer (ou já posicionando, se `instant`).
+   */
+  checkPowerupCreation(instant: boolean): void {
+    const items = this.world.items;
+    let count = items.filter((it) => it.kind !== PowerupKind.unused).length;
+    let realMin = Math.max(this.minPups(), this.world.playerCount());
+    const realMax = this.maxPups();
+    if (realMin > realMax) realMin = realMax;
+    if (count >= realMin) return;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i] as PowerupState;
+      if (it.kind !== PowerupKind.unused) continue;
+      it.kind = PowerupKind.respawning;
+      if (instant) this.respawnPowerup(i);
+      else it.respawnTime = this.time + this.settings.powerups.pupsRespawnTime;
+      if (++count >= realMin) break;
+    }
+  }
+
+  /** `respawn_powerup`: sala sem jogadores e sem power-ups (com relaxamento) e posição longe de paredes. */
+  respawnPowerup(index: number): void {
+    const world = this.world;
+    const item = world.items[index] as PowerupState;
+    item.kind = PowerupKind.unused;
+    const map = world.map;
+    let pos: Position;
+    for (let runaway = 300; ; --runaway) {
+      // `RoomCoords(rand() % w, rand() % h)`: a ordem de avaliação dos argumentos não é definida
+      // em C++; o GCC do jogo avalia da direita para a esquerda, então o primeiro rand() é o y.
+      const ry = this.rng.rand() % map.height;
+      const rx = this.rng.rand() % map.width;
+      // nas primeiras 100 tentativas evita salas com jogadores; até a 200ª, salas com power-ups
+      if (runaway > 200 && world.players.some((p) => p !== undefined && p.pos.roomX === rx && p.pos.roomY === ry)) continue;
+      if (runaway > 100 && world.items.some((it) => it.kind !== PowerupKind.unused && it.pos.roomX === rx && it.pos.roomY === ry)) continue;
+      const x = POWERUP_RADIUS + (this.rng.rand() % (ROOM_WIDTH - 2 * POWERUP_RADIUS));
+      const y = POWERUP_RADIUS + (this.rng.rand() % (ROOM_HEIGHT - 2 * POWERUP_RADIUS));
+      pos = new Position(rx, ry, x, y);
+      if (!map.fallOnWallCirc({ room: { x: rx, y: ry }, x, y }, POWERUP_RADIUS)) break;
+      if (--runaway < 0) return; // desiste: o slot fica vazio
+    }
+    item.kind = this.choosePowerupKind();
+    item.pos = pos;
+  }
+
+  /** `PowerupSettings::addTime`. */
+  private addTime(t: number): number {
+    const p = this.settings.powerups;
+    return Math.min(t + p.pupAddTime, p.pupMaxTime);
+  }
+
+  /** `game_touch_powerup` (src/world.cpp:2040): efeitos, limite por jogador e compartilhamento. */
+  gameTouchPowerup(pid: number, k: number, teammateTouched = false): void {
+    const it = this.world.items[k] as PowerupState;
+    const pl = this.player(pid);
+    const p = this.settings.powerups;
+    const time = this.time;
+    // power-ups que o jogador já tem (megahealth não conta para o limite)
+    const owned = [pl.shield !== 0, pl.turbo, pl.hasShadow(), pl.power, pl.weapon > 1, true, pl.deathbringer];
+    const count = owned.filter((has, kind) => has && kind !== PowerupKind.megahealth).length;
+    if (!owned[it.kind] && count >= p.pupsPlayerMax) this.dropWorstPowerup(pl);
+
+    let share: boolean;
+    switch (it.kind) {
+      case PowerupKind.shield:
+        share = p.teamShield;
+        pl.shield = p.pupShieldHits ? p.pupShieldHits : 1;
+        if (pl.health < 100) pl.health = 100;
+        if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
+        break;
+      case PowerupKind.turbo: {
+        share = p.teamTurbo;
+        let itemTime = pl.turboTime - time;
+        if (!pl.turbo || itemTime < 0) itemTime = 0;
+        itemTime = this.addTime(itemTime);
+        pl.turbo = true;
+        pl.turboTime = time + itemTime;
+        break;
+      }
+      case PowerupKind.shadow: {
+        share = p.teamShadow;
+        let itemTime = pl.shadowTime - time;
+        if (!pl.hasShadow() || itemTime < 0) itemTime = 0;
+        itemTime = this.addTime(itemTime);
+        pl.visibility = this.settings.world.shadowMinimum;
+        pl.shadowTime = time + itemTime;
+        break;
+      }
+      case PowerupKind.power: {
+        share = p.teamPower;
+        let itemTime = pl.powerTime - time;
+        if (!pl.power || itemTime < 0) itemTime = 0;
+        itemTime = this.addTime(itemTime);
+        pl.power = true;
+        pl.powerTime = time + itemTime;
+        break;
+      }
+      case PowerupKind.weapon:
+        share = p.teamWeapon;
+        if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
+        if (pl.weapon < p.pupWeaponMax) pl.weapon++;
+        break;
+      case PowerupKind.megahealth:
+        share = p.teamHealth;
+        pl.megabonus += p.pupHealthBonus;
+        break;
+      case PowerupKind.deathbringer:
+        share = p.teamDeathbringer;
+        if (p.pupDeathbringerSwitch && !teammateTouched) pl.deathbringer = !pl.deathbringer;
+        else if (!pl.deathbringer) pl.deathbringer = true;
+        break;
+      default:
+        throw new Error(`power-up inválido no slot ${k}: ${it.kind}`);
+    }
+    if (teammateTouched) return;
+    if (share) {
+      this.world.players.forEach((other, i) => {
+        if (other && !other.dead && other.team === pl.team && i !== pid) this.gameTouchPowerup(i, k, true);
+      });
+    }
+    it.kind = PowerupKind.unused;
+    this.checkPowerupCreation(false);
+  }
+
+  /** `drop_worst_powerup`: primeiro o temporizado que acaba antes; depois deathbringer, shield, arma. */
+  dropWorstPowerup(pl: PlayerState): void {
+    if (pl.turbo || pl.hasShadow() || pl.power) {
+      let minTime = 1e50;
+      if (pl.turbo) minTime = pl.turboTime;
+      if (pl.hasShadow() && pl.shadowTime < minTime) minTime = pl.shadowTime;
+      // zera o tempo; a expiração acontece na pré-física do próximo frame
+      if (pl.power && pl.powerTime < minTime) pl.powerTime = 0;
+      else if (pl.turbo && pl.turboTime === minTime) pl.turboTime = 0;
+      else pl.shadowTime = 0;
+      return;
+    }
+    if (pl.deathbringer) pl.deathbringer = false;
+    else if (pl.shield) pl.shield = 0;
+    else pl.weapon = 1;
+  }
+
+  /** `drop_powerup`: ao morrer, larga um dos power-ups (sorteado) na posição truncada. */
+  dropPowerup(pl: PlayerState): void {
+    const p = this.settings.powerups;
+    const time = this.time;
+    const half = Math.trunc(p.pupAddTime / 2); // divisão inteira no original
+    const candidates: PowerupKind[] = [];
+    if (pl.shield) candidates.push(PowerupKind.shield);
+    if (pl.turbo && pl.turboTime - time >= half) candidates.push(PowerupKind.turbo);
+    if (pl.hasShadow() && pl.shadowTime - time >= half) candidates.push(PowerupKind.shadow);
+    if (pl.power && pl.powerTime - time >= half) candidates.push(PowerupKind.power);
+    if (pl.weapon >= 2) candidates.push(PowerupKind.weapon);
+    if (candidates.length === 0) return;
+    const slot = this.world.items.find((it) => it.kind === PowerupKind.unused);
+    if (!slot) return;
+    slot.kind = candidates[this.rng.rand() % candidates.length] as PowerupKind;
+    slot.pos = new Position(pl.pos.roomX, pl.pos.roomY, Math.trunc(pl.pos.x), Math.trunc(pl.pos.y));
+  }
+
   // ---------------------------------------------------------------- etapas do frame
 
   /** `simulatePlayerPrePhysics` (sem o anti-flood do chat, que fica no servidor de salas). */
@@ -462,7 +1013,7 @@ export class ServerSim {
     if (pl.deathbringerEnd > time && !pl.dead) this.damagePlayer(pl.pid, pl.deathbringerAttacker, pl.shield ? 12 : 3, DamageType.deathbringer);
   }
 
-  /** `simulatePlayerPostPhysics`: tiro, vida e energia; power-ups e bandeiras ainda pendentes. */
+  /** `simulatePlayerPostPhysics`: tiro, vida e energia, power-ups e bandeiras. */
   postPhysics(pl: PlayerState): void {
     if (pl.dead) return;
     const w = this.settings.world;
@@ -501,37 +1052,21 @@ export class ServerSim {
     }
     if (pl.health === w.healthMax && pl.energy === w.energyMax) pl.megabonus = 0;
 
-    if (!pl.underDeathbringerEffect(this.time) && this.touchesPowerup(pl)) throw new NotPortedError('pegar power-up', 'OG-025');
+    // power-ups tocados (quem está sob deathbringer não pega)
+    if (!pl.underDeathbringerEffect(this.time)) {
+      const r2 = sqr(POWERUP_RADIUS + PLAYER_RADIUS);
+      this.world.items.forEach((item, k) => {
+        if (item.isReal() && this.sameRoom(item.pos, pl.pos) && item.pos.local().sub(pl.pos.local()).mag2() < r2) this.gameTouchPowerup(pl.pid, k);
+      });
+    }
 
     if (pl.health > w.healthMax) pl.health = w.healthMax;
     if (pl.energy < 0) pl.energy = 0;
     else if (pl.energy > w.energyMax) pl.energy = w.energyMax;
 
+    // sob efeito de deathbringer não se pega, larga, devolve nem captura bandeira
     if (pl.underDeathbringerEffect(this.time)) return;
-    if (this.flagInteractionPossible(pl)) throw new NotPortedError('bandeiras (pegar, devolver, capturar)', 'OG-027');
-  }
-
-  /** Power-ups no chão são conhecidos só pelo adaptador no S3; ver OG-025. */
-  powerupPositions: Position[] = [];
-
-  private touchesPowerup(pl: PlayerState): boolean {
-    const r2 = sqr(POWERUP_RADIUS + PLAYER_RADIUS);
-    return this.powerupPositions.some((pos) => this.sameRoom(pos, pl.pos) && pos.local().sub(pl.pos.local()).mag2() < r2);
-  }
-
-  /** Haveria alguma interação de bandeira neste frame? (detecção para o S3; lógica no OG-027) */
-  private flagInteractionPossible(pl: PlayerState): boolean {
-    const r2 = sqr(PLAYER_RADIUS + 15);
-    const touching = (f: FlagState) => {
-      const pos = f.status === 'carried' ? this.player(f.carrier).pos : f.pos;
-      return this.sameRoom(pos, pl.pos) && pos.local().sub(pl.pos.local()).mag2() < r2;
-    };
-    const own = this.world.teams[pl.team].flags;
-    const enemy = this.world.teams[1 - pl.team as 0 | 1].flags;
-    if (pl.stats.carriedFlag !== CarriedFlag.None) return true;
-    if (enemy.some((f) => f.status !== 'carried' && touching(f))) return true;
-    if (this.world.wildFlags.some((f) => f.status !== 'carried' && touching(f))) return true;
-    return own.some((f) => f.status === 'dropped' && touching(f));
+    this.flagInteractions(pl);
   }
 
   /**
@@ -543,20 +1078,51 @@ export class ServerSim {
     this.carrierCollisions.clear();
     const order = world.players.filter((p): p is PlayerState => p !== undefined);
     randomShuffle(order, this.rng);
-    // (-1) reaparecimento de power-ups: OG-025 (consome rand(), mas nada depois dele nesta etapa)
+    // (-1) power-ups cujo tempo de reaparecer chegou
+    world.items.forEach((item, i) => {
+      if (item.kind === PowerupKind.respawning && this.time > item.respawnTime) this.respawnPowerup(i);
+    });
     for (const pl of order) this.prePhysics(pl);
-    if (this.deathbringerExplosions > 0) throw new NotPortedError('explosões de deathbringer', 'OG-026');
+    // remove do início as expiradas (todas duram o mesmo tempo e entram no fim)
+    while (world.explosions.length > 0 && (world.explosions[0] as DeathbringerExplosion).expired(this.frame)) world.explosions.shift();
+    for (const db of world.explosions) this.deathbringerHits(db);
     applyPhysics(this.physicsContext(), this.callbacks(), PLAYER_RADIUS, 1);
     this.respawnCountdown(order);
     for (const pl of order) this.postPhysics(pl);
-    if (this.settings.world.carryingScoreTime > 0 && world.wildFlags.some((f) => f.status === 'carried')) {
-      throw new NotPortedError('pontos por posse de bandeira selvagem', 'OG-027');
-    }
+    if (this.carryingScore()) return;
     // limites de tempo e fim de partida: OG-029
   }
 
-  /** Explosões de deathbringer ativas (estado completo no OG-026). */
-  deathbringerExplosions = 0;
+  /** Jogadores atingidos pelo anel da explosão neste frame (src/world.cpp:3468-3512). */
+  private deathbringerHits(db: DeathbringerExplosion): void {
+    const world = this.world;
+    const radius = db.radius(this.frame);
+    const physics = this.settings.physics;
+    let newOutsideMask = 0;
+    for (let ti = 0; ti < world.maxPlayers; ti++) {
+      const target = world.players[ti];
+      if (!target || target.dead || target.pos.roomX !== db.pos.roomX || target.pos.roomY !== db.pos.roomY) continue;
+      const sameTeam = target.team === db.ownerTeam;
+      if (sameTeam && !physics.friendlyDeathbringer) continue;
+      const d = target.pos.local().sub(db.pos.local());
+      const dist = d.mag();
+      const bit = 2 ** ti; // equivalente a 1u << ti sem o sinal do JS
+      if (dist > radius + 60) {
+        newOutsideMask += bit; // na sala, fora do anel: pode ser atingido no próximo frame
+        continue;
+      }
+      // já dentro do anel e não estava fora antes (vinha de outra sala ou já fora atingido)
+      if (dist < radius - 10 && Math.floor(db.outsideMask / bit) % 2 === 0) continue;
+      if (target.deathbringerEnd >= this.time || this.frame < target.startTakeDamageFrame) continue;
+      target.deathbringerAttacker = db.ownerPid;
+      // duração com ±10% aleatório; aliados (fogo amigo de deathbringer) recebem a fração configurada
+      const duration = (this.settings.powerups.pupDeathbringerTime * (sameTeam ? physics.friendlyDeathbringer : 1) * (9000 + (this.rng.rand() % 2000))) / 10000;
+      target.deathbringerEnd = this.time + duration;
+      target.nextShootFrame = this.frame + iround(duration * 10);
+      if (dist !== 0) target.vel = d.mul(40 / dist); // empurra para fora com velocidade 40
+    }
+    db.outsideMask = newOutsideMask;
+  }
 
   /** Contagem do respawn com fila justa entre os times (src/world.cpp:3516-3545). */
   private respawnCountdown(order: PlayerState[]): void {
@@ -657,6 +1223,27 @@ function addDeath(pl: PlayerState, deathbringer: boolean, time: number): void {
   s.curConsKills = 0;
   if (deathbringer) s.dbDeaths++;
   statsKill(pl, time);
+}
+
+/** `Statistics::add_flag_take`. */
+function addFlagTake(s: PlayerStats, time: number, type: CarriedFlag): void {
+  s.carriedFlag = type;
+  s.flagsTaken++;
+  s.flagTakeTime = time;
+}
+
+/** `Statistics::add_flag_drop`: entregar numa captura não conta como largada. */
+function addFlagDrop(s: PlayerStats, time: number, countAsDrop: boolean): void {
+  s.carriedFlag = CarriedFlag.None;
+  if (countAsDrop) s.flagsDropped++;
+  s.flagCarryingTime += time - s.flagTakeTime;
+}
+
+/** `Statistics::add_capture`. */
+function addCapture(s: PlayerStats, time: number): void {
+  s.carriedFlag = CarriedFlag.None;
+  s.captures++;
+  s.flagCarryingTime += time - s.flagTakeTime;
 }
 
 /** `Statistics::kill`: encerra a vida atual (no-op se já estava morto). */

@@ -30,6 +30,7 @@ Como admin de sala, quero mapas aleatórios na rotação, para variar as partida
 - [ ] Mapas gerados são sempre válidos (RN-MAP-05).
 
 ## Notas técnicas
+- `mapgen.cpp:165/168` usa `RoomCoords(rand() % w, rand() % h)`: o GCC avalia os argumentos da direita para a esquerda, então o primeiro `rand()` é o y (descoberto no OG-025).
 - —
 
 ## Notas de implementação

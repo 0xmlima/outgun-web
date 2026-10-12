@@ -1,0 +1,26 @@
+# Assistência: o vermelho 0 pega a bandeira azul e a larga; o vermelho 1 a pega e tenta capturar
+# antes do min_capture_time (recusado), depois captura com o 0 como assistente.
+map outgun1
+bots 3
+start 200
+frames 40
+seed 43
+players 0 1 8
+at 200 0 pos 4 4 236 177
+at 200 0 vel 0 0
+at 200 1 pos 4 4 400 300
+at 200 1 vel 0 0
+at 200 8 pos 3 3 236 177
+at 200 8 vel 0 0
+input 200 0 0 0
+input 200 1 0 0
+input 200 8 0 0
+input 202 0 0 0 1
+at 204 0 pos 4 4 60 60
+at 204 1 pos 4 4 236 177
+at 204 1 vel 0 0
+at 206 1 pos 1 1 236 177
+at 206 1 vel 0 0
+at 208 1 pos 1 1 400 300
+at 214 1 pos 1 1 236 177
+at 214 1 vel 0 0

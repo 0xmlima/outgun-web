@@ -1,0 +1,35 @@
+# carry_own_team_flag 1: o vermelho 0 carrega a própria bandeira (fica na base); o vermelho 1 traz
+# a azul e encosta nele: captura com o 0 como assistente, que entrega a bandeira (captureDrop).
+# Antes do início os bots jogam livremente e costumam pegar as próprias bandeiras, e a divisão dos
+# pids entre os times varia: no frame 200 cada um larga o que tiver sobre a base do seu time e sai
+# de cima. Regravar pode exigir algumas tentativas até o trace ter a captura com assistência.
+map outgun1
+bots 4
+start 200
+frames 30
+seed 61
+gamemod carry_own_team_flag 1
+players 0 1 8 9
+at 200 0 pos 1 1 236 177
+at 200 1 pos 1 1 236 177
+at 200 8 pos 4 4 236 177
+at 200 9 pos 4 4 236 177
+input 200 0 0 0 1
+input 200 1 0 0 1
+input 200 8 0 0 1
+input 200 9 0 0 1
+input 201 0 0 0
+input 201 1 0 0
+input 201 8 0 0
+input 201 9 0 0
+at 201 0 pos 2 2 100 100
+at 201 1 pos 2 2 300 100
+at 201 8 pos 3 3 100 100
+at 201 9 pos 3 3 300 100
+at 202 0 pos 1 1 236 177
+at 202 0 vel 0 0
+at 202 1 pos 4 4 236 177
+at 202 1 vel 0 0
+at 203 1 pos 4 4 400 300
+at 214 1 pos 1 1 236 152
+at 214 1 vel 0 0

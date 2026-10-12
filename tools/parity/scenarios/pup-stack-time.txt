@@ -1,0 +1,19 @@
+# Acúmulo de tempo: dois turbos e dois power, com teto de 60 s (pup_max_time 60).
+map outgun1
+start 200
+seed 31
+bots 2
+frames 50
+gamemod pup_max_time 60
+players 0 8
+pupclear 200
+pup 200 0 1 2 2 120 177
+pup 200 1 1 2 2 170 177
+pup 200 2 3 2 2 220 177
+pup 200 3 3 2 2 270 177
+at 200 0 pos 2 2 60 177
+at 200 0 vel 0 0
+at 200 8 pos 4 4 236 177
+input 200 0 8 0
+input 225 0 0 0
+input 200 8 0 0

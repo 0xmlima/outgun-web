@@ -1,0 +1,25 @@
+# Power-ups compartilhados com o time (pup_team_turbo, pup_team_weapon, pup_team_health).
+map outgun1
+start 200
+seed 31
+bots 4
+frames 50
+gamemod pup_team_turbo 1
+gamemod pup_team_weapon 1
+gamemod pup_team_health 1
+players 0 1 8 9
+pupclear 200
+pup 200 0 1 2 2 120 177
+pup 200 1 4 2 2 170 177
+pup 200 2 5 2 2 220 177
+at 200 0 pos 2 2 60 177
+at 200 0 vel 0 0
+at 200 1 pos 3 3 236 177
+at 200 1 vel 0 0
+at 200 8 pos 4 4 236 177
+at 200 9 pos 5 5 236 177
+input 200 0 8 0
+input 220 0 0 0
+input 200 1 0 0
+input 200 8 0 0
+input 200 9 0 0

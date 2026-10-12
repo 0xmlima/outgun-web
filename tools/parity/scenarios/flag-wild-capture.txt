@@ -1,0 +1,23 @@
+# Bandeira selvagem levada à própria base (3x2 tem os três tipos de bandeira): o vermelho pega a
+# selvagem, chega cedo demais à base (min_capture_time) e captura depois, sem ponto negativo para
+# o adversário. O azul pega a vermelha e a leva à base selvagem: sem capture_on_wild_flag, não vale.
+map 3x2
+bots 2
+start 200
+frames 40
+seed 53
+gamemod min_capture_time 1
+players 0 8
+at 200 0 pos 1 0 236 88
+at 200 0 vel 0 0
+at 200 8 pos 0 0 236 300
+at 200 8 vel 0 0
+input 200 0 0 0
+input 200 8 0 0
+at 203 0 pos 0 0 236 110
+at 203 0 vel 0 0
+at 216 0 pos 0 0 60 300
+at 216 8 pos 0 0 236 88
+at 216 8 vel 0 0
+at 220 8 pos 1 0 236 110
+at 220 8 vel 0 0
