@@ -2,7 +2,7 @@
 // Estado mutável do mundo do servidor (`ServerWorld`, `ServerPlayer`, `Rocket`, `Flag`, `Team`;
 // src/world.h). Os nomes seguem o original para facilitar a conferência; tempos absolutos estão em
 // segundos do relógio da simulação (D-09) e "frames" são números de frame.
-import { MAX_ROCKETS, ROOM_HEIGHT, ROOM_WIDTH } from '../constants.js';
+import { MAX_POWERUPS, MAX_ROCKETS, ROOM_HEIGHT, ROOM_WIDTH } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import type { GameMap } from '../map/map.js';
 
@@ -175,6 +175,33 @@ export class RocketState {
   direction = 0;
 }
 
+/** Tipos de power-up (`Powerup::Pup_type`, src/world.h:782). */
+export const PowerupKind = {
+  shield: 0,
+  turbo: 1,
+  shadow: 2,
+  power: 3,
+  weapon: 4,
+  megahealth: 5,
+  deathbringer: 6,
+  /** Slot vazio. */
+  unused: 7,
+  /** Esperando para reaparecer em `respawnTime`. */
+  respawning: 8,
+} as const;
+export type PowerupKind = (typeof PowerupKind)[keyof typeof PowerupKind];
+
+export class PowerupState {
+  kind: PowerupKind = PowerupKind.unused;
+  respawnTime = 0;
+  pos = new Position(-1, -1, 0, 0);
+
+  /** Power-up de verdade no chão (não vazio nem reaparecendo). */
+  isReal(): boolean {
+    return this.kind <= PowerupKind.deathbringer;
+  }
+}
+
 export type FlagStatus = 'base' | 'carried' | 'dropped';
 
 export class FlagState {
@@ -212,6 +239,7 @@ export class WorldState {
   /** Jogadores indexados por pid; undefined = vaga livre. */
   readonly players: (PlayerState | undefined)[];
   readonly rockets: RocketState[] = Array.from({ length: MAX_ROCKETS }, () => new RocketState());
+  readonly items: PowerupState[] = Array.from({ length: MAX_POWERUPS }, () => new PowerupState());
   readonly teams: [TeamState, TeamState] = [newTeam(), newTeam()];
   readonly wildFlags: FlagState[] = [];
 
@@ -226,6 +254,11 @@ export class WorldState {
   /** `TSIZE` do original. */
   get teamSize(): number {
     return this.maxPlayers / 2;
+  }
+
+  /** `get_player_count()`: vagas ocupadas (humanos e bots). */
+  playerCount(): number {
+    return this.players.filter((p) => p !== undefined).length;
   }
 
   /** Time de um pid (`pid / TSIZE`). */

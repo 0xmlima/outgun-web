@@ -16,6 +16,8 @@ import {
   Vec,
   WorldState,
   type GameMap,
+  type PowerupKind,
+  type PowerupState,
   type RocketState,
   type Rng,
 } from '@outgun/sim';
@@ -50,9 +52,6 @@ function toFlag(f: TraceFlag): FlagState {
   flag.carrier = f.carrier;
   return flag;
 }
-
-/** Power-ups reais (não vazios nem reaparecendo). */
-const REAL_POWERUP_KINDS = new Set([0, 1, 2, 3, 4, 5, 6]);
 
 export class SimTraceAdapter implements SimAdapter {
   private settings!: GameSettings;
@@ -96,7 +95,12 @@ export class SimTraceAdapter implements SimAdapter {
     this.world = world;
     this.sim = new ServerSim(world, this.settings, { rand: () => 0 });
     this.sim.deathbringerExplosions = state.deathbringers.length;
-    this.sim.powerupPositions = state.powerups.filter((p) => REAL_POWERUP_KINDS.has(p.kind)).map((p) => toPosition(p.pos));
+    state.powerups.forEach((p) => {
+      const item = world.items[p.id] as PowerupState;
+      item.kind = p.kind as PowerupKind;
+      item.respawnTime = p.respawnTime;
+      item.pos = toPosition(p.pos);
+    });
   }
 
   applyInputs(state: TraceState): void {
@@ -105,7 +109,6 @@ export class SimTraceAdapter implements SimAdapter {
       const pl = this.world.players[p.pid];
       if (pl) this.copyInputs(pl, p);
     }
-    this.sim.powerupPositions = state.powerups.filter((p) => REAL_POWERUP_KINDS.has(p.kind)).map((p) => toPosition(p.pos));
   }
 
   step(rng: Rng, time: number): TraceState {
@@ -172,8 +175,11 @@ export class SimTraceAdapter implements SimAdapter {
         weapon: pl.weapon,
         shield: pl.shield,
         power: Number(pl.power),
+        powerTime: pl.powerTime,
         turbo: Number(pl.turbo),
+        turboTime: pl.turboTime,
         visibility: pl.visibility,
+        deathbringer: Number(pl.deathbringer),
         shadowTime: pl.shadowTime,
         deathbringerEnd: pl.deathbringerEnd,
         deathbringerAttacker: pl.deathbringerAttacker,
@@ -187,6 +193,7 @@ export class SimTraceAdapter implements SimAdapter {
     out.rockets = w.rockets.flatMap((r, id) =>
       r.owner === -1 ? [] : [{ id, owner: r.owner, team: r.team, power: Number(r.power), pos: toCoords(r.pos), vel: [r.vel.x, r.vel.y] as [number, number], direction: r.direction }],
     );
+    out.powerups = w.items.flatMap((it, id) => (it.kind === 7 ? [] : [{ id, kind: it.kind, respawnTime: it.respawnTime, pos: toCoords(it.pos) }]));
     out.teams = [0, 1].map((i) => {
       const t = w.teams[i as 0 | 1];
       return { ...out.teams[i as 0 | 1], score: t.score, kills: t.kills, deaths: t.deaths, suicides: t.suicides, flagsTaken: t.flagsTaken, flagsDropped: t.flagsDropped, flagsReturned: t.flagsReturned, shots: t.shots, hits: t.hits, shotsTaken: t.shotsTaken, movement: t.movement };
@@ -209,9 +216,12 @@ export const rocketFields = (s: TraceState) => ({
   teamShots: s.teams.map((t) => t.shots),
 });
 
-/** Vida, energia, dano e morte (OG-024): o jogador inteiro, menos o que depende de cards futuros. */
+/** Vida, energia, dano e morte (OG-024) e power-ups (OG-025): o jogador inteiro e os itens do chão. */
 export const combatFields = (s: TraceState) => ({
   ...rocketFields(s),
+  // Só o que tem efeito no jogo: itens reais (tipo e posição) e os que vão reaparecer (tipo e
+  // quando). Slots guardam posição/tempo antigos no original, que nunca são lidos.
+  powerups: s.powerups.map((p) => (p.kind === 8 ? { id: p.id, kind: p.kind, respawnTime: p.respawnTime } : { id: p.id, kind: p.kind, pos: p.pos })),
   players: s.players.map((p) => {
     const { color: _c, bot: _b, wantChangeTeams: _w, awaitingClientReadies: _a, ...rest } = p;
     return rest;

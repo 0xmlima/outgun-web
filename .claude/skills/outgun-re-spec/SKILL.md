@@ -30,6 +30,8 @@ Para a função-alvo:
 - **Truncamentos:** `static_cast<int>` em dano, posição de origem de tiro e coordenadas enviadas na rede. Preserve-os.
 - **Time = `pid / TSIZE`**, onde `TSIZE = maxplayers / 2`. Na web o time é campo explícito; documente a tradução.
 - **Mundo toroidal:** `positiveModulo` na troca de sala e na distância entre salas.
+- **Ordem de avaliação de argumentos:** em chamadas com mais de um `rand()` (ex.: `RoomCoords(rand() % w, rand() % h)`), o GCC do jogo avalia **da direita para a esquerda**: o primeiro `rand()` consumido é o do último argumento. Comprovado no OG-025. Casos conhecidos: `world.cpp:1965`, `mapgen.cpp:165/168`, `robot.cpp:750`. Inicializadores separados por vírgula numa declaração (`int a = rand(), b = rand();`) são avaliados em ordem.
+- **Estado oculto em slots:** slots livres de power-up guardam posição e tempo antigos que não aparecem no trace; compare só o que tem efeito no jogo.
 - **Código legado:** ramos com `protocolExtensionsLevel < 0` ou mensagens `data_old_*` são para clientes antigos — ignorar.
 - **`#ifndef DEDICATED_SERVER_ONLY`**: código só de cliente (gráfico).
 - **Pontuação** passa por `host->score_frag`/`score_neg` (servidor) — na sim web vira evento.

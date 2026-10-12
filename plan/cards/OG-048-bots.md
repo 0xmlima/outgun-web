@@ -29,6 +29,7 @@ Como jogador, quero bots que completem as salas e joguem CTF de forma crível.
 - [ ] Bots não consomem mais que 1 ms por tick com 30 bots.
 
 ## Notas técnicas
+- `robot.cpp:750` usa `Coords(rand() % S_W, rand() % S_H)`: o primeiro `rand()` vai para o y (avaliação da direita para a esquerda no GCC, descoberto no OG-025).
 - Usar o modo `botTestMode` do original (`server.cpp`) para gerar estatísticas de referência.
 
 ## Notas de implementação

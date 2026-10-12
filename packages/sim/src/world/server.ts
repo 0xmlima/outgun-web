@@ -4,13 +4,13 @@
 // outros cards (power-ups, deathbringer, bandeiras, respawn) lançam `NotPortedError` se forem
 // exercitadas, para que a falta apareça nos testes de paridade em vez de passar despercebida.
 import type { GameSettings } from '@outgun/settings';
-import { N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, SHOT_DELTA_X } from '../constants.js';
+import { MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
 import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
-import { CarriedFlag, Position, type FlagState, type PlayerState, type RocketState, type WorldState } from './state.js';
+import { CarriedFlag, Position, PowerupKind, type FlagState, type PlayerState, type PowerupState, type RocketState, type WorldState } from './state.js';
 
 /** Alpha do jogador com shadow quando é revelado (atirou, foi atingido...). */
 export const MAXIMUM_SHADOW_VISIBILITY = 254;
@@ -256,7 +256,7 @@ export class ServerSim {
     this.scoreNeg(target, 1);
     if (this.dropFlagIfAny(target)) this.scoreNeg(target, 1);
     if (t.deathbringer) throw new NotPortedError('explosão de deathbringer', 'OG-026');
-    if (this.settings.powerups.pupsDropAtDeath) throw new NotPortedError('power-up largado na morte', 'OG-025');
+    if (this.settings.powerups.pupsDropAtDeath) this.dropPowerup(t);
     this.resetPlayer(target, t.deathbringer || timePenalty ? this.settings.world.waitingTimeDeathbringer : 0);
   }
 
@@ -450,6 +450,199 @@ export class ServerSim {
     if (pl.health > w.minHealthForRunPenalty) pl.health = Math.max(w.minHealthForRunPenalty, pl.health - w.runHealthDegradation * timeLeft);
   }
 
+  // ---------------------------------------------------------------- power-ups (OG-025)
+
+  /** `PowerupSettings::choose_powerup_kind`: sorteio ponderado pelas chances. */
+  choosePowerupKind(): PowerupKind {
+    const p = this.settings.powerups;
+    const weights = [p.pupChanceShield, p.pupChanceTurbo, p.pupChanceShadow, p.pupChancePower, p.pupChanceWeapon, p.pupChanceMegahealth];
+    const max = weights.reduce((a, b) => a + b, 0) + p.pupChanceDeathbringer;
+    let chance = 1 + (this.rng.rand() % max);
+    for (let kind = 0; kind < weights.length; kind++) {
+      chance -= weights[kind] as number;
+      if (chance <= 0) return kind as PowerupKind;
+    }
+    return PowerupKind.deathbringer;
+  }
+
+  /** `pups_by_percent`: porcentagem do número de salas, arredondada; ao menos 1 se > 0%; no máximo 32. */
+  private pupsByPercent(percentage: number): number {
+    const map = this.world.map;
+    const result = Math.trunc((map.width * map.height * percentage + 50) / 100);
+    if (result === 0 && percentage > 0) return 1;
+    return Math.min(result, MAX_POWERUPS);
+  }
+
+  private minPups(): number {
+    const p = this.settings.powerups;
+    return p.pupsMinPercentage ? this.pupsByPercent(p.pupsMin) : p.pupsMin;
+  }
+
+  private maxPups(): number {
+    const p = this.settings.powerups;
+    return p.pupsMaxPercentage ? this.pupsByPercent(p.pupsMax) : p.pupsMax;
+  }
+
+  /**
+   * `check_powerup_creation`: garante ao menos max(mínimo, nº de jogadores) power-ups (limitado ao
+   * máximo), marcando slots livres para reaparecer (ou já posicionando, se `instant`).
+   */
+  checkPowerupCreation(instant: boolean): void {
+    const items = this.world.items;
+    let count = items.filter((it) => it.kind !== PowerupKind.unused).length;
+    let realMin = Math.max(this.minPups(), this.world.playerCount());
+    const realMax = this.maxPups();
+    if (realMin > realMax) realMin = realMax;
+    if (count >= realMin) return;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i] as PowerupState;
+      if (it.kind !== PowerupKind.unused) continue;
+      it.kind = PowerupKind.respawning;
+      if (instant) this.respawnPowerup(i);
+      else it.respawnTime = this.time + this.settings.powerups.pupsRespawnTime;
+      if (++count >= realMin) break;
+    }
+  }
+
+  /** `respawn_powerup`: sala sem jogadores e sem power-ups (com relaxamento) e posição longe de paredes. */
+  respawnPowerup(index: number): void {
+    const world = this.world;
+    const item = world.items[index] as PowerupState;
+    item.kind = PowerupKind.unused;
+    const map = world.map;
+    let pos: Position;
+    for (let runaway = 300; ; --runaway) {
+      // `RoomCoords(rand() % w, rand() % h)`: a ordem de avaliação dos argumentos não é definida
+      // em C++; o GCC do jogo avalia da direita para a esquerda, então o primeiro rand() é o y.
+      const ry = this.rng.rand() % map.height;
+      const rx = this.rng.rand() % map.width;
+      // nas primeiras 100 tentativas evita salas com jogadores; até a 200ª, salas com power-ups
+      if (runaway > 200 && world.players.some((p) => p !== undefined && p.pos.roomX === rx && p.pos.roomY === ry)) continue;
+      if (runaway > 100 && world.items.some((it) => it.kind !== PowerupKind.unused && it.pos.roomX === rx && it.pos.roomY === ry)) continue;
+      const x = POWERUP_RADIUS + (this.rng.rand() % (ROOM_WIDTH - 2 * POWERUP_RADIUS));
+      const y = POWERUP_RADIUS + (this.rng.rand() % (ROOM_HEIGHT - 2 * POWERUP_RADIUS));
+      pos = new Position(rx, ry, x, y);
+      if (!map.fallOnWallCirc({ room: { x: rx, y: ry }, x, y }, POWERUP_RADIUS)) break;
+      if (--runaway < 0) return; // desiste: o slot fica vazio
+    }
+    item.kind = this.choosePowerupKind();
+    item.pos = pos;
+  }
+
+  /** `PowerupSettings::addTime`. */
+  private addTime(t: number): number {
+    const p = this.settings.powerups;
+    return Math.min(t + p.pupAddTime, p.pupMaxTime);
+  }
+
+  /** `game_touch_powerup` (src/world.cpp:2040): efeitos, limite por jogador e compartilhamento. */
+  gameTouchPowerup(pid: number, k: number, teammateTouched = false): void {
+    const it = this.world.items[k] as PowerupState;
+    const pl = this.player(pid);
+    const p = this.settings.powerups;
+    const time = this.time;
+    // power-ups que o jogador já tem (megahealth não conta para o limite)
+    const owned = [pl.shield !== 0, pl.turbo, pl.hasShadow(), pl.power, pl.weapon > 1, true, pl.deathbringer];
+    const count = owned.filter((has, kind) => has && kind !== PowerupKind.megahealth).length;
+    if (!owned[it.kind] && count >= p.pupsPlayerMax) this.dropWorstPowerup(pl);
+
+    let share = false;
+    switch (it.kind) {
+      case PowerupKind.shield:
+        share = p.teamShield;
+        pl.shield = p.pupShieldHits ? p.pupShieldHits : 1;
+        if (pl.health < 100) pl.health = 100;
+        if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
+        break;
+      case PowerupKind.turbo: {
+        share = p.teamTurbo;
+        let itemTime = pl.turboTime - time;
+        if (!pl.turbo || itemTime < 0) itemTime = 0;
+        itemTime = this.addTime(itemTime);
+        pl.turbo = true;
+        pl.turboTime = time + itemTime;
+        break;
+      }
+      case PowerupKind.shadow: {
+        share = p.teamShadow;
+        let itemTime = pl.shadowTime - time;
+        if (!pl.hasShadow() || itemTime < 0) itemTime = 0;
+        itemTime = this.addTime(itemTime);
+        pl.visibility = this.settings.world.shadowMinimum;
+        pl.shadowTime = time + itemTime;
+        break;
+      }
+      case PowerupKind.power: {
+        share = p.teamPower;
+        let itemTime = pl.powerTime - time;
+        if (!pl.power || itemTime < 0) itemTime = 0;
+        itemTime = this.addTime(itemTime);
+        pl.power = true;
+        pl.powerTime = time + itemTime;
+        break;
+      }
+      case PowerupKind.weapon:
+        share = p.teamWeapon;
+        if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
+        if (pl.weapon < p.pupWeaponMax) pl.weapon++;
+        break;
+      case PowerupKind.megahealth:
+        share = p.teamHealth;
+        pl.megabonus += p.pupHealthBonus;
+        break;
+      case PowerupKind.deathbringer:
+        share = p.teamDeathbringer;
+        if (p.pupDeathbringerSwitch && !teammateTouched) pl.deathbringer = !pl.deathbringer;
+        else if (!pl.deathbringer) pl.deathbringer = true;
+        break;
+      default:
+        throw new Error(`power-up inválido no slot ${k}: ${it.kind}`);
+    }
+    if (teammateTouched) return;
+    if (share) {
+      this.world.players.forEach((other, i) => {
+        if (other && !other.dead && other.team === pl.team && i !== pid) this.gameTouchPowerup(i, k, true);
+      });
+    }
+    it.kind = PowerupKind.unused;
+    this.checkPowerupCreation(false);
+  }
+
+  /** `drop_worst_powerup`: primeiro o temporizado que acaba antes; depois deathbringer, shield, arma. */
+  dropWorstPowerup(pl: PlayerState): void {
+    if (pl.turbo || pl.hasShadow() || pl.power) {
+      let minTime = 1e50;
+      if (pl.turbo) minTime = pl.turboTime;
+      if (pl.hasShadow() && pl.shadowTime < minTime) minTime = pl.shadowTime;
+      // zera o tempo; a expiração acontece na pré-física do próximo frame
+      if (pl.power && pl.powerTime < minTime) pl.powerTime = 0;
+      else if (pl.turbo && pl.turboTime === minTime) pl.turboTime = 0;
+      else pl.shadowTime = 0;
+      return;
+    }
+    if (pl.deathbringer) pl.deathbringer = false;
+    else if (pl.shield) pl.shield = 0;
+    else pl.weapon = 1;
+  }
+
+  /** `drop_powerup`: ao morrer, larga um dos power-ups (sorteado) na posição truncada. */
+  dropPowerup(pl: PlayerState): void {
+    const p = this.settings.powerups;
+    const time = this.time;
+    const half = Math.trunc(p.pupAddTime / 2); // divisão inteira no original
+    const candidates: PowerupKind[] = [];
+    if (pl.shield) candidates.push(PowerupKind.shield);
+    if (pl.turbo && pl.turboTime - time >= half) candidates.push(PowerupKind.turbo);
+    if (pl.hasShadow() && pl.shadowTime - time >= half) candidates.push(PowerupKind.shadow);
+    if (pl.power && pl.powerTime - time >= half) candidates.push(PowerupKind.power);
+    if (pl.weapon >= 2) candidates.push(PowerupKind.weapon);
+    if (candidates.length === 0) return;
+    const slot = this.world.items.find((it) => it.kind === PowerupKind.unused);
+    if (!slot) return;
+    slot.kind = candidates[this.rng.rand() % candidates.length] as PowerupKind;
+    slot.pos = new Position(pl.pos.roomX, pl.pos.roomY, Math.trunc(pl.pos.x), Math.trunc(pl.pos.y));
+  }
+
   // ---------------------------------------------------------------- etapas do frame
 
   /** `simulatePlayerPrePhysics` (sem o anti-flood do chat, que fica no servidor de salas). */
@@ -501,7 +694,13 @@ export class ServerSim {
     }
     if (pl.health === w.healthMax && pl.energy === w.energyMax) pl.megabonus = 0;
 
-    if (!pl.underDeathbringerEffect(this.time) && this.touchesPowerup(pl)) throw new NotPortedError('pegar power-up', 'OG-025');
+    // power-ups tocados (quem está sob deathbringer não pega)
+    if (!pl.underDeathbringerEffect(this.time)) {
+      const r2 = sqr(POWERUP_RADIUS + PLAYER_RADIUS);
+      this.world.items.forEach((item, k) => {
+        if (item.isReal() && this.sameRoom(item.pos, pl.pos) && item.pos.local().sub(pl.pos.local()).mag2() < r2) this.gameTouchPowerup(pl.pid, k);
+      });
+    }
 
     if (pl.health > w.healthMax) pl.health = w.healthMax;
     if (pl.energy < 0) pl.energy = 0;
@@ -509,14 +708,6 @@ export class ServerSim {
 
     if (pl.underDeathbringerEffect(this.time)) return;
     if (this.flagInteractionPossible(pl)) throw new NotPortedError('bandeiras (pegar, devolver, capturar)', 'OG-027');
-  }
-
-  /** Power-ups no chão são conhecidos só pelo adaptador no S3; ver OG-025. */
-  powerupPositions: Position[] = [];
-
-  private touchesPowerup(pl: PlayerState): boolean {
-    const r2 = sqr(POWERUP_RADIUS + PLAYER_RADIUS);
-    return this.powerupPositions.some((pos) => this.sameRoom(pos, pl.pos) && pos.local().sub(pl.pos.local()).mag2() < r2);
   }
 
   /** Haveria alguma interação de bandeira neste frame? (detecção para o S3; lógica no OG-027) */
@@ -543,7 +734,10 @@ export class ServerSim {
     this.carrierCollisions.clear();
     const order = world.players.filter((p): p is PlayerState => p !== undefined);
     randomShuffle(order, this.rng);
-    // (-1) reaparecimento de power-ups: OG-025 (consome rand(), mas nada depois dele nesta etapa)
+    // (-1) power-ups cujo tempo de reaparecer chegou
+    world.items.forEach((item, i) => {
+      if (item.kind === PowerupKind.respawning && this.time > item.respawnTime) this.respawnPowerup(i);
+    });
     for (const pl of order) this.prePhysics(pl);
     if (this.deathbringerExplosions > 0) throw new NotPortedError('explosões de deathbringer', 'OG-026');
     applyPhysics(this.physicsContext(), this.callbacks(), PLAYER_RADIUS, 1);
