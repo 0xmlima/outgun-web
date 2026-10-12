@@ -215,8 +215,10 @@ O repositório não tinha nenhuma skill. Adicionamos quatro em `.claude/skills/`
 ```
 
 ### 5.2 Layout do monorepo
+O monorepo fica **na raiz deste repositório, ao lado do código original** (decidido no OG-001): assim todas as referências `src/...`, `maps/...` do plano, das specs e das skills continuam válidas, e o original não é movido nem alterado.
 ```
-outgun-web/
+./                    # raiz: código original intocado (src/, maps/, cmaps/, config/, graphics/, sound/, fonts/, languages/, doc/...)
+├─ package.json       # workspace pnpm + Turborepo
 ├─ apps/
 │  ├─ web/            # Vite + React + PixiJS
 │  ├─ game-server/    # Node + uWebSockets.js
@@ -229,11 +231,10 @@ outgun-web/
 │  └─ i18n/           # traduções
 ├─ tools/
 │  ├─ asset-pipeline/ # conversores PCX/WAV/DAT/idiomas
-│  └─ parity/         # harness de golden traces (Docker + C++ patch)
-├─ legacy/            # este repositório original, intocado (fonte de referência)
+│  └─ parity/         # oráculo Docker + harness de golden traces
 └─ plan/              # este plano, cards e specs
 ```
-> O código original deve permanecer **intocado** (em `legacy/` ou na raiz atual). Patches para o harness de paridade ficam em `tools/parity/patches/`.
+> Patches no original (para o oráculo/harness) ficam em `tools/parity/patches/` e são aplicados só dentro do container.
 
 ### 5.3 Modelo de rede (preserva o original)
 - **Tick do servidor:** 10 Hz (100 ms), igual ao original. Todas as durações configuradas em segundos são convertidas para frames (`× 10`).
@@ -558,8 +559,8 @@ Como <persona>, quero <ação>, para <benefício>.
 
 | ID | Título | Épico | Pts | Prio | Sprint | Depende de | Status |
 |---|---|---|---:|---|---|---|---|
-| [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Pronto |
-| [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Pronto |
+| [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Em andamento |
+| [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Em andamento |
 | [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Backlog |
 | [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Backlog |
 | [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Pronto |
@@ -637,8 +638,8 @@ Como <persona>, quero <ação>, para <benefício>.
 ## 12. Decisões em aberto
 | ID | Decisão | Opções | Recomendação | Dono |
 |---|---|---|---|---|
-| D-01 | Defaults: código ou `gamemod.txt`? | Código / gamemod | **gamemod distribuído** como preset Clássico; defaults do código documentados | PO |
-| D-02 | Ordenação do leaderboard (script PHP do master não está no repo) | Rating clássico / Glicko-2 / TrueSkill | **Rating clássico** `(score+1)/(neg+1)` na v1; avaliar Glicko-2 na v2 | PO |
+| D-01 | Defaults: código ou `gamemod.txt`? | Código / gamemod | ✅ **Decidido em 2026-10-12:** o preset Clássico segue o `config/gamemod.txt` distribuído; defaults do código ficam documentados no schema | PO |
+| D-02 | Ordenação do leaderboard (script PHP do master não está no repo) | Rating clássico / Glicko-2 / TrueSkill | ✅ **Decidido em 2026-10-12:** rating clássico `(score+1)/(neg+1)` na v1; avaliar Glicko-2 na v2 | PO |
 | D-03 | Framework de salas | Próprio (uWS) / Colyseus | **Próprio** | Tech Lead |
 | D-04 | Hospedagem | Fly.io / Hetzner / AWS | Fly.io no beta (regiões e WS simples) | Tech Lead |
 | D-05 | Visão de salas vizinhas por padrão | Só a sala atual (original) / zoom | Original por padrão; zoom como opção não ranqueada? | PO |
