@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S3 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-021](OG-021-player-movement.md) |
 | Regras de negócio | RN-FIS-10, RN-FIS-11 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

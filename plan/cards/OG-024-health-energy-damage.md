@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S3 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-022](OG-022-rockets.md) |
 | Regras de negócio | RN-VID-01, RN-VID-02, RN-VID-03, RN-VID-04, RN-VID-05, RN-TIR-05, RN-TIR-07 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

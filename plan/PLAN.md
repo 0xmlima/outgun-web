@@ -580,12 +580,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Backlog |
 | [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Concluído |
-| [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Em revisão |
+| [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Concluído |
 | [OG-020](cards/OG-020-geometry-walls.md) | Geometria e paredes (colisão contínua) | E2 | 8 | Must | S2 | OG-004, OG-010 | Concluído |
 | [OG-021](cards/OG-021-player-movement.md) | Movimento do jogador e troca de sala | E2 | 5 | Must | S2 | OG-020 | Concluído |
-| [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Em revisão |
-| [OG-023](cards/OG-023-player-collisions.md) | Colisões entre jogadores (none/normal/special) | E2 | 5 | Must | S3 | OG-021 | Em revisão |
-| [OG-024](cards/OG-024-health-energy-damage.md) | Vida, energia, dano e shield | E2 | 3 | Must | S3 | OG-022 | Em revisão |
+| [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Concluído |
+| [OG-023](cards/OG-023-player-collisions.md) | Colisões entre jogadores (none/normal/special) | E2 | 5 | Must | S3 | OG-021 | Concluído |
+| [OG-024](cards/OG-024-health-energy-damage.md) | Vida, energia, dano e shield | E2 | 3 | Must | S3 | OG-022 | Concluído |
 | [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Backlog |
 | [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Backlog |
 | [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Backlog |

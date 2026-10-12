@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S3 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-021](OG-021-player-movement.md) |
 | Regras de negócio | RN-TIR-01, RN-TIR-02, RN-TIR-03, RN-TIR-04, RN-TIR-06, RN-TIR-08, RN-TIR-09 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
