@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S6 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-041](OG-041-binary-protocol.md) |
 | Regras de negócio | RN-IDL-01 |
 | Skills | `outgun-re-spec` |

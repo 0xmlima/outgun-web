@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S6 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-060](OG-060-web-shell.md) |
 | Regras de negócio | RN-TIR-10 |
 | Skills | `outgun-re-spec` |

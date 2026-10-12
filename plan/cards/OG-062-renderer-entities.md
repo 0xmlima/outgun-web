@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S6 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-061](OG-061-renderer-world.md) |
 | Regras de negócio | RN-TIM-05, RN-PUP-07 |
 | Skills | `outgun-re-spec`, `outgun-asset-pipeline` |
@@ -25,7 +25,7 @@ Como jogador, quero ver naves, armas, foguetes, bandeiras, power-ups e efeitos i
 - Efeitos: deathbringer (anel, fumaça), turbo, "sorvete" (morto).
 
 ## Critérios de aceite
-- [ ] Checklist visual aprovado por um veterano do jogo.
+- [x] Checklist visual aprovado por um veterano do jogo (PO, na revisão da S6).
 - [x] Sem queda abaixo de 60 fps com 32 jogadores e 256 foguetes.
 
 ## Notas técnicas

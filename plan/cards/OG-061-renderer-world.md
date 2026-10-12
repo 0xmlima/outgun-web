@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S6 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-010](OG-010-map-parser.md), [OG-012](OG-012-graphics-sound-pipeline.md) |
 | Regras de negócio | RN-MAP-04, RN-VIS-01 |
 | Skills | `outgun-re-spec`, `outgun-asset-pipeline` |

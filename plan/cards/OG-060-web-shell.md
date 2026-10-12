@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S6 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-001](OG-001-monorepo-setup.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
