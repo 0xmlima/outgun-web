@@ -587,7 +587,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-023](cards/OG-023-player-collisions.md) | Colisões entre jogadores (none/normal/special) | E2 | 5 | Must | S3 | OG-021 | Concluído |
 | [OG-024](cards/OG-024-health-energy-damage.md) | Vida, energia, dano e shield | E2 | 3 | Must | S3 | OG-022 | Concluído |
 | [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Em revisão |
-| [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Backlog |
+| [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Em revisão |
 | [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Backlog |
 | [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
 | [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |

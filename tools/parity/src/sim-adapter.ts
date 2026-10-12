@@ -9,6 +9,7 @@ import { parseMapFile } from '@outgun/content';
 import { applyGamemod, codeDefaults, type GameSettings } from '@outgun/settings';
 import {
   CarriedFlag,
+  DeathbringerExplosion,
   FlagState,
   PlayerState,
   Position,
@@ -94,7 +95,11 @@ export class SimTraceAdapter implements SimAdapter {
     world.wildFlags.push(...state.wildFlags.map(toFlag));
     this.world = world;
     this.sim = new ServerSim(world, this.settings, { rand: () => 0 });
-    this.sim.deathbringerExplosions = state.deathbringers.length;
+    world.explosions = state.deathbringers.map((db) => {
+      const e = new DeathbringerExplosion(db.frame0, toPosition(db.pos), db.owner, db.team);
+      e.outsideMask = db.outsideMask;
+      return e;
+    });
     state.powerups.forEach((p) => {
       const item = world.items[p.id] as PowerupState;
       item.kind = p.kind as PowerupKind;
@@ -193,6 +198,7 @@ export class SimTraceAdapter implements SimAdapter {
     out.rockets = w.rockets.flatMap((r, id) =>
       r.owner === -1 ? [] : [{ id, owner: r.owner, team: r.team, power: Number(r.power), pos: toCoords(r.pos), vel: [r.vel.x, r.vel.y] as [number, number], direction: r.direction }],
     );
+    out.deathbringers = w.explosions.map((e) => ({ frame0: e.frame0, pos: toCoords(e.pos), owner: e.ownerPid, team: e.ownerTeam, outsideMask: e.outsideMask }));
     out.powerups = w.items.flatMap((it, id) => (it.kind === 7 ? [] : [{ id, kind: it.kind, respawnTime: it.respawnTime, pos: toCoords(it.pos) }]));
     out.teams = [0, 1].map((i) => {
       const t = w.teams[i as 0 | 1];
@@ -221,6 +227,7 @@ export const combatFields = (s: TraceState) => ({
   ...rocketFields(s),
   // Só o que tem efeito no jogo: itens reais (tipo e posição) e os que vão reaparecer (tipo e
   // quando). Slots guardam posição/tempo antigos no original, que nunca são lidos.
+  deathbringers: s.deathbringers,
   powerups: s.powerups.map((p) => (p.kind === 8 ? { id: p.id, kind: p.kind, respawnTime: p.respawnTime } : { id: p.id, kind: p.kind, pos: p.pos })),
   players: s.players.map((p) => {
     const { color: _c, bot: _b, wantChangeTeams: _w, awaitingClientReadies: _a, ...rest } = p;

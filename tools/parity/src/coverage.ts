@@ -47,6 +47,8 @@ export const COVERAGE: readonly CoverageEntry[] = [
   { trace: 'pup-team-share', select: combatFields, modes: ['resync', 'free'], card: 'OG-025' },
   { trace: 'pup-respawn', select: combatFields, modes: ['resync', 'free'], card: 'OG-025' },
   { trace: 'pup-drop-at-death', select: combatFields, modes: ['resync', 'free'], card: 'OG-025', frames: 24, note: 'frame 224+: respawn do alvo (OG-029)' },
+  { trace: 'db-explosion', select: combatFields, modes: ['resync', 'free'], card: 'OG-026' },
+  { trace: 'db-friendly', select: combatFields, modes: ['resync', 'free'], card: 'OG-026' },
   { trace: 'flag-capture', modes: [], card: 'OG-027', note: 'bandeiras e captura' },
   { trace: 'bots-match', modes: [], card: 'OG-029', note: 'partida completa' },
   { trace: 'settings-classic', modes: [], card: 'OG-030', note: 'cabeçalho conferido em @outgun/settings', external: true },

@@ -1,0 +1,19 @@
+# Portador de deathbringer abatido: a explosão se expande e atinge o atirador (efeito, empurrão, dano contínuo).
+map outgun1
+start 200
+seed 41
+bots 2
+frames 45
+players 0 8
+pupclear 200
+at 200 0 pos 2 2 100 177
+at 200 0 vel 0 0
+at 200 0 gundir 0
+at 200 8 pos 2 2 330 177
+at 200 8 vel 0 0
+at 200 8 health 60
+at 200 8 energy 0
+at 200 8 deathbringer 1
+input 200 0 0 1
+input 203 0 0 0
+input 200 8 0 0

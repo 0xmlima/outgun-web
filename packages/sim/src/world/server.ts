@@ -10,7 +10,7 @@ import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
 import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
-import { CarriedFlag, Position, PowerupKind, type FlagState, type PlayerState, type PowerupState, type RocketState, type WorldState } from './state.js';
+import { CarriedFlag, DeathbringerExplosion, Position, PowerupKind, type FlagState, type PlayerState, type PowerupState, type RocketState, type WorldState } from './state.js';
 
 /** Alpha do jogador com shadow quando é revelado (atirou, foi atingido...). */
 export const MAXIMUM_SHADOW_VISIBILITY = 254;
@@ -255,7 +255,7 @@ export class ServerSim {
     const t = this.player(target);
     this.scoreNeg(target, 1);
     if (this.dropFlagIfAny(target)) this.scoreNeg(target, 1);
-    if (t.deathbringer) throw new NotPortedError('explosão de deathbringer', 'OG-026');
+    if (t.deathbringer) this.world.explosions.push(new DeathbringerExplosion(this.frame, t.pos.clone(), target, t.team));
     if (this.settings.powerups.pupsDropAtDeath) this.dropPowerup(t);
     this.resetPlayer(target, t.deathbringer || timePenalty ? this.settings.world.waitingTimeDeathbringer : 0);
   }
@@ -739,7 +739,9 @@ export class ServerSim {
       if (item.kind === PowerupKind.respawning && this.time > item.respawnTime) this.respawnPowerup(i);
     });
     for (const pl of order) this.prePhysics(pl);
-    if (this.deathbringerExplosions > 0) throw new NotPortedError('explosões de deathbringer', 'OG-026');
+    // remove do início as expiradas (todas duram o mesmo tempo e entram no fim)
+    while (world.explosions.length > 0 && (world.explosions[0] as DeathbringerExplosion).expired(this.frame)) world.explosions.shift();
+    for (const db of world.explosions) this.deathbringerHits(db);
     applyPhysics(this.physicsContext(), this.callbacks(), PLAYER_RADIUS, 1);
     this.respawnCountdown(order);
     for (const pl of order) this.postPhysics(pl);
@@ -749,8 +751,36 @@ export class ServerSim {
     // limites de tempo e fim de partida: OG-029
   }
 
-  /** Explosões de deathbringer ativas (estado completo no OG-026). */
-  deathbringerExplosions = 0;
+  /** Jogadores atingidos pelo anel da explosão neste frame (src/world.cpp:3468-3512). */
+  private deathbringerHits(db: DeathbringerExplosion): void {
+    const world = this.world;
+    const radius = db.radius(this.frame);
+    const physics = this.settings.physics;
+    let newOutsideMask = 0;
+    for (let ti = 0; ti < world.maxPlayers; ti++) {
+      const target = world.players[ti];
+      if (!target || target.dead || target.pos.roomX !== db.pos.roomX || target.pos.roomY !== db.pos.roomY) continue;
+      const sameTeam = target.team === db.ownerTeam;
+      if (sameTeam && !physics.friendlyDeathbringer) continue;
+      const d = target.pos.local().sub(db.pos.local());
+      const dist = d.mag();
+      const bit = 2 ** ti; // equivalente a 1u << ti sem o sinal do JS
+      if (dist > radius + 60) {
+        newOutsideMask += bit; // na sala, fora do anel: pode ser atingido no próximo frame
+        continue;
+      }
+      // já dentro do anel e não estava fora antes (vinha de outra sala ou já fora atingido)
+      if (dist < radius - 10 && Math.floor(db.outsideMask / bit) % 2 === 0) continue;
+      if (target.deathbringerEnd >= this.time || this.frame < target.startTakeDamageFrame) continue;
+      target.deathbringerAttacker = db.ownerPid;
+      // duração com ±10% aleatório; aliados (fogo amigo de deathbringer) recebem a fração configurada
+      const duration = (this.settings.powerups.pupDeathbringerTime * (sameTeam ? physics.friendlyDeathbringer : 1) * (9000 + (this.rng.rand() % 2000))) / 10000;
+      target.deathbringerEnd = this.time + duration;
+      target.nextShootFrame = this.frame + iround(duration * 10);
+      if (dist !== 0) target.vel = d.mul(40 / dist); // empurra para fora com velocidade 40
+    }
+    db.outsideMask = newOutsideMask;
+  }
 
   /** Contagem do respawn com fila justa entre os times (src/world.cpp:3516-3545). */
   private respawnCountdown(order: PlayerState[]): void {

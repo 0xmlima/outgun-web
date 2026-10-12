@@ -202,6 +202,32 @@ export class PowerupState {
   }
 }
 
+/** Explosão de deathbringer (`DeathbringerExplosion`, src/world.h:809). */
+export class DeathbringerExplosion {
+  /**
+   * Bit por jogador que, no frame anterior, estava na mesma sala e fora do anel (só esses podem ser
+   * atingidos). Começa com todos os bits ligados.
+   */
+  outsideMask = 0xffffffff;
+
+  constructor(
+    readonly frame0: number,
+    readonly pos: Position,
+    readonly ownerPid: number,
+    readonly ownerTeam: number,
+  ) {}
+
+  /** Raio no frame: linear até 100 px no primeiro segundo, depois `100 + 800 × (t − 1)²`. */
+  radius(frame: number): number {
+    const delta = (frame - this.frame0) * 0.1;
+    return delta < 1 ? delta * 100 : 100 + (delta - 1) * (delta - 1) * 800;
+  }
+
+  expired(frame: number): boolean {
+    return frame > this.frame0 + 18;
+  }
+}
+
 export type FlagStatus = 'base' | 'carried' | 'dropped';
 
 export class FlagState {
@@ -240,6 +266,8 @@ export class WorldState {
   readonly players: (PlayerState | undefined)[];
   readonly rockets: RocketState[] = Array.from({ length: MAX_ROCKETS }, () => new RocketState());
   readonly items: PowerupState[] = Array.from({ length: MAX_POWERUPS }, () => new PowerupState());
+  /** Explosões de deathbringer ativas, da mais antiga para a mais nova. */
+  explosions: DeathbringerExplosion[] = [];
   readonly teams: [TeamState, TeamState] = [newTeam(), newTeam()];
   readonly wildFlags: FlagState[] = [];
 
