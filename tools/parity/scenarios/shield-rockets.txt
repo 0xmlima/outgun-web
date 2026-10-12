@@ -1,0 +1,17 @@
+# Foguetes contra shield por energia: a energia absorve o dano até o shield cair.
+map outgun1
+start 200
+seed 21
+bots 2
+frames 60
+players 0 8
+at 200 0 pos 2 2 100 177
+at 200 0 vel 0 0
+at 200 0 gundir 0
+at 200 8 pos 2 2 380 177
+at 200 8 vel 0 0
+at 200 8 shield 1
+at 200 8 energy 150
+at 200 8 health 300
+input 200 0 0 1
+input 200 8 0 0

@@ -2,7 +2,7 @@
 // O que cada golden trace verifica hoje na simulação TS. Cada card do épico E2 amplia esta tabela:
 // troca `pending` por um recorte de campos (ou amplia o recorte) e o CI passa a exigir paridade.
 import type { ParityMode } from './run.js';
-import { movementFields, rocketFields } from './sim-adapter.js';
+import { combatFields } from './sim-adapter.js';
 import type { TraceState } from './trace.js';
 
 export interface CoverageEntry {
@@ -19,7 +19,8 @@ export interface CoverageEntry {
   external?: boolean;
 }
 
-const movement = (trace: string): CoverageEntry => ({ trace, select: movementFields, modes: ['resync', 'free'], card: 'OG-021' });
+/** Desde o OG-024, todo trace coberto compara o estado completo dos jogadores, foguetes e times. */
+const movement = (trace: string): CoverageEntry => ({ trace, select: combatFields, modes: ['resync', 'free'], card: 'OG-021' });
 
 export const COVERAGE: readonly CoverageEntry[] = [
   movement('move-straight'),
@@ -30,9 +31,11 @@ export const COVERAGE: readonly CoverageEntry[] = [
   movement('bounce-triangle'),
   movement('bounce-circle'),
   movement('wrap-edge'),
-  { trace: 'shoot-level1', select: rocketFields, modes: ['resync', 'free'], card: 'OG-022' },
-  { trace: 'shoot-level9', select: rocketFields, modes: ['resync', 'free'], card: 'OG-022', frames: 48, note: 'frame 248+: o jogador pega um power-up (OG-025)' },
-  { trace: 'rocket-hit', modes: [], card: 'OG-024', note: 'dano, morte e respawn (OG-029)' },
+  { trace: 'shoot-level1', select: combatFields, modes: ['resync', 'free'], card: 'OG-022' },
+  { trace: 'shoot-level9', select: combatFields, modes: ['resync', 'free'], card: 'OG-022', frames: 48, note: 'frame 248+: o jogador pega um power-up (OG-025)' },
+  { trace: 'rocket-hit', select: combatFields, modes: ['resync', 'free'], card: 'OG-024', frames: 30, note: 'frame 230+: respawn do alvo (OG-029)' },
+  { trace: 'shield-rockets', select: combatFields, modes: ['resync', 'free'], card: 'OG-024' },
+  { trace: 'shield-hits', select: combatFields, modes: ['resync', 'free'], card: 'OG-024' },
   { trace: 'flag-capture', modes: [], card: 'OG-027', note: 'bandeiras e captura' },
   { trace: 'bots-match', modes: [], card: 'OG-029', note: 'partida completa' },
   { trace: 'settings-classic', modes: [], card: 'OG-030', note: 'cabeçalho conferido em @outgun/settings', external: true },
