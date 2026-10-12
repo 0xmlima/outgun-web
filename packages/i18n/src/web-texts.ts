@@ -34,5 +34,17 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Create private room': 'Criar sala privada',
     Credits: 'Créditos',
     'Source code (GPL)': 'Código-fonte (GPL)',
+    'Coming soon': 'Em breve',
+    'Back to game': 'Voltar ao jogo',
+    'Leave game': 'Sair da partida',
+    'Press Esc for the menu': 'Pressione Esc para o menu',
+    'Outgun Web is a port of Outgun 1.0.3 to the browser.':
+      'Outgun Web é um port do Outgun 1.0.3 para o navegador.',
+    'Outgun and Outgun Web are free software under the GNU GPL, version 2 or later.':
+      'Outgun e Outgun Web são software livre sob a GNU GPL, versão 2 ou posterior.',
+    'You may use, study, change and share the game. Whoever distributes it must also offer its complete source code under the same license.':
+      'Você pode usar, estudar, modificar e compartilhar o jogo. Quem o distribui deve oferecer também o código-fonte completo, sob a mesma licença.',
+    'The public repository of Outgun Web will be announced at launch.':
+      'O repositório público do Outgun Web será divulgado no lançamento.',
   },
 };
