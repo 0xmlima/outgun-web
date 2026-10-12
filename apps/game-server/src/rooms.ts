@@ -98,6 +98,12 @@ export class RoomManager {
       latenessP99: percentile(s.recent, 99),
       latenessMax: s.maxLateness,
       tickCostP99: percentile(this.tickCosts, 99),
+      // tráfego médio por cliente (bytes/s), ponderado pelo número de clientes de cada sala
+      clientBytesPerSecond: (() => {
+        const t = this.list().map((r) => r.traffic());
+        const n = t.reduce((a, x) => a + x.clients, 0);
+        return n ? t.reduce((a, x) => a + x.avgBytesPerSecond * x.clients, 0) / n : 0;
+      })(),
     };
   }
 }

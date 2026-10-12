@@ -109,6 +109,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       ['outgun_tick_lateness_p99_ms', m.latenessP99],
       ['outgun_tick_lateness_max_ms', m.latenessMax],
       ['outgun_tick_cost_p99_ms', m.tickCostP99],
+      ['outgun_client_bytes_per_second_avg', m.clientBytesPerSecond],
     ];
     res.writeHeader('content-type', 'text/plain; version=0.0.4').end(lines.map(([k, v]) => `${k} ${v}`).join('\n') + '\n');
   });
