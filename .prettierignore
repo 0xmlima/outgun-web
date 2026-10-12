@@ -1,0 +1,30 @@
+# Código e assets do Outgun original: referência intocada (ver plan/PLAN.md).
+src/
+maps/
+cmaps/
+mapgen/
+config/
+graphics/
+sound/
+fonts/
+languages/
+doc/
+client_stats/
+server_stats/
+*.txt
+*.dat
+*.dll
+*.bat
+*.sh
+icon.xpm
+COPYING
+
+# Planejamento é escrito à mão.
+plan/
+CLAUDE.md
+.claude/
+
+pnpm-lock.yaml
+dist/
+coverage/
+.turbo/

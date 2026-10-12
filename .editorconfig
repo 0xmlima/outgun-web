@@ -1,0 +1,10 @@
+root = true
+
+# Somente arquivos novos do port web. Os fontes originais (ISO-8859-1, CRLF) não devem ser reformatados.
+[*.{ts,tsx,js,mjs,cjs,json,yaml,yml,md}]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true

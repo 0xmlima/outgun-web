@@ -1,0 +1,22 @@
+{
+  "name": "@outgun/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tradu\u00e7\u00f5es en, pt-BR, fi, it (card OG-014).",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}

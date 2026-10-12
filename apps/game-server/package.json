@@ -1,0 +1,28 @@
+{
+  "name": "@outgun/game-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Servidor de jogo autoritativo, salas e loop de 10 Hz (card OG-040).",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@outgun/sim": "workspace:*",
+    "@outgun/protocol": "workspace:*",
+    "@outgun/settings": "workspace:*",
+    "@outgun/content": "workspace:*"
+  }
+}
