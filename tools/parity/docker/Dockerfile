@@ -35,10 +35,11 @@ COPY keyboard.dat ./
 COPY tools/parity/patches/ /oracle/patches/
 
 # O compile.sh original chama "make -C src", mas o snapshot só traz Makefile.common: a cópia é feita aqui,
-# dentro da imagem. Patches (se houver) também só são aplicados aqui; o repositório fica intocado.
+# dentro da imagem. Patches também só são aplicados aqui; o repositório fica intocado.
+# 001-trace.patch adiciona -trace/-tracescript (golden traces, OG-003); sem essas opções o jogo é o original.
 RUN cd src \
- && cp Makefile.common Makefile \
  && for p in /oracle/patches/*.patch; do [ -e "$p" ] || continue; echo "aplicando $p"; patch -p1 < "$p"; done \
+ && cp Makefile.common Makefile \
  && bear make LINUX=1 -j"$(nproc)" CXXFLAGS="$OUTGUN_CXXFLAGS" outgun outgun-ded tools \
  && g++ $OUTGUN_CXXFLAGS -DDEDICATED_SERVER_ONLY -o ../mapgen-tool tools/mapgen-main.cpp \
       obj/text/mapgen.o obj/text/nassert.o obj/text/utility.o obj/text/commont.o obj/text/globals.o \

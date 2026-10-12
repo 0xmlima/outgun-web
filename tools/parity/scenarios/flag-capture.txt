@@ -1,0 +1,17 @@
+# Jogador vermelho pega a bandeira azul (sala 4,4), é levado à própria base (sala 1,1) e captura.
+map outgun1
+bots 2
+start 200
+frames 60
+seed 11
+players 0 8
+at 200 0 pos 4 4 200 177
+at 200 0 vel 0 0
+at 200 8 pos 2 2 236 177
+input 200 0 8 0
+input 206 0 0 0
+at 215 0 pos 1 1 200 177
+at 215 0 vel 0 0
+input 216 0 8 0
+input 222 0 0 0
+input 200 8 0 0

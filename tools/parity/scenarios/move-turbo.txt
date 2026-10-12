@@ -1,0 +1,13 @@
+# Turbo por 3 s (multiplicador de aceleração) até expirar no meio do movimento.
+map outgun1
+bots 2
+start 200
+frames 100
+seed 4
+players 0 8
+at 200 0 pos 1 1 60 177
+at 200 0 vel 0 0
+at 200 0 turbo 3
+at 200 8 pos 4 4 236 177
+input 200 0 8 0
+input 200 8 0 0

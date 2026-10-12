@@ -1,0 +1,13 @@
+# Correr para a direita (correr reduz energia e depois vida) e soltar.
+map outgun1
+bots 2
+start 200
+frames 150
+seed 1
+players 0 8
+at 200 0 pos 1 1 60 177
+at 200 0 vel 0 0
+at 200 8 pos 4 4 236 177
+input 200 0 24 0
+input 280 0 0 0
+input 200 8 0 0

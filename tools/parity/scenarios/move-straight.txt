@@ -1,0 +1,17 @@
+# Andar reto: o jogador 0 acelera para a direita por 60 frames e depois solta (atrito e arrasto).
+# Controles (bits): cima 1, baixo 2, esquerda 4, direita 8, correr 16, strafe 32.
+map outgun1
+bots 2
+seconds 60
+start 200
+frames 120
+seed 42
+players 0 8
+at 200 0 pos 1 1 100 177
+at 200 0 vel 0 0
+at 200 0 health 300
+at 200 8 pos 4 4 236 177
+at 200 8 vel 0 0
+input 200 0 8 0
+input 260 0 0 0
+input 200 8 0 0

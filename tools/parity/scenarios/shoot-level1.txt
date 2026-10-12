@@ -1,0 +1,16 @@
+# Tiro nível 1 segurando o botão (intervalo de tiro e custo de energia), girando a arma.
+map outgun1
+bots 2
+start 200
+frames 80
+seed 8
+players 0 8
+at 200 0 pos 1 1 236 177
+at 200 0 vel 0 0
+at 200 8 pos 4 4 236 177
+input 200 0 0 1
+input 215 0 32 1
+input 230 0 1 1
+input 245 0 6 1
+input 260 0 0 0
+input 200 8 0 0

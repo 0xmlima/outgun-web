@@ -27,6 +27,11 @@ Oráculo do Outgun 1.0.3 original. Comandos:
   mapgen LARGURA ALTURA
       Roda o gerador de mapas aleatórios original e imprime o resultado.
 
+  trace CENÁRIO
+      Grava o golden trace de /scenarios/CENÁRIO.txt (tools/parity/scenarios) em
+      /traces/CENÁRIO.jsonl.gz (tools/parity/traces). Formato do cenário e do trace:
+      tools/parity/trace-schema.md. Usa -bottest (tempo acelerado).
+
   fixture NOME [ARGS...]
       Compila /fixtures/NOME.cpp (tools/parity/fixtures no host) com as mesmas flags do jogo, ligado a
       todos os objetos do servidor dedicado original (menos main.o), e executa com ARGS. Qualquer
@@ -143,6 +148,31 @@ cmd_mapgen() {
   ./mapgen-tool "${1:?largura}" "${2:?altura}"
 }
 
+cmd_trace() {
+  local name="${1:?informe o nome do cenário}"
+  local scenario="/scenarios/$name.txt"
+  [ -e "$scenario" ] || { echo "cenário não encontrado: $scenario" >&2; exit 2; }
+  local bots map seconds
+  bots=$(awk '$1 == "bots" {print $2}' "$scenario")
+  map=$(awk '$1 == "map" {print $2}' "$scenario")
+  seconds=$(awk '$1 == "seconds" {print $2}' "$scenario")
+  local overrides=()
+  [ -n "$map" ] && overrides+=("map $map")
+  # O servidor só carrega mapas de maps/; mapas de cmaps/ são copiados para lá dentro do container.
+  if [ -n "$map" ] && [ ! -e "$GAME/maps/$map.txt" ] && [ -e "$GAME/cmaps/$map.txt" ]; then
+    cp "$GAME/cmaps/$map.txt" "$GAME/maps/$map.txt"
+  fi
+  while IFS= read -r line; do overrides+=("$line"); done < <(awk '$1 == "gamemod" {sub(/^gamemod[ \t]+/, ""); print}' "$scenario")
+  write_gamemod "${bots:-2}" 0 "${overrides[@]}"
+  cd "$GAME"
+  local tmp="/tmp/$name.jsonl"
+  timeout --signal=INT --kill-after=15 "${seconds:-120}" ./outgun-ded -nowindow -priv -port 25000 -bottest \
+    -trace "$tmp" -tracescript "$scenario" > "$GAME/log/console.txt" 2>&1 || true
+  [ -s "$tmp" ] || { echo "trace vazio; veja log/serverlog.txt" >&2; tail -20 "$GAME/log/serverlog.txt" >&2; exit 1; }
+  gzip -9 -n -c "$tmp" > "/traces/$name.jsonl.gz"
+  echo "$name: $(($(wc -l < "$tmp") - 1)) frames, $(stat -c %s "/traces/$name.jsonl.gz") bytes"
+}
+
 cmd_fixture() {
   local name="${1:?informe o nome do fixture}"
   shift
@@ -151,7 +181,7 @@ cmd_fixture() {
   local objs
   objs=$(ls "$GAME"/src/obj/text/*.o "$GAME"/src/obj/leetnet/*.o | grep -v -E '/(main|nassert_simple)\.o$')
   # shellcheck disable=SC2086
-  g++ $OUTGUN_CXXFLAGS -w -DDEDICATED_SERVER_ONLY -I"$GAME/src" -o "$bin" "$src" $objs -lNL -pthread
+  g++ $OUTGUN_CXXFLAGS -w -DDEDICATED_SERVER_ONLY -I"$GAME/src" -o "$bin" "$src" $objs -lNL -pthread -Wl,--wrap=rand
   cd "$GAME"
   "$bin" "$@"
 }
@@ -172,6 +202,7 @@ case "$cmd" in
   mappic) cmd_mappic ;;
   mapgen) cmd_mapgen "$@" ;;
   fixture) cmd_fixture "$@" ;;
+  trace) cmd_trace "$@" ;;
   compile-commands) cmd_compile_commands ;;
   shell) exec bash ;;
   help | -h | --help) usage ;;

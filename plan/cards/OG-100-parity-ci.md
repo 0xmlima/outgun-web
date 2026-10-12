@@ -31,4 +31,4 @@ Como time, quero que toda mudança na sim seja checada contra os golden traces, 
 - —
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- Adiantado no OG-003: `pnpm test` (e portanto `pnpm verify`/CI) já valida a estrutura de todos os traces e o harness. Falta, quando a sim existir (OG-021+), rodar `runParity` dos cenários contra a sim e publicar o relatório de divergência.

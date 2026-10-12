@@ -1,0 +1,13 @@
+# Quique em parede triangular (canto da sala 0,0 do mapa Arena, cmaps/).
+map arena
+bots 2
+start 200
+frames 80
+seed 5
+players 0 8
+at 200 0 pos 0 0 170 170
+at 200 0 vel 0 0
+at 200 8 pos 1 1 236 177
+input 200 0 5 0
+input 225 0 0 0
+input 200 8 0 0

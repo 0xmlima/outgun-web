@@ -1,0 +1,6 @@
+# Partida livre de 6 bots por 600 frames (60 s de jogo): integração de tudo (tiros, power-ups, mortes, bandeiras).
+map outgun1
+bots 6
+start 200
+frames 600
+seed 12

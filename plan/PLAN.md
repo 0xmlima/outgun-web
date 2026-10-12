@@ -561,7 +561,7 @@ Como <persona>, quero <ação>, para <benefício>.
 |---|---|---|---:|---|---|---|---|
 | [OG-001](cards/OG-001-monorepo-setup.md) | Setup do monorepo TypeScript e CI | E0 | 3 | Must | S0 | — | Concluído |
 | [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Concluído |
-| [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Backlog |
+| [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Em revisão |
 | [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Em revisão |
 | [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Concluído |
 | [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Em revisão |
@@ -646,6 +646,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-06 | Suporte a mobile/touch | v1 / v2 | v2 | PO |
 | D-07 | Licença do servidor: GPL ou AGPL? | GPL-2.0-or-later / AGPL-3.0-or-later | **GPL-2.0-or-later** em todo o monorepo (mesma do original, sem combinações de versões). A GPL não obriga a publicar o código de um servidor que não é distribuído, mas o projeto publica tudo por decisão própria (link no jogo). AGPL só se quisermos obrigar forks hospedados a publicar o código | PO |
 | D-08 | Uso do nome "Outgun" e contato com os autores | Usar o nome / nome derivado | Tentar contato com Niko Ritari e Jani Rivinoja (README.txt) antes do beta público; até lá, usar "Outgun Web" com créditos completos (`CREDITS.md`) | PO |
+| D-09 | Relógio da simulação | Relógio de parede como o original (`get_time()`) / determinístico (`frame / 10`) | ✅ **Decidido no OG-003 (divergência intencional):** determinístico. O original mede expirações com o relógio do servidor, que oscila alguns ms entre frames e pode mudar uma expiração em ±1 frame; a versão web usa `tempo = frame / 10`. O harness alimenta a sim TS com o tempo gravado, então a paridade não é afetada | Tech Lead |
 
 ---
 

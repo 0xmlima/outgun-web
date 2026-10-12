@@ -1,0 +1,480 @@
+diff --color -ruN a/Makefile.common b/Makefile.common
+--- a/Makefile.common	2026-10-12 13:59:28
++++ b/Makefile.common	2026-10-12 13:59:28
+@@ -82,7 +82,7 @@
+  PNG_LIBS := -lz -lpng
+  PNG_CFLAGS := -DWITH_PNG
+  PLATFORM_OBJ_NAMES := platform_unix.o
+- OUTGUN_LDFLAGS := $(LDFLAGS) -pthread
++ OUTGUN_LDFLAGS := $(LDFLAGS) -pthread -Wl,--wrap=rand
+  BUILDTOOL_LDFLAGS := $(LDFLAGS)
+  MON_LDFLAGS := $(LDFLAGS) -pthread
+  RELAY_LDFLAGS := $(LDFLAGS) -pthread
+@@ -173,7 +173,7 @@
+  BOT_OBJ_NAMES := robot.o
+ endif
+ 
+-OUTGUN_COMMON_OBJ_NAMES += world.o servnet.o server.o server_settings.o commont.o main.o names.o auth.o nassert.o globals.o log.o utility.o network.o thread.o gamemod.o debug.o $(BOT_OBJ_NAMES) bot_support.o clientbase.o timer.o language.o mapgen.o version.o mutex.o binaryaccess.o localconnection.o $(PLATFORM_OBJ_NAMES)
++OUTGUN_COMMON_OBJ_NAMES += world.o servnet.o server.o server_settings.o commont.o main.o names.o auth.o nassert.o globals.o log.o utility.o network.o thread.o gamemod.o debug.o $(BOT_OBJ_NAMES) bot_support.o clientbase.o timer.o language.o mapgen.o version.o mutex.o binaryaccess.o localconnection.o trace.o $(PLATFORM_OBJ_NAMES)
+ OUTGUN_CLIENT_OBJ_NAMES := $(OUTGUN_COMMON_OBJ_NAMES) antialias.o graphics.o allegro_extensions.o colour.o client_menus.o guiclient.o sounds.o menu.o mappic.o
+ ifdef WITH_PNG
+  OUTGUN_CLIENT_OBJ_NAMES += loadpng/loadpng.o loadpng/savepng.o loadpng/regpng.o
+diff --color -ruN a/main.cpp b/main.cpp
+--- a/main.cpp	2026-10-12 13:59:28
++++ b/main.cpp	2026-10-12 13:59:28
+@@ -36,6 +36,7 @@
+ #include "gameserver_interface.h"
+ #include "log.h"
+ #include "language.h"
++#include "trace.h"
+ #include "network.h"
+ #include "platform.h"
+ #include "protocol.h"
+@@ -316,6 +317,14 @@
+             serverCfg.threadLock = false;
+         else if (!strcmp(argv[i], "-bottest"))
+             serverCfg.botTestMode = true;
++        else if (!strcmp(argv[i], "-trace")) {     // Outgun Web: harness de paridade (OG-003)
++            if (++i < argc)
++                OracleTrace::setOutput(argv[i]);
++        }
++        else if (!strcmp(argv[i], "-tracescript")) {
++            if (++i < argc)
++                OracleTrace::setScript(argv[i]);
++        }
+         #ifndef DEDICATED_SERVER_ONLY
+         else if (!strcmp(argv[i], "-win"))
+             clientCfg.winclient = 1;
+diff --color -ruN a/server.cpp b/server.cpp
+--- a/server.cpp	2026-10-12 13:59:28
++++ b/server.cpp	2026-10-12 13:59:28
+@@ -44,6 +44,7 @@
+ 
+ // implements:
+ #include "server.h"
++#include "trace.h"
+ 
+ const int minimum_positive_score_for_ranking = 100;
+ const int voteAnnounceInterval = 5; // in seconds, how often a changing voting status will be announced
+@@ -1591,8 +1592,12 @@
+             recordFrameNumber = true;
+         }
+     }
+-    if (!gameover)
++    if (!gameover) {
++        OracleTrace::beforeFrame(world);   // Outgun Web: harness de paridade (OG-003)
+         world.simulateFrame();
++        if (OracleTrace::afterFrame(world))
++            abortFlag = true;
++    }
+ 
+     if (world.frame >= next_vote_announce_frame) {  // announce voting status
+         int votes = 0;
+diff --color -ruN a/servnet.cpp b/servnet.cpp
+--- a/servnet.cpp	2026-10-12 13:59:28
++++ b/servnet.cpp	2026-10-12 13:59:28
+@@ -47,6 +47,7 @@
+ #include "protocol.h"
+ #include "server.h"
+ #include "timer.h"
++#include "trace.h"
+ #include "version.h"
+ 
+ // Delay for the server contacting the master server, in seconds.
+@@ -1612,6 +1613,10 @@
+     ServerPlayer& sender = world.player[pid];
+ 
+     const uint8_t code = msg.U8();
++    // Outgun Web (OG-003): jogadores roteirizados ignoram a��es do bot que mudariam o cen�rio
++    if (OracleTrace::isScripted(pid) && (code == data_suicide || code == data_drop_flag || code == data_stop_drop_flag ||
++                                         code == data_change_team_on || code == data_fire_on || code == data_fire_off))
++        return;
+     if (LOG_MESSAGE_TRAFFIC)
+         log("Message from client, code = %i", code);
+     switch (code) {
+diff --color -ruN a/trace.cpp b/trace.cpp
+--- a/trace.cpp	1970-01-01 01:00:00
++++ b/trace.cpp	2026-10-12 14:00:47
+@@ -0,0 +1,352 @@
++/*
++ *  trace.cpp - Outgun Web: gravação de golden traces para o harness de paridade (card OG-003).
++ *  Não faz parte do Outgun original; aplicado como patch só dentro do oráculo Docker.
++ *  SPDX-License-Identifier: GPL-2.0-or-later
++ *
++ *  Para cada frame a partir de "start": estado completo antes (pre) e depois (post) de
++ *  ServerWorld::simulateFrame, o valor de get_time() e todos os rand() consumidos pela thread da
++ *  simulação durante o frame (via -Wl,--wrap=rand). O formato está em tools/parity/trace-schema.md.
++ */
++
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <map>
++#include <set>
++#include <sstream>
++#include <string>
++#include <vector>
++#include <pthread.h>
++
++// Leitura de campos privados para serialização (não altera o layout das classes).
++#define private public
++#define protected public
++#include "world.h"
++#include "timer.h"
++#undef private
++#undef protected
++
++#include "trace.h"
++
++namespace {
++
++// Classes sem rótulo de acesso (privadas por padrão) são lidas por espelhos de mesmo layout.
++double gunData(const GunDirection& g) {
++    double d;
++    std::memcpy(&d, &g, sizeof d);
++    return d;
++}
++
++void setGunData(GunDirection& g, double d) {
++    std::memcpy(&g, &d, sizeof d);
++}
++
++struct DeathbringerMirror {
++    double frame0;
++    WorldCoords pos;
++    int ownerPid;
++    int ownerTeam;
++    uint32_t playersOutsideMask;
++};
++
++struct Action {     // "at F PID campo valores..."
++    int pid;
++    std::string field;
++    std::vector<double> values;
++};
++
++struct Input {      // "input F PID CONTROLES ATIRANDO"
++    int controls;
++    bool attack;
++};
++
++FILE* out = 0;
++std::string scriptPath;
++unsigned startFrame = 0, frameCount = 0, recorded = 0;
++unsigned seed = 1;
++bool started = false;
++std::set<int> scripted;
++std::multimap<unsigned, Action> actions;
++std::map<int, std::map<unsigned, Input> > inputs; // pid -> frame -> entrada (vale até a próxima)
++
++volatile bool capturing = false;
++pthread_t simThread;
++std::vector<int> randValues;
++
++std::string jstr(const std::string& s) {
++    std::string r = "\"";
++    for (std::string::size_type i = 0; i < s.size(); ++i) {
++        const unsigned char c = s[i];
++        char buf[8];
++        if (c == '"' || c == '\\') { r += '\\'; r += c; }
++        else if (c < 0x20 || c >= 0x7F) { std::sprintf(buf, "\\u%04x", c); r += buf; }
++        else r += c;
++    }
++    return r + "\"";
++}
++
++std::string num(double v) {
++    char buf[40];
++    std::sprintf(buf, "%.17g", v);
++    return buf;
++}
++
++std::string coords(const WorldCoords& c) {
++    std::ostringstream o;
++    o << '[' << c.room.x << ',' << c.room.y << ',' << num(c.x) << ',' << num(c.y) << ']';
++    return o.str();
++}
++
++std::string stats(const Statistics& s) {
++    std::ostringstream o;
++    o << "{\"frags\":" << s.total_frags << ",\"kills\":" << s.total_kills << ",\"deaths\":" << s.total_deaths
++      << ",\"dbKills\":" << s.total_deathbringer_kills << ",\"dbDeaths\":" << s.total_deathbringer_deaths
++      << ",\"consKills\":" << s.most_consecutive_kills << ",\"curConsKills\":" << s.current_consecutive_kills
++      << ",\"consDeaths\":" << s.most_consecutive_deaths << ",\"curConsDeaths\":" << s.current_consecutive_deaths
++      << ",\"suicides\":" << s.total_suicides << ",\"captures\":" << s.total_captures << ",\"assists\":" << s.total_assists
++      << ",\"flagsTaken\":" << s.total_flags_taken << ",\"flagsDropped\":" << s.total_flags_dropped
++      << ",\"flagsReturned\":" << s.total_flags_returned << ",\"carriersKilled\":" << s.total_flag_carriers_killed
++      << ",\"shots\":" << s.total_shots << ",\"hits\":" << s.total_hits << ",\"shotsTaken\":" << s.total_shots_taken
++      << ",\"spawnTime\":" << num(s.last_spawn_time) << ",\"lifetime\":" << num(s.total_lifetime)
++      << ",\"movement\":" << num(s.total_movement) << ",\"startTime\":" << num(s.starttime)
++      << ",\"dead\":" << s.dead << ",\"carriedFlag\":" << s.carriedFlag
++      << ",\"flagCarryingTime\":" << num(s.total_flag_carrying_time) << ",\"flagTakeTime\":" << num(s.flag_taking_time) << '}';
++    return o.str();
++}
++
++std::string player(const ServerPlayer& p) {
++    std::ostringstream o;
++    o << "{\"pid\":" << p.pid << ",\"team\":" << p.team_nr << ",\"bot\":" << p.bot << ",\"dead\":" << p.dead
++      << ",\"pos\":" << coords(p.pos) << ",\"vel\":[" << num(p.vel.x) << ',' << num(p.vel.y) << ']'
++      << ",\"controls\":" << int(p.controls.data) << ",\"accelerationMode\":" << int(p.accelerationMode)
++      << ",\"gundir\":" << num(gunData(p.gundir)) << ",\"attack\":" << p.attack << ",\"attackOnce\":" << p.attackOnce
++      << ",\"attackGunDir\":" << num(gunData(p.attackGunDir))
++      << ",\"health\":" << num(p.health) << ",\"energy\":" << num(p.energy) << ",\"megabonus\":" << p.megabonus
++      << ",\"weapon\":" << p.weapon << ",\"shield\":" << p.item_shield << ",\"power\":" << p.item_power
++      << ",\"turbo\":" << p.item_turbo << ",\"visibility\":" << p.visibility << ",\"deathbringer\":" << p.item_deathbringer
++      << ",\"powerTime\":" << num(p.item_power_time) << ",\"turboTime\":" << num(p.item_turbo_time)
++      << ",\"shadowTime\":" << num(p.item_shadow_time) << ",\"deathbringerEnd\":" << num(p.deathbringer_end)
++      << ",\"deathbringerAttacker\":" << p.deathbringer_attacker
++      << ",\"nextShootFrame\":" << p.next_shoot_frame << ",\"startTakeDamageFrame\":" << p.start_take_damage_frame
++      << ",\"framesToRespawn\":" << p.frames_to_respawn << ",\"extraFramesToRespawn\":" << p.extra_frames_to_respawn
++      << ",\"respawnToBase\":" << p.respawn_to_base << ",\"dropKey\":" << p.drop_key << ",\"droppedFlag\":" << p.dropped_flag
++      << ",\"awaitingClientReadies\":" << p.awaiting_client_readies << ",\"wantChangeTeams\":" << p.want_change_teams
++      << ",\"color\":" << p.personal_color << ",\"stats\":" << stats(p.player_stats) << '}';
++    return o.str();
++}
++
++std::string flag(const Flag& f) {
++    std::ostringstream o;
++    o << "{\"status\":" << int(f.status) << ",\"carrier\":" << f.carrier_id << ",\"prevCarrier\":" << f.prev_carrier_id
++      << ",\"prevPrevCarrier\":" << f.prev_prev_carrier_id << ",\"grabTime\":" << num(f.grab_t)
++      << ",\"dropTime\":" << num(f.drop_t) << ",\"home\":" << coords(f.home_pos) << ",\"pos\":" << coords(f.pos)
++      << ",\"carryingTeam\":" << f.cteam << ",\"carryingTime\":" << f.ctime << '}';
++    return o.str();
++}
++
++std::string state(const ServerWorld& w) {
++    std::ostringstream o;
++    o << "{\"frame\":" << w.frame << ",\"time\":" << num(get_time()) << ",\"mapStartTime\":" << w.map_start_time
++      << ",\"players\":[";
++    bool first = true;
++    for (int i = 0; i < w.maxplayers; ++i)
++        if (w.player[i].used) {
++            o << (first ? "" : ",") << player(w.player[i]);
++            first = false;
++        }
++    o << "],\"rockets\":[";
++    first = true;
++    for (int i = 0; i < MAX_ROCKETS; ++i) {
++        const Rocket& r = w.rock[i];
++        if (r.owner == -1)
++            continue;
++        o << (first ? "" : ",") << "{\"id\":" << i << ",\"owner\":" << r.owner << ",\"team\":" << r.team << ",\"power\":" << r.power
++          << ",\"pos\":" << coords(r.pos) << ",\"vel\":[" << num(r.vel.x) << ',' << num(r.vel.y) << "],\"direction\":" << num(gunData(r.direction)) << '}';
++        first = false;
++    }
++    o << "],\"powerups\":[";
++    first = true;
++    for (int i = 0; i < MAX_POWERUPS; ++i) {
++        const Powerup& p = w.item[i];
++        if (p.kind == Powerup::pup_unused)
++            continue;
++        o << (first ? "" : ",") << "{\"id\":" << i << ",\"kind\":" << int(p.kind) << ",\"respawnTime\":" << num(p.respawn_time) << ",\"pos\":" << coords(p.pos) << '}';
++        first = false;
++    }
++    o << "],\"teams\":[";
++    for (int t = 0; t < 2; ++t) {
++        const Team& team = w.teams[t];
++        o << (t ? "," : "") << "{\"score\":" << team.points << ",\"kills\":" << team.total_kills << ",\"deaths\":" << team.total_deaths
++          << ",\"suicides\":" << team.total_suicides << ",\"flagsTaken\":" << team.total_flags_taken << ",\"flagsDropped\":" << team.total_flags_dropped
++          << ",\"flagsReturned\":" << team.total_flags_returned << ",\"shots\":" << team.total_shots << ",\"hits\":" << team.total_hits
++          << ",\"shotsTaken\":" << team.total_shots_taken << ",\"movement\":" << num(team.total_movement) << ",\"flags\":[";
++        for (unsigned f = 0; f < team.team_flags.size(); ++f)
++            o << (f ? "," : "") << flag(team.team_flags[f]);
++        o << "],\"captures\":[";
++        for (unsigned c = 0; c < team.caps.size(); ++c)
++            o << (c ? "," : "") << '[' << team.caps[c].first << ',' << jstr(team.caps[c].second) << ']';
++        o << "]}";
++    }
++    o << "],\"wildFlags\":[";
++    for (unsigned f = 0; f < w.wild_flags.size(); ++f)
++        o << (f ? "," : "") << flag(w.wild_flags[f]);
++    o << "],\"deathbringers\":[";
++    first = true;
++    for (std::list<DeathbringerExplosion>::const_iterator dbi = w.dbExplosions.begin(); dbi != w.dbExplosions.end(); ++dbi) {
++        const DeathbringerMirror* db = reinterpret_cast<const DeathbringerMirror*>(&*dbi);
++        o << (first ? "" : ",") << "{\"frame0\":" << num(db->frame0) << ",\"pos\":" << coords(db->pos) << ",\"owner\":" << db->ownerPid
++          << ",\"team\":" << db->ownerTeam << ",\"outsideMask\":" << db->playersOutsideMask << '}';
++        first = false;
++    }
++    o << "]}";
++    return o.str();
++}
++
++std::string readFile(const std::string& path) {
++    std::ifstream in(path.c_str(), std::ios::binary);
++    std::ostringstream o;
++    o << in.rdbuf();
++    return o.str();
++}
++
++void loadScript() {
++    std::ifstream in(scriptPath.c_str());
++    std::string line;
++    while (std::getline(in, line)) {
++        if (!line.empty() && line[line.size() - 1] == '\r')
++            line.erase(line.size() - 1);
++        std::istringstream ist(line);
++        std::string cmd;
++        if (!(ist >> cmd) || cmd[0] == '#')
++            continue;
++        if (cmd == "start") ist >> startFrame;
++        else if (cmd == "frames") ist >> frameCount;
++        else if (cmd == "seed") ist >> seed;
++        else if (cmd == "players") { int p; while (ist >> p) scripted.insert(p); }
++        else if (cmd == "at") {
++            unsigned f;
++            Action a;
++            ist >> f >> a.pid >> a.field;
++            double v;
++            while (ist >> v) a.values.push_back(v);
++            actions.insert(std::make_pair(f, a));
++        }
++        else if (cmd == "input") {
++            unsigned f;
++            int pid, c, att;
++            ist >> f >> pid >> c >> att;
++            Input in2 = { c, att != 0 };
++            inputs[pid][f] = in2;
++        }
++        // map, bots, gamemod: lidos pelo entrypoint do oráculo
++    }
++}
++
++double value(const Action& a, unsigned i) {
++    return i < a.values.size() ? a.values[i] : 0.;
++}
++
++void applyAction(ServerWorld& w, const Action& a) {
++    ServerPlayer& p = w.player[a.pid];
++    if (a.field == "pos") { p.pos = WorldCoords(int(value(a, 0)), int(value(a, 1)), value(a, 2), value(a, 3)); p.record_position = true; }
++    else if (a.field == "vel") p.vel = Vec(value(a, 0), value(a, 1));
++    else if (a.field == "health") p.health = value(a, 0);
++    else if (a.field == "energy") p.energy = value(a, 0);
++    else if (a.field == "weapon") p.weapon = int(value(a, 0));
++    else if (a.field == "gundir") { setGunData(p.gundir, value(a, 0)); setGunData(p.attackGunDir, value(a, 0)); }
++    else if (a.field == "shield") p.item_shield = int(value(a, 0));
++    else if (a.field == "deathbringer") p.item_deathbringer = value(a, 0) != 0;
++    else if (a.field == "power") { p.item_power = true; p.item_power_time = get_time() + value(a, 0); }
++    else if (a.field == "turbo") { p.item_turbo = true; p.item_turbo_time = get_time() + value(a, 0); }
++    else if (a.field == "shadow") { p.set_visibility(w.getConfig().getShadowMinimum()); p.item_shadow_time = get_time() + value(a, 0); }
++    p.record_powerups = true;
++}
++
++// Mesma semântica de ServerNetworking::incoming_client_data + data_fire_on/off.
++void applyInput(ServerPlayer& p, const Input& in) {
++    ClientControls c;
++    c.fromNetwork(uint8_t(in.controls), false);
++    c.clearModifiersIfIdle();
++    p.controls = c;
++    p.accelerationMode = AM_World;
++    if (!p.dead && !p.controls.isStrafe()) {
++        GunDirection d = p.gundir;
++        d.updateFromControls(p.controls);
++        p.gundir = d;
++    }
++    if (in.attack && !p.attack) {
++        p.attackOnce = p.attack = true;
++        p.attackGunDir = p.gundir;
++    }
++    else if (!in.attack)
++        p.attack = false;
++    if (!p.attackOnce)
++        p.attackGunDir = p.gundir;
++}
++
++} // namespace
++
++extern "C" int __real_rand(void);
++extern "C" int __wrap_rand(void) {
++    const int v = __real_rand();
++    if (capturing && pthread_equal(pthread_self(), simThread))
++        randValues.push_back(v);
++    return v;
++}
++
++namespace OracleTrace {
++
++void setOutput(const std::string& outFile) throw () {
++    out = std::fopen(outFile.c_str(), "w");
++}
++
++void setScript(const std::string& scriptFile) throw () {
++    scriptPath = scriptFile;
++    loadScript();
++}
++
++bool enabled() throw () { return out != 0; }
++
++bool isScripted(int pid) throw () { return out && scripted.count(pid); }
++
++void beforeFrame(ServerWorld& w) throw () {
++    if (!out || w.frame < startFrame)
++        return;
++    if (!started) {
++        started = true;
++        std::srand(seed);
++        std::fprintf(out, "{\"type\":\"header\",\"version\":1,\"seed\":%u,\"startFrame\":%u,\"maxplayers\":%d,\"mapTitle\":%s,\"mapCrc\":%u,\"gamemod\":%s,\"script\":%s}\n",
++                     seed, w.frame, w.maxplayers, jstr(w.map.title).c_str(), unsigned(w.map.crc),
++                     jstr(readFile(wheregamedir + "config/gamemod.txt")).c_str(), jstr(readFile(scriptPath)).c_str());
++    }
++    for (std::multimap<unsigned, Action>::const_iterator a = actions.lower_bound(w.frame); a != actions.upper_bound(w.frame); ++a)
++        applyAction(w, a->second);
++    for (std::map<int, std::map<unsigned, Input> >::const_iterator pi = inputs.begin(); pi != inputs.end(); ++pi) {
++        std::map<unsigned, Input>::const_iterator in = pi->second.upper_bound(w.frame);
++        if (in != pi->second.begin() && w.player[pi->first].used)
++            applyInput(w.player[pi->first], (--in)->second);
++    }
++    std::fprintf(out, "{\"type\":\"frame\",\"frame\":%u,\"pre\":%s,", w.frame, state(w).c_str());
++    randValues.clear();
++    simThread = pthread_self();
++    capturing = true;
++}
++
++bool afterFrame(ServerWorld& w) throw () {
++    if (!out || !capturing)
++        return false;
++    capturing = false;
++    std::fprintf(out, "\"rand\":[");
++    for (unsigned i = 0; i < randValues.size(); ++i)
++        std::fprintf(out, "%s%d", i ? "," : "", randValues[i]);
++    std::fprintf(out, "],\"post\":%s}\n", state(w).c_str());
++    if (frameCount && ++recorded >= frameCount) {
++        std::fclose(out);
++        out = 0;
++        return true;
++    }
++    return false;
++}
++
++} // namespace OracleTrace
+diff --color -ruN a/trace.h b/trace.h
+--- a/trace.h	1970-01-01 01:00:00
++++ b/trace.h	2026-10-12 13:59:28
+@@ -0,0 +1,26 @@
++/*
++ *  trace.h - Outgun Web: gravação de golden traces para o harness de paridade (card OG-003).
++ *  Não faz parte do Outgun original; aplicado como patch só dentro do oráculo Docker.
++ *  SPDX-License-Identifier: GPL-2.0-or-later
++ */
++
++#ifndef TRACE_H_INC
++#define TRACE_H_INC
++
++#include <string>
++
++class ServerWorld;
++
++namespace OracleTrace {
++    // -trace ARQUIVO e -tracescript ROTEIRO (src/main.cpp)
++    void setOutput(const std::string& outFile) throw ();
++    void setScript(const std::string& scriptFile) throw ();
++    bool enabled() throw ();
++    // jogador controlado pelo roteiro: mensagens de suicídio, largar bandeira e troca de time do bot são ignoradas
++    bool isScripted(int pid) throw ();
++    // chamados por Server::simulate_and_broadcast_frame em volta de ServerWorld::simulateFrame
++    void beforeFrame(ServerWorld& world) throw ();
++    bool afterFrame(ServerWorld& world) throw (); // true quando o roteiro terminou (o servidor deve sair)
++}
++
++#endif

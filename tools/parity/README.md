@@ -1,6 +1,8 @@
 # Oráculo do Outgun original
 
-O jogo original, compilado sem alterações dentro de Docker, é a referência de comportamento do port (PLAN.md seções 2 e 3; skill `outgun-parity-harness`). Card: OG-002. O harness de golden traces (OG-003) será construído em cima deste oráculo.
+O jogo original, compilado dentro de Docker, é a referência de comportamento do port (PLAN.md seções 2 e 3; skill `outgun-parity-harness`). Cards: OG-002 (oráculo) e OG-003 (golden traces). O único patch, `patches/001-trace.patch`, adiciona as opções `-trace`/`-tracescript`; sem elas o jogo se comporta como o original.
+
+Golden traces: cenários em `scenarios/`, traces em `traces/`, formato e passo a passo em [`trace-schema.md`](trace-schema.md), comparação no pacote `@outgun/parity` (`src/`).
 
 ## Uso
 
@@ -12,6 +14,7 @@ pnpm oracle replay "/out/server/replay/<arquivo>.replay" --shots 6 --interval 5
 pnpm oracle mappic                # imagem de todos os mapas de maps/ e cmaps/
 pnpm oracle mapgen 4 3            # gerador de mapas aleatórios original
 pnpm oracle compile-commands      # compile_commands.json na raiz, para o clangd navegar em src/
+pnpm oracle trace move-straight   # grava traces/move-straight.jsonl.gz a partir de scenarios/move-straight.txt
 pnpm oracle fixture rng           # compila e roda tools/parity/fixtures/rng.cpp contra o código original
 ```
 
@@ -47,6 +50,8 @@ Ajustes de build, todos dentro da imagem (o repositório não é alterado):
 - **Acesso à rede**: servidor e cliente tentam falar com o master server (`outgun.mbnet.fi`) e o servidor de ranking antigos. Por isso o container roda com `--network none`; o cliente mostra o aviso "Getting server list ... unreachable", fechado automaticamente com `xdotool`.
 - **Diretório do jogo** = diretório do executável (`/proc/self/exe`, `src/platform_unix.cpp:167`); logs em `log/`, replays em `replay/`.
 
-## Atenção para paridade (OG-003)
+## Atenção para paridade
 
-O build usa `-ffast-math`, como o jogo distribuído. Isso permite ao compilador reordenar operações de ponto flutuante, o que pode impedir igualdade bit a bit com JavaScript. O OG-003 deve comparar traces de um build com e sem `-ffast-math` (`docker build --build-arg OUTGUN_CXXFLAGS=...`) para medir o impacto antes de escolher a referência.
+- **`-ffast-math`:** o build usa a flag, como o jogo distribuído. Ela permite ao compilador reordenar operações de ponto flutuante. Até agora não causou diferença: geometria, interseções e parser bateram bit a bit. Se uma divergência mínima aparecer na física (OG-020+), compile uma variante sem a flag (`docker build --build-arg OUTGUN_CXXFLAGS=...`) para isolar a causa.
+- **Relógio:** a simulação original usa `get_time()`, o relógio do servidor, para expiração de power-ups, deathbringer e outros tempos. Os traces gravam esse valor por frame; no `-bottest` ele é exatamente `frame × 0,1` mais uma constante. A versão web usa relógio determinístico (decisão D-09).
+- **`rand()` compartilhado:** o original reinicia a semente a cada thread criada (`src/thread.cpp:39`), e bots e simulação compartilham o mesmo estado. Os traces gravam os valores consumidos pela simulação.

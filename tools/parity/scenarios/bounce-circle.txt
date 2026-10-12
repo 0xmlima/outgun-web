@@ -1,0 +1,13 @@
+# Quique na parede curva do canto da arena Coliseu.
+map coliseu
+bots 2
+start 200
+frames 80
+seed 6
+players 0 8
+at 200 0 pos 0 0 300 250
+at 200 0 vel 0 0
+at 200 8 pos 2 2 236 177
+input 200 0 21 0
+input 230 0 0 0
+input 200 8 0 0
