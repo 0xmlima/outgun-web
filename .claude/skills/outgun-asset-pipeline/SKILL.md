@@ -14,7 +14,7 @@ Os originais ficam intocados; o pipeline (`tools/asset-pipeline/`) lê da raiz d
 | `mapgen/*.txt` | blocos de sala do gerador | JSON |
 | `graphics/<tema>/*.pcx` | PCX 8 ou 24 bits | PNG (e WebP) com alpha, atlas por tema |
 | `graphics/<tema>/colours.txt` | `nome RRGGBB` por linha | tokens JSON |
-| `sound/<tema>/*.wav` | PCM 16 bits mono 22,05 kHz | `.ogg` (Opus) + `.m4a` (AAC) |
+| `sound/<tema>/*.wav` | PCM 16 bits mono 22,05 kHz | copiados em WAV (decisão do OG-012: 768 KB, suportado por todos os navegadores) |
 | `sound/<tema>/*.txt` | **alias**: conteúdo = nome de outro sample (ex. `diedb.txt` → `death2`) | resolver para o arquivo real no manifesto |
 | `fonts/*.dat` | datafile Allegro compactado (magic `slh.ALL`, LZSS) | BMFont `.fnt` + `.png` |
 | `languages/*.txt` | uma frase por linha não comentada; chave = linha correspondente em `en.txt`; placeholders `$1..$n` | JSON i18next, placeholders `{{1}}` |
@@ -28,13 +28,16 @@ Os originais ficam intocados; o pipeline (`tools/asset-pipeline/`) lê da raiz d
 - **Fontes:** preferir exportar glifos com o utilitário `dat` do Allegro dentro do container do OG-002 (`tools/parity/docker`); só escrever unpacker LZSS próprio se o container não servir. Conferir caracteres acentuados (pt-BR, fi, it).
 - **Mapas:** nunca "corrigir" um mapa na conversão; erro de mapa é bug do parser ou mapa inválido (RN-MAP-05).
 
+## Implementação atual (OG-012)
+`pnpm assets` → `tools/asset-pipeline` (decodificador PCX e codificador PNG próprios, sem dependências) → `apps/web/public/assets/` (`manifest.json` + `preview.html`, não versionados). Testes comparam os pixels com o ImageMagick do oráculo (`src/__fixtures__/pcx-reference.json`).
+
 ## Ferramentas
 - Imagens: `sharp` (Node) ou ImageMagick (`magick in.pcx -transparent '#FF00FF' out.png`).
 - Áudio: `ffmpeg -i in.wav -c:a libopus -b:a 48k out.ogg` e `ffmpeg -i in.wav -c:a aac -b:a 64k out.m4a`.
-- Textos: Node com `TextDecoder('latin1')`.
+- Textos: em ferramentas Node, `readFileSync(arquivo, 'latin1')`; em pacotes puros (sem DOM/Node), byte a byte com `String.fromCharCode` (ver `decodeMapFile` em `packages/content`).
 
 ## Verificação
-- Gerar `tools/asset-pipeline/preview/index.html` com todas as imagens sobre fundo xadrez, todas as fontes renderizando um pangrama com acentos e botões para todos os sons.
+- `pnpm assets` gera `preview.html` junto do manifesto, com todas as imagens sobre fundo xadrez, todas as fontes renderizando um pangrama com acentos e botões para todos os sons.
 - Teste: todo asset referenciado pelo código do cliente existe no manifesto; todo alias de som resolve.
 - Comparar visualmente com screenshots do cliente original (OG-002) quando houver dúvida.
 

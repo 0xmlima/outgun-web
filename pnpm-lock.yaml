@@ -245,6 +245,12 @@ importers:
 
   packages/sim: {}
 
+  tools/asset-pipeline:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+
   tools/parity:
     dependencies:
       '@outgun/sim':
