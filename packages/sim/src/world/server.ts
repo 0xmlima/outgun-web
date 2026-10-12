@@ -10,6 +10,7 @@ import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
 import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
 import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
+import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
 import { CarriedFlag, DeathbringerExplosion, FlagState, newStats, Position, PowerupKind, type PlayerState, type GameOverReason, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
 
@@ -46,9 +47,10 @@ export interface ServerHooks {
   /**
    * Fim de partida (`server_next_map`): limite de capturas/morte súbita, tempo ou prorrogação.
    * Chamado no meio do frame, como no original: o servidor escolhe o próximo mapa e chama
-   * `changeMap` aqui mesmo, e o resto do frame já roda no mapa reiniciado.
+   * `changeMap` aqui mesmo, e o resto do frame já roda no mapa reiniciado. `result` traz as
+   * estatísticas finais (já fechadas com `finish_stats`) para placar, ranking e histórico.
    */
-  gameOver?(reason: GameOverReason): void;
+  gameOver?(reason: GameOverReason, result: MatchResult): void;
 }
 
 /** Formações de tiro por nível de arma (src/world.cpp:1380): foguetes à frente e desvios em oitavos. */
@@ -1292,7 +1294,8 @@ export class ServerSim {
 
   private endGame(reason: GameOverReason): void {
     this.world.gameOver = reason;
-    this.hooks.gameOver?.(reason);
+    const result = finishMatch(this.world, reason, this.time);
+    this.hooks.gameOver?.(reason, result);
   }
 
   /** Limite de tempo, avisos, prorrogação e morte súbita (fim de `simulateFrame`). */

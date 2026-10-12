@@ -16,6 +16,7 @@ import {
   Vec,
   WorldState,
   type GameMap,
+  type MatchResult,
   type PowerupKind,
   type PowerupState,
   type RocketState,
@@ -81,6 +82,8 @@ export class SimTraceAdapter implements SimAdapter {
   private world!: WorldState;
   private sim!: ServerSim;
   private pre!: TraceState;
+  /** Resultados de fim de partida produzidos pela sim (placar final, OG-028). */
+  readonly results: MatchResult[] = [];
 
   setup(header: TraceHeader): void {
     this.header = header;
@@ -120,7 +123,12 @@ export class SimTraceAdapter implements SimAdapter {
     world.wildFlags = state.wildFlags.map(toFlag);
     this.world = world;
     // fim de partida: o servidor do oráculo tem um mapa só na rotação e o recarrega no mesmo frame
-    this.sim = new ServerSim(world, this.settings, { rand: () => 0 }, { gameOver: () => this.sim.changeMap(this.map) });
+    this.sim = new ServerSim(world, this.settings, { rand: () => 0 }, {
+      gameOver: (_reason, result) => {
+        this.results.push(result);
+        this.sim.changeMap(this.map);
+      },
+    });
     world.explosions = state.deathbringers.map((db) => {
       const e = new DeathbringerExplosion(db.frame0, toPosition(db.pos), db.owner, db.team);
       e.outsideMask = db.outsideMask;

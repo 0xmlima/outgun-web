@@ -4,10 +4,12 @@ import type { Rng } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import {
   firstDifference,
+  flagFields,
   formatFailure,
   listTraces,
   loadTrace,
   runParity,
+  SimTraceAdapter,
   TRACES_DIR,
   type SimAdapter,
   type Trace,
@@ -117,4 +119,24 @@ describe('firstDifference', () => {
     expect(firstDifference({ players: [p(0, 1)] }, { players: [] })?.path).toBe('players[pid=0]');
     expect(firstDifference({ players: [] }, { players: [p(3, 1)] })?.path).toBe('players[pid=3]');
   });
+});
+
+describe('placar final (OG-028)', () => {
+  // No frame do fim de partida o "post" do original já é o mapa reiniciado; o placar final é o estado
+  // do "pre" desse frame (ninguém pontua nele: os jogadores estão parados) fechado com finish_stats.
+  for (const name of ['match-time-win', 'match-extra-time']) {
+    it(`${name}: resultado da sim igual às estatísticas do original`, () => {
+      const trace = traces.get(name)!;
+      const adapter = new SimTraceAdapter();
+      expect(runParity(trace, adapter, { select: flagFields }).failure).toBeUndefined();
+      expect(adapter.results).toHaveLength(1);
+      const result = adapter.results[0]!;
+      const end = trace.frames.find((f) => f.post.mapStartTime === f.frame)!;
+      expect(result.teams.map((t) => t.score)).toEqual(end.pre.teams.map((t) => t.score));
+      for (const p of end.pre.players) {
+        const r = result.players.find((x) => x.pid === p.pid)!;
+        expect([r.frags, r.kills, r.deaths, r.captures, r.shots, r.flagsTaken]).toEqual([p.stats.frags, p.stats.kills, p.stats.deaths, p.stats.captures, p.stats.shots, p.stats.flagsTaken]);
+      }
+    });
+  }
 });

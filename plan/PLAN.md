@@ -342,9 +342,9 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 |---|---:|---|
 | Matar inimigo | +1 | `world.cpp:2274` |
 | Matar aliado | −2 | idem |
-| Matar inimigo na sala onde um aliado carrega bandeira (defesa do portador) | +1 (uma vez) | idem |
-| Matar inimigo na sala com a própria bandeira no chão (defesa) | +1 | idem |
-| Matar inimigo na sala com a bandeira inimiga no chão (ataque) | +1 | idem |
+| Matar inimigo na sala onde um aliado carrega bandeira (defesa do portador) | +1 | idem |
+| Matar inimigo na sala com a própria bandeira no chão ou na base (defesa) | +1 | idem |
+| Matar inimigo na sala com a bandeira inimiga no chão ou na base (ataque) | +1 | idem |
 | Matar portador de bandeira inimigo | +1 extra | idem |
 | Matar portador aliado | −1 extra | idem |
 | Pegar bandeira | +1 | `world.cpp:3639` |
@@ -354,8 +354,11 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 | Assistência | +3 | idem |
 | Captura do próprio time | +2 para cada membro | idem |
 | Suicídio | −1 | `world.cpp:2392` |
+| Ponto por posse da selvagem (RN-FLG-08) | +2 para cada membro | `world.cpp:3684` |
 
-- **RN-PTS-02** — **Pontos negativos** (usados no ranking): morrer +1 neg; morrer com bandeira +1 neg extra; bandeira do seu time capturada +1 neg para cada membro (exceto captura de bandeira selvagem).
+- **RN-PTS-01** — Os três bônus de sala (portador, defesa, ataque) valem no máximo +1 no total, nessa prioridade; os dois de bandeira não valem com `lock_team_flags` em efeito. "Portador" é quem carrega qualquer bandeira.
+
+- **RN-PTS-02** — **Pontos negativos** (usados no ranking): morrer +1 neg (inclusive suicídio); morrer com bandeira +1 neg extra; bandeira do seu time capturada +1 neg para cada membro (exceto captura de bandeira selvagem); ponto de posse da selvagem do adversário +1 neg para cada membro.
 - **RN-PTS-03** — Placar do time = nº de capturas (+ pontos de posse, RN-FLG-08).
 
 ### 6.9 Partida e condições de fim (RN-PAR)
@@ -589,7 +592,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-025](cards/OG-025-powerups.md) | Power-ups | E2 | 8 | Must | S4 | OG-024 | Concluído |
 | [OG-026](cards/OG-026-deathbringer.md) | Deathbringer | E2 | 5 | Must | S4 | OG-025 | Concluído |
 | [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Concluído |
-| [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
+| [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Em andamento |
 | [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Em revisão |
 | [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Concluído |
 | [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Backlog |
