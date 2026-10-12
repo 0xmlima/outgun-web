@@ -22,6 +22,7 @@ Este repositório tem duas partes:
 | `pnpm lint`                         | ESLint                                                        |
 | `pnpm format` / `pnpm format:check` | Prettier                                                      |
 | `pnpm check:legacy`                 | Confere que os arquivos do Outgun original estão intactos     |
+| `pnpm check:licenses`               | Licenças das dependências de produção e cabeçalhos SPDX       |
 | `pnpm verify`                       | Tudo acima, na ordem do CI                                    |
 
 ## Pacotes
@@ -42,3 +43,7 @@ Este repositório tem duas partes:
 ## Convenções
 
 Fluxo de cards, branches e commits: `plan/PLAN.md` seção 8 e a skill `.claude/skills/outgun-card-workflow`. Arquivos novos levam o cabeçalho `SPDX-License-Identifier: GPL-2.0-or-later`.
+
+## Licença e créditos
+
+GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:licenses` exige o cabeçalho SPDX em todo código novo de `apps/`, `packages/` e `tools/` e só aceita dependências de produção com licença compatível (lista em `tools/license-check/check.mjs`). Ao adicionar uma dependência com licença fora da lista, discuta antes com o PO.

@@ -2,3 +2,5 @@
 /** Tamanho de uma sala em pixels lógicos (`plw`, `plh` em src/commont.h). */
 export const ROOM_WIDTH = 472;
 export const ROOM_HEIGHT = 354;
+
+export { LICENSE_SPDX, ORIGINAL_CREDITS, type CreditGroup } from './credits.js';

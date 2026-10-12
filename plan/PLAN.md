@@ -563,7 +563,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-002](cards/OG-002-build-original-docker.md) | Build do Outgun original em Docker (oráculo) | E0 | 5 | Must | S0 | — | Em revisão |
 | [OG-003](cards/OG-003-parity-harness.md) | Harness de golden traces (paridade) | E0 | 8 | Must | S1 | OG-002 | Backlog |
 | [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Backlog |
-| [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Pronto |
+| [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Em revisão |
 | [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Backlog |
 | [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Backlog |
 | [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Backlog |
@@ -644,6 +644,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-04 | Hospedagem | Fly.io / Hetzner / AWS | Fly.io no beta (regiões e WS simples) | Tech Lead |
 | D-05 | Visão de salas vizinhas por padrão | Só a sala atual (original) / zoom | Original por padrão; zoom como opção não ranqueada? | PO |
 | D-06 | Suporte a mobile/touch | v1 / v2 | v2 | PO |
+| D-07 | Licença do servidor: GPL ou AGPL? | GPL-2.0-or-later / AGPL-3.0-or-later | **GPL-2.0-or-later** em todo o monorepo (mesma do original, sem combinações de versões). A GPL não obriga a publicar o código de um servidor que não é distribuído, mas o projeto publica tudo por decisão própria (link no jogo). AGPL só se quisermos obrigar forks hospedados a publicar o código | PO |
+| D-08 | Uso do nome "Outgun" e contato com os autores | Usar o nome / nome derivado | Tentar contato com Niko Ritari e Jani Rivinoja (README.txt) antes do beta público; até lá, usar "Outgun Web" com créditos completos (`CREDITS.md`) | PO |
 
 ---
 
