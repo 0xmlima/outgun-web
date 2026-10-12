@@ -94,8 +94,8 @@ diff --color -ruN a/servnet.cpp b/servnet.cpp
      switch (code) {
 diff --color -ruN a/trace.cpp b/trace.cpp
 --- a/trace.cpp	1970-01-01 01:00:00
-+++ b/trace.cpp	2026-10-12 14:00:47
-@@ -0,0 +1,352 @@
++++ b/trace.cpp	2026-10-12 14:26:22
+@@ -0,0 +1,458 @@
 +/*
 + *  trace.cpp - Outgun Web: gravação de golden traces para o harness de paridade (card OG-003).
 + *  Não faz parte do Outgun original; aplicado como patch só dentro do oráculo Docker.
@@ -301,6 +301,112 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +    return o.str();
 +}
 +
++std::string settings(const ServerWorld& w) {
++    const WorldSettings& c = w.getConfig();
++    const PowerupSettings& p = w.getPupConfig();
++    const PhysicalSettings& ph = w.physics;
++    std::ostringstream o;
++    o << "{\"world\":{" << "\"respawn_time\":" << num(c.respawn_time) << ","
++      << "\"extra_respawn_time_alone\":" << num(c.extra_respawn_time_alone) << ","
++      << "\"waiting_time_deathbringer\":" << num(c.waiting_time_deathbringer) << ","
++      << "\"respawn_balancing_time\":" << num(c.respawn_balancing_time) << ","
++      << "\"health_regeneration_0_to_100\":" << num(c.health_regeneration_0_to_100) << ","
++      << "\"energy_regeneration_0_to_100\":" << num(c.energy_regeneration_0_to_100) << ","
++      << "\"health_regeneration_100_to_200\":" << num(c.health_regeneration_100_to_200) << ","
++      << "\"energy_regeneration_100_to_200\":" << num(c.energy_regeneration_100_to_200) << ","
++      << "\"health_regeneration_200_to_max\":" << num(c.health_regeneration_200_to_max) << ","
++      << "\"energy_regeneration_200_to_max\":" << num(c.energy_regeneration_200_to_max) << ","
++      << "\"run_health_degradation\":" << num(c.run_health_degradation) << ","
++      << "\"run_energy_degradation\":" << num(c.run_energy_degradation) << ","
++      << "\"shooting_energy_base\":" << num(c.shooting_energy_base) << ","
++      << "\"shooting_energy_per_extra_rocket\":" << num(c.shooting_energy_per_extra_rocket) << ","
++      << "\"hit_stun_time\":" << num(c.hit_stun_time) << ","
++      << "\"shoot_interval\":" << num(c.shoot_interval) << ","
++      << "\"shoot_interval_with_energy\":" << num(c.shoot_interval_with_energy) << ","
++      << "\"spawn_safe_time\":" << num(c.spawn_safe_time) << ","
++      << "\"flag_return_delay\":" << num(c.flag_return_delay) << ","
++      << "\"min_capture_time\":" << num(c.min_capture_time) << ","
++      << "\"time_limit\":" << int64_t(c.time_limit) << ","
++      << "\"extra_time\":" << int64_t(c.extra_time) << ","
++      << "\"extra_time_periods\":" << int64_t(c.extra_time_periods) << ","
++      << "\"sudden_death\":" << int64_t(c.sudden_death) << ","
++      << "\"capture_limit\":" << int64_t(c.capture_limit) << ","
++      << "\"win_score_difference\":" << int64_t(c.win_score_difference) << ","
++      << "\"respawn_on_capture\":" << int64_t(c.respawn_on_capture) << ","
++      << "\"shadow_minimum\":" << int64_t(c.shadow_minimum) << ","
++      << "\"rocket_damage\":" << int64_t(c.rocket_damage) << ","
++      << "\"start_health\":" << int64_t(c.start_health) << ","
++      << "\"start_energy\":" << int64_t(c.start_energy) << ","
++      << "\"min_health_for_run_penalty\":" << int64_t(c.min_health_for_run_penalty) << ","
++      << "\"health_max\":" << int64_t(c.health_max) << ","
++      << "\"energy_max\":" << int64_t(c.energy_max) << ","
++      << "\"balance_teams\":" << int64_t(c.balance_teams) << ","
++      << "\"random_wild_flag\":" << int64_t(c.random_wild_flag) << ","
++      << "\"lock_team_flags\":" << int64_t(c.lock_team_flags) << ","
++      << "\"lock_wild_flags\":" << int64_t(c.lock_wild_flags) << ","
++      << "\"capture_on_team_flag\":" << int64_t(c.capture_on_team_flag) << ","
++      << "\"capture_on_wild_flag\":" << int64_t(c.capture_on_wild_flag) << ","
++      << "\"capture_away_from_base\":" << int64_t(c.capture_away_from_base) << ","
++      << "\"carry_own_team_flag\":" << int64_t(c.carry_own_team_flag) << ","
++      << "\"always_send_flag_location\":" << int64_t(c.always_send_flag_location) << ","
++      << "\"see_rockets_distance\":" << int64_t(c.see_rockets_distance) << ","
++      << "\"see_minimap_player_properties\":" << int64_t(c.see_minimap_player_properties) << ","
++      << "\"carrying_score_time\":" << int64_t(c.carrying_score_time) << "},\"powerups\":{" << "\"pup_deathbringer_time\":" << num(p.pup_deathbringer_time) << ","
++      << "\"pup_power_damage\":" << num(p.pup_power_damage) << ","
++      << "\"deathbringer_health_degradation\":" << num(p.deathbringer_health_degradation) << ","
++      << "\"deathbringer_energy_degradation\":" << num(p.deathbringer_energy_degradation) << ","
++      << "\"pups_min\":" << int64_t(p.pups_min) << ","
++      << "\"pups_max\":" << int64_t(p.pups_max) << ","
++      << "\"pups_respawn_time\":" << int64_t(p.pups_respawn_time) << ","
++      << "\"pup_chance_shield\":" << int64_t(p.pup_chance_shield) << ","
++      << "\"pup_chance_turbo\":" << int64_t(p.pup_chance_turbo) << ","
++      << "\"pup_chance_shadow\":" << int64_t(p.pup_chance_shadow) << ","
++      << "\"pup_chance_power\":" << int64_t(p.pup_chance_power) << ","
++      << "\"pup_chance_weapon\":" << int64_t(p.pup_chance_weapon) << ","
++      << "\"pup_chance_megahealth\":" << int64_t(p.pup_chance_megahealth) << ","
++      << "\"pup_chance_deathbringer\":" << int64_t(p.pup_chance_deathbringer) << ","
++      << "\"pups_min_percentage\":" << int64_t(p.pups_min_percentage) << ","
++      << "\"pups_max_percentage\":" << int64_t(p.pups_max_percentage) << ","
++      << "\"pup_add_time\":" << int64_t(p.pup_add_time) << ","
++      << "\"pup_max_time\":" << int64_t(p.pup_max_time) << ","
++      << "\"pup_deathbringer_switch\":" << int64_t(p.pup_deathbringer_switch) << ","
++      << "\"pups_drop_at_death\":" << int64_t(p.pups_drop_at_death) << ","
++      << "\"pups_player_max\":" << int64_t(p.pups_player_max) << ","
++      << "\"pup_health_bonus\":" << int64_t(p.pup_health_bonus) << ","
++      << "\"pup_weapon_max\":" << int64_t(p.pup_weapon_max) << ","
++      << "\"pup_shield_hits\":" << int64_t(p.pup_shield_hits) << ","
++      << "\"shadow_see_shadow\":" << int64_t(p.shadow_see_shadow) << ","
++      << "\"deathbringer_health_limit\":" << int64_t(p.deathbringer_health_limit) << ","
++      << "\"deathbringer_energy_limit\":" << int64_t(p.deathbringer_energy_limit) << ","
++      << "\"start_shield\":" << int64_t(p.start_shield) << ","
++      << "\"start_turbo\":" << int64_t(p.start_turbo) << ","
++      << "\"start_shadow\":" << int64_t(p.start_shadow) << ","
++      << "\"start_power\":" << int64_t(p.start_power) << ","
++      << "\"start_weapon\":" << int64_t(p.start_weapon) << ","
++      << "\"start_deathbringer\":" << int64_t(p.start_deathbringer) << ","
++      << "\"team_shield\":" << int64_t(p.team_shield) << ","
++      << "\"team_turbo\":" << int64_t(p.team_turbo) << ","
++      << "\"team_shadow\":" << int64_t(p.team_shadow) << ","
++      << "\"team_power\":" << int64_t(p.team_power) << ","
++      << "\"team_weapon\":" << int64_t(p.team_weapon) << ","
++      << "\"team_health\":" << int64_t(p.team_health) << ","
++      << "\"team_deathbringer\":" << int64_t(p.team_deathbringer) << "},\"physics\":{" << "\"fric\":" << num(ph.fric) << ","
++      << "\"drag\":" << num(ph.drag) << ","
++      << "\"accel\":" << num(ph.accel) << ","
++      << "\"brake_mul\":" << num(ph.brake_mul) << ","
++      << "\"turn_mul\":" << num(ph.turn_mul) << ","
++      << "\"run_mul\":" << num(ph.run_mul) << ","
++      << "\"turbo_mul\":" << num(ph.turbo_mul) << ","
++      << "\"flag_mul\":" << num(ph.flag_mul) << ","
++      << "\"rocket_speed\":" << num(ph.rocket_speed) << ","
++      << "\"friendly_fire\":" << num(ph.friendly_fire) << ","
++      << "\"friendly_db\":" << num(ph.friendly_db) << ","
++      << "\"max_run_speed\":" << num(ph.max_run_speed) << ","
++      << "\"player_collisions\":" << int64_t(ph.player_collisions) << ","
++      << "\"allowFreeTurning\":" << int64_t(ph.allowFreeTurning) << "}}";
++    return o.str();
++}
++
 +std::string readFile(const std::string& path) {
 +    std::ifstream in(path.c_str(), std::ios::binary);
 +    std::ostringstream o;
@@ -414,9 +520,9 @@ diff --color -ruN a/trace.cpp b/trace.cpp
 +    if (!started) {
 +        started = true;
 +        std::srand(seed);
-+        std::fprintf(out, "{\"type\":\"header\",\"version\":1,\"seed\":%u,\"startFrame\":%u,\"maxplayers\":%d,\"mapTitle\":%s,\"mapCrc\":%u,\"gamemod\":%s,\"script\":%s}\n",
++        std::fprintf(out, "{\"type\":\"header\",\"version\":1,\"seed\":%u,\"startFrame\":%u,\"maxplayers\":%d,\"mapTitle\":%s,\"mapCrc\":%u,\"gamemod\":%s,\"script\":%s,\"settings\":%s}\n",
 +                     seed, w.frame, w.maxplayers, jstr(w.map.title).c_str(), unsigned(w.map.crc),
-+                     jstr(readFile(wheregamedir + "config/gamemod.txt")).c_str(), jstr(readFile(scriptPath)).c_str());
++                     jstr(readFile(wheregamedir + "config/gamemod.txt")).c_str(), jstr(readFile(scriptPath)).c_str(), settings(w).c_str());
 +    }
 +    for (std::multimap<unsigned, Action>::const_iterator a = actions.lower_bound(w.frame); a != actions.upper_bound(w.frame); ++a)
 +        applyAction(w, a->second);

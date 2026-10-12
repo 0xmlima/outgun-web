@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-/** Presets de sala. O Clássico segue config/gamemod.txt (decisão D-01). Implementação: card OG-030. */
-export const PRESET_IDS = ['classic'] as const;
-
-export type PresetId = (typeof PRESET_IDS)[number];
+export * from './classic-gamemod.js';
+export * from './gamemod.js';
+export * from './presets.js';
+export * from './registry.js';
+export * from './types.js';

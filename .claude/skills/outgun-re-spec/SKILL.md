@@ -13,7 +13,7 @@ Os fontes estão em **ISO-8859-1 com CRLF**. `grep`/`sed` falham silenciosamente
 ```bash
 LC_ALL=C tr -d '\r' < src/world.cpp | sed -n '1209,1276p'          # trecho com números de linha reais
 LC_ALL=C tr -d '\r' < src/world.cpp | grep -n '^[A-Za-z].*::nome('  # achar definição
-LC_ALL=C grep -rn 'simbolo' src/                                    # achar usos
+LC_ALL=C /usr/bin/grep -rna 'simbolo' src/                           # achar usos (use /usr/bin/grep: o grep do shell pode omitir resultados em ISO-8859-1)
 ```
 
 Ponto de partida por assunto: seção 14 de `plan/PLAN.md` (mapa do código-fonte). Constantes globais: `src/commont.h:280-320`. Settings e faixas válidas: `src/server_settings.cpp`.

@@ -281,7 +281,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 - **RN-FIS-04** — Jogador sob efeito de deathbringer não acelera (só desliza).
 - **RN-FIS-05** — Direção: `side = direita − esquerda`, `forw = cima − baixo`; diagonal normalizada por √2. Modo mundo (padrão): `acc = (side, −forw)`. Com `free_turning` e o jogador em modo arma: aceleração relativa à direção da arma.
 - **RN-FIS-06** — Se o jogador está em movimento, a aceleração é decomposta em componente paralela e perpendicular à velocidade: frear (paralela oposta) × `brake_acceleration (1.00)`; virar (perpendicular) × `turn_acceleration (1.00)`. `vel += acc × accel`.
-- **RN-FIS-07** — Velocidade máxima de corrida: `max_run_speed = (run_mul × accel − fric) / drag`. Limite rígido por eixo: `max_run_speed × turbo_mul × 4`. (`world.cpp:1449, 2734`)
+- **RN-FIS-07** — Velocidade máxima de corrida: `max_run_speed = (run_mul × accel − fric) / drag`, **calculada só no construtor com os defaults do código** e nunca recalculada após o gamemod. No servidor vale sempre **27,1875**, mesmo no preset Clássico, cujo valor pela fórmula seria 29,5; comportamento preservado. Limite rígido de velocidade: `max_run_speed × turbo_mul × 4`; o dano por colisão (RN-FIS-11) também normaliza por esse valor. (`world.cpp:1446-1450, 2559, 2734`; confirmado nos traces, OG-030)
 - **RN-FIS-08** — Raio do jogador 15 px; shield adiciona 9 px ao raio visual/colisão de escudo; foguete 4 px (power: 6 px); power-up e bandeira 15 px. (`commont.h:284-286`, `world.h:39`)
 - **RN-FIS-09** — Colisão com paredes por tempo-de-impacto contínuo (sub-frame) com retângulos, triângulos e círculos/anéis/setores; o jogador quica (reflexão). (`world.cpp:1069-1165, 2826-3050`)
 - **RN-FIS-10** — Colisão entre jogadores: `player_collisions` = `no` (atravessam), `normal` (quicam), `special` (quicam + efeitos da RN-FIS-11). Jogadores em proteção de spawn não colidem.
@@ -591,7 +591,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-027](cards/OG-027-flags-capture.md) | Bandeiras e captura | E2 | 8 | Must | S4 | OG-024 | Backlog |
 | [OG-028](cards/OG-028-scoring-stats.md) | Pontuação e estatísticas | E2 | 3 | Must | S5 | OG-027 | Backlog |
 | [OG-029](cards/OG-029-match-lifecycle.md) | Ciclo da partida, spawn e respawn | E2 | 5 | Must | S5 | OG-027 | Backlog |
-| [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Backlog |
+| [OG-030](cards/OG-030-settings-presets.md) | Settings tipados e presets de sala | E2 | 3 | Must | S2 | OG-004 | Em revisão |
 | [OG-040](cards/OG-040-game-server-core.md) | Núcleo do game server (salas, loop 10 Hz) | E3 | 5 | Must | S5 | OG-029 | Backlog |
 | [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Backlog |
 | [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Backlog |

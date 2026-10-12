@@ -1,0 +1,30 @@
+# Casos limite do parser de gamemod: percentuais, valores especiais e valores inválidos (ignorados).
+map outgun1
+bots 2
+start 200
+frames 1
+seed 1
+gamemod friendly_fire 50%
+gamemod friendly_deathbringer 0.25
+gamemod pups_min 3
+gamemod pups_max 10 %
+gamemod pup_shadow_invisibility 1
+gamemod time_limit 5
+gamemod extra_time 2
+gamemod extra_time_periods 3
+gamemod sudden_death 1
+gamemod player_collisions special
+gamemod balance_teams shuffle
+gamemod free_turning 1
+gamemod respawn_time 3.5
+gamemod rocket_damage abc
+gamemod start_health 600
+gamemod energy_max   250
+gamemod shoot_interval 0.05
+gamemod pup_weapon_max 9
+gamemod pup_team_turbo 1
+gamemod carry_own_team_flag 1
+gamemod see_minimap_player_properties 2
+gamemod turbo_acceleration 1.6
+gamemod rocket_speed 40
+gamemod capture_on_wild_flag yes

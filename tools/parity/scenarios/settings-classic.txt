@@ -1,0 +1,6 @@
+# Configurações efetivas do preset Clássico (config/gamemod.txt) no original.
+map outgun1
+bots 2
+start 200
+frames 1
+seed 1

@@ -1,0 +1,9 @@
+# Preset Ranked (D-10): Clássico sem power-ups.
+map outgun1
+bots 2
+start 200
+frames 1
+seed 1
+gamemod pups_min 0
+gamemod pups_max 0
+gamemod pups_drop_at_death 0

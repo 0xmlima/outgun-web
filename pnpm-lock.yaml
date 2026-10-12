@@ -241,7 +241,11 @@ importers:
 
   packages/protocol: {}
 
-  packages/settings: {}
+  packages/settings:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
 
   packages/sim: {}
 

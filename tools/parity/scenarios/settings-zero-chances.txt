@@ -1,0 +1,13 @@
+# Todas as chances de power-up em zero: o original força pups_max = 0 e pups_min = pups_max.
+map outgun1
+bots 2
+start 200
+frames 1
+seed 1
+gamemod pup_chance_shield 0
+gamemod pup_chance_turbo 0
+gamemod pup_chance_shadow 0
+gamemod pup_chance_power 0
+gamemod pup_chance_weapon 0
+gamemod pup_chance_megahealth 0
+gamemod pup_chance_deathbringer 0
