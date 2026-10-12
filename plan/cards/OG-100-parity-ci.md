@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S2 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-003](OG-003-parity-harness.md) |
 | Regras de negócio | — |
 | Skills | `outgun-parity-harness` |

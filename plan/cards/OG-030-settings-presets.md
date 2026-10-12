@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S2 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-004](OG-004-constants-and-units.md) |
 | Regras de negócio | RN-CFG-01, RN-CFG-02, RN-CFG-03, RN-MOD-02, RN-MOD-04 |
 | Skills | `outgun-re-spec` |

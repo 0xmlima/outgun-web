@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S2 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-020](OG-020-geometry-walls.md) |
 | Regras de negócio | RN-FIS-01, RN-FIS-02, RN-FIS-03, RN-FIS-04, RN-FIS-05, RN-FIS-06, RN-FIS-07, RN-MAP-02, RN-TIR-10 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

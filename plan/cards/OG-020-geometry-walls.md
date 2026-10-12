@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S2 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-004](OG-004-constants-and-units.md), [OG-010](OG-010-map-parser.md) |
 | Regras de negócio | RN-FIS-08, RN-FIS-09 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

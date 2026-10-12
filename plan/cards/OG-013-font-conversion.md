@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S2 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-002](OG-002-build-original-docker.md) |
 | Regras de negócio | — |
 | Skills | `outgun-asset-pipeline` |
