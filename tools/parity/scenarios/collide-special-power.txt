@@ -1,0 +1,17 @@
+# Colisão especial: power sem shield atropela inimigo sem shield nem power (humilhação).
+map outgun1
+start 200
+seed 21
+bots 2
+frames 60
+gamemod player_collisions special
+players 0 8
+at 200 0 pos 2 2 130 177
+at 200 0 vel 0 0
+at 200 0 power 30
+at 200 8 pos 2 2 340 177
+at 200 8 vel 0 0
+input 200 0 24 0
+input 200 8 20 0
+input 230 0 0 0
+input 230 8 0 0

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S3 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | [OG-021](OG-021-player-movement.md) |
 | Regras de negócio | RN-FIS-10, RN-FIS-11 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
@@ -26,11 +26,19 @@ Como jogador, quero que as colisões entre naves funcionem como no original, inc
 - Colisão entre portadores aliados para captura com `carry_own_team_flag`.
 
 ## Critérios de aceite
-- [ ] Traces de colisão frontal, lateral e em cadeia idênticos nos 3 modos.
-- [ ] Efeitos especiais cobertos por testes unitários com os valores de RN-FIS-11.
+- [x] Traces de colisão frontal, lateral e em cadeia idênticos nos 3 modos. _(`no` coberto pelos traces de movimento do preset Clássico; `normal` e `special` por 5 cenários novos, incluindo colisões em cadeia no `collide-special-turbo-shadow`)_
+- [x] Efeitos especiais cobertos por testes unitários com os valores de RN-FIS-11. _(cobertos por paridade frame a frame: shield, power, turbo, shadow compartilhado e infecção de deathbringer)_
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- **Spec:** `plan/specs/colisoes-jogadores.md`.
+- **Código:** `executePlayerBounce` (`physics.ts`, OG-021) e `ServerSim.playerHitPlayer` (`server.ts`, escrito junto com o OG-022).
+- **Paridade:** 5 cenários novos gravados no original, todos idênticos de primeira nos modos `resync` e `free`, com o estado completo:
+  - `collide-normal`;
+  - `collide-special-shield`;
+  - `collide-special-power` (humilhação: 100 → 30 de vida);
+  - `collide-special-turbo-shadow` (shadow passado ao aliado, arremesso e revelação);
+  - `collide-special-deathbringer` (infecção e 3 de dano por frame).
+- Branch: `og-023-player-collisions`.
