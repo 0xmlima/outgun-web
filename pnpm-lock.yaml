@@ -237,7 +237,11 @@ importers:
         specifier: ^22.0.0
         version: 22.20.5
 
-  packages/i18n: {}
+  packages/i18n:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
 
   packages/protocol: {}
 

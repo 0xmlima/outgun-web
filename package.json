@@ -21,7 +21,8 @@
     "map:check": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-check/check.mjs",
     "map:preview": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-preview/render.mjs",
     "assets": "turbo run build --filter=@outgun/asset-pipeline --output-logs=errors-only && node tools/asset-pipeline/dist/cli.js",
-    "parity": "turbo run build --filter=@outgun/parity... --output-logs=errors-only && node tools/parity/dist/cli.js"
+    "parity": "turbo run build --filter=@outgun/parity... --output-logs=errors-only && node tools/parity/dist/cli.js",
+    "i18n:generate": "turbo run build --filter=@outgun/i18n --output-logs=errors-only && node tools/i18n-convert/convert.mjs && prettier --write packages/i18n/src/catalogs.generated.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
