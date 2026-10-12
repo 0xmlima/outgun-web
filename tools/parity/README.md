@@ -12,7 +12,12 @@ pnpm oracle replay "/out/server/replay/<arquivo>.replay" --shots 6 --interval 5
 pnpm oracle mappic                # imagem de todos os mapas de maps/ e cmaps/
 pnpm oracle mapgen 4 3            # gerador de mapas aleatórios original
 pnpm oracle compile-commands      # compile_commands.json na raiz, para o clangd navegar em src/
+pnpm oracle fixture rng           # compila e roda tools/parity/fixtures/rng.cpp contra o código original
 ```
+
+### Fixtures: chamar o código original diretamente
+
+`pnpm oracle fixture NOME [args]` compila `tools/parity/fixtures/NOME.cpp` com as mesmas flags do jogo, liga a **todos os objetos do servidor dedicado original** (exceto `main.o`) e imprime a saída do programa. Assim qualquer função do original (geometria, parser de mapa, física) pode gerar dados de referência sem patch. Os dados gerados ficam em `__fixtures__/` dos pacotes TS, ignorados pelo Prettier. Exemplo: `pnpm oracle fixture rng > packages/sim/src/__fixtures__/glibc-rand.json`.
 
 Resultados ficam em `tools/parity/out/` (montado como `/out` no container; ignorado pelo git). Caminhos passados ao container usam `/out/...`.
 

@@ -2,7 +2,7 @@
 // Confere que as dependências distribuídas (produção) têm licença compatível com GPL-2.0-or-later
 // e que todo arquivo de código novo traz o cabeçalho SPDX. Uso: pnpm check:licenses
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,7 +64,8 @@ const tracked = execFileSync(
   { cwd: repoRoot, encoding: 'utf8' },
 )
   .split('\n')
-  .filter((file) => /\.(ts|tsx|js|mjs|cjs|sh)$/.test(file) || file.endsWith('Dockerfile'));
+  .filter((file) => /\.(ts|tsx|js|mjs|cjs|sh)$/.test(file) || file.endsWith('Dockerfile'))
+  .filter((file) => existsSync(join(repoRoot, file))); // ignora arquivos apagados ainda no índice
 for (const file of tracked) {
   const head = readFileSync(join(repoRoot, file), 'utf8').split('\n').slice(0, 3).join('\n');
   if (!head.includes('SPDX-License-Identifier: GPL-2.0-or-later')) {

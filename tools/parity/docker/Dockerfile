@@ -18,6 +18,7 @@ RUN apt-get update \
 # -fpermissive (lookup em duas fases nos templates de menu.h). Não muda o comportamento do jogo.
 # O harness de paridade (OG-003) pode sobrescrever, ex. para compilar sem -ffast-math.
 ARG OUTGUN_CXXFLAGS="-W -Wall -O3 -ffast-math -fno-enforce-eh-specs -std=gnu++98 -fpermissive"
+ENV OUTGUN_CXXFLAGS=$OUTGUN_CXXFLAGS
 
 WORKDIR /outgun
 # Dados do jogo: o executável procura config/, maps/, languages/... no próprio diretório.

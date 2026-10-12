@@ -21,5 +21,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0"
+  },
+  "dependencies": {
+    "@outgun/sim": "workspace:*"
   }
 }

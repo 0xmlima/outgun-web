@@ -27,6 +27,11 @@ Oráculo do Outgun 1.0.3 original. Comandos:
   mapgen LARGURA ALTURA
       Roda o gerador de mapas aleatórios original e imprime o resultado.
 
+  fixture NOME [ARGS...]
+      Compila /fixtures/NOME.cpp (tools/parity/fixtures no host) com as mesmas flags do jogo, ligado a
+      todos os objetos do servidor dedicado original (menos main.o), e executa com ARGS. Qualquer
+      função do original pode ser chamada para gerar dados de referência; a saída vai para stdout.
+
   compile-commands
       Copia o compile_commands.json do build (para clangd) para /out/.
 
@@ -138,6 +143,19 @@ cmd_mapgen() {
   ./mapgen-tool "${1:?largura}" "${2:?altura}"
 }
 
+cmd_fixture() {
+  local name="${1:?informe o nome do fixture}"
+  shift
+  local src="/fixtures/$name.cpp" bin="/tmp/fixture-$name"
+  [ -e "$src" ] || { echo "fixture não encontrado: $src" >&2; exit 2; }
+  local objs
+  objs=$(ls "$GAME"/src/obj/text/*.o "$GAME"/src/obj/leetnet/*.o | grep -v -E '/(main|nassert_simple)\.o$')
+  # shellcheck disable=SC2086
+  g++ $OUTGUN_CXXFLAGS -w -DDEDICATED_SERVER_ONLY -I"$GAME/src" -o "$bin" "$src" $objs -lNL -pthread
+  cd "$GAME"
+  "$bin" "$@"
+}
+
 cmd_compile_commands() {
   cp "$GAME/src/compile_commands.json" "$OUT/compile_commands.json"
   echo "compile_commands.json copiado (caminhos do container: /outgun/src)"
@@ -153,6 +171,7 @@ case "$cmd" in
   replay) cmd_replay "$@" ;;
   mappic) cmd_mappic ;;
   mapgen) cmd_mapgen "$@" ;;
+  fixture) cmd_fixture "$@" ;;
   compile-commands) cmd_compile_commands ;;
   shell) exec bash ;;
   help | -h | --help) usage ;;

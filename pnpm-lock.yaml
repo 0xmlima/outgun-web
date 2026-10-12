@@ -228,6 +228,10 @@ importers:
         version: link:../../packages/sim
 
   packages/content:
+    dependencies:
+      '@outgun/sim':
+        specifier: workspace:*
+        version: link:../sim
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

@@ -28,3 +28,6 @@ pnpm-lock.yaml
 dist/
 coverage/
 .turbo/
+
+# Dados de referência gerados pelo oráculo (tools/parity/fixtures): não reformatar.
+**/__fixtures__/
