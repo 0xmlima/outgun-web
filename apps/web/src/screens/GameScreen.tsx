@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Rota do jogo: o PixiJS desenha num canvas próprio controlado por `mountGame`; o React desenha só
 // os overlays (menu do Esc, como no original: "While in the game, press esc to open the menu").
-// Parâmetros de URL (para comparação com o original): ?map=NOME&theme=TEMA&rooms=N&room=X,Y.
+// Parâmetros de URL: ?map=NOME&theme=TEMA&rooms=N&room=X,Y&demo=JOGADORES. Sem `map`, até a conexão
+// com o servidor (OG-064), "Jogar agora" abre uma partida local de demonstração com 8 jogadores.
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
@@ -17,10 +18,12 @@ export default function GameScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
 
-  const map = params.get('map') ?? DEFAULT_MAP;
+  // demonstração num mapa com bandeiras e áreas de time
+  const map = params.get('map') ?? (params.has('demo') || !params.size ? 'sisso' : DEFAULT_MAP);
   const theme = params.get('theme') ?? prefs.graphicsTheme;
   const rooms = Number(params.get('rooms')) || prefs.visibleRooms;
   const room = params.get('room') ?? '0,0';
+  const demo = Number(params.get('demo') ?? (params.has('map') ? 0 : 8));
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -31,10 +34,13 @@ export default function GameScreen() {
       visibleRooms: rooms,
       continuousTextures: prefs.continuousTextures,
       room: [rx || 0, ry || 0],
+      demoPlayers: demo,
+      demoStress: params.get('stress') === '1',
+      font: prefs.menuFont,
       onStatus: setStatus,
     });
     return () => host.destroy();
-  }, [map, theme, rooms, room, prefs.continuousTextures]);
+  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont]);
 
   useEffect(() => {
     if (menuOpen) return;

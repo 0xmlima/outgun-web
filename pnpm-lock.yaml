@@ -230,6 +230,9 @@ importers:
       '@outgun/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@outgun/settings':
+        specifier: workspace:*
+        version: link:../../packages/settings
       '@outgun/sim':
         specifier: workspace:*
         version: link:../../packages/sim

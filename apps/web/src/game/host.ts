@@ -4,9 +4,13 @@
 // mostra um mapa: setas trocam de sala e PageUp/PageDown mudam quantas salas aparecem.
 import { parseMapFile } from '@outgun/content';
 import { positiveModulo, type GameMap } from '@outgun/sim';
-import { Application } from 'pixi.js';
+import { Application, Assets, type BitmapFont } from 'pixi.js';
 import { ASSETS, loadManifest } from '../assets.js';
+import { LocalDemo } from './demo.js';
+import { EntityRenderer } from './render/entity-renderer.js';
+import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
+import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme } from './render/theme.js';
 import { WorldRenderer } from './render/world-renderer.js';
 
@@ -25,6 +29,12 @@ export interface GameOptions {
   readonly map: string;
   /** Sala inicial da vista. */
   readonly room?: readonly [number, number];
+  /** Jogadores da partida local de demonstração (0 = só o mapa). */
+  readonly demoPlayers?: number;
+  /** Demonstração em teste de carga (armas no máximo, tiro contínuo). */
+  readonly demoStress?: boolean;
+  /** Fonte bitmap dos nomes e contagens (uma das fontes do original). */
+  readonly font?: string;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
   readonly onStatus?: (status: GameStatus) => void;
 }
@@ -44,16 +54,33 @@ async function loadMap(name: string): Promise<{ map: GameMap; bytes: Uint8Array 
   return { map: result.map, bytes };
 }
 
+/** Vista do `client.cfg` distribuído: sem rolagem, vista passa da borda só em mapas que dão a volta. */
+const VIEW = { scroll: false, view: 'mapWraps', repeatX: false, repeatY: false, wrapsX: false, wrapsY: false } as const;
+
+/** Instala a fonte bitmap no PixiJS (o arquivo .fnt traz o nome da família). */
+async function loadFont(name: string | undefined): Promise<{ family: string; height: number } | null> {
+  const files = name ? (await loadManifest())?.fonts[name]?.font : undefined;
+  if (!files) return null;
+  try {
+    const font = await Assets.load<BitmapFont>(ASSETS + files.fnt);
+    return { family: font.fontFamily, height: font.lineHeight };
+  } catch {
+    return null;
+  }
+}
+
 export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   const app = new Application();
   let destroyed = false;
   let ready = false;
   let world: WorldRenderer | undefined;
+  let entities: EntityRenderer | undefined;
+  let demo: LocalDemo | undefined;
   let visible = opts.visibleRooms;
   let view = { x: opts.room?.[0] ?? 0, y: opts.room?.[1] ?? 0 };
 
   const onKey = (ev: KeyboardEvent) => {
-    if (!world?.layout) return;
+    if (!world?.layout || demo) return;
     const { mapW, mapH } = world.layout;
     const moves: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0],
@@ -102,11 +129,34 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
       world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
       app.stage.addChild(world.stage);
+      if (opts.demoPlayers) {
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
+        if (destroyed) return;
+        entities = new EntityRenderer(theme, sprites, font);
+        app.stage.addChild(entities.stage);
+        demo = new LocalDemo(map, opts.demoPlayers, 0, opts.demoStress);
+      }
       layout();
       app.renderer.on('resize', layout);
       let announced = false;
-      app.ticker.add(() => {
-        const missing = world?.render({ room: view, x: 0, y: 0 }) ?? 1;
+      let simTime = 0;
+      app.ticker.add((ticker) => {
+        let topLeft = { room: view, x: 0, y: 0 };
+        if (demo && entities && world?.layout) {
+          // a simulação anda a 10 Hz; o desenho, a cada quadro do navegador
+          simTime += Math.min(ticker.deltaMS, 250);
+          while (simTime >= 100) {
+            simTime -= 100;
+            for (const ev of demo.step()) entities.addEffect(ev.kind, ev.pos, ev.team, demo.world.frame / 10);
+          }
+          topLeft = viewTopLeft(world.layout, demo.mePosition(), VIEW);
+          const frame = demo.frame(world.layout.visibleX > 1 || world.layout.visibleY > 1);
+          entities.render(frame, world.layout, topLeft);
+          // contadores para as medições (tools/visual-compare/fps.mjs)
+          container.dataset.players = String(frame.players.length);
+          container.dataset.rockets = String(frame.rockets.length);
+        }
+        const missing = world?.render(topLeft) ?? 1;
         // "pronto" quando todas as salas da primeira vista já foram pintadas
         if (!announced && missing === 0) {
           announced = true;
@@ -124,6 +174,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       destroyed = true;
       removeEventListener('keydown', onKey);
       world?.destroy();
+      entities?.destroy();
       if (ready) app.destroy(true);
     },
   };

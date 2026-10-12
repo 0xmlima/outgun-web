@@ -20,6 +20,17 @@ for (const [label, url, keys] of [
   ['1 sala, Ice, troca de sala a cada 250 ms', '/play?map=outgun1&theme=Ice&rooms=1', true],
   ['6x6 salas, Ice', '/play?map=outgun1&theme=Ice&rooms=6', false],
   ['1 sala, sem tema', '/play?map=coliseu&theme=&rooms=1', true],
+  // OG-062: 32 jogadores com arma no máximo e energia cheia (chega aos 256 foguetes da sim)
+  [
+    '32 jogadores, 256 foguetes, Metal',
+    '/play?map=coliseu&rooms=3&demo=32&stress=1&theme=Metal',
+    false,
+  ],
+  [
+    '32 jogadores, 256 foguetes, sem tema',
+    '/play?map=coliseu&rooms=3&demo=32&stress=1&theme=',
+    false,
+  ],
 ]) {
   await p.goto(BASE + url);
   await p.waitForSelector('.game[data-status=ready]');
@@ -46,9 +57,12 @@ for (const [label, url, keys] of [
       await new Promise((r) => setTimeout(r, 250));
     }
   const t = (await measure).slice(1).sort((a, b) => a - b);
+  const rockets = await p.evaluate(
+    () => document.querySelector('.game-host')?.dataset.rockets ?? '-',
+  );
   const avg = t.reduce((a, b) => a + b, 0) / t.length;
   console.log(
-    `${label}: ${(1000 / avg).toFixed(1)} fps médios, p95 ${t[Math.floor(t.length * 0.95)].toFixed(1)} ms, pior ${t.at(-1).toFixed(1)} ms`,
+    `${label}: ${(1000 / avg).toFixed(1)} fps médios, p95 ${t[Math.floor(t.length * 0.95)].toFixed(1)} ms, pior ${t.at(-1).toFixed(1)} ms, foguetes ${rockets}`,
   );
 }
 await b.close();

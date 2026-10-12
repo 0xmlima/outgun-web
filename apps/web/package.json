@@ -16,6 +16,7 @@
     "@outgun/content": "workspace:*",
     "@outgun/i18n": "workspace:*",
     "@outgun/protocol": "workspace:*",
+    "@outgun/settings": "workspace:*",
     "@outgun/sim": "workspace:*",
     "pixi.js": "^8.22.0",
     "react": "^19.3.0",
