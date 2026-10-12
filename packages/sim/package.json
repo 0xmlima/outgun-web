@@ -2,7 +2,7 @@
   "name": "@outgun/sim",
   "version": "0.0.0",
   "private": true,
-  "description": "Simula\u00e7\u00e3o determin\u00edstica do Outgun (port de src/world.cpp), compartilhada por servidor e cliente.",
+  "description": "Simulação determinística do Outgun (port de src/world.cpp), compartilhada por servidor e cliente.",
   "license": "GPL-2.0-or-later",
   "type": "module",
   "exports": {
@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run --passWithNoTests"
   }
 }

@@ -17,7 +17,9 @@
     "check:legacy": "node tools/legacy-integrity/check.mjs",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:legacy && pnpm check:licenses",
     "oracle": "bash tools/parity/oracle.sh",
-    "check:licenses": "node tools/license-check/check.mjs"
+    "check:licenses": "node tools/license-check/check.mjs",
+    "map:check": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-check/check.mjs",
+    "map:preview": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-preview/render.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

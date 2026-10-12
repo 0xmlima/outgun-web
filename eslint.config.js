@@ -22,6 +22,10 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.node },
     },
+    rules: {
+      // Permite descartar campos com desestruturação: const { a, ...resto } = obj.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
   },
   {
     // packages/sim roda no navegador e no Node: nada de APIs de plataforma nem aleatoriedade global.

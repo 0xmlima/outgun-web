@@ -1,0 +1,8 @@
+P width 2
+P height 2
+P title T
+X a 0 0
+:a
+W 0 0 .1 .1
+:a
+W 0 0 .2 .2

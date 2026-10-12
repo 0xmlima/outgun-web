@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "types": []
+  },
+  "include": ["src", "../content/src/map/__fixtures__/*.json"]
+}
