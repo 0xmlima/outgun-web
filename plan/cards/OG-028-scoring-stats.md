@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S5 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | [OG-027](OG-027-flags-capture.md) |
 | Regras de negócio | RN-PTS-*, RN-STA-01, RN-STA-02 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
