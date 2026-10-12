@@ -147,4 +147,21 @@ describe('game server', () => {
     for (const c of clients) c.close();
     await clients[0]!.until(() => manager.get('main')!.playerCount === 0);
   }, 20_000);
+
+  it('flood de inputs ou bytes inválidos: desconecta com client_misbehavior', async () => {
+    const flood = new Client('main');
+    await flood.hello('dev:Flood');
+    await flood.until(() => flood.of('welcome').length > 0);
+    for (let i = 0; i < 200; i++) flood.send(message('input', { clientFrame: i & 127, controls: 0, gundir: 0 }));
+    await flood.until(() => flood.closed !== null);
+    expect(flood.closed).toEqual({ code: 4003, reason: 'client_misbehavior' });
+    expect(flood.of('disconnecting').at(-1)?.reason).toBe('misbehavior');
+
+    const garbage = new Client('main');
+    await garbage.hello('dev:Lixo');
+    await garbage.until(() => garbage.of('welcome').length > 0);
+    garbage.ws.send(new Uint8Array([0xff, 0xff, 0xff, 0x01]));
+    await garbage.until(() => garbage.closed !== null);
+    expect(garbage.closed?.reason).toBe('client_misbehavior');
+  });
 });

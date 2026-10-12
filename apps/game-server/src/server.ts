@@ -72,7 +72,12 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       if (!isBinary) return ws.end(1003, 'só mensagens binárias');
       // o ArrayBuffer do uWS só vale durante o callback: decodifica na hora
       const decoded = decodeFrame(new Uint8Array(data.slice(0)), 'c2s');
-      if (!decoded.ok) return ws.end(4002, 'mensagem inválida');
+      if (!decoded.ok) {
+        // depois de entrar, erro de formato é `client_misbehavior`, como no original
+        if (user.pid === -1) return ws.end(4002, 'mensagem inválida');
+        room.misbehaved(user.pid, decoded.error);
+        return;
+      }
       if (user.pid === -1) {
         const [hello, ...rest] = decoded.messages;
         if (hello?.type !== 'hello') return ws.end(4002, 'esperava hello');

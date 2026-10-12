@@ -6,6 +6,7 @@
 import { encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { presetSettings, PRESETS, type GameMode, type GameSettings } from '@outgun/settings';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
+import { InputGuard, isNewerOrSame } from './input-guard.js';
 import {
   CarriedFlag,
   clearModifiersIfIdle,
@@ -57,11 +58,24 @@ interface Client {
   /** Bytes enviados desde a entrada (medição de tráfego). */
   bytes: number;
   joinedFrame: number;
+  /** Limite de taxa e validação das mensagens (OG-043). */
+  guard: InputGuard;
+  /** Já chegou algum `input` (o primeiro é aceito com qualquer número de frame). */
+  hasInput: boolean;
+  /** Último frame com ação do jogador (para o idle kick, RN-IDL-01). */
+  lastActivityFrame: number;
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
 const CAUSE = { [DamageType.rocket]: 'rocket', [DamageType.deathbringer]: 'deathbringer', [DamageType.collision]: 'collision' } as const;
 const FLAG_TEAM = ['red', 'blue', 'wild'] as const;
+/** Ações que contam como atividade do jogador (o idle kick do original olha os controles). */
+function isActivity(m: AnyMessage): boolean {
+  if (m.type === 'input') return (m.controls & 0x3f) !== 0;
+  if (m.type === 'fire') return m.on;
+  return m.type === 'suicide' || m.type === 'dropFlag' || m.type === 'changeTeam';
+}
+
 const POWERUP_KIND = ['shield', 'turbo', 'shadow', 'power', 'weapon', 'megahealth', 'deathbringer'] as const;
 
 export class Room {
@@ -77,6 +91,8 @@ export class Room {
   /** Placar de fim de partida: até este frame o mundo não é simulado. */
   private gameOverUntil: number | null = null;
   private outbox: AnyMessage[] = [];
+  /** Expulsões por `client_misbehavior` (para log e métricas). */
+  readonly kicks: { pid: number; name: string; reason: string }[] = [];
   /** Jogadores que conhecem cada foguete (`Rocket::vislist`). */
   private readonly rocketViewers: Set<number>[] = [];
 
@@ -151,7 +167,7 @@ export class Room {
     }
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
 
-    this.clients.set(pid, { conn, identity, lastClientFrame: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame });
+    this.clients.set(pid, { conn, identity, lastClientFrame: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame });
     this.sim.addPlayer(pid);
     this.send(pid, this.welcomeMessages(pid));
     this.broadcast(message('playerJoined', { pid, name: identity.name, color: 0, bot: false }));
@@ -211,8 +227,17 @@ export class Room {
     const client = this.clients.get(pid);
     if (!pl || !client) return;
     for (const m of messages) {
+      const verdict = client.guard.check(m);
+      if (!verdict.ok) {
+        this.kick(pid, verdict.reason);
+        return;
+      }
+      if (isActivity(m)) client.lastActivityFrame = this.world.frame;
       switch (m.type) {
         case 'input': {
+          // fora de ordem ou duplicado antigo: ignora (`incoming_client_data`)
+          if (client.hasInput && !isNewerOrSame(client.lastClientFrame, m.clientFrame)) break;
+          client.hasInput = true;
           client.lastClientFrame = m.clientFrame;
           pl.controls = clearModifiersIfIdle(m.controls & 0x3f);
           pl.accelerationMode = (m.gundir & 0x800) !== 0 && this.settings.physics.allowFreeTurning ? 'gun' : 'world';
@@ -250,9 +275,30 @@ export class Room {
     if (!pl.attackOnce) pl.attackGunDir = pl.gundir;
   }
 
+  /** Mensagem que nem decodificou (formato inválido): expulsão. */
+  misbehaved(pid: number, reason: string): void {
+    this.kick(pid, reason);
+  }
+
+  /** Expulsa por mensagem inválida ou excesso (`disconnect_client_misbehavior`). */
+  private kick(pid: number, reason: string): void {
+    const c = this.clients.get(pid);
+    if (!c) return;
+    this.kicks.push({ pid, name: c.identity.name, reason });
+    c.conn.send(encodeFrame(message('disconnecting', { reason: 'misbehavior', seconds: 0 })));
+    c.conn.close(4003, 'client_misbehavior');
+    this.leave(pid);
+  }
+
+  /** Último frame com ação de cada jogador (idle kick, OG-047). */
+  lastActivity(pid: number): number | undefined {
+    return this.clients.get(pid)?.lastActivityFrame;
+  }
+
   /** Um frame (`simulate_and_broadcast_frame`). */
   tick(): void {
     const world = this.world;
+    for (const c of this.clients.values()) c.guard.tick();
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       this.sim.startGame();
