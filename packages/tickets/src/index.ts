@@ -22,10 +22,26 @@ export interface TicketClaims {
   admin: boolean;
   /** Sala Ranked (a partida conta para o ranking, RN-RNK-01). */
   ranked: boolean;
+  /**
+   * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
+   * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.
+   */
+  spawn?: RoomSpawn;
   iat: number;
   exp: number;
   /** Id único: um ticket abre uma conexão só. */
   jti: string;
+}
+
+export interface RoomSpawn {
+  name: string;
+  mode: 'casual' | 'ranked';
+  preset: string;
+  maxPlayers: number;
+  /** Rotação própria (sala privada); ausente = rotação oficial do modo no servidor. */
+  maps?: string[];
+  /** Sala da plataforma: não é encerrada quando fica vazia. */
+  persistent: boolean;
 }
 
 export type TicketInput = Omit<TicketClaims, 'iss' | 'iat' | 'exp' | 'jti'>;

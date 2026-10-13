@@ -92,7 +92,18 @@ export const rooms = pgTable('rooms', {
   players: smallint('players').notNull().default(0),
   map: text('map'),
   lastHeartbeatAt: tstz('last_heartbeat_at'),
+  maps: text('maps').array(),
   createdAt: tstz('created_at').notNull().defaultNow(),
+}, (t) => [index('rooms_server_idx').on(t.serverId)]);
+
+export const gameServers = pgTable('game_servers', {
+  id: text('id').primaryKey(),
+  wsBaseUrl: text('ws_base_url').notNull(),
+  region: text('region').notNull(),
+  maxRooms: smallint('max_rooms').notNull(),
+  rooms: smallint('rooms').notNull().default(0),
+  players: smallint('players').notNull().default(0),
+  lastHeartbeatAt: tstz('last_heartbeat_at').notNull(),
 });
 
 export const matches = pgTable(
@@ -213,6 +224,7 @@ export const allTables = {
   player_profiles: playerProfiles,
   seasons,
   rooms,
+  game_servers: gameServers,
   matches,
   match_players: matchPlayers,
   ratings,

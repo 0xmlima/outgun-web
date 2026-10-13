@@ -38,6 +38,7 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
     });
   };
 
+  const hbServer = { wsBaseUrl: 'ws://localhost:7700', region: 'local', maxRooms: 50 };
   const heartbeatRoom = {
     id: 'main',
     name: 'Principal',
@@ -91,16 +92,16 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
   });
 
   it('rotas internas exigem assinatura válida', async () => {
-    const unsigned = await app.inject({ method: 'POST', url: '/internal/rooms/heartbeat', payload: { rooms: [] } });
+    const unsigned = await app.inject({ method: 'POST', url: '/internal/rooms/heartbeat', payload: { server: hbServer, rooms: [] } });
     expect(unsigned.statusCode).toBe(401);
-    const wrong = await internal('/internal/rooms/heartbeat', { rooms: [] }, 'segredo-errado-0123456789');
+    const wrong = await internal('/internal/rooms/heartbeat', { server: hbServer, rooms: [] }, 'segredo-errado-0123456789');
     expect(wrong.statusCode).toBe(401);
   });
 
   it('heartbeat põe a sala no ar e GET /rooms mostra os jogadores', async () => {
     const before = (await app.inject('/rooms')).json().rooms.find((r: { id: string }) => r.id === 'main');
     expect(before).toMatchObject({ online: false, players: 0 });
-    const res = await internal('/internal/rooms/heartbeat', { rooms: [heartbeatRoom] });
+    const res = await internal('/internal/rooms/heartbeat', { server: hbServer, rooms: [heartbeatRoom] });
     expect(res.statusCode).toBe(200);
     const list = (await app.inject('/rooms')).json().rooms;
     expect(list.find((r: { id: string }) => r.id === 'main')).toEqual({
@@ -113,13 +114,15 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
       players: 3,
       map: 'outgun1',
       online: true,
+      persistent: true,
+      region: 'local',
     });
     const [row] = await t.db.select().from(rooms).where(eq(rooms.id, 'main'));
     expect(row?.serverId).toBe('gs-1');
   });
 
   it('heartbeat recusa preset de outro modo', async () => {
-    const res = await internal('/internal/rooms/heartbeat', { rooms: [{ ...heartbeatRoom, id: 'x', mode: 'ranked' }] });
+    const res = await internal('/internal/rooms/heartbeat', { server: hbServer, rooms: [{ ...heartbeatRoom, id: 'x', mode: 'ranked' }] });
     expect(res.statusCode).toBe(422);
   });
 

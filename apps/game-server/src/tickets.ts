@@ -2,7 +2,7 @@
 // Conferência dos tickets de entrada (OG-083): chaves públicas baixadas do JWKS da API e renovadas
 // periodicamente; cada ticket abre uma conexão só. Tickets `dev:Nome` só com DEV_TICKETS.
 import { guestName } from '@outgun/protocol';
-import { fromJwks, ReplayGuard, verifyTicket } from '@outgun/tickets';
+import { fromJwks, ReplayGuard, verifyTicket, type RoomSpawn } from '@outgun/tickets';
 import type { KeyObject } from 'node:crypto';
 import type { Identity } from './room.js';
 
@@ -51,7 +51,8 @@ export interface TicketAuthOptions {
   devTickets: boolean;
 }
 
-export type IdentifyResult = { ok: true; identity: Identity } | { ok: false; reason: string };
+/** `spawn`: a API pediu para abrir a sala se ela ainda não existe aqui (OG-086). */
+export type IdentifyResult = { ok: true; identity: Identity; spawn?: RoomSpawn } | { ok: false; reason: string };
 
 export class TicketAuth {
   private readonly replay = new ReplayGuard();
@@ -72,6 +73,7 @@ export class TicketAuth {
     return {
       ok: true,
       identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, admin: c.admin },
+      ...(c.spawn ? { spawn: c.spawn } : {}),
     };
   }
 }

@@ -166,7 +166,7 @@ O repositório não tinha nenhuma skill. Adicionamos quatro em `.claude/skills/`
 | Protocolo | Binário próprio (`packages/protocol`, DataView), versionado | Pacotes pequenos a 10 Hz; mapeamento direto do `Network_data_code` original |
 | Transporte | WebSocket (v1); avaliar **WebTransport** com datagramas (v2) | WS funciona em todo lugar; a 10 Hz o head-of-line blocking do TCP é aceitável |
 | API de plataforma | **Fastify** + **Drizzle ORM** + **PostgreSQL 16** | Contas, ranking, partidas, salas; tipagem ponta a ponta |
-| Cache/tempo real | **Redis** | Sessões, registro de salas (substitui o master server), leaderboards (sorted sets), pub/sub API ↔ game servers |
+| Cache/tempo real | **Redis** (opcional) | Contadores de limite de taxa com várias instâncias da API; o registro de salas (substitui o master server) fica no PostgreSQL (D-24) |
 | Auth | Sessões em cookie httpOnly + argon2id (lib Better Auth ou implementação própria); usuário + senha, e-mail só para recuperação (D-10); e-mail transacional via SMTP/provedor (Resend, SES ou similar) | Seguro e simples; game server recebe ticket JWT de curta duração |
 | Front-end (UI) | **Vite + React 18** + React Router + TanStack Query + Zustand | Menus, lobby, perfil, ranking, opções |
 | Render do jogo | **PixiJS v8** (WebGL/WebGPU) num `<canvas>` | Só renderização 2D rápida; o React **não** participa do loop do jogo |
@@ -621,7 +621,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Concluído |
 | [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Pronto |
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Pronto |
-| [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Pronto |
+| [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Em revisão |
 | [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Backlog |
 | [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Backlog |
 | [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Backlog |
@@ -677,6 +677,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-21 | Moderação no chat | Como o original (classes do `auth.txt`, ban por IP no arquivo) / admin da plataforma e auditoria na API | ✅ **Decidido no OG-046 (divergência intencional):** chat, anti-flood e comandos como `Server::chat`; admin = flag do ticket; `/set` só nas regras de jogo e nunca em preset travado; motivo opcional em `/kick` e `/ban`; ban da sala por conta e IP gravado na API (bloqueia novos tickets); toda ação auditada em `admin_actions`; `/bot` fica para o OG-048; filtro de palavras opcional por sala. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/chat-moderacao.md) | Tech Lead |
 | D-22 | Queda de conexão | Como o original (sai na hora) / vaga guardada por 15 s | ✅ **Decidido no OG-047 (divergência intencional):** idle kick igual ao original; quem cai fica parado no mundo por 15 s e volta à mesma vaga (time, frags, estatísticas) com um token de retomada (convidado) ou pela conta; o cliente reconecta sozinho por até 14 s. Protocolo ganha `resumeToken`/`resume` (versão 2). Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/inatividade-reconexao.md) | Tech Lead |
 | D-23 | Provedor de e-mail transacional | Resend / Brevo / Mailjet / SMTP2GO / Amazon SES | ✅ **Decidido pelo PO em 2026-10-13: Resend, no plano gratuito** (volume baixo: só recuperação de senha de uma comunidade pequena). Já implementado (`MAILER=resend`, `RESEND_API_KEY`, `MAIL_FROM`); falta, no deploy, criar a conta e verificar um domínio próprio (registros DNS) para os e-mails não caírem em spam. Desenvolvimento segue com Mailpit | PO |
+| D-24 | Registro de salas e matchmaking | Master server do original (lista em HTTP, servidor escolhido pelo jogador) / registro no Redis / registro no PostgreSQL | ✅ **Decidido no OG-086 (divergência intencional, técnica):** os game servers mandam heartbeat a cada 3 s à API, que guarda servidores e salas no **PostgreSQL** (`game_servers`, `rooms`); sala ou servidor sem heartbeat por 10 s sai do lobby. Redis não é necessário nesta escala (dezenas de servidores × 1 escrita/3 s) e continua opcional para contadores. A API não chama os servidores: a sala fora do ar é aberta pelo próprio ticket (claim `spawn`, assinada) no servidor da sala ou no menos carregado (região pedida primeiro). Salas privadas são só Casual, exigem conta e são apagadas após 1 h fora do ar. | Agente |
 
 ---
 

@@ -236,6 +236,10 @@ export class Room {
     this.sim.startGame();
   }
 
+  get presetId(): string {
+    return this.preset.id;
+  }
+
   get playerCount(): number {
     return this.clients.size;
   }

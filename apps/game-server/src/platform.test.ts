@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { parseSecrets, verifyInternalRequest } from '@outgun/tickets';
 import { describe, expect, it } from 'vitest';
 import type { ConsolePlayer } from './moderation.js';
-import { auditBody, PlatformClient } from './platform.js';
+import { auditBody, heartbeatBody, PlatformClient } from './platform.js';
 
 const player = (name: string, account: string | null, ip?: string): ConsolePlayer => ({
   pid: 0, uid: 1, name, team: 0, account, admin: false, muted: 0, bot: false, ranked: false, ...(ip ? { ip } : {}),
@@ -43,5 +43,17 @@ describe('auditoria para a API (OG-046)', () => {
     expect(await wrong.post('/internal/admin-actions', { a: 2 }, 1)).toBe(false);
     expect(got.map((g) => g.ok)).toEqual([true, false]);
     server.close();
+  });
+});
+
+describe('heartbeat do registro de salas (OG-086)', () => {
+  it('anuncia o servidor e o endereço de cada sala', () => {
+    const body = heartbeatBody({ wsBaseUrl: 'wss://gs1.example/', region: 'sa', maxRooms: 20 }, [
+      { id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 3, map: 'Outgun 1' },
+    ]);
+    expect(body).toEqual({
+      server: { wsBaseUrl: 'wss://gs1.example', region: 'sa', maxRooms: 20 },
+      rooms: [{ id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 3, map: 'Outgun 1', wsUrl: 'wss://gs1.example/rooms/main' }],
+    });
   });
 });

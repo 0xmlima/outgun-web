@@ -33,7 +33,7 @@ export interface ApiConfig {
   ticketSigningKeys: string;
   /** Endereço do game server quando a sala ainda não mandou heartbeat ({id} = sala). Nunca em produção. */
   devRoomWsUrl: string | undefined;
-    limits: {
+  limits: {
     /** Falhas de senha por nome de usuário antes da espera (RN-PLT-06). */
     loginFailuresPerUser: number;
     /** Falhas de senha por IP (qualquer usuário) antes da espera. */
@@ -42,6 +42,8 @@ export interface ApiConfig {
     forgotPerHourPerIp: number;
     /** Tentativas de senha de sala privada por IP e sala. */
     joinPasswordPerMinute: number;
+    /** Salas privadas criadas por conta por hora. */
+    roomsPerHourPerUser: number;
   };
 }
 
@@ -80,6 +82,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
       registerPerHourPerIp: Number(env.REGISTER_PER_HOUR ?? 10),
       forgotPerHourPerIp: Number(env.FORGOT_PER_HOUR ?? 10),
       joinPasswordPerMinute: 10,
+      roomsPerHourPerUser: Number(env.ROOMS_PER_HOUR ?? 10),
     },
   };
 }

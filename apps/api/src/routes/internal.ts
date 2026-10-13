@@ -2,14 +2,22 @@
 // Rotas dos game servers (PLAN 5.4): heartbeat das salas e resultado das partidas. Toda chamada é
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
 import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, matches, matchPlayers, rooms, seasons, users } from '../db/schema.js';
+import { adminActions, bans, gameServers, matches, matchPlayers, rooms, seasons, users } from '../db/schema.js';
 import { verifyInternalRequest } from '@outgun/tickets';
+import { ONLINE_MS } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 
 const Heartbeat = Type.Object({
+  server: Type.Object({
+    /** Endereço público do servidor; as salas ficam em `<wsBaseUrl>/rooms/<id>`. */
+    wsBaseUrl: Type.String({ pattern: '^wss?://', maxLength: 200 }),
+    region: Type.String({ pattern: '^[a-z0-9-]{1,32}$' }),
+    /** Quantas salas o servidor aceita hospedar (as abertas sob demanda contam). */
+    maxRooms: Type.Integer({ minimum: 0, maximum: 1000 }),
+  }),
   rooms: Type.Array(
     Type.Object({
       id: RoomId,
@@ -76,6 +84,8 @@ const AdminAction = Type.Object({
 });
 
 const security = [{ gameServerHmac: [] }];
+/** Sala privada sem ninguém por tanto tempo é apagada. */
+const ABANDONED_MS = 60 * 60_000;
 
 export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyncTypebox {
   return async (app) => {
@@ -100,7 +110,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
       {
         schema: {
           tags: ['interno'],
-          summary: 'Game server informa as salas que hospeda (a cada ~10 s)',
+          summary: 'Game server informa as salas que hospeda (a cada ~3 s, OG-086)',
           security,
           body: Heartbeat,
           response: { 200: Type.Object({ updated: Type.Integer() }), 401: ErrorSchema, 422: ErrorSchema },
@@ -115,29 +125,48 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           }
         }
         const now = new Date();
-        for (const r of request.body.rooms) {
-          // Salas novas (as persistentes do próprio servidor) são criadas; nas existentes, só o
-          // estado de execução muda: modo, preset e senha pertencem à API.
-          await database.db
-            .insert(rooms)
-            .values({
-              id: r.id,
-              name: r.name,
-              mode: r.mode,
-              preset: r.preset,
-              maxPlayers: r.maxPlayers,
-              persistent: r.persistent,
-              serverId,
-              wsUrl: r.wsUrl,
-              players: r.players,
-              map: r.map,
-              lastHeartbeatAt: now,
-            })
-            .onConflictDoUpdate({
-              target: rooms.id,
-              set: { serverId, wsUrl: r.wsUrl, players: r.players, map: r.map, lastHeartbeatAt: now },
-            });
-        }
+        const { server, rooms: hosted } = request.body;
+        await database.db.transaction(async (tx) => {
+          const players = hosted.reduce((n, r) => n + r.players, 0);
+          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now };
+          await tx.insert(gameServers).values({ id: serverId, ...status }).onConflictDoUpdate({ target: gameServers.id, set: status });
+          for (const r of hosted) {
+            // Salas novas (as persistentes do próprio servidor) são criadas; nas existentes, só o
+            // estado de execução muda: modo, preset e senha pertencem à API.
+            await tx
+              .insert(rooms)
+              .values({
+                id: r.id,
+                name: r.name,
+                mode: r.mode,
+                preset: r.preset,
+                maxPlayers: r.maxPlayers,
+                persistent: r.persistent,
+                serverId,
+                wsUrl: r.wsUrl,
+                players: r.players,
+                map: r.map,
+                lastHeartbeatAt: now,
+              })
+              .onConflictDoUpdate({
+                target: rooms.id,
+                set: { serverId, wsUrl: r.wsUrl, players: r.players, map: r.map, lastHeartbeatAt: now },
+              });
+          }
+          // Salas que este servidor encerrou saem do ar na hora (o último heartbeat recua para fora
+          // da janela, mas ainda diz quando a sala foi vista). Continuam atribuídas a ele: quem
+          // entrar de novo reabre a sala no mesmo lugar.
+          const ids = hosted.map((r) => r.id);
+          await tx
+            .update(rooms)
+            .set({ players: 0, lastHeartbeatAt: new Date(now.getTime() - ONLINE_MS) })
+            .where(and(eq(rooms.serverId, serverId), gt(rooms.lastHeartbeatAt, new Date(now.getTime() - ONLINE_MS)), ids.length ? notInArray(rooms.id, ids) : undefined));
+          // Salas privadas abandonadas (fora do ar, ou nunca abertas, há uma hora) são apagadas.
+          const old = new Date(now.getTime() - ABANDONED_MS);
+          await tx
+            .delete(rooms)
+            .where(and(eq(rooms.persistent, false), or(lt(rooms.lastHeartbeatAt, old), and(isNull(rooms.lastHeartbeatAt), lt(rooms.createdAt, old)))));
+        });
         return { updated: request.body.rooms.length };
       },
     );

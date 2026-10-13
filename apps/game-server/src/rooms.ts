@@ -7,6 +7,8 @@ import { Room, type RoomOptions } from './room.js';
 
 export interface RoomSpec {
   id: string;
+  /** Nome exibido no lobby (padrão: o id). */
+  name?: string;
   preset: string;
   maps: GameMap[];
   /** Nome do arquivo de cada mapa (sem `.txt`). */
@@ -20,6 +22,7 @@ export interface RoomSpec {
 
 interface Entry {
   room: Room;
+  name: string;
   persistent: boolean;
   emptySince: number | null;
 }
@@ -32,6 +35,20 @@ export interface ManagerOptions {
   seed?: () => number;
   /** Auditoria, filtro do chat e log, iguais para todas as salas (OG-046). */
   roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'reconnectSeconds'>;
+  /** Quantas salas o processo hospeda no máximo (as abertas sob demanda; padrão: sem limite). */
+  maxRooms?: number;
+}
+
+/** O que o heartbeat conta à API sobre cada sala (OG-086). */
+export interface HostedRoom {
+  id: string;
+  name: string;
+  mode: 'casual' | 'ranked';
+  preset: string;
+  maxPlayers: number;
+  persistent: boolean;
+  players: number;
+  map: string;
 }
 
 export class RoomManager {
@@ -59,8 +76,30 @@ export class RoomManager {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
     const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
-    this.rooms.set(spec.id, { room, persistent: spec.persistent ?? false, emptySince: null });
+    this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null });
     return room;
+  }
+
+  get maxRooms(): number {
+    return this.options.maxRooms ?? 1000;
+  }
+
+  /** Cabe mais uma sala aberta sob demanda. */
+  get hasCapacity(): boolean {
+    return this.rooms.size < this.maxRooms;
+  }
+
+  hosted(): HostedRoom[] {
+    return [...this.rooms.values()].map(({ room, name, persistent }) => ({
+      id: room.id,
+      name,
+      mode: room.mode,
+      preset: room.presetId,
+      maxPlayers: room.world.maxPlayers,
+      persistent,
+      players: room.playerCount,
+      map: room.world.map.title,
+    }));
   }
 
   get(id: string): Room | undefined {

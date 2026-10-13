@@ -158,7 +158,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   app.get('/openapi.json', { schema: { hide: true } }, async () => app.swagger());
 
   await app.register(healthRoutes(deps));
-  await app.register(roomRoutes(deps));
+  await app.register(roomRoutes(deps, services));
   await app.register(nameRoutes(deps));
   await app.register(joinRoutes(deps, services));
   await app.register(authRoutes(deps, services), { prefix: '/auth' });
