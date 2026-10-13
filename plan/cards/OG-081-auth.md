@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S8 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-080](OG-080-api-db.md) |
 | Regras de negócio | RN-PLT-01, RN-PLT-02, RN-PLT-03, RN-PLT-04, RN-PLT-06, RN-MOD-03 |
 | Skills | `outgun-card-workflow` |
