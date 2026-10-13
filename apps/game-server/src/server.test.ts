@@ -17,9 +17,11 @@ const apiKey = generateSigningKey('k1');
 const publicKeys = fromJwks(toJwks([apiKey]));
 
 beforeAll(async () => {
-  manager = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3 });
+  // salas sem espera de reconexão (como o original); a reconexão tem sala própria
+  manager = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3, roomDefaults: { reconnectSeconds: 0 } });
   manager.create({ id: 'main', preset: 'classic', maps, maxPlayers: 32, persistent: true });
   manager.create({ id: 'ranked', preset: 'ranked', maps, maxPlayers: 16, persistent: true });
+  manager.create({ id: 'volta', preset: 'classic', maps, maxPlayers: 16, persistent: true, reconnectSeconds: 15 });
   manager.start();
   server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true, ticketKeys: () => publicKeys });
 });
@@ -51,9 +53,9 @@ class Client {
     this.ws.onclose = (e) => (this.closed = { code: e.code, reason: e.reason });
   }
 
-  async hello(ticket: string, protocol = PROTOCOL_VERSION): Promise<void> {
+  async hello(ticket: string, protocol = PROTOCOL_VERSION, ...extra: AnyMessage[]): Promise<void> {
     await this.opened;
-    this.send(message('hello', { protocol, ticket, client: 'teste' }));
+    this.send(message('hello', { protocol, ticket, client: 'teste' }), ...extra);
   }
 
   send(...m: AnyMessage[]): void {
@@ -114,14 +116,59 @@ describe('tickets da API (OG-083)', () => {
   });
 });
 
+describe('queda e volta (OG-047)', () => {
+  it('quem cai e volta em até 15 s com o token mantém vaga, time e frags', async () => {
+    const room = manager.get('volta')!;
+    const a = new Client('volta');
+    await a.hello('dev:Ana');
+    await a.until(() => a.of('resumeToken').length > 0);
+    const pid = a.of('welcome')[0]!.pid;
+    const token = a.of('resumeToken')[0]!.token;
+    const other = new Client('volta');
+    await other.hello('dev:Bia');
+    await other.until(() => other.of('welcome').length > 0);
+    room.world.players[pid]!.stats.frags = 7; // depois da entrada da Bia, que recomeça a partida
+    a.ws.close(); // queda
+    await a.until(() => a.closed !== null);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(room.playerCount).toBe(2); // vaga guardada
+    expect(other.of('playerLeft')).toHaveLength(0);
+
+    const back = new Client('volta');
+    await back.hello('dev:Ana', PROTOCOL_VERSION, message('resume', { token }));
+    await back.until(() => back.of('welcome').length > 0 && back.of('frags').some((f) => f.pid === pid));
+    expect(back.of('welcome')[0]!.pid).toBe(pid);
+    expect(back.of('frags').find((f) => f.pid === pid)!.frags).toBe(7);
+    expect(room.world.teamOf(pid)).toBe(0);
+    expect(back.of('resumeToken')[0]!.token).not.toBe(token); // token novo a cada volta
+    expect(room.playerCount).toBe(2);
+    back.close();
+    other.close();
+  });
+
+  it('token errado entra como jogador novo', async () => {
+    const room = manager.get('volta')!;
+    await new Promise((r) => setTimeout(r, 100));
+    const before = room.playerCount;
+    const c = new Client('volta');
+    await c.hello('dev:Cid', PROTOCOL_VERSION, message('resume', { token: 'nao-existe' }));
+    await c.until(() => c.of('welcome').length > 0);
+    expect(room.playerCount).toBe(before + 1);
+    c.close();
+    // vagas guardadas não podem contar nas métricas dos outros testes
+    await new Promise((r) => setTimeout(r, 200));
+    room.world.players.forEach((p, i) => p && room.leave(i));
+  });
+});
+
 describe('game server', () => {
   it('health, métricas e lista de salas', async () => {
     const health = await (await fetch(`http://127.0.0.1:${server.port}/health`)).json();
-    expect(health).toMatchObject({ status: 'ok', rooms: 2 });
+    expect(health).toMatchObject({ status: 'ok', rooms: 3 });
     const metrics = await (await fetch(`http://127.0.0.1:${server.port}/metrics`)).text();
     expect(metrics).toMatch(/^outgun_tick_lateness_p99_ms /m);
     const rooms = (await (await fetch(`http://127.0.0.1:${server.port}/rooms`)).json()) as { id: string }[];
-    expect(rooms.map((r) => r.id).sort()).toEqual(['main', 'ranked']);
+    expect(rooms.map((r) => r.id).sort()).toEqual(['main', 'ranked', 'volta']);
   });
 
   it('recusa versão errada, ticket inválido e convidado no Ranked', async () => {

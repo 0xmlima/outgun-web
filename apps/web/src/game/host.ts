@@ -84,6 +84,8 @@ export interface GameOptions {
 export type GameStatus =
   | { readonly kind: 'ready'; readonly map: GameMap }
   | { readonly kind: 'connecting' }
+  /** Conexão caiu e o cliente está tentando voltar à mesma vaga (OG-047). */
+  | { readonly kind: 'reconnecting' }
   | { readonly kind: 'error'; readonly message: string };
 
 /** Primeiro mapa da rotação padrão (`maps/`) quando nenhum é pedido. */
@@ -218,6 +220,16 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   };
 
   const fail = (message: string) => opts.onStatus?.({ kind: 'error', message });
+  /** Reconexão (OG-047): token da vaga, fim da espera e se a partida acabou de vez (recusa, expulsão). */
+  let resumeToken: string | null = null;
+  let dropDeadline = 0;
+  let ended = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  const end = (message: string) => {
+    ended = true;
+    clearTimeout(reconnectTimer);
+    fail(message);
+  };
 
   /** Partida no servidor: sessão, conexão e envio dos controles a 10 Hz. */
   const startOnline = (online: OnlineOptions, theme: RoomTheme) => {
@@ -258,9 +270,19 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         else if (ev.kind === 'rocketHitPlayer') entities?.addEffect('gunExplosion', coords(ev.pos), ev.team, time);
         else if (ev.kind === 'message') {
           const m = ev.message;
-          if (m.type === 'reject') fail(m.text || m.reason);
+          if (m.type === 'reject') end(m.text || m.reason);
           // contagem da expulsão por admin vai para o feed; a desconexão em si fecha a conexão
-          else if (m.type === 'disconnecting' && m.seconds === 0) fail(`desconectado: ${m.reason}`);
+          else if (m.type === 'disconnecting' && m.seconds === 0) end(`desconectado: ${m.reason}`);
+          else if (m.type === 'resumeToken') resumeToken = m.token;
+          else if (m.type === 'welcome') {
+            container.dataset.pid = String(m.pid); // para os testes (tools/visual-compare/reconnect.mjs)
+            if (dropDeadline !== 0) {
+              // voltou à mesma vaga
+              dropDeadline = 0;
+              container.dataset.reconnects = `${Number(container.dataset.reconnects ?? 0) + 1}`;
+              if (worldMap) opts.onStatus?.({ kind: 'ready', map: worldMap });
+            }
+          }
         }
       },
     });
@@ -272,21 +294,43 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     soundEvents = new SoundEvents((name) => player.has(name));
     void loadManifest().then((m) => m && player.load(m));
     opts.onStatus?.({ kind: 'connecting' });
-    void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false).then(
-      ({ ticket, url }) => {
-        if (destroyed) return;
-        connection = new GameConnection(
-          url,
-          ticket,
-          {
-            onMessages: (messages) => session?.handle(messages, performance.now()),
-            onClose: (reason) => fail(reason),
-          },
-          online.simulate,
-        );
-      },
-      (error: unknown) => fail(opts.translate(joinErrorText(error instanceof JoinError ? error.code : 'unknown'))),
-    );
+    const connect = () =>
+      void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false).then(
+        ({ ticket, url }) => {
+          if (destroyed || ended) return;
+          connection = new GameConnection(
+            url,
+            ticket,
+            {
+              onMessages: (messages) => session?.handle(messages, performance.now()),
+              onClose: (reason) => dropped(reason),
+            },
+            online.simulate,
+            resumeToken ?? undefined,
+          );
+        },
+        (error: unknown) => {
+          if (dropDeadline !== 0 && performance.now() < dropDeadline) retry();
+          else end(opts.translate(joinErrorText(error instanceof JoinError ? error.code : 'unknown')));
+        },
+      );
+    const retry = () => {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 1000);
+    };
+    /** Queda (OG-047): o servidor guarda a vaga por 15 s; tenta voltar a cada segundo por até 14 s. */
+    const dropped = (reason: string) => {
+      if (destroyed || ended) return;
+      // a vaga foi retomada por outra janela: não briga por ela
+      if (reason === 'resumed') return end(opts.translate('The game continued in another window.'));
+      if (!resumeToken) return end(reason);
+      const now = performance.now();
+      if (dropDeadline === 0) dropDeadline = now + 14_000;
+      if (now > dropDeadline) return end(reason);
+      opts.onStatus?.({ kind: 'reconnecting' });
+      retry();
+    };
+    connect();
     /** Lê a entrada: controles (com reenvio no meio do frame) e bordas de tiro e largar bandeira. */
     const readInput = (now: number) => {
       const s = input.sample();
@@ -446,6 +490,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     setSound: (sound) => sounds?.configure(sound.enabled, sound.volume),
     destroy() {
       destroyed = true;
+      clearTimeout(reconnectTimer);
       if (sendTimer !== null) clearTimeout(sendTimer);
       connection?.close();
       sounds?.destroy();

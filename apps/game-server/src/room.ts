@@ -5,6 +5,7 @@
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
@@ -38,6 +39,8 @@ export interface Connection {
 
 /** Bots não têm conexão (a IA é do OG-048). */
 const BOT_CONNECTION: Connection = { send: () => {}, close: () => {} };
+/** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
+const OFFLINE: Connection = { send: () => {}, close: () => {} };
 
 export interface Identity {
   name: string;
@@ -68,6 +71,8 @@ export interface RoomOptions {
   chatFilter?: ReadonlySet<string>;
   /** Log do servidor (chat com `log_player_chat`). */
   log?: (line: string) => void;
+  /** Quanto tempo a vaga de quem caiu fica guardada (s; padrão 15, 0 = sai na hora como o original). */
+  reconnectSeconds?: number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -111,6 +116,11 @@ interface Client {
   muted: 0 | 1 | 2;
   talk: TalkMeter;
   kickTimer: number;
+  /** Inatividade (RN-IDL-01): frames seguidos sem controles nem tiro (`idleFrames`). */
+  idleFrames: number;
+  /** Reconexão (OG-047): token para voltar e frame em que a conexão caiu (null = conectado). */
+  resumeToken: string;
+  disconnectedFrame: number | null;
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
@@ -277,10 +287,13 @@ export class Room {
       muted: 0,
       talk: new TalkMeter(),
       kickTimer: 0,
+      idleFrames: 0,
+      resumeToken: randomUUID(),
+      disconnectedFrame: null,
     });
     const pl = this.sim.addPlayer(pid);
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
-    this.send(pid, this.welcomeMessages(pid));
+    this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
     if (this.clients.size === 2) {
@@ -303,8 +316,8 @@ export class Room {
       message('currentMap', { mapIndex: this.mapIndex }),
     ];
     for (const [other, c] of this.clients) {
-      if (other === pid) continue;
-      out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
+      // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
+      if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
     }
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
@@ -323,6 +336,54 @@ export class Room {
         y: Math.trunc(f.pos.y),
       })),
     });
+  }
+
+  /**
+   * A conexão caiu (OG-047): a vaga, o time e as estatísticas ficam guardados por
+   * `reconnectSeconds`; o jogador fica parado no mundo. Só vale para a conexão atual do jogador.
+   */
+  disconnect(pid: number, conn: Connection): void {
+    const c = this.clients.get(pid);
+    if (!c || c.conn !== conn) return;
+    if (c.bot || this.reconnectFrames === 0 || c.kickTimer > 0) return this.leave(pid);
+    c.conn = OFFLINE;
+    c.disconnectedFrame = this.world.frame;
+    const pl = this.world.players[pid] as PlayerState;
+    pl.controls = 0;
+    pl.attack = false;
+  }
+
+  /** Volta de quem caiu: pelo token de retomada ou pela mesma conta. null = não há vaga guardada. */
+  resume(conn: Connection, identity: Identity, token: string): JoinResult | null {
+    const found = [...this.clients].find(
+      ([, c]) => !c.bot && c.kickTimer === 0 && ((token !== '' && c.resumeToken === token) || (c.disconnectedFrame !== null && identity.accountId !== null && c.identity.accountId === identity.accountId)),
+    );
+    if (!found) return null;
+    const [pid, c] = found;
+    if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
+    Object.assign(c, {
+      conn,
+      identity: { ...c.identity, ...(identity.ip ? { ip: identity.ip } : {}) },
+      lastClientFrame: 0,
+      frameOffset: 0,
+      sentFrags: -1,
+      rs: new RecipientState(),
+      queue: [],
+      guard: new InputGuard(),
+      hasInput: false,
+      lastActivityFrame: this.world.frame,
+      hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 },
+      idleFrames: 0,
+      resumeToken: randomUUID(),
+      disconnectedFrame: null,
+    });
+    (this.world.players[pid] as PlayerState).awaitingClientReadies++; // precisa carregar o mapa de novo
+    this.send(pid, [...this.welcomeMessages(pid), message('resumeToken', { token: c.resumeToken })]);
+    return { ok: true, pid };
+  }
+
+  private get reconnectFrames(): number {
+    return Math.round((this.options.reconnectSeconds ?? 15) * 10);
   }
 
   /** Saída (`client_disconnected` → `removePlayer`). */
@@ -572,7 +633,6 @@ export class Room {
     const world = this.world;
     this.uptimeFrames++;
     for (const c of this.clients.values()) c.guard.tick();
-    this.kickTimers();
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       this.sim.startGame();
@@ -599,6 +659,7 @@ export class Room {
       });
     }
     if (running) this.announceVotes();
+    this.playerTimers(running);
     this.flush();
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
@@ -677,17 +738,52 @@ export class Room {
     return keys.some((k) => (this.bans.get(k) ?? 0) > now);
   }
 
-  /** Contagem da expulsão por admin (src/server.cpp:1635): avisos nos últimos 5 s e desconexão. */
-  private kickTimers(): void {
+  /**
+   * Por jogador, depois da simulação (src/server.cpp:1632-1661): contagem da expulsão por admin,
+   * inatividade (RN-IDL-01) e, novo, o fim da espera de quem caiu (OG-047).
+   */
+  private playerTimers(running: boolean): void {
+    const iktime = this.settings.server.idlekickTime; // frames
+    const humans = [...this.clients.values()].filter((c) => !c.bot).length;
     for (const [pid, c] of [...this.clients]) {
-      if (c.kickTimer === 0) continue;
-      c.kickTimer--;
-      if (c.kickTimer === 0) {
-        c.conn.send(encodeFrame(message('disconnecting', { reason: 'kick', seconds: 0 })));
-        c.conn.close(4004, 'kicked');
-        this.leave(pid);
-      } else if (c.kickTimer % 10 === 0 && c.kickTimer <= 50) this.queueTo(pid, message('disconnecting', { reason: 'kick', seconds: c.kickTimer / 10 }));
+      if (c.disconnectedFrame !== null) {
+        if (this.world.frame - c.disconnectedFrame >= this.reconnectFrames) this.leave(pid);
+        continue;
+      }
+      if (c.kickTimer) {
+        c.kickTimer--;
+        if (c.kickTimer === 0) this.drop(pid, 'kick', 4004, 'kicked');
+        else if (c.kickTimer % 10 === 0 && c.kickTimer <= 50) this.queueTo(pid, message('disconnecting', { reason: 'kick', seconds: c.kickTimer / 10 }));
+        continue;
+      }
+      const pl = this.world.players[pid] as PlayerState;
+      if (!running || pl.dead || c.bot) continue;
+      const idle = !pl.attack && !pl.attackOnce && (pl.controls & 31) === 0;
+      if (iktime !== 0 && idle && humans >= this.settings.server.idlekickPlayerlimit) {
+        c.idleFrames++;
+        const timeToKick = iktime - c.idleFrames;
+        if (timeToKick === 0) this.drop(pid, 'idleKick', 4006, 'idle');
+        else if (
+          (timeToKick === 600 && iktime >= 1800) ||
+          (timeToKick === 300 && iktime >= 900) ||
+          (timeToKick === 150 && iktime >= 300) ||
+          (timeToKick === 50 && iktime >= 100)
+        ) {
+          this.queueTo(pid, message('idleKickWarning', { seconds: timeToKick / 10 }));
+        }
+      } else c.idleFrames = 0;
     }
+  }
+
+  /** Desconecta pelo servidor (`disconnectPlayer`): avisa, fecha e libera a vaga na hora. */
+  private drop(pid: number, reason: 'kick' | 'idleKick', code: number, text: string): void {
+    const c = this.clients.get(pid);
+    if (!c) return;
+    // o que estava na fila sai antes do aviso de desconexão
+    c.conn.send(encodeFrame(...c.queue, message('disconnecting', { reason, seconds: 0 })));
+    c.queue = [];
+    c.conn.close(code, text);
+    this.leave(pid);
   }
 
   private consolePlayer(pid: number, c: Client): ConsolePlayer {

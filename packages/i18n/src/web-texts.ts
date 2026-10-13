@@ -135,5 +135,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'The room is full.': 'A sala está cheia.',
     'The room is not running.': 'A sala não está no ar.',
     'Room not found.': 'Sala não encontrada.',
+    // Reconexão (OG-047)
+    'Connection lost. Reconnecting...': 'Conexão perdida. Reconectando...',
+    'The game continued in another window.': 'A partida continuou em outra janela.',
   },
 };

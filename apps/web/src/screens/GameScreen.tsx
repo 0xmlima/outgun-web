@@ -140,7 +140,9 @@ export default function GameScreen() {
                     ? `${status.map.title} - ${t('Press Esc for the menu')}`
                     : status?.kind === 'connecting'
                       ? t('Connecting to the game server...')
-                      : t('Press Esc for the menu')
+                      : status?.kind === 'reconnecting'
+                        ? t('Connection lost. Reconnecting...')
+                        : t('Press Esc for the menu')
               }
             />
           </p>

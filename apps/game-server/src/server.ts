@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION, type MessageOf } from '@outgun/protocol';
 import uWS from 'uWebSockets.js';
 import type { KeyObject } from 'node:crypto';
+import type { Connection } from './room.js';
 import type { RoomManager } from './rooms.js';
 import { TicketAuth } from './tickets.js';
 
@@ -29,6 +30,8 @@ interface SocketData {
   roomId: string;
   pid: number;
   ip: string;
+  /** Conexão entregue à sala (para a sala saber se a queda é da conexão atual do jogador). */
+  conn: Connection | null;
 }
 
 export interface RunningServer {
@@ -58,7 +61,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
       const ip = forwarded || Buffer.from(res.getRemoteAddressAsText()).toString();
       res.upgrade<SocketData>(
-        { roomId, pid: -1, ip },
+        { roomId, pid: -1, ip, conn: null },
         req.getHeader('sec-websocket-key'),
         req.getHeader('sec-websocket-protocol'),
         req.getHeader('sec-websocket-extensions'),
@@ -85,27 +88,29 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         const auth = tickets.identify(hello.ticket, user.roomId);
         if (!auth.ok) return reject(ws, 'invalidTicket', `ticket inválido (${auth.reason})`);
         const identity = { ...auth.identity, ip: user.ip };
-        const joined = room.join(
-          {
-            send: (b) => void ws.send(b, true),
-            close: (code, reason) => ws.end(code, reason),
-            // troca de time muda o pid do jogador
-            moved: (pid) => {
-              user.pid = pid;
-            },
+        const conn: Connection = {
+          send: (b) => void ws.send(b, true),
+          close: (code, reason) => ws.end(code, reason),
+          // troca de time muda o pid do jogador
+          moved: (pid) => {
+            user.pid = pid;
           },
-          identity,
-        );
+        };
+        // `resume` junto do hello: volta à vaga guardada depois de uma queda (OG-047)
+        const resume = rest.find((m) => m.type === 'resume');
+        const others = rest.filter((m) => m.type !== 'resume');
+        const joined = (resume?.type === 'resume' ? room.resume(conn, identity, resume.token) : null) ?? room.join(conn, identity);
         if (!joined.ok) return reject(ws, joined.reason, joined.text);
         user.pid = joined.pid;
-        if (rest.length > 0) room.handle(user.pid, rest);
+        user.conn = conn;
+        if (others.length > 0) room.handle(user.pid, others);
         return;
       }
       room.handle(user.pid, decoded.messages);
     },
     close: (ws) => {
       const user = ws.getUserData();
-      if (user.pid !== -1) manager.get(user.roomId)?.leave(user.pid);
+      if (user.pid !== -1 && user.conn) manager.get(user.roomId)?.disconnect(user.pid, user.conn);
       user.pid = -1;
     },
   });
