@@ -9,7 +9,7 @@ Este repositório tem duas partes:
 
 - Node.js 22 ou superior (`.nvmrc`)
 - pnpm via Corepack: `corepack enable` (a versão vem do campo `packageManager` do `package.json`)
-- Docker (apenas para o oráculo do jogo original, `tools/parity/`)
+- Docker (para o oráculo do jogo original, `tools/parity/`, e para os testes de integração da API, que sobem um PostgreSQL 16)
 
 ## Comandos
 
@@ -27,17 +27,17 @@ Este repositório tem duas partes:
 
 ## Pacotes
 
-| Pacote              | Papel                                                                            | Card            |
-| ------------------- | -------------------------------------------------------------------------------- | --------------- |
-| `packages/sim`      | Simulação determinística (port de `src/world.cpp`), sem dependências de Node/DOM | E2              |
-| `packages/protocol` | Mensagens binárias cliente/servidor                                              | OG-041          |
-| `packages/content`  | Mapas, gerador, manifesto de assets                                              | OG-010 a OG-012 |
-| `packages/settings` | Configurações de sala e presets                                                  | OG-030          |
-| `packages/i18n`     | Traduções                                                                        | OG-014          |
-| `packages/netcode`  | Cliente de rede do jogo: estado recebido, foguetes locais, predição, suavização  | OG-064          |
-| `apps/game-server`  | Servidor de jogo (10 Hz)                                                         | OG-040          |
-| `apps/api`          | Contas, ranking, salas                                                           | OG-080          |
-| `apps/web`          | Cliente web                                                                      | OG-060          |
+| Pacote              | Papel                                                                             | Card            |
+| ------------------- | --------------------------------------------------------------------------------- | --------------- |
+| `packages/sim`      | Simulação determinística (port de `src/world.cpp`), sem dependências de Node/DOM  | E2              |
+| `packages/protocol` | Mensagens binárias cliente/servidor                                               | OG-041          |
+| `packages/content`  | Mapas, gerador, manifesto de assets                                               | OG-010 a OG-012 |
+| `packages/settings` | Configurações de sala e presets                                                   | OG-030          |
+| `packages/i18n`     | Traduções                                                                         | OG-014          |
+| `packages/netcode`  | Cliente de rede do jogo: estado recebido, foguetes locais, predição, suavização   | OG-064          |
+| `apps/game-server`  | Servidor de jogo (10 Hz)                                                          | OG-040          |
+| `apps/api`          | Contas, ranking, salas (Fastify + Drizzle + PostgreSQL; ver `apps/api/README.md`) | OG-080          |
+| `apps/web`          | Cliente web                                                                       | OG-060          |
 
 `packages/sim` e `packages/netcode` têm regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
 

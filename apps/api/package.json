@@ -12,14 +12,31 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "migrations"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "start": "node dist/main.js",
+    "migrate": "node dist/cli.js migrate",
+    "seed": "node dist/cli.js seed",
+    "openapi": "node dist/cli.js openapi openapi.json"
   },
   "dependencies": {
-    "@outgun/settings": "workspace:*"
+    "@fastify/swagger": "9.9.0",
+    "@fastify/swagger-ui": "6.1.1",
+    "@fastify/type-provider-typebox": "6.1.0",
+    "@node-rs/argon2": "2.2.1",
+    "@outgun/settings": "workspace:*",
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "ioredis": "6.0.0",
+    "postgres": "3.4.9",
+    "typebox": "1.3.34"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5"
   }
 }
