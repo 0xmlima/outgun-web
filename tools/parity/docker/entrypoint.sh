@@ -190,6 +190,11 @@ cmd_trace() {
     -trace "$tmp" -tracescript "$scenario" > "$GAME/log/console.txt" 2>&1 || true
   [ -s "$tmp" ] || { echo "trace vazio; veja log/serverlog.txt" >&2; tail -20 "$GAME/log/serverlog.txt" >&2; exit 1; }
   gzip -9 -n -c "$tmp" > "/traces/$name.jsonl.gz"
+  # Com a diretiva "bottrace" (patches/002-bottrace.patch), as decisões dos bots vão ao lado.
+  if [ -s "$tmp.bots" ]; then
+    gzip -9 -n -c "$tmp.bots" > "/traces/$name.bots.jsonl.gz"
+    echo "$name: $(wc -l < "$tmp.bots") decisões de bots"
+  fi
   echo "$name: $(($(wc -l < "$tmp") - 1)) frames, $(stat -c %s "/traces/$name.jsonl.gz") bytes"
 }
 

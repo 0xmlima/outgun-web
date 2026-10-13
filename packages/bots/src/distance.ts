@@ -135,6 +135,11 @@ export class DistanceTables {
     buildDistanceTable(this.tables[id]!, start, respawnWeight, team);
   }
 
+  /** Centro e peso da última construção (o `DistanceTableDescriptor`); centro null = nunca construída. */
+  descriptor(id: DistanceTableId): [Area | null, number] {
+    return [this.centers[id] ?? null, this.weights[id] ?? 0];
+  }
+
   /** Esquece os centros (`Robot::BuildMap` ao trocar de mapa zera os descritores). */
   reset(): void {
     this.centers.fill(null);

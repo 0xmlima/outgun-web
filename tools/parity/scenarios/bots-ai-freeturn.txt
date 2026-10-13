@@ -1,0 +1,14 @@
+# IA dos bots (OG-051..053): giro livre da arma, fogo amigo e colisão entre jogadores; 6 bots em 3x2
+# (selvagem, só captura na selvagem, bandeiras de time travadas).
+map 3x2
+bots 6
+start 200
+frames 600
+seed 53
+bottrace
+gamemod free_turning 1
+gamemod friendly_fire 50%
+gamemod player_collisions normal
+gamemod capture_on_team_flag 0
+gamemod capture_on_wild_flag 1
+gamemod lock_team_flags 1

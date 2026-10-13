@@ -1,0 +1,8 @@
+# IA dos bots (OG-051..053): áreas de respawn (peso de respawn nas distâncias de quem leva bandeira);
+# 10 bots em ksii (4x4).
+map ksii
+bots 10
+start 200
+frames 600
+seed 54
+bottrace

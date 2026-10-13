@@ -316,6 +316,9 @@ importers:
 
   packages/bots:
     dependencies:
+      '@outgun/settings':
+        specifier: workspace:*
+        version: link:../settings
       '@outgun/sim':
         specifier: workspace:*
         version: link:../sim
