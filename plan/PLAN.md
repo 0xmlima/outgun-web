@@ -604,7 +604,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Concluído |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Concluído |
 | [OG-048](cards/OG-048-bots.md) | Bots (quebrado em OG-050 a OG-054) | E3 | ~~13~~ | Should | S10 | OG-042 | Quebrado |
-| [OG-050](cards/OG-050-bot-areamap.md) | Bots: AreaMap e tabelas de distância | E3 | 3 | Should | S10 | OG-042 | Pronto |
+| [OG-050](cards/OG-050-bot-areamap.md) | Bots: AreaMap e tabelas de distância | E3 | 3 | Should | S10 | OG-042 | Em revisão |
 | [OG-051](cards/OG-051-bot-navigation.md) | Bots: navegação até destinos | E3 | 3 | Should | S10 | OG-050 | Pronto |
 | [OG-052](cards/OG-052-bot-combat.md) | Bots: mira, tiro e esquiva | E3 | 3 | Should | S10 | OG-042 | Pronto |
 | [OG-053](cards/OG-053-bot-brain.md) | Bots: decisões de bandeira e power-up e laço principal | E3 | 3 | Should | S10 | OG-051, OG-052 | Pronto |
@@ -688,6 +688,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-26 | Nomes dos jogadores na tela | Como o original (`Show player names` = never no código e no `client.cfg`; Ctrl+F3 alterna) / mostrar na mesma sala | ✅ **Decidido no OG-068 (divergência intencional):** padrão web "in same room", para identificar com quem se joga numa sala pública; a opção tem as três escolhas do original. Demais padrões seguem o `client.cfg` distribuído (D-05), inclusive mensagens de morte ligadas. Spec `plan/specs/opcoes-jogador.md`. | Agente |
 | D-27 | Bots em sala sem humanos | Como o original (`bots_fill`/`min_bots` valem mesmo sem ninguém) / sem humanos, nenhum bot | ✅ **Decidido no OG-054 (divergência intencional):** sem humanos a sala fica sem bots — bots sozinhos gastam CPU e manteriam a sala viva para sempre no registro (OG-086). Também: `CASUAL_BOTS_FILL` no game server (padrão 0, como o `gamemod.txt`) e `/bot` liberado ao dono de sala Casual. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/bots-populacao.md) | Tech Lead |
 | D-28 | Replays | Como o original (só com `recording` > 0, arquivo binário do servidor) / sempre que houver destino, formato web | ✅ **Decidido no OG-090 (divergência intencional):** formato próprio versionado (`OGWR`, protocolo web + gzip), gravação de toda partida com destino configurado (`recording` = mínimo de humanos, ≥ 1), arquivos no game server com retenção de 30 dias e URL guardada na API; object storage no OG-103. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/replays.md) | Tech Lead |
+| D-29 | Dados de navegação dos bots | Cópia do AreaMap por bot com distâncias dentro das áreas (original) / AreaMap imutável compartilhado e tabelas de distância por bot | ✅ **Decidido no OG-050 (divergência interna, sem efeito no jogo):** pacote puro `@outgun/bots`; AreaMap montado uma vez por mapa (cache por CRC e título, como `BotSharedDataStorage`) e tabelas `Int32Array` por bot; resultados idênticos ao original (plan/specs/bots-areamap.md). Decisão delegada pelo PO ao time técnico | Tech Lead |
 
 ---
 
