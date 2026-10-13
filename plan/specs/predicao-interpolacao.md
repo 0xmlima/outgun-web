@@ -19,10 +19,10 @@ Como o cliente original transforma os frames de 10 Hz do servidor no que aparece
 
 ## Algoritmo (versão web)
 1. **Envio** (timer de 100 ms, não `requestAnimationFrame`): `clFrameSent++`, guarda controles e `svFrameHistory`, manda `input`. O próximo envio é `+100 ms + netsendAdjustment`; atrasado, não acumula. Controles que mudam entre envios são reenviados com o mesmo número se ainda devem chegar no mesmo frame do servidor (`agora_em_frames < svFrameHistory[clFrameSent] + 0,5`), atualizando o histórico.
-2. **Frame recebido** (`frame`): ignora se `frame < fx.frame`; avança foguetes `frame − fx.frame` frames; guarda `frameReceiveTime`; `clFrameWorld = lastClientFrame`; atualiza `averageLag` (a primeira amostra inicializa a média) e o ajuste de envio; aplica jogadores (visíveis), próprio estado exato (`self`: posição, velocidade, vida, energia).
-3. **Desenho** (cada quadro do navegador): `fd = cópia(fx)`; para o próprio jogador, aplica os controles de `clFrameWorld+1..` como no original e a fração final; todos os outros jogadores andam com os últimos controles conhecidos (dead reckoning), foguetes com a velocidade; `timeDelta ≤ 3` frames.
-4. **Suavização (divergência)**: ao chegar um frame, a diferença entre a posição desenhada no quadro anterior e a nova extrapolação vira um deslocamento visual que decai exponencialmente (meia-vida de 50 ms). Saltos maiores que 48 px (renascer, troca de sala, colisão) não são suavizados.
-5. **Correção de predição** (métrica): ao chegar um frame, se a posição prevista do próprio jogador para o mesmo instante muda mais de 1 px, conta-se uma correção.
+2. **Frame recebido** (`frame`): ignora se `frame < fx.frame`; avança foguetes `frame − fx.frame` frames; cria os foguetes de `rocketFire` que esperavam este frame (o evento chega antes do frame do mesmo número); atualiza o relógio estimado do servidor; `clFrameWorld = lastClientFrame`; atualiza `averageLag` (a primeira amostra inicializa a média) e o ajuste de envio; aplica jogadores (visíveis), próprio estado exato (`self`: posição, velocidade, vida, energia).
+3. **Desenho** (cada quadro do navegador): `fd = cópia(fx)`; para o próprio jogador, aplica os controles de `clFrameWorld+1..` como no original; o resto do tempo anda em frames inteiros com o último controle e só a sobra fracionária no fim; todos os outros jogadores andam com os últimos controles conhecidos (dead reckoning), foguetes com a velocidade; `timeDelta ≤ 3` frames. O tempo decorrido vem do relógio estimado do servidor: `agora/100 + deslocamento`, onde o deslocamento acompanha a chegada mais cedo dos frames (`frame − agora/100`, sobe na hora, desce 0,002 frame por frame).
+4. **Suavização (divergência)**: ao chegar um frame, cada jogador é extrapolado para o mesmo instante com o estado antigo e com o novo; a diferença vira um deslocamento visual que decai exponencialmente (meia-vida de 80 ms). Saltos maiores que 48 px (renascer, colisão forte) não são suavizados.
+5. **Correção de predição** (métrica): a mesma comparação do item 4 para o próprio jogador; diferença acima de 0,5 px conta uma correção.
 
 ## Divergências intencionais
 1. **Predição ligada por padrão** com quantidade 10 (o original vem desligado): o card pede resposta imediata com 100 ms de latência. A opção continua no menu; a quantidade 0..10 é o "handicap" de lag do original (`lagWanted`).
@@ -30,7 +30,9 @@ Como o cliente original transforma os frames de 10 Hz do servidor no que aparece
 3. **Troca de sala liberada no cliente** para o próprio jogador previsto (o original não troca: com 1 sala na tela e sem rolagem, a nave sairia da tela até a resposta do servidor).
 4. `averageLag` começa na primeira medida em vez de 0 (com média de 0,99 levaria ~10 s para convergir).
 5. O raio reduzido `PLAYER_RADIUS − plw/0xFFF/2` não é usado: as posições vão em `f32` (D-16), não em 12 bits.
-6. Sem o filtro de 20 ms ao soltar uma das teclas de uma diagonal (`keyFilterTimeout`); o reenvio no meio do frame é limitado a um por número de frame (cabe no limite de taxa do OG-043).
+6. **Relógio estimado do servidor** em vez de `fx.frame + (agora − frameReceiveTime)·10`: no original, o jitter de chegada de cada frame vira um salto de toda a extrapolação (a 50 px/frame, 10 ms de jitter movem um foguete 5 px).
+7. **Frames inteiros na extrapolação** (item 3): o original anda até 3 frames num passo só; um passo de 1,5 frame não dá o mesmo que 1 + 0,5 (a aceleração entra uma vez), e a nave pularia a cada frame recebido.
+8. Sem o filtro de 20 ms ao soltar uma das teclas de uma diagonal (`keyFilterTimeout`); o reenvio no meio do frame é limitado a um por número de frame (cabe no limite de taxa do OG-043).
 Registrado em PLAN seção 12 (D-18).
 
 ## Casos de borda
@@ -39,9 +41,11 @@ Registrado em PLAN seção 12 (D-18).
 3. Morto: sem controles; a arma não gira.
 4. Contador de 8 bits dá a volta no histórico (255 → 0): a sequência continua.
 5. Nenhum input confirmado ainda (`clFrameSent == clFrameWorld`): extrapola só o tempo desde o frame.
-6. Aba em segundo plano: o navegador segura timers; ao voltar, o envio não manda rajada (não acumula) e a extrapolação limita-se a 3 frames.
+6. Bandeiras que chegam antes de o mapa carregar (entrada na sala, troca de mapa) ficam guardadas e valem quando ele carrega.
+7. Inputs enviados antes do primeiro frame não medem atraso (o relógio do servidor ainda é desconhecido).
+8. Aba em segundo plano: o navegador segura timers; ao voltar, o envio não manda rajada (não acumula) e a extrapolação limita-se a 3 frames.
 
 ## Vetores de teste
 - Sem latência e sem perda: posição prevista = posição do servidor no frame seguinte (0 correções).
-- 150 ms de RTT, 2% de perda (retransmissão segura o fluxo por mais um RTT), controles mudando a cada 0,5–2 s: menos de 1 correção por segundo em média; nenhum salto desenhado acima de 8 px entre quadros a 60 fps em movimento normal.
+- 150 ms de RTT (±20 ms), 2% de perda (retransmissão segura o fluxo por mais um RTT), 4 jogadores com controles mudando a cada 0,5–2 s por 60 s: menos de 1 correção por segundo em média; nenhum salto desenhado acima de 8 px além do movimento entre quadros a 60 fps (`apps/game-server/src/prediction.test.ts`).
 - `frameOffset` converge para ~0,5 frame em poucos segundos com latência constante.

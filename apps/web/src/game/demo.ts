@@ -8,15 +8,14 @@ import {
   GlibcRand,
   gunDirectionFromControls,
   isStrafe,
-  ROOM_HEIGHT,
   ServerSim,
-  Vec,
   WorldState,
   type GameMap,
   type PhysicsCallbacks,
   type WorldCoords,
 } from '@outgun/sim';
-import type { EffectKind, EntityFrame, FlagView, PlayerView, RocketView } from './render/entity-frame.js';
+import type { EffectKind, EntityFrame } from './render/entity-frame.js';
+import { entityFrameFromWorld } from './render/world-view.js';
 
 const NAMES = ['Nix', 'Huntta', 'Spinal', 'ThOR27', 'Nosferatu', 'Gloomy', 'coiote', 'PHiN', 'Kiss', 'Luque', 'Rubens', 'Slim', 'Cebs', 'Devil', 'Flyer', 'jarule'];
 
@@ -170,63 +169,17 @@ export class LocalDemo {
   }
 
   frame(multiRoom: boolean): EntityFrame {
-    const w = this.world;
-    const time = w.frame / 10;
-    const meTeam = w.players[this.me]?.team ?? 0;
-    const players: PlayerView[] = [];
-    for (const pl of w.players) {
-      if (!pl) continue;
-      let alpha = pl.visibility;
-      if (pl.team === meTeam) alpha = Math.max(alpha, 128); // `min_alpha_friends`
-      players.push({
-        pid: pl.pid,
-        team: pl.team,
-        color: pl.pid % 16,
-        name: NAMES[pl.pid % NAMES.length]!,
-        pos: coords(pl.pos),
-        gundir: pl.gundir,
-        dead: pl.dead,
-        hitfx: this.hitfx.get(pl.pid) ?? 0,
-        power: pl.power,
-        turboTrail: pl.turbo && pl.vel.x * pl.vel.x + pl.vel.y * pl.vel.y > this.settings.physics.maxRunSpeed ** 2,
-        shield: pl.shield > 0,
-        deathbringer: pl.deathbringer,
-        deathbringerAffected: pl.underDeathbringerEffect(time),
-        alpha,
-        frags: pl.stats.frags,
-        me: pl.pid === this.me,
-        respawnIn: pl.pid === this.me && pl.dead ? pl.framesToRespawn / 10 : 0,
-      });
-    }
-    const rockets: RocketView[] = [];
-    for (const rk of w.rockets) {
-      if (rk.owner === -1) continue;
-      // o original troca os raios aqui (`r.power ? ROCKET_RADIUS : POWER_ROCKET_RADIUS`)
-      const radius = rk.power ? 4 : 6;
-      const sy = rk.pos.y + radius + 8;
-      const room = this.map.rooms[rk.pos.roomX]?.[rk.pos.roomY];
-      const shadow = sy < ROOM_HEIGHT && !(room?.fallOnWallCirc(new Vec(rk.pos.x, sy), radius / 2) ?? true);
-      rockets.push({ team: rk.team as 0 | 1, power: rk.power, pos: coords(rk.pos), direction: rk.direction, shadow });
-    }
-    const flags: FlagView[] = [];
-    for (const team of [0, 1, 2] as const)
-      w.flagsOf(team).forEach((f, i) =>
-        flags.push({
-          team,
-          pos: coords(f.pos),
-          carrier: f.carrier,
-          flash: time < (this.returnTime.get(`${team}.${i}`) ?? -10) + 2 && Math.trunc((time * 15) % 3) === 0,
-          returnIn: team !== 2 && f.status === 'dropped' ? f.dropTime + this.settings.world.flagReturnDelay - time : 0,
-        }),
-      );
-    return {
-      time,
-      players,
-      rockets,
-      powerups: w.items.filter((it) => it.isReal()).map((it) => ({ kind: it.kind, pos: coords(it.pos) })),
-      flags,
-      deathbringers: w.explosions.map((db) => ({ pos: coords(db.pos), team: db.ownerTeam as 0 | 1, radius: db.radius(w.frame) })),
+    const me = this.world.players[this.me];
+    return entityFrameFromWorld(this.world, {
+      me: this.me,
+      name: (pid) => NAMES[pid % NAMES.length]!,
+      color: (pid) => pid % 16,
+      hitfx: (pid) => this.hitfx.get(pid) ?? 0,
+      respawnIn: me?.dead ? me.framesToRespawn / 10 : 0,
+      flagReturnTime: (key) => this.returnTime.get(key),
+      flagReturnDelay: this.settings.world.flagReturnDelay,
+      maxRunSpeed: this.settings.physics.maxRunSpeed,
       multiRoom,
-    };
+    });
   }
 }

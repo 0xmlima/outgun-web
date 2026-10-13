@@ -84,6 +84,19 @@ export function OptionsScreen() {
       value: prefs.continuousTextures ? '[X]' : '[ ]',
       onChange: () => setPrefs({ continuousTextures: !prefs.continuousTextures }),
     },
+    {
+      kind: 'choice',
+      label: t('Lag prediction'),
+      value: prefs.lagPrediction ? '[X]' : '[ ]',
+      onChange: () => setPrefs({ lagPrediction: !prefs.lagPrediction }),
+    },
+    {
+      kind: 'choice',
+      label: t('Lag prediction amount'),
+      value: String(prefs.lagPredictionAmount),
+      disabled: !prefs.lagPrediction,
+      onChange: (delta) => setPrefs({ lagPredictionAmount: Math.min(10, Math.max(0, prefs.lagPredictionAmount + delta)) }),
+    },
     { kind: 'action', label: t('Controls'), onActivate: () => void navigate('/options/controls') },
   ];
   return <Menu caption={t('Options')} items={items} onBack={() => void navigate('/')} />;

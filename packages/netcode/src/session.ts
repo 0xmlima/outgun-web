@@ -105,6 +105,8 @@ export class ClientSession {
   /** Pids ocupados (vale também antes de o mapa carregar). */
   readonly present = new Set<number>();
   readonly frags = new Map<number, number>();
+  /** Quando cada bandeira (`time.índice`) voltou à base, em s do jogo (pisca por 2 s). */
+  readonly flagReturnTime = new Map<string, number>();
   /** Fim do pisca de acerto por jogador (ms do relógio de quem chama). */
   readonly hitUntil = new Map<number, number>();
   /** Frame do servidor em que o próprio jogador pode renascer (`waitingTime`). */
@@ -138,6 +140,8 @@ export class ClientSession {
   /** Ajuste do próximo envio (ms), consumido por `nextSendDelay` (`netsendAdjustment`). */
   private sendAdjustment = 0;
 
+  /** Bandeiras do mapa pedido que chegaram antes de ele carregar (aplicadas em `setMap`). */
+  private readonly flagsBeforeMap = new Map<string, MessageOf<'flagUpdate'>>();
   /** Foguetes anunciados para um frame que ainda não chegou (o evento vem antes do frame). */
   private pendingRockets: { frame: number; create: () => void }[] = [];
   /** Geração de cada slot de foguete, para não repetir a explosão quando a extrapolação bate na parede. */
@@ -200,6 +204,8 @@ export class ClientSession {
     this.pendingRockets = [];
     this.onscreen.clear();
     this.skipped = true;
+    for (const m of this.flagsBeforeMap.values()) this.onFlagUpdate(world, m);
+    this.flagsBeforeMap.clear();
     this.options.send([message('clientReady', {})]);
   }
 
@@ -235,6 +241,8 @@ export class ClientSession {
       case 'mapChange':
         this.mapRequest = { file: m.file, title: m.title, crc: m.crc, mapIndex: m.mapIndex };
         this.skipped = true;
+        this.world = null; // o mundo antigo não vale mais; o novo nasce em `setMap`
+        this.flagsBeforeMap.clear();
         this.options.onMapChange(this.mapRequest);
         break;
       case 'playersPresent':
@@ -265,6 +273,7 @@ export class ClientSession {
         break;
       case 'flagUpdate':
         if (world) this.onFlagUpdate(world, m);
+        else this.flagsBeforeMap.set(m.team, m);
         break;
       case 'rocketFire':
       case 'rocketVisible':
@@ -327,7 +336,7 @@ export class ClientSession {
         // fora da base: a hora da largada (para o contador de devolução) é quando a vimos cair
         flag.status = 'dropped';
         flag.dropTime = prev.status === 'dropped' ? prev.dropTime : world.frame / 10;
-      }
+      } else if (prev && prev.status !== 'base') this.flagReturnTime.set(`${team}.${i}`, world.frame / 10);
       return flag;
     });
     if (m.team === 'wild') world.wildFlags = flags;
@@ -479,7 +488,8 @@ export class ClientSession {
     this.clFrameSent = u8(this.clFrameSent + 1);
     this.controlHistory[this.clFrameSent] = this.controls;
     this.svFrameHistory[this.clFrameSent] = this.serverFrameNow(now);
-    this.sentValid[this.clFrameSent] = 1;
+    // antes do primeiro frame o relógio do servidor é desconhecido: esse envio não mede atraso
+    this.sentValid[this.clFrameSent] = this.hasFrame ? 1 : 0;
     this.options.send([message('input', { clientFrame: this.clFrameSent, controls: this.controls, gundir: 0 })]);
     const delay = 100 + this.sendAdjustment;
     this.sendAdjustment = 0;

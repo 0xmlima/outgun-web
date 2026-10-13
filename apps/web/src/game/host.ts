@@ -1,27 +1,43 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Dono do canvas do jogo. O React só monta o contêiner e desenha overlays por cima; o PixiJS, o
-// laço de quadros e o estado da vista ficam aqui. Até a conexão com o servidor (OG-064), a rota
-// mostra um mapa: setas trocam de sala e PageUp/PageDown mudam quantas salas aparecem.
+// laço de quadros e o estado da vista ficam aqui. Três modos: partida no servidor (padrão, OG-064),
+// partida local de demonstração (`demoPlayers`) e visualizador de mapa (setas trocam de sala,
+// PageUp/PageDown mudam quantas salas aparecem).
 import { parseMapFile } from '@outgun/content';
-import { positiveModulo, type GameMap } from '@outgun/sim';
+import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
+import { message } from '@outgun/protocol';
+import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
 import { Application, Assets, type BitmapFont } from 'pixi.js';
 import { ASSETS, loadManifest } from '../assets.js';
 import { LocalDemo } from './demo.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
+import { GameConnection } from './net/connection.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
 import { loadEntitySprites } from './render/sprites.js';
-import { loadRoomTheme } from './render/theme.js';
+import { loadRoomTheme, type RoomTheme } from './render/theme.js';
 import { WorldRenderer } from './render/world-renderer.js';
+import { entityFrameFromWorld } from './render/world-view.js';
 
 export interface GameHost {
   /** Com o menu aberto o jogo não lê teclas. */
   setInputEnabled(enabled: boolean): void;
   setBindings(bindings: Bindings): void;
-  /** Para o laço e solta o canvas. */
+  setPrediction(prediction: PredictionOptions): void;
+  /** Para o laço e solta o canvas (e fecha a conexão). */
   destroy(): void;
+}
+
+export interface OnlineOptions {
+  /** Endereço do servidor (ws:// ou wss://), sem a sala. */
+  readonly url: string;
+  readonly room: string;
+  /** Nome do convidado (até a API emitir tickets, OG-083). */
+  readonly name: string;
+  /** Rede simulada nos dois sentidos (depuração: ?lag=&loss=). */
+  readonly simulate?: LinkConditions;
 }
 
 export interface GameOptions {
@@ -30,7 +46,9 @@ export interface GameOptions {
   /** Salas na tela em cada direção (o original distribuído usa 1). */
   readonly visibleRooms: number;
   readonly continuousTextures: boolean;
-  /** Mapa mostrado enquanto não há partida. */
+  /** Partida no servidor; sem isto, demonstração local ou só o mapa. */
+  readonly online?: OnlineOptions;
+  /** Mapa da demonstração ou do visualizador. */
   readonly map: string;
   /** Sala inicial da vista. */
   readonly room?: readonly [number, number];
@@ -41,13 +59,17 @@ export interface GameOptions {
   /** Fonte bitmap dos nomes e contagens (uma das fontes do original). */
   readonly font?: string;
   readonly bindings: Bindings;
+  readonly prediction: PredictionOptions;
   /** Ações de toque (F1, F2...) e o botão Start do gamepad (`menu`). */
   readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
   readonly onStatus?: (status: GameStatus) => void;
 }
 
-export type GameStatus = { readonly kind: 'ready'; readonly map: GameMap } | { readonly kind: 'error'; readonly message: string };
+export type GameStatus =
+  | { readonly kind: 'ready'; readonly map: GameMap }
+  | { readonly kind: 'connecting' }
+  | { readonly kind: 'error'; readonly message: string };
 
 /** Primeiro mapa da rotação padrão (`maps/`) quando nenhum é pedido. */
 export const DEFAULT_MAP = 'coliseu';
@@ -77,24 +99,33 @@ async function loadFont(name: string | undefined): Promise<{ family: string; hei
   }
 }
 
+const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
+
 export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   const app = new Application();
   let destroyed = false;
   let ready = false;
   let world: WorldRenderer | undefined;
+  let worldMap: GameMap | undefined;
   let entities: EntityRenderer | undefined;
   let demo: LocalDemo | undefined;
+  let session: ClientSession | undefined;
+  let connection: GameConnection | undefined;
+  let sendTimer: ReturnType<typeof setTimeout> | null = null;
+  let announced = false;
   const input = new GameInput(opts.bindings);
   input.onAction((action) => {
-    if (action === 'suicide') demo?.suicide();
-    else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
+    if (action === 'suicide') {
+      demo?.suicide();
+      session?.send(message('suicide', {}));
+    } else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
     opts.onAction?.(action);
   });
   let visible = opts.visibleRooms;
   let view = { x: opts.room?.[0] ?? 0, y: opts.room?.[1] ?? 0 };
 
   const onKey = (ev: KeyboardEvent) => {
-    if (!world?.layout || demo) return;
+    if (!world?.layout || demo || session) return;
     const { mapW, mapH } = world.layout;
     const moves: Record<string, [number, number]> = {
       ArrowLeft: [-1, 0],
@@ -119,6 +150,85 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     );
   };
 
+  /** Troca o mapa desenhado (início da partida e cada troca de mapa do servidor). */
+  const showMap = async (name: string, theme: RoomTheme): Promise<GameMap | null> => {
+    const { map, bytes } = await loadMap(name);
+    const source = await createRoomSource(map, name, bytes, theme);
+    if (destroyed) {
+      source.destroy();
+      return null;
+    }
+    world?.destroy();
+    world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
+    worldMap = map;
+    app.stage.addChildAt(world.stage, 0);
+    announced = false;
+    layout();
+    return map;
+  };
+
+  const fail = (message: string) => opts.onStatus?.({ kind: 'error', message });
+
+  /** Partida no servidor: sessão, conexão e envio dos controles a 10 Hz. */
+  const startOnline = (online: OnlineOptions, theme: RoomTheme) => {
+    let lastFire = false;
+    let lastDrop = false;
+    let mapLoad = Promise.resolve();
+    session = new ClientSession({
+      send: (messages) => connection?.send(messages),
+      onMapChange: (request) => {
+        // um mapa de cada vez, na ordem em que o servidor pediu
+        mapLoad = mapLoad
+          .then(() => showMap(request.file, theme))
+          .then((map) => {
+            if (!map || !session || session.mapRequest !== request) return;
+            if (map.crc !== request.crc) console.warn(`mapa ${request.file}: CRC ${map.crc} ≠ ${request.crc} do servidor`);
+            session.setMap(map);
+          })
+          .catch((err: unknown) => fail(`mapa ${request.file}: ${err instanceof Error ? err.message : String(err)}`));
+      },
+      onEvent: (ev) => {
+        const time = (session?.renderFrame ?? 0) / 10;
+        if (ev.kind === 'rocketHitWall') entities?.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', coords(ev.pos), ev.team, time);
+        else if (ev.kind === 'rocketHitPlayer') entities?.addEffect('gunExplosion', coords(ev.pos), ev.team, time);
+        else if (ev.kind === 'message') {
+          const m = ev.message;
+          if (m.type === 'reject') fail(m.text || m.reason);
+          else if (m.type === 'disconnecting') fail(`desconectado: ${m.reason}`);
+        }
+      },
+    });
+    session.prediction = opts.prediction;
+    opts.onStatus?.({ kind: 'connecting' });
+    connection = new GameConnection(
+      `${online.url.replace(/\/$/, '')}/rooms/${encodeURIComponent(online.room)}`,
+      `dev:${online.name}`,
+      {
+        onMessages: (messages) => session?.handle(messages, performance.now()),
+        onClose: (reason) => fail(reason),
+      },
+      online.simulate,
+    );
+    /** Lê a entrada: controles (com reenvio no meio do frame) e bordas de tiro e largar bandeira. */
+    const readInput = (now: number) => {
+      const s = input.sample();
+      session?.setControls(s.controls, now);
+      if (s.fire !== lastFire) session?.send(message('fire', { on: (lastFire = s.fire) }));
+      if (s.dropFlag !== lastDrop) session?.send(message('dropFlag', { on: (lastDrop = s.dropFlag) }));
+    };
+    // timer, não requestAnimationFrame: o envio tem de seguir o relógio do servidor (`nextSend`)
+    let nextSend = performance.now();
+    const sendLoop = () => {
+      const now = performance.now();
+      readInput(now);
+      nextSend += session?.sendFrame(now) ?? 100;
+      if (nextSend < now) nextSend = now; // não acumula atraso
+      sendTimer = setTimeout(sendLoop, nextSend - now);
+    };
+    sendLoop();
+    return readInput;
+  };
+
   void (async () => {
     try {
       // O canvas é criado pelo PixiJS e destruído com ele (reaproveitar um canvas cujo contexto WebGL
@@ -137,25 +247,28 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       container.append(app.canvas);
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
-      const [{ map, bytes }, theme] = await Promise.all([loadMap(opts.map), loadRoomTheme(manifest, opts.theme)]);
-      const source = await createRoomSource(map, opts.map, bytes, theme);
-      if (destroyed) return source.destroy();
+      const theme = await loadRoomTheme(manifest, opts.theme);
+      if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
-      world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
-      app.stage.addChild(world.stage);
-      if (opts.demoPlayers) {
+      const playing = Boolean(opts.online || opts.demoPlayers);
+      if (playing) {
         const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
         if (destroyed) return;
         entities = new EntityRenderer(theme, sprites, font);
         app.stage.addChild(entities.stage);
-        demo = new LocalDemo(map, opts.demoPlayers, 0, opts.demoStress);
       }
-      layout();
+      let readInput: ((now: number) => void) | undefined;
+      if (opts.online) readInput = startOnline(opts.online, theme);
+      else {
+        const map = await showMap(opts.map, theme);
+        if (!map) return;
+        if (opts.demoPlayers) demo = new LocalDemo(map, opts.demoPlayers, 0, opts.demoStress);
+      }
       app.renderer.on('resize', layout);
-      let announced = false;
       let simTime = 0;
+      let topLeft: WorldCoords = { room: view, x: 0, y: 0 };
       app.ticker.add((ticker) => {
-        let topLeft = { room: view, x: 0, y: 0 };
+        if (!session && !demo) topLeft = { room: view, x: 0, y: 0 };
         if (demo && entities && world?.layout) {
           // a simulação anda a 10 Hz; o desenho, a cada quadro do navegador
           simTime += Math.min(ticker.deltaMS, 250);
@@ -167,30 +280,67 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           topLeft = viewTopLeft(world.layout, demo.mePosition(), VIEW);
           const frame = demo.frame(world.layout.visibleX > 1 || world.layout.visibleY > 1);
           entities.render(frame, world.layout, topLeft);
-          // contadores para as medições (tools/visual-compare/fps.mjs)
-          container.dataset.players = String(frame.players.length);
-          container.dataset.rockets = String(frame.rockets.length);
-          const me = frame.players.find((p) => p.me);
-          if (me) container.dataset.me = `${me.pos.room.x},${me.pos.room.y},${Math.round(me.pos.x)},${Math.round(me.pos.y)},${me.dead ? 'morto' : 'vivo'},${me.gundir}`;
+          report(frame);
+        }
+        if (session && entities && world?.layout && worldMap && session.world?.map === worldMap) {
+          const now = performance.now();
+          readInput?.(now);
+          const fd = session.extrapolate(now);
+          const me = fd?.players[session.me];
+          if (fd && me) {
+            const s = session;
+            topLeft = viewTopLeft(world.layout, coords(me.pos), VIEW);
+            const frame = entityFrameFromWorld(fd, {
+              me: s.me,
+              name: (pid) => s.names.get(pid) ?? '',
+              color: (pid) => pid % 16, // cores pessoais: OG-068
+              hitfx: (pid) => {
+                const until = s.hitUntil.get(pid) ?? 0;
+                return until > now ? fd.time + (until - now) / 1000 : 0;
+              },
+              respawnIn: Math.max(0, (s.respawnFrame - fd.frame) / 10),
+              flagReturnTime: (key) => s.flagReturnTime.get(key),
+              flagReturnDelay: s.settings.world.flagReturnDelay,
+              maxRunSpeed: s.settings.physics.maxRunSpeed,
+              multiRoom: world.layout.visibleX > 1 || world.layout.visibleY > 1,
+            });
+            entities.render(frame, world.layout, topLeft);
+            report(frame);
+            container.dataset.lag = s.stats.averageLag.toFixed(2);
+            container.dataset.corrections = String(s.stats.corrections);
+          }
         }
         const missing = world?.render(topLeft) ?? 1;
         // "pronto" quando todas as salas da primeira vista já foram pintadas
-        if (!announced && missing === 0) {
+        if (!announced && missing === 0 && worldMap) {
           announced = true;
-          opts.onStatus?.({ kind: 'ready', map });
+          opts.onStatus?.({ kind: 'ready', map: worldMap });
         }
       });
     } catch (err) {
-      opts.onStatus?.({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
+      fail(err instanceof Error ? err.message : String(err));
     }
   })();
+
+  /** Contadores para as medições (tools/visual-compare/fps.mjs) e testes. */
+  const report = (frame: { players: readonly { me: boolean; pos: WorldCoords; dead: boolean; gundir: number }[]; rockets: readonly unknown[] }) => {
+    container.dataset.players = String(frame.players.length);
+    container.dataset.rockets = String(frame.rockets.length);
+    const me = frame.players.find((p) => p.me);
+    if (me) container.dataset.me = `${me.pos.room.x},${me.pos.room.y},${Math.round(me.pos.x)},${Math.round(me.pos.y)},${me.dead ? 'morto' : 'vivo'},${me.gundir}`;
+  };
 
   addEventListener('keydown', onKey);
   return {
     setInputEnabled: (enabled) => input.setEnabled(enabled),
     setBindings: (bindings) => input.setBindings(bindings),
+    setPrediction: (prediction) => {
+      if (session) session.prediction = prediction;
+    },
     destroy() {
       destroyed = true;
+      if (sendTimer !== null) clearTimeout(sendTimer);
+      connection?.close();
       input.destroy();
       removeEventListener('keydown', onKey);
       world?.destroy();

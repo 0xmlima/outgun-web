@@ -68,6 +68,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Back to game': 'Voltar ao jogo',
     'Leave game': 'Sair da partida',
     'Press Esc for the menu': 'Pressione Esc para o menu',
+    'Connecting to the game server...': 'Conectando ao servidor de jogo...',
     'Outgun Web is a port of Outgun 1.0.3 to the browser.':
       'Outgun Web é um port do Outgun 1.0.3 para o navegador.',
     'Outgun and Outgun Web are free software under the GNU GPL, version 2 or later.':

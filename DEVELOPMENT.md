@@ -34,11 +34,12 @@ Este repositório tem duas partes:
 | `packages/content`  | Mapas, gerador, manifesto de assets                                              | OG-010 a OG-012 |
 | `packages/settings` | Configurações de sala e presets                                                  | OG-030          |
 | `packages/i18n`     | Traduções                                                                        | OG-014          |
+| `packages/netcode`  | Cliente de rede do jogo: estado recebido, foguetes locais, predição, suavização  | OG-064          |
 | `apps/game-server`  | Servidor de jogo (10 Hz)                                                         | OG-040          |
 | `apps/api`          | Contas, ranking, salas                                                           | OG-080          |
 | `apps/web`          | Cliente web                                                                      | OG-060          |
 
-`packages/sim` tem regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
+`packages/sim` e `packages/netcode` têm regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
 
 ## Convenções
 
@@ -53,8 +54,9 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - `pnpm assets` uma vez (gera `apps/web/public/assets/`, ignorado pelo git: fontes, gráficos e sons convertidos). Sem ele o cliente funciona, mas os textos usam uma fonte CSS no lugar das fontes bitmap do original.
 - `pnpm --filter @outgun/web dev` — servidor de desenvolvimento do Vite (http://localhost:5173).
 - `pnpm --filter @outgun/web build` e `pnpm --filter @outgun/web preview` — build de produção e servidor local dele (http://localhost:4173).
-- `/play?map=NOME&theme=TEMA&rooms=N&room=X,Y` mostra um mapa (até a conexão com o servidor no OG-064): setas trocam de sala, PageUp/PageDown mudam quantas salas aparecem. Com `&demo=N`, roda uma partida local com N jogadores de controles aleatórios (a sim de verdade); `&stress=1` deixa todos com arma no máximo e energia cheia (teste de carga). Sem parâmetros, "Jogar agora" abre a demonstração com 8 jogadores no sisso.
-- Comparação visual com o cliente original (`tools/visual-compare`, precisa do Docker do oráculo e do Chrome; `CHROME_PATH` e `WEB_URL` opcionais): `pnpm --filter @outgun/visual-compare refs` gera os prints do original, `compare` gera os lados a lado e a % de pixels diferentes em `tools/parity/out/prints/og061/`, `fps` mede quadros por segundo (inclusive 32 jogadores com 256 foguetes), `shot` tira o print de uma rota, `keys` percorre as teclas do jogo na demonstração. Rode com o build servido por `preview`.
+- `/play` (o "Jogar agora") entra na sala `main` do servidor de jogo: suba antes `pnpm --filter @outgun/game-server start` (porta 7700; a 7000 é do AirPlay no macOS; `ROTATION="2 versus 2 (duel)"` para um mapa pequeno). Parâmetros: `server=ws://host:porta` (padrão: `VITE_GAME_SERVER` no build ou a porta 7700 da mesma máquina), `sala=ID`, `name=NOME` e, para depuração, `lag=MS&loss=PCT` (rede ruim simulada nos dois sentidos). Abra duas abas para dois jogadores.
+- `/play?map=NOME&theme=TEMA&rooms=N&room=X,Y` mostra um mapa: setas trocam de sala, PageUp/PageDown mudam quantas salas aparecem. Com `/play?demo=N` (e `map` opcional, padrão sisso), roda uma partida local com N jogadores de controles aleatórios (a sim de verdade); `&stress=1` deixa todos com arma no máximo e energia cheia (teste de carga).
+- Comparação visual com o cliente original (`tools/visual-compare`, precisa do Docker do oráculo e do Chrome; `CHROME_PATH` e `WEB_URL` opcionais): `pnpm --filter @outgun/visual-compare refs` gera os prints do original, `compare` gera os lados a lado e a % de pixels diferentes em `tools/parity/out/prints/og061/`, `fps` mede quadros por segundo (inclusive 32 jogadores com 256 foguetes), `shot` tira o print de uma rota, `keys` percorre as teclas do jogo na demonstração, `online` joga dois clientes no servidor de jogo (um com 150 ms de RTT e 2% de perda simulados; `LAG` e `LOSS` mudam) e mede a resposta da nave e as correções de predição. Rode com o build servido por `preview`.
 - `VITE_SOURCE_URL` (opcional, no build): endereço público do código-fonte para o link "Código-fonte (GPL)"; sem ele o link abre a página `/source`.
 
 ## Utilitários de desenvolvimento (`tools/dev/`)

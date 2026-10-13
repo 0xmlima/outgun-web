@@ -230,6 +230,9 @@ importers:
       '@outgun/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@outgun/netcode':
+        specifier: workspace:*
+        version: link:../../packages/netcode
       '@outgun/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol

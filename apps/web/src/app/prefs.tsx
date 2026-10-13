@@ -18,6 +18,10 @@ export interface Prefs {
   readonly continuousTextures: boolean;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
+  /** Predição do próprio jogador (`Lag prediction`; ligada por padrão na web, D-18). */
+  readonly lagPrediction: boolean;
+  /** 0..10: quanto do atraso a predição compensa (`Lag prediction amount`). */
+  readonly lagPredictionAmount: number;
 }
 
 const STORAGE_KEY = 'outgun.prefs';
@@ -30,6 +34,8 @@ function load(): Prefs {
     visibleRooms: 1,
     continuousTextures: true,
     bindings: CLASSIC_BINDINGS,
+    lagPrediction: true,
+    lagPredictionAmount: 10,
   };
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Prefs>;
@@ -44,6 +50,11 @@ function load(): Prefs {
       continuousTextures:
         typeof saved.continuousTextures === 'boolean' ? saved.continuousTextures : fallback.continuousTextures,
       bindings: parseBindings(saved.bindings ? JSON.stringify(saved.bindings) : null),
+      lagPrediction: typeof saved.lagPrediction === 'boolean' ? saved.lagPrediction : fallback.lagPrediction,
+      lagPredictionAmount:
+        Number.isInteger(saved.lagPredictionAmount) && saved.lagPredictionAmount! >= 0 && saved.lagPredictionAmount! <= 10
+          ? saved.lagPredictionAmount!
+          : fallback.lagPredictionAmount,
     };
   } catch {
     return fallback;

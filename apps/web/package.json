@@ -15,6 +15,7 @@
   "dependencies": {
     "@outgun/content": "workspace:*",
     "@outgun/i18n": "workspace:*",
+    "@outgun/netcode": "workspace:*",
     "@outgun/protocol": "workspace:*",
     "@outgun/settings": "workspace:*",
     "@outgun/sim": "workspace:*",

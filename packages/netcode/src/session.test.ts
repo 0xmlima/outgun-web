@@ -69,6 +69,21 @@ describe('ClientSession', () => {
     expect(sent.map((m) => m.type)).toEqual(['clientReady']);
   });
 
+  it('bandeiras que chegam antes de o mapa carregar valem quando ele carrega', () => {
+    const sent: AnyMessage[] = [];
+    const s: ClientSession = new ClientSession({ send: (m) => sent.push(...m), onMapChange: () => {} });
+    s.handle(
+      [
+        message('welcome', { protocol: 1, pid: 0, color: 0, maxPlayers: 4, mode: 'casual', mapIndex: 0, redScore: 0, blueScore: 0 }),
+        message('mapChange', { reason: 'other', mapIndex: 0, file: 'teste', title: 'teste', crc: 0 }),
+        message('flagUpdate', { team: 'blue', flags: [{ carried: false, carrier: 255, roomX: 1, roomY: 1, x: 236, y: 177 }] }),
+      ],
+      0,
+    );
+    s.setMap(MAP);
+    expect(s.world?.teams[1].flags[0]?.pos.roomX).toBe(1);
+  });
+
   it('ignora frame atrasado e aplica o mais novo', () => {
     const { s } = session();
     s.handle([frame(10, [player(0, 100, 100)])], 1000);
@@ -115,6 +130,16 @@ describe('ClientSession', () => {
     // tarde demais para o mesmo frame: vai no próximo envio
     s.setControls(CONTROL.down, 1095);
     expect(sent.filter((m) => m.type === 'input')).toHaveLength(2);
+  });
+
+  it('mede o atraso só de inputs enviados depois do primeiro frame', () => {
+    const { s } = session();
+    s.sendFrame(0); // clientFrame 1, antes de qualquer frame (servidor no frame 500)
+    s.handle([frame(500, [player(0, 100, 100)], 1)], 1000);
+    expect(s.stats.averageLag).toBe(0);
+    s.sendFrame(1050); // clientFrame 2, frame aparente 500,5
+    s.handle([frame(502, [player(0, 100, 100)], 2)], 1200);
+    expect(s.stats.averageLag).toBeCloseTo(1);
   });
 
   it('contador de 8 bits dá a volta', () => {
