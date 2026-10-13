@@ -68,7 +68,8 @@ export default function GameScreen() {
         else if (action === 'focusMode') setToast(t('Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).'));
         // telas e mensagens dos cards OG-044/045/066/067
         else if (action === 'toggleSound') toggleSound.current();
-        else if (action !== 'suicide' && action !== 'moreMessages' && action !== 'fullPlayfield') setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
+        // na partida online o host trata Insert, F12 e Ctrl+End; telas F1–F5/F8 são do OG-045/066
+        else if (action !== 'suicide' && (onlineKey === null || !['moreMessages', 'fullPlayfield', 'changeTeam'].includes(action))) setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
       },
     });
     host.current = game;

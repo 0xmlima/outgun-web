@@ -99,6 +99,8 @@ export interface HudState {
   readonly notResponding: boolean;
   /** Destaca no minimapa as salas na tela (mais de 1 sala na tela). */
   readonly highlightRooms: boolean;
+  /** Pediu troca de time (Ctrl+End): "CHANGE TEAMS" piscando. */
+  readonly changeTeams: boolean;
 }
 
 const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
@@ -216,6 +218,13 @@ export class HudRenderer {
         this.text(v, L.pupsValX - this.font.width(v), y, this.c(col));
       });
       this.text(this.t('Weapon $1', String(s.self.weapon)), L.weaponX, L.indicatorsY, this.c('weapon'));
+      if (s.changeTeams) {
+        // `draw_change_team_message`: pisca a 2 Hz no canto de baixo da área de jogo
+        const col = this.c(Math.trunc(positiveFmod(s.time * 2, 2)) ? 'change_message_1' : 'change_message_2');
+        const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 6 * 8 + 10);
+        this.text(this.t('CHANGE'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true });
+        this.text(this.t('TEAMS'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true });
+      }
       this.drawBar(s, L.healthX, this.t('Health'), s.self.health, 'health');
       this.drawBar(s, L.energyX, this.t('Energy'), s.self.energy, 'energy');
     }

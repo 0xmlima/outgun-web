@@ -144,6 +144,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       session?.send(message('suicide', {}));
     } else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
     else if (action === 'moreMessages' && onlineHud) onlineHud.showAll = !onlineHud.showAll;
+    else if (action === 'changeTeam' && onlineHud && session) {
+      onlineHud.wantChangeTeams = !onlineHud.wantChangeTeams;
+      session.send(message('changeTeam', { on: onlineHud.wantChangeTeams }));
+    }
     else if (action === 'fullPlayfield' && onlineHud) {
       fullHud = !fullHud;
       layout();
@@ -360,7 +364,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             const frame = entityFrameFromWorld(fd, {
               me: s.me,
               name: (pid) => s.names.get(pid) ?? '',
-              color: (pid) => pid % 16, // cores pessoais: OG-068
+              color: (pid) => s.colors.get(pid) ?? 16,
               hitfx: (pid) => {
                 const until = s.hitUntil.get(pid) ?? 0;
                 return until > now ? fd.time + (until - now) / 1000 : 0;
@@ -398,11 +402,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   })();
 
   /** Contadores para as medições (tools/visual-compare/fps.mjs) e testes. */
-  const report = (frame: { players: readonly { me: boolean; pos: WorldCoords; dead: boolean; gundir: number }[]; rockets: readonly unknown[] }) => {
+  const report = (frame: { players: readonly { me: boolean; pos: WorldCoords; dead: boolean; gundir: number; team: number }[]; rockets: readonly unknown[] }) => {
     container.dataset.players = String(frame.players.length);
     container.dataset.rockets = String(frame.rockets.length);
     const me = frame.players.find((p) => p.me);
-    if (me) container.dataset.me = `${me.pos.room.x},${me.pos.room.y},${Math.round(me.pos.x)},${Math.round(me.pos.y)},${me.dead ? 'morto' : 'vivo'},${me.gundir}`;
+    if (me) container.dataset.me = `${me.pos.room.x},${me.pos.room.y},${Math.round(me.pos.x)},${Math.round(me.pos.y)},${me.dead ? 'morto' : 'vivo'},${me.gundir},${me.team}`;
   };
 
   /** Chat: antes do jogo e do menu (fase de captura), para o Esc só limpar o texto digitado. */

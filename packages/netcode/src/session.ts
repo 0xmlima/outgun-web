@@ -110,6 +110,8 @@ export class ClientSession {
   /** Pids ocupados (vale também antes de o mapa carregar). */
   readonly present = new Set<number>();
   readonly frags = new Map<number, number>();
+  /** Cor pessoal de cada jogador 0..15 (`welcome`, `playerJoined`, `playerInfo`, `teamChange`). */
+  readonly colors = new Map<number, number>();
   /** Placar dos times (`welcome`, `scoreUpdate`). */
   readonly teamScores: [number, number] = [0, 0];
   /** Nível da arma do próprio jogador (`weaponChange`). */
@@ -269,6 +271,13 @@ export class ClientSession {
         this.maxPlayers = m.maxPlayers;
         this.teamScores[0] = m.redScore;
         this.teamScores[1] = m.blueScore;
+        this.colors.set(m.pid, m.color);
+        break;
+      case 'playerInfo':
+        this.colors.set(m.pid, m.color);
+        break;
+      case 'teamChange':
+        this.onTeamChange(m);
         break;
       case 'scoreUpdate':
         this.teamScores[m.team === 'red' ? 0 : 1] = m.score;
@@ -319,6 +328,7 @@ export class ClientSession {
         break;
       case 'playerJoined':
         this.names.set(m.pid, m.name);
+        this.colors.set(m.pid, m.color);
         this.ensurePlayer(m.pid);
         break;
       case 'playerName':
@@ -390,6 +400,39 @@ export class ClientSession {
       default:
         break;
     }
+  }
+
+  /** `data_team_change`: o jogador vai para outra vaga (ou troca de vaga com outro). */
+  private onTeamChange(m: MessageOf<'teamChange'>): void {
+    const { from, to } = m;
+    const swap = m.swappedColor !== 255;
+    const world = this.world;
+    const maps: Map<number, unknown>[] = [this.names, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil];
+    for (const map of maps) {
+      const a = map.get(from);
+      const b = map.get(to);
+      map.delete(from);
+      map.delete(to);
+      if (a !== undefined) map.set(to, a);
+      if (swap && b !== undefined) map.set(from, b);
+    }
+    const onA = this.onscreen.delete(from);
+    const onB = this.onscreen.delete(to);
+    if (onA) this.onscreen.add(to);
+    if (swap && onB) this.onscreen.add(from);
+    if (!swap) this.present.delete(from);
+    this.present.add(to);
+    if (world) {
+      const pa = world.players[from];
+      const pb = world.players[to];
+      const rekey = (p: PlayerState | undefined, pid: number) => (p ? Object.assign(new PlayerState(pid, world.teamOf(pid)), p, { pid, team: world.teamOf(pid) }) : undefined);
+      world.players[to] = rekey(pa, to);
+      world.players[from] = swap ? rekey(pb, from) : undefined;
+    }
+    this.colors.set(to, m.color);
+    if (swap) this.colors.set(from, m.swappedColor);
+    if (this.me === from) this.me = to;
+    else if (swap && this.me === to) this.me = from;
   }
 
   private onFlagUpdate(world: WorldState, m: MessageOf<'flagUpdate'>): void {

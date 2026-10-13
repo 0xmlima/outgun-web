@@ -84,7 +84,17 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         if (hello.protocol !== PROTOCOL_VERSION) return reject(ws, 'protocolMismatch', `protocolo ${PROTOCOL_VERSION} exigido`);
         const identity = identify(hello.ticket, options.devTickets);
         if (!identity) return reject(ws, 'invalidTicket', 'ticket inválido');
-        const joined = room.join({ send: (b) => void ws.send(b, true), close: (code, reason) => ws.end(code, reason) }, identity);
+        const joined = room.join(
+          {
+            send: (b) => void ws.send(b, true),
+            close: (code, reason) => ws.end(code, reason),
+            // troca de time muda o pid do jogador
+            moved: (pid) => {
+              user.pid = pid;
+            },
+          },
+          identity,
+        );
         if (!joined.ok) return reject(ws, joined.reason, joined.text);
         user.pid = joined.pid;
         if (rest.length > 0) room.handle(user.pid, rest);

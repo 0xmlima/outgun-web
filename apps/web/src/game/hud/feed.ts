@@ -254,6 +254,10 @@ export class MessageFeed {
         this.pushPlain(m.kind, m.text, c.time, team);
         break;
       }
+      case 'teamChange':
+        if (m.swappedColor !== 255) info(t('$1 and $2 swapped teams.', name(m.from), name(m.to)));
+        else info(t(c.teamOf(m.from) === 1 ? '$1 moved to red team.' : '$1 moved to blue team.', name(m.from)));
+        break;
       case 'idleKickWarning':
         this.pushPlain('warning', t('*** Idle kick: move or be kicked in $1 seconds.', String(m.seconds)), c.time);
         break;

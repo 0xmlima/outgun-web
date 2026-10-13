@@ -207,6 +207,78 @@ describe('Room: sons da sala (OG-067)', () => {
   });
 });
 
+describe('Room: times (OG-044)', () => {
+  const small = () => new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 4, seed: 7 });
+
+  it('sala cheia de bots: quem entra toma o lugar de um bot', () => {
+    const r = small();
+    for (let i = 0; i < 4; i++) expect(r.addBot(`bot${i}`).ok).toBe(true);
+    expect(r.bots()).toHaveLength(4);
+    const a = join(r, 'Ana');
+    expect(r.bots()).toHaveLength(3);
+    expect(r.world.players[a.pid]).toBeDefined();
+    expect(a.conn.of('welcome')[0]?.pid).toBe(a.pid);
+    const left = a.conn.of('playerLeft');
+    expect(left).toHaveLength(0); // saiu antes de ela entrar
+    // sala cheia só de humanos: recusa
+    const r2 = small();
+    for (const n of ['a', 'b', 'c', 'd']) join(r2, n);
+    expect(r2.join(new TestConnection(), { name: 'e', accountId: null }).ok).toBe(false);
+  });
+
+  it('Ctrl+End com times iguais: troca com um bot do outro time e avisa todos', () => {
+    const r = small();
+    const a = join(r, 'Ana'); // pid 0 ou 2
+    const bot = r.addBot('Robô');
+    expect(bot.ok && r.world.teamOf(bot.ok ? bot.pid : 0) !== r.world.teamOf(a.pid)).toBe(true);
+    r.handle(a.pid, [message('changeTeam', { on: true })]);
+    r.tick();
+    const change = a.conn.of('teamChange')[0];
+    expect(change).toMatchObject({ from: a.pid, to: bot.ok ? bot.pid : -1 });
+    expect(change?.swappedColor).not.toBe(255);
+    expect(r.bots()).toEqual([a.pid]); // o bot ficou com a vaga antiga dela
+  });
+
+  it('time com 1 a mais: muda sozinho; depois espera 10 s para trocar de novo', () => {
+    const r = small();
+    const a = join(r, 'Ana');
+    const conn = a.conn;
+    let pid = a.pid;
+    r.handle(pid, [message('changeTeam', { on: true })]);
+    r.tick();
+    const moved = conn.of('teamChange')[0];
+    expect(moved).toMatchObject({ from: pid, swappedColor: 255 });
+    pid = moved!.to;
+    expect(r.world.teamOf(pid)).not.toBe(r.world.teamOf(a.pid));
+    r.handle(pid, [message('changeTeam', { on: true })]);
+    for (let i = 0; i < 50; i++) r.tick();
+    expect(conn.of('teamChange')).toHaveLength(1);
+    for (let i = 0; i < 60; i++) r.tick();
+    expect(conn.of('teamChange')).toHaveLength(2);
+  });
+
+  it('bots equilibram os times sozinhos quando a diferença chega a 2', () => {
+    const r = small();
+    join(r, 'Ana');
+    r.addBot('b1');
+    r.addBot('b2');
+    // tira o humano do time com 1: fica 2 × 0
+    const lonely = [...Array(4).keys()].find((pid) => r.world.players[pid] && r.bots().every((b) => r.world.teamOf(b) !== r.world.teamOf(pid)));
+    if (lonely !== undefined) r.leave(lonely);
+    r.tick();
+    const teams = r.bots().map((b) => r.world.teamOf(b));
+    expect(new Set(teams).size).toBe(2);
+  });
+
+  it('cores favoritas: a primeira livre do time', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    r.handle(a.pid, [message('favoriteColors', { colors: [5, 6] })]);
+    r.tick();
+    expect(a.conn.of('playerInfo').at(-1)).toMatchObject({ pid: a.pid, color: 5 });
+  });
+});
+
 describe('RoomManager', () => {
   it('encerra sala vazia depois do tempo configurado; salas fixas ficam', () => {
     let t = 0;

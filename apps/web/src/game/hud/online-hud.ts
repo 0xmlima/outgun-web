@@ -28,6 +28,8 @@ export class OnlineHud {
   chat = '';
   /** Insert: todas as mensagens. */
   showAll = false;
+  /** Pediu troca de time (Ctrl+End); a troca feita zera o pedido. */
+  wantChangeTeams = false;
   /** Onde cada bandeira carregada foi vista por último (portador na tela). */
   private readonly flagSeen = new Map<string, WorldCoords>();
   private deadAfterHighlighted = true;
@@ -56,6 +58,7 @@ export class OnlineHud {
 
   /** Mensagem do servidor (chamar antes de a sessão tratá-la, para nomes de quem sai). */
   onMessage(m: Parameters<MessageFeed['onMessage']>[0]): FeedFacts {
+    if (m.type === 'teamChange' && (m.from === this.session.me || m.to === this.session.me)) this.wantChangeTeams = false;
     if (m.type === 'gameOver') this.feed.gameOverScores(this.session.teamScores[0], this.session.teamScores[1], this.context());
     return this.feed.onMessage(m, this.context());
   }
@@ -139,7 +142,7 @@ export class OnlineHud {
         pid: p.pid,
         team: p.team,
         name: s.names.get(p.pid) ?? '',
-        color: p.pid % 16, // cores pessoais: OG-068
+        color: s.colors.get(p.pid) ?? 16,
         frags: s.frags.get(p.pid) ?? p.stats.frags,
         ping: s.pings.get(p.pid) ?? 0,
         flagTeam: flagTeamOf(p.pid),
@@ -216,6 +219,7 @@ export class OnlineHud {
       hidden: hiddenGame ? { gameOver: s.gameOver, waitingMap: s.mapRequest && !s.gameOver ? s.mapRequest.title : null } : null,
       notResponding: s.lastPacketTime > 0 && opts.now - s.lastPacketTime > 1000,
       highlightRooms: opts.rooms.visibleX > 1 || opts.rooms.visibleY > 1,
+      changeTeams: this.wantChangeTeams,
     };
   }
 }

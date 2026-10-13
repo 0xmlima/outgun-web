@@ -235,6 +235,26 @@ describe('dados do HUD', () => {
   });
 });
 
+describe('troca de time', () => {
+  it('mudar: o jogador (e eu) vai para a vaga nova com nome, frags e cor', () => {
+    const { s } = session();
+    s.handle([frame(10, [player(0, 100, 100)]), message('frags', { pid: 0, frags: 4 })], 1000);
+    s.handle([message('teamChange', { from: 0, to: 3, color: 7, swappedColor: 255 })], 1100);
+    expect(s.me).toBe(3);
+    expect(s.world?.players[0]).toBeUndefined();
+    expect(s.world?.players[3]?.team).toBe(1);
+    expect([s.names.get(3), s.frags.get(3), s.colors.get(3)]).toEqual(['Eu', 4, 7]);
+  });
+
+  it('trocar: os dois mudam de vaga', () => {
+    const { s } = session();
+    s.handle([message('teamChange', { from: 0, to: 2, color: 1, swappedColor: 9 })], 1000);
+    expect(s.me).toBe(2);
+    expect([s.names.get(2), s.names.get(0)]).toEqual(['Eu', 'Outro']);
+    expect([s.colors.get(2), s.colors.get(0)]).toEqual([1, 9]);
+  });
+});
+
 describe('geometria do mapa toroidal', () => {
   it('delta pega o caminho mais curto pela volta do mapa', () => {
     const a = new Position(0, 0, 5, 5);

@@ -1327,6 +1327,46 @@ export class ServerSim {
     world.players[pid] = undefined;
   }
 
+  /**
+   * Parte de mundo de `Server::move_player` (src/server.cpp:323): larga a bandeira, reinicia o jogador
+   * se estiver vivo e o leva para o slot livre `to` do outro time, com os foguetes, explosões e
+   * ataques de deathbringer (`changeEmbeddedPids`).
+   */
+  movePlayer(from: number, to: number): PlayerState {
+    const world = this.world;
+    const old = this.player(from);
+    if (world.players[to]) throw new Error(`pid ${to} ocupado`);
+    this.dropFlagIfAny(from, true);
+    if (!old.dead) this.resetPlayer(from, 0);
+    const moved = Object.assign(new PlayerState(to, world.teamOf(to)), old, { pid: to, team: world.teamOf(to) });
+    world.players[to] = moved;
+    world.players[from] = undefined;
+    for (const rk of world.rockets) if (rk.owner === from) rk.owner = to;
+    for (const db of world.explosions) if (db.ownerPid === from) db.ownerPid = to;
+    for (const p of world.players) if (p && p.deathbringerAttacker === from) p.deathbringerAttacker = to;
+    this.resetCarrierData(from);
+    return moved;
+  }
+
+  /** Parte de mundo de `Server::swap_players` (src/server.cpp:354) e `swapEmbeddedPids`. */
+  swapPlayers(a: number, b: number): void {
+    const world = this.world;
+    const pa = this.player(a);
+    const pb = this.player(b);
+    this.dropFlagIfAny(a, true);
+    this.dropFlagIfAny(b, true);
+    this.resetCarrierData(a);
+    this.resetCarrierData(b);
+    if (!pa.dead) this.resetPlayer(a, 0);
+    if (!pb.dead) this.resetPlayer(b, 0);
+    world.players[a] = Object.assign(new PlayerState(a, world.teamOf(a)), pb, { pid: a, team: world.teamOf(a) });
+    world.players[b] = Object.assign(new PlayerState(b, world.teamOf(b)), pa, { pid: b, team: world.teamOf(b) });
+    const swap = (pid: number) => (pid === a ? b : pid === b ? a : pid);
+    for (const rk of world.rockets) if (rk.owner !== -1) rk.owner = swap(rk.owner);
+    for (const db of world.explosions) db.ownerPid = swap(db.ownerPid);
+    for (const p of world.players) if (p) p.deathbringerAttacker = swap(p.deathbringerAttacker);
+  }
+
   /** `ServerWorld::start_game`: o relógio do mapa começa e os power-ups iniciais aparecem. */
   startGame(): void {
     this.world.mapStartFrame = this.frame;
