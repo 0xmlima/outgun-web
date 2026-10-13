@@ -109,7 +109,8 @@ describe.skipIf(!pgAdminUrl)('entrada nas salas (OG-083)', () => {
   it('sala inexistente ou fora do ar (sem endereço de desenvolvimento)', async () => {
     expect((await join('nada', { name: 'Visita' })).statusCode).toBe(404);
     const prod = await buildApp({ config: { ...loadConfig({}), databaseUrl: t.url, devRoomWsUrl: undefined }, database: t, logger: false });
-    const res = await prod.inject({ method: 'POST', url: '/rooms/ranked/join', payload: { name: 'X' }, headers: { origin: ORIGIN } });
+    await t.db.insert(rooms).values({ id: 'fora', name: 'Fora do ar', mode: 'casual', preset: 'classic', maxPlayers: 8 });
+    const res = await prod.inject({ method: 'POST', url: '/rooms/fora/join', payload: { name: 'Xis' }, headers: { origin: ORIGIN } });
     expect(res.json().error).toBe('room_offline');
     await prod.close();
   });

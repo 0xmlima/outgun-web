@@ -9,8 +9,10 @@ import { percentile } from './loop.js';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
 import { startServer, type RunningServer } from './server.js';
+import { makeSpawner } from './spawn.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
+const mapsDir = fileURLToPath(new URL('../../../maps', import.meta.url));
+const maps = loadMaps(mapsDir, ['outgun1']);
 let manager: RoomManager;
 let server: RunningServer;
 const apiKey = generateSigningKey('k1');
@@ -18,12 +20,13 @@ const publicKeys = fromJwks(toJwks([apiKey]));
 
 beforeAll(async () => {
   // salas sem espera de reconexão (como o original); a reconexão tem sala própria
-  manager = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3, roomDefaults: { reconnectSeconds: 0 } });
+  manager = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3, maxRooms: 4, roomDefaults: { reconnectSeconds: 0 } });
   manager.create({ id: 'main', preset: 'classic', maps, maxPlayers: 32, persistent: true });
   manager.create({ id: 'ranked', preset: 'ranked', maps, maxPlayers: 16, persistent: true });
   manager.create({ id: 'volta', preset: 'classic', maps, maxPlayers: 16, persistent: true, reconnectSeconds: 15 });
   manager.start();
-  server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true, ticketKeys: () => publicKeys });
+  const spawnRoom = makeSpawner(manager, { mapsDir, rotations: { casual: ['outgun1'], ranked: ['outgun1'] } });
+  server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true, ticketKeys: () => publicKeys, spawnRoom });
 });
 
 afterAll(() => {
@@ -250,5 +253,41 @@ describe('game server', () => {
     garbage.ws.send(new Uint8Array([0xff, 0xff, 0xff, 0x01]));
     await garbage.until(() => garbage.closed !== null);
     expect(garbage.closed?.reason).toBe('client_misbehavior');
+  });
+});
+
+describe('sala aberta pelo ticket (OG-086)', () => {
+  const guest: TicketInput = { aud: 'p-nova', sub: 'guest:1', name: 'Bia*', acct: false, admin: false, clan: null, ranked: false };
+  const spawn = { name: 'Treino', mode: 'casual' as const, preset: 'duel', maxPlayers: 2, persistent: false, maps: ['coliseu', 'nao-existe'] };
+  const outcome = async (room: string, ticket: string) => {
+    const c = new Client(room);
+    await c.hello(ticket);
+    await c.until(() => c.closed !== null || c.of('welcome').length > 0);
+    return c;
+  };
+
+  it('sala desconhecida sem pedido de abertura é recusada', async () => {
+    const c = await outcome('p-nova', signTicket(guest, apiKey));
+    expect(c.of('reject')[0]?.reason).toBe('roomClosed');
+    expect(manager.get('p-nova')).toBeUndefined();
+  });
+
+  it('o primeiro ticket abre a sala com a configuração da API; o segundo entra nela', async () => {
+    const a = await outcome('p-nova', signTicket({ ...guest, spawn }, apiKey));
+    expect(a.of('welcome')[0]).toMatchObject({ maxPlayers: 2, mode: 'casual' });
+    const room = manager.get('p-nova')!;
+    expect(manager.hosted().find((r) => r.id === 'p-nova')).toMatchObject({ name: 'Treino', preset: 'duel', persistent: false, players: 1, map: room.world.map.title });
+    // mapa inexistente sai da rotação
+    expect(room.world.map.title).toBe(loadMaps(mapsDir, ['coliseu'])[0]!.title);
+    const b = await outcome('p-nova', signTicket({ ...guest, sub: 'guest:2', name: 'Caio*', spawn }, apiKey));
+    expect(b.of('welcome')).toHaveLength(1);
+    a.close();
+    b.close();
+  });
+
+  it('sem vaga para mais salas, recusa', async () => {
+    const c = await outcome('p-outra', signTicket({ ...guest, aud: 'p-outra', spawn }, apiKey));
+    expect(c.of('reject')[0]?.reason).toBe('roomClosed');
+    manager.close('p-nova');
   });
 });

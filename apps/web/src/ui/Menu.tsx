@@ -37,6 +37,16 @@ export type MenuItem =
       readonly value: string;
       readonly onChange: (delta: -1 | 1) => void;
       readonly disabled?: boolean;
+    }
+  | {
+      /** `Colorselect` (src/menu.cpp): ←/→ escolhe; Ctrl+←/→ (ou +/−) leva a cor junto. */
+      readonly kind: 'colors';
+      readonly label: string;
+      /** Cores CSS na ordem atual. */
+      readonly colors: readonly string[];
+      readonly selected: number;
+      readonly onMove: (delta: -1 | 1, carry: boolean) => void;
+      readonly disabled?: boolean;
     };
 
 interface MenuProps {
@@ -64,7 +74,7 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
     if (!item || item.disabled) return;
     if (item.kind === 'action') item.onActivate();
     else if (item.kind === 'choice') item.onChange(1);
-    else if (item.onEnter) item.onEnter();
+    else if (item.kind === 'text' && item.onEnter) item.onEnter();
     else {
       const next = nextEnabled(items, index, 1);
       if (next > index) setCurrent(next);
@@ -72,8 +82,17 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
   };
 
   const onKeyDown = (ev: KeyboardEvent) => {
-    if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
     const item = items[current];
+    if (item?.kind === 'colors' && !item.disabled) {
+      const left = ev.key === 'ArrowLeft' || ev.key === '+';
+      const right = ev.key === 'ArrowRight' || ev.key === '-';
+      if (left || right) {
+        ev.preventDefault();
+        item.onMove(left ? -1 : 1, ev.ctrlKey || ev.metaKey || ev.key === '+' || ev.key === '-');
+        return;
+      }
+    }
+    if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
     if (ev.key === 'Delete' && item?.kind === 'action' && item.onDelete) {
       ev.preventDefault();
       item.onDelete();
@@ -166,6 +185,13 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
                 <BitmapText className="menu-label" text={item.label} />
                 {item.kind === 'choice' && (
                   <BitmapText className="menu-value" text={`< ${item.value} >`} />
+                )}
+                {item.kind === 'colors' && (
+                  <span className="menu-colors" aria-label={item.label}>
+                    {item.colors.map((c, i) => (
+                      <span key={i} className={i === item.selected ? 'swatch selected' : 'swatch'} style={{ background: c }} />
+                    ))}
+                  </span>
                 )}
                 {item.kind === 'action' && item.note && (
                   <BitmapText className="menu-note" text={item.note} />

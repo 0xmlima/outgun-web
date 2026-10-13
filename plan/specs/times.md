@@ -17,7 +17,7 @@ Em que time e vaga entra cada jogador, quando um pedido de troca (Ctrl+End) é a
 
 ## Regras da versão web
 1. Bots são jogadores marcados (`playerJoined.bot`, sem IA até o OG-048) e nunca entram em salas Ranked (D-11).
-2. `getLessScoredTeam` sem o modificador de ranking (OG-084): placar, depois sorteio.
+2. `getLessScoredTeam` com o modificador de ranking (OG-084, `plan/specs/ranking.md`): modificador do time com a força da temporada de cada conta, depois placar, depois sorteio.
 3. O relógio de `team_change_time` é o do jogo (`frame / 10`, D-09).
 4. Ao mudar de pid, o transporte do servidor passa a usar o pid novo para as mensagens do jogador.
 

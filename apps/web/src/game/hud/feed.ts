@@ -142,6 +142,9 @@ export class MessageFeed {
   private readonly present = new Set<number>();
 
   private readonly t: Translate;
+  /** `Show killing messages` e `Show flag messages` (OG-068; capturas aparecem sempre). */
+  showKillMessages = true;
+  showFlagMessages = true;
 
   constructor(
     translate: Translate,
@@ -177,6 +180,8 @@ export class MessageFeed {
     const flagText = (prefix: string, which: string, pid: number) =>
       t(`$1 ${prefix} THE ${which === 'wild' ? '$GWILD' : which === 'red' ? '$RRED' : '$BBLUE'} FLAG$>!`, name(pid));
     const info = (code: string) => this.push('info', code, c.time);
+    const killInfo = (code: string) => this.showKillMessages && info(code);
+    const flagInfo = (code: string) => this.showFlagMessages && info(code);
     switch (m.type) {
       case 'playersPresent':
         for (const pid of m.pids) this.present.add(pid);
@@ -201,35 +206,35 @@ export class MessageFeed {
           collision: ['$1 received a mortal blow.', '$1 received a mortal blow from teammate $2.', '$1 received a mortal blow from $2.'],
           rocket: ['$1 was nailed.', '$1 was nailed by teammate $2.', '$1 was nailed by $2.'],
         }[m.cause];
-        info(t(verbs[!known ? 0 : same ? 1 : 2] as string, name(m.target), name(m.attacker)));
+        killInfo(t(verbs[!known ? 0 : same ? 1 : 2] as string, name(m.target), name(m.attacker)));
         const ended = (this.spree.get(m.target) ?? 0) >= 10;
         this.spree.set(m.target, 0);
-        if (ended) info(known ? t("$1's killing spree was ended by $2.", name(m.target), name(m.attacker)) : t("$1's killing spree was ended.", name(m.target)));
-        if (m.carriedFlag !== 'none') info(flagText('LOST', flag(m.target, m.carriedFlag), m.target));
+        if (ended) killInfo(known ? t("$1's killing spree was ended by $2.", name(m.target), name(m.attacker)) : t("$1's killing spree was ended.", name(m.target)));
+        if (m.carriedFlag !== 'none') flagInfo(flagText('LOST', flag(m.target, m.carriedFlag), m.target));
         if (!same && known) {
           const n = (this.spree.get(m.attacker) ?? 0) + 1;
           this.spree.set(m.attacker, n);
           if (n % 10 === 0) {
-            info(t('$1 is on a killing spree!', name(m.attacker)));
+            killInfo(t('$1 is on a killing spree!', name(m.attacker)));
             facts.spreeStarted = m.attacker;
           }
         }
         break;
       }
       case 'suicideEvent': {
-        if ((this.spree.get(m.pid) ?? 0) >= 10) info(t("$1's killing spree was ended.", name(m.pid)));
+        if ((this.spree.get(m.pid) ?? 0) >= 10) killInfo(t("$1's killing spree was ended.", name(m.pid)));
         this.spree.set(m.pid, 0);
-        if (m.carriedFlag !== 'none') info(flagText('LOST', flag(m.pid, m.carriedFlag), m.pid));
+        if (m.carriedFlag !== 'none') flagInfo(flagText('LOST', flag(m.pid, m.carriedFlag), m.pid));
         break;
       }
       case 'flagTake':
-        info(flagText('GOT', flag(m.pid, m.flag), m.pid));
+        flagInfo(flagText('GOT', flag(m.pid, m.flag), m.pid));
         break;
       case 'flagDrop':
-        if (!m.captureDrop) info(flagText('DROPPED', flag(m.pid, m.flag), m.pid));
+        if (!m.captureDrop) flagInfo(flagText('DROPPED', flag(m.pid, m.flag), m.pid));
         break;
       case 'flagReturn':
-        info(t(c.teamOf(m.pid) === 0 ? '$1 RETURNED THE $RRED FLAG$>!' : '$1 RETURNED THE $BBLUE FLAG$>!', name(m.pid)));
+        flagInfo(t(c.teamOf(m.pid) === 0 ? '$1 RETURNED THE $RRED FLAG$>!' : '$1 RETURNED THE $BBLUE FLAG$>!', name(m.pid)));
         break;
       case 'capture': {
         const which = m.flagTeam === 'wild' ? 'wild' : c.teamOf(m.pid) === 0 ? 'blue' : 'red';

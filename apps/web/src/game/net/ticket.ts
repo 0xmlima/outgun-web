@@ -20,10 +20,10 @@ export class JoinError extends Error {
  * `server` explícito (?server=) sempre manda no endereço; o ticket ainda vem da API quando ela
  * responde.
  */
-export async function requestTicket(room: string, name: string, server: string, explicitServer: boolean): Promise<JoinTicket> {
+export async function requestTicket(room: string, name: string, server: string, explicitServer: boolean, password?: string): Promise<JoinTicket> {
   const fallbackUrl = `${server.replace(/\/$/, '')}/rooms/${encodeURIComponent(room)}`;
   try {
-    const r = await api<{ ticket: string; wsUrl: string }>(`/rooms/${encodeURIComponent(room)}/join`, { body: { name } });
+    const r = await api<{ ticket: string; wsUrl: string }>(`/rooms/${encodeURIComponent(room)}/join`, { body: { name, ...(password ? { password } : {}) } });
     return { ticket: r.ticket, url: explicitServer ? fallbackUrl : r.wsUrl };
   } catch (error) {
     if (error instanceof ApiError && error.status !== 0 && error.status < 500 && error.code !== 'unknown') throw new JoinError(error.code);

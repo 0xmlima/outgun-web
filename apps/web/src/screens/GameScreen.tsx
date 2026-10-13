@@ -2,25 +2,48 @@
 // Rota do jogo: o PixiJS desenha num canvas próprio controlado por `mountGame`; o React desenha só
 // os overlays (menu do Esc, como no original: "While in the game, press esc to open the menu").
 // Sem parâmetros, "Jogar agora" entra na sala do servidor de jogo (OG-064). Parâmetros de URL:
-// ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim),
+// ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim; a senha
+// da sala vem do lobby no estado da navegação),
 // ?demo=JOGADORES (partida local) e ?map=NOME&theme=TEMA&rooms=N&room=X,Y (visualizador de mapa).
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
-import { DEFAULT_MAP, mountGame, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
+import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
+import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
+import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
+
+/** Opções do jogador que valem na partida (OG-068). */
+function clientOptions(p: Prefs): ClientOptions {
+  return {
+    favoriteColors: p.randomColor ? null : p.favoriteColors,
+    minimapBandwidth: p.minimapBandwidth,
+    showFlagMessages: p.showFlagMessages,
+    showKillMessages: p.showKillMessages,
+    showNames: p.showNames,
+    fpsLimit: p.fpsLimit,
+    soundTheme: p.soundTheme,
+    quickMessages: { enabled: p.quickMessagesEnabled, immediate: p.quickMessagesImmediate, messages: p.quickMessages },
+  };
+}
 
 export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  // senha da sala privada vem do lobby pelo estado da navegação (nunca na URL)
+  const password = (useLocation().state as { password?: string } | null)?.password;
   const hostRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  /** Tela F1–F5 aberta (OG-066); `auto` = aberta sozinha no fim da partida (`stats_autoshowing`). */
+  const [info, setInfo] = useState<{ kind: InfoKind; auto: boolean } | null>(null);
+  const toggleInfo = useRef<(kind: InfoKind) => void>(() => {});
+  toggleInfo.current = (kind) => setInfo((cur) => (cur?.kind === kind ? null : { kind, auto: false }));
   const host = useRef<GameHost | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
@@ -44,7 +67,8 @@ export default function GameScreen() {
         url: params.get('server') ?? defaultServerUrl(),
         explicitServer: params.has('server'),
         room: params.get('sala') ?? 'main',
-        name: params.get('name') ?? 'Convidado',
+        name: params.get('name') ?? (prefs.playerName.trim() || 'Convidado'),
+        ...(password ? { password } : {}),
         ...(lag > 0 || loss > 0 ? { simulate: { rttMs: lag, jitterMs: lag / 10, loss } } : {}),
       };
     }
@@ -62,31 +86,71 @@ export default function GameScreen() {
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
       translate: (text, ...args) => tRef.current(text, ...args),
       sound: { enabled: prefs.soundEnabled, volume: prefs.soundVolume },
+      colourTheme: prefs.colourTheme,
+      preferThemeColours: prefs.preferThemeColours,
+      client: clientOptions(prefs),
       onStatus: setStatus,
       onAction: (action) => {
         const t = tRef.current;
         if (action === 'menu') setMenuOpen(true);
         else if (action === 'focusMode') setToast(t('Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).'));
-        // telas e mensagens dos cards OG-044/045/066/067
         else if (action === 'toggleSound') toggleSound.current();
+        else if (action === 'help') toggleInfo.current('help');
+        else if (action === 'serverInfo' && onlineKey !== null) toggleInfo.current('server');
+        else if (action === 'mapList' && onlineKey !== null) toggleInfo.current('maps');
+        else if (action === 'teamStats' && onlineKey !== null) toggleInfo.current('teams');
+        else if (action === 'playerStats' && onlineKey !== null) toggleInfo.current('players');
+        else if (action === 'toggleNames') toggleNames.current();
         // na partida online o host trata Insert, F12 e Ctrl+End; telas F1–F5/F8 são do OG-045/066
         else if (action !== 'suicide' && (onlineKey === null || !['moreMessages', 'fullPlayfield', 'changeTeam', 'voteMapChange'].includes(action))) setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
       },
     });
     host.current = game;
     return () => game.destroy();
-  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont]);
+  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont, prefs.colourTheme, prefs.preferThemeColours]);
+
+  // opções que mudam sem recarregar a partida
+  const client = clientOptions(prefs);
+  const clientKey = JSON.stringify(client);
+  useEffect(() => host.current?.setClient(JSON.parse(clientKey) as ClientOptions), [clientKey]);
 
   useEffect(() => host.current?.setBindings(prefs.bindings), [prefs.bindings]);
   useEffect(() => host.current?.setSound({ enabled: prefs.soundEnabled, volume: prefs.soundVolume }), [prefs.soundEnabled, prefs.soundVolume]);
   // Ctrl+M: liga e desliga o som (e grava a preferência)
   const toggleSound = useRef(() => {});
+  // Ctrl+N / F6: nomes "nunca" ↔ "na mesma sala" (Ctrl+F3 do original)
+  const toggleNames = useRef(() => {});
+  toggleNames.current = () => setPrefs({ showNames: prefs.showNames === 'never' ? 'sameRoom' : 'never' });
   toggleSound.current = () => setPrefs({ soundEnabled: !prefs.soundEnabled });
   useEffect(
     () => host.current?.setPrediction({ enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount }),
     [prefs.lagPrediction, prefs.lagPredictionAmount],
   );
   useEffect(() => host.current?.setInputEnabled(!menuOpen), [menuOpen]);
+
+  // `netStatsReady`/`netGameStarted`: F3/F4 abrem sozinhas no fim da partida e fecham no começo da
+  // próxima; F5 abre ao conectar com `Show server info when connected` (OG-066)
+  const auto = useRef({ statsReady: -1, gameOver: false, serverShown: false });
+  useEffect(() => {
+    if (onlineKey === null) return;
+    const id = setInterval(() => {
+      const s = host.current?.session();
+      if (!s) return;
+      const a = auto.current;
+      if (a.statsReady < 0) a.statsReady = s.statsReadyCount;
+      if (s.statsReadyCount !== a.statsReady) {
+        a.statsReady = s.statsReadyCount;
+        if (prefs.showStats !== 'off') setInfo((cur) => cur ?? { kind: prefs.showStats === 'teams' ? 'teams' : 'players', auto: true });
+      }
+      if (a.gameOver && !s.gameOver) setInfo((cur) => (cur?.auto ? null : cur));
+      a.gameOver = s.gameOver !== null;
+      if (!a.serverShown && s.me >= 0 && s.world) {
+        a.serverShown = true;
+        if (prefs.showServerInfo) setInfo((cur) => cur ?? { kind: 'server', auto: false });
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [onlineKey, prefs.showStats, prefs.showServerInfo]);
 
   // aviso curto das ações (some em 2 s)
   useEffect(() => {
@@ -128,6 +192,7 @@ export default function GameScreen() {
             <BitmapText text={toast} />
           </p>
         )}
+        {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
         {menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
         ) : onlineKey !== null && status?.kind === 'ready' ? null : (

@@ -129,3 +129,23 @@ describe('MessageFeed', () => {
     expect(chatPrompt('', en).cursor).toBe(-1);
   });
 });
+
+describe('opções de mensagens (OG-068)', () => {
+  it('sem mensagens de morte nem de bandeira: só a captura aparece', () => {
+    const feed = new MessageFeed(en);
+    feed.showKillMessages = false;
+    feed.showFlagMessages = false;
+    feed.onMessage(message('kill', { attacker: 8, target: 0, cause: 'rocket', carriedFlag: 'enemy', carrierDefended: false, flagDefended: false }), ctx);
+    feed.onMessage(message('flagTake', { pid: 8, flag: 'enemy' }), ctx);
+    feed.onMessage(message('flagReturn', { pid: 0 }), ctx);
+    feed.onMessage(message('capture', { pid: 8, flagTeam: 'red', assistant: 255 }), ctx);
+    expect(text(feed)).toEqual(['Bia$ CAPTURED THE RED FLAG!']);
+  });
+
+  it('só as de bandeira: a morte some, a bandeira perdida fica', () => {
+    const feed = new MessageFeed(en);
+    feed.showKillMessages = false;
+    feed.onMessage(message('kill', { attacker: 8, target: 0, cause: 'rocket', carriedFlag: 'enemy', carrierDefended: false, flagDefended: false }), ctx);
+    expect(text(feed)).toEqual(['Ana LOST THE BLUE FLAG!']);
+  });
+});

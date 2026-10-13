@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION, type MessageOf } from '@outgun/protocol';
 import uWS from 'uWebSockets.js';
 import type { KeyObject } from 'node:crypto';
-import type { Connection } from './room.js';
+import type { RoomSpawn } from '@outgun/tickets';
+import type { Connection, Room } from './room.js';
 import type { RoomManager } from './rooms.js';
 import { TicketAuth } from './tickets.js';
 
@@ -24,7 +25,14 @@ export interface ServerOptions {
   /** Pasta com `index.js` etc. de @outgun/protocol, servida em /protocol/ para a página de depuração. */
   protocolDist?: string;
   devPage?: string;
+  /**
+   * Abre a sala pedida no ticket (claim `spawn`, OG-086) quando ela não existe aqui; devolve
+   * undefined se não puder (sem vaga, mapas inválidos). Sem esta opção, só salas já criadas.
+   */
+  spawnRoom?: (id: string, spec: RoomSpawn) => Room | undefined;
 }
+
+const ROOM_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 interface SocketData {
   roomId: string;
@@ -54,7 +62,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     idleTimeout: 60,
     upgrade: (res, req, context) => {
       const roomId = req.getParameter(0) ?? '';
-      if (!manager.get(roomId)) {
+      if (!manager.get(roomId) && !(options.spawnRoom && ROOM_ID.test(roomId))) {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
@@ -70,15 +78,16 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     },
     message: (ws, data, isBinary) => {
       const user = ws.getUserData();
-      const room = manager.get(user.roomId);
-      if (!room) return ws.end(1001, 'sala encerrada');
+      let room = manager.get(user.roomId);
+      // antes do hello a sala pode não existir ainda: o ticket pode pedir a abertura
+      if (!room && user.pid !== -1) return ws.end(1001, 'sala encerrada');
       if (!isBinary) return ws.end(1003, 'só mensagens binárias');
       // o ArrayBuffer do uWS só vale durante o callback: decodifica na hora
       const decoded = decodeFrame(new Uint8Array(data.slice(0)), 'c2s');
       if (!decoded.ok) {
         // depois de entrar, erro de formato é `client_misbehavior`, como no original
         if (user.pid === -1) return ws.end(4002, 'mensagem inválida');
-        room.misbehaved(user.pid, decoded.error);
+        room?.misbehaved(user.pid, decoded.error);
         return;
       }
       if (user.pid === -1) {
@@ -87,6 +96,8 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         if (hello.protocol !== PROTOCOL_VERSION) return reject(ws, 'protocolMismatch', `protocolo ${PROTOCOL_VERSION} exigido`);
         const auth = tickets.identify(hello.ticket, user.roomId);
         if (!auth.ok) return reject(ws, 'invalidTicket', `ticket inválido (${auth.reason})`);
+        room ??= auth.spawn && options.spawnRoom ? options.spawnRoom(user.roomId, auth.spawn) : undefined;
+        if (!room) return reject(ws, 'roomClosed', 'sala indisponível neste servidor');
         const identity = { ...auth.identity, ip: user.ip };
         const conn: Connection = {
           send: (b) => void ws.send(b, true),
@@ -106,7 +117,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         if (others.length > 0) room.handle(user.pid, others);
         return;
       }
-      room.handle(user.pid, decoded.messages);
+      room!.handle(user.pid, decoded.messages);
     },
     close: (ws) => {
       const user = ws.getUserData();
@@ -116,7 +127,8 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
   });
 
   app.get('/health', (res) => {
-    res.writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));
+    // o lobby mede o ping de cada região com este endereço (OG-069)
+    res.writeHeader('access-control-allow-origin', '*').writeHeader('cache-control', 'no-store').writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));
   });
 
   app.get('/metrics', (res) => {

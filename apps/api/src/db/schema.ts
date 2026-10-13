@@ -67,6 +67,7 @@ export const playerProfiles = pgTable('player_profiles', {
   language: text('language').notNull().default('pt'),
   favoriteColors: smallint('favorite_colors').array().notNull().default(sql`'{}'`),
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
+  rankingParticipation: boolean('ranking_participation').notNull().default(true),
   updatedAt: tstz('updated_at').notNull().defaultNow(),
 });
 
@@ -92,7 +93,18 @@ export const rooms = pgTable('rooms', {
   players: smallint('players').notNull().default(0),
   map: text('map'),
   lastHeartbeatAt: tstz('last_heartbeat_at'),
+  maps: text('maps').array(),
   createdAt: tstz('created_at').notNull().defaultNow(),
+}, (t) => [index('rooms_server_idx').on(t.serverId)]);
+
+export const gameServers = pgTable('game_servers', {
+  id: text('id').primaryKey(),
+  wsBaseUrl: text('ws_base_url').notNull(),
+  region: text('region').notNull(),
+  maxRooms: smallint('max_rooms').notNull(),
+  rooms: smallint('rooms').notNull().default(0),
+  players: smallint('players').notNull().default(0),
+  lastHeartbeatAt: tstz('last_heartbeat_at').notNull(),
 });
 
 export const matches = pgTable(
@@ -110,6 +122,7 @@ export const matches = pgTable(
     blueScore: smallint('blue_score').notNull(),
     startedAt: tstz('started_at').notNull(),
     endedAt: tstz('ended_at').notNull(),
+    details: jsonb('details').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],
@@ -153,6 +166,21 @@ export const ratings = pgTable(
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
+);
+
+export const ratingDeltas = pgTable(
+  'rating_deltas',
+  {
+    serverId: text('server_id').notNull(),
+    deltaId: text('delta_id').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: integer('season_id').references(() => seasons.id, { onDelete: 'cascade' }),
+    roomId: text('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+    scoreDelta: integer('score_delta').notNull(),
+    negDelta: integer('neg_delta').notNull(),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.serverId, t.deltaId] })],
 );
 
 export const bans = pgTable('bans', {
@@ -213,9 +241,11 @@ export const allTables = {
   player_profiles: playerProfiles,
   seasons,
   rooms,
+  game_servers: gameServers,
   matches,
   match_players: matchPlayers,
   ratings,
+  rating_deltas: ratingDeltas,
   bans,
   admin_actions: adminActions,
   password_resets: passwordResets,

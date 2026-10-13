@@ -35,9 +35,42 @@ export interface GameHost {
   setBindings(bindings: Bindings): void;
   setPrediction(prediction: PredictionOptions): void;
   setSound(sound: { enabled: boolean; volume: number }): void;
+  /** Opções do jogador que valem durante a partida (OG-068). */
+  setClient(client: ClientOptions): void;
+  /** Telas F2–F5 (OG-066): a sessão (null fora de partida online) e o voto da lista de mapas. */
+  session(): ClientSession | null;
+  mapVote(): number;
+  voteMap(index: number): void;
+  /** Teclas para uma tela aberta (antes do chat e dos controles); devolve true se usou a tecla. */
+  setKeyInterceptor(fn: ((ev: KeyboardEvent) => boolean) | null): void;
   /** Para o laço e solta o canvas (e fecha a conexão). */
   destroy(): void;
 }
+
+/** Opções do jogador usadas na partida (OG-068, spec plan/specs/opcoes-jogador.md). */
+export interface ClientOptions {
+  /** As 16 cores em ordem; null = `Use random color` (não envia). */
+  readonly favoriteColors: readonly number[] | null;
+  /** `Bandwidth for out-of-room players` em cps (vai ao servidor como cps/20). */
+  readonly minimapBandwidth: number;
+  readonly showFlagMessages: boolean;
+  readonly showKillMessages: boolean;
+  readonly showNames: 'never' | 'sameRoom' | 'always';
+  readonly fpsLimit: number;
+  readonly soundTheme: string;
+  readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
+}
+
+export const DEFAULT_CLIENT: ClientOptions = {
+  favoriteColors: null,
+  minimapBandwidth: 80,
+  showFlagMessages: true,
+  showKillMessages: true,
+  showNames: 'sameRoom',
+  fpsLimit: 60,
+  soundTheme: 'Visa',
+  quickMessages: { enabled: false, immediate: false, messages: [] },
+};
 
 export interface OnlineOptions {
   /** Endereço do servidor (ws:// ou wss://), sem a sala. */
@@ -45,6 +78,8 @@ export interface OnlineOptions {
   readonly room: string;
   /** Nome do convidado (com conta, a API usa o nome da conta). */
   readonly name: string;
+  /** Senha da sala privada (pedida no lobby; vale também para as reconexões). */
+  readonly password?: string;
   /** `url` veio de ?server= (manda no endereço; senão vale o da API). */
   readonly explicitServer?: boolean;
   /** Rede simulada nos dois sentidos (depuração: ?lag=&loss=). */
@@ -75,6 +110,10 @@ export interface GameOptions {
   readonly translate: Translate;
   /** Som ligado e volume 0..255. */
   readonly sound: { readonly enabled: boolean; readonly volume: number };
+  /** `Colour theme` e `Prefer main theme colours` (OG-068). */
+  readonly colourTheme?: string;
+  readonly preferThemeColours?: boolean;
+  readonly client?: ClientOptions;
   /** Ações de toque (F1, F2...) e o botão Start do gamepad (`menu`). */
   readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
@@ -135,6 +174,17 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   let announced = false;
   let hud: HudRenderer | undefined;
   let onlineHud: OnlineHud | undefined;
+  let client: ClientOptions = opts.client ?? DEFAULT_CLIENT;
+  /** Favoritas e banda do minimapa já enviadas nesta conexão (`sendFavoriteColors`, `sendMinimapBandwidth`). */
+  let sentClient: { colors: string; minimap: number } | null = null;
+  const sendClientSettings = () => {
+    if (!session || !connection || sentClient === null) return;
+    const colors = client.favoriteColors ? client.favoriteColors.join(',') : '';
+    const minimap = Math.trunc(client.minimapBandwidth / 20);
+    if (colors && colors !== sentClient.colors) session.send(message('favoriteColors', { colors: [...client.favoriteColors!] }));
+    if (minimap !== sentClient.minimap) session.send(message('minimapBandwidth', { playersPerFrame: minimap }));
+    sentClient = { colors, minimap };
+  };
   let gameFont: GameFont | null = null;
   let screen: ScreenLayout | null = null;
   /** Minimapa e placar visíveis (F12 do original alterna). */
@@ -276,6 +326,9 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           else if (m.type === 'resumeToken') resumeToken = m.token;
           else if (m.type === 'welcome') {
             container.dataset.pid = String(m.pid); // para os testes (tools/visual-compare/reconnect.mjs)
+            // `client_connected`: favoritas (se não for cor aleatória) e banda do minimapa
+            sentClient = { colors: '', minimap: -1 };
+            sendClientSettings();
             if (dropDeadline !== 0) {
               // voltou à mesma vaga
               dropDeadline = 0;
@@ -288,14 +341,15 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     });
     session.prediction = opts.prediction;
     onlineHud = new OnlineHud(session, opts.translate);
+    onlineHud.setOptions(client);
     sounds = new SoundPlayer();
     sounds.configure(opts.sound.enabled, opts.sound.volume);
     const player = sounds;
     soundEvents = new SoundEvents((name) => player.has(name));
-    void loadManifest().then((m) => m && player.load(m));
+    void loadManifest().then((m) => m && player.load(m, client.soundTheme));
     opts.onStatus?.({ kind: 'connecting' });
     const connect = () =>
-      void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false).then(
+      void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false, online.password).then(
         ({ ticket, url }) => {
           if (destroyed || ended) return;
           connection = new GameConnection(
@@ -369,7 +423,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       container.append(app.canvas);
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
-      const theme = await loadRoomTheme(manifest, opts.theme);
+      const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+      app.ticker.maxFPS = client.fpsLimit;
       if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
       const playing = Boolean(opts.online || opts.demoPlayers);
@@ -378,6 +433,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         if (destroyed) return;
         gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);
+        entities.showNames = client.showNames;
         app.stage.addChild(entities.stage);
         if (opts.online && font) {
           hud = new HudRenderer(theme, font, opts.translate, app.renderer.resolution);
@@ -468,7 +524,13 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   };
 
   /** Chat: antes do jogo e do menu (fase de captura), para o Esc só limpar o texto digitado. */
+  let interceptor: ((ev: KeyboardEvent) => boolean) | null = null;
   const onChatKey = (ev: KeyboardEvent) => {
+    if (interceptor && input.isEnabled() && interceptor(ev)) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      return;
+    }
     if (!onlineHud || !input.isEnabled()) return;
     if (onlineHud.onKey(ev, boundCodes(bindings))) {
       ev.preventDefault();
@@ -488,6 +550,31 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       if (session) session.prediction = prediction;
     },
     setSound: (sound) => sounds?.configure(sound.enabled, sound.volume),
+    session: () => session ?? null,
+    mapVote: () => onlineHud?.mapVote ?? -1,
+    voteMap: (index) => {
+      if (!session || !onlineHud) return;
+      // `handleInfoScreenKeypress`: só manda se mudou (e "nenhum" só se havia voto)
+      if (index === onlineHud.mapVote || (index < 0 && onlineHud.mapVote < 0)) return;
+      onlineHud.mapVote = index;
+      onlineHud.mapExitDelayed = false;
+      session.send(message('mapVote', { map: index < 0 ? -1 : index }));
+    },
+    setKeyInterceptor: (fn) => {
+      interceptor = fn;
+    },
+    setClient: (next) => {
+      const themeChanged = next.soundTheme !== client.soundTheme;
+      client = next;
+      onlineHud?.setOptions(next);
+      if (entities) entities.showNames = next.showNames;
+      if (ready) app.ticker.maxFPS = next.fpsLimit;
+      if (themeChanged && sounds) {
+        const player = sounds;
+        void loadManifest().then((m) => m && player.load(m, next.soundTheme));
+      }
+      sendClientSettings();
+    },
     destroy() {
       destroyed = true;
       clearTimeout(reconnectTimer);

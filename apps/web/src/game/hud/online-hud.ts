@@ -33,6 +33,8 @@ export class OnlineHud {
   /** Votou para sair do mapa (F8); "atrasado" = não vale sem voto num mapa específico. */
   wantMapExit = false;
   mapExitDelayed = false;
+  /** Voto num mapa da lista F2 (−1 = nenhum, `map_vote`). */
+  mapVote = -1;
   /** Onde cada bandeira carregada foi vista por último (portador na tela). */
   private readonly flagSeen = new Map<string, WorldCoords>();
   private deadAfterHighlighted = true;
@@ -63,20 +65,45 @@ export class OnlineHud {
   /** Mensagem do servidor (chamar antes de a sessão tratá-la, para nomes de quem sai). */
   onMessage(m: Parameters<MessageFeed['onMessage']>[0]): FeedFacts {
     if (m.type === 'teamChange' && (m.from === this.session.me || m.to === this.session.me)) this.wantChangeTeams = false;
-    if (m.type === 'mapChange') this.wantMapExit = this.mapExitDelayed = false; // `netMapChange`
+    if (m.type === 'mapChange') {
+      this.wantMapExit = this.mapExitDelayed = false; // `netMapChange`
+      if (this.mapVote === m.mapIndex) this.mapVote = -1; // o servidor também zera o voto no mapa escolhido
+    }
     if (m.type === 'gameOver') this.feed.gameOverScores(this.session.teamScores[0], this.session.teamScores[1], this.context());
     const facts = this.feed.onMessage(m, this.context());
     if (facts.voteNoEffect) this.mapExitDelayed = true;
     return facts;
   }
 
+  /** Mensagens rápidas (Alt+1..0) e filtros do feed (OG-068). */
+  private quick: { enabled: boolean; immediate: boolean; messages: readonly string[] } = { enabled: false, immediate: false, messages: [] };
+
+  setOptions(o: { showFlagMessages: boolean; showKillMessages: boolean; quickMessages: { enabled: boolean; immediate: boolean; messages: readonly string[] } }): void {
+    this.feed.showFlagMessages = o.showFlagMessages;
+    this.feed.showKillMessages = o.showKillMessages;
+    this.quick = o.quickMessages;
+  }
+
+  private sendChat(): void {
+    const text = this.chat.trim();
+    if (text && text !== '.') this.session.send(message('chat', { text, teamOnly: text.startsWith('.') }));
+    this.chat = '';
+  }
+
   /** Tecla durante o jogo; devolve true se foi usada pelo chat. */
   onKey(ev: KeyboardEvent, boundCodes: ReadonlySet<string>): boolean {
+    // mensagem rápida: Alt+1..9 e Alt+0 (10ª), só com a linha de chat vazia
+    const digit = /^Digit(\d)$/.exec(ev.code);
+    if (ev.altKey && !ev.ctrlKey && !ev.metaKey && digit && this.quick.enabled && !this.chat) {
+      const text = this.quick.messages[(Number(digit[1]) + 9) % 10] ?? '';
+      if (!text) return false;
+      this.chat = text;
+      if (this.quick.immediate) this.sendChat();
+      return true;
+    }
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return false;
     if (ev.key === 'Enter') {
-      const text = this.chat.trim();
-      if (text && text !== '.') this.session.send(message('chat', { text, teamOnly: text.startsWith('.') }));
-      this.chat = '';
+      this.sendChat();
       return true;
     }
     if (!this.chat) {

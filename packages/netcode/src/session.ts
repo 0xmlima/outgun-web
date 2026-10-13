@@ -5,7 +5,7 @@
 // predição do próprio jogador. Não sabe nada de relógio nem de transporte: quem usa passa o tempo
 // (ms) e entrega/recebe as mensagens. Spec: plan/specs/predicao-interpolacao.md.
 import { message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { PRESETS, presetSettings, type GameSettings } from '@outgun/settings';
+import { applyGamemod, PRESETS, presetSettings, type GameSettings } from '@outgun/settings';
 import {
   applyPhysics,
   CarriedFlag,
@@ -129,6 +129,20 @@ export class ClientSession {
   mapList: MessageOf<'mapList'>['maps'] = [];
   mapVoteCounts: number[] = [];
   currentMapIndex = -1;
+  /** Preset da sala (`serverSettings`). */
+  preset = 'classic';
+  /** Estatísticas para F3/F4 (OG-066): último retrato de cada jogador e o tempo do jogo em que chegou. */
+  readonly playerStats = new Map<number, { stats: MessageOf<'stats'>['stats']; at: number }>();
+  /** Movimento e tiros de cada jogador (só no fim da partida, como no original). */
+  readonly movementShots = new Map<number, MessageOf<'movementShots'>['data']>();
+  readonly teamStats: [MessageOf<'teamStats'> | null, MessageOf<'teamStats'> | null] = [null, null];
+  teamMovementShots: MessageOf<'teamMovementShots'> | null = null;
+  /** Quantas vezes chegou `statsReady` (fim de partida; o cliente abre F3/F4 se configurado). */
+  statsReadyCount = 0;
+  /** Conta, ranking e admin de cada jogador (`playerInfo`, `data_crap_update`). */
+  readonly playerInfo = new Map<number, MessageOf<'playerInfo'>>();
+  /** Nome de quem já saiu (capturas antigas na tela F3). */
+  readonly pastNames = new Map<number, string>();
   /** Ping de cada jogador (ms), em rodízio no frame. */
   readonly pings = new Map<number, number>();
   /** Frame em que a posição de cada jogador foi vista pela última vez (frame ou minimapa; `posUpdated`). */
@@ -279,6 +293,22 @@ export class ClientSession {
         break;
       case 'playerInfo':
         this.colors.set(m.pid, m.color);
+        this.playerInfo.set(m.pid, m);
+        break;
+      case 'stats':
+        this.playerStats.set(m.stats.pid, { stats: m.stats, at: this.gameTime() });
+        break;
+      case 'movementShots':
+        this.movementShots.set(m.pid, m.data);
+        break;
+      case 'teamMovementShots':
+        this.teamMovementShots = m;
+        break;
+      case 'statsReady':
+        this.statsReadyCount++;
+        break;
+      case 'teamStats':
+        this.teamStats[m.team === 'red' ? 0 : 1] = m;
         break;
       case 'teamChange':
         this.onTeamChange(m);
@@ -303,6 +333,9 @@ export class ClientSession {
         this.gameOver = { reason: m.reason, red: this.teamScores[0], blue: this.teamScores[1] };
         break;
       case 'startGame':
+        // `data_start_game`: as estatísticas da partida anterior saem (as finais ficam no placar)
+        this.movementShots.clear();
+        this.teamMovementShots = null;
         this.gameOver = null;
         this.extraTime = false;
         break;
@@ -318,7 +351,11 @@ export class ClientSession {
         break;
       }
       case 'serverSettings':
-        if (PRESETS.some((p) => p.id === m.preset)) this.settings = presetSettings(m.preset);
+        // o preset e as linhas de /set por cima (a tela F5 mostra as regras em vigor)
+        if (PRESETS.some((p) => p.id === m.preset)) {
+          this.preset = m.preset;
+          this.settings = m.gamemod ? applyGamemod(presetSettings(m.preset), m.gamemod).settings : presetSettings(m.preset);
+        }
         break;
       case 'mapList':
         this.mapList = m.maps;
@@ -352,6 +389,10 @@ export class ClientSession {
         this.names.set(m.pid, m.name);
         break;
       case 'playerLeft':
+        if (this.names.has(m.pid)) this.pastNames.set(m.pid, this.names.get(m.pid)!);
+        this.playerStats.delete(m.pid);
+        this.movementShots.delete(m.pid);
+        this.playerInfo.delete(m.pid);
         this.names.delete(m.pid);
         this.present.delete(m.pid);
         this.posUpdated.delete(m.pid);

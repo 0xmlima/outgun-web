@@ -11,6 +11,7 @@ import type { SessionUser } from '../auth/sessions.js';
 import { usernameKey } from '../db/keys.js';
 import { matches, matchPlayers, playerProfiles, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
+import { playerRating } from '../ranking.js';
 import { ErrorSchema } from './schemas.js';
 
 /** Nome que substitui o do jogador nas partidas de uma conta excluída. */
@@ -131,6 +132,87 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         if (tag !== null && !checkClanTag(tag)) return reply.code(400).send({ error: 'invalid_clan_tag', message: 'invalid clan tag' });
         const [updated] = await db.update(users).set({ clanTag: tag, updatedAt: new Date() }).where(eq(users.id, user.id)).returning();
         return { user: toPublic(updated!) };
+      },
+    );
+
+    app.get(
+      '/settings',
+      {
+        schema: {
+          tags: ['contas'],
+          summary: 'Opções do jogador guardadas na conta (OG-068); vazio se nunca gravou',
+          response: { 200: Type.Object({ settings: Type.Record(Type.String(), Type.Unknown()), updatedAt: Type.Union([Type.String(), Type.Null()]) }), 401: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const [profile] = await db.select({ settings: playerProfiles.settings, updatedAt: playerProfiles.updatedAt }).from(playerProfiles).where(eq(playerProfiles.userId, user.id));
+        const settings = profile?.settings ?? {};
+        return { settings, updatedAt: Object.keys(settings).length ? (profile?.updatedAt.toISOString() ?? null) : null };
+      },
+    );
+
+    app.put(
+      '/settings',
+      {
+        schema: {
+          tags: ['contas'],
+          summary: 'Grava as opções do jogador (substitui as anteriores; até 16 KiB)',
+          body: Type.Object({ settings: Type.Record(Type.String({ maxLength: 40 }), Type.Unknown(), { maxProperties: 64 }) }),
+          response: { 200: Type.Object({ ok: Type.Literal(true) }), 401: ErrorSchema, 413: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const { settings } = request.body;
+        if (JSON.stringify(settings).length > 16 * 1024) return reply.code(413).send({ error: 'too_large', message: 'settings too large' });
+        // as favoritas também ficam na coluna própria (lista de 0..15)
+        const colors = Array.isArray(settings.favoriteColors)
+          ? settings.favoriteColors.filter((c): c is number => Number.isInteger(c) && (c as number) >= 0 && (c as number) < 16).slice(0, 16)
+          : undefined;
+        const set = { settings, ...(colors ? { favoriteColors: colors } : {}), updatedAt: new Date() };
+        await db.insert(playerProfiles).values({ userId: user.id, ...set }).onConflictDoUpdate({ target: playerProfiles.userId, set });
+        return { ok: true as const };
+      },
+    );
+
+    app.get(
+      '/ranking',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: 'Meu ranking na temporada ativa e se participo dele',
+          response: { 200: Type.Object({ score: Type.Number(), neg: Type.Integer(), participate: Type.Boolean(), rank: Type.Integer(), of: Type.Integer() }), 401: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        return playerRating(db, user.id);
+      },
+    );
+
+    app.put(
+      '/ranking',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: 'Liga ou desliga a participação no ranking (vale na próxima entrada numa sala)',
+          body: Type.Object({ participate: Type.Boolean() }),
+          response: { 200: Type.Object({ participate: Type.Boolean() }), 401: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const participate = request.body.participate;
+        await db
+          .insert(playerProfiles)
+          .values({ userId: user.id, rankingParticipation: participate })
+          .onConflictDoUpdate({ target: playerProfiles.userId, set: { rankingParticipation: participate, updatedAt: new Date() } });
+        return { participate };
       },
     );
 

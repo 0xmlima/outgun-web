@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Preferências do jogador guardadas no navegador (idioma, fonte dos menus, opções gráficas). As opções completas do
-// jogador chegam no OG-068.
+// Preferências do jogador (o menu Options do original, OG-068, spec plan/specs/opcoes-jogador.md),
+// guardadas no navegador e, com conta, também na API.
 import { detectLocale, LOCALES, translate, type Locale } from '@outgun/i18n';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
@@ -8,63 +8,145 @@ import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bi
 /** Fonte padrão dos menus (uma das 25 fontes do original convertidas no OG-013). */
 export const DEFAULT_MENU_FONT = 'Kulmikas';
 
+export type ShowNames = 'never' | 'sameRoom' | 'always';
+export type ShowStats = 'off' | 'teams' | 'players';
+export type SkipMaps = 'none' | 'dimmed' | 'highlighted';
+
 export interface Prefs {
   readonly locale: Locale;
+  /** Nome do convidado (`Name` do `Menu_player`); com conta, vale o nome da conta. */
+  readonly playerName: string;
+  /** As 16 cores na ordem de preferência (`Favorite colors`, RN-TIM-05). */
+  readonly favoriteColors: readonly number[];
+  /** `Use random color`: não envia as favoritas. */
+  readonly randomColor: boolean;
   readonly menuFont: string;
   /** Tema gráfico (`''` = sem tema: cores de fábrica, como o `config/client.cfg` distribuído). */
   readonly graphicsTheme: string;
+  /** `Colour theme` e `Prefer main theme colours`. */
+  readonly colourTheme: string;
+  readonly preferThemeColours: boolean;
   /** Salas na tela em cada direção (1 no `client.cfg` distribuído; D-05). */
   readonly visibleRooms: number;
   readonly continuousTextures: boolean;
+  /** `Show player names` (D-26: padrão "na mesma sala"). */
+  readonly showNames: ShowNames;
+  /** `FPS limit` (1..10000; 60). */
+  readonly fpsLimit: number;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
   /** Predição do próprio jogador (`Lag prediction`; ligada por padrão na web, D-18). */
   readonly lagPrediction: boolean;
   /** 0..10: quanto do atraso a predição compensa (`Lag prediction amount`). */
   readonly lagPredictionAmount: number;
+  /** `Bandwidth for out-of-room players (cps)`: 0..640, passo 20; vai ao servidor como cps/20. */
+  readonly minimapBandwidth: number;
+  readonly showFlagMessages: boolean;
+  readonly showKillMessages: boolean;
+  /** `Show stats after the round` (telas do OG-066). */
+  readonly showStats: ShowStats;
+  /** `Show server info when connected` (F5, OG-066). */
+  readonly showServerInfo: boolean;
+  /** `Skip maps in rotation` (lista de mapas F2, OG-066). */
+  readonly skipMaps: SkipMaps;
+  /** Mensagens rápidas (Alt+1..0). */
+  readonly quickMessagesEnabled: boolean;
+  readonly quickMessagesImmediate: boolean;
+  readonly quickMessages: readonly string[];
   /** `Sounds enabled` (Ctrl+M alterna). */
   readonly soundEnabled: boolean;
   /** `Volume` 0..255 (padrão 128, passo 15 no menu do original). */
   readonly soundVolume: number;
+  readonly soundTheme: string;
 }
 
 const STORAGE_KEY = 'outgun.prefs';
+export const QUICK_MESSAGES = 10;
+export const QUICK_MESSAGE_LENGTH = 30;
 
-function load(): Prefs {
-  const fallback: Prefs = {
-    locale: detectLocale(typeof navigator === 'undefined' ? [] : navigator.languages),
+/** As 16 cores: as válidas da lista salva primeiro (sem repetir), depois as que faltam. */
+export function completeColors(saved: unknown): number[] {
+  const list = Array.isArray(saved) ? saved.filter((c): c is number => Number.isInteger(c) && c >= 0 && c < 16) : [];
+  const out = [...new Set(list)];
+  for (let c = 0; c < 16; c++) if (!out.includes(c)) out.push(c);
+  return out;
+}
+
+export function defaultPrefs(languages: readonly string[] = []): Prefs {
+  return {
+    locale: detectLocale(languages),
+    playerName: '',
+    favoriteColors: completeColors([]),
+    randomColor: false,
     menuFont: DEFAULT_MENU_FONT,
     graphicsTheme: '',
+    colourTheme: '',
+    preferThemeColours: true,
     visibleRooms: 1,
     continuousTextures: true,
+    showNames: 'sameRoom',
+    fpsLimit: 60,
     bindings: CLASSIC_BINDINGS,
     lagPrediction: true,
     lagPredictionAmount: 10,
+    minimapBandwidth: 80,
+    showFlagMessages: true,
+    showKillMessages: true,
+    showStats: 'off',
+    showServerInfo: false,
+    skipMaps: 'dimmed',
+    quickMessagesEnabled: false,
+    quickMessagesImmediate: false,
+    quickMessages: new Array<string>(QUICK_MESSAGES).fill(''),
     soundEnabled: true,
     soundVolume: 128,
+    soundTheme: 'Visa',
   };
+}
+
+const int = (v: unknown, lo: number, hi: number, fallback: number) => (Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi ? (v as number) : fallback);
+const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
+const str = (v: unknown, fallback: string, max = 64) => (typeof v === 'string' ? v.slice(0, max) : fallback);
+const oneOf = <T extends string>(v: unknown, options: readonly T[], fallback: T): T => (options.includes(v as T) ? (v as T) : fallback);
+
+/** Preferências salvas (navegador ou conta), conferidas campo a campo; o que vier errado volta ao padrão. */
+export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Prefs {
+  const quick = Array.isArray(saved.quickMessages) ? saved.quickMessages : [];
+  return {
+    locale: LOCALES.includes(saved.locale as Locale) ? (saved.locale as Locale) : fallback.locale,
+    playerName: str(saved.playerName, fallback.playerName, 15),
+    favoriteColors: saved.favoriteColors === undefined ? fallback.favoriteColors : completeColors(saved.favoriteColors),
+    randomColor: bool(saved.randomColor, fallback.randomColor),
+    menuFont: str(saved.menuFont, fallback.menuFont),
+    graphicsTheme: str(saved.graphicsTheme, fallback.graphicsTheme),
+    colourTheme: str(saved.colourTheme, fallback.colourTheme),
+    preferThemeColours: bool(saved.preferThemeColours, fallback.preferThemeColours),
+    visibleRooms: int(saved.visibleRooms, 1, 20, fallback.visibleRooms),
+    continuousTextures: bool(saved.continuousTextures, fallback.continuousTextures),
+    showNames: oneOf(saved.showNames, ['never', 'sameRoom', 'always'], fallback.showNames),
+    fpsLimit: int(saved.fpsLimit, 1, 10000, fallback.fpsLimit),
+    bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
+    lagPrediction: bool(saved.lagPrediction, fallback.lagPrediction),
+    lagPredictionAmount: int(saved.lagPredictionAmount, 0, 10, fallback.lagPredictionAmount),
+    minimapBandwidth: int(saved.minimapBandwidth, 0, 640, fallback.minimapBandwidth),
+    showFlagMessages: bool(saved.showFlagMessages, fallback.showFlagMessages),
+    showKillMessages: bool(saved.showKillMessages, fallback.showKillMessages),
+    showStats: oneOf(saved.showStats, ['off', 'teams', 'players'], fallback.showStats),
+    showServerInfo: bool(saved.showServerInfo, fallback.showServerInfo),
+    skipMaps: oneOf(saved.skipMaps, ['none', 'dimmed', 'highlighted'], fallback.skipMaps),
+    quickMessagesEnabled: bool(saved.quickMessagesEnabled, fallback.quickMessagesEnabled),
+    quickMessagesImmediate: bool(saved.quickMessagesImmediate, fallback.quickMessagesImmediate),
+    quickMessages: Array.from({ length: QUICK_MESSAGES }, (_, i) => str(quick[i], fallback.quickMessages[i] ?? '', QUICK_MESSAGE_LENGTH)),
+    soundEnabled: bool(saved.soundEnabled, fallback.soundEnabled),
+    soundVolume: int(saved.soundVolume, 0, 255, fallback.soundVolume),
+    soundTheme: str(saved.soundTheme, fallback.soundTheme),
+  };
+}
+
+function load(): Prefs {
+  const fallback = defaultPrefs(typeof navigator === 'undefined' ? [] : navigator.languages);
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Prefs>;
-    return {
-      locale: LOCALES.includes(saved.locale as Locale) ? (saved.locale as Locale) : fallback.locale,
-      menuFont: typeof saved.menuFont === 'string' ? saved.menuFont : fallback.menuFont,
-      graphicsTheme: typeof saved.graphicsTheme === 'string' ? saved.graphicsTheme : fallback.graphicsTheme,
-      visibleRooms:
-        Number.isInteger(saved.visibleRooms) && saved.visibleRooms! >= 1 && saved.visibleRooms! <= 20
-          ? saved.visibleRooms!
-          : fallback.visibleRooms,
-      continuousTextures:
-        typeof saved.continuousTextures === 'boolean' ? saved.continuousTextures : fallback.continuousTextures,
-      bindings: parseBindings(saved.bindings ? JSON.stringify(saved.bindings) : null),
-      lagPrediction: typeof saved.lagPrediction === 'boolean' ? saved.lagPrediction : fallback.lagPrediction,
-      lagPredictionAmount:
-        Number.isInteger(saved.lagPredictionAmount) && saved.lagPredictionAmount! >= 0 && saved.lagPredictionAmount! <= 10
-          ? saved.lagPredictionAmount!
-          : fallback.lagPredictionAmount,
-      soundEnabled: typeof saved.soundEnabled === 'boolean' ? saved.soundEnabled : fallback.soundEnabled,
-      soundVolume:
-        Number.isInteger(saved.soundVolume) && saved.soundVolume! >= 0 && saved.soundVolume! <= 255 ? saved.soundVolume! : fallback.soundVolume,
-    };
+    return parsePrefs(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Record<string, unknown>, fallback);
   } catch {
     return fallback;
   }
@@ -73,6 +155,10 @@ function load(): Prefs {
 interface PrefsContextValue {
   readonly prefs: Prefs;
   readonly setPrefs: (change: Partial<Prefs>) => void;
+  /** Troca todas as preferências (as da conta ao entrar), sem gravar de volta na conta. */
+  readonly replacePrefs: (next: Prefs) => void;
+  /** Muda a cada `setPrefs` (não a cada `replacePrefs`): a conta só grava mudanças do jogador. */
+  readonly revision: number;
   /** `_()` do original no idioma escolhido. */
   readonly t: (text: string, ...args: string[]) => string;
 }
@@ -81,23 +167,27 @@ const PrefsContext = createContext<PrefsContextValue | null>(null);
 
 export function PrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setState] = useState(load);
-  const value = useMemo<PrefsContextValue>(
-    () => ({
+  const [revision, setRevision] = useState(0);
+  const value = useMemo<PrefsContextValue>(() => {
+    const store = (next: Prefs) => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // navegação privada ou armazenamento bloqueado: vale só nesta sessão
+      }
+      return next;
+    };
+    return {
       prefs,
-      setPrefs: (change) =>
-        setState((old) => {
-          const next = { ...old, ...change };
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          } catch {
-            // navegação privada ou armazenamento bloqueado: vale só nesta sessão
-          }
-          return next;
-        }),
+      revision,
+      setPrefs: (change) => {
+        setState((old) => store({ ...old, ...change }));
+        setRevision((r) => r + 1);
+      },
+      replacePrefs: (next) => setState(store(next)),
       t: (text, ...args) => translate(prefs.locale, text, ...args),
-    }),
-    [prefs],
-  );
+    };
+  }, [prefs, revision]);
   return <PrefsContext value={value}>{children}</PrefsContext>;
 }
 

@@ -18,15 +18,17 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 
 ## Variáveis de ambiente
 
-| Variável              | Padrão                                           | Uso                                                                      |
-| --------------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
-| `PORT` / `HOST`       | `7800` / `0.0.0.0`                               | Porta HTTP                                                               |
-| `DATABASE_URL`        | `postgres://outgun:outgun@localhost:5432/outgun` | PostgreSQL                                                               |
-| `REDIS_URL`           | vazio (sem Redis)                                | Redis                                                                    |
-| `INTERNAL_SECRETS`    | `dev:outgun-dev-secret-0000` fora de produção    | `servidor:segredo[\|segredo-antigo],...` dos game servers (mín. 16 car.) |
-| `INTERNAL_MAX_SKEW_S` | `30`                                             | Janela de relógio aceita nas rotas internas                              |
-| `MIGRATE`             | `1`                                              | `0` não aplica migrations ao iniciar                                     |
-| `LOG_LEVEL`           | `info`                                           | Nível do pino                                                            |
+| Variável              | Padrão                                            | Uso                                                                      |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `PORT` / `HOST`       | `7800` / `0.0.0.0`                                | Porta HTTP                                                               |
+| `DATABASE_URL`        | `postgres://outgun:outgun@localhost:5432/outgun`  | PostgreSQL                                                               |
+| `REDIS_URL`           | vazio (sem Redis)                                 | Redis                                                                    |
+| `INTERNAL_SECRETS`    | `dev:outgun-dev-secret-0000` fora de produção     | `servidor:segredo[\|segredo-antigo],...` dos game servers (mín. 16 car.) |
+| `INTERNAL_MAX_SKEW_S` | `30`                                              | Janela de relógio aceita nas rotas internas                              |
+| `MIGRATE`             | `1`                                               | `0` não aplica migrations ao iniciar                                     |
+| `LOG_LEVEL`           | `info`                                            | Nível do pino                                                            |
+| `DEV_ROOM_WS_URL`     | `ws://localhost:7700/rooms/{id}` fora de produção | Servidor usado quando nenhum game server mandou heartbeat                |
+| `ROOMS_PER_HOUR`      | `10`                                              | Salas privadas criadas por conta por hora                                |
 
 ## Contas (OG-081)
 
@@ -50,6 +52,32 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
   `TICKET_SIGNING_KEYS` (publicada, ainda sem assinar), espere 5 min (os game servers buscam o JWKS),
   passe-a para a frente e, após mais 1 min, retire a antiga.
 
+## Registro de salas e matchmaking (OG-086)
+
+- Cada game server manda heartbeat a cada 3 s com seu endereço, região, limite de salas e as salas
+  que hospeda; sala ou servidor sem heartbeat por 10 s sai do ar (some do lobby). Sala encerrada
+  pelo servidor sai na hora. O registro fica no PostgreSQL (`game_servers`, `rooms`; decisão D-24).
+- `GET /rooms?mode=` lista as salas no ar e as da plataforma (`persistent`) que podem abrir agora.
+- Sala fora do ar é aberta pelo próprio ticket: a API escolhe o servidor (o da sala, se estiver no
+  ar; senão o menos carregado, de preferência na região pedida) e põe a configuração na claim
+  `spawn`; o game server abre a sala ao receber o primeiro ticket.
+- `POST /rooms/quick-join` `{ mode, name?, region? }` ("Jogar agora"): sala pública no ar com vaga e
+  mais jogadores (a região pedida primeiro); senão uma sala da plataforma do modo.
+- `POST /rooms` `{ name, preset, password?, maxPlayers?, maps?, region? }` (com conta): sala privada
+  Casual (presets Ranked recusados) → `{ room, inviteUrl }` (`WEB_URL/rooms/<id>`). `GET /rooms/:id` acha a sala do convite; `GET /regions` dá um endereço por região para o cliente medir o ping. Fica no servidor escolhido e é apagada
+  depois de 1 h fora do ar.
+
+## Ranking e temporadas (OG-084)
+
+- O game server calcula os deltas (spec `plan/specs/ranking.md`) e os manda com o resultado da
+  partida (`POST /internal/matches`, só `ranked`) ou, na saída do jogador e na troca de mapa,
+  em `POST /internal/rating-deltas` `{ deltaId, roomId?, userId, scoreDelta, negDelta }`
+  (idempotente por `deltaId`). A API só soma na temporada ativa (`ratings`).
+- `GET /leaderboard?season=&limit=&offset=` (rating = (score+1)/(neg+1), score ≥ 100, desempate
+  por score), `GET /seasons`, `GET|PUT /account/ranking` (`{ participate }`, opt-out).
+- O ticket de entrada leva `rating { score, neg, participate, rank, of }` da conta.
+- Nova temporada: `node dist/cli.js season start "Temporada 2"` (encerra a ativa).
+
 ## Migrations
 
 SQL escrito à mão em `migrations/NNNN_nome.up.sql` + `NNNN_nome.down.sql` (toda migration é
@@ -67,7 +95,7 @@ pnpm --filter @outgun/api migrate up | down [N] | status
 `signInternalRequest` (exportado pelo pacote) faz a assinatura. Pedidos com mais de 30 s de
 diferença de relógio são recusados.
 
-- `POST /internal/rooms/heartbeat` — salas hospedadas, jogadores e mapa (a cada ~10 s).
+- `POST /internal/rooms/heartbeat` — servidor, salas hospedadas, jogadores e mapa (a cada 3 s).
 - `POST /internal/matches` — resultado da partida; idempotente por `serverMatchId`.
 
 ## Testes
