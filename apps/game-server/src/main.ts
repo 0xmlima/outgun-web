@@ -39,6 +39,8 @@ const manager = new RoomManager({
     reportDeltas: (report) => platform.reportDeltas(report),
     chatFilter: wordSet((env.CHAT_FILTER ?? '').split(',')),
     log: (line) => console.log(line),
+    // `bots_fill` das salas Casual (OG-054); o preset Clássico tem 0
+    ...(env.CASUAL_BOTS_FILL ? { botsFill: Number(env.CASUAL_BOTS_FILL) } : {}),
   },
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');

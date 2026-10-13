@@ -2,6 +2,7 @@
 // Comandos do chat (OG-046, RN-CHT-03/04): port de `Server::chat` (src/server.cpp:1188-1477). Os
 // textos são os do original (em inglês: o console do servidor não é traduzido). Diferenças da web
 // em plan/specs/chat-moderacao.md.
+import { checkName } from '@outgun/protocol';
 import { executeSetLine, listSettings, type GameSettings, type SettingDef } from '@outgun/settings';
 
 export type TextKind = 'normal' | 'team' | 'info' | 'header' | 'warning' | 'server' | 'admin';
@@ -51,6 +52,20 @@ export interface ConsoleHost {
   settingsChanged(line: string): void;
   resetSettings(): void;
   audit(entry: AuditEntry): void;
+  /** `/bot` (OG-054); ausente = sala sem bots (Ranked, D-11). */
+  bots?: BotConsole;
+}
+
+/** O que o `/bot` precisa da sala. */
+export interface BotConsole {
+  readonly maxPlayers: number;
+  /** `extra_bots`: saldo do /bot add e /bot remove. */
+  extra(): number;
+  setExtra(n: number): void;
+  playerCount(): number;
+  /** Mudou algo: a sala recalcula os bots no próximo frame (`check_bots`). */
+  changed(): void;
+  rename(pid: number, name: string): void;
 }
 
 /** Admin da plataforma pode mudar as regras de jogo, mas não as do servidor (nome, rotação etc.). */
@@ -108,9 +123,11 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
       say('server', '/unmute n   cancel muting of player with ID n');
       say('server', "/forcemap   restart the game and change map if you've voted for one");
       if (!host.locked) say('server', '/set        manage server settings');
+      if (host.bots) say('server', '/bot        manage bots');
     } else if (canSet) {
       say('header', 'Room owner commands:');
       say('server', '/set        manage room settings');
+      if (host.bots) say('server', '/bot        manage bots');
     }
   } else if (command === 'info' && s.infoMessage.length) {
     s.infoMessage.forEach((line, i) => say(i === 0 ? 'header' : 'server', line));
@@ -155,7 +172,96 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
       say('server', '/set s v    change the value of setting s to v');
       say('server', '/set reset  reload all settings from gamemod');
     }
+  } else if (command === 'bot' && (admin || canSet) && host.bots) {
+    botCommand(host, host.bots, args, say);
+  } else if (command === 'bot' && admin) {
+    say('warning', 'Bots are not allowed in Ranked rooms.');
   } else say('warning', `Unknown command ${command}. Type /help for a list.`);
+}
+
+/** Número inteiro no começo do texto, como `istream >> int`; null = não começa com número. */
+function leadingInt(text: string | undefined): number | null {
+  const m = text === undefined ? null : /^[+-]?\d+/.exec(text);
+  return m ? Number(m[0]) : null;
+}
+
+/** `/bot` (src/server.cpp:1328-1456); o dono da sala Casual também pode usar (como o /set). */
+function botCommand(host: ConsoleHost, bots: BotConsole, args: string, say: (k: TextKind, t: string) => void): void {
+  const s = host.settings.server;
+  const tokens = args.trim().split(/\s+/).filter(Boolean);
+  const option = tokens[0];
+  const botPlayers = host.players().filter((p) => p.bot);
+  const max = bots.maxPlayers;
+  if (option === undefined) {
+    say('header', 'Bot commands:');
+    say('server', '/bot list        list the bots with their ID');
+    say('server', '/bot add n       add n bots, default 1');
+    say('server', '/bot remove n    remove n bots, default 1');
+    say('server', '/bot fill n      set bots_fill to n');
+    say('server', '/bot balance s   set balance_bot on or off');
+    say('server', '/bot ping p      show or set the bot ping');
+    say('server', '/bot rename n s  set the name of bot with ID n to s');
+    say('server', `Currently there are ${botPlayers.length} bots.`);
+    say('server', `min_bots ${s.minBots}, bots_fill ${s.botsFill}, extra_bots ${bots.extra()}, balance_bot ${s.balanceBot ? 'on' : 'off'}`);
+  } else if (option === 'list') {
+    // "%4d %-17s", três por linha, cabeçalho por time
+    for (const team of [0, 1]) {
+      const rows = botPlayers.filter((p) => p.team === team).sort((a, b) => a.pid - b.pid);
+      if (rows.length === 0) continue;
+      say('header', team === 0 ? 'Red team:' : 'Blue team:');
+      for (let i = 0; i < rows.length; i += 3) say('server', rows.slice(i, i + 3).map((p) => `${String(p.uid).padStart(4)} ${p.name.padEnd(17)}`).join('').trimEnd());
+    }
+  } else if (option === 'add' || option === 'remove') {
+    const add = option === 'add';
+    let number = tokens[1] === undefined ? 1 : leadingInt(tokens[1]);
+    if (number === null || number < 1 || number > max) say('warning', `Syntax error. Valid range is 1 - ${max}`);
+    else if (!add && botPlayers.length === 0) say('warning', 'No bots to remove.');
+    else if (add && bots.playerCount() === max) say('warning', 'No room for a new bot.');
+    else {
+      if (add) {
+        if (bots.extra() + number >= max) number = max - bots.extra();
+        bots.setExtra(bots.extra() + number);
+      } else {
+        if (botPlayers.length - number < 0) number = botPlayers.length;
+        bots.setExtra(bots.extra() - number);
+      }
+      say('server', `${number} bots will be ${add ? 'added' : 'removed'}.`);
+      bots.changed();
+    }
+  } else if (option === 'fill') {
+    const number = leadingInt(tokens[1]);
+    if (tokens[1] === undefined) say('server', `Current bot fill is ${s.botsFill}.`);
+    else if (number !== null && String(number) === tokens[1] && tokens.length === 2 && number >= 0 && number <= max) {
+      s.botsFill = number;
+      say('server', `Bot fill is now ${s.botsFill}.`);
+      bots.changed();
+    } else say('warning', `Syntax error. Valid range is 0 - ${max}.`);
+  } else if (option === 'balance') {
+    if (tokens[1] === undefined) say('server', `Balance bot is ${s.balanceBot ? 'on' : 'off'}.`);
+    else if (tokens.length === 2 && (tokens[1] === 'on' || tokens[1] === 'off')) {
+      s.balanceBot = tokens[1] === 'on';
+      say('server', `Balance bot is now ${s.balanceBot ? 'on' : 'off'}.`);
+      bots.changed();
+    } else say('warning', "Syntax error. Valid settings are 'on' and 'off'.");
+  } else if (option === 'ping') {
+    const ping = leadingInt(tokens[1]);
+    if (tokens[1] === undefined) say('server', `Current bot ping is ${s.botPing}.`);
+    else if (ping !== null && String(ping) === tokens[1] && tokens.length === 2 && ping >= 0 && ping <= 2000) {
+      s.botPing = ping;
+      say('server', `Bot ping is now ${s.botPing}.`);
+    } else say('warning', 'Syntax error. Valid ping range is 0 - 2000.');
+  } else if (option === 'rename') {
+    const uid = leadingInt(tokens[1]);
+    const name = args.trim().replace(/^rename\s+\S+/, '').trim(); // `getline`: mantém os espaços do meio
+    if (uid === null || String(uid) !== tokens[1] || tokens.length < 3) say('warning', 'Syntax error. Expecting "/rename ID name".');
+    else if (!checkName(name)) say('warning', `Invalid name, "${name}".`);
+    else {
+      const target = host.players().find((p) => p.uid === uid);
+      if (!target) say('warning', 'No such bot. Type /bot list for a list of IDs.');
+      else if (!target.bot) say('warning', `Player ${uid} is not a bot.`);
+      else bots.rename(target.pid, name);
+    }
+  } else say('warning', 'Syntax error. Expecting add, remove, fill, balance, or ping.');
 }
 
 /** /kick, /ban, /mute, /smute, /unmute ("ID [minutos] [motivo]"). */

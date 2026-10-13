@@ -7,7 +7,8 @@ import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type
 import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
-import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { createBotName, neededBots } from './bots.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
@@ -40,7 +41,7 @@ export interface Connection {
   moved?(pid: number): void;
 }
 
-/** Bots não têm conexão (a IA é do OG-048). */
+/** Bots não têm conexão (a IA é do OG-053). */
 const BOT_CONNECTION: Connection = { send: () => {}, close: () => {} };
 /** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
 const OFFLINE: Connection = { send: () => {}, close: () => {} };
@@ -86,6 +87,8 @@ export interface RoomOptions {
   reportDeltas?: (report: DeltaReport) => void;
   /** Relógio de parede (ms) para as datas da partida; padrão `Date.now`. */
   wallClock?: () => number;
+  /** `bots_fill` das salas Casual (OG-054; o preset Clássico tem 0). Ignorado no Ranked (D-11). */
+  botsFill?: number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -193,6 +196,14 @@ export class Room {
   private readonly sentTeamStats: [string, string] = ['', ''];
   /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
   private readonly dirtyFlags = new Set<number>();
+  /** `check_bots`: recalcular a população de bots no próximo frame. */
+  private checkBotsPending = true;
+  /** `extra_bots` (/bot add e /bot remove). */
+  private extraBots = 0;
+  /** `reservedBotNames`: nomes já gerados nesta sala. */
+  private readonly reservedBotNames = new Set<string>();
+  /** Nomes de bots com sorteio próprio, para não mexer na sequência do mundo. */
+  private readonly botNameRng: GlibcRand;
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
   private frameSentTime = 0;
 
@@ -209,6 +220,8 @@ export class Room {
     this.now = options.now ?? (() => performance.now());
     this.createdAt = this.matchStartedAt = this.wallClock();
     const rng = new GlibcRand(options.seed);
+    this.botNameRng = new GlibcRand(options.seed + 1);
+    if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
     this.rotation = order.map((i) => ({ map: options.maps[i] as GameMap, file: options.mapFiles?.[i] ?? (options.maps[i] as GameMap).title, lastGame: 0 }));
@@ -286,7 +299,7 @@ export class Room {
     if (this.clients.size >= this.world.maxPlayers) {
       const bot = opts.bot ? -1 : botToRemove(this.slots(), this.world.maxPlayers);
       if (bot === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
-      this.removeBot(bot);
+      this.dropBot(bot);
     }
     const team = joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam());
     const pid = freeSlot(this.slots(), this.world.maxPlayers, team);
@@ -325,6 +338,7 @@ export class Room {
       disconnectedFrame: null,
     });
     const pl = this.sim.addPlayer(pid);
+    this.checkBotsPending = true;
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
@@ -437,18 +451,51 @@ export class Room {
     this.clients.delete(pid);
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
     this.broadcast(message('playerLeft', { pid }));
+    this.checkBotsPending = true;
     this.checkTeamChanges();
     this.checkMapExit();
   }
 
-  /** Bot marcado (sem IA até o OG-048): ocupa uma vaga e dá lugar a humanos. */
-  addBot(name: string): JoinResult {
-    return this.join(BOT_CONNECTION, { name, accountId: null }, { bot: true });
+  /** Um bot a mais, como `/bot add 1` (soma em `extra_bots`). */
+  addBot(name?: string): JoinResult {
+    const res = this.spawnBot(name);
+    if (res.ok) this.extraBots++;
+    return res;
+  }
+
+  /** Bot marcado (sem IA até o OG-053): ocupa uma vaga e dá lugar a humanos; sem nome, um de `bot_name_lang`. */
+  private spawnBot(name?: string): JoinResult {
+    const botName = name ?? createBotName(this.botNameRng, this.settings.server.botNameLang, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
+    return this.join(BOT_CONNECTION, { name: botName, accountId: null }, { bot: true });
+  }
+
+  /** `init_bots` (RN-BOT-01): tira os bots que sobram ou completa até o necessário. */
+  private checkBots(): void {
+    this.checkBotsPending = false;
+    if (this.mode === 'ranked') return;
+    const s = this.settings.server;
+    const bots = this.bots().length;
+    const needed = neededBots({ humans: this.clients.size - bots, maxPlayers: this.world.maxPlayers, minBots: s.minBots, botsFill: s.botsFill, balanceBot: s.balanceBot, extraBots: this.extraBots });
+    for (let i = bots; i > needed; i--) this.dropBot(botToRemove(this.slots(), this.world.maxPlayers));
+    for (let i = bots; i < needed; i++) if (!this.spawnBot().ok) break;
+    this.checkBotsPending = false; // as entradas e saídas acima já estão contadas
+  }
+
+  /** Tira um bot, como `/bot remove 1` (desconta de `extra_bots`). */
+  removeBot(pid: number): void {
+    if (!this.clients.get(pid)?.bot) return;
+    this.extraBots--;
+    this.dropBot(pid);
   }
 
   /** `remove_bot` → `disconnectPlayer(kick)`. */
-  removeBot(pid: number): void {
+  private dropBot(pid: number): void {
     if (this.clients.get(pid)?.bot) this.leave(pid);
+  }
+
+  /** Nome de quem está na vaga (vazio se livre). */
+  playerName(pid: number): string {
+    return this.clients.get(pid)?.identity.name ?? '';
   }
 
   /** Bots presentes (pids). */
@@ -677,6 +724,7 @@ export class Room {
   tick(): void {
     const world = this.world;
     this.uptimeFrames++;
+    if (this.checkBotsPending) this.checkBots();
     for (const c of this.clients.values()) c.guard.tick();
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
@@ -922,10 +970,33 @@ export class Room {
       resetSettings: () => {
         const fresh = presetSettings(this.preset.id);
         for (const group of ['world', 'powerups', 'physics', 'server'] as const) Object.assign(this.settings[group], fresh[group]);
+        if (this.mode === 'casual' && this.options.botsFill !== undefined) this.settings.server.botsFill = this.options.botsFill;
+        this.checkBotsPending = true;
         this.setLines = [];
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       audit: (entry) => this.options.audit?.(this.id, entry),
+      ...(this.mode === 'ranked' ? {} : { bots: this.botConsole() }),
+    };
+  }
+
+  private botConsole(): BotConsole {
+    return {
+      maxPlayers: this.world.maxPlayers,
+      extra: () => this.extraBots,
+      setExtra: (n) => {
+        this.extraBots = n;
+      },
+      playerCount: () => this.clients.size,
+      changed: () => {
+        this.checkBotsPending = true;
+      },
+      rename: (pid, name) => {
+        const c = this.clients.get(pid);
+        if (!c) return;
+        c.identity = { ...c.identity, name };
+        this.broadcast(message('playerName', { pid, name }));
+      },
     };
   }
 
