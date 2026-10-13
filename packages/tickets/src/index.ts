@@ -158,3 +158,4 @@ export class ReplayGuard {
     return true;
   }
 }
+export * from './internal.js';

@@ -259,7 +259,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         else if (ev.kind === 'message') {
           const m = ev.message;
           if (m.type === 'reject') fail(m.text || m.reason);
-          else if (m.type === 'disconnecting') fail(`desconectado: ${m.reason}`);
+          // contagem da expulsão por admin vai para o feed; a desconexão em si fecha a conexão
+          else if (m.type === 'disconnecting' && m.seconds === 0) fail(`desconectado: ${m.reason}`);
         }
       },
     });

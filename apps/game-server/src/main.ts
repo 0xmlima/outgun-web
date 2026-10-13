@@ -2,16 +2,37 @@
 // Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7700; a 7000 é do AirPlay no macOS), MAPS_DIR (maps/ do repositório),
 // ROTATION (outgun1), PRESET (classic), MAX_PLAYERS (16), DEV_TICKETS (1 = aceita dev:Nome),
 // TICKET_JWKS_URL (chaves dos tickets da API; padrão http://localhost:7800/.well-known/jwks.json),
+// API_URL (http://localhost:7800), GS_ID e GS_SECRET (assinatura das rotas internas; padrão dev),
+// CHAT_FILTER (palavras trocadas por * no chat, separadas por vírgula), TRUST_PROXY (1 = X-Forwarded-For),
 // EMPTY_TIMEOUT_S (300).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
 import { startServer } from './server.js';
 import { JwksKeys } from './tickets.js';
+import { wordSet } from './chat.js';
+import { PlatformClient } from './platform.js';
 
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
-const manager = new RoomManager({ emptyTimeoutMs: Number(env.EMPTY_TIMEOUT_S ?? 300) * 1000 });
+const production = env.NODE_ENV === 'production';
+const platform = new PlatformClient(
+  env.API_URL ?? 'http://localhost:7800',
+  env.GS_ID ?? 'dev',
+  env.GS_SECRET ?? (production ? '' : 'outgun-dev-secret-0000'),
+  (t) => console.warn(t),
+);
+const manager = new RoomManager({
+  emptyTimeoutMs: Number(env.EMPTY_TIMEOUT_S ?? 300) * 1000,
+  roomDefaults: {
+    audit: (roomId, entry) => {
+      console.log(`[admin] ${roomId}: ${entry.actor.name} ${entry.action} ${entry.target?.name ?? ''} ${entry.reason}`);
+      platform.audit(roomId, entry);
+    },
+    chatFilter: wordSet((env.CHAT_FILTER ?? '').split(',')),
+    log: (line) => console.log(line),
+  },
+});
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
 const maps = loadMaps(env.MAPS_DIR ?? `${repo}maps`, rotation);
 manager.create({ id: 'main', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
@@ -22,6 +43,7 @@ jwks.start();
 
 const server = await startServer({
   ticketKeys: () => jwks.keys,
+  trustProxy: env.TRUST_PROXY === '1',
   port: Number(env.PORT ?? 7700),
   manager,
   devTickets: env.DEV_TICKETS !== '0',

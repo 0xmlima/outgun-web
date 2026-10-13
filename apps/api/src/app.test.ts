@@ -5,9 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from './app.js';
 import { loadConfig } from './config.js';
 import { migrateUp } from './db/migrate.js';
-import { matches, matchPlayers, rooms, seasons, users } from './db/schema.js';
+import { adminActions, bans, matches, matchPlayers, rooms, seasons, users } from './db/schema.js';
 import { SEED_USERS, seed } from './db/seed.js';
-import { signInternalRequest } from './plugins/internal-auth.js';
+import { signInternalRequest } from '@outgun/tickets';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from './test/db.js';
 
 const SECRET = 'segredo-de-teste-0123456789';
@@ -164,5 +164,28 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
     const left = await t.db.select().from(matchPlayers).where(eq(matchPlayers.name, 'Jogador1'));
     expect(left.length).toBeGreaterThan(0);
     expect(left.every((row) => row.userId === null)).toBe(true);
+  });
+
+  it('ação de moderação é gravada com autor, alvo, motivo e duração; ban de sala bloqueia o ticket (OG-046)', async () => {
+    const [admin] = await t.db.select().from(users).where(eq(users.username, 'Admin'));
+    const [target] = await t.db.select().from(users).where(eq(users.username, 'Jogador2'));
+    const res = await internal('/internal/admin-actions', {
+      roomId: 'main',
+      action: 'ban',
+      actor: { accountId: admin!.id, name: 'Admin' },
+      target: { accountId: target!.id, name: 'Jogador2', ip: '10.9.9.9' },
+      reason: 'ofensas no chat',
+      durationSeconds: 7 * 24 * 3600,
+    });
+    expect(res.statusCode).toBe(201);
+    const [row] = await t.db.select().from(adminActions).where(eq(adminActions.id, res.json().id));
+    expect(row).toMatchObject({ actorUserId: admin!.id, actorName: 'Admin', targetUserId: target!.id, targetName: 'Jogador2', roomId: 'main', action: 'ban', reason: 'ofensas no chat', durationSeconds: 604800 });
+    const [ban] = await t.db.select().from(bans).where(eq(bans.id, res.json().banId));
+    expect(ban).toMatchObject({ userId: target!.id, ip: '10.9.9.9', roomId: 'main' });
+
+    const kick = await internal('/internal/admin-actions', { roomId: 'main', action: 'kick', actor: { name: 'Admin' }, target: { name: 'Visita*' }, reason: '' });
+    expect(kick.json().banId).toBeNull();
+    expect((await internal('/internal/admin-actions', { roomId: 'main', action: 'ban', actor: { name: 'A' }, reason: 'x' })).statusCode).toBe(422);
+    expect((await internal('/internal/admin-actions', { roomId: 'main', action: 'ban', actor: { name: 'A' }, target: { name: 'B' }, reason: 'x', durationSeconds: 8 * 24 * 3600 })).statusCode).toBe(400);
   });
 });

@@ -2,7 +2,7 @@
 import { translate } from '@outgun/i18n';
 import { message } from '@outgun/protocol';
 import { describe, expect, it } from 'vitest';
-import { chatPrompt, MessageFeed, parseFormatted, splitToLines, translateFormatted, type FeedContext } from './feed.js';
+import { approxTime, chatPrompt, MessageFeed, parseFormatted, splitToLines, translateFormatted, type FeedContext } from './feed.js';
 
 const en = (text: string, ...args: string[]) => translate('en', text, ...args);
 const pt = (text: string, ...args: string[]) => translate('pt-BR', text, ...args);
@@ -40,6 +40,36 @@ describe('texto formatado', () => {
     expect(tf('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X PEGOU A BANDEIRA $RVERMELHA$>!');
     expect(translateFormatted((k, ...a) => translate('fi', k, ...a))('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X OTTI PUNAISEN LIPUN!');
     expect(translateFormatted(en)('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X GOT THE $RRED FLAG$>!');
+  });
+});
+
+describe('moderação no feed (OG-046)', () => {
+  it('mute, kick e ban com os textos do original, para mim e para os outros', () => {
+    const feed = new MessageFeed(pt);
+    feed.onMessage(message('playerMute', { pid: 0, mode: 1, admin: 'Chefe' }), ctx);
+    feed.onMessage(message('playerMute', { pid: 1, mode: 0, admin: '' }), ctx);
+    feed.onMessage(message('playerKick', { pid: 1, minutes: 0, admin: 'Chefe' }), ctx);
+    feed.onMessage(message('playerKick', { pid: 0, minutes: 60, admin: 'Chefe' }), ctx);
+    feed.onMessage(message('disconnecting', { reason: 'kick', seconds: 3 }), ctx);
+    expect(text(feed)).toEqual([
+      'Você foi silenciado por Chefe (você não pode enviar mensagens).',
+      'O administrador cancelou o silêncio de Cid.',
+      'Chefe chutou Cid (desconectando em 10 segundos).',
+      `Chefe BANIU você deste servidor por ${approxTime(3600, pt)}!`,
+      'Desconectando em 3...',
+    ]);
+  });
+
+  it('approxTime arredonda como o original', () => {
+    expect([0, 1, 90, 120, 3600, 7 * 86400, 30 * 86400].map((s) => approxTime(s, en))).toEqual([
+      '0 seconds',
+      '1 second',
+      '90 seconds',
+      '2 minutes',
+      '1 hour',
+      '1 week',
+      '30 days',
+    ]);
   });
 });
 

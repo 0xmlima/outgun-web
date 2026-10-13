@@ -16,6 +16,8 @@ export interface ServerOptions {
   manager: RoomManager;
   /** Aceita tickets `dev:Nome` (desenvolvimento e testes). */
   devTickets: boolean;
+  /** Atrás de proxy: o IP do jogador vem do primeiro endereço de X-Forwarded-For. */
+  trustProxy?: boolean;
   /** Chaves públicas dos tickets da API (JWKS); sem elas, só tickets `dev:`. */
   ticketKeys?: () => ReadonlyMap<string, KeyObject>;
   /** Pasta com `index.js` etc. de @outgun/protocol, servida em /protocol/ para a página de depuração. */
@@ -26,6 +28,7 @@ export interface ServerOptions {
 interface SocketData {
   roomId: string;
   pid: number;
+  ip: string;
 }
 
 export interface RunningServer {
@@ -52,8 +55,10 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
+      const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
+      const ip = forwarded || Buffer.from(res.getRemoteAddressAsText()).toString();
       res.upgrade<SocketData>(
-        { roomId, pid: -1 },
+        { roomId, pid: -1, ip },
         req.getHeader('sec-websocket-key'),
         req.getHeader('sec-websocket-protocol'),
         req.getHeader('sec-websocket-extensions'),
@@ -79,7 +84,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         if (hello.protocol !== PROTOCOL_VERSION) return reject(ws, 'protocolMismatch', `protocolo ${PROTOCOL_VERSION} exigido`);
         const auth = tickets.identify(hello.ticket, user.roomId);
         if (!auth.ok) return reject(ws, 'invalidTicket', `ticket inválido (${auth.reason})`);
-        const identity = auth.identity;
+        const identity = { ...auth.identity, ip: user.ip };
         const joined = room.join(
           {
             send: (b) => void ws.send(b, true),

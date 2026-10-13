@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Rotas dos game servers (PLAN 5.4): heartbeat das salas e resultado das partidas. Toda chamada é
-// autenticada por HMAC (plugins/internal-auth.ts).
+// autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
 import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
 import { and, eq, inArray } from 'drizzle-orm';
 import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { matches, matchPlayers, rooms, seasons, users } from '../db/schema.js';
-import { verifyInternalRequest } from '../plugins/internal-auth.js';
+import { adminActions, bans, matches, matchPlayers, rooms, seasons, users } from '../db/schema.js';
+import { verifyInternalRequest } from '@outgun/tickets';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 
 const Heartbeat = Type.Object({
@@ -55,6 +55,25 @@ const MatchResult = Type.Object({
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
+
+const MAX_BAN_SECONDS = 7 * 24 * 60 * 60; // ban de sala: no máximo 1 semana, como o /ban do original
+const AdminAction = Type.Object({
+  roomId: RoomId,
+  action: Type.Union(
+    ['kick', 'ban', 'mute', 'smute', 'unmute', 'forcemap', 'set', 'sayadmin'].map((a) => Type.Literal(a)),
+  ),
+  actor: Type.Object({ accountId: Type.Optional(Type.String({ format: 'uuid' })), name: Type.String({ minLength: 1, maxLength: 32 }) }),
+  target: Type.Optional(
+    Type.Object({
+      accountId: Type.Optional(Type.String({ format: 'uuid' })),
+      name: Type.String({ minLength: 1, maxLength: 32 }),
+      ip: Type.Optional(Type.String({ maxLength: 45 })),
+    }),
+  ),
+  reason: Type.String({ maxLength: 200 }),
+  durationSeconds: Type.Optional(Type.Integer({ minimum: 1, maximum: MAX_BAN_SECONDS })),
+  details: Type.Optional(Type.Record(Type.String({ maxLength: 40 }), Type.Union([Type.String({ maxLength: 200 }), Type.Number()]), { maxProperties: 16 })),
+});
 
 const security = [{ gameServerHmac: [] }];
 
@@ -202,7 +221,74 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         return reply.code(result.duplicate ? 200 : 201).send(result);
       },
     );
+
+    app.post(
+      '/admin-actions',
+      {
+        schema: {
+          tags: ['interno'],
+          summary: 'Ação de moderação feita numa sala (auditoria, RN-CHT-04); ban também bloqueia novos tickets',
+          security,
+          body: AdminAction,
+          response: { 201: Type.Object({ id: Type.Integer(), banId: Type.Union([Type.Integer(), Type.Null()]) }), 401: ErrorSchema, 422: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const a = request.body;
+        if (a.action === 'ban' && (!a.target || !a.durationSeconds)) {
+          return reply.code(422).send({ error: 'invalid_action', message: 'ban needs a target and a duration' });
+        }
+        const result = await database.db.transaction(async (tx) => {
+          const [room] = await tx.select({ id: rooms.id }).from(rooms).where(eq(rooms.id, a.roomId));
+          const ids = [a.actor.accountId, a.target?.accountId].filter((x): x is string => Boolean(x));
+          const known = new Set(ids.length ? (await tx.select({ id: users.id }).from(users).where(inArray(users.id, ids))).map((u) => u.id) : []);
+          const account = (id: string | undefined) => (id && known.has(id) ? id : null);
+          const [row] = await tx
+            .insert(adminActions)
+            .values({
+              actorUserId: account(a.actor.accountId),
+              actorName: a.actor.name,
+              targetUserId: account(a.target?.accountId),
+              targetName: a.target?.name ?? null,
+              roomId: room?.id ?? null,
+              action: a.action,
+              reason: a.reason,
+              durationSeconds: a.durationSeconds ?? null,
+              details: { serverId: request.serverId!, room: a.roomId, ...(a.target?.ip ? { ip: a.target.ip } : {}), ...a.details },
+            })
+            .returning({ id: adminActions.id });
+          let banId: number | null = null;
+          const userId = account(a.target?.accountId);
+          const ip = inetOrNull(a.target?.ip);
+          // Ban de sala precisa da sala cadastrada (sem ela, viraria ban de plataforma).
+          if (a.action === 'ban' && room && (userId || ip)) {
+            const createdAt = new Date();
+            const [ban] = await tx
+              .insert(bans)
+              .values({
+                userId,
+                ip,
+                roomId: room.id,
+                reason: a.reason,
+                createdBy: account(a.actor.accountId),
+                createdAt,
+                expiresAt: new Date(createdAt.getTime() + a.durationSeconds! * 1000),
+              })
+              .returning({ id: bans.id });
+            banId = ban!.id;
+          }
+          return { id: row!.id, banId };
+        });
+        return reply.code(201).send(result);
+      },
+    );
   };
+}
+
+/** `ip` válido para a coluna inet (IPv4 ou IPv6 simples); senão o ban fica só pela conta. */
+function inetOrNull(ip: string | undefined): string | null {
+  if (!ip) return null;
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) || /^[0-9a-f:]+$/i.test(ip) ? ip : null;
 }
 
 /** Regras de consistência que o esquema JSON não expressa. */

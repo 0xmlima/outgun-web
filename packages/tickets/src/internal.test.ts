@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
-import { parseSecrets } from '../config.js';
-import { signInternalRequest, verifyInternalRequest } from './internal-auth.js';
+import { parseSecrets, signInternalRequest, verifyInternalRequest } from './internal.js';
 
 const secrets = parseSecrets('gs-1:segredo-novo-0123456789|segredo-antigo-0123456789,gs-2:outro-segredo-0123456789');
 const now = 1_760_000_000_000;

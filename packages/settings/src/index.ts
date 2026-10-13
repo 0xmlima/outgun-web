@@ -4,3 +4,4 @@ export * from './gamemod.js';
 export * from './presets.js';
 export * from './registry.js';
 export * from './types.js';
+export * from './console.js';

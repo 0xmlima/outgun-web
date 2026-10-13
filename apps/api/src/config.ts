@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Configuração por variáveis de ambiente (ver apps/api/README.md).
+import { parseSecrets } from '@outgun/tickets';
+
+export { parseSecrets };
 
 export interface ApiConfig {
   port: number;
@@ -40,21 +43,6 @@ export interface ApiConfig {
     /** Tentativas de senha de sala privada por IP e sala. */
     joinPasswordPerMinute: number;
   };
-}
-
-/** INTERNAL_SECRETS="gs-1:segredo,gs-2:novo|antigo" */
-export function parseSecrets(value: string | undefined): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const entry of (value ?? '').split(',')) {
-    const at = entry.indexOf(':');
-    if (at <= 0) continue;
-    const secrets = entry
-      .slice(at + 1)
-      .split('|')
-      .filter((s) => s.length >= 16);
-    if (secrets.length > 0) map.set(entry.slice(0, at).trim(), secrets);
-  }
-  return map;
 }
 
 const MAILERS = ['log', 'memory', 'mailpit', 'resend'] as const;

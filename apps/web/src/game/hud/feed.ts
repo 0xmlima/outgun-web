@@ -283,6 +283,22 @@ export class MessageFeed {
       case 'muted':
         this.pushPlain('warning', t("You are muted. You can't send messages."), c.time);
         break;
+      // moderação (OG-046; `data_player_mute` e `data_player_kick` em src/clientbase.cpp)
+      case 'playerMute': {
+        const admin = m.admin || t('The admin');
+        if (m.pid === c.me) this.pushPlain('warning', m.mode === 0 ? t('You have been unmuted (you can send messages again).') : t("You have been muted by $1 (you can't send messages).", admin), c.time);
+        else info(t(m.mode === 0 ? '$1 has unmuted $2.' : '$1 has muted $2.', escapeFormatted(admin), name(m.pid)));
+        break;
+      }
+      case 'playerKick': {
+        const admin = m.admin || t('The admin');
+        if (m.pid === c.me) this.pushPlain('warning', m.minutes === 0 ? t('You are being kicked from this server by $1!', admin) : t('$1 has BANNED you from this server for $2!', admin, approxTime(m.minutes * 60, t)), c.time);
+        else info(t(m.minutes === 0 ? '$1 has kicked $2 (disconnect in 10 seconds).' : '$1 has banned $2 (disconnect in 10 seconds).', escapeFormatted(admin), name(m.pid)));
+        break;
+      }
+      case 'disconnecting':
+        if (m.seconds > 0) this.pushPlain('warning', t('Disconnecting in $1...', String(m.seconds)), c.time);
+        break;
       default:
         break;
     }
@@ -321,4 +337,32 @@ export function chatPrompt(buffer: string, t: Translate): { text: string; cursor
   const prefix = (buffer.startsWith('/') ? t('Command') : buffer.startsWith('.') ? t('Say team') : t('Say')) + ': ';
   const body = buffer.startsWith('.') ? buffer.slice(1) : buffer;
   return { text: prefix + body, cursor: (prefix + body).length };
+}
+
+/** `approxTime` (src/utility.cpp:514): duração arredondada na maior unidade que couber. */
+export function approxTime(seconds: number, t: (text: string, ...args: string[]) => string): string {
+  let time = seconds;
+  let unit: string;
+  const div = (a: number, b: number) => Math.trunc(a / b);
+  if (time === 0 || (time % 60 !== 0 && time <= 200)) unit = time === 1 ? 'second' : 'seconds';
+  else {
+    time = div(time + 40, 60);
+    if (time % 60 !== 0 && time <= 200) unit = time === 1 ? 'minute' : 'minutes';
+    else {
+      time = div(time + 40, 60);
+      if (time % 24 !== 0 && time <= 100) unit = time === 1 ? 'hour' : 'hours';
+      else {
+        time = div(time + 16, 24);
+        if (time % 365 === 0 || time >= 7 * 100) {
+          time = div(time + 250, 365);
+          unit = time === 1 ? 'year' : 'years';
+        } else if (time % 7 !== 0 && time <= 50) unit = time === 1 ? 'day' : 'days';
+        else {
+          time = div(time + 5, 7);
+          unit = time === 1 ? 'week' : 'weeks';
+        }
+      }
+    }
+  }
+  return `${time} ${t(unit)}`;
 }

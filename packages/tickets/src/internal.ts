@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Autenticação das rotas /internal (game server → API) por HMAC-SHA256. O game server assina
+// Autenticação das rotas /internal (game server → API) por HMAC-SHA256 (OG-080; aqui desde o OG-046
+// para o game server também assinar). O game server assina
 // `timestamp.MÉTODO.caminho.sha256(corpo)` com o segredo do seu serverId e manda os cabeçalhos
 // x-outgun-server, x-outgun-timestamp (ms) e x-outgun-signature (hex). Pedidos fora da janela de
 // relógio são recusados, o que limita a reprodução de um pedido capturado.
@@ -59,4 +60,19 @@ export function verifyInternalRequest(
     if (timingSafeEqual(createHmac('sha256', key).update(data).digest(), given)) return { ok: true, serverId };
   }
   return { ok: false, reason: 'bad signature' };
+}
+
+/** INTERNAL_SECRETS="gs-1:segredo,gs-2:novo|antigo" (segredos com menos de 16 caracteres são ignorados). */
+export function parseSecrets(value: string | undefined): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const entry of (value ?? '').split(',')) {
+    const at = entry.indexOf(':');
+    if (at <= 0) continue;
+    const secrets = entry
+      .slice(at + 1)
+      .split('|')
+      .filter((s) => s.length >= 16);
+    if (secrets.length > 0) map.set(entry.slice(0, at).trim(), secrets);
+  }
+  return map;
 }
