@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S8 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-081](OG-081-auth.md), [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-RNK-01, RN-PLT-02 |
 | Skills | `outgun-card-workflow` |

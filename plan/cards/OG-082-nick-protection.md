@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S8 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-081](OG-081-auth.md) |
 | Regras de negócio | RN-NOM-01, RN-NOM-02, RN-NOM-03 |
 | Skills | `outgun-re-spec` |

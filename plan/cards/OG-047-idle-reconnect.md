@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S8 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-IDL-01 |
 | Skills | `outgun-re-spec` |

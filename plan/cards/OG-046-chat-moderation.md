@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S8 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-CHT-01, RN-CHT-02, RN-CHT-03, RN-CHT-04, RN-NOM-03 |
 | Skills | `outgun-re-spec` |
