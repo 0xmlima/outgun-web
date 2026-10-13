@@ -70,13 +70,35 @@ export class OnlineHud {
     return facts;
   }
 
+  /** Mensagens rápidas (Alt+1..0) e filtros do feed (OG-068). */
+  private quick: { enabled: boolean; immediate: boolean; messages: readonly string[] } = { enabled: false, immediate: false, messages: [] };
+
+  setOptions(o: { showFlagMessages: boolean; showKillMessages: boolean; quickMessages: { enabled: boolean; immediate: boolean; messages: readonly string[] } }): void {
+    this.feed.showFlagMessages = o.showFlagMessages;
+    this.feed.showKillMessages = o.showKillMessages;
+    this.quick = o.quickMessages;
+  }
+
+  private sendChat(): void {
+    const text = this.chat.trim();
+    if (text && text !== '.') this.session.send(message('chat', { text, teamOnly: text.startsWith('.') }));
+    this.chat = '';
+  }
+
   /** Tecla durante o jogo; devolve true se foi usada pelo chat. */
   onKey(ev: KeyboardEvent, boundCodes: ReadonlySet<string>): boolean {
+    // mensagem rápida: Alt+1..9 e Alt+0 (10ª), só com a linha de chat vazia
+    const digit = /^Digit(\d)$/.exec(ev.code);
+    if (ev.altKey && !ev.ctrlKey && !ev.metaKey && digit && this.quick.enabled && !this.chat) {
+      const text = this.quick.messages[(Number(digit[1]) + 9) % 10] ?? '';
+      if (!text) return false;
+      this.chat = text;
+      if (this.quick.immediate) this.sendChat();
+      return true;
+    }
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return false;
     if (ev.key === 'Enter') {
-      const text = this.chat.trim();
-      if (text && text !== '.') this.session.send(message('chat', { text, teamOnly: text.startsWith('.') }));
-      this.chat = '';
+      this.sendChat();
       return true;
     }
     if (!this.chat) {

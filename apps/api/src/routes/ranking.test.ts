@@ -99,6 +99,21 @@ describe.skipIf(!pgAdminUrl)('ranking e temporadas (OG-084)', () => {
     expect((await app.inject({ url: '/account/ranking', headers: { cookie } })).json()).toMatchObject({ rank: 2, participate: false });
   });
 
+  it('opções do jogador na conta (OG-068): grava, devolve e espelha as favoritas', async () => {
+    const cookie = await login('Jogador2');
+    const get = () => app.inject({ url: '/account/settings', headers: { cookie } });
+    expect((await get()).json()).toEqual({ settings: {}, updatedAt: null });
+    const settings = { locale: 'fi', favoriteColors: [3, 1, 99, 2], showNames: 'always' };
+    const put = await app.inject({ method: 'PUT', url: '/account/settings', payload: { settings }, headers: { origin: ORIGIN, cookie } });
+    expect(put.json()).toEqual({ ok: true });
+    expect((await get()).json().settings).toEqual(settings);
+    const [profile] = await t.sql`SELECT favorite_colors FROM player_profiles WHERE user_id = ${ids.Jogador2!}`;
+    expect(profile?.favorite_colors).toEqual([3, 1, 2]);
+    const big = await app.inject({ method: 'PUT', url: '/account/settings', payload: { settings: { x: 'a'.repeat(17_000) } }, headers: { origin: ORIGIN, cookie } });
+    expect(big.statusCode).toBe(413);
+    expect((await app.inject({ url: '/account/settings' })).statusCode).toBe(401);
+  });
+
   it('nova temporada: ranking recomeça; a anterior continua consultável', async () => {
     const old = (await app.inject('/leaderboard')).json().season.id;
     const season = await startSeason(t.db, 'Temporada 2');

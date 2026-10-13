@@ -160,6 +160,20 @@ body {
 .menu-value {
   color: var(--menu-value);
 }
+.menu-colors {
+  display: flex;
+  gap: calc(var(--px) * 2px);
+  margin-left: auto;
+}
+.menu-colors .swatch {
+  width: calc(var(--px) * 9px);
+  height: calc(var(--px) * 9px);
+  border: calc(var(--px) * 1px) solid var(--menu-bg);
+}
+.menu-colors .swatch.selected {
+  border-color: var(--menu-active);
+  outline: calc(var(--px) * 1px) solid var(--menu-active);
+}
 .menu-note {
   color: var(--menu-disabled);
 }

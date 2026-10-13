@@ -63,10 +63,20 @@ export function resolveFills(images: readonly (CanvasImageSource | null)[], soli
   return images.map((image) => (image ? { kind: 'texture', image } : backup));
 }
 
-/** Carrega o tema `name` (`''` = sem tema: só cores). */
-export async function loadRoomTheme(manifest: Manifest, name: string): Promise<RoomTheme> {
+/**
+ * Tema de cores (`Colour theme` + `Prefer main theme colours`, OG-068): as do tema principal se ele
+ * tiver e a preferência estiver marcada; senão as do tema de cores; senão nenhuma (as de fábrica).
+ */
+export function pickColourTheme(manifest: Manifest, main: string, colourTheme: string, preferMain: boolean): Readonly<Record<string, string>> | undefined {
+  const mainColours = main ? manifest.graphics[main]?.colours : undefined;
+  if (preferMain && mainColours) return mainColours;
+  return (colourTheme ? manifest.graphics[colourTheme]?.colours : undefined) ?? undefined;
+}
+
+/** Carrega o tema `name` (`''` = sem tema: só cores) com o tema de cores escolhido. */
+export async function loadRoomTheme(manifest: Manifest, name: string, colourTheme = '', preferMainColours = true): Promise<RoomTheme> {
   const entry = name ? manifest.graphics[name] : undefined;
-  const colours = themeColours(manifest.defaultColours, entry?.colours);
+  const colours = themeColours(manifest.defaultColours, pickColourTheme(manifest, name, colourTheme, preferMainColours));
   const load = (file: string): Promise<HTMLImageElement | null> => {
     const graphic = entry?.graphics[file];
     return graphic ? loadImage(ASSETS + graphic.file).catch(() => null) : Promise.resolve(null);

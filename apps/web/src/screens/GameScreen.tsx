@@ -8,11 +8,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
-import { DEFAULT_MAP, mountGame, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
+import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
+import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
+
+/** Opções do jogador que valem na partida (OG-068). */
+function clientOptions(p: Prefs): ClientOptions {
+  return {
+    favoriteColors: p.randomColor ? null : p.favoriteColors,
+    minimapBandwidth: p.minimapBandwidth,
+    showFlagMessages: p.showFlagMessages,
+    showKillMessages: p.showKillMessages,
+    showNames: p.showNames,
+    fpsLimit: p.fpsLimit,
+    soundTheme: p.soundTheme,
+    quickMessages: { enabled: p.quickMessagesEnabled, immediate: p.quickMessagesImmediate, messages: p.quickMessages },
+  };
+}
 
 export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
@@ -66,6 +81,9 @@ export default function GameScreen() {
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
       translate: (text, ...args) => tRef.current(text, ...args),
       sound: { enabled: prefs.soundEnabled, volume: prefs.soundVolume },
+      colourTheme: prefs.colourTheme,
+      preferThemeColours: prefs.preferThemeColours,
+      client: clientOptions(prefs),
       onStatus: setStatus,
       onAction: (action) => {
         const t = tRef.current;
@@ -79,7 +97,12 @@ export default function GameScreen() {
     });
     host.current = game;
     return () => game.destroy();
-  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont]);
+  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont, prefs.colourTheme, prefs.preferThemeColours]);
+
+  // opções que mudam sem recarregar a partida
+  const client = clientOptions(prefs);
+  const clientKey = JSON.stringify(client);
+  useEffect(() => host.current?.setClient(JSON.parse(clientKey) as ClientOptions), [clientKey]);
 
   useEffect(() => host.current?.setBindings(prefs.bindings), [prefs.bindings]);
   useEffect(() => host.current?.setSound({ enabled: prefs.soundEnabled, volume: prefs.soundVolume }), [prefs.soundEnabled, prefs.soundVolume]);

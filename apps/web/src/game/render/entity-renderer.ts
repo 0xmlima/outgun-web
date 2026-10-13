@@ -61,6 +61,8 @@ export class EntityRenderer {
   private carrierTexture: { size: number; texture: Texture } | null = null;
   private layout!: RoomLayout;
   private topLeft!: WorldCoords;
+  /** `Show player names` (`Menu_graphics::showName`, OG-068). */
+  showNames: 'never' | 'sameRoom' | 'always' = 'sameRoom';
 
   constructor(
     private readonly theme: RoomTheme,
@@ -137,7 +139,13 @@ export class EntityRenderer {
     // 10. explosões de deathbringer
     frame.deathbringers.forEach((db, i) => this.drawDeathbringer(db.pos, db.team, db.radius, i));
     // 12. nomes
-    if (this.font) for (const p of order) if (p.alpha >= 200 || (me && p.team === me.team)) this.drawName(p);
+    // `showName(sameRoom)`: fora da sala do jogador, só com "sempre"
+    if (this.font && this.showNames !== 'never') {
+      for (const p of order) {
+        const sameRoom = !me || p.me || (p.pos.room.x === me.pos.room.x && p.pos.room.y === me.pos.room.y);
+        if ((sameRoom || this.showNames === 'always') && (p.alpha >= 200 || (me && p.team === me.team))) this.drawName(p);
+      }
+    }
     L.end();
   }
 

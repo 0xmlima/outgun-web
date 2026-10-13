@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { AccountProvider } from './app/account.js';
 import { PrefsProvider } from './app/prefs.js';
+import { PrefsSync } from './app/prefs-sync.js';
 import { Root, Shell } from './app/Shell.js';
 import {
   AccountScreen,
@@ -20,7 +21,8 @@ import {
 import { ControlsScreen } from './screens/ControlsScreen.js';
 import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.js';
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
-import { CreditsScreen, HelpScreen, HomeScreen, OptionsScreen, SourceScreen } from './screens/menus.js';
+import { CreditsScreen, HelpScreen, HomeScreen, SourceScreen } from './screens/menus.js';
+import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
 import './styles.css';
 
 // O jogo (e, a partir do OG-061, o PixiJS) só é baixado ao entrar na partida.
@@ -36,6 +38,7 @@ const router = createBrowserRouter([
           { index: true, element: <HomeScreen /> },
           { path: 'options', element: <OptionsScreen /> },
           { path: 'options/controls', element: <ControlsScreen /> },
+          { path: 'options/:section', element: <OptionsSectionScreen /> },
           { path: 'help', element: <HelpScreen /> },
           { path: 'credits', element: <CreditsScreen /> },
           { path: 'source', element: <SourceScreen /> },
@@ -75,6 +78,7 @@ if (container)
     <StrictMode>
       <PrefsProvider>
         <AccountProvider>
+          <PrefsSync />
           <RouterProvider router={router} />
         </AccountProvider>
       </PrefsProvider>
