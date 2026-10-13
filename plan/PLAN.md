@@ -562,7 +562,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S7 | Multiplayer completo | OG-064, OG-065, OG-044, OG-045, OG-067 | **M2 — Alpha interno jogável** |
 | S8 | Contas | OG-080, OG-081, OG-082, OG-083, OG-046, OG-047 | |
 | S9 | Ranking e social | OG-049, OG-084, OG-085, OG-086, OG-066, OG-068, OG-069 | **M3 — Contas e ranking** |
-| S10 | Bots, gerador e replays | OG-048, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
+| S10 | Bots, gerador e replays | OG-050, OG-051, OG-052, OG-053, OG-054, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
 | S11 | Endurecimento | OG-101, OG-102, OG-103, OG-104, OG-087 | |
 | S12 | Beta e lançamento | OG-105 | **M5 — Lançamento público** |
 
@@ -580,7 +580,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Concluído |
 | [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Concluído |
 | [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Concluído |
-| [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Backlog |
+| [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Pronto |
 | [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Concluído |
 | [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Concluído |
@@ -603,7 +603,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Concluído |
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Concluído |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Concluído |
-| [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
+| [OG-048](cards/OG-048-bots.md) | Bots (quebrado em OG-050 a OG-054) | E3 | ~~13~~ | Should | S10 | OG-042 | Quebrado |
+| [OG-050](cards/OG-050-bot-areamap.md) | Bots: AreaMap e tabelas de distância | E3 | 3 | Should | S10 | OG-042 | Pronto |
+| [OG-051](cards/OG-051-bot-navigation.md) | Bots: navegação até destinos | E3 | 3 | Should | S10 | OG-050 | Pronto |
+| [OG-052](cards/OG-052-bot-combat.md) | Bots: mira, tiro e esquiva | E3 | 3 | Should | S10 | OG-042 | Pronto |
+| [OG-053](cards/OG-053-bot-brain.md) | Bots: decisões de bandeira e power-up e laço principal | E3 | 3 | Should | S10 | OG-051, OG-052 | Pronto |
+| [OG-054](cards/OG-054-bot-population.md) | Bots: população automática e nomes | E3 | 2 | Should | S10 | OG-042 | Pronto |
 | [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Concluído |
 | [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Concluído |
 | [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Concluído |
@@ -624,9 +629,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Concluído |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Concluído |
 | [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Backlog |
-| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Backlog |
-| [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Backlog |
-| [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Backlog |
+| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Pronto |
+| [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Pronto |
+| [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Pronto |
 | [OG-100](cards/OG-100-parity-ci.md) | Paridade automatizada no CI | E7 | 3 | Must | S2 | OG-003 | Concluído |
 | [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Backlog |
 | [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Backlog |
@@ -634,7 +639,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Backlog |
 | [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento | E7 | 5 | Must | S12 | todos Must | Backlog |
 
-**Total:** 59 cards, 278 pontos.
+**Total:** 64 cards (OG-048 quebrado em OG-050 a OG-054; seus 13 pts saem da soma), 279 pontos.
 
 ---
 

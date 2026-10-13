@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 13 pts |
 | Sprint | S10 |
-| Status | Backlog |
+| Status | Quebrado |
 | Dependências | [OG-042](OG-042-snapshots-aoi.md) |
 | Regras de negócio | RN-BOT-01, RN-BOT-02, RN-BOT-03 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
@@ -33,4 +33,5 @@ Como jogador, quero bots que completem as salas e joguem CTF de forma crível.
 - Usar o modo `botTestMode` do original (`server.cpp`) para gerar estatísticas de referência.
 
 ## Notas de implementação
+- Refinamento da S10: quebrado em [OG-050](OG-050-bot-areamap.md) (AreaMap), [OG-051](OG-051-bot-navigation.md) (navegação), [OG-052](OG-052-bot-combat.md) (mira/tiro), [OG-053](OG-053-bot-brain.md) (bandeira/power-up e laço) e [OG-054](OG-054-bot-population.md) (população). Os critérios de aceite foram para o OG-053.
 - Achado do OG-027: no original, `random_wild_flag 1` com bots derruba o servidor ao iniciar (segfault reproduzido no oráculo). A IA dos bots precisa lidar com bandeiras removidas na carga do mapa (`random_wild_flag` e locks) — ver [bandeiras-captura.md](../specs/bandeiras-captura.md).

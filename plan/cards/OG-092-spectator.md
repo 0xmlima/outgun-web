@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 3 pts |
 | Sprint | S10 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-090](OG-090-replay-recording.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec` |
