@@ -181,6 +181,20 @@ export const adminActions = pgTable('admin_actions', {
   createdAt: tstz('created_at').notNull().defaultNow(),
 });
 
+export const passwordResets = pgTable(
+  'password_resets',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    expiresAt: tstz('expires_at').notNull(),
+    usedAt: tstz('used_at'),
+  },
+  (t) => [index('password_resets_user_idx').on(t.userId)],
+);
+
 export const allTables = {
   users,
   sessions,
@@ -192,4 +206,5 @@ export const allTables = {
   ratings,
   bans,
   admin_actions: adminActions,
+  password_resets: passwordResets,
 };

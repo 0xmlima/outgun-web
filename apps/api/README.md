@@ -1,16 +1,16 @@
 # @outgun/api
 
-API da plataforma do Outgun Web (card OG-080): contas, salas, partidas e ranking. Fastify 5 +
+API da plataforma do Outgun Web (cards OG-080 e OG-081): contas, salas, partidas e ranking. Fastify 5 +
 Drizzle ORM + PostgreSQL 16 (+ Redis opcional). A especificação OpenAPI publicada é
 [`openapi.json`](openapi.json); com a API no ar, `/openapi.json` e `/docs` (Swagger UI).
 
 ## Rodando localmente
 
 ```sh
-docker compose -f apps/api/compose.yaml up -d      # PostgreSQL 16 e Redis 7
+docker compose -f apps/api/compose.yaml up -d      # PostgreSQL 16, Redis 7 e Mailpit
 pnpm --filter @outgun/api build
 pnpm --filter @outgun/api seed                     # migrations + dados de desenvolvimento
-pnpm --filter @outgun/api start                    # http://localhost:7800
+MAILER=mailpit pnpm --filter @outgun/api start     # http://localhost:7800 (e-mails em :8025)
 ```
 
 O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as contas `Admin`,
@@ -27,6 +27,16 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 | `INTERNAL_MAX_SKEW_S` | `30`                                             | Janela de relógio aceita nas rotas internas                              |
 | `MIGRATE`             | `1`                                              | `0` não aplica migrations ao iniciar                                     |
 | `LOG_LEVEL`           | `info`                                           | Nível do pino                                                            |
+
+## Contas (OG-081)
+
+- `POST /auth/register`, `/auth/login`, `/auth/logout`, `GET /auth/me`, `POST /auth/password/forgot`,
+  `/auth/password/reset`; `POST /account/password`, `GET /account/export`, `DELETE /account`.
+- Senha com argon2id (19 MiB, t=2); sessão em cookie `og_session` (httpOnly, SameSite=Lax; o banco
+  guarda o hash do token). Login: 5 falhas por usuário (ou 10 por IP) → espera de 30 s, dobrando até
+  15 min. Recuperação: link `WEB_URL/reset-password#token=…`, uso único, 30 min; resposta igual
+  exista ou não a conta. Pedidos que mudam estado só com JSON e de origens de `WEB_ORIGINS`.
+- O cliente web chama a API em `/api` (o Vite repassa para a porta 7800 no dev e no preview).
 
 ## Migrations
 

@@ -25,6 +25,7 @@
     "openapi": "node dist/cli.js openapi openapi.json"
   },
   "dependencies": {
+    "@fastify/cookie": "11.1.2",
     "@fastify/swagger": "9.9.0",
     "@fastify/swagger-ui": "6.1.1",
     "@fastify/type-provider-typebox": "6.1.0",

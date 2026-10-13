@@ -3,7 +3,7 @@
 // navegação só por teclado possível e mouse como alternativa.
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { BitmapText } from './BitmapText.js';
-import { firstEnabled, menuKey, shortcutDigit } from './menu-nav.js';
+import { firstEnabled, menuKey, nextEnabled, shortcutDigit } from './menu-nav.js';
 
 export type MenuItem =
   | {
@@ -15,6 +15,21 @@ export type MenuItem =
       readonly note?: string;
       /** Delete sobre o item (ex.: voltar a tecla ao padrão). */
       readonly onDelete?: () => void;
+    }
+  | {
+      /** Campo de texto (Textfield de src/menu.h): enquanto ativo, números e espaço são digitados. */
+      readonly kind: 'text';
+      readonly label: string;
+      readonly value: string;
+      readonly onChange: (value: string) => void;
+      /** Mostra `*` no lugar dos caracteres (maskChar do original). */
+      readonly password?: boolean;
+      readonly maxLength?: number;
+      /** Dica para o navegador e gerenciadores de senha (`username`, `current-password`...). */
+      readonly autoComplete?: string;
+      readonly disabled?: boolean;
+      /** Enter no campo; sem isso, Enter vai para o próximo item. */
+      readonly onEnter?: () => void;
     }
   | {
       readonly kind: 'choice';
@@ -34,7 +49,7 @@ interface MenuProps {
 
 export function Menu({ caption, items, onBack, children }: MenuProps) {
   const [current, setCurrent] = useState(() => firstEnabled(items));
-  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const buttons = useRef<(HTMLButtonElement | HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     buttons.current[current]?.focus();
@@ -48,7 +63,12 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
     const item = items[index];
     if (!item || item.disabled) return;
     if (item.kind === 'action') item.onActivate();
-    else item.onChange(1);
+    else if (item.kind === 'choice') item.onChange(1);
+    else if (item.onEnter) item.onEnter();
+    else {
+      const next = nextEnabled(items, index, 1);
+      if (next > index) setCurrent(next);
+    }
   };
 
   const onKeyDown = (ev: KeyboardEvent) => {
@@ -59,6 +79,8 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
       item.onDelete();
       return;
     }
+    // No campo de texto, só as teclas de navegação são do menu; o resto é digitação.
+    if (item?.kind === 'text' && !['ArrowUp', 'ArrowDown', 'Tab', 'Enter', 'Escape'].includes(ev.key)) return;
     const action = menuKey(items, current, ev);
     if (!action) return;
     ev.preventDefault();
@@ -92,6 +114,37 @@ export function Menu({ caption, items, onBack, children }: MenuProps) {
           const classes = ['menu-item'];
           if (index === current) classes.push('active');
           if (item.disabled) classes.push('disabled');
+          if (item.kind === 'text') {
+            const shown = item.password ? '*'.repeat(item.value.length) : item.value;
+            return (
+              <li key={index} role="none">
+                <label className={`${classes.join(' ')} menu-text`} onMouseEnter={() => !item.disabled && setCurrent(index)}>
+                  <span className="menu-shortcut" aria-hidden="true">
+                    {digit && <BitmapText text={digit} />}
+                  </span>
+                  <BitmapText className="menu-label" text={item.label} />
+                  <span className="menu-field">
+                    <BitmapText text={index === current ? `${shown}_` : shown || ' '} />
+                    <input
+                      ref={(el) => {
+                        buttons.current[index] = el;
+                      }}
+                      type={item.password ? 'password' : 'text'}
+                      value={item.value}
+                      maxLength={item.maxLength}
+                      autoComplete={item.autoComplete ?? 'off'}
+                      spellCheck={false}
+                      disabled={item.disabled}
+                      aria-label={item.label}
+                      tabIndex={index === current ? 0 : -1}
+                      onFocus={() => setCurrent(index)}
+                      onChange={(ev) => item.onChange(ev.target.value)}
+                    />
+                  </span>
+                </label>
+              </li>
+            );
+          }
           return (
             <li key={index} role="none">
               <button

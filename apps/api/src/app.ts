@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Monta a API (Fastify). Quem chama fornece o banco e, opcionalmente, o Redis; main.ts liga tudo.
+import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -7,6 +8,12 @@ import Fastify from 'fastify';
 import type { Redis } from 'ioredis';
 import type { ApiConfig } from './config.js';
 import type { Database } from './db/client.js';
+import { LoginThrottle, MemoryCounterStore, RateLimit, RedisCounterStore, type CounterStore } from './auth/limiter.js';
+import { SessionStore } from './auth/sessions.js';
+import { LogMailer, MailpitMailer, MemoryMailer, ResendMailer, type Mailer } from './mail/mailer.js';
+import { accountRoutes } from './routes/account.js';
+import { authRoutes } from './routes/auth.js';
+import { devRoutes } from './routes/dev.js';
 import { healthRoutes } from './routes/health.js';
 import { internalRoutes } from './routes/internal.js';
 import { roomRoutes } from './routes/rooms.js';
@@ -17,15 +24,48 @@ export interface AppDeps {
   config: ApiConfig;
   database: Database;
   redis?: Redis | undefined;
-  /** false desliga os logs (testes). */
-  logger?: boolean;
+  /** false desliga os logs; um stream recebe os logs em JSON (testes). */
+  logger?: boolean | { stream: NodeJS.WritableStream; level?: string };
+  /** Substitui o envio configurado em MAILER (testes). */
+  mailer?: Mailer;
+  /** Substitui os contadores de tentativas (padrão: Redis, ou memória sem Redis). */
+  counters?: CounterStore;
+}
+
+/** Serviços montados a partir das dependências, usados pelas rotas de conta. */
+export interface Services {
+  sessions: SessionStore;
+  throttle: LoginThrottle;
+  rateLimit: RateLimit;
+  mailer: Mailer;
+}
+
+function makeMailer(deps: AppDeps, log: App['log']): Mailer {
+  const { config } = deps;
+  if (deps.mailer) return deps.mailer;
+  switch (config.mailer) {
+    case 'memory':
+      return new MemoryMailer();
+    case 'mailpit':
+      return new MailpitMailer(config.mailpitUrl, config.mailFrom);
+    case 'resend':
+      if (!config.resendApiKey) throw new Error('MAILER=resend exige RESEND_API_KEY');
+      return new ResendMailer(config.resendApiKey, config.mailFrom);
+    default:
+      return new LogMailer(log);
+  }
 }
 
 function createFastify(deps: AppDeps) {
   return Fastify({
-    logger: deps.logger === false ? false : { level: deps.config.logLevel },
+    logger:
+      deps.logger === false
+        ? false
+        : typeof deps.logger === 'object'
+          ? { level: deps.logger.level ?? 'trace', stream: deps.logger.stream }
+          : { level: deps.config.logLevel },
     bodyLimit: 256 * 1024,
-    trustProxy: true,
+    trustProxy: deps.config.trustProxy,
   }).withTypeProvider<TypeBoxTypeProvider>();
 }
 
@@ -42,6 +82,29 @@ declare module 'fastify' {
 
 export async function buildApp(deps: AppDeps): Promise<App> {
   const app = createFastify(deps);
+
+  const counters = deps.counters ?? (deps.redis ? new RedisCounterStore(deps.redis) : new MemoryCounterStore());
+  const services: Services = {
+    sessions: new SessionStore(deps.database.db, deps.config.sessionTtlMs, deps.config.cookieSecure),
+    throttle: new LoginThrottle(counters),
+    rateLimit: new RateLimit(counters),
+    mailer: makeMailer(deps, app.log),
+  };
+
+  await app.register(cookie);
+  // Só JSON: um formulário de outro site não consegue mandar application/json sem CORS.
+  app.removeContentTypeParser('text/plain');
+  app.addHook('onRequest', async (request, reply) => {
+    if (!csrfSafe(request.method, request.url, request.headers, deps.config.webOrigins)) {
+      return reply.code(403).send({ error: 'forbidden', message: 'cross-site request refused' });
+    }
+  });
+
+  // Cabeçalhos básicos de segurança; respostas de conta nunca ficam em cache.
+  app.addHook('onSend', async (request, reply) => {
+    reply.header('x-content-type-options', 'nosniff');
+    if (request.url.startsWith('/auth/') || request.url.startsWith('/account')) reply.header('cache-control', 'no-store');
+  });
 
   // Guarda o corpo cru antes do parse: a assinatura HMAC cobre exatamente os bytes recebidos.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
@@ -83,6 +146,28 @@ export async function buildApp(deps: AppDeps): Promise<App> {
 
   await app.register(healthRoutes(deps));
   await app.register(roomRoutes(deps));
+  await app.register(authRoutes(deps, services), { prefix: '/auth' });
+  await app.register(accountRoutes(deps, services), { prefix: '/account' });
+  if (deps.config.devRoutes && services.mailer instanceof MemoryMailer) {
+    await app.register(devRoutes(services.mailer), { prefix: '/dev' });
+  }
   await app.register(internalRoutes(deps), { prefix: '/internal' });
   return app;
+}
+
+/**
+ * Proteção CSRF dos pedidos que mudam estado (além do cookie SameSite=Lax e de só aceitar JSON):
+ * recusa navegador avisando que o pedido é de outro site e Origin fora da lista. As rotas internas
+ * não usam cookie (HMAC) e ficam de fora.
+ */
+export function csrfSafe(
+  method: string,
+  url: string,
+  headers: Record<string, string | string[] | undefined>,
+  origins: readonly string[],
+): boolean {
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS' || url.startsWith('/internal/')) return true;
+  if (headers['sec-fetch-site'] === 'cross-site') return false;
+  const origin = headers.origin;
+  return typeof origin !== 'string' || origin === 'null' ? origin === undefined : origins.includes(origin);
 }

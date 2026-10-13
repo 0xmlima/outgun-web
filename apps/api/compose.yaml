@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Dependências locais da API: docker compose -f apps/api/compose.yaml up -d
+# Dependências locais da API (PostgreSQL, Redis, Mailpit): docker compose -f apps/api/compose.yaml up -d
 services:
   postgres:
     image: postgres:16-alpine
@@ -12,5 +12,9 @@ services:
   redis:
     image: redis:7-alpine
     ports: ['6379:6379']
+  # Caixa de saída local: a API envia com MAILER=mailpit; mensagens em http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ['8025:8025']
 volumes:
   pgdata:

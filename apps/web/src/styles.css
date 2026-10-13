@@ -224,3 +224,35 @@ body {
   margin: 0;
   color: var(--menu-value);
 }
+
+/* Campo de texto dos menus (OG-081): o texto aparece na fonte bitmap; o <input> real fica por cima,
+   transparente, para digitação, leitores de tela e preenchimento automático de senhas. */
+.menu-text {
+  cursor: text;
+}
+.menu-field {
+  position: relative;
+  min-width: calc(var(--px) * 130px);
+  color: var(--menu-value);
+}
+.menu-field input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  opacity: 0;
+  font: inherit;
+}
+.menu-message {
+  margin: 0;
+  padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
+  color: var(--menu-value);
+  text-align: center;
+}
+.menu-message.error {
+  color: var(--menu-active);
+}

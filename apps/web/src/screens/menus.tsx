@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Telas de menu do shell (OG-060). Lobby, replays, contas e controles ganham conteúdo nos cards
-// OG-069, OG-091, OG-081 e OG-063; aqui aparecem desabilitados ou como placeholder.
+// Telas de menu do shell (OG-060). Lobby e replays ganham conteúdo nos cards OG-069 e OG-091; aqui
+// aparecem desabilitados. As telas de conta (OG-081) ficam em account.tsx.
 import { ORIGINAL_CREDITS } from '@outgun/content';
 import { catalog, LOCALES } from '@outgun/i18n';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
+import { useAccount } from '../app/account.js';
 import { usePrefs } from '../app/prefs.js';
 import { useFontNames } from '../ui/fonts.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
@@ -32,6 +33,7 @@ function useGraphicsThemes(): readonly string[] {
 
 export function HomeScreen() {
   const { t } = usePrefs();
+  const { user } = useAccount();
   const navigate = useNavigate();
   const soon = t('Coming soon');
   const items: MenuItem[] = [
@@ -41,7 +43,9 @@ export function HomeScreen() {
     { kind: 'action', label: t('Options'), onActivate: () => void navigate('/options') },
     { kind: 'action', label: t('Help'), onActivate: () => void navigate('/help') },
     { kind: 'action', label: t('Credits'), onActivate: () => void navigate('/credits') },
-    { kind: 'action', label: t('Sign in'), onActivate: () => void navigate('/login') },
+    user
+      ? { kind: 'action', label: t('Account'), note: user.username, onActivate: () => void navigate('/account') }
+      : { kind: 'action', label: t('Sign in'), onActivate: () => void navigate('/login') },
   ];
   return <Menu caption="Outgun" items={items} />;
 }
@@ -170,22 +174,4 @@ export function SourceScreen() {
       )}
     </TextPage>
   );
-}
-
-/** Placeholder até o OG-081 (contas): por ora só se joga como convidado. */
-export function LoginScreen() {
-  const { t } = usePrefs();
-  const navigate = useNavigate();
-  const items: MenuItem[] = [
-    { kind: 'action', label: t('Play as guest'), onActivate: () => void navigate('/play') },
-    { kind: 'action', label: t('Sign in'), onActivate: () => {}, disabled: true, note: t('Coming soon') },
-    {
-      kind: 'action',
-      label: t('Create account'),
-      onActivate: () => {},
-      disabled: true,
-      note: t('Coming soon'),
-    },
-  ];
-  return <Menu caption={t('Sign in')} items={items} onBack={() => void navigate('/')} />;
 }
