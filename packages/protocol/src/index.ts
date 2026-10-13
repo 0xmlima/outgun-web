@@ -5,3 +5,4 @@ export * from './codec.js';
 export * from './frame.js';
 export * from './messages.js';
 export * from './docs.js';
+export * from './names.js';

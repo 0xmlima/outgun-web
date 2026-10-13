@@ -1,0 +1,25 @@
+{
+  "name": "@outgun/tickets",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Ticket de entrada no game server: JWT Ed25519 emitido pela API e conferido pelo servidor de jogo (card OG-083).",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}

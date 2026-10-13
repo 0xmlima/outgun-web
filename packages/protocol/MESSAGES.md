@@ -1,6 +1,6 @@
 <!-- Gerado por `pnpm --filter @outgun/protocol gen:messages` a partir de src/messages.ts. Não edite à mão. -->
 
-# Protocolo Outgun Web v1
+# Protocolo Outgun Web v2
 
 Cada mensagem WebSocket binária contém uma ou mais mensagens: `[código u8][campos na ordem abaixo]`.
 Inteiros little-endian; `string` e `lista` levam o comprimento como varuint (7 bits por byte).
@@ -9,7 +9,7 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 ## Handshake
 
 1. O cliente abre o WebSocket e envia `hello` com `protocol` e o ticket da API.
-2. Versão diferente de 1 ou ticket inválido: `reject` e o servidor fecha a conexão.
+2. Versão diferente de 2 ou ticket inválido: `reject` e o servidor fecha a conexão.
 3. Aceito: `welcome`, `serverSettings`, jogadores presentes, bandeiras, placar; depois `frame` a cada 100 ms.
 
 ## Mensagens
@@ -21,6 +21,8 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 3 | [`reject`](#reject) | servidor → cliente | event | `Connect_rejection_reason` | Conexão recusada (a conexão é fechada em seguida). |
 | 4 | [`disconnecting`](#disconnecting) | servidor → cliente | event | `data_disconnecting`, `Disconnect_reason` | O servidor vai desconectar o jogador. |
 | 5 | [`idleKickWarning`](#idlekickwarning) | servidor → cliente | event | `data_idlekick_warning` | Aviso de expulsão por inatividade. |
+| 7 | [`resumeToken`](#resumetoken) | servidor → cliente | event | — (novo, OG-047) | Token para voltar à mesma vaga depois de uma queda de conexão (até 15 s). |
+| 8 | [`resume`](#resume) | cliente → servidor | event | — (novo, OG-047) | Junto com o `hello`: pede de volta a vaga deixada numa queda de conexão. |
 | 6 | [`serverSettings`](#serversettings) | servidor → cliente | event | `data_server_settings` | Configurações da sala: preset e gamemod completo (o cliente aplica com @outgun/settings). |
 | 10 | [`input`](#input) | cliente → servidor | frame | dados de frame do cliente (`incoming_client_data`) | Controles do frame; enviado a cada frame do cliente. |
 | 11 | [`fire`](#fire) | cliente → servidor | event | `data_fire_on` / `data_fire_off` | Botão de tiro pressionado ou solto. |
@@ -131,6 +133,18 @@ Código 4. O servidor vai desconectar o jogador.
 Código 5. Aviso de expulsão por inatividade.
 
 - `seconds`: u16
+
+### resumeToken
+
+Código 7. Token para voltar à mesma vaga depois de uma queda de conexão (até 15 s).
+
+- `token`: string (UTF-8, até 64 bytes)
+
+### resume
+
+Código 8. Junto com o `hello`: pede de volta a vaga deixada numa queda de conexão.
+
+- `token`: string (UTF-8, até 64 bytes)
 
 ### serverSettings
 

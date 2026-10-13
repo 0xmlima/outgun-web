@@ -3,8 +3,11 @@
 // original (src/server.cpp) para um único mapa em rotação. Times, votação, chat e validação de
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
-import { encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { presetSettings, PRESETS, type GameMode, type GameSettings } from '@outgun/settings';
+import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { randomUUID } from 'node:crypto';
+import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
+import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
 import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
@@ -36,11 +39,19 @@ export interface Connection {
 
 /** Bots não têm conexão (a IA é do OG-048). */
 const BOT_CONNECTION: Connection = { send: () => {}, close: () => {} };
+/** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
+const OFFLINE: Connection = { send: () => {}, close: () => {} };
 
 export interface Identity {
   name: string;
   /** Conta da API; null = convidado. */
   accountId: string | null;
+  /** Clan tag da conta (RN-NOM-03), exibida como "(TAG) nome" no chat. */
+  clanTag?: string | null;
+  /** Administrador da plataforma (moderação, OG-046). */
+  admin?: boolean;
+  /** Endereço do jogador (ban por IP). */
+  ip?: string;
 }
 
 export interface RoomOptions {
@@ -54,6 +65,14 @@ export interface RoomOptions {
   mapFiles?: readonly string[] | undefined;
   /** Relógio em ms para medir quando os inputs chegam dentro do frame (padrão `performance.now`). */
   now?: () => number;
+  /** Auditoria das ações de admin (OG-046): o servidor manda para a API. */
+  audit?: (roomId: string, entry: AuditEntry) => void;
+  /** Palavras trocadas por `*` no chat (filtro opcional por sala). */
+  chatFilter?: ReadonlySet<string>;
+  /** Log do servidor (chat com `log_player_chat`). */
+  log?: (line: string) => void;
+  /** Quanto tempo a vaga de quem caiu fica guardada (s; padrão 15, 0 = sai na hora como o original). */
+  reconnectSeconds?: number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -92,6 +111,16 @@ interface Client {
   mapVote: number;
   wantMapExit: boolean;
   negativeVotes: Set<number>;
+  /** Chat e moderação (OG-046): id do /list, silêncio, anti-flood e contagem da expulsão (frames). */
+  uid: number;
+  muted: 0 | 1 | 2;
+  talk: TalkMeter;
+  kickTimer: number;
+  /** Inatividade (RN-IDL-01): frames seguidos sem controles nem tiro (`idleFrames`). */
+  idleFrames: number;
+  /** Reconexão (OG-047): token para voltar e frame em que a conexão caiu (null = conectado). */
+  resumeToken: string;
+  disconnectedFrame: number | null;
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
@@ -129,6 +158,13 @@ export class Room {
   private readonly rocketViewers: Set<number>[] = [];
   private readonly now: () => number;
   private readonly colors: ColorPool;
+  /** Ids do /list (`uniqueId`), bans da sala (chave → fim em ms) e linhas de /set aplicadas. */
+  private nextUid = 1;
+  private readonly bans = new Map<string, number>();
+  private setLines: string[] = [];
+  private uptimeFrames = 0;
+  private readonly console: ConsoleHost;
+  private readonly preset: Preset;
   /** Placar já enviado (`scoreUpdate` só quando muda). */
   private readonly sentScores: [number, number] = [0, 0];
   /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
@@ -142,6 +178,7 @@ export class Room {
     if (options.maps.length === 0) throw new Error('rotação de mapas vazia');
     if (options.maxPlayers % 2 !== 0 || options.maxPlayers < 2 || options.maxPlayers > 32) throw new Error(`max_players inválido: ${options.maxPlayers}`);
     this.id = options.id;
+    this.preset = preset;
     this.mode = preset.mode;
     this.settings = presetSettings(preset.id);
 
@@ -194,6 +231,7 @@ export class Room {
       },
     });
     this.colors = new ColorPool(this.sim.rng);
+    this.console = this.makeConsole();
     this.sim.loadMapFlags();
     this.sim.startGame();
   }
@@ -212,6 +250,7 @@ export class Room {
    */
   join(conn: Connection, identity: Identity, opts: { bot?: boolean } = {}): JoinResult {
     if (this.mode === 'ranked' && identity.accountId === null) return { ok: false, reason: 'rankedNeedsAccount', text: 'Salas Ranked exigem login.' };
+    if (!opts.bot && this.isBanned(identity)) return { ok: false, reason: 'banned', text: 'Banido desta sala.' };
     if (opts.bot && this.mode === 'ranked') return { ok: false, reason: 'roomClosed', text: 'Bots são proibidos no Ranked (D-11).' };
     if (this.clients.size >= this.world.maxPlayers) {
       const bot = opts.bot ? -1 : botToRemove(this.slots(), this.world.maxPlayers);
@@ -244,10 +283,17 @@ export class Room {
       mapVote: -1,
       wantMapExit: false,
       negativeVotes: new Set(),
+      uid: this.nextUid++,
+      muted: 0,
+      talk: new TalkMeter(),
+      kickTimer: 0,
+      idleFrames: 0,
+      resumeToken: randomUUID(),
+      disconnectedFrame: null,
     });
     const pl = this.sim.addPlayer(pid);
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
-    this.send(pid, this.welcomeMessages(pid));
+    this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
     if (this.clients.size === 2) {
@@ -260,10 +306,9 @@ export class Room {
   }
 
   private welcomeMessages(pid: number): AnyMessage[] {
-    const preset = this.options.preset;
     const out: AnyMessage[] = [
       message('welcome', { protocol: PROTOCOL_VERSION, pid, color: this.clients.get(pid)?.color ?? 0, maxPlayers: this.world.maxPlayers, mode: this.mode, mapIndex: this.mapIndex, redScore: this.world.teams[0].score, blueScore: this.world.teams[1].score }),
-      message('serverSettings', { preset, gamemod: (PRESETS.find((p) => p.id === preset)?.overrides ?? ''), locked: PRESETS.find((p) => p.id === preset)?.locked ?? false }),
+      this.serverSettingsMessage(),
       message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: this.world.map.title, crc: this.world.map.crc }),
       message('playersPresent', { pids: [...this.clients.keys()] }),
       this.mapTimeMessage(),
@@ -271,8 +316,8 @@ export class Room {
       message('currentMap', { mapIndex: this.mapIndex }),
     ];
     for (const [other, c] of this.clients) {
-      if (other === pid) continue;
-      out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
+      // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
+      if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
     }
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
@@ -291,6 +336,54 @@ export class Room {
         y: Math.trunc(f.pos.y),
       })),
     });
+  }
+
+  /**
+   * A conexão caiu (OG-047): a vaga, o time e as estatísticas ficam guardados por
+   * `reconnectSeconds`; o jogador fica parado no mundo. Só vale para a conexão atual do jogador.
+   */
+  disconnect(pid: number, conn: Connection): void {
+    const c = this.clients.get(pid);
+    if (!c || c.conn !== conn) return;
+    if (c.bot || this.reconnectFrames === 0 || c.kickTimer > 0) return this.leave(pid);
+    c.conn = OFFLINE;
+    c.disconnectedFrame = this.world.frame;
+    const pl = this.world.players[pid] as PlayerState;
+    pl.controls = 0;
+    pl.attack = false;
+  }
+
+  /** Volta de quem caiu: pelo token de retomada ou pela mesma conta. null = não há vaga guardada. */
+  resume(conn: Connection, identity: Identity, token: string): JoinResult | null {
+    const found = [...this.clients].find(
+      ([, c]) => !c.bot && c.kickTimer === 0 && ((token !== '' && c.resumeToken === token) || (c.disconnectedFrame !== null && identity.accountId !== null && c.identity.accountId === identity.accountId)),
+    );
+    if (!found) return null;
+    const [pid, c] = found;
+    if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
+    Object.assign(c, {
+      conn,
+      identity: { ...c.identity, ...(identity.ip ? { ip: identity.ip } : {}) },
+      lastClientFrame: 0,
+      frameOffset: 0,
+      sentFrags: -1,
+      rs: new RecipientState(),
+      queue: [],
+      guard: new InputGuard(),
+      hasInput: false,
+      lastActivityFrame: this.world.frame,
+      hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 },
+      idleFrames: 0,
+      resumeToken: randomUUID(),
+      disconnectedFrame: null,
+    });
+    (this.world.players[pid] as PlayerState).awaitingClientReadies++; // precisa carregar o mapa de novo
+    this.send(pid, [...this.welcomeMessages(pid), message('resumeToken', { token: c.resumeToken })]);
+    return { ok: true, pid };
+  }
+
+  private get reconnectFrames(): number {
+    return Math.round((this.options.reconnectSeconds ?? 15) * 10);
   }
 
   /** Saída (`client_disconnected` → `removePlayer`). */
@@ -470,7 +563,7 @@ export class Room {
           break;
         case 'chat':
           // até 200 caracteres imprimíveis; fora disso é mensagem inválida (`data_text_message`)
-          if (m.text.length > 200 || [...m.text].some((ch) => ch < ' ' || ch === '\x7f')) return this.kick(pid, 'chat inválido');
+          if (m.text.length > MAX_CHAT_LENGTH || [...m.text].some((ch) => ch < ' ' || ch === '\x7f')) return this.kick(pid, 'chat inválido');
           this.chat(pid, m.text);
           break;
         case 'changeTeam':
@@ -485,7 +578,7 @@ export class Room {
           const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
           if (color !== client.color) {
             client.color = color;
-            this.broadcast(message('playerInfo', { pid, color, loggedIn: client.identity.accountId !== null, ranked: false, admin: false, rank: 0, score: 0, negScore: 0, rankedPlayers: 0 }));
+            this.broadcast(message('playerInfo', { pid, color, loggedIn: client.identity.accountId !== null, ranked: false, admin: client.identity.admin ?? false, rank: 0, score: 0, negScore: 0, rankedPlayers: 0 }));
           }
           break;
         }
@@ -538,6 +631,7 @@ export class Room {
   /** Um frame (`simulate_and_broadcast_frame`). */
   tick(): void {
     const world = this.world;
+    this.uptimeFrames++;
     for (const c of this.clients.values()) c.guard.tick();
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
@@ -547,6 +641,7 @@ export class Room {
     const running = this.gameOverUntil === null;
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
+      for (const c of this.clients.values()) c.talk.cool(); // `simulatePlayerPrePhysics`
       this.sim.simulateFrame();
       for (const [pid, c] of this.clients) {
         const pl = world.players[pid] as PlayerState;
@@ -564,6 +659,7 @@ export class Room {
       });
     }
     if (running) this.announceVotes();
+    this.playerTimers(running);
     this.flush();
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
@@ -616,15 +712,164 @@ export class Room {
     return message('mapTime', { elapsed: Math.trunc(mapTime / 10), left: Math.trunc(left / 10) });
   }
 
-  /** Chat (RN-CHT-01): `.` = só o time; comandos `/` e moderação são do OG-046. */
-  private chat(pid: number, text: string): void {
-    const name = this.clients.get(pid)?.identity.name ?? '';
+  /** Chat (RN-CHT-01/02, `Server::chat`): `/` = comando, `.` = só o time, anti-flood e silêncio. */
+  private chat(pid: number, raw: string): void {
+    const c = this.clients.get(pid);
+    if (!c || raw === '') return;
+    const text = raw; // mais de MAX_CHAT_LENGTH já foi recusado como mensagem inválida (OG-043)
+    if (text.startsWith('/')) return runCommand(this.console, pid, text);
+    if (text.trim() === '') return; // só espaços
+    if (c.talk.speak()) return this.queueTo(pid, message('tooMuchTalk', {}));
+    if (c.muted === 1) return this.queueTo(pid, message('muted', {}));
+    if (isFlood(text)) return;
     const team = text.startsWith('.');
-    const body = (team ? text.slice(1) : text).trim();
-    if (!body || text.startsWith('/')) return;
-    const msg = message('text', { kind: team ? 'team' : 'normal', from: pid, text: `${name}: ${body}` });
+    const body = censor((team ? text.slice(1) : text).trim(), this.options.chatFilter ?? new Set());
+    const msg = message('text', { kind: team ? 'team' : 'normal', from: pid, text: `${chatName(c.identity.name, c.identity.clanTag)}: ${body}` });
+    // smute: só o próprio jogador vê as mensagens dele
+    if (c.muted === 2) return this.queueTo(pid, msg);
     if (!team) this.broadcast(msg);
     else for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
+    if (this.settings.server.logPlayerChat) this.options.log?.(`(chat) ${c.identity.name} [${c.identity.ip ?? '?'}]: ${text}`);
+  }
+
+  private isBanned(identity: Identity): boolean {
+    const now = Date.now();
+    const keys = [identity.accountId && `acct:${identity.accountId}`, identity.ip && `ip:${identity.ip}`].filter(Boolean) as string[];
+    return keys.some((k) => (this.bans.get(k) ?? 0) > now);
+  }
+
+  /**
+   * Por jogador, depois da simulação (src/server.cpp:1632-1661): contagem da expulsão por admin,
+   * inatividade (RN-IDL-01) e, novo, o fim da espera de quem caiu (OG-047).
+   */
+  private playerTimers(running: boolean): void {
+    const iktime = this.settings.server.idlekickTime; // frames
+    const humans = [...this.clients.values()].filter((c) => !c.bot).length;
+    for (const [pid, c] of [...this.clients]) {
+      if (c.disconnectedFrame !== null) {
+        if (this.world.frame - c.disconnectedFrame >= this.reconnectFrames) this.leave(pid);
+        continue;
+      }
+      if (c.kickTimer) {
+        c.kickTimer--;
+        if (c.kickTimer === 0) this.drop(pid, 'kick', 4004, 'kicked');
+        else if (c.kickTimer % 10 === 0 && c.kickTimer <= 50) this.queueTo(pid, message('disconnecting', { reason: 'kick', seconds: c.kickTimer / 10 }));
+        continue;
+      }
+      const pl = this.world.players[pid] as PlayerState;
+      if (!running || pl.dead || c.bot) continue;
+      const idle = !pl.attack && !pl.attackOnce && (pl.controls & 31) === 0;
+      if (iktime !== 0 && idle && humans >= this.settings.server.idlekickPlayerlimit) {
+        c.idleFrames++;
+        const timeToKick = iktime - c.idleFrames;
+        if (timeToKick === 0) this.drop(pid, 'idleKick', 4006, 'idle');
+        else if (
+          (timeToKick === 600 && iktime >= 1800) ||
+          (timeToKick === 300 && iktime >= 900) ||
+          (timeToKick === 150 && iktime >= 300) ||
+          (timeToKick === 50 && iktime >= 100)
+        ) {
+          this.queueTo(pid, message('idleKickWarning', { seconds: timeToKick / 10 }));
+        }
+      } else c.idleFrames = 0;
+    }
+  }
+
+  /** Desconecta pelo servidor (`disconnectPlayer`): avisa, fecha e libera a vaga na hora. */
+  private drop(pid: number, reason: 'kick' | 'idleKick', code: number, text: string): void {
+    const c = this.clients.get(pid);
+    if (!c) return;
+    // o que estava na fila sai antes do aviso de desconexão
+    c.conn.send(encodeFrame(...c.queue, message('disconnecting', { reason, seconds: 0 })));
+    c.queue = [];
+    c.conn.close(code, text);
+    this.leave(pid);
+  }
+
+  private consolePlayer(pid: number, c: Client): ConsolePlayer {
+    return {
+      pid,
+      uid: c.uid,
+      name: c.identity.name,
+      team: this.world.teamOf(pid),
+      account: c.identity.accountId,
+      admin: c.identity.admin ?? false,
+      muted: c.muted,
+      bot: c.bot,
+      ranked: this.mode === 'ranked' && c.identity.accountId !== null,
+      ...(c.identity.ip ? { ip: c.identity.ip } : {}),
+    };
+  }
+
+  private serverSettingsMessage(): AnyMessage {
+    const gamemod = [this.preset.overrides, ...this.setLines].filter(Boolean).join('\n');
+    return message('serverSettings', { preset: this.preset.id, gamemod, locked: this.preset.locked });
+  }
+
+  /** `/time` (`ServerWorld::printTimeStatus`). */
+  private timeStatus(): string[] {
+    const w = this.settings.world;
+    const mapTime = this.world.mapTime();
+    let map = `Map time: ${formatDuration(Math.trunc(mapTime / 10))}.`;
+    if (w.timeLimit === 0) map += ' There is no time limit.';
+    else {
+      const remaining = Math.trunc((w.timeLimit - mapTime) / 10);
+      if (this.world.players.filter(Boolean).length === 1) map += ' No time limit at the moment as there is only one player.';
+      else if (remaining < 0) {
+        const extra = Math.trunc((w.timeLimit + this.world.extraTimePeriod * w.extraTime - mapTime) / 10);
+        if (extra > 0) map += ` Extra-time left: ${formatDuration(extra)}.`;
+        if (w.suddenDeath) map += ' Sudden death.';
+      } else map += ` Time left: ${formatDuration(remaining)}.`;
+    }
+    return [`The server has been up for ${formatDuration(Math.trunc(this.uptimeFrames / 10))}.`, map];
+  }
+
+  private makeConsole(): ConsoleHost {
+    return {
+      settings: this.settings,
+      locked: this.preset.locked,
+      players: () => [...this.clients].map(([pid, c]) => this.consolePlayer(pid, c)),
+      reply: (pid, kind, text) => this.queueTo(pid, message('text', { kind, from: 255, text })),
+      broadcastText: (kind, text) => this.broadcast(message('text', { kind, from: 255, text })),
+      setMuted: (target, mode, admin, tellTarget) => {
+        const c = this.clients.get(target);
+        if (!c) return;
+        const msg = message('playerMute', { pid: target, mode, admin: admin.name });
+        for (const pid of this.clients.keys()) if (tellTarget || pid !== target) this.queueTo(pid, msg);
+        c.muted = mode;
+      },
+      kick: (target, admin, minutes, reason) => {
+        const c = this.clients.get(target);
+        if (!c || c.kickTimer !== 0) return false;
+        if (minutes > 0) {
+          const until = Date.now() + minutes * 60_000;
+          if (c.identity.accountId) this.bans.set(`acct:${c.identity.accountId}`, until);
+          if (c.identity.ip) this.bans.set(`ip:${c.identity.ip}`, until);
+        }
+        this.broadcast(message('playerKick', { pid: target, minutes, admin: admin.name }));
+        if (reason) this.queueTo(target, message('text', { kind: 'warning', from: 255, text: `Reason: ${reason}` }));
+        c.kickTimer = 10 * 10;
+        return true;
+      },
+      forceMap: (admin) => {
+        const vote = this.clients.get(admin.pid)?.mapVote ?? -1;
+        const change = vote !== -1 && vote !== this.mapIndex;
+        this.nextMap('vote', change ? vote : this.mapIndex);
+        return change;
+      },
+      timeStatus: () => this.timeStatus(),
+      settingsChanged: (line) => {
+        this.setLines.push(line);
+        this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
+      },
+      resetSettings: () => {
+        const fresh = presetSettings(this.preset.id);
+        for (const group of ['world', 'powerups', 'physics', 'server'] as const) Object.assign(this.settings[group], fresh[group]);
+        this.setLines = [];
+        this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
+      },
+      audit: (entry) => this.options.audit?.(this.id, entry),
+    };
   }
 
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
@@ -667,11 +912,12 @@ export class Room {
   }
 
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
-  private nextMap(reason: GameOverReason | 'vote'): void {
+  private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
     const voters = this.voters();
     const votes = mapVotes(voters, this.rotation.length);
     const negative = (map: number) => voters.filter((v) => v.negative.has(map)).length;
-    this.mapIndex = nextMap(this.rotation, votes, this.mapIndex, this.world.frame, negative, this.sim.rng);
+    // /forcemap: o mapa escolhido ganha 99 votos no original, o que o torna o próximo
+    this.mapIndex = forced ?? nextMap(this.rotation, votes, this.mapIndex, this.world.frame, negative, this.sim.rng);
     for (const c of this.clients.values()) {
       c.wantMapExit = false;
       if (c.mapVote === this.mapIndex) c.mapVote = -1;

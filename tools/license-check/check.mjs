@@ -57,7 +57,14 @@ const walk = (deps) => {
 };
 for (const project of tree) walk(project.dependencies);
 let packages = 0;
+let skipped = 0;
 for (const [path, name] of seen) {
+  // Binários opcionais de outras plataformas (ex. @node-rs/argon2-linux-x64) aparecem na árvore
+  // sem estar instalados; a plataforma de destino instala o seu, da mesma família de pacotes.
+  if (!existsSync(join(path, 'package.json'))) {
+    skipped++;
+    continue;
+  }
   packages++;
   const pkg = JSON.parse(readFileSync(join(path, 'package.json'), 'utf8'));
   const license =
@@ -87,5 +94,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  `OK: ${packages} dependências de produção compatíveis; ${tracked.length} arquivos com cabeçalho SPDX.`,
+  `OK: ${packages} dependências de produção compatíveis (${skipped} opcionais de outras plataformas não instaladas); ${tracked.length} arquivos com cabeçalho SPDX.`,
 );

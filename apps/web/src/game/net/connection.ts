@@ -31,12 +31,18 @@ export class GameConnection {
     ticket: string,
     private readonly handlers: ConnectionHandlers,
     simulate?: LinkConditions,
+    /** Token da vaga guardada (OG-047): vai junto do `hello` na volta de uma queda. */
+    resumeToken?: string,
   ) {
     this.up = simulate ? new SimulatedLink(simulate, 11) : null;
     this.down = simulate ? new SimulatedLink(simulate, 12) : null;
     this.ws = new WebSocket(url);
     this.ws.binaryType = 'arraybuffer';
-    this.ws.onopen = () => this.send([message('hello', { protocol: PROTOCOL_VERSION, ticket, client: 'outgun-web' })]);
+    this.ws.onopen = () =>
+      this.send([
+        message('hello', { protocol: PROTOCOL_VERSION, ticket, client: 'outgun-web' }),
+        ...(resumeToken ? [message('resume', { token: resumeToken })] : []),
+      ]);
     this.ws.onmessage = (ev) => {
       if (!(ev.data instanceof ArrayBuffer)) return;
       const data = new Uint8Array(ev.data);

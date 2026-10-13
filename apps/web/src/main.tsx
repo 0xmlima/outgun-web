@@ -3,17 +3,22 @@
 import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
+import { AccountProvider } from './app/account.js';
 import { PrefsProvider } from './app/prefs.js';
 import { Root, Shell } from './app/Shell.js';
-import { ControlsScreen } from './screens/ControlsScreen.js';
 import {
-  CreditsScreen,
-  HelpScreen,
-  HomeScreen,
+  AccountScreen,
+  ChangePasswordScreen,
+  ChangeUsernameScreen,
+  ClanTagScreen,
+  DeleteAccountScreen,
+  ForgotPasswordScreen,
   LoginScreen,
-  OptionsScreen,
-  SourceScreen,
-} from './screens/menus.js';
+  RegisterScreen,
+  ResetPasswordScreen,
+} from './screens/account.js';
+import { ControlsScreen } from './screens/ControlsScreen.js';
+import { CreditsScreen, HelpScreen, HomeScreen, OptionsScreen, SourceScreen } from './screens/menus.js';
 import './styles.css';
 
 // O jogo (e, a partir do OG-061, o PixiJS) só é baixado ao entrar na partida.
@@ -33,6 +38,14 @@ const router = createBrowserRouter([
           { path: 'credits', element: <CreditsScreen /> },
           { path: 'source', element: <SourceScreen /> },
           { path: 'login', element: <LoginScreen /> },
+          { path: 'register', element: <RegisterScreen /> },
+          { path: 'forgot-password', element: <ForgotPasswordScreen /> },
+          { path: 'reset-password', element: <ResetPasswordScreen /> },
+          { path: 'account', element: <AccountScreen /> },
+          { path: 'account/password', element: <ChangePasswordScreen /> },
+          { path: 'account/delete', element: <DeleteAccountScreen /> },
+          { path: 'account/username', element: <ChangeUsernameScreen /> },
+          { path: 'account/clan-tag', element: <ClanTagScreen /> },
         ],
       },
       {
@@ -53,7 +66,9 @@ if (container)
   createRoot(container).render(
     <StrictMode>
       <PrefsProvider>
-        <RouterProvider router={router} />
+        <AccountProvider>
+          <RouterProvider router={router} />
+        </AccountProvider>
       </PrefsProvider>
     </StrictMode>,
   );

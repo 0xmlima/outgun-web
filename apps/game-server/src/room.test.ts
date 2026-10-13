@@ -166,6 +166,16 @@ describe('Room: dados do HUD (OG-065)', () => {
     ]);
   });
 
+  it('chat mostra a clan tag como "(TAG) nome" (RN-NOM-03)', () => {
+    const r = room();
+    const conn = new TestConnection();
+    const joined = r.join(conn, { name: 'Ana', accountId: 'u-1', clanTag: 'XYZ' });
+    if (!joined.ok) throw new Error(joined.text);
+    r.handle(joined.pid, [message('clientReady', {}), message('chat', { text: 'oi', teamOnly: false })]);
+    r.tick();
+    expect(conn.of('text').map((m) => m.text)).toEqual(['(XYZ) Ana: oi']);
+  });
+
   it('chat com caractere de controle é mensagem inválida', () => {
     const r = room();
     const a = join(r, 'Ana');

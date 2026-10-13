@@ -1,20 +1,26 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Transporte: WebSocket (uWebSockets.js, D-03) em /rooms/:id, healthcheck, métricas e uma página
-// de depuração. A primeira mensagem do cliente tem de ser `hello`; o ticket da API (OG-083) ainda
-// não existe: com `devTickets`, `dev:Nome` entra como convidado.
+// de depuração. A primeira mensagem do cliente tem de ser `hello` com o ticket da API (OG-083); com
+// `devTickets`, `dev:Nome` entra como convidado.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION, type MessageOf } from '@outgun/protocol';
 import uWS from 'uWebSockets.js';
-import type { Identity } from './room.js';
+import type { KeyObject } from 'node:crypto';
+import type { Connection } from './room.js';
 import type { RoomManager } from './rooms.js';
+import { TicketAuth } from './tickets.js';
 
 export interface ServerOptions {
   port: number;
   host?: string;
   manager: RoomManager;
-  /** Aceita tickets `dev:Nome` (desenvolvimento, até a API emitir tickets). */
+  /** Aceita tickets `dev:Nome` (desenvolvimento e testes). */
   devTickets: boolean;
+  /** Atrás de proxy: o IP do jogador vem do primeiro endereço de X-Forwarded-For. */
+  trustProxy?: boolean;
+  /** Chaves públicas dos tickets da API (JWKS); sem elas, só tickets `dev:`. */
+  ticketKeys?: () => ReadonlyMap<string, KeyObject>;
   /** Pasta com `index.js` etc. de @outgun/protocol, servida em /protocol/ para a página de depuração. */
   protocolDist?: string;
   devPage?: string;
@@ -23,15 +29,9 @@ export interface ServerOptions {
 interface SocketData {
   roomId: string;
   pid: number;
-}
-
-/** Valida o ticket; null = recusado. */
-function identify(ticket: string, devTickets: boolean): Identity | null {
-  if (devTickets && ticket.startsWith('dev:')) {
-    const name = ticket.slice(4).trim().slice(0, 32) || 'Convidado';
-    return { name, accountId: null };
-  }
-  return null;
+  ip: string;
+  /** Conexão entregue à sala (para a sala saber se a queda é da conexão atual do jogador). */
+  conn: Connection | null;
 }
 
 export interface RunningServer {
@@ -41,6 +41,7 @@ export interface RunningServer {
 
 export function startServer(options: ServerOptions): Promise<RunningServer> {
   const { manager } = options;
+  const tickets = new TicketAuth({ devTickets: options.devTickets, ...(options.ticketKeys ? { keys: options.ticketKeys } : {}) });
   const app = uWS.App();
   const reject = (ws: uWS.WebSocket<SocketData>, reason: MessageOf<'reject'>['reason'], text: string) => {
     ws.send(encodeFrame(message('reject', { reason, text })), true);
@@ -57,8 +58,10 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
+      const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
+      const ip = forwarded || Buffer.from(res.getRemoteAddressAsText()).toString();
       res.upgrade<SocketData>(
-        { roomId, pid: -1 },
+        { roomId, pid: -1, ip, conn: null },
         req.getHeader('sec-websocket-key'),
         req.getHeader('sec-websocket-protocol'),
         req.getHeader('sec-websocket-extensions'),
@@ -82,29 +85,32 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         const [hello, ...rest] = decoded.messages;
         if (hello?.type !== 'hello') return ws.end(4002, 'esperava hello');
         if (hello.protocol !== PROTOCOL_VERSION) return reject(ws, 'protocolMismatch', `protocolo ${PROTOCOL_VERSION} exigido`);
-        const identity = identify(hello.ticket, options.devTickets);
-        if (!identity) return reject(ws, 'invalidTicket', 'ticket inválido');
-        const joined = room.join(
-          {
-            send: (b) => void ws.send(b, true),
-            close: (code, reason) => ws.end(code, reason),
-            // troca de time muda o pid do jogador
-            moved: (pid) => {
-              user.pid = pid;
-            },
+        const auth = tickets.identify(hello.ticket, user.roomId);
+        if (!auth.ok) return reject(ws, 'invalidTicket', `ticket inválido (${auth.reason})`);
+        const identity = { ...auth.identity, ip: user.ip };
+        const conn: Connection = {
+          send: (b) => void ws.send(b, true),
+          close: (code, reason) => ws.end(code, reason),
+          // troca de time muda o pid do jogador
+          moved: (pid) => {
+            user.pid = pid;
           },
-          identity,
-        );
+        };
+        // `resume` junto do hello: volta à vaga guardada depois de uma queda (OG-047)
+        const resume = rest.find((m) => m.type === 'resume');
+        const others = rest.filter((m) => m.type !== 'resume');
+        const joined = (resume?.type === 'resume' ? room.resume(conn, identity, resume.token) : null) ?? room.join(conn, identity);
         if (!joined.ok) return reject(ws, joined.reason, joined.text);
         user.pid = joined.pid;
-        if (rest.length > 0) room.handle(user.pid, rest);
+        user.conn = conn;
+        if (others.length > 0) room.handle(user.pid, others);
         return;
       }
       room.handle(user.pid, decoded.messages);
     },
     close: (ws) => {
       const user = ws.getUserData();
-      if (user.pid !== -1) manager.get(user.roomId)?.leave(user.pid);
+      if (user.pid !== -1 && user.conn) manager.get(user.roomId)?.disconnect(user.pid, user.conn);
       user.pid = -1;
     },
   });

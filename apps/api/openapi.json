@@ -1,0 +1,2035 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Outgun Web API",
+    "version": "0.1.0",
+    "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
+    "license": {
+      "name": "GPL-2.0-or-later",
+      "url": "https://spdx.org/licenses/GPL-2.0-or-later.html"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "gameServerHmac": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-outgun-signature",
+        "description": "HMAC-SHA256 hex de `timestamp.MÉTODO.caminho.sha256(corpo)` com o segredo do servidor; acompanhado de x-outgun-server e x-outgun-timestamp (ms)."
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Estado da API e das dependências",
+        "tags": ["sistema"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "version", "database", "redis"],
+                  "properties": {
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["ok"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["degraded"]
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "database": {
+                      "type": "boolean"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["ok"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["down"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["disabled"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "version", "database", "redis"],
+                  "properties": {
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["ok"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["degraded"]
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "database": {
+                      "type": "boolean"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["ok"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["down"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["disabled"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms": {
+      "get": {
+        "summary": "Salas cadastradas e quantos jogadores há em cada uma",
+        "tags": ["salas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["rooms"],
+                  "properties": {
+                    "rooms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "mode",
+                          "preset",
+                          "hasPassword",
+                          "maxPlayers",
+                          "players",
+                          "map",
+                          "online"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": ["casual"]
+                              },
+                              {
+                                "type": "string",
+                                "enum": ["ranked"]
+                              }
+                            ]
+                          },
+                          "preset": {
+                            "type": "string"
+                          },
+                          "hasPassword": {
+                            "type": "boolean"
+                          },
+                          "maxPlayers": {
+                            "type": "integer"
+                          },
+                          "players": {
+                            "type": "integer"
+                          },
+                          "map": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "online": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/names/check": {
+      "get": {
+        "summary": "Nome válido? Livre? Como aparece para um convidado?",
+        "tags": ["contas"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["valid", "registrable", "taken", "guestName"],
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "registrable": {
+                      "type": "boolean"
+                    },
+                    "taken": {
+                      "type": "boolean"
+                    },
+                    "guestName": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "summary": "Chaves públicas (Ed25519) que conferem os tickets de entrada",
+        "tags": ["salas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/join": {
+      "post": {
+        "summary": "Ticket de entrada (60 s) para o game server da sala",
+        "tags": ["salas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "password": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ticket", "wsUrl", "name", "guest"],
+                  "properties": {
+                    "ticket": {
+                      "type": "string"
+                    },
+                    "wsUrl": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "guest": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "Cria a conta e já entra (sem confirmação de e-mail)",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "email", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 15
+                  },
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  },
+                  "language": {
+                    "type": "string",
+                    "maxLength": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isAdmin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Entra com nome de usuário (sem diferenciar maiúsculas) e senha",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "password": {
+                    "type": "string",
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isAdmin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Encerra a sessão atual",
+        "tags": ["contas"],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Usuário da sessão",
+        "tags": ["contas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isAdmin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password/forgot": {
+      "post": {
+        "summary": "Envia o link de redefinição; a resposta é a mesma exista ou não a conta",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["login"],
+                "properties": {
+                  "login": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 254
+                  },
+                  "language": {
+                    "type": "string",
+                    "maxLength": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ok"],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [true]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password/reset": {
+      "post": {
+        "summary": "Troca a senha com o link do e-mail; encerra as outras sessões e entra",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "password"],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 100
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isAdmin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/password": {
+      "post": {
+        "summary": "Troca a senha (pede a atual) e encerra as outras sessões",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword"],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/username": {
+      "post": {
+        "summary": "Troca o nome de usuário (uma vez a cada 30 dias; o antigo fica reservado por 90)",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 15
+                  },
+                  "password": {
+                    "type": "string",
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isAdmin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/clan-tag": {
+      "put": {
+        "summary": "Define ou remove a clan tag, exibida como \"(TAG) nome\" no chat",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["clanTag"],
+                "properties": {
+                  "clanTag": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 6
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isAdmin": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/export": {
+      "get": {
+        "summary": "Todos os dados pessoais da conta em JSON (LGPD)",
+        "tags": ["contas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/": {
+      "delete": {
+        "summary": "Exclui a conta; as partidas jogadas ficam anônimas",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/rooms/heartbeat": {
+      "post": {
+        "summary": "Game server informa as salas que hospeda (a cada ~10 s)",
+        "tags": ["interno"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rooms"],
+                "properties": {
+                  "rooms": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "mode",
+                        "preset",
+                        "maxPlayers",
+                        "persistent",
+                        "players",
+                        "map",
+                        "wsUrl"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "mode": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["casual"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["ranked"]
+                            }
+                          ]
+                        },
+                        "preset": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "maxPlayers": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 32
+                        },
+                        "persistent": {
+                          "type": "boolean"
+                        },
+                        "players": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32
+                        },
+                        "map": {
+                          "type": "string",
+                          "maxLength": 64
+                        },
+                        "wsUrl": {
+                          "type": "string",
+                          "pattern": "^wss?://",
+                          "maxLength": 200
+                        }
+                      }
+                    },
+                    "maxItems": 64
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "gameServerHmac": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["updated"],
+                  "properties": {
+                    "updated": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/matches": {
+      "post": {
+        "summary": "Resultado de uma partida encerrada (idempotente por serverMatchId)",
+        "tags": ["interno"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "serverMatchId",
+                  "mode",
+                  "ranked",
+                  "map",
+                  "redScore",
+                  "blueScore",
+                  "startedAt",
+                  "endedAt",
+                  "players"
+                ],
+                "properties": {
+                  "serverMatchId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "roomId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["casual"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["ranked"]
+                      }
+                    ]
+                  },
+                  "ranked": {
+                    "type": "boolean"
+                  },
+                  "map": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "redScore": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32767
+                  },
+                  "blueScore": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32767
+                  },
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "endedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "players": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "slot",
+                        "name",
+                        "team",
+                        "isBot",
+                        "frags",
+                        "kills",
+                        "deaths",
+                        "captures",
+                        "playSeconds",
+                        "scoreDelta",
+                        "negDelta",
+                        "stats"
+                      ],
+                      "properties": {
+                        "slot": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 31
+                        },
+                        "userId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 32
+                        },
+                        "team": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "enum": [0]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [1]
+                            }
+                          ]
+                        },
+                        "isBot": {
+                          "type": "boolean"
+                        },
+                        "frags": {
+                          "type": "integer",
+                          "minimum": -1000000,
+                          "maximum": 1000000
+                        },
+                        "kills": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "deaths": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "captures": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "playSeconds": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "scoreDelta": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "negDelta": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "stats": {
+                          "type": "object",
+                          "maxProperties": 64,
+                          "additionalProperties": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    },
+                    "maxItems": 32
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "gameServerHmac": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "duplicate"],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "duplicate": {
+                      "type": "boolean",
+                      "enum": [true]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "duplicate"],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "duplicate": {
+                      "type": "boolean",
+                      "enum": [false]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/admin-actions": {
+      "post": {
+        "summary": "Ação de moderação feita numa sala (auditoria, RN-CHT-04); ban também bloqueia novos tickets",
+        "tags": ["interno"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["roomId", "action", "actor", "reason"],
+                "properties": {
+                  "roomId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                  },
+                  "action": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["kick"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["ban"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["mute"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["smute"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["unmute"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["forcemap"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["set"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["sayadmin"]
+                      }
+                    ]
+                  },
+                  "actor": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "accountId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      }
+                    }
+                  },
+                  "target": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "accountId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      },
+                      "ip": {
+                        "type": "string",
+                        "maxLength": 45
+                      }
+                    }
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "durationSeconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 604800
+                  },
+                  "details": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "gameServerHmac": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id", "banId"],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "banId": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

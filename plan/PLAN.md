@@ -400,7 +400,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 
 ### 6.15 Nomes e identidade (RN-NOM)
 - **RN-NOM-01** — Nome: até 15 caracteres, imprimíveis, não pode ser vazio/só espaços nem começar/terminar com espaço. (`commont.cpp:190`)
-- **RN-NOM-02** — Web: o **nome de usuário é o nick em jogo**: único (comparação case-insensitive e normalizada) e protegido; convidados recebem nick com sufixo e não podem usar nick registrado.
+- **RN-NOM-02** — Web: o **nome de usuário é o nick em jogo**: único (comparação `makeComparable` do original com acentos dobrados, `src/auth.cpp:88`) e protegido; convidados recebem o sufixo `*` e não podem usar nick registrado nem reservado (troca de nome a cada 30 dias, nome antigo reservado por 90). Ver D-20 e `plan/specs/names.md`.
 - **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat.
 
 ### 6.16 Ranking (RN-RNK)
@@ -601,8 +601,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Concluído |
 | [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Concluído |
 | [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Concluído |
-| [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Pronto |
-| [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Pronto |
+| [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Em revisão |
+| [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Em revisão |
 | [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
 | [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Backlog |
 | [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Concluído |
@@ -615,10 +615,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-067](cards/OG-067-audio.md) | Áudio | E4 | 3 | Must | S7 | OG-012 | Concluído |
 | [OG-068](cards/OG-068-player-options.md) | Opções do jogador | E4 | 3 | Should | S9 | OG-060 | Backlog |
 | [OG-069](cards/OG-069-lobby.md) | Lobby de salas | E4 | 5 | Must | S9 | OG-086 | Backlog |
-| [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Pronto |
-| [OG-081](cards/OG-081-auth.md) | Cadastro, login e recuperação de senha | E5 | 5 | Must | S8 | OG-080 | Pronto |
-| [OG-082](cards/OG-082-nick-protection.md) | Nome de usuário em jogo, troca de nome e clan tag | E5 | 2 | Must | S8 | OG-081 | Pronto |
-| [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Pronto |
+| [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Em revisão |
+| [OG-081](cards/OG-081-auth.md) | Cadastro, login e recuperação de senha | E5 | 5 | Must | S8 | OG-080 | Em revisão |
+| [OG-082](cards/OG-082-nick-protection.md) | Nome de usuário em jogo, troca de nome e clan tag | E5 | 2 | Must | S8 | OG-081 | Em revisão |
+| [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Em revisão |
 | [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Backlog |
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Backlog |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Backlog |
@@ -673,6 +673,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-17 | Entrada do cliente no servidor | Como o original / com limite de taxa e histórico redundante | ✅ **Decidido no OG-043 (divergência intencional):** ordem dos inputs como o original (janela de 128 num contador de 8 bits), limite de taxa por tipo de mensagem (balde de fichas por tick) e expulsão por `client_misbehavior`; **sem histórico redundante de inputs**: os controles são estado absoluto (basta o mais novo), os eventos discretos (tiro, largar bandeira, suicídio, troca de time) vão no canal confiável, o WebSocket não perde pacotes e, num transporte sem garantia (v2), a regra de ordem já descarta os atrasados; um histórico só gastaria banda e abriria espaço para reescrever frames passados. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/entrada-servidor.md) | Tech Lead |
 | D-18 | Predição e desenho no cliente | Como o original (extrapolação, predição desligada) / predição ligada e suavização | ✅ **Decidido no OG-064 (divergência intencional):** mesma extrapolação do original (`ClientWorld::extrapolate`: o próprio jogador com os controles ainda não confirmados, os outros com os últimos controles conhecidos, foguetes simulados a partir dos eventos) e mesma sincronização de envio (`frameOffset`); diferenças: **predição ligada por padrão** (quantidade 10; a opção e o "handicap" 0..10 continuam no menu), relógio estimado do servidor em vez do tempo desde a chegada do último frame (o jitter não sacode o desenho), extrapolação em frames inteiros, troca de sala liberada para o jogador previsto e **suavização das correções** (meia-vida de 80 ms, sem suavizar saltos > 48 px). Interpolação "no passado" para os outros jogadores foi descartada: mostraria inimigos ~100 ms atrasados e pioraria a mira num jogo com foguetes lentos. Resultado: 0,1–0,2 correções/s com 150 ms de RTT e 2% de perda; nave responde em 10–60 ms. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/predicao-interpolacao.md) | Tech Lead |
 | D-19 | HUD da partida | Como o original / adaptado ao navegador | ✅ **Decidido no OG-065:** layout, barras, placar, minimapa, mensagens e chat como o original (`make_layout` com o canvas como tela), F12 alterna minimapa e placar como no original (fora do modo foco o navegador pode abrir as ferramentas de desenvolvimento; a tecla é remapeável); o servidor passa a mandar placar, tempo de mapa, timers de power-up e arma e a repassar o chat (comandos `/` e moderação no OG-046); mensagens com cor usam a tradução sem cor quando o catálogo do 1.0.3 não tem a versão com cor (pt-BR ganhou as versões com cor). Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/hud.md) | Tech Lead |
+| D-20 | Nomes de jogador | Como o original (`makeComparable` ASCII, nome protegido por senha no `auth.txt`, troca livre em jogo) / conta é o nome protegido | ✅ **Decidido no OG-082 (divergência intencional):** validação igual ao `check_name` (+ só Latin-1, por causa das fontes); comparação = `makeComparable` com **acentos dobrados** (José = JOSE = jose); nome registrado precisa de letra ou dígito; convidado não usa nome de conta nem reservado e aparece com sufixo `*`; troca de nome pela conta a cada 30 dias, nome antigo reservado ao dono por 90 dias; clan tag definida na conta (1–6 caracteres, sem parênteses), exibida como `(TAG) nome`. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/names.md) | Tech Lead |
+| D-21 | Moderação no chat | Como o original (classes do `auth.txt`, ban por IP no arquivo) / admin da plataforma e auditoria na API | ✅ **Decidido no OG-046 (divergência intencional):** chat, anti-flood e comandos como `Server::chat`; admin = flag do ticket; `/set` só nas regras de jogo e nunca em preset travado; motivo opcional em `/kick` e `/ban`; ban da sala por conta e IP gravado na API (bloqueia novos tickets); toda ação auditada em `admin_actions`; `/bot` fica para o OG-048; filtro de palavras opcional por sala. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/chat-moderacao.md) | Tech Lead |
+| D-22 | Queda de conexão | Como o original (sai na hora) / vaga guardada por 15 s | ✅ **Decidido no OG-047 (divergência intencional):** idle kick igual ao original; quem cai fica parado no mundo por 15 s e volta à mesma vaga (time, frags, estatísticas) com um token de retomada (convidado) ou pela conta; o cliente reconecta sozinho por até 14 s. Protocolo ganha `resumeToken`/`resume` (versão 2). Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/inatividade-reconexao.md) | Tech Lead |
 
 ---
 

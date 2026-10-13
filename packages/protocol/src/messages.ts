@@ -239,6 +239,22 @@ export const MESSAGES = {
     'Aviso de expulsão por inatividade.',
     { seconds: u16 },
   ),
+  resumeToken: msg(
+    7,
+    's2c',
+    'event',
+    '— (novo, OG-047)',
+    'Token para voltar à mesma vaga depois de uma queda de conexão (até 15 s).',
+    { token: str(64) },
+  ),
+  resume: msg(
+    8,
+    'c2s',
+    'event',
+    '— (novo, OG-047)',
+    'Junto com o `hello`: pede de volta a vaga deixada numa queda de conexão.',
+    { token: str(64) },
+  ),
   serverSettings: msg(
     6,
     's2c',

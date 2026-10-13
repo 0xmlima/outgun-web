@@ -3,7 +3,7 @@
 // mas várias por processo) e encerra as vazias depois de um tempo.
 import type { GameMap } from '@outgun/sim';
 import { FixedRateLoop, percentile, realClock, type Clock } from './loop.js';
-import { Room } from './room.js';
+import { Room, type RoomOptions } from './room.js';
 
 export interface RoomSpec {
   id: string;
@@ -14,6 +14,8 @@ export interface RoomSpec {
   maxPlayers: number;
   /** Salas fixas não são encerradas quando ficam vazias. */
   persistent?: boolean;
+  /** Vaga guardada para quem caiu (s); padrão do gerenciador ou 15. */
+  reconnectSeconds?: number;
 }
 
 interface Entry {
@@ -28,6 +30,8 @@ export interface ManagerOptions {
   clock?: Clock;
   /** Semente das salas (testes); padrão: aleatória por sala. */
   seed?: () => number;
+  /** Auditoria, filtro do chat e log, iguais para todas as salas (OG-046). */
+  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'reconnectSeconds'>;
 }
 
 export class RoomManager {
@@ -54,7 +58,7 @@ export class RoomManager {
   create(spec: RoomSpec): Room {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
-    const room = new Room({ id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now() });
+    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
     this.rooms.set(spec.id, { room, persistent: spec.persistent ?? false, emptySince: null });
     return room;
   }

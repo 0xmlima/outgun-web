@@ -1,0 +1,13 @@
+-- SPDX-License-Identifier: GPL-2.0-or-later
+-- Desfaz 0001_initial.up.sql.
+DROP TABLE admin_actions;
+DROP TABLE bans;
+DROP TABLE ratings;
+DROP TABLE match_players;
+DROP TABLE matches;
+DROP TABLE rooms;
+DROP TABLE seasons;
+DROP TABLE player_profiles;
+DROP TABLE sessions;
+DROP TABLE users;
+DROP TYPE game_mode;

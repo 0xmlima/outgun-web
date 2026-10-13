@@ -6,4 +6,6 @@ interface ImportMetaEnv {
   readonly VITE_SOURCE_URL?: string;
   /** Servidor de jogo (ws:// ou wss://); padrão: porta 7700 da mesma máquina. */
   readonly VITE_GAME_SERVER?: string;
+  /** Endereço da API da plataforma (padrão: /api no mesmo domínio). */
+  readonly VITE_API_URL?: string;
 }
