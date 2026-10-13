@@ -14,6 +14,7 @@ import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
+import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
 
 /** Opções do jogador que valem na partida (OG-068). */
 function clientOptions(p: Prefs): ClientOptions {
@@ -39,6 +40,10 @@ export default function GameScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  /** Tela F1–F5 aberta (OG-066); `auto` = aberta sozinha no fim da partida (`stats_autoshowing`). */
+  const [info, setInfo] = useState<{ kind: InfoKind; auto: boolean } | null>(null);
+  const toggleInfo = useRef<(kind: InfoKind) => void>(() => {});
+  toggleInfo.current = (kind) => setInfo((cur) => (cur?.kind === kind ? null : { kind, auto: false }));
   const host = useRef<GameHost | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
@@ -89,8 +94,13 @@ export default function GameScreen() {
         const t = tRef.current;
         if (action === 'menu') setMenuOpen(true);
         else if (action === 'focusMode') setToast(t('Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).'));
-        // telas e mensagens dos cards OG-044/045/066/067
         else if (action === 'toggleSound') toggleSound.current();
+        else if (action === 'help') toggleInfo.current('help');
+        else if (action === 'serverInfo' && onlineKey !== null) toggleInfo.current('server');
+        else if (action === 'mapList' && onlineKey !== null) toggleInfo.current('maps');
+        else if (action === 'teamStats' && onlineKey !== null) toggleInfo.current('teams');
+        else if (action === 'playerStats' && onlineKey !== null) toggleInfo.current('players');
+        else if (action === 'toggleNames') toggleNames.current();
         // na partida online o host trata Insert, F12 e Ctrl+End; telas F1–F5/F8 são do OG-045/066
         else if (action !== 'suicide' && (onlineKey === null || !['moreMessages', 'fullPlayfield', 'changeTeam', 'voteMapChange'].includes(action))) setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
       },
@@ -108,12 +118,39 @@ export default function GameScreen() {
   useEffect(() => host.current?.setSound({ enabled: prefs.soundEnabled, volume: prefs.soundVolume }), [prefs.soundEnabled, prefs.soundVolume]);
   // Ctrl+M: liga e desliga o som (e grava a preferência)
   const toggleSound = useRef(() => {});
+  // Ctrl+N / F6: nomes "nunca" ↔ "na mesma sala" (Ctrl+F3 do original)
+  const toggleNames = useRef(() => {});
+  toggleNames.current = () => setPrefs({ showNames: prefs.showNames === 'never' ? 'sameRoom' : 'never' });
   toggleSound.current = () => setPrefs({ soundEnabled: !prefs.soundEnabled });
   useEffect(
     () => host.current?.setPrediction({ enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount }),
     [prefs.lagPrediction, prefs.lagPredictionAmount],
   );
   useEffect(() => host.current?.setInputEnabled(!menuOpen), [menuOpen]);
+
+  // `netStatsReady`/`netGameStarted`: F3/F4 abrem sozinhas no fim da partida e fecham no começo da
+  // próxima; F5 abre ao conectar com `Show server info when connected` (OG-066)
+  const auto = useRef({ statsReady: -1, gameOver: false, serverShown: false });
+  useEffect(() => {
+    if (onlineKey === null) return;
+    const id = setInterval(() => {
+      const s = host.current?.session();
+      if (!s) return;
+      const a = auto.current;
+      if (a.statsReady < 0) a.statsReady = s.statsReadyCount;
+      if (s.statsReadyCount !== a.statsReady) {
+        a.statsReady = s.statsReadyCount;
+        if (prefs.showStats !== 'off') setInfo((cur) => cur ?? { kind: prefs.showStats === 'teams' ? 'teams' : 'players', auto: true });
+      }
+      if (a.gameOver && !s.gameOver) setInfo((cur) => (cur?.auto ? null : cur));
+      a.gameOver = s.gameOver !== null;
+      if (!a.serverShown && s.me >= 0 && s.world) {
+        a.serverShown = true;
+        if (prefs.showServerInfo) setInfo((cur) => cur ?? { kind: 'server', auto: false });
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [onlineKey, prefs.showStats, prefs.showServerInfo]);
 
   // aviso curto das ações (some em 2 s)
   useEffect(() => {
@@ -155,6 +192,7 @@ export default function GameScreen() {
             <BitmapText text={toast} />
           </p>
         )}
+        {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
         {menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
         ) : onlineKey !== null && status?.kind === 'ready' ? null : (

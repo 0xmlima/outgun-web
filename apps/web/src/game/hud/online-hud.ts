@@ -33,6 +33,8 @@ export class OnlineHud {
   /** Votou para sair do mapa (F8); "atrasado" = não vale sem voto num mapa específico. */
   wantMapExit = false;
   mapExitDelayed = false;
+  /** Voto num mapa da lista F2 (−1 = nenhum, `map_vote`). */
+  mapVote = -1;
   /** Onde cada bandeira carregada foi vista por último (portador na tela). */
   private readonly flagSeen = new Map<string, WorldCoords>();
   private deadAfterHighlighted = true;
@@ -63,7 +65,10 @@ export class OnlineHud {
   /** Mensagem do servidor (chamar antes de a sessão tratá-la, para nomes de quem sai). */
   onMessage(m: Parameters<MessageFeed['onMessage']>[0]): FeedFacts {
     if (m.type === 'teamChange' && (m.from === this.session.me || m.to === this.session.me)) this.wantChangeTeams = false;
-    if (m.type === 'mapChange') this.wantMapExit = this.mapExitDelayed = false; // `netMapChange`
+    if (m.type === 'mapChange') {
+      this.wantMapExit = this.mapExitDelayed = false; // `netMapChange`
+      if (this.mapVote === m.mapIndex) this.mapVote = -1; // o servidor também zera o voto no mapa escolhido
+    }
     if (m.type === 'gameOver') this.feed.gameOverScores(this.session.teamScores[0], this.session.teamScores[1], this.context());
     const facts = this.feed.onMessage(m, this.context());
     if (facts.voteNoEffect) this.mapExitDelayed = true;

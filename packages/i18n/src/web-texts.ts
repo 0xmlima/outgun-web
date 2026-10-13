@@ -262,5 +262,18 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     // palavras curtas que faltavam (OG-068/069/085)
     'guest': 'convidado',
     'players': 'jogadores',
+    // OG-066: telas F1–F5
+    'Ping': 'Ping',
+    'Capt': 'Capt',
+    'dropped': 'largadas',
+    'returned': 'devolvidas',
+    'Taken': 'Recebidos',
+    'Speed': 'Velocidade',
+    'Playtime': 'Tempo de jogo',
+    'Average lifetime': 'Vida média',
+    'rank': 'posição',
+    'power': 'força',
+    'Nr': 'Nº',
+    'Vote': 'Voto',
   },
 };

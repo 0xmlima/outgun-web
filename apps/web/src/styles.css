@@ -291,6 +291,68 @@ body {
 .game-overlay > * {
   pointer-events: auto;
 }
+/* Telas F1–F5 (OG-066): cores `stats_*` de src/colour_def.inc, fundo opaco (`Stats screen alpha` 255). */
+.info-screen {
+  max-width: 96%;
+  max-height: 96%;
+  overflow: auto;
+  padding: calc(var(--px) * 4px) calc(var(--px) * 10px) calc(var(--px) * 8px);
+  background: #000000;
+  color: #ffffff;
+}
+.info-screen h2 {
+  margin: 0 calc(var(--px) * -10px) calc(var(--px) * 6px);
+  padding: calc(var(--px) * 2px) 0;
+  text-align: center;
+  font-size: 1em;
+  background: #007700;
+}
+.info-screen table {
+  border-collapse: collapse;
+  margin: 0 auto calc(var(--px) * 6px);
+}
+.info-screen caption {
+  text-align: left;
+  padding: calc(var(--px) * 2px) calc(var(--px) * 4px);
+}
+.info-screen caption.tone-red {
+  background: #600000;
+}
+.info-screen caption.tone-blue {
+  background: #000060;
+}
+.info-screen th,
+.info-screen td {
+  padding: 0 calc(var(--px) * 5px);
+  text-align: right;
+  white-space: nowrap;
+}
+.info-screen th:first-child,
+.info-screen td:first-child,
+.info-screen.maps td:nth-child(4),
+.info-screen.maps td:nth-child(6),
+.info-screen.players td:nth-child(2),
+.info-screen.teams tbody:last-child td:last-child {
+  text-align: left;
+}
+.info-screen p {
+  margin: calc(var(--px) * 4px) 0 0;
+}
+.info-screen .tone-red {
+  color: #ff6060;
+}
+.info-screen .tone-blue {
+  color: #8080ff;
+}
+.info-screen .tone-highlight {
+  color: #00ff00;
+}
+.info-screen .tone-selected {
+  color: #ffff00;
+}
+.info-screen .tone-dimmed {
+  color: #404040;
+}
 .game-hint {
   position: absolute;
   bottom: calc(var(--px) * 8px);

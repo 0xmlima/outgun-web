@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
+import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
@@ -97,6 +98,8 @@ interface Client {
   frameOffset: number;
   /** Frags na última mensagem enviada (`oldfrags`). */
   sentFrags: number;
+  /** Contadores do último `stats` enviado deste jogador (OG-066). */
+  sentStats: string;
   /** Rodízio do minimapa e propriedades já informadas. */
   rs: RecipientState;
   /** Eventos só deste jogador, enviados com o próximo frame. */
@@ -186,6 +189,8 @@ export class Room {
   private readonly preset: Preset;
   /** Placar já enviado (`scoreUpdate` só quando muda). */
   private readonly sentScores: [number, number] = [0, 0];
+  /** Estatísticas de time já enviadas (`teamStats` só quando mudam, OG-066). */
+  private readonly sentTeamStats: [string, string] = ['', ''];
   /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
   private readonly dirtyFlags = new Set<number>();
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
@@ -293,6 +298,7 @@ export class Room {
       lastClientFrame: 0,
       frameOffset: 0,
       sentFrags: 0,
+      sentStats: '',
       rs: new RecipientState(),
       queue: [],
       bytes: 0,
@@ -351,7 +357,9 @@ export class Room {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
+      out.push(statsMessage(this.world.players[other] as PlayerState, this.world.time)); // `send_stats`
     }
+    out.push(teamStatsMessage(0, this.world.teams[0]), teamStatsMessage(1, this.world.teams[1])); // `send_team_stats`
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
     return out;
   }
@@ -399,6 +407,7 @@ export class Room {
       lastClientFrame: 0,
       frameOffset: 0,
       sentFrags: -1,
+      sentStats: '',
       rs: new RecipientState(),
       queue: [],
       guard: new InputGuard(),
@@ -686,8 +695,19 @@ export class Room {
           c.sentFrags = frags;
           this.broadcast(message('frags', { pid, frags }));
         }
+        const key = statsKey(pl);
+        if (key !== c.sentStats) {
+          c.sentStats = key;
+          this.broadcast(statsMessage(pl, world.time));
+        }
         this.updateHud(pid, c, pl);
       }
+      ([0, 1] as const).forEach((team) => {
+        const key = teamStatsKey(world.teams[team]);
+        if (key === this.sentTeamStats[team]) return;
+        this.sentTeamStats[team] = key;
+        this.broadcast(teamStatsMessage(team, world.teams[team]));
+      });
       world.teams.forEach((t, team) => {
         if (t.score === this.sentScores[team]) return;
         this.sentScores[team] = t.score;
@@ -913,6 +933,8 @@ export class Room {
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
     this.report(result);
+    // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar
+    this.broadcast(...endOfGameMessages([...this.clients.keys()].map((pid) => this.world.players[pid] as PlayerState), [this.world.teams[0], this.world.teams[1]]));
     this.nextMap(reason);
   }
 

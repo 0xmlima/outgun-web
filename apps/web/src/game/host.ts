@@ -37,6 +37,12 @@ export interface GameHost {
   setSound(sound: { enabled: boolean; volume: number }): void;
   /** Opções do jogador que valem durante a partida (OG-068). */
   setClient(client: ClientOptions): void;
+  /** Telas F2–F5 (OG-066): a sessão (null fora de partida online) e o voto da lista de mapas. */
+  session(): ClientSession | null;
+  mapVote(): number;
+  voteMap(index: number): void;
+  /** Teclas para uma tela aberta (antes do chat e dos controles); devolve true se usou a tecla. */
+  setKeyInterceptor(fn: ((ev: KeyboardEvent) => boolean) | null): void;
   /** Para o laço e solta o canvas (e fecha a conexão). */
   destroy(): void;
 }
@@ -518,7 +524,13 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   };
 
   /** Chat: antes do jogo e do menu (fase de captura), para o Esc só limpar o texto digitado. */
+  let interceptor: ((ev: KeyboardEvent) => boolean) | null = null;
   const onChatKey = (ev: KeyboardEvent) => {
+    if (interceptor && input.isEnabled() && interceptor(ev)) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      return;
+    }
     if (!onlineHud || !input.isEnabled()) return;
     if (onlineHud.onKey(ev, boundCodes(bindings))) {
       ev.preventDefault();
@@ -538,6 +550,19 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       if (session) session.prediction = prediction;
     },
     setSound: (sound) => sounds?.configure(sound.enabled, sound.volume),
+    session: () => session ?? null,
+    mapVote: () => onlineHud?.mapVote ?? -1,
+    voteMap: (index) => {
+      if (!session || !onlineHud) return;
+      // `handleInfoScreenKeypress`: só manda se mudou (e "nenhum" só se havia voto)
+      if (index === onlineHud.mapVote || (index < 0 && onlineHud.mapVote < 0)) return;
+      onlineHud.mapVote = index;
+      onlineHud.mapExitDelayed = false;
+      session.send(message('mapVote', { map: index < 0 ? -1 : index }));
+    },
+    setKeyInterceptor: (fn) => {
+      interceptor = fn;
+    },
     setClient: (next) => {
       const themeChanged = next.soundTheme !== client.soundTheme;
       client = next;

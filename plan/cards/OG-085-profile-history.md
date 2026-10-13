@@ -25,7 +25,7 @@ Como jogador, quero ver meu perfil, estatísticas acumuladas e histórico de par
 
 ## Critérios de aceite
 - [x] Perfil e partida acessíveis por URL pública.
-- [ ] Estatísticas batem com a tela F4 da partida. _(mesma fonte — `PlayerResult` da sim no fim da partida; conferir quando a F4 existir, OG-066)_
+- [x] Estatísticas batem com a tela F4 da partida. _(mesma fonte: o `PlayerStats` da sim — a F4 recebe o retrato do servidor (OG-066) e o perfil grava o `PlayerResult` do fim da partida)_
 
 ## Notas técnicas
 - —
