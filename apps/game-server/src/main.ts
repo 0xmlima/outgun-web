@@ -32,6 +32,10 @@ const manager = new RoomManager({
       console.log(`[admin] ${roomId}: ${entry.actor.name} ${entry.action} ${entry.target?.name ?? ''} ${entry.reason}`);
       platform.audit(roomId, entry);
     },
+    reportMatch: (report) => {
+      console.log(`[partida] ${report.roomId} ${report.map} ${report.redScore}x${report.blueScore}${report.ranked ? ' (ranqueada)' : ''}`);
+      platform.reportMatch(report);
+    },
     chatFilter: wordSet((env.CHAT_FILTER ?? '').split(',')),
     log: (line) => console.log(line),
   },

@@ -14,6 +14,8 @@ export interface ConsolePlayer {
   team: number;
   account: string | null;
   admin: boolean;
+  /** Dono da sala privada (OG-049, RN-CFG-03): pode usar /set se o preset não for travado. */
+  owner?: boolean;
   /** 0 = livre, 1 = silenciado, 2 = silenciado sem saber (smute). */
   muted: 0 | 1 | 2;
   bot: boolean;
@@ -88,6 +90,7 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
   const args = space === -1 ? '' : message.slice(space + 1);
   const say = (kind: TextKind, text: string) => host.reply(pid, kind, text);
   const admin = me.admin;
+  const canSet = (admin || me.owner === true) && !host.locked;
 
   if (command === 'help') {
     say('header', 'Console commands available on this server:');
@@ -105,6 +108,9 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
       say('server', '/unmute n   cancel muting of player with ID n');
       say('server', "/forcemap   restart the game and change map if you've voted for one");
       if (!host.locked) say('server', '/set        manage server settings');
+    } else if (canSet) {
+      say('header', 'Room owner commands:');
+      say('server', '/set        manage room settings');
     }
   } else if (command === 'info' && s.infoMessage.length) {
     s.infoMessage.forEach((line, i) => say(i === 0 ? 'header' : 'server', line));
@@ -123,7 +129,7 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
     const change = host.forceMap(me);
     host.broadcastText('server', `${me.name} decided it's time for a ${change ? 'map change' : 'restart'}.`);
     host.audit({ action: 'forcemap', actor: me, reason: change ? 'forced a map change' : 'forced a restart' });
-  } else if (command === 'set' && admin && !host.locked) {
+  } else if (command === 'set' && canSet) {
     if (args === 'reset') {
       host.resetSettings();
       host.audit({ action: 'set', actor: me, reason: 'reset', details: { line: 'reset' } });

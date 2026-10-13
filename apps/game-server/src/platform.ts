@@ -4,6 +4,7 @@
 import { signInternalRequest } from '@outgun/tickets';
 import type { AuditEntry, ConsolePlayer } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
+import type { MatchReport } from './match-report.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -70,6 +71,11 @@ export class PlatformClient {
     }
     if (!quiet) this.log(`API ${path}: sem resposta`);
     return false;
+  }
+
+  /** Resultado da partida (OG-049); a API ignora reenvios (idempotente por `serverMatchId`). */
+  reportMatch(report: MatchReport): void {
+    void this.post('/internal/matches', report, 5);
   }
 
   audit(roomId: string, entry: AuditEntry): void {

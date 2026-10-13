@@ -8,6 +8,7 @@ import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset 
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer } from './match-report.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
 import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
@@ -50,6 +51,8 @@ export interface Identity {
   clanTag?: string | null;
   /** Administrador da plataforma (moderação, OG-046). */
   admin?: boolean;
+  /** Dono da sala privada (OG-049): pode mudar as regras se o preset não for travado. */
+  owner?: boolean;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
 }
@@ -73,6 +76,10 @@ export interface RoomOptions {
   log?: (line: string) => void;
   /** Quanto tempo a vaga de quem caiu fica guardada (s; padrão 15, 0 = sai na hora como o original). */
   reconnectSeconds?: number;
+  /** Resultado de cada partida para a API (OG-049). */
+  reportMatch?: (report: MatchReport) => void;
+  /** Relógio de parede (ms) para as datas da partida; padrão `Date.now`. */
+  wallClock?: () => number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -163,6 +170,10 @@ export class Room {
   private readonly bans = new Map<string, number>();
   private setLines: string[] = [];
   private uptimeFrames = 0;
+  /** Início da partida atual (relógio de parede) e quantas partidas a sala já teve. */
+  private matchStartedAt: number;
+  private matchCount = 0;
+  private readonly createdAt: number;
   private readonly console: ConsoleHost;
   private readonly preset: Preset;
   /** Placar já enviado (`scoreUpdate` só quando muda). */
@@ -183,6 +194,7 @@ export class Room {
     this.settings = presetSettings(preset.id);
 
     this.now = options.now ?? (() => performance.now());
+    this.createdAt = this.matchStartedAt = this.wallClock();
     const rng = new GlibcRand(options.seed);
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
@@ -304,6 +316,9 @@ export class Room {
       this.sim.returnAllFlags();
       this.sim.resetWorld();
       this.world.mapStartFrame = this.world.frame;
+      // o original agenda os power-ups depois do reinício (`check_powerup_creation(false)` no fim
+      // de `client_connected`); o reset acima apagou os agendados por `addPlayer`
+      this.sim.checkPowerupCreation(false);
       this.broadcast(message('worldReset', {}), message('startGame', {}), this.mapTimeMessage());
     }
     return { ok: true, pid };
@@ -798,6 +813,7 @@ export class Room {
       team: this.world.teamOf(pid),
       account: c.identity.accountId,
       admin: c.identity.admin ?? false,
+      ...(c.identity.owner ? { owner: true } : {}),
       muted: c.muted,
       bot: c.bot,
       ranked: this.mode === 'ranked' && c.identity.accountId !== null,
@@ -879,7 +895,46 @@ export class Room {
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
+    this.report(result);
     this.nextMap(reason);
+  }
+
+  private wallClock(): number {
+    return this.options.wallClock?.() ?? Date.now();
+  }
+
+  /** Quem está no slot (para o resultado e os mínimos do ranking). */
+  private reportPlayer(pid: number): ReportPlayer | undefined {
+    const c = this.clients.get(pid);
+    return c ? { name: c.identity.name, accountId: c.identity.accountId, bot: c.bot } : undefined;
+  }
+
+  /** Mínimos do ranking cumpridos agora (`rankingEnabled`), só em sala Ranked (RN-MOD-05). */
+  rankingEnabled(): boolean {
+    if (this.mode !== 'ranked') return false;
+    const players = [...this.clients.keys()].map((pid) => this.reportPlayer(pid)!);
+    return rankingMinimumsMet(players, this.settings.server.rankingMinhumans, this.settings.server.rankingMinplayers);
+  }
+
+  /** Manda o resultado à API: estatísticas sempre; ranqueada só no Ranked com os mínimos. */
+  private report(result: MatchResult): void {
+    const endedAt = this.wallClock();
+    const startedAt = this.matchStartedAt;
+    this.matchCount++;
+    if (!this.options.reportMatch || ![...this.clients.values()].some((c) => !c.bot)) return;
+    this.options.reportMatch(
+      matchReport({
+        serverMatchId: `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`,
+        roomId: this.id,
+        mode: this.mode,
+        ranked: this.rankingEnabled(),
+        map: this.mapFile(this.mapIndex),
+        result,
+        startedAt,
+        endedAt,
+        who: (pid) => this.reportPlayer(pid),
+      }),
+    );
   }
 
   /** Votantes (RN-VOT). */
@@ -928,6 +983,7 @@ export class Room {
     }
     const entry = this.rotation[this.mapIndex] as { map: GameMap; lastGame: number };
     entry.lastGame = this.world.frame;
+    this.matchStartedAt = this.wallClock();
     Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
     const map = entry.map;
     this.sim.changeMap(map);

@@ -34,7 +34,7 @@ export interface ManagerOptions {
   /** Semente das salas (testes); padrão: aleatória por sala. */
   seed?: () => number;
   /** Auditoria, filtro do chat e log, iguais para todas as salas (OG-046). */
-  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'reconnectSeconds'>;
+  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'reconnectSeconds' | 'reportMatch'>;
   /** Quantas salas o processo hospeda no máximo (as abertas sob demanda; padrão: sem limite). */
   maxRooms?: number;
 }

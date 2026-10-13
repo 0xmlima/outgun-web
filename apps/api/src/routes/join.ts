@@ -81,6 +81,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         acct: user !== undefined,
         admin: user?.isAdmin ?? false,
         ranked: room.mode === 'ranked',
+        ...(user && room.ownerId === user.id ? { owner: true } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
       },
       ticketKeys[0]!,

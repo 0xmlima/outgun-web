@@ -172,6 +172,10 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     const join = await post(`/rooms/${room.id}/join`, { name: 'Bia', password: 'segredo' });
     expect(join.json().wsUrl).toBe(`ws://gs-1.test/rooms/${room.id}`);
     expect(claims(join.json().ticket, room.id).spawn).toEqual({ name: 'Treino da tarde', mode: 'casual', preset: 'duel', maxPlayers: 2, persistent: false, maps: ['outgun1', 'coliseu'] });
+    // só o dono recebe o direito de mudar as regras (OG-049)
+    expect(claims(join.json().ticket, room.id).owner).toBeUndefined();
+    const owner = await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true);
+    expect(claims(owner.json().ticket, room.id).owner).toBe(true);
   });
 
   it('sala privada abandonada há 1 h é apagada; a da plataforma fica', async () => {

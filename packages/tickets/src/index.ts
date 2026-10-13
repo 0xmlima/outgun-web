@@ -22,6 +22,8 @@ export interface TicketClaims {
   admin: boolean;
   /** Sala Ranked (a partida conta para o ranking, RN-RNK-01). */
   ranked: boolean;
+  /** Dono da sala privada (OG-049): `/set` nas regras não travadas. */
+  owner?: boolean;
   /**
    * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.

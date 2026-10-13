@@ -604,7 +604,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Concluído |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Concluído |
 | [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
-| [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Pronto |
+| [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Em revisão |
 | [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Concluído |
 | [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Concluído |
 | [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Concluído |
