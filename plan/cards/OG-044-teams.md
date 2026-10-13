@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S7 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-TIM-01, RN-TIM-02, RN-TIM-03, RN-TIM-05 |
 | Skills | `outgun-re-spec` |

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S7 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-VOT-01, RN-VOT-02, RN-VOT-03, RN-VOT-04, RN-VOT-05 |
 | Skills | `outgun-re-spec` |
