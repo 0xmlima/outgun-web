@@ -10,8 +10,9 @@ import { startServer } from './server.js';
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
 const manager = new RoomManager({ emptyTimeoutMs: Number(env.EMPTY_TIMEOUT_S ?? 300) * 1000 });
-const maps = loadMaps(env.MAPS_DIR ?? `${repo}maps`, (env.ROTATION ?? 'outgun1').split(','));
-manager.create({ id: 'main', preset: env.PRESET ?? 'classic', maps, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
+const rotation = (env.ROTATION ?? 'outgun1').split(',');
+const maps = loadMaps(env.MAPS_DIR ?? `${repo}maps`, rotation);
+manager.create({ id: 'main', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
 manager.start();
 
 const server = await startServer({

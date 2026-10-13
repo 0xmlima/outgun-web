@@ -4,11 +4,12 @@
 // (OG-025), deathbringer (OG-026), bandeiras (OG-027) e ciclo da partida (OG-029). O que fica fora
 // da sim (troca de mapa, votação, placar final) é avisado pelos `ServerHooks`.
 import type { GameSettings } from '@outgun/settings';
-import { FLAG_RADIUS, MAX_PLAYERS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
+import { FLAG_RADIUS, MAX_PLAYERS, MAX_POWERUPS, PLAYER_RADIUS, POWERUP_RADIUS, ROOM_HEIGHT, ROOM_WIDTH } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
-import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
+import { isRun } from './controls.js';
+import { shootRocketFormation } from './rockets.js';
 import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
 import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
@@ -66,20 +67,9 @@ export interface ServerHooks {
   powerupPicked?(index: number, pos: Position): void;
   /** Jogador mudou de sala ou renasceu (`game_player_screen_change`). */
   playerScreenChange?(pid: number): void;
+  /** Bandeiras de um time (2 = selvagens) mudaram: pegada, largada, devolvida (`ctf_net_flag_status`). */
+  flagsChanged?(team: number): void;
 }
-
-/** Formações de tiro por nível de arma (src/world.cpp:1380): foguetes à frente e desvios em oitavos. */
-const FORMATIONS: readonly { forward: 1 | 2 | 3; directions: readonly number[] }[] = [
-  { forward: 1, directions: [] },
-  { forward: 2, directions: [] },
-  { forward: 3, directions: [] },
-  { forward: 2, directions: [-1, 1] },
-  { forward: 3, directions: [-2, 2] },
-  { forward: 2, directions: [-1, 1, -2, 2] },
-  { forward: 3, directions: [-2, 2, -3, 3] },
-  { forward: 2, directions: [-1, 1, -2, 2, -3, 3] },
-  { forward: 3, directions: [-1, 1, -2, 2, -3, 3] },
-];
 
 export class ServerSim {
   /** Colisões entre portadores aliados no frame (para captura com `carry_own_team_flag`). */
@@ -144,40 +134,6 @@ export class ServerSim {
     (this.world.rockets[rid] as RocketState).owner = -1;
   }
 
-  /** `WorldBase::addRocket`: cria o foguete já avançado 15 px (não acerta quem está colado). */
-  private addRocket(rid: number, owner: number, team: number, pos: Position, power: boolean, dir: number, xdelta: number, frameAdvance: number, cb: PhysicsCallbacks): void {
-    const r = this.world.rockets[rid] as RocketState;
-    r.owner = owner;
-    r.team = team;
-    r.power = power;
-    r.pos = pos.clone();
-    r.direction = dir;
-    const deg = gunDirectionToRad(dir);
-    const room = this.world.map.room({ x: r.pos.roomX, y: r.pos.roomY });
-    const physics = this.settings.physics;
-
-    if (xdelta) {
-      // foguetes paralelos: primeiro desloca para o lado
-      r.vel = new Vec(Math.cos(deg + N_PI_2), Math.sin(deg + N_PI_2)).mul(xdelta * SHOT_DELTA_X);
-      const wallTime = room.timeTillWall(r.pos.local(), r.vel, ROCKET_RADIUS, 1.01).time;
-      r.pos.move(r.vel, 1);
-      if (wallTime < 1) {
-        cb.rocketHitWall(rid, r.power);
-        return;
-      }
-    }
-    r.vel = new Vec(Math.cos(deg), Math.sin(deg)).mul(physics.rocketSpeed);
-    const advance = 15 / physics.rocketSpeed + frameAdvance;
-    const wallTime = room.timeTillWall(r.pos.local(), r.vel, ROCKET_RADIUS, advance * 1.01).time;
-    if (wallTime <= advance) {
-      r.pos.move(r.vel, wallTime);
-      cb.rocketHitWall(rid, r.power);
-      return;
-    }
-    r.pos.move(r.vel, advance);
-    if (r.pos.isOutOfBounds()) cb.rocketOutOfBounds(rid);
-  }
-
   /** `ServerWorld::shootRockets` + `WorldBase::shootRockets`. */
   shootRockets(pl: PlayerState, shots: number): void {
     const pos = new Position(pl.pos.roomX, pl.pos.roomY, Math.trunc(pl.pos.x), Math.trunc(pl.pos.y)); // como o cliente recebe
@@ -185,24 +141,10 @@ export class ServerSim {
     this.world.teams[this.teamOf(pl.pid)].shots++;
     const rids: number[] = [];
     for (let i = 0; i < shots; i++) rids.push(this.getFreeRocket());
-    const cb = this.callbacks();
     const team = this.teamOf(pl.pid);
     const dir = pl.attackGunDir;
     this.hooks.rocketsFired?.(pl.pid, rids, dir, pl.power, pos);
-    const form = FORMATIONS[shots - 1];
-    if (!form) throw new Error(`nível de arma inválido: ${shots}`);
-    const add = (index: number, direction: number, xdelta: number) =>
-      this.addRocket(rids[index] as number, pl.pid, team, pos, pl.power, direction, xdelta, 0, cb);
-    if (form.forward === 1) add(0, dir, 0);
-    else if (form.forward === 2) {
-      add(0, dir, -1);
-      add(1, dir, 1);
-    } else {
-      add(0, dir, 0);
-      add(1, dir, -2);
-      add(2, dir, 2);
-    }
-    for (let ri = form.forward; ri < shots; ri++) add(ri, adjustGunDirection(dir, form.directions[ri - form.forward] as number), 0);
+    shootRocketFormation(this.physicsContext(), rids, { owner: pl.pid, team, pos, power: pl.power, dir, frameAdvance: 0 }, this.callbacks());
   }
 
   // ---------------------------------------------------------------- dano e morte (OG-024)
@@ -411,11 +353,15 @@ export class ServerSim {
   /** `ServerWorld::returnFlag`. */
   returnFlag(team: number, index: number): void {
     (this.world.flagsOf(team)[index] as FlagState).returnToBase();
+    this.hooks.flagsChanged?.(team);
   }
 
   /** `ServerWorld::returnAllFlags`. */
   returnAllFlags(): void {
-    for (let team = 0; team < 3; team++) for (const f of this.world.flagsOf(team)) f.returnToBase();
+    for (let team = 0; team < 3; team++) {
+      for (const f of this.world.flagsOf(team)) f.returnToBase();
+      this.hooks.flagsChanged?.(team);
+    }
   }
 
   /** `ServerWorld::dropFlag`: só bandeiras de time guardam a hora (em frames / 10) para a devolução. */
@@ -423,6 +369,7 @@ export class ServerSim {
     const flag = this.world.flagsOf(team)[index] as FlagState;
     flag.dropAt(pos);
     if (team !== 2) flag.dropTime = this.frame / 10;
+    this.hooks.flagsChanged?.(team);
   }
 
   /**
@@ -481,6 +428,7 @@ export class ServerSim {
     this.world.teams[this.teamOf(pid)].flagsTaken++;
     this.hooks.flagTaken?.(pid, type);
     (this.world.flagsOf(team)[index] as FlagState).take(pid, this.time);
+    this.hooks.flagsChanged?.(team);
     if (pl.hasShadow()) pl.visibility = MAXIMUM_SHADOW_VISIBILITY;
   }
 

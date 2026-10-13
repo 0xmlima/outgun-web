@@ -609,7 +609,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Concluído |
 | [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Concluído |
 | [OG-063](cards/OG-063-input.md) | Input: teclado, remapeamento e gamepad | E4 | 3 | Must | S6 | OG-060 | Concluído |
-| [OG-064](cards/OG-064-prediction-interpolation.md) | Predição, reconciliação e interpolação | E4 | 8 | Must | S7 | OG-042, OG-043 | Pronto |
+| [OG-064](cards/OG-064-prediction-interpolation.md) | Predição, reconciliação e interpolação | E4 | 8 | Must | S7 | OG-042, OG-043 | Em andamento |
 | [OG-065](cards/OG-065-hud.md) | HUD: barras, timers, placar, minimapa, chat | E4 | 5 | Must | S7 | OG-062 | Pronto |
 | [OG-066](cards/OG-066-overlays-stats.md) | Telas F1–F5, Tab e lista de mapas | E4 | 5 | Should | S9 | OG-065 | Backlog |
 | [OG-067](cards/OG-067-audio.md) | Áudio | E4 | 3 | Must | S7 | OG-012 | Pronto |

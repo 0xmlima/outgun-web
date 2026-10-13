@@ -33,8 +33,9 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
-    // packages/sim roda no navegador e no Node: nada de APIs de plataforma nem aleatoriedade global.
-    files: ['packages/sim/src/**/*.ts'],
+    // packages/sim e packages/netcode rodam no navegador e no Node: nada de APIs de plataforma nem
+    // aleatoriedade global (o netcode recebe o tempo de quem chama).
+    files: ['packages/sim/src/**/*.ts', 'packages/netcode/src/**/*.ts'],
     languageOptions: {
       globals: {},
     },

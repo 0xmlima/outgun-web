@@ -8,6 +8,7 @@ export * from './map/map.js';
 export * from './map/walls.js';
 export * from './world/controls.js';
 export * from './world/physics.js';
+export * from './world/rockets.js';
 export * from './world/state.js';
 export * from './world/server.js';
 export * from './world/stats.js';

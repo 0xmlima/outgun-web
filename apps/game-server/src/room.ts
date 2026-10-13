@@ -41,6 +41,10 @@ export interface RoomOptions {
   /** Vagas (par, 2..32; RN-TIM-04). */
   maxPlayers: number;
   seed: number;
+  /** Nome do arquivo de cada mapa (sem `.txt`), para o cliente baixar; padrão: o título. */
+  mapFiles?: readonly string[] | undefined;
+  /** Relógio em ms para medir quando os inputs chegam dentro do frame (padrão `performance.now`). */
+  now?: () => number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -49,6 +53,8 @@ interface Client {
   conn: Connection;
   identity: Identity;
   lastClientFrame: number;
+  /** Momento, em frames, em que o último input novo chegou depois do envio do frame (`frameOffset`). */
+  frameOffset: number;
   /** Frags na última mensagem enviada (`oldfrags`). */
   sentFrags: number;
   /** Rodízio do minimapa e propriedades já informadas. */
@@ -95,6 +101,11 @@ export class Room {
   readonly kicks: { pid: number; name: string; reason: string }[] = [];
   /** Jogadores que conhecem cada foguete (`Rocket::vislist`). */
   private readonly rocketViewers: Set<number>[] = [];
+  private readonly now: () => number;
+  /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
+  private readonly dirtyFlags = new Set<number>();
+  /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
+  private frameSentTime = 0;
 
   constructor(private readonly options: RoomOptions) {
     const preset = PRESETS.find((p) => p.id === options.preset);
@@ -105,6 +116,7 @@ export class Room {
     this.mode = preset.mode;
     this.settings = presetSettings(preset.id);
     this.maps = options.maps;
+    this.now = options.now ?? (() => performance.now());
     this.world = new WorldState(options.maps[0] as GameMap, options.maxPlayers);
     this.sim = new ServerSim(this.world, this.settings, new GlibcRand(options.seed), {
       kill: (attacker, target, cause, carried, carrierDefended, flagDefended) =>
@@ -138,6 +150,7 @@ export class Room {
         for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
       },
       playerScreenChange: (pid) => this.screenChanged(pid),
+      flagsChanged: (team) => this.dirtyFlags.add(team),
     });
     this.sim.loadMapFlags();
     this.sim.startGame();
@@ -167,7 +180,7 @@ export class Room {
     }
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
 
-    this.clients.set(pid, { conn, identity, lastClientFrame: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame });
+    this.clients.set(pid, { conn, identity, lastClientFrame: 0, frameOffset: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame });
     this.sim.addPlayer(pid);
     this.send(pid, this.welcomeMessages(pid));
     this.broadcast(message('playerJoined', { pid, name: identity.name, color: 0, bot: false }));
@@ -186,7 +199,7 @@ export class Room {
     const out: AnyMessage[] = [
       message('welcome', { protocol: PROTOCOL_VERSION, pid, color: 0, maxPlayers: this.world.maxPlayers, mode: this.mode, mapIndex: this.mapIndex, redScore: this.world.teams[0].score, blueScore: this.world.teams[1].score }),
       message('serverSettings', { preset, gamemod: (PRESETS.find((p) => p.id === preset)?.overrides ?? ''), locked: PRESETS.find((p) => p.id === preset)?.locked ?? false }),
-      message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.world.map.title, title: this.world.map.title, crc: this.world.map.crc }),
+      message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: this.world.map.title, crc: this.world.map.crc }),
       message('playersPresent', { pids: [...this.clients.keys()] }),
     ];
     for (const [other, c] of this.clients) {
@@ -237,6 +250,8 @@ export class Room {
         case 'input': {
           // fora de ordem ou duplicado antigo: ignora (`incoming_client_data`)
           if (client.hasInput && !isNewerOrSame(client.lastClientFrame, m.clientFrame)) break;
+          // chegada de um frame novo do cliente dentro do frame do servidor (servnet.cpp:1840)
+          if (!client.hasInput || m.clientFrame !== client.lastClientFrame) client.frameOffset = ((this.now() - this.frameSentTime) * 10) / 1000;
           client.hasInput = true;
           client.lastClientFrame = m.clientFrame;
           pl.controls = clearModifiersIfIdle(m.controls & 0x3f);
@@ -319,11 +334,12 @@ export class Room {
     this.flush();
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
-      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, ping: null });
+      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
       const extra = properties.length ? [message('minimapProperties', { players: properties })] : [];
       this.send(pid, [...c.queue, message('frame', frame), ...extra]);
       c.queue = [];
     }
+    this.frameSentTime = this.now();
     world.frame++;
   }
 
@@ -339,9 +355,14 @@ export class Room {
     for (const p of this.world.players) if (p) p.awaitingClientReadies++;
     this.broadcast(
       message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }),
-      message('mapChange', { reason: reason === 'captureLimit' ? 'captureLimit' : 'timeOut', mapIndex: this.mapIndex, file: map.title, title: map.title, crc: map.crc }),
+      message('mapChange', { reason: reason === 'captureLimit' ? 'captureLimit' : 'timeOut', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: map.title, crc: map.crc }),
       message('worldReset', {}),
     );
+    for (const team of [0, 1, 2]) this.dirtyFlags.add(team); // bandeiras do mapa novo
+  }
+
+  private mapFile(index: number): string {
+    return this.options.mapFiles?.[index] ?? (this.maps[index] as GameMap).title;
   }
 
   /** Eventos para todos: acumulados e enviados juntos, antes do próximo frame (canal confiável). */
@@ -350,6 +371,8 @@ export class Room {
   }
 
   private flush(): void {
+    for (const team of [...this.dirtyFlags].sort()) this.outbox.push(this.flagUpdate(team));
+    this.dirtyFlags.clear();
     if (this.outbox.length === 0) return;
     const data = encodeFrame(...this.outbox);
     this.outbox = [];

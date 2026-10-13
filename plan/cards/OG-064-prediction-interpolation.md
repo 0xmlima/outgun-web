@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S7 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-042](OG-042-snapshots-aoi.md), [OG-043](OG-043-client-input.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |
