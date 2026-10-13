@@ -36,6 +36,7 @@ const manager = new RoomManager({
       console.log(`[partida] ${report.roomId} ${report.map} ${report.redScore}x${report.blueScore}${report.ranked ? ' (ranqueada)' : ''}`);
       platform.reportMatch(report);
     },
+    reportDeltas: (report) => platform.reportDeltas(report),
     chatFilter: wordSet((env.CHAT_FILTER ?? '').split(',')),
     log: (line) => console.log(line),
   },
@@ -72,12 +73,13 @@ if (env.HEARTBEAT !== '0') {
   );
 }
 
-const shutdown = () => {
+const shutdown = async () => {
   platform.stopHeartbeat();
-  manager.stop();
+  manager.stop(); // quem está nas salas sai: os deltas do ranking são enviados (`stop()` do original)
   jwks.stop();
   server.close();
+  await platform.drain();
   process.exit(0);
 };
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => void shutdown());
+process.on('SIGTERM', () => void shutdown());

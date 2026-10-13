@@ -462,6 +462,211 @@
         }
       }
     },
+    "/seasons": {
+      "get": {
+        "summary": "Temporadas do ranking (a ativa recebe as partidas Ranked)",
+        "tags": ["ranking"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["seasons"],
+                  "properties": {
+                    "seasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "name", "startsAt", "endsAt", "active"],
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string"
+                          },
+                          "endsAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "active": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leaderboard": {
+      "get": {
+        "summary": "Leaderboard da temporada: rating = (score+1)/(neg+1), mínimo de 100 de score, desempate por score",
+        "tags": ["ranking"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "season",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["season", "total", "entries"],
+                  "properties": {
+                    "season": {
+                      "type": "object",
+                      "required": ["id", "name", "startsAt", "endsAt", "active"],
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string"
+                        },
+                        "endsAt": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "active": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "position",
+                          "userId",
+                          "username",
+                          "clanTag",
+                          "score",
+                          "neg",
+                          "rating",
+                          "matches"
+                        ],
+                        "properties": {
+                          "position": {
+                            "type": "integer"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "score": {
+                            "type": "number"
+                          },
+                          "neg": {
+                            "type": "integer"
+                          },
+                          "rating": {
+                            "type": "number"
+                          },
+                          "matches": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/names/check": {
       "get": {
         "summary": "Nome válido? Livre? Como aparece para um convidado?",
@@ -1787,6 +1992,118 @@
         }
       }
     },
+    "/account/ranking": {
+      "get": {
+        "summary": "Meu ranking na temporada ativa e se participo dele",
+        "tags": ["ranking"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["score", "neg", "participate", "rank", "of"],
+                  "properties": {
+                    "score": {
+                      "type": "number"
+                    },
+                    "neg": {
+                      "type": "integer"
+                    },
+                    "participate": {
+                      "type": "boolean"
+                    },
+                    "rank": {
+                      "type": "integer"
+                    },
+                    "of": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Liga ou desliga a participação no ranking (vale na próxima entrada numa sala)",
+        "tags": ["ranking"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["participate"],
+                "properties": {
+                  "participate": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["participate"],
+                  "properties": {
+                    "participate": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/account/export": {
       "get": {
         "summary": "Todos os dados pessoais da conta em JSON (LGPD)",
@@ -2218,8 +2535,9 @@
                           "maximum": 1000000
                         },
                         "scoreDelta": {
-                          "type": "number",
-                          "minimum": 0
+                          "type": "integer",
+                          "minimum": -1000000,
+                          "maximum": 1000000
                         },
                         "negDelta": {
                           "type": "integer",
@@ -2308,6 +2626,90 @@
             }
           },
           "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/rating-deltas": {
+      "post": {
+        "summary": "Deltas do ranking de quem saiu ou na troca de mapa (idempotente por deltaId, OG-084)",
+        "tags": ["interno"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deltaId", "userId", "scoreDelta", "negDelta"],
+                "properties": {
+                  "deltaId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "roomId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "scoreDelta": {
+                    "type": "integer",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "negDelta": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "gameServerHmac": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["applied"],
+                  "properties": {
+                    "applied": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {

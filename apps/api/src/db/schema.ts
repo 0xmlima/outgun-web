@@ -67,6 +67,7 @@ export const playerProfiles = pgTable('player_profiles', {
   language: text('language').notNull().default('pt'),
   favoriteColors: smallint('favorite_colors').array().notNull().default(sql`'{}'`),
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
+  rankingParticipation: boolean('ranking_participation').notNull().default(true),
   updatedAt: tstz('updated_at').notNull().defaultNow(),
 });
 
@@ -166,6 +167,21 @@ export const ratings = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
 );
 
+export const ratingDeltas = pgTable(
+  'rating_deltas',
+  {
+    serverId: text('server_id').notNull(),
+    deltaId: text('delta_id').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: integer('season_id').references(() => seasons.id, { onDelete: 'cascade' }),
+    roomId: text('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+    scoreDelta: integer('score_delta').notNull(),
+    negDelta: integer('neg_delta').notNull(),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.serverId, t.deltaId] })],
+);
+
 export const bans = pgTable('bans', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
@@ -228,6 +244,7 @@ export const allTables = {
   matches,
   match_players: matchPlayers,
   ratings,
+  rating_deltas: ratingDeltas,
   bans,
   admin_actions: adminActions,
   password_resets: passwordResets,

@@ -31,7 +31,7 @@ Como jogador competitivo, quero um modo Ranked sem power-ups e só com contas, p
 - [x] Em sala Ranked nenhum power-up aparece, nem no spawn nem ao morrer, em 10 minutos de partida simulada.
 - [x] Convidado recebe recusa clara ao tentar entrar em Ranked; conta logada entra.
 - [x] `/set` e alterações do dono são recusados em Ranked e funcionam em Casual (salas privadas).
-- [ ] Partida Casual não altera o ranking; partida Ranked que cumpre os mínimos altera. _(o game server já marca `ranked` só no Ranked com os mínimos; a alteração do rating é do OG-084)_
+- [x] Partida Casual não altera o ranking; partida Ranked que cumpre os mínimos altera. _(demonstrado com o OG-084: `ranking.test.ts` do game server e da API)_
 - [x] Lobby e registro de salas exibem/filtram o modo.
 - [ ] Sala Ranked nunca tem bots, mesmo com poucos jogadores ou comando de admin; sala Casual adiciona bots como no original. _(Ranked: feito — `addBot` recusado, `min_bots`/`bots_fill` 0 e travados; Casual: `addBot` aceito, mas o preenchimento automático depende da IA dos bots, OG-048 na S10)_
 

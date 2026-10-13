@@ -24,6 +24,8 @@ export interface TicketClaims {
   ranked: boolean;
   /** Dono da sala privada (OG-049): `/set` nas regras não travadas. */
   owner?: boolean;
+  /** Ranking da conta na temporada ativa (OG-084): força do time e participação. */
+  rating?: TicketRating;
   /**
    * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.
@@ -33,6 +35,16 @@ export interface TicketClaims {
   exp: number;
   /** Id único: um ticket abre uma conexão só. */
   jti: string;
+}
+
+export interface TicketRating {
+  score: number;
+  neg: number;
+  /** Participa do ranking (pode desligar nas opções da conta). */
+  participate: boolean;
+  /** Posição no leaderboard (0 = fora dele) e quantos jogadores há nele. */
+  rank: number;
+  of: number;
 }
 
 export interface RoomSpawn {

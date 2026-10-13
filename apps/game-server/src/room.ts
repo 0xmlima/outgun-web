@@ -8,7 +8,8 @@ import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset 
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
-import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer } from './match-report.js';
+import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
+import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
 import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
@@ -53,6 +54,8 @@ export interface Identity {
   admin?: boolean;
   /** Dono da sala privada (OG-049): pode mudar as regras se o preset não for travado. */
   owner?: boolean;
+  /** Ranking da conta na temporada e participação (OG-084); ausente = não participa, força 1,0. */
+  rating?: PlayerRating;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
 }
@@ -78,6 +81,8 @@ export interface RoomOptions {
   reconnectSeconds?: number;
   /** Resultado de cada partida para a API (OG-049). */
   reportMatch?: (report: MatchReport) => void;
+  /** Deltas do ranking fora do fim da partida: saída, troca de mapa por voto, reinício (OG-084). */
+  reportDeltas?: (report: DeltaReport) => void;
   /** Relógio de parede (ms) para as datas da partida; padrão `Date.now`. */
   wallClock?: () => number;
 }
@@ -127,6 +132,8 @@ interface Client {
   idleFrames: number;
   /** Reconexão (OG-047): token para voltar e frame em que a conexão caiu (null = conectado). */
   resumeToken: string;
+  /** Deltas do ranking ainda não enviados (OG-084). */
+  deltas: RankingDeltas;
   disconnectedFrame: number | null;
 }
 
@@ -173,6 +180,7 @@ export class Room {
   /** Início da partida atual (relógio de parede) e quantas partidas a sala já teve. */
   private matchStartedAt: number;
   private matchCount = 0;
+  private deltaCount = 0;
   private readonly createdAt: number;
   private readonly console: ConsoleHost;
   private readonly preset: Preset;
@@ -210,6 +218,8 @@ export class Room {
       flagReturned: (pid) => this.broadcast(message('flagReturn', { pid })),
       flagCaptured: (pid, flagTeam, assistant) => this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant })),
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
+      scoreFrag: (pid, amount) => this.scoreFrag(pid, amount),
+      scoreNeg: (pid, amount) => this.scoreNeg(pid, amount),
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
       normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' }), this.mapTimeMessage()),
       extraTimePeriodStarted: () => this.broadcast(this.mapTimeMessage()),
@@ -303,6 +313,7 @@ export class Room {
       muted: 0,
       talk: new TalkMeter(),
       kickTimer: 0,
+      deltas: new RankingDeltas(),
       idleFrames: 0,
       resumeToken: randomUUID(),
       disconnectedFrame: null,
@@ -311,9 +322,11 @@ export class Room {
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
+    if (identity.rating) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
     if (this.clients.size === 2) {
       this.sim.returnAllFlags();
+      this.flushDeltas(); // `ctf_game_restart` envia os deltas de todos
       this.sim.resetWorld();
       this.world.mapStartFrame = this.world.frame;
       // o original agenda os power-ups depois do reinício (`check_powerup_creation(false)` no fim
@@ -405,10 +418,11 @@ export class Room {
     return Math.round((this.options.reconnectSeconds ?? 15) * 10);
   }
 
-  /** Saída (`client_disconnected` → `removePlayer`). */
+  /** Saída (`client_disconnected` → `removePlayer`); os deltas do ranking vão antes. */
   leave(pid: number): void {
     const c = this.clients.get(pid);
     if (!c) return;
+    this.flushDeltas(pid);
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
@@ -441,8 +455,11 @@ export class Room {
     });
   }
 
-  /** `getLessScoredTeam` sem o ranking (OG-084): menor placar, senão sorteio. */
+  /** `refresh_team_score_modifiers` + `getLessScoredTeam`: modificador, placar, sorteio. */
   private lessScoredTeam(): 0 | 1 {
+    const [m0, m1] = this.teamModifiers();
+    if (m0 > m1) return 0;
+    if (m1 > m0) return 1;
     const [red, blue] = [this.world.teams[0].score, this.world.teams[1].score];
     if (red < blue) return 0;
     if (blue < red) return 1;
@@ -597,7 +614,7 @@ export class Room {
           const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
           if (color !== client.color) {
             client.color = color;
-            this.broadcast(message('playerInfo', { pid, color, loggedIn: client.identity.accountId !== null, ranked: false, admin: client.identity.admin ?? false, rank: 0, score: 0, negScore: 0, rankedPlayers: 0 }));
+            this.broadcast(this.playerInfo(pid, client));
           }
           break;
         }
@@ -916,18 +933,82 @@ export class Room {
     return rankingMinimumsMet(players, this.settings.server.rankingMinhumans, this.settings.server.rankingMinplayers);
   }
 
+  /** Modificadores dos times com o ranking de quem está na sala (bots e convidados valem 1,0). */
+  teamModifiers(): [number, number] {
+    const players = [...this.clients].map(([pid, c]) => ({ team: this.world.teamOf(pid) as 0 | 1, score: c.identity.rating?.score ?? 0, neg: c.identity.rating?.neg ?? 0 }));
+    return teamModifiers(players, this.settings.world.respawnBalancingTime >= 5);
+  }
+
+  /** `broadcast_player_crap`: cor, conta e ranking do jogador. */
+  private playerInfo(pid: number, c: Client): AnyMessage {
+    const r = c.identity.rating;
+    return message('playerInfo', {
+      pid,
+      color: c.color,
+      loggedIn: c.identity.accountId !== null,
+      ranked: this.mode === 'ranked' && this.participates(c),
+      admin: c.identity.admin ?? false,
+      rank: r?.rank ?? 0,
+      score: Math.trunc(r?.score ?? 0),
+      negScore: r?.neg ?? 0,
+      rankedPlayers: r?.of ?? 0,
+    });
+  }
+
+  private participates(c: Client | undefined): c is Client {
+    return c !== undefined && !c.bot && c.identity.accountId !== null && c.identity.rating?.participate === true;
+  }
+
+  /** `Server::score_frag` (a sim já somou o frag): delta × modificador do time. */
+  private scoreFrag(pid: number, amount: number): void {
+    const c = this.clients.get(pid);
+    if (!this.participates(c) || !this.rankingEnabled()) return;
+    c.deltas.addFrag(amount, this.teamModifiers()[this.world.teamOf(pid)] as number);
+  }
+
+  /** `Server::score_neg`: sem modificador. */
+  private scoreNeg(pid: number, amount: number): void {
+    const c = this.clients.get(pid);
+    if (!this.participates(c) || !this.rankingEnabled()) return;
+    c.deltas.addNeg(amount);
+  }
+
+  /** `client_report_status` de um jogador (ou de todos): só deltas inteiros diferentes de zero. */
+  flushDeltas(only?: number): void {
+    for (const [pid, c] of this.clients) {
+      if (only !== undefined && pid !== only) continue;
+      if (!this.participates(c)) continue;
+      const d = c.deltas.take();
+      if (!d) continue;
+      this.options.reportDeltas?.({
+        deltaId: `${this.id}-${this.createdAt.toString(36)}-d${++this.deltaCount}`,
+        roomId: this.id,
+        userId: c.identity.accountId!,
+        scoreDelta: d.score,
+        negDelta: d.neg,
+      });
+    }
+  }
+
   /** Manda o resultado à API: estatísticas sempre; ranqueada só no Ranked com os mínimos. */
   private report(result: MatchResult): void {
     const endedAt = this.wallClock();
     const startedAt = this.matchStartedAt;
     this.matchCount++;
+    // os deltas vão junto do resultado (e saem dos acumuladores mesmo sem API, como no original)
+    const deltas = new Map<number, { score: number; neg: number }>();
+    for (const [pid, c] of this.clients) {
+      const d = this.participates(c) ? c.deltas.take() : undefined;
+      if (d) deltas.set(pid, d);
+    }
     if (!this.options.reportMatch || ![...this.clients.values()].some((c) => !c.bot)) return;
     this.options.reportMatch(
       matchReport({
         serverMatchId: `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`,
         roomId: this.id,
         mode: this.mode,
-        ranked: this.rankingEnabled(),
+        ranked: this.mode === 'ranked' && (this.rankingEnabled() || deltas.size > 0),
+        deltas: (pid) => deltas.get(pid) ?? { score: 0, neg: 0 },
         map: this.mapFile(this.mapIndex),
         result,
         startedAt,
@@ -972,6 +1053,7 @@ export class Room {
 
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
   private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
+    this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
     const voters = this.voters();
     const votes = mapVotes(voters, this.rotation.length);
     const negative = (map: number) => voters.filter((v) => v.negative.has(map)).length;

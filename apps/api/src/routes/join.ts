@@ -11,6 +11,7 @@ import type { AppDeps, Services } from '../app.js';
 import { checkGuestName } from '../auth/names.js';
 import { verifyPassword } from '../auth/password.js';
 import { bans, gameServers, rooms } from '../db/schema.js';
+import { playerRating } from '../ranking.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 
@@ -82,6 +83,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         admin: user?.isAdmin ?? false,
         ranked: room.mode === 'ranked',
         ...(user && room.ownerId === user.id ? { owner: true } : {}),
+        // força no modificador de time e participação nos deltas (OG-084)
+        ...(user ? { rating: await playerRating(db, user.id) } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
       },
       ticketKeys[0]!,

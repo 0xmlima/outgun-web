@@ -38,6 +38,16 @@ export interface MatchReport {
   }[];
 }
 
+/** Deltas do ranking enviados fora do fim da partida (POST /internal/rating-deltas, OG-084). */
+export interface DeltaReport {
+  /** Idempotência: o mesmo id não é somado duas vezes. */
+  deltaId: string;
+  roomId: string;
+  userId: string;
+  scoreDelta: number;
+  negDelta: number;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**

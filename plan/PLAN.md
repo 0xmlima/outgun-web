@@ -408,7 +408,7 @@ Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
 - **RN-RNK-01** — A partida conta para o ranking só se: sala **Ranked** (RN-MOD-02, sem power-ups), ≥ `ranking_minhumans (2)` humanos distintos e ≥ `ranking_minplayers (4)` jogadores (só humanos: não há bots no Ranked, D-11). O jogador precisa estar logado e com participação ativa.
 - **RN-RNK-02** — Cada frag positivo soma ao **score** multiplicado pelo modificador do time; cada ponto negativo soma ao **neg** sem modificador.
 - **RN-RNK-03** — Força do jogador = `(score+1)/(neg+1)` (ou 1,0 se score < 100). Força do time = soma (ou média se `respawn_balancing_time ≥ 5`). Modificador do time = `força_inimiga / força_própria` limitado a **[1/3, 3]** — o time mais fraco ganha mais.
-- **RN-RNK-04** — Deltas enviados ao fim de cada partida e na saída do jogador.
+- **RN-RNK-04** — Deltas enviados ao fim de cada partida e na saída do jogador (também na troca de mapa por voto, no reinício com o 2º jogador e na parada do servidor). Só deltas inteiros ≠ 0; ao enviar, a fração restante se perde, como no original (`servnet.cpp:924-960`, spec `plan/specs/ranking.md`).
 - **Web (novo):** ranking por **temporadas**; leaderboard ordenado por `rating = (score+1)/(neg+1)` com mínimo de 100 pontos positivos para aparecer, desempate por score (ver Decisão D-02). Histórico e estatísticas agregadas por jogador.
 
 ### 6.17 Estatísticas (RN-STA)
@@ -619,7 +619,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-081](cards/OG-081-auth.md) | Cadastro, login e recuperação de senha | E5 | 5 | Must | S8 | OG-080 | Concluído |
 | [OG-082](cards/OG-082-nick-protection.md) | Nome de usuário em jogo, troca de nome e clan tag | E5 | 2 | Must | S8 | OG-081 | Concluído |
 | [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Concluído |
-| [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Pronto |
+| [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Em revisão |
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Pronto |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Em revisão |
 | [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Backlog |
@@ -678,6 +678,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-22 | Queda de conexão | Como o original (sai na hora) / vaga guardada por 15 s | ✅ **Decidido no OG-047 (divergência intencional):** idle kick igual ao original; quem cai fica parado no mundo por 15 s e volta à mesma vaga (time, frags, estatísticas) com um token de retomada (convidado) ou pela conta; o cliente reconecta sozinho por até 14 s. Protocolo ganha `resumeToken`/`resume` (versão 2). Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/inatividade-reconexao.md) | Tech Lead |
 | D-23 | Provedor de e-mail transacional | Resend / Brevo / Mailjet / SMTP2GO / Amazon SES | ✅ **Decidido pelo PO em 2026-10-13: Resend, no plano gratuito** (volume baixo: só recuperação de senha de uma comunidade pequena). Já implementado (`MAILER=resend`, `RESEND_API_KEY`, `MAIL_FROM`); falta, no deploy, criar a conta e verificar um domínio próprio (registros DNS) para os e-mails não caírem em spam. Desenvolvimento segue com Mailpit | PO |
 | D-24 | Registro de salas e matchmaking | Master server do original (lista em HTTP, servidor escolhido pelo jogador) / registro no Redis / registro no PostgreSQL | ✅ **Decidido no OG-086 (divergência intencional, técnica):** os game servers mandam heartbeat a cada 3 s à API, que guarda servidores e salas no **PostgreSQL** (`game_servers`, `rooms`); sala ou servidor sem heartbeat por 10 s sai do lobby. Redis não é necessário nesta escala (dezenas de servidores × 1 escrita/3 s) e continua opcional para contadores. A API não chama os servidores: a sala fora do ar é aberta pelo próprio ticket (claim `spawn`, assinada) no servidor da sala ou no menos carregado (região pedida primeiro). Salas privadas são só Casual, exigem conta e são apagadas após 1 h fora do ar. | Agente |
+| D-25 | Cálculo e aplicação do ranking | Como o original (master soma para sempre; servidor com id/senha de ranking; humanos = IPs distintos) / por temporada na API | ✅ **Decidido no OG-084 (divergência intencional, técnica):** o game server calcula os deltas como o original (`score_frag`/`score_neg`, modificador [1/3, 3], truncamento) só em sala **Ranked** com os mínimos (humanos distintos = **contas** distintas); a força de cada jogador é a da **temporada ativa**, que vem no ticket junto da participação (opt-out em `PUT /account/ranking`, vale na próxima entrada). A API soma os deltas por temporada, idempotente (`/internal/matches` por partida, `/internal/rating-deltas` por envio); leaderboard no PostgreSQL. Nova temporada: `cli.js season start NOME`. Spec `plan/specs/ranking.md`. | Agente |
 
 ---
 

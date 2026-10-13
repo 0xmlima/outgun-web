@@ -67,6 +67,17 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
   Casual (presets Ranked recusados) → `{ room, inviteUrl }`. Fica no servidor escolhido e é apagada
   depois de 1 h fora do ar.
 
+## Ranking e temporadas (OG-084)
+
+- O game server calcula os deltas (spec `plan/specs/ranking.md`) e os manda com o resultado da
+  partida (`POST /internal/matches`, só `ranked`) ou, na saída do jogador e na troca de mapa,
+  em `POST /internal/rating-deltas` `{ deltaId, roomId?, userId, scoreDelta, negDelta }`
+  (idempotente por `deltaId`). A API só soma na temporada ativa (`ratings`).
+- `GET /leaderboard?season=&limit=&offset=` (rating = (score+1)/(neg+1), score ≥ 100, desempate
+  por score), `GET /seasons`, `GET|PUT /account/ranking` (`{ participate }`, opt-out).
+- O ticket de entrada leva `rating { score, neg, participate, rank, of }` da conta.
+- Nova temporada: `node dist/cli.js season start "Temporada 2"` (encerra a ativa).
+
 ## Migrations
 
 SQL escrito à mão em `migrations/NNNN_nome.up.sql` + `NNNN_nome.down.sql` (toda migration é

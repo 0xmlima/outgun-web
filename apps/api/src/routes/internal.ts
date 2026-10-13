@@ -5,7 +5,8 @@ import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type
 import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, gameServers, matches, matchPlayers, rooms, seasons, users } from '../db/schema.js';
+import { adminActions, bans, gameServers, matches, matchPlayers, ratingDeltas, rooms, seasons, users } from '../db/schema.js';
+import { activeSeason, applyDeltas } from '../ranking.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
@@ -46,7 +47,8 @@ const MatchPlayer = Type.Object({
   deaths: Count,
   captures: Count,
   playSeconds: Count,
-  scoreDelta: Type.Number({ minimum: 0 }),
+  /** Deltas do ranking (só em partida ranqueada; o score pode ser negativo, OG-084). */
+  scoreDelta: Type.Integer({ minimum: -1_000_000, maximum: 1_000_000 }),
   negDelta: Count,
   stats: Type.Record(Type.String({ maxLength: 40 }), Type.Number(), { maxProperties: 64 }),
 });
@@ -63,6 +65,14 @@ const MatchResult = Type.Object({
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
+
+const RatingDelta = Type.Object({
+  deltaId: Type.String({ minLength: 1, maxLength: 80 }),
+  roomId: Type.Optional(RoomId),
+  userId: Type.String({ format: 'uuid' }),
+  scoreDelta: Type.Integer({ minimum: -1_000_000, maximum: 1_000_000 }),
+  negDelta: Count,
+});
 
 const MAX_BAN_SECONDS = 7 * 24 * 60 * 60; // ban de sala: no máximo 1 semana, como o /ban do original
 const AdminAction = Type.Object({
@@ -245,9 +255,48 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               })),
             );
           }
+          // Ranking (OG-084): só partida ranqueada e com temporada ativa; o servidor já calculou os deltas.
+          if (body.ranked && season) {
+            await applyDeltas(
+              tx,
+              season.id,
+              body.players.flatMap((p) => (p.userId && known.has(p.userId) ? [{ userId: p.userId, score: p.scoreDelta, neg: p.negDelta, match: true }] : [])),
+            );
+          }
           return { id: match!.id, duplicate: false as const };
         });
         return reply.code(result.duplicate ? 200 : 201).send(result);
+      },
+    );
+
+    app.post(
+      '/rating-deltas',
+      {
+        schema: {
+          tags: ['interno'],
+          summary: 'Deltas do ranking de quem saiu ou na troca de mapa (idempotente por deltaId, OG-084)',
+          security,
+          body: RatingDelta,
+          response: { 200: Type.Object({ applied: Type.Boolean() }), 401: ErrorSchema },
+        },
+      },
+      async (request) => {
+        const serverId = request.serverId!;
+        const d = request.body;
+        const applied = await database.db.transaction(async (tx) => {
+          const season = await activeSeason(tx);
+          const [user] = await tx.select({ id: users.id }).from(users).where(eq(users.id, d.userId));
+          const [room] = d.roomId ? await tx.select({ id: rooms.id }).from(rooms).where(eq(rooms.id, d.roomId)) : [];
+          const [row] = await tx
+            .insert(ratingDeltas)
+            .values({ serverId, deltaId: d.deltaId, userId: user?.id ?? null, seasonId: season?.id ?? null, roomId: room?.id ?? null, scoreDelta: d.scoreDelta, negDelta: d.negDelta })
+            .onConflictDoNothing()
+            .returning({ id: ratingDeltas.deltaId });
+          if (!row) return false; // reenvio
+          if (user && season) await applyDeltas(tx, season.id, [{ userId: user.id, score: d.scoreDelta, neg: d.negDelta, match: false }]);
+          return true;
+        });
+        return { applied };
       },
     );
 
@@ -324,6 +373,7 @@ function inetOrNull(ip: string | undefined): string | null {
 export function validateMatch(body: MatchResultBody): string | undefined {
   if (body.ranked && body.mode !== 'ranked') return 'ranked match must be in ranked mode';
   if (body.ranked && body.players.some((p) => p.isBot)) return 'bots are not allowed in ranked matches (D-11)';
+  if (!body.ranked && body.players.some((p) => p.scoreDelta !== 0 || p.negDelta !== 0)) return 'ranking deltas only in ranked matches';
   if (Date.parse(body.endedAt) < Date.parse(body.startedAt)) return 'endedAt before startedAt';
   const slots = new Set(body.players.map((p) => p.slot));
   if (slots.size !== body.players.length) return 'duplicate player slot';

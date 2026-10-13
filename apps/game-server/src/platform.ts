@@ -4,7 +4,7 @@
 import { signInternalRequest } from '@outgun/tickets';
 import type { AuditEntry, ConsolePlayer } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
-import type { MatchReport } from './match-report.js';
+import type { DeltaReport, MatchReport } from './match-report.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,9 +73,27 @@ export class PlatformClient {
     return false;
   }
 
+  private readonly pending = new Set<Promise<boolean>>();
+
+  /** Envio que a parada do servidor espera terminar (`drain`). */
+  private track(p: Promise<boolean>): void {
+    this.pending.add(p);
+    void p.finally(() => this.pending.delete(p));
+  }
+
+  /** Espera os envios pendentes (resultados e deltas) por até `ms`. */
+  async drain(ms = 5000): Promise<void> {
+    await Promise.race([Promise.allSettled([...this.pending]), new Promise((r) => setTimeout(r, ms))]);
+  }
+
   /** Resultado da partida (OG-049); a API ignora reenvios (idempotente por `serverMatchId`). */
   reportMatch(report: MatchReport): void {
-    void this.post('/internal/matches', report, 5);
+    this.track(this.post('/internal/matches', report, 5));
+  }
+
+  /** Deltas do ranking de quem saiu ou na troca de mapa (OG-084); idempotente por `deltaId`. */
+  reportDeltas(report: DeltaReport): void {
+    this.track(this.post('/internal/rating-deltas', report, 5));
   }
 
   audit(roomId: string, entry: AuditEntry): void {
