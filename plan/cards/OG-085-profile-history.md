@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S9 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-084](OG-084-ranking.md) |
 | Regras de negócio | RN-STA-01, RN-STA-03 |
 | Skills | `outgun-card-workflow` |

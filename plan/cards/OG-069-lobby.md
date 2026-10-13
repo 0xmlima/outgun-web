@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S9 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-086](OG-086-room-registry.md) |
 | Regras de negócio | RN-CFG-03, RN-PLT-02 |
 | Skills | `outgun-card-workflow` |

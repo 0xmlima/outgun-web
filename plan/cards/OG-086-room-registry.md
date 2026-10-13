@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S9 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-080](OG-080-api-db.md), [OG-040](OG-040-game-server-core.md) |
 | Regras de negócio | RN-CFG-03 |
 | Skills | `outgun-card-workflow` |

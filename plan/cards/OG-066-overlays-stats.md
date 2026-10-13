@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S9 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-065](OG-065-hud.md) |
 | Regras de negócio | RN-STA-01, RN-STA-02, RN-VOT-01 |
 | Skills | `outgun-re-spec` |
