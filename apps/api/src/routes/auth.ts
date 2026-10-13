@@ -4,7 +4,8 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
-import { checkName } from '../auth/names.js';
+import { checkRegisteredName } from '@outgun/protocol';
+import { nameOwner } from '../auth/names.js';
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, validPassword, verifyPassword } from '../auth/password.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { newToken, tokenHash } from '../auth/tokens.js';
@@ -76,14 +77,13 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         if (!(await rateLimit.allow(`register:${request.ip}`, deps.config.limits.registerPerHourPerIp, HOUR))) {
           return fail(reply, 429, 'rate_limited', 'too many accounts created from this address, try later');
         }
-        if (!checkName(username)) return fail(reply, 400, 'invalid_username', 'invalid username');
+        if (!checkRegisteredName(username)) return fail(reply, 400, 'invalid_username', 'invalid username');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return fail(reply, 400, 'invalid_email', 'invalid e-mail');
         if (!validPassword(password)) return fail(reply, 400, 'invalid_password', 'invalid password');
 
         const passwordHash = await hashPassword(password);
         const created = await db.transaction(async (tx) => {
-          const [nameTaken] = await tx.select({ id: users.id }).from(users).where(eq(users.usernameKey, usernameKey(username)));
-          if (nameTaken) return 'username_taken' as const;
+          if (await nameOwner(tx, username)) return 'username_taken' as const;
           const [mailTaken] = await tx.select({ id: users.id }).from(users).where(eq(users.emailKey, emailKey(email)));
           if (mailTaken) return 'email_taken' as const;
           const [user] = await tx

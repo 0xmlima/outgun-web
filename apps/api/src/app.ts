@@ -16,6 +16,7 @@ import { authRoutes } from './routes/auth.js';
 import { devRoutes } from './routes/dev.js';
 import { healthRoutes } from './routes/health.js';
 import { internalRoutes } from './routes/internal.js';
+import { nameRoutes } from './routes/names.js';
 import { roomRoutes } from './routes/rooms.js';
 
 export const API_VERSION = '0.1.0';
@@ -146,6 +147,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
 
   await app.register(healthRoutes(deps));
   await app.register(roomRoutes(deps));
+  await app.register(nameRoutes(deps));
   await app.register(authRoutes(deps, services), { prefix: '/auth' });
   await app.register(accountRoutes(deps, services), { prefix: '/account' });
   if (deps.config.devRoutes && services.mailer instanceof MemoryMailer) {

@@ -116,5 +116,16 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Wrong password.': 'Senha incorreta.',
     'Password changed. Other sessions were signed out.': 'Senha trocada. As outras sessões foram encerradas.',
     'Your account and personal data are erased. Past matches stay, without your name.': 'Sua conta e seus dados pessoais são apagados. As partidas jogadas ficam, sem o seu nome.',
+    // Nomes e clan tag (OG-082)
+    'Change name': 'Trocar nome',
+    'New name': 'Novo nome',
+    'Clan tag': 'Clan tag',
+    'Remove clan tag': 'Remover clan tag',
+    'Saved.': 'Salvo.',
+    'Name changed to $1.': 'Nome trocado para $1.',
+    'You can change your name again on $1.': 'Você poderá trocar de nome de novo em $1.',
+    'Invalid clan tag: 1 to 6 characters, no parentheses.': 'Clan tag inválida: 1 a 6 caracteres, sem parênteses.',
+    'Once every 30 days. Your old name stays reserved for you for 90 days.': 'Uma vez a cada 30 dias. Seu nome antigo fica reservado para você por 90 dias.',
+    'Shown in chat as "(TAG) name".': 'Aparece no chat como "(TAG) nome".',
   },
 };

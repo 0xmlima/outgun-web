@@ -1,19 +1,33 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Validação do nome de usuário = nome em jogo (RN-NOM-01, check_name em src/commont.cpp:190).
+// Disponibilidade de nomes (OG-082, RN-NOM-02): um nome está ocupado se o nome comparável é de uma
+// conta ou está reservado (nome antigo de quem trocou de nome, por 90 dias).
+import { checkName, guestName } from '@outgun/protocol';
+import { and, eq, gt } from 'drizzle-orm';
+import type { Db } from '../db/client.js';
+import { usernameKey } from '../db/keys.js';
+import { reservedNames, users } from '../db/schema.js';
 
-export const MAX_NAME_LENGTH = 15; // maxPlayerNameLength (src/commont.h:53)
+export const USERNAME_CHANGE_COOLDOWN_MS = 30 * 24 * 60 * 60_000;
+export const RESERVATION_MS = 90 * 24 * 60 * 60_000;
 
-/** is_nonprintable_char (src/utility.cpp:296); acima de 255 também: as fontes só têm Latin-1. */
-function nonPrintable(code: number): boolean {
-  return code < 32 || (code >= 128 && code <= 159) || code > 255;
+/** Dono do nome (conta ou reserva vigente), ou undefined se o nome está livre. */
+export async function nameOwner(db: Pick<Db, 'select'>, name: string): Promise<string | undefined> {
+  const key = usernameKey(name);
+  if (key === '') return undefined;
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.usernameKey, key));
+  if (user) return user.id;
+  const [reserved] = await db
+    .select({ id: reservedNames.userId })
+    .from(reservedNames)
+    .where(and(eq(reservedNames.nameKey, key), gt(reservedNames.reservedUntil, new Date())));
+  return reserved?.id;
 }
 
-const isSpace = (ch: string) => ch === ' ' || ch === '\u00a0';
+export type GuestNameCheck = { ok: true; name: string } | { ok: false; reason: 'invalid' | 'registered' };
 
-/** Igual a check_name: até 15 caracteres imprimíveis, não só espaços, sem espaço nas pontas. */
-export function checkName(name: string): boolean {
-  if (name.length === 0 || name.length > MAX_NAME_LENGTH) return false;
-  if ([...name].every(isSpace)) return false;
-  for (let i = 0; i < name.length; i++) if (nonPrintable(name.charCodeAt(i))) return false;
-  return !isSpace(name[0]!) && !isSpace(name[name.length - 1]!);
+/** Nome de convidado (só Casual): válido, não registrado nem reservado; exibido com o sufixo `*`. */
+export async function checkGuestName(db: Pick<Db, 'select'>, name: string): Promise<GuestNameCheck> {
+  if (!checkName(name)) return { ok: false, reason: 'invalid' };
+  if (await nameOwner(db, name)) return { ok: false, reason: 'registered' };
+  return { ok: true, name: guestName(name) };
 }

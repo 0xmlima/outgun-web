@@ -195,6 +195,18 @@ export const passwordResets = pgTable(
   (t) => [index('password_resets_user_idx').on(t.userId)],
 );
 
+export const reservedNames = pgTable(
+  'reserved_names',
+  {
+    nameKey: text('name_key').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    reservedUntil: tstz('reserved_until').notNull(),
+  },
+  (t) => [index('reserved_names_user_idx').on(t.userId)],
+);
+
 export const allTables = {
   users,
   sessions,
@@ -207,4 +219,5 @@ export const allTables = {
   bans,
   admin_actions: adminActions,
   password_resets: passwordResets,
+  reserved_names: reservedNames,
 };

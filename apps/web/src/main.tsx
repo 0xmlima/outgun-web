@@ -9,6 +9,8 @@ import { Root, Shell } from './app/Shell.js';
 import {
   AccountScreen,
   ChangePasswordScreen,
+  ChangeUsernameScreen,
+  ClanTagScreen,
   DeleteAccountScreen,
   ForgotPasswordScreen,
   LoginScreen,
@@ -42,6 +44,8 @@ const router = createBrowserRouter([
           { path: 'account', element: <AccountScreen /> },
           { path: 'account/password', element: <ChangePasswordScreen /> },
           { path: 'account/delete', element: <DeleteAccountScreen /> },
+          { path: 'account/username', element: <ChangeUsernameScreen /> },
+          { path: 'account/clan-tag', element: <ClanTagScreen /> },
         ],
       },
       {

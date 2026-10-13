@@ -32,6 +32,10 @@ function useErrorText(): (error: unknown) => string {
         return t('Invalid e-mail.');
       case 'invalid_password':
         return t('The password must have at least 8 characters.');
+      case 'username_cooldown':
+        return t('You can change your name again on $1.', new Date((error as ApiError).message).toLocaleDateString());
+      case 'invalid_clan_tag':
+        return t('Invalid clan tag: 1 to 6 characters, no parentheses.');
       case 'invalid_token':
         return t('This link is invalid or has expired. Ask for a new one.');
       case 'rate_limited':
@@ -274,7 +278,8 @@ export function AccountScreen() {
   if (user === null) return leaving ? <Navigate to="/" replace /> : <Navigate to="/login" replace />;
   if (!user) return null;
   const items: MenuItem[] = [
-    { kind: 'choice', label: t('Username'), value: user.username, onChange: () => {}, disabled: true },
+    { kind: 'action', label: t('Change name'), note: user.username, onActivate: () => void navigate('/account/username') },
+    { kind: 'action', label: t('Clan tag'), note: user.clanTag ?? '-', onActivate: () => void navigate('/account/clan-tag') },
     { kind: 'choice', label: t('E-mail'), value: user.email, onChange: () => {}, disabled: true },
     { kind: 'action', label: t('Change password'), onActivate: () => void navigate('/account/password') },
     { kind: 'action', label: t('Export my data'), onActivate: () => void run(downloadExport) },
@@ -390,6 +395,86 @@ export function DeleteAccountScreen() {
     <Menu caption={t('Delete account')} items={items} onBack={() => void navigate('/account')}>
       <p className="menu-message">
         <BitmapText text={t('Your account and personal data are erased. Past matches stay, without your name.')} />
+      </p>
+      <MessageLine message={message} />
+    </Menu>
+  );
+}
+
+/** Troca do nome de usuário (OG-082): uma vez a cada 30 dias; o antigo fica reservado por 90. */
+export function ChangeUsernameScreen() {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  const { user, setUser } = useAccount();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const { message, setMessage, run } = useSubmit();
+  if (user === null) return <Navigate to="/login" replace />;
+
+  const submit = () =>
+    run(async () => {
+      try {
+        const r = await api<{ user: AccountUser }>('/account/username', { body: { username, password } });
+        setUser(r.user);
+        setPassword('');
+        setMessage({ text: t('Name changed to $1.', r.user.username), error: false });
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 'invalid_credentials') {
+          setMessage({ text: t('Wrong password.'), error: true });
+          return;
+        }
+        throw error;
+      }
+    });
+  const items: MenuItem[] = [
+    { kind: 'text', label: t('New name'), value: username, onChange: setUsername, maxLength: 15, autoComplete: 'off' },
+    {
+      kind: 'text',
+      label: t('Password'),
+      value: password,
+      onChange: setPassword,
+      password: true,
+      maxLength: 128,
+      autoComplete: 'current-password',
+      onEnter: () => void submit(),
+    },
+    { kind: 'action', label: t('Save'), onActivate: () => void submit(), disabled: !username || !password },
+  ];
+  return (
+    <Menu caption={t('Change name')} items={items} onBack={() => void navigate('/account')}>
+      <p className="menu-message">
+        <BitmapText text={t('Once every 30 days. Your old name stays reserved for you for 90 days.')} />
+      </p>
+      <MessageLine message={message} />
+    </Menu>
+  );
+}
+
+/** Clan tag (OG-082): aparece como "(TAG) nome" no chat. */
+export function ClanTagScreen() {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  const { user, setUser } = useAccount();
+  const [tag, setTag] = useState(user?.clanTag ?? '');
+  const { message, setMessage, run } = useSubmit();
+  if (user === null) return <Navigate to="/login" replace />;
+
+  const save = (clanTag: string | null) =>
+    run(async () => {
+      const r = await api<{ user: AccountUser }>('/account/clan-tag', { method: 'PUT', body: { clanTag } });
+      setUser(r.user);
+      setTag(r.user.clanTag ?? '');
+      setMessage({ text: t('Saved.'), error: false });
+    });
+  const items: MenuItem[] = [
+    { kind: 'text', label: t('Clan tag'), value: tag, onChange: setTag, maxLength: 6, onEnter: () => void save(tag || null) },
+    { kind: 'action', label: t('Save'), onActivate: () => void save(tag || null) },
+    { kind: 'action', label: t('Remove clan tag'), onActivate: () => void save(null), disabled: !user?.clanTag },
+  ];
+  return (
+    <Menu caption={t('Clan tag')} items={items} onBack={() => void navigate('/account')}>
+      <p className="menu-message">
+        <BitmapText text={t('Shown in chat as "(TAG) name".')} />
       </p>
       <MessageLine message={message} />
     </Menu>

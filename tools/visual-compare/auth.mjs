@@ -148,7 +148,31 @@ await wait(800);
 const reused = await message();
 check('link só funciona uma vez', reused.includes('inválido ou expirou'), reused);
 
-// 5. Exclusão
+// 5. Nome e clan tag (OG-082)
+await go('/account/clan-tag');
+await type('Clan tag', '[BR]');
+await click('Salvar');
+check('clan tag salva', (await message()).includes('Salvo'));
+await go('/account/username');
+await type('Novo nome', `${name}x`);
+await type('Senha', 'senha-nova-456');
+await shot('8-trocar-nome');
+await click('Salvar');
+check('troca de nome', (await message()).includes(`${name}x`), await message());
+await type('Novo nome', `${name}y`);
+await type('Senha', 'senha-nova-456');
+await click('Salvar');
+check(
+  'segunda troca espera 30 dias',
+  (await message()).includes('trocar de nome de novo'),
+  await message(),
+);
+await go('/account');
+const acct = (await items()).join(' | ');
+check('conta mostra o novo nome e a tag', acct.includes(`${name}x`) && acct.includes('[BR]'), acct);
+await shot('9-conta-nome-tag');
+
+// 6. Exclusão
 await go('/account');
 await click('Excluir conta');
 await type('Senha', 'senha-nova-456');

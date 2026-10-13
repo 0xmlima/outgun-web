@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
-import { checkName } from './names.js';
 import { LoginThrottle, MemoryCounterStore, RateLimit } from './limiter.js';
 
 describe('LoginThrottle (RN-PLT-06)', () => {
@@ -44,26 +43,5 @@ describe('LoginThrottle (RN-PLT-06)', () => {
     expect(await limit.allow('k', 2, 1000)).toBe(false);
     now += 1000;
     expect(await limit.allow('k', 2, 1000)).toBe(true);
-  });
-});
-
-describe('checkName (RN-NOM-01, check_name)', () => {
-  it.each([
-    ['Jogador', true],
-    ['José da Silva', true],
-    ['123456789012345', true],
-    ['1234567890123456', false],
-    ['', false],
-    ['   ', false],
-    ['\u00a0\u00a0', false],
-    [' Ana', false],
-    ['Ana ', false],
-    ['Ana\u00a0', false],
-    ['A\tB', false],
-    ['A\u0085B', false],
-    ['Ελένη', false],
-    ['ÿ~!@#', true],
-  ])('%j → %s', (name, ok) => {
-    expect(checkName(name)).toBe(ok);
   });
 });
