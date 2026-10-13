@@ -98,7 +98,12 @@ export type Translate = (text: string, ...args: string[]) => string;
 export interface FeedFacts {
   readonly joined?: boolean;
   readonly spreeStarted?: number;
+  /** O servidor avisou que o voto para sair não vale sem voto num mapa (`want_map_exit_delayed`). */
+  readonly voteNoEffect?: boolean;
 }
+
+/** Aviso do servidor quando `require_specific_map_vote` está ligado. */
+export const NO_EFFECT = 'Your vote has no effect until you vote for a specific map.';
 
 /**
  * Tradução de texto com cores: o catálogo do 1.0.3 só tem a versão sem `$R`/`$G`/`$B`/`$>` (o
@@ -124,6 +129,8 @@ export interface FeedContext {
   readonly captureLimit: number;
   /** Minutos (0 = sem limite). */
   readonly timeLimit: number;
+  /** Mapas na rotação (0 = lista ainda não chegou). */
+  readonly mapCount: number;
 }
 
 /** Mensagens recentes (`chatbuffer`) e as regras do original para gerá-las a partir dos eventos. */
@@ -159,7 +166,7 @@ export class MessageFeed {
    * entrada foi anunciada e quem começou uma sequência de 10 mortes.
    */
   onMessage(m: AnyMessage, c: FeedContext): FeedFacts {
-    const facts: { joined?: boolean; spreeStarted?: number } = {};
+    const facts: { joined?: boolean; spreeStarted?: number; voteNoEffect?: boolean } = {};
     const t = this.t;
     const name = (pid: number) => (c.teamOf(pid) === 0 ? '$R' : '$B') + escapeFormatted(c.name(pid)) + '$>';
     const flag = (pid: number, carried: string) => {
@@ -247,11 +254,20 @@ export class MessageFeed {
       case 'gameOver':
         break; // o placar final vem de `gameOverScores` (precisa do placar do cliente)
       case 'mapChange':
-        info(escapeFormatted(t('This map is $1.', m.title)));
+        info(escapeFormatted(c.mapCount > 0 ? t('This map is $1 ($2 of $3).', m.title, String(m.mapIndex + 1), String(c.mapCount)) : t('This map is $1.', m.title)));
         break;
+      case 'mapChangeInfo': {
+        let text = t('*** $1/$2 votes for mapchange.', String(m.votes), String(m.needed));
+        if (m.voteBlockSeconds > 0) text += ' ' + t('(All players needed for $1 more seconds.)', String(m.voteBlockSeconds));
+        this.pushPlain('info', text, c.time);
+        break;
+      }
       case 'text': {
         const team = m.from === 255 ? -1 : c.teamOf(m.from);
-        this.pushPlain(m.kind, m.text, c.time, team);
+        // textos fixos do servidor que o original traduz (`net_text_message`)
+        const fixed = m.kind === 'server' && m.text === NO_EFFECT;
+        if (fixed) facts.voteNoEffect = true;
+        this.pushPlain(m.kind, fixed ? t(NO_EFFECT) : m.text, c.time, team);
         break;
       }
       case 'teamChange':

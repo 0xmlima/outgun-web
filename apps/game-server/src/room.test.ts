@@ -279,6 +279,45 @@ describe('Room: times (OG-044)', () => {
   });
 });
 
+describe('Room: rotação e votação de mapas (OG-045)', () => {
+  const rot = loadMaps(MAPS, ['outgun1', 'coliseu', 'sisso']);
+  const make = () => new Room({ id: 'r', preset: 'classic', maps: rot, mapFiles: ['outgun1', 'coliseu', 'sisso'], maxPlayers: 8, seed: 7 });
+
+  it('lista de mapas e mapa atual na entrada', () => {
+    const a = join(make(), 'Ana');
+    expect(a.conn.of('mapList')[0]?.maps.map((m) => m.file)).toEqual(['outgun1', 'coliseu', 'sisso']);
+    expect(a.conn.of('currentMap')[0]?.mapIndex).toBe(0);
+  });
+
+  it('maioria quer sair e votou num mapa: troca para ele; bots não contam', () => {
+    const r = make();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.addBot('robô');
+    r.handle(a.pid, [message('mapVote', { map: 2 }), message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChange').filter((m) => m.reason === 'vote')).toHaveLength(0); // 1 a 1
+    r.handle(b.pid, [message('mapExit', { on: true })]);
+    r.tick();
+    const change = a.conn.of('mapChange').find((m) => m.reason === 'vote');
+    expect(change?.file).toBe('sisso');
+    expect(a.conn.of('mapVotes').at(-1)?.votes).toEqual([0, 0, 0]); // voto no mapa escolhido some
+  });
+
+  it('anúncio dos votos e votos negativos pulando mapas', () => {
+    const r = make();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.handle(a.pid, [message('negativeMapVotes', { maps: [1] })]);
+    r.handle(a.pid, [message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChangeInfo').at(-1)).toMatchObject({ votes: 1, needed: 2 });
+    r.handle(b.pid, [message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChange').find((m) => m.reason === 'vote')?.file).toBe('sisso'); // coliseu tinha voto negativo
+  });
+});
+
 describe('RoomManager', () => {
   it('encerra sala vazia depois do tempo configurado; salas fixas ficam', () => {
     let t = 0;

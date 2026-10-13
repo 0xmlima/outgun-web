@@ -14,6 +14,7 @@ const ctx: FeedContext = {
   time: 10,
   captureLimit: 8,
   timeLimit: 0,
+  mapCount: 0,
 };
 const text = (feed: MessageFeed) => feed.lines.map((l) => l.parts.map((p) => p.text).join(''));
 

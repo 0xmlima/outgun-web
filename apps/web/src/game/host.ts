@@ -144,7 +144,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       session?.send(message('suicide', {}));
     } else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
     else if (action === 'moreMessages' && onlineHud) onlineHud.showAll = !onlineHud.showAll;
-    else if (action === 'changeTeam' && onlineHud && session) {
+    else if (action === 'voteMapChange' && onlineHud && session) {
+      onlineHud.wantMapExit = !onlineHud.wantMapExit;
+      if (!onlineHud.wantMapExit) onlineHud.mapExitDelayed = false;
+      session.send(message('mapExit', { on: onlineHud.wantMapExit }));
+    } else if (action === 'changeTeam' && onlineHud && session) {
       onlineHud.wantChangeTeams = !onlineHud.wantChangeTeams;
       session.send(message('changeTeam', { on: onlineHud.wantChangeTeams }));
     }

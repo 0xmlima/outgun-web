@@ -95,12 +95,14 @@ export interface HudState {
   readonly chat: readonly FeedLine[];
   readonly prompt: { text: string; cursor: number };
   /** O jogo está escondido (carregando, placar, frame pulado): só os avisos. */
-  readonly hidden: { gameOver: { red: number; blue: number } | null; waitingMap: string | null } | null;
+  readonly hidden: { gameOver: { reason: string; red: number; blue: number } | null; waitingMap: string | null } | null;
   readonly notResponding: boolean;
   /** Destaca no minimapa as salas na tela (mais de 1 sala na tela). */
   readonly highlightRooms: boolean;
   /** Pediu troca de time (Ctrl+End): "CHANGE TEAMS" piscando. */
   readonly changeTeams: boolean;
+  /** Votou para sair do mapa (F8): "EXIT MAP" piscando, ou cinza se o voto ainda não vale. */
+  readonly mapExit: 'on' | 'delayed' | null;
 }
 
 const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
@@ -178,7 +180,8 @@ export class HudRenderer {
       const cx = L.playfield.x + Math.trunc(scaleBy(L.mul, ROOM_WIDTH) / 2);
       const py = (v: number) => L.playfield.y + scaleBy(L.mul, v);
       const go = s.hidden.gameOver;
-      if (go) {
+      // o placar aparece no fim por capturas e na troca por voto (`NEXTMAP_CAPTURE_LIMIT`, `NEXTMAP_VOTE_EXIT`)
+      if (go && (go.reason === 'captureLimit' || go.reason === 'vote')) {
         const team = go.red > go.blue ? 0 : go.blue > go.red ? 1 : -1;
         const col = team === -1 ? this.c('game_draw') : this.teamLight(team);
         const caption = team === 0 ? 'RED TEAM WINS' : team === 1 ? 'BLUE TEAM WINS' : 'GAME TIED';
@@ -224,6 +227,14 @@ export class HudRenderer {
         const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 6 * 8 + 10);
         this.text(this.t('CHANGE'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true });
         this.text(this.t('TEAMS'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true });
+      }
+      if (s.mapExit) {
+        // `draw_change_map_message`
+        const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 64 - 6 * 8);
+        const delayed = s.mapExit === 'delayed';
+        const col = delayed ? this.c('change_message_delayed') : this.c(Math.trunc(positiveFmod(s.time * 2, 2)) ? 'change_message_1' : 'change_message_2');
+        this.text(this.t('EXIT'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true, border: delayed });
+        this.text(this.t('MAP'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true, border: delayed });
       }
       this.drawBar(s, L.healthX, this.t('Health'), s.self.health, 'health');
       this.drawBar(s, L.energyX, this.t('Energy'), s.self.energy, 'energy');

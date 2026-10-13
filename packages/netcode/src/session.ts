@@ -124,7 +124,11 @@ export class ClientSession {
   /** Prorrogação em andamento ("ET" no relógio). */
   extraTime = false;
   /** Placar final enquanto mostra o fim de partida (`gameOver` até `startGame`). */
-  gameOver: { reason: MessageOf<'gameOver'>['reason']; red: number; blue: number } | null = null;
+  gameOver: { reason: MessageOf<'gameOver'>['reason'] | 'vote'; red: number; blue: number } | null = null;
+  /** Rotação de mapas (`mapList`), votos por mapa e o índice do mapa atual. */
+  mapList: MessageOf<'mapList'>['maps'] = [];
+  mapVoteCounts: number[] = [];
+  currentMapIndex = -1;
   /** Ping de cada jogador (ms), em rodízio no frame. */
   readonly pings = new Map<number, number>();
   /** Frame em que a posição de cada jogador foi vista pela última vez (frame ou minimapa; `posUpdated`). */
@@ -316,7 +320,20 @@ export class ClientSession {
       case 'serverSettings':
         if (PRESETS.some((p) => p.id === m.preset)) this.settings = presetSettings(m.preset);
         break;
+      case 'mapList':
+        this.mapList = m.maps;
+        this.mapVoteCounts = m.maps.map((x) => x.votes);
+        break;
+      case 'mapVotes':
+        this.mapVoteCounts = m.votes;
+        break;
+      case 'currentMap':
+        this.currentMapIndex = m.mapIndex;
+        break;
       case 'mapChange':
+        // troca por voto também mostra o placar (`NEXTMAP_VOTE_EXIT`)
+        if (m.reason === 'vote') this.gameOver = { reason: 'vote', red: this.teamScores[0], blue: this.teamScores[1] };
+        this.currentMapIndex = m.mapIndex;
         this.mapRequest = { file: m.file, title: m.title, crc: m.crc, mapIndex: m.mapIndex };
         this.skipped = true;
         this.world = null; // o mundo antigo não vale mais; o novo nasce em `setMap`

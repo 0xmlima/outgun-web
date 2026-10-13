@@ -69,7 +69,7 @@ export default function GameScreen() {
         // telas e mensagens dos cards OG-044/045/066/067
         else if (action === 'toggleSound') toggleSound.current();
         // na partida online o host trata Insert, F12 e Ctrl+End; telas F1–F5/F8 são do OG-045/066
-        else if (action !== 'suicide' && (onlineKey === null || !['moreMessages', 'fullPlayfield', 'changeTeam'].includes(action))) setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
+        else if (action !== 'suicide' && (onlineKey === null || !['moreMessages', 'fullPlayfield', 'changeTeam', 'voteMapChange'].includes(action))) setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
       },
     });
     host.current = game;
@@ -119,7 +119,7 @@ export default function GameScreen() {
   ];
 
   return (
-    <div className="game" data-status={status?.kind ?? 'loading'}>
+    <div className="game" data-status={status?.kind ?? 'loading'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
       <div ref={hostRef} className="game-host" />
       <div className="game-overlay">
         {toast && !menuOpen && (

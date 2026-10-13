@@ -600,7 +600,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Concluído |
 | [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Concluído |
 | [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Em revisão |
-| [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Pronto |
+| [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Em revisão |
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Backlog |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Backlog |
 | [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |

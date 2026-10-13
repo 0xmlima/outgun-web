@@ -30,6 +30,9 @@ export class OnlineHud {
   showAll = false;
   /** Pediu troca de time (Ctrl+End); a troca feita zera o pedido. */
   wantChangeTeams = false;
+  /** Votou para sair do mapa (F8); "atrasado" = não vale sem voto num mapa específico. */
+  wantMapExit = false;
+  mapExitDelayed = false;
   /** Onde cada bandeira carregada foi vista por último (portador na tela). */
   private readonly flagSeen = new Map<string, WorldCoords>();
   private deadAfterHighlighted = true;
@@ -53,14 +56,18 @@ export class OnlineHud {
       time: s.lastServerFrame >= 0 ? s.lastServerFrame / 10 : -1,
       captureLimit: w.captureLimit,
       timeLimit: Math.trunc(w.timeLimit / 600),
+      mapCount: s.mapList.length,
     };
   }
 
   /** Mensagem do servidor (chamar antes de a sessão tratá-la, para nomes de quem sai). */
   onMessage(m: Parameters<MessageFeed['onMessage']>[0]): FeedFacts {
     if (m.type === 'teamChange' && (m.from === this.session.me || m.to === this.session.me)) this.wantChangeTeams = false;
+    if (m.type === 'mapChange') this.wantMapExit = this.mapExitDelayed = false; // `netMapChange`
     if (m.type === 'gameOver') this.feed.gameOverScores(this.session.teamScores[0], this.session.teamScores[1], this.context());
-    return this.feed.onMessage(m, this.context());
+    const facts = this.feed.onMessage(m, this.context());
+    if (facts.voteNoEffect) this.mapExitDelayed = true;
+    return facts;
   }
 
   /** Tecla durante o jogo; devolve true se foi usada pelo chat. */
@@ -216,10 +223,12 @@ export class OnlineHud {
       fps: opts.fps,
       chat: this.feed.visible(chatCount, time, this.showAll),
       prompt: chatPrompt(this.chat, this.t),
-      hidden: hiddenGame ? { gameOver: s.gameOver, waitingMap: s.mapRequest && !s.gameOver ? s.mapRequest.title : null } : null,
+      // com o mapa carregado, "Waiting game start - next map is" aparece também junto do placar
+      hidden: hiddenGame ? { gameOver: s.gameOver, waitingMap: s.world?.map.title ?? null } : null,
       notResponding: s.lastPacketTime > 0 && opts.now - s.lastPacketTime > 1000,
       highlightRooms: opts.rooms.visibleX > 1 || opts.rooms.visibleY > 1,
       changeTeams: this.wantChangeTeams,
+      mapExit: this.wantMapExit ? (this.mapExitDelayed ? 'delayed' : 'on') : null,
     };
   }
 }

@@ -7,6 +7,7 @@ import { encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf
 import { presetSettings, PRESETS, type GameMode, type GameSettings } from '@outgun/settings';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
+import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
 import { balanceMoves, botToRebalance, botToRemove, ColorPool, freeSlot, joinTeam, NO_COLOR, shuffleSwaps, teamChangeFor, type Slot } from './teams.js';
 import {
   CarriedFlag,
@@ -87,6 +88,10 @@ interface Client {
   /** Cores preferidas (`data_fav_colors`) e a cor pessoal atual (RN-TIM-05). */
   favColors: number[];
   color: number;
+  /** Votação (RN-VOT): mapa votado (−1 = nenhum), quer sair do mapa, mapas que não quer. */
+  mapVote: number;
+  wantMapExit: boolean;
+  negativeVotes: Set<number>;
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
@@ -109,8 +114,12 @@ export class Room {
   readonly sim: ServerSim;
   readonly results: MatchResult[] = [];
   private readonly clients = new Map<number, Client>();
-  private readonly maps: GameMap[];
+  /** Rotação na ordem do servidor (`maprot`), com o frame do último jogo de cada mapa. */
+  private readonly rotation: { map: GameMap; file: string; lastGame: number }[];
   private mapIndex = 0;
+  /** Votos por mapa já enviados (`mapVotes` só quando mudam). */
+  private sentVotes: number[] = [];
+  private readonly announcer: VoteAnnouncer = { votes: 0, needed: 0, nextFrame: 0 };
   /** Placar de fim de partida: até este frame o mundo não é simulado. */
   private gameOverUntil: number | null = null;
   private outbox: AnyMessage[] = [];
@@ -135,10 +144,15 @@ export class Room {
     this.id = options.id;
     this.mode = preset.mode;
     this.settings = presetSettings(preset.id);
-    this.maps = options.maps;
+
     this.now = options.now ?? (() => performance.now());
-    this.world = new WorldState(options.maps[0] as GameMap, options.maxPlayers);
-    this.sim = new ServerSim(this.world, this.settings, new GlibcRand(options.seed), {
+    const rng = new GlibcRand(options.seed);
+    // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
+    const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
+    this.rotation = order.map((i) => ({ map: options.maps[i] as GameMap, file: options.mapFiles?.[i] ?? (options.maps[i] as GameMap).title, lastGame: 0 }));
+    this.mapIndex = first;
+    this.world = new WorldState((this.rotation[first] as { map: GameMap }).map, options.maxPlayers);
+    this.sim = new ServerSim(this.world, this.settings, rng, {
       kill: (attacker, target, cause, carried, carrierDefended, flagDefended) =>
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended })),
       suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
@@ -227,6 +241,9 @@ export class Room {
       teamChangeTime: 0,
       favColors: [],
       color,
+      mapVote: -1,
+      wantMapExit: false,
+      negativeVotes: new Set(),
     });
     const pl = this.sim.addPlayer(pid);
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
@@ -250,6 +267,8 @@ export class Room {
       message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: this.world.map.title, crc: this.world.map.crc }),
       message('playersPresent', { pids: [...this.clients.keys()] }),
       this.mapTimeMessage(),
+      this.mapListMessage(),
+      message('currentMap', { mapIndex: this.mapIndex }),
     ];
     for (const [other, c] of this.clients) {
       if (other === pid) continue;
@@ -284,6 +303,7 @@ export class Room {
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
     this.broadcast(message('playerLeft', { pid }));
     this.checkTeamChanges();
+    this.checkMapExit();
   }
 
   /** Bot marcado (sem IA até o OG-048): ocupa uma vaga e dá lugar a humanos. */
@@ -469,8 +489,25 @@ export class Room {
           }
           break;
         }
+        case 'mapVote': {
+          const vote = m.map >= 0 && m.map < this.rotation.length ? m.map : -1;
+          if (vote === client.mapVote) break;
+          client.mapVote = vote;
+          if (vote === -1 && this.settings.server.requireSpecificMapVote && client.wantMapExit) this.noEffectWarning(pid);
+          this.checkMapExit();
+          break;
+        }
+        case 'mapExit':
+          if (m.on === client.wantMapExit) break;
+          client.wantMapExit = m.on;
+          if (m.on && this.settings.server.requireSpecificMapVote && client.mapVote === -1) this.noEffectWarning(pid);
+          this.checkMapExit();
+          break;
+        case 'negativeMapVotes':
+          client.negativeVotes = new Set(m.maps.filter((i) => i < this.rotation.length));
+          break;
         default:
-          // votos e opções: OG-045..047
+          // opções: OG-046/047
           break;
       }
     }
@@ -526,6 +563,7 @@ export class Room {
         this.broadcast(message('scoreUpdate', { team: team === 0 ? 'red' : 'blue', score: t.score }));
       });
     }
+    if (running) this.announceVotes();
     this.flush();
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
@@ -537,6 +575,14 @@ export class Room {
     this.frameSentTime = this.now();
     this.thinkAfterBroadcast();
     world.frame++;
+  }
+
+  /** Anúncio "x/y votos para trocar de mapa" e o fim do bloqueio de votação. */
+  private announceVotes(): void {
+    const s = this.settings.server;
+    const info = announce(this.announcer, this.voters(), s.requireSpecificMapVote, this.world.frame, this.world.mapTime(), s.voteBlockTime);
+    if (info) this.broadcast(message('mapChangeInfo', info));
+    if (this.world.mapTime() === s.voteBlockTime) this.checkMapExit();
   }
 
   /** Arma e tempos de power-up do jogador, quando mudam (`data_weapon_change`, `data_pup_timer`). */
@@ -584,8 +630,56 @@ export class Room {
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
-    this.mapIndex = (this.mapIndex + 1) % this.maps.length;
-    const map = this.maps[this.mapIndex] as GameMap;
+    this.nextMap(reason);
+  }
+
+  /** Votantes (RN-VOT). */
+  private voters(): Voter[] {
+    return [...this.clients.values()].map((c) => ({ bot: c.bot, wantExit: c.wantMapExit, mapVote: c.mapVote, negative: c.negativeVotes }));
+  }
+
+  /** `check_map_exit`: atualiza os votos por mapa e troca de mapa se a maioria quer sair. */
+  private checkMapExit(): void {
+    this.sendVotes();
+    if (this.gameOverUntil !== null) return; // já trocando
+    const s = this.settings.server;
+    if (shouldExit(this.voters(), s.requireSpecificMapVote, this.world.mapTime(), s.voteBlockTime)) this.nextMap('vote');
+  }
+
+  private sendVotes(): void {
+    const votes = mapVotes(this.voters(), this.rotation.length);
+    if (votes.length === this.sentVotes.length && votes.every((v, i) => v === this.sentVotes[i])) return;
+    this.sentVotes = votes;
+    this.broadcast(message('mapVotes', { votes }));
+  }
+
+  /** O texto é o mesmo do original, que o cliente reconhece (`want_map_exit_delayed`). */
+  private noEffectWarning(pid: number): void {
+    this.queueTo(pid, message('text', { kind: 'server', from: 255, text: 'Your vote has no effect until you vote for a specific map.' }));
+  }
+
+  private mapListMessage(): AnyMessage {
+    const votes = mapVotes(this.voters(), this.rotation.length);
+    return message('mapList', {
+      revision: 0,
+      maps: this.rotation.map((r, i) => ({ file: r.file, title: r.map.title, author: r.map.author, width: r.map.width, height: r.map.height, votes: votes[i] ?? 0 })),
+    });
+  }
+
+  /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
+  private nextMap(reason: GameOverReason | 'vote'): void {
+    const voters = this.voters();
+    const votes = mapVotes(voters, this.rotation.length);
+    const negative = (map: number) => voters.filter((v) => v.negative.has(map)).length;
+    this.mapIndex = nextMap(this.rotation, votes, this.mapIndex, this.world.frame, negative, this.sim.rng);
+    for (const c of this.clients.values()) {
+      c.wantMapExit = false;
+      if (c.mapVote === this.mapIndex) c.mapVote = -1;
+    }
+    const entry = this.rotation[this.mapIndex] as { map: GameMap; lastGame: number };
+    entry.lastGame = this.world.frame;
+    Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
+    const map = entry.map;
     this.sim.changeMap(map);
     this.balanceTeams();
     const delayFrames = Math.round(this.settings.server.gameEndDelay * 10);
@@ -594,16 +688,18 @@ export class Room {
     this.world.players.forEach((p, pid) => {
       if (p && !this.clients.get(pid)?.bot) p.awaitingClientReadies++;
     });
+    if (reason !== 'vote') this.broadcast(message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }));
     this.broadcast(
-      message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }),
-      message('mapChange', { reason: reason === 'captureLimit' ? 'captureLimit' : 'timeOut', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: map.title, crc: map.crc }),
+      message('mapChange', { reason: reason === 'vote' ? 'vote' : reason === 'captureLimit' ? 'captureLimit' : 'timeOut', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: map.title, crc: map.crc }),
+      message('currentMap', { mapIndex: this.mapIndex }),
       message('worldReset', {}),
     );
     for (const team of [0, 1, 2]) this.dirtyFlags.add(team); // bandeiras do mapa novo
+    this.sendVotes();
   }
 
   private mapFile(index: number): string {
-    return this.options.mapFiles?.[index] ?? (this.maps[index] as GameMap).title;
+    return (this.rotation[index] as { file: string }).file;
   }
 
   /** Eventos para todos: acumulados e enviados juntos, antes do próximo frame (canal confiável). */
