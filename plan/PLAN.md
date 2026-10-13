@@ -606,7 +606,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-048](cards/OG-048-bots.md) | Bots (quebrado em OG-050 a OG-054) | E3 | ~~13~~ | Should | S10 | OG-042 | Quebrado |
 | [OG-050](cards/OG-050-bot-areamap.md) | Bots: AreaMap e tabelas de distância | E3 | 3 | Should | S10 | OG-042 | Em revisão |
 | [OG-051](cards/OG-051-bot-navigation.md) | Bots: navegação até destinos | E3 | 3 | Should | S10 | OG-050 | Em revisão |
-| [OG-052](cards/OG-052-bot-combat.md) | Bots: mira, tiro e esquiva | E3 | 3 | Should | S10 | OG-042 | Pronto |
+| [OG-052](cards/OG-052-bot-combat.md) | Bots: mira, tiro e esquiva | E3 | 3 | Should | S10 | OG-042 | Em revisão |
 | [OG-053](cards/OG-053-bot-brain.md) | Bots: decisões de bandeira e power-up e laço principal | E3 | 3 | Should | S10 | OG-051, OG-052 | Pronto |
 | [OG-054](cards/OG-054-bot-population.md) | Bots: população automática e nomes | E3 | 2 | Should | S10 | OG-042 | Em revisão |
 | [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Concluído |
@@ -689,6 +689,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-27 | Bots em sala sem humanos | Como o original (`bots_fill`/`min_bots` valem mesmo sem ninguém) / sem humanos, nenhum bot | ✅ **Decidido no OG-054 (divergência intencional):** sem humanos a sala fica sem bots — bots sozinhos gastam CPU e manteriam a sala viva para sempre no registro (OG-086). Também: `CASUAL_BOTS_FILL` no game server (padrão 0, como o `gamemod.txt`) e `/bot` liberado ao dono de sala Casual. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/bots-populacao.md) | Tech Lead |
 | D-28 | Replays | Como o original (só com `recording` > 0, arquivo binário do servidor) / sempre que houver destino, formato web | ✅ **Decidido no OG-090 (divergência intencional):** formato próprio versionado (`OGWR`, protocolo web + gzip), gravação de toda partida com destino configurado (`recording` = mínimo de humanos, ≥ 1), arquivos no game server com retenção de 30 dias e URL guardada na API; object storage no OG-103. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/replays.md) | Tech Lead |
 | D-29 | Dados de navegação dos bots | Cópia do AreaMap por bot com distâncias dentro das áreas (original) / AreaMap imutável compartilhado e tabelas de distância por bot | ✅ **Decidido no OG-050 (divergência interna, sem efeito no jogo):** pacote puro `@outgun/bots`; AreaMap montado uma vez por mapa (cache por CRC e título, como `BotSharedDataStorage`) e tabelas `Int32Array` por bot; resultados idênticos ao original (plan/specs/bots-areamap.md). Decisão delegada pelo PO ao time técnico | Tech Lead |
+| D-30 | Limiar de mira dos bots | `static` calculado na primeira mira do processo (original) / constante | ✅ **Decidido no OG-052 (divergência intencional, sem efeito prático):** `1,3 × PLAYER_RADIUS` = 19,5, o valor que o original usa sempre que a primeira mira do processo é com a arma 1 (início de partida); confirmado com o oráculo (plan/specs/bots-ia.md). Decisão delegada pelo PO ao time técnico | Tech Lead |
 
 ---
 
