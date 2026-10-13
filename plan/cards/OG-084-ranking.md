@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S9 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-083](OG-083-join-ticket.md), [OG-028](OG-028-scoring-stats.md) |
 | Regras de negócio | RN-RNK-01, RN-RNK-02, RN-RNK-03, RN-RNK-04, RN-PTS-02, RN-MOD-05 |
 | Skills | `outgun-re-spec` |

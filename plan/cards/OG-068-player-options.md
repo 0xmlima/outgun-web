@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S9 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-060](OG-060-web-shell.md) |
 | Regras de negócio | RN-NOM-01, RN-TIM-05 |
 | Skills | `outgun-re-spec` |
