@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7000), MAPS_DIR (maps/ do repositório),
+// Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7700; a 7000 é do AirPlay no macOS), MAPS_DIR (maps/ do repositório),
 // ROTATION (outgun1), PRESET (classic), MAX_PLAYERS (16), DEV_TICKETS (1 = aceita dev:Nome),
 // EMPTY_TIMEOUT_S (300).
 import { fileURLToPath } from 'node:url';
@@ -10,12 +10,13 @@ import { startServer } from './server.js';
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
 const manager = new RoomManager({ emptyTimeoutMs: Number(env.EMPTY_TIMEOUT_S ?? 300) * 1000 });
-const maps = loadMaps(env.MAPS_DIR ?? `${repo}maps`, (env.ROTATION ?? 'outgun1').split(','));
-manager.create({ id: 'main', preset: env.PRESET ?? 'classic', maps, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
+const rotation = (env.ROTATION ?? 'outgun1').split(',');
+const maps = loadMaps(env.MAPS_DIR ?? `${repo}maps`, rotation);
+manager.create({ id: 'main', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
 manager.start();
 
 const server = await startServer({
-  port: Number(env.PORT ?? 7000),
+  port: Number(env.PORT ?? 7700),
   manager,
   devTickets: env.DEV_TICKETS !== '0',
   protocolDist: `${repo}packages/protocol/dist`,

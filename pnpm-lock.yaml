@@ -215,6 +215,9 @@ importers:
         specifier: github:uNetworking/uWebSockets.js#v20.52.0
         version: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/cfc9a40d8132a34881813cec3d5f8e3a185b3ce3
     devDependencies:
+      '@outgun/netcode':
+        specifier: workspace:*
+        version: link:../../packages/netcode
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
@@ -227,6 +230,9 @@ importers:
       '@outgun/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@outgun/netcode':
+        specifier: workspace:*
+        version: link:../../packages/netcode
       '@outgun/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -276,6 +282,22 @@ importers:
         version: 22.20.5
 
   packages/i18n:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+
+  packages/netcode:
+    dependencies:
+      '@outgun/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@outgun/settings':
+        specifier: workspace:*
+        version: link:../settings
+      '@outgun/sim':
+        specifier: workspace:*
+        version: link:../sim
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

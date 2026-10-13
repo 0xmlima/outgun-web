@@ -109,11 +109,19 @@ export function buildFrame(
   views: MinimapViews,
   pid: number,
   rs: RecipientState,
-  opts: { running: boolean; lastClientFrame: number; ping: { pid: number; ms: number } | null },
+  opts: {
+    running: boolean;
+    lastClientFrame: number;
+    /** Atraso do último input dentro do frame, em frames (`ServerPlayer::frameOffset`). */
+    frameOffset?: number;
+    ping: { pid: number; ms: number } | null;
+  },
 ): FrameResult {
   const me = world.players[pid] as PlayerState;
   const skipped = !opts.running || me.awaitingClientReadies > 0;
-  const header = { frame: world.frame, lastClientFrame: opts.lastClientFrame & 255, frameOffset: 0, skipped };
+  // `bound(frameOffset, 0, .999) * 256` (servnet.cpp:2073)
+  const frameOffset = Math.trunc(Math.min(0.999, Math.max(0, opts.frameOffset ?? 0)) * 256);
+  const header = { frame: world.frame, lastClientFrame: opts.lastClientFrame & 255, frameOffset, skipped };
   if (skipped) return { frame: { ...header, self: null, players: [], minimap: [], ping: null } as FrameMessage, properties: [] };
 
   const time = world.time;

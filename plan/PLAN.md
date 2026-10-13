@@ -599,8 +599,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-041](cards/OG-041-binary-protocol.md) | Protocolo binário v1 | E3 | 5 | Must | S5 | OG-001 | Concluído |
 | [OG-042](cards/OG-042-snapshots-aoi.md) | Snapshots por cliente e interesse por sala | E3 | 5 | Must | S6 | OG-040, OG-041 | Concluído |
 | [OG-043](cards/OG-043-client-input.md) | Entrada do cliente e validação | E3 | 3 | Must | S6 | OG-041 | Concluído |
-| [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Pronto |
-| [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Pronto |
+| [OG-044](cards/OG-044-teams.md) | Times: entrada, troca e balanceamento | E3 | 3 | Must | S7 | OG-040 | Em revisão |
+| [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Em revisão |
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Backlog |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Backlog |
 | [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
@@ -609,10 +609,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Concluído |
 | [OG-062](cards/OG-062-renderer-entities.md) | Renderer: entidades e efeitos | E4 | 8 | Must | S6 | OG-061 | Concluído |
 | [OG-063](cards/OG-063-input.md) | Input: teclado, remapeamento e gamepad | E4 | 3 | Must | S6 | OG-060 | Concluído |
-| [OG-064](cards/OG-064-prediction-interpolation.md) | Predição, reconciliação e interpolação | E4 | 8 | Must | S7 | OG-042, OG-043 | Pronto |
-| [OG-065](cards/OG-065-hud.md) | HUD: barras, timers, placar, minimapa, chat | E4 | 5 | Must | S7 | OG-062 | Pronto |
+| [OG-064](cards/OG-064-prediction-interpolation.md) | Predição, reconciliação e interpolação | E4 | 8 | Must | S7 | OG-042, OG-043 | Em revisão |
+| [OG-065](cards/OG-065-hud.md) | HUD: barras, timers, placar, minimapa, chat | E4 | 5 | Must | S7 | OG-062 | Em revisão |
 | [OG-066](cards/OG-066-overlays-stats.md) | Telas F1–F5, Tab e lista de mapas | E4 | 5 | Should | S9 | OG-065 | Backlog |
-| [OG-067](cards/OG-067-audio.md) | Áudio | E4 | 3 | Must | S7 | OG-012 | Pronto |
+| [OG-067](cards/OG-067-audio.md) | Áudio | E4 | 3 | Must | S7 | OG-012 | Em revisão |
 | [OG-068](cards/OG-068-player-options.md) | Opções do jogador | E4 | 3 | Should | S9 | OG-060 | Backlog |
 | [OG-069](cards/OG-069-lobby.md) | Lobby de salas | E4 | 5 | Must | S9 | OG-086 | Backlog |
 | [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Backlog |
@@ -671,6 +671,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-15 | Teclas no navegador | Só as do original / remapeáveis + gamepad | ✅ **Decidido no OG-063 (divergência intencional):** esquema Clássico (teclas do original) por padrão e esquema Navegador (Espaço/Z/X, sem Ctrl/Alt); tudo remapeável e salvo no navegador; gamepad padrão (botões 0/1/2 = tiro/correr/esquiva, como o joystick do original); teclas por posição física. Atalhos que o navegador não deixa capturar (Ctrl+W/T/N) têm o **modo foco** (F10: tela cheia + `keyboard.lock`) e confirmação ao fechar a aba; captura de tela em F9; sem mira por mouse na v1 (plan/specs/entrada.md) | Tech Lead |
 | D-16 | Formato do snapshot e do minimapa | Bits do original / campos do protocolo v1 | ✅ **Decidido no OG-042 (divergência intencional):** mesmas regras de visibilidade do `broadcast_frame` (sala, shadow, portadores, rodízio do minimapa, propriedades remotas, eventos só para quem vê); minimapa como lista de pids (sem a máscara compactada) e rodízio sem o arredondamento para múltiplos de 4; `rocketDelete` sem o código 252 (o alvo com escudo vai como alvo normal; o pisca fica a cargo do cliente pelo escudo). Tráfego medido: 4,4 KB/s por cliente com 32 jogadores (plan/specs/snapshots-aoi.md) | Tech Lead |
 | D-17 | Entrada do cliente no servidor | Como o original / com limite de taxa e histórico redundante | ✅ **Decidido no OG-043 (divergência intencional):** ordem dos inputs como o original (janela de 128 num contador de 8 bits), limite de taxa por tipo de mensagem (balde de fichas por tick) e expulsão por `client_misbehavior`; **sem histórico redundante de inputs**: os controles são estado absoluto (basta o mais novo), os eventos discretos (tiro, largar bandeira, suicídio, troca de time) vão no canal confiável, o WebSocket não perde pacotes e, num transporte sem garantia (v2), a regra de ordem já descarta os atrasados; um histórico só gastaria banda e abriria espaço para reescrever frames passados. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/entrada-servidor.md) | Tech Lead |
+| D-18 | Predição e desenho no cliente | Como o original (extrapolação, predição desligada) / predição ligada e suavização | ✅ **Decidido no OG-064 (divergência intencional):** mesma extrapolação do original (`ClientWorld::extrapolate`: o próprio jogador com os controles ainda não confirmados, os outros com os últimos controles conhecidos, foguetes simulados a partir dos eventos) e mesma sincronização de envio (`frameOffset`); diferenças: **predição ligada por padrão** (quantidade 10; a opção e o "handicap" 0..10 continuam no menu), relógio estimado do servidor em vez do tempo desde a chegada do último frame (o jitter não sacode o desenho), extrapolação em frames inteiros, troca de sala liberada para o jogador previsto e **suavização das correções** (meia-vida de 80 ms, sem suavizar saltos > 48 px). Interpolação "no passado" para os outros jogadores foi descartada: mostraria inimigos ~100 ms atrasados e pioraria a mira num jogo com foguetes lentos. Resultado: 0,1–0,2 correções/s com 150 ms de RTT e 2% de perda; nave responde em 10–60 ms. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/predicao-interpolacao.md) | Tech Lead |
+| D-19 | HUD da partida | Como o original / adaptado ao navegador | ✅ **Decidido no OG-065:** layout, barras, placar, minimapa, mensagens e chat como o original (`make_layout` com o canvas como tela), F12 alterna minimapa e placar como no original (fora do modo foco o navegador pode abrir as ferramentas de desenvolvimento; a tecla é remapeável); o servidor passa a mandar placar, tempo de mapa, timers de power-up e arma e a repassar o chat (comandos `/` e moderação no OG-046); mensagens com cor usam a tradução sem cor quando o catálogo do 1.0.3 não tem a versão com cor (pt-BR ganhou as versões com cor). Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/hud.md) | Tech Lead |
 
 ---
 

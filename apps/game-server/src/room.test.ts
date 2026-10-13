@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
-import { Position } from '@outgun/sim';
+import { Position, SAMPLES } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
@@ -146,6 +146,175 @@ describe('Room', () => {
     r.handle(a.pid, [message('clientReady', {})]);
     for (let i = 0; i < 2; i++) r.tick();
     expect(a.conn.lastFrame()?.skipped).toBe(false);
+  });
+});
+
+describe('Room: dados do HUD (OG-065)', () => {
+  it('chat: todos recebem "Nome: texto"; com ponto, só o time; comando é ignorado', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia'); // outro time
+    const c = join(r, 'Cid'); // time da Ana
+    r.handle(a.pid, [message('chat', { text: 'oi', teamOnly: false })]);
+    r.handle(a.pid, [message('chat', { text: '.vem', teamOnly: false })]);
+    r.handle(a.pid, [message('chat', { text: '/help', teamOnly: false })]);
+    r.tick();
+    expect(b.conn.of('text').map((m) => m.text)).toEqual(['Ana: oi']);
+    expect(c.conn.of('text').map((m) => [m.kind, m.text])).toEqual([
+      ['normal', 'Ana: oi'],
+      ['team', 'Ana: vem'],
+    ]);
+  });
+
+  it('chat com caractere de controle é mensagem inválida', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    r.handle(a.pid, [message('chat', { text: 'a\u0007', teamOnly: false })]);
+    expect(a.conn.closed?.[1]).toBe('client_misbehavior');
+  });
+
+  it('tempo de mapa na entrada, arma do jogador e placar quando muda', () => {
+    const r = new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 16, seed: 7 });
+    const a = join(r, 'Ana');
+    expect(a.conn.of('mapTime')).toEqual([{ type: 'mapTime', elapsed: 0, left: 0 }]); // clássico: sem limite
+    r.tick();
+    r.tick();
+    expect(a.conn.of('weaponChange').map((m) => m.level)).toEqual([1]);
+    r.world.teams[1].score = 2;
+    r.tick();
+    expect(a.conn.of('scoreUpdate')).toEqual([{ type: 'scoreUpdate', team: 'blue', score: 2 }]);
+  });
+});
+
+describe('Room: sons da sala (OG-067)', () => {
+  it('escudo atingido: som para quem está na sala do jogador', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.tick();
+    r.tick();
+    const ana = r.world.players[a.pid]!;
+    const bia = r.world.players[b.pid]!;
+    bia.pos = ana.pos.clone(); // mesma sala
+    ana.shield = 1;
+    ana.energy = 150;
+    r.world.frame = Math.max(r.world.frame, ana.startTakeDamageFrame);
+    r.sim.damagePlayer(a.pid, b.pid, 70, 0);
+    r.tick();
+    const code = (conn: TestConnection) => conn.of('sound').map((m) => m.sample);
+    expect(code(a.conn)).toEqual([SAMPLES.indexOf('shieldd')]);
+    expect(code(b.conn)).toEqual([SAMPLES.indexOf('shieldd')]);
+  });
+});
+
+describe('Room: times (OG-044)', () => {
+  const small = () => new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 4, seed: 7 });
+
+  it('sala cheia de bots: quem entra toma o lugar de um bot', () => {
+    const r = small();
+    for (let i = 0; i < 4; i++) expect(r.addBot(`bot${i}`).ok).toBe(true);
+    expect(r.bots()).toHaveLength(4);
+    const a = join(r, 'Ana');
+    expect(r.bots()).toHaveLength(3);
+    expect(r.world.players[a.pid]).toBeDefined();
+    expect(a.conn.of('welcome')[0]?.pid).toBe(a.pid);
+    const left = a.conn.of('playerLeft');
+    expect(left).toHaveLength(0); // saiu antes de ela entrar
+    // sala cheia só de humanos: recusa
+    const r2 = small();
+    for (const n of ['a', 'b', 'c', 'd']) join(r2, n);
+    expect(r2.join(new TestConnection(), { name: 'e', accountId: null }).ok).toBe(false);
+  });
+
+  it('Ctrl+End com times iguais: troca com um bot do outro time e avisa todos', () => {
+    const r = small();
+    const a = join(r, 'Ana'); // pid 0 ou 2
+    const bot = r.addBot('Robô');
+    expect(bot.ok && r.world.teamOf(bot.ok ? bot.pid : 0) !== r.world.teamOf(a.pid)).toBe(true);
+    r.handle(a.pid, [message('changeTeam', { on: true })]);
+    r.tick();
+    const change = a.conn.of('teamChange')[0];
+    expect(change).toMatchObject({ from: a.pid, to: bot.ok ? bot.pid : -1 });
+    expect(change?.swappedColor).not.toBe(255);
+    expect(r.bots()).toEqual([a.pid]); // o bot ficou com a vaga antiga dela
+  });
+
+  it('time com 1 a mais: muda sozinho; depois espera 10 s para trocar de novo', () => {
+    const r = small();
+    const a = join(r, 'Ana');
+    const conn = a.conn;
+    let pid = a.pid;
+    r.handle(pid, [message('changeTeam', { on: true })]);
+    r.tick();
+    const moved = conn.of('teamChange')[0];
+    expect(moved).toMatchObject({ from: pid, swappedColor: 255 });
+    pid = moved!.to;
+    expect(r.world.teamOf(pid)).not.toBe(r.world.teamOf(a.pid));
+    r.handle(pid, [message('changeTeam', { on: true })]);
+    for (let i = 0; i < 50; i++) r.tick();
+    expect(conn.of('teamChange')).toHaveLength(1);
+    for (let i = 0; i < 60; i++) r.tick();
+    expect(conn.of('teamChange')).toHaveLength(2);
+  });
+
+  it('bots equilibram os times sozinhos quando a diferença chega a 2', () => {
+    const r = small();
+    join(r, 'Ana');
+    r.addBot('b1');
+    r.addBot('b2');
+    // tira o humano do time com 1: fica 2 × 0
+    const lonely = [...Array(4).keys()].find((pid) => r.world.players[pid] && r.bots().every((b) => r.world.teamOf(b) !== r.world.teamOf(pid)));
+    if (lonely !== undefined) r.leave(lonely);
+    r.tick();
+    const teams = r.bots().map((b) => r.world.teamOf(b));
+    expect(new Set(teams).size).toBe(2);
+  });
+
+  it('cores favoritas: a primeira livre do time', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    r.handle(a.pid, [message('favoriteColors', { colors: [5, 6] })]);
+    r.tick();
+    expect(a.conn.of('playerInfo').at(-1)).toMatchObject({ pid: a.pid, color: 5 });
+  });
+});
+
+describe('Room: rotação e votação de mapas (OG-045)', () => {
+  const rot = loadMaps(MAPS, ['outgun1', 'coliseu', 'sisso']);
+  const make = () => new Room({ id: 'r', preset: 'classic', maps: rot, mapFiles: ['outgun1', 'coliseu', 'sisso'], maxPlayers: 8, seed: 7 });
+
+  it('lista de mapas e mapa atual na entrada', () => {
+    const a = join(make(), 'Ana');
+    expect(a.conn.of('mapList')[0]?.maps.map((m) => m.file)).toEqual(['outgun1', 'coliseu', 'sisso']);
+    expect(a.conn.of('currentMap')[0]?.mapIndex).toBe(0);
+  });
+
+  it('maioria quer sair e votou num mapa: troca para ele; bots não contam', () => {
+    const r = make();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.addBot('robô');
+    r.handle(a.pid, [message('mapVote', { map: 2 }), message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChange').filter((m) => m.reason === 'vote')).toHaveLength(0); // 1 a 1
+    r.handle(b.pid, [message('mapExit', { on: true })]);
+    r.tick();
+    const change = a.conn.of('mapChange').find((m) => m.reason === 'vote');
+    expect(change?.file).toBe('sisso');
+    expect(a.conn.of('mapVotes').at(-1)?.votes).toEqual([0, 0, 0]); // voto no mapa escolhido some
+  });
+
+  it('anúncio dos votos e votos negativos pulando mapas', () => {
+    const r = make();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.handle(a.pid, [message('negativeMapVotes', { maps: [1] })]);
+    r.handle(a.pid, [message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChangeInfo').at(-1)).toMatchObject({ votes: 1, needed: 2 });
+    r.handle(b.pid, [message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChange').find((m) => m.reason === 'vote')?.file).toBe('sisso'); // coliseu tinha voto negativo
   });
 });
 

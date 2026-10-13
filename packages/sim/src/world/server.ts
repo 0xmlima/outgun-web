@@ -4,11 +4,13 @@
 // (OG-025), deathbringer (OG-026), bandeiras (OG-027) e ciclo da partida (OG-029). O que fica fora
 // da sim (troca de mapa, votação, placar final) é avisado pelos `ServerHooks`.
 import type { GameSettings } from '@outgun/settings';
-import { FLAG_RADIUS, MAX_PLAYERS, MAX_POWERUPS, N_PI_2, PLAYER_RADIUS, POWERUP_RADIUS, ROCKET_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, SHOT_DELTA_X } from '../constants.js';
+import { FLAG_RADIUS, MAX_PLAYERS, MAX_POWERUPS, PLAYER_RADIUS, POWERUP_RADIUS, ROOM_HEIGHT, ROOM_WIDTH } from '../constants.js';
 import { Vec } from '../geometry/vec.js';
 import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
-import { adjustGunDirection, gunDirectionToRad, isRun } from './controls.js';
+import { isRun } from './controls.js';
+import { shootRocketFormation } from './rockets.js';
+import type { SampleName } from './samples.js';
 import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
 import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
@@ -66,20 +68,11 @@ export interface ServerHooks {
   powerupPicked?(index: number, pos: Position): void;
   /** Jogador mudou de sala ou renasceu (`game_player_screen_change`). */
   playerScreenChange?(pid: number): void;
+  /** Som para quem está na sala do jogador (`broadcast_screen_sample`). */
+  screenSample?(pid: number, sample: SampleName): void;
+  /** Bandeiras de um time (2 = selvagens) mudaram: pegada, largada, devolvida (`ctf_net_flag_status`). */
+  flagsChanged?(team: number): void;
 }
-
-/** Formações de tiro por nível de arma (src/world.cpp:1380): foguetes à frente e desvios em oitavos. */
-const FORMATIONS: readonly { forward: 1 | 2 | 3; directions: readonly number[] }[] = [
-  { forward: 1, directions: [] },
-  { forward: 2, directions: [] },
-  { forward: 3, directions: [] },
-  { forward: 2, directions: [-1, 1] },
-  { forward: 3, directions: [-2, 2] },
-  { forward: 2, directions: [-1, 1, -2, 2] },
-  { forward: 3, directions: [-2, 2, -3, 3] },
-  { forward: 2, directions: [-1, 1, -2, 2, -3, 3] },
-  { forward: 3, directions: [-1, 1, -2, 2, -3, 3] },
-];
 
 export class ServerSim {
   /** Colisões entre portadores aliados no frame (para captura com `carry_own_team_flag`). */
@@ -144,40 +137,6 @@ export class ServerSim {
     (this.world.rockets[rid] as RocketState).owner = -1;
   }
 
-  /** `WorldBase::addRocket`: cria o foguete já avançado 15 px (não acerta quem está colado). */
-  private addRocket(rid: number, owner: number, team: number, pos: Position, power: boolean, dir: number, xdelta: number, frameAdvance: number, cb: PhysicsCallbacks): void {
-    const r = this.world.rockets[rid] as RocketState;
-    r.owner = owner;
-    r.team = team;
-    r.power = power;
-    r.pos = pos.clone();
-    r.direction = dir;
-    const deg = gunDirectionToRad(dir);
-    const room = this.world.map.room({ x: r.pos.roomX, y: r.pos.roomY });
-    const physics = this.settings.physics;
-
-    if (xdelta) {
-      // foguetes paralelos: primeiro desloca para o lado
-      r.vel = new Vec(Math.cos(deg + N_PI_2), Math.sin(deg + N_PI_2)).mul(xdelta * SHOT_DELTA_X);
-      const wallTime = room.timeTillWall(r.pos.local(), r.vel, ROCKET_RADIUS, 1.01).time;
-      r.pos.move(r.vel, 1);
-      if (wallTime < 1) {
-        cb.rocketHitWall(rid, r.power);
-        return;
-      }
-    }
-    r.vel = new Vec(Math.cos(deg), Math.sin(deg)).mul(physics.rocketSpeed);
-    const advance = 15 / physics.rocketSpeed + frameAdvance;
-    const wallTime = room.timeTillWall(r.pos.local(), r.vel, ROCKET_RADIUS, advance * 1.01).time;
-    if (wallTime <= advance) {
-      r.pos.move(r.vel, wallTime);
-      cb.rocketHitWall(rid, r.power);
-      return;
-    }
-    r.pos.move(r.vel, advance);
-    if (r.pos.isOutOfBounds()) cb.rocketOutOfBounds(rid);
-  }
-
   /** `ServerWorld::shootRockets` + `WorldBase::shootRockets`. */
   shootRockets(pl: PlayerState, shots: number): void {
     const pos = new Position(pl.pos.roomX, pl.pos.roomY, Math.trunc(pl.pos.x), Math.trunc(pl.pos.y)); // como o cliente recebe
@@ -185,24 +144,10 @@ export class ServerSim {
     this.world.teams[this.teamOf(pl.pid)].shots++;
     const rids: number[] = [];
     for (let i = 0; i < shots; i++) rids.push(this.getFreeRocket());
-    const cb = this.callbacks();
     const team = this.teamOf(pl.pid);
     const dir = pl.attackGunDir;
     this.hooks.rocketsFired?.(pl.pid, rids, dir, pl.power, pos);
-    const form = FORMATIONS[shots - 1];
-    if (!form) throw new Error(`nível de arma inválido: ${shots}`);
-    const add = (index: number, direction: number, xdelta: number) =>
-      this.addRocket(rids[index] as number, pl.pid, team, pos, pl.power, direction, xdelta, 0, cb);
-    if (form.forward === 1) add(0, dir, 0);
-    else if (form.forward === 2) {
-      add(0, dir, -1);
-      add(1, dir, 1);
-    } else {
-      add(0, dir, 0);
-      add(1, dir, -2);
-      add(2, dir, 2);
-    }
-    for (let ri = form.forward; ri < shots; ri++) add(ri, adjustGunDirection(dir, form.directions[ri - form.forward] as number), 0);
+    shootRocketFormation(this.physicsContext(), rids, { owner: pl.pid, team, pos, power: pl.power, dir, frameAdvance: 0 }, this.callbacks());
   }
 
   // ---------------------------------------------------------------- dano e morte (OG-024)
@@ -227,14 +172,17 @@ export class ServerSim {
     if (t.hasShadow()) t.visibility = MAXIMUM_SHADOW_VISIBILITY;
     const pups = this.settings.powerups;
     if (t.shield) {
+      const sound = (sample: SampleName) => type !== DamageType.deathbringer && this.hooks.screenSample?.(target, sample);
       if (pups.pupShieldHits) {
         t.shield--;
+        if (!t.shield) sound('shieldl');
       } else {
         t.energy -= damage;
         if (t.energy <= 0) {
           t.energy = 0;
           t.shield = 0;
-        }
+          sound('shieldl');
+        } else sound('shieldd');
       }
     } else {
       t.health -= damage;
@@ -411,11 +359,15 @@ export class ServerSim {
   /** `ServerWorld::returnFlag`. */
   returnFlag(team: number, index: number): void {
     (this.world.flagsOf(team)[index] as FlagState).returnToBase();
+    this.hooks.flagsChanged?.(team);
   }
 
   /** `ServerWorld::returnAllFlags`. */
   returnAllFlags(): void {
-    for (let team = 0; team < 3; team++) for (const f of this.world.flagsOf(team)) f.returnToBase();
+    for (let team = 0; team < 3; team++) {
+      for (const f of this.world.flagsOf(team)) f.returnToBase();
+      this.hooks.flagsChanged?.(team);
+    }
   }
 
   /** `ServerWorld::dropFlag`: só bandeiras de time guardam a hora (em frames / 10) para a devolução. */
@@ -423,6 +375,7 @@ export class ServerSim {
     const flag = this.world.flagsOf(team)[index] as FlagState;
     flag.dropAt(pos);
     if (team !== 2) flag.dropTime = this.frame / 10;
+    this.hooks.flagsChanged?.(team);
   }
 
   /**
@@ -481,6 +434,7 @@ export class ServerSim {
     this.world.teams[this.teamOf(pid)].flagsTaken++;
     this.hooks.flagTaken?.(pid, type);
     (this.world.flagsOf(team)[index] as FlagState).take(pid, this.time);
+    this.hooks.flagsChanged?.(team);
     if (pl.hasShadow()) pl.visibility = MAXIMUM_SHADOW_VISIBILITY;
   }
 
@@ -732,6 +686,7 @@ export class ServerSim {
       else if (!to.hasShadow() && from.shadowTime > time + shadowTransferTime) {
         to.visibility = shadowMin;
         to.shadowTime = time + shadowTransferTime;
+        this.hooks.screenSample?.(to.pid, 'helmon');
       }
     };
     shareShadow(pl1, pl2);
@@ -750,12 +705,14 @@ export class ServerSim {
         pl2.deathbringerAttacker = pid1;
         tossA = true;
         tossB = true;
+        this.hooks.screenSample?.(pid2, 'hitdb');
       } else if (pl2.deathbringer && !pl1.deathbringer) {
         pl1.deathbringerEnd = time + deathbringerEffectTime;
         pl1.nextShootFrame = this.frame + iround(deathbringerEffectTime * 10);
         pl1.deathbringerAttacker = pid2;
         tossA = true;
         tossB = true;
+        this.hooks.screenSample?.(pid1, 'hitdb');
       }
 
       // shield: dano proporcional à força da colisão
@@ -773,6 +730,7 @@ export class ServerSim {
           pl2.energy = 0;
           pl1.shield = 0;
           pl2.shield = 0;
+          this.hooks.screenSample?.(pid1, 'shieldl'); // vale para os dois
         } else this.damagePlayer(pid1, pid2, shieldColdam, DamageType.collision);
       } else if (shieldHitBy2) {
         tossA = true;
@@ -940,6 +898,7 @@ export class ServerSim {
         pl.shield = p.pupShieldHits ? p.pupShieldHits : 1;
         if (pl.health < 100) pl.health = 100;
         if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
+        this.hooks.screenSample?.(pid, 'shieldp');
         break;
       case PowerupKind.turbo: {
         share = p.teamTurbo;
@@ -948,6 +907,7 @@ export class ServerSim {
         itemTime = this.addTime(itemTime);
         pl.turbo = true;
         pl.turboTime = time + itemTime;
+        this.hooks.screenSample?.(pid, 'speedon');
         break;
       }
       case PowerupKind.shadow: {
@@ -957,6 +917,7 @@ export class ServerSim {
         itemTime = this.addTime(itemTime);
         pl.visibility = this.settings.world.shadowMinimum;
         pl.shadowTime = time + itemTime;
+        this.hooks.screenSample?.(pid, 'helmon');
         break;
       }
       case PowerupKind.power: {
@@ -966,21 +927,25 @@ export class ServerSim {
         itemTime = this.addTime(itemTime);
         pl.power = true;
         pl.powerTime = time + itemTime;
+        this.hooks.screenSample?.(pid, 'quadon');
         break;
       }
       case PowerupKind.weapon:
         share = p.teamWeapon;
         if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
         if (pl.weapon < p.pupWeaponMax) pl.weapon++;
+        this.hooks.screenSample?.(pid, 'weaponup');
         break;
       case PowerupKind.megahealth:
         share = p.teamHealth;
         pl.megabonus += p.pupHealthBonus;
+        this.hooks.screenSample?.(pid, 'megaheal');
         break;
       case PowerupKind.deathbringer:
         share = p.teamDeathbringer;
         if (p.pupDeathbringerSwitch && !teammateTouched) pl.deathbringer = !pl.deathbringer;
         else if (!pl.deathbringer) pl.deathbringer = true;
+        this.hooks.screenSample?.(pid, 'getdb');
         break;
       default:
         throw new Error(`power-up inválido no slot ${k}: ${it.kind}`);
@@ -1007,9 +972,13 @@ export class ServerSim {
       else pl.shadowTime = 0;
       return;
     }
-    if (pl.deathbringer) pl.deathbringer = false;
-    else if (pl.shield) pl.shield = 0;
-    else pl.weapon = 1;
+    if (pl.deathbringer) {
+      pl.deathbringer = false;
+      this.hooks.screenSample?.(pl.pid, 'getdb');
+    } else if (pl.shield) {
+      pl.shield = 0;
+      this.hooks.screenSample?.(pl.pid, 'shieldl');
+    } else pl.weapon = 1;
   }
 
   /** `drop_powerup`: ao morrer, larga um dos power-ups (sorteado) na posição truncada. */
@@ -1036,9 +1005,18 @@ export class ServerSim {
   /** `simulatePlayerPrePhysics` (sem o anti-flood do chat, que fica no servidor de salas). */
   prePhysics(pl: PlayerState): void {
     const time = this.time;
-    if (pl.turbo && time > pl.turboTime) pl.turbo = false;
-    if (pl.power && time > pl.powerTime) pl.power = false;
-    if (pl.hasShadow() && time > pl.shadowTime) pl.visibility = 255;
+    if (pl.turbo && time > pl.turboTime) {
+      pl.turbo = false;
+      this.hooks.screenSample?.(pl.pid, 'speedoff');
+    }
+    if (pl.power && time > pl.powerTime) {
+      pl.power = false;
+      this.hooks.screenSample?.(pl.pid, 'quadoff');
+    }
+    if (pl.hasShadow() && time > pl.shadowTime) {
+      pl.visibility = 255;
+      this.hooks.screenSample?.(pl.pid, 'helmoff');
+    }
     if (pl.hasShadow()) pl.visibility = Math.max(this.settings.world.shadowMinimum, pl.visibility - 10);
     if (pl.deathbringerEnd > time && !pl.dead) this.damagePlayer(pl.pid, pl.deathbringerAttacker, pl.shield ? 12 : 3, DamageType.deathbringer);
   }
@@ -1149,6 +1127,7 @@ export class ServerSim {
       const duration = (this.settings.powerups.pupDeathbringerTime * (sameTeam ? physics.friendlyDeathbringer : 1) * (9000 + (this.rng.rand() % 2000))) / 10000;
       target.deathbringerEnd = this.time + duration;
       target.nextShootFrame = this.frame + iround(duration * 10);
+      this.hooks.screenSample?.(target.pid, 'hitdb');
       if (dist !== 0) target.vel = d.mul(40 / dist); // empurra para fora com velocidade 40
     }
     db.outsideMask = newOutsideMask;
@@ -1346,6 +1325,46 @@ export class ServerSim {
     this.dropFlagIfAny(pid, true);
     this.resetCarrierData(pid);
     world.players[pid] = undefined;
+  }
+
+  /**
+   * Parte de mundo de `Server::move_player` (src/server.cpp:323): larga a bandeira, reinicia o jogador
+   * se estiver vivo e o leva para o slot livre `to` do outro time, com os foguetes, explosões e
+   * ataques de deathbringer (`changeEmbeddedPids`).
+   */
+  movePlayer(from: number, to: number): PlayerState {
+    const world = this.world;
+    const old = this.player(from);
+    if (world.players[to]) throw new Error(`pid ${to} ocupado`);
+    this.dropFlagIfAny(from, true);
+    if (!old.dead) this.resetPlayer(from, 0);
+    const moved = Object.assign(new PlayerState(to, world.teamOf(to)), old, { pid: to, team: world.teamOf(to) });
+    world.players[to] = moved;
+    world.players[from] = undefined;
+    for (const rk of world.rockets) if (rk.owner === from) rk.owner = to;
+    for (const db of world.explosions) if (db.ownerPid === from) db.ownerPid = to;
+    for (const p of world.players) if (p && p.deathbringerAttacker === from) p.deathbringerAttacker = to;
+    this.resetCarrierData(from);
+    return moved;
+  }
+
+  /** Parte de mundo de `Server::swap_players` (src/server.cpp:354) e `swapEmbeddedPids`. */
+  swapPlayers(a: number, b: number): void {
+    const world = this.world;
+    const pa = this.player(a);
+    const pb = this.player(b);
+    this.dropFlagIfAny(a, true);
+    this.dropFlagIfAny(b, true);
+    this.resetCarrierData(a);
+    this.resetCarrierData(b);
+    if (!pa.dead) this.resetPlayer(a, 0);
+    if (!pb.dead) this.resetPlayer(b, 0);
+    world.players[a] = Object.assign(new PlayerState(a, world.teamOf(a)), pb, { pid: a, team: world.teamOf(a) });
+    world.players[b] = Object.assign(new PlayerState(b, world.teamOf(b)), pa, { pid: b, team: world.teamOf(b) });
+    const swap = (pid: number) => (pid === a ? b : pid === b ? a : pid);
+    for (const rk of world.rockets) if (rk.owner !== -1) rk.owner = swap(rk.owner);
+    for (const db of world.explosions) db.ownerPid = swap(db.ownerPid);
+    for (const p of world.players) if (p) p.deathbringerAttacker = swap(p.deathbringerAttacker);
   }
 
   /** `ServerWorld::start_game`: o relógio do mapa começa e os power-ups iniciais aparecem. */

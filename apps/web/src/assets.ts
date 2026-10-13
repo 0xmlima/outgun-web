@@ -25,7 +25,9 @@ export interface Manifest {
       }
     >
   >;
-  readonly fonts: Readonly<Record<string, { readonly font: FontFiles }>>;
+  readonly fonts: Readonly<Record<string, { readonly font: FontFiles; readonly border?: FontFiles }>>;
+  /** Temas de som: arquivo de cada sample (null = o tema não tem). */
+  readonly sounds: Readonly<Record<string, { readonly name: string; readonly samples: Readonly<Record<string, string | null>> }>>;
   readonly defaultColours: Readonly<Record<string, string>>;
   readonly maps: Readonly<Record<string, { readonly file: string; readonly dir: 'maps' | 'cmaps' }>>;
 }

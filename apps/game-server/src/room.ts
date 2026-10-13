@@ -7,6 +7,8 @@ import { encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf
 import { presetSettings, PRESETS, type GameMode, type GameSettings } from '@outgun/settings';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
+import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
+import { balanceMoves, botToRebalance, botToRemove, ColorPool, freeSlot, joinTeam, NO_COLOR, shuffleSwaps, teamChangeFor, type Slot } from './teams.js';
 import {
   CarriedFlag,
   clearModifiersIfIdle,
@@ -15,6 +17,8 @@ import {
   gunDirectionFromControls,
   iround,
   isStrafe,
+  randomShuffle,
+  SAMPLES,
   ServerSim,
   WorldState,
   type GameMap,
@@ -26,7 +30,12 @@ import {
 export interface Connection {
   send(data: Uint8Array): void;
   close(code: number, reason: string): void;
+  /** O jogador mudou de pid (troca de time): o transporte passa a usar o novo. */
+  moved?(pid: number): void;
 }
+
+/** Bots não têm conexão (a IA é do OG-048). */
+const BOT_CONNECTION: Connection = { send: () => {}, close: () => {} };
 
 export interface Identity {
   name: string;
@@ -41,6 +50,10 @@ export interface RoomOptions {
   /** Vagas (par, 2..32; RN-TIM-04). */
   maxPlayers: number;
   seed: number;
+  /** Nome do arquivo de cada mapa (sem `.txt`), para o cliente baixar; padrão: o título. */
+  mapFiles?: readonly string[] | undefined;
+  /** Relógio em ms para medir quando os inputs chegam dentro do frame (padrão `performance.now`). */
+  now?: () => number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -49,6 +62,8 @@ interface Client {
   conn: Connection;
   identity: Identity;
   lastClientFrame: number;
+  /** Momento, em frames, em que o último input novo chegou depois do envio do frame (`frameOffset`). */
+  frameOffset: number;
   /** Frags na última mensagem enviada (`oldfrags`). */
   sentFrags: number;
   /** Rodízio do minimapa e propriedades já informadas. */
@@ -64,6 +79,19 @@ interface Client {
   hasInput: boolean;
   /** Último frame com ação do jogador (para o idle kick, RN-IDL-01). */
   lastActivityFrame: number;
+  /** O que o HUD do jogador já recebeu: arma e fim de cada power-up com tempo (`data_weapon_change`, `data_pup_timer`). */
+  hud: { weapon: number; turboTime: number; shadowTime: number; powerTime: number };
+  bot: boolean;
+  /** Pediu troca de time (Ctrl+End) e quando pode trocar de novo (s, `team_change_time`). */
+  wantChangeTeams: boolean;
+  teamChangeTime: number;
+  /** Cores preferidas (`data_fav_colors`) e a cor pessoal atual (RN-TIM-05). */
+  favColors: number[];
+  color: number;
+  /** Votação (RN-VOT): mapa votado (−1 = nenhum), quer sair do mapa, mapas que não quer. */
+  mapVote: number;
+  wantMapExit: boolean;
+  negativeVotes: Set<number>;
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
@@ -86,8 +114,12 @@ export class Room {
   readonly sim: ServerSim;
   readonly results: MatchResult[] = [];
   private readonly clients = new Map<number, Client>();
-  private readonly maps: GameMap[];
+  /** Rotação na ordem do servidor (`maprot`), com o frame do último jogo de cada mapa. */
+  private readonly rotation: { map: GameMap; file: string; lastGame: number }[];
   private mapIndex = 0;
+  /** Votos por mapa já enviados (`mapVotes` só quando mudam). */
+  private sentVotes: number[] = [];
+  private readonly announcer: VoteAnnouncer = { votes: 0, needed: 0, nextFrame: 0 };
   /** Placar de fim de partida: até este frame o mundo não é simulado. */
   private gameOverUntil: number | null = null;
   private outbox: AnyMessage[] = [];
@@ -95,6 +127,14 @@ export class Room {
   readonly kicks: { pid: number; name: string; reason: string }[] = [];
   /** Jogadores que conhecem cada foguete (`Rocket::vislist`). */
   private readonly rocketViewers: Set<number>[] = [];
+  private readonly now: () => number;
+  private readonly colors: ColorPool;
+  /** Placar já enviado (`scoreUpdate` só quando muda). */
+  private readonly sentScores: [number, number] = [0, 0];
+  /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
+  private readonly dirtyFlags = new Set<number>();
+  /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
+  private frameSentTime = 0;
 
   constructor(private readonly options: RoomOptions) {
     const preset = PRESETS.find((p) => p.id === options.preset);
@@ -104,9 +144,15 @@ export class Room {
     this.id = options.id;
     this.mode = preset.mode;
     this.settings = presetSettings(preset.id);
-    this.maps = options.maps;
-    this.world = new WorldState(options.maps[0] as GameMap, options.maxPlayers);
-    this.sim = new ServerSim(this.world, this.settings, new GlibcRand(options.seed), {
+
+    this.now = options.now ?? (() => performance.now());
+    const rng = new GlibcRand(options.seed);
+    // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
+    const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
+    this.rotation = order.map((i) => ({ map: options.maps[i] as GameMap, file: options.mapFiles?.[i] ?? (options.maps[i] as GameMap).title, lastGame: 0 }));
+    this.mapIndex = first;
+    this.world = new WorldState((this.rotation[first] as { map: GameMap }).map, options.maxPlayers);
+    this.sim = new ServerSim(this.world, this.settings, rng, {
       kill: (attacker, target, cause, carried, carrierDefended, flagDefended) =>
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended })),
       suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
@@ -116,7 +162,8 @@ export class Room {
       flagCaptured: (pid, flagTeam, assistant) => this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant })),
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
-      normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' })),
+      normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' }), this.mapTimeMessage()),
+      extraTimePeriodStarted: () => this.broadcast(this.mapTimeMessage()),
       gameOver: (reason, result) => this.onGameOver(reason, result),
       rocketsFired: (owner, rids, gunDir, power, pos) => {
         // quem vê o tiro fica guardado no foguete (`vislist`) para a remoção e as trocas de sala
@@ -138,7 +185,15 @@ export class Room {
         for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
       },
       playerScreenChange: (pid) => this.screenChanged(pid),
+      flagsChanged: (team) => this.dirtyFlags.add(team),
+      screenSample: (pid, sample) => {
+        const pl = this.world.players[pid];
+        if (!pl) return;
+        const msg = message('sound', { sample: SAMPLES.indexOf(sample) });
+        for (const other of this.viewers((p) => p.pos.sameRoom(pl.pos))) this.queueTo(other, msg);
+      },
     });
+    this.colors = new ColorPool(this.sim.rng);
     this.sim.loadMapFlags();
     this.sim.startGame();
   }
@@ -151,32 +206,55 @@ export class Room {
     return this.world.frame;
   }
 
-  /** Entrada na sala (`client_connected`): time com menos jogadores, menor pid livre. */
-  join(conn: Connection, identity: Identity): JoinResult {
+  /**
+   * Entrada na sala (`client_connected`, RN-TIM-01): sala cheia com bot → um bot sai; time pela
+   * regra de entrada; primeira vaga livre do time; cor pessoal livre.
+   */
+  join(conn: Connection, identity: Identity, opts: { bot?: boolean } = {}): JoinResult {
     if (this.mode === 'ranked' && identity.accountId === null) return { ok: false, reason: 'rankedNeedsAccount', text: 'Salas Ranked exigem login.' };
-    const size = this.world.teamSize;
-    const counts = [0, 1].map((t) => this.world.players.slice(t * size, (t + 1) * size).filter(Boolean).length);
-    const order = (counts[0] as number) <= (counts[1] as number) ? [0, 1] : [1, 0];
-    let pid = -1;
-    for (const t of order) {
-      const free = this.world.players.slice(t * size, (t + 1) * size).findIndex((p) => !p);
-      if (free !== -1) {
-        pid = t * size + free;
-        break;
-      }
+    if (opts.bot && this.mode === 'ranked') return { ok: false, reason: 'roomClosed', text: 'Bots são proibidos no Ranked (D-11).' };
+    if (this.clients.size >= this.world.maxPlayers) {
+      const bot = opts.bot ? -1 : botToRemove(this.slots(), this.world.maxPlayers);
+      if (bot === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
+      this.removeBot(bot);
     }
+    const team = joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam());
+    const pid = freeSlot(this.slots(), this.world.maxPlayers, team);
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
-
-    this.clients.set(pid, { conn, identity, lastClientFrame: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame });
-    this.sim.addPlayer(pid);
+    const color = this.colors.assign(team, NO_COLOR, []);
+    this.clients.set(pid, {
+      conn,
+      identity,
+      lastClientFrame: 0,
+      frameOffset: 0,
+      sentFrags: 0,
+      rs: new RecipientState(),
+      queue: [],
+      bytes: 0,
+      joinedFrame: this.world.frame,
+      guard: new InputGuard(),
+      hasInput: false,
+      lastActivityFrame: this.world.frame,
+      hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 },
+      bot: opts.bot ?? false,
+      wantChangeTeams: false,
+      teamChangeTime: 0,
+      favColors: [],
+      color,
+      mapVote: -1,
+      wantMapExit: false,
+      negativeVotes: new Set(),
+    });
+    const pl = this.sim.addPlayer(pid);
+    if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
     this.send(pid, this.welcomeMessages(pid));
-    this.broadcast(message('playerJoined', { pid, name: identity.name, color: 0, bot: false }));
+    this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
     if (this.clients.size === 2) {
       this.sim.returnAllFlags();
       this.sim.resetWorld();
       this.world.mapStartFrame = this.world.frame;
-      this.broadcast(message('worldReset', {}), message('startGame', {}));
+      this.broadcast(message('worldReset', {}), message('startGame', {}), this.mapTimeMessage());
     }
     return { ok: true, pid };
   }
@@ -184,14 +262,17 @@ export class Room {
   private welcomeMessages(pid: number): AnyMessage[] {
     const preset = this.options.preset;
     const out: AnyMessage[] = [
-      message('welcome', { protocol: PROTOCOL_VERSION, pid, color: 0, maxPlayers: this.world.maxPlayers, mode: this.mode, mapIndex: this.mapIndex, redScore: this.world.teams[0].score, blueScore: this.world.teams[1].score }),
+      message('welcome', { protocol: PROTOCOL_VERSION, pid, color: this.clients.get(pid)?.color ?? 0, maxPlayers: this.world.maxPlayers, mode: this.mode, mapIndex: this.mapIndex, redScore: this.world.teams[0].score, blueScore: this.world.teams[1].score }),
       message('serverSettings', { preset, gamemod: (PRESETS.find((p) => p.id === preset)?.overrides ?? ''), locked: PRESETS.find((p) => p.id === preset)?.locked ?? false }),
-      message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.world.map.title, title: this.world.map.title, crc: this.world.map.crc }),
+      message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: this.world.map.title, crc: this.world.map.crc }),
       message('playersPresent', { pids: [...this.clients.keys()] }),
+      this.mapTimeMessage(),
+      this.mapListMessage(),
+      message('currentMap', { mapIndex: this.mapIndex }),
     ];
     for (const [other, c] of this.clients) {
       if (other === pid) continue;
-      out.push(message('playerJoined', { pid: other, name: c.identity.name, color: 0, bot: false }));
+      out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
     }
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
@@ -214,11 +295,130 @@ export class Room {
 
   /** Saída (`client_disconnected` → `removePlayer`). */
   leave(pid: number): void {
-    if (!this.clients.has(pid)) return;
+    const c = this.clients.get(pid);
+    if (!c) return;
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
+    this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
     this.broadcast(message('playerLeft', { pid }));
+    this.checkTeamChanges();
+    this.checkMapExit();
+  }
+
+  /** Bot marcado (sem IA até o OG-048): ocupa uma vaga e dá lugar a humanos. */
+  addBot(name: string): JoinResult {
+    return this.join(BOT_CONNECTION, { name, accountId: null }, { bot: true });
+  }
+
+  /** `remove_bot` → `disconnectPlayer(kick)`. */
+  removeBot(pid: number): void {
+    if (this.clients.get(pid)?.bot) this.leave(pid);
+  }
+
+  /** Bots presentes (pids). */
+  bots(): number[] {
+    return [...this.clients].filter(([, c]) => c.bot).map(([pid]) => pid);
+  }
+
+  /** Cada vaga para as regras de time (`teams.ts`). */
+  private slots(): (Slot | undefined)[] {
+    return this.world.players.map((p, pid) => {
+      const c = this.clients.get(pid);
+      return p && c ? { bot: c.bot, dead: p.dead, hasFlag: p.stats.carriedFlag !== CarriedFlag.None, wantChange: c.wantChangeTeams } : undefined;
+    });
+  }
+
+  /** `getLessScoredTeam` sem o ranking (OG-084): menor placar, senão sorteio. */
+  private lessScoredTeam(): 0 | 1 {
+    const [red, blue] = [this.world.teams[0].score, this.world.teams[1].score];
+    if (red < blue) return 0;
+    if (blue < red) return 1;
+    return (this.sim.rng.rand() % 2) as 0 | 1;
+  }
+
+  /** Relógio dos pedidos de troca (s); o original usa `get_time()`. */
+  private get clock(): number {
+    return this.world.frame / 10;
+  }
+
+  /** `check_team_changes`: pedidos em ordem aleatória. */
+  private checkTeamChanges(): void {
+    const order = [...this.clients].filter(([, c]) => c.wantChangeTeams).map(([pid]) => pid);
+    randomShuffle(order, this.sim.rng);
+    for (const pid of order) this.checkPlayerChangeTeams(pid);
+  }
+
+  /** `check_player_change_teams` (RN-TIM-02). */
+  private checkPlayerChangeTeams(pid: number): void {
+    const c = this.clients.get(pid);
+    if (!c?.wantChangeTeams || this.clock < c.teamChangeTime) return;
+    const change = teamChangeFor(this.slots(), this.world.maxPlayers, pid);
+    if (change?.kind === 'move') this.movePlayer(change.from, change.to);
+    else if (change?.kind === 'swap') this.swapPlayers(change.a, change.b);
+  }
+
+  /** Depois da troca: não quer mais trocar por 10 s e ganha uma cor livre no time novo. */
+  private settle(pid: number): void {
+    const c = this.clients.get(pid) as Client;
+    c.wantChangeTeams = false;
+    c.teamChangeTime = this.clock + 10;
+    c.color = this.colors.assign(this.world.teamOf(pid), NO_COLOR, c.favColors);
+    c.conn.moved?.(pid);
+  }
+
+  /** `move_player`: para a vaga livre `to` do outro time. */
+  private movePlayer(from: number, to: number): void {
+    const c = this.clients.get(from) as Client;
+    this.colors.release(this.world.teamOf(from), c.color);
+    c.color = NO_COLOR;
+    this.sim.movePlayer(from, to);
+    this.clients.delete(from);
+    this.clients.set(to, c);
+    for (const viewers of this.rocketViewers)
+      if (viewers?.delete(from)) viewers.add(to);
+    this.settle(to);
+    this.broadcast(message('teamChange', { from, to, color: c.color, swappedColor: 255 }));
+  }
+
+  /** `swap_players`. */
+  private swapPlayers(a: number, b: number): void {
+    const ca = this.clients.get(a) as Client;
+    const cb = this.clients.get(b) as Client;
+    this.colors.release(this.world.teamOf(a), ca.color);
+    this.colors.release(this.world.teamOf(b), cb.color);
+    ca.color = cb.color = NO_COLOR;
+    this.sim.swapPlayers(a, b);
+    this.clients.set(a, cb);
+    this.clients.set(b, ca);
+    for (const viewers of this.rocketViewers) {
+      if (!viewers || viewers.has(a) === viewers.has(b)) continue;
+      const [had, now] = viewers.has(a) ? [a, b] : [b, a];
+      viewers.delete(had);
+      viewers.add(now);
+    }
+    this.settle(a);
+    this.settle(b);
+    this.broadcast(message('teamChange', { from: a, to: b, color: ca.color, swappedColor: cb.color }));
+  }
+
+  /** `server_think_after_broadcast`: pedidos vencidos e bot que equilibra os times. */
+  private thinkAfterBroadcast(): void {
+    for (const [pid, c] of [...this.clients]) if (c.wantChangeTeams && c.teamChangeTime < this.clock) this.checkPlayerChangeTeams(pid);
+    const bot = botToRebalance(this.slots(), this.world.maxPlayers);
+    const c = bot === -1 ? undefined : this.clients.get(bot);
+    if (!c) return;
+    c.wantChangeTeams = true;
+    c.teamChangeTime = 0;
+    this.checkPlayerChangeTeams(bot);
+  }
+
+  /** `balance_teams` e `shuffle_teams` a cada mapa (RN-TIM-03). */
+  private balanceTeams(): void {
+    const mode = this.settings.world.balanceTeams;
+    if (mode === 'no') return;
+    for (const { from, to } of balanceMoves(this.slots(), this.world.maxPlayers, this.sim.rng)) this.movePlayer(from, to);
+    if (mode === 'shuffle') for (const [a, b] of shuffleSwaps(this.slots(), this.world.maxPlayers, this.sim.rng)) this.swapPlayers(a, b);
   }
 
   /** Mensagens de um cliente, na ordem (`incoming_client_data` + `processMessage`). */
@@ -237,6 +437,8 @@ export class Room {
         case 'input': {
           // fora de ordem ou duplicado antigo: ignora (`incoming_client_data`)
           if (client.hasInput && !isNewerOrSame(client.lastClientFrame, m.clientFrame)) break;
+          // chegada de um frame novo do cliente dentro do frame do servidor (servnet.cpp:1840)
+          if (!client.hasInput || m.clientFrame !== client.lastClientFrame) client.frameOffset = ((this.now() - this.frameSentTime) * 10) / 1000;
           client.hasInput = true;
           client.lastClientFrame = m.clientFrame;
           pl.controls = clearModifiersIfIdle(m.controls & 0x3f);
@@ -266,8 +468,46 @@ export class Room {
         case 'clientReady':
           if (pl.awaitingClientReadies > 0) pl.awaitingClientReadies--;
           break;
+        case 'chat':
+          // até 200 caracteres imprimíveis; fora disso é mensagem inválida (`data_text_message`)
+          if (m.text.length > 200 || [...m.text].some((ch) => ch < ' ' || ch === '\x7f')) return this.kick(pid, 'chat inválido');
+          this.chat(pid, m.text);
+          break;
+        case 'changeTeam':
+          if (!m.on) client.wantChangeTeams = false;
+          else if (!client.wantChangeTeams) {
+            client.wantChangeTeams = true;
+            this.checkTeamChanges();
+          }
+          break;
+        case 'favoriteColors': {
+          client.favColors = m.colors.filter((c) => c < 16);
+          const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
+          if (color !== client.color) {
+            client.color = color;
+            this.broadcast(message('playerInfo', { pid, color, loggedIn: client.identity.accountId !== null, ranked: false, admin: false, rank: 0, score: 0, negScore: 0, rankedPlayers: 0 }));
+          }
+          break;
+        }
+        case 'mapVote': {
+          const vote = m.map >= 0 && m.map < this.rotation.length ? m.map : -1;
+          if (vote === client.mapVote) break;
+          client.mapVote = vote;
+          if (vote === -1 && this.settings.server.requireSpecificMapVote && client.wantMapExit) this.noEffectWarning(pid);
+          this.checkMapExit();
+          break;
+        }
+        case 'mapExit':
+          if (m.on === client.wantMapExit) break;
+          client.wantMapExit = m.on;
+          if (m.on && this.settings.server.requireSpecificMapVote && client.mapVote === -1) this.noEffectWarning(pid);
+          this.checkMapExit();
+          break;
+        case 'negativeMapVotes':
+          client.negativeVotes = new Set(m.maps.filter((i) => i < this.rotation.length));
+          break;
         default:
-          // times, votos, chat e opções: OG-044..047
+          // opções: OG-046/047
           break;
       }
     }
@@ -302,46 +542,164 @@ export class Room {
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       this.sim.startGame();
-      this.broadcast(message('startGame', {}));
+      this.broadcast(message('startGame', {}), this.mapTimeMessage());
     }
     const running = this.gameOverUntil === null;
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
       this.sim.simulateFrame();
       for (const [pid, c] of this.clients) {
-        const frags = (world.players[pid] as PlayerState).stats.frags;
+        const pl = world.players[pid] as PlayerState;
+        const frags = pl.stats.frags;
         if (frags !== c.sentFrags) {
           c.sentFrags = frags;
           this.broadcast(message('frags', { pid, frags }));
         }
+        this.updateHud(pid, c, pl);
       }
+      world.teams.forEach((t, team) => {
+        if (t.score === this.sentScores[team]) return;
+        this.sentScores[team] = t.score;
+        this.broadcast(message('scoreUpdate', { team: team === 0 ? 'red' : 'blue', score: t.score }));
+      });
     }
+    if (running) this.announceVotes();
     this.flush();
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
-      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, ping: null });
+      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
       const extra = properties.length ? [message('minimapProperties', { players: properties })] : [];
       this.send(pid, [...c.queue, message('frame', frame), ...extra]);
       c.queue = [];
     }
+    this.frameSentTime = this.now();
+    this.thinkAfterBroadcast();
     world.frame++;
+  }
+
+  /** Anúncio "x/y votos para trocar de mapa" e o fim do bloqueio de votação. */
+  private announceVotes(): void {
+    const s = this.settings.server;
+    const info = announce(this.announcer, this.voters(), s.requireSpecificMapVote, this.world.frame, this.world.mapTime(), s.voteBlockTime);
+    if (info) this.broadcast(message('mapChangeInfo', info));
+    if (this.world.mapTime() === s.voteBlockTime) this.checkMapExit();
+  }
+
+  /** Arma e tempos de power-up do jogador, quando mudam (`data_weapon_change`, `data_pup_timer`). */
+  private updateHud(pid: number, c: Client, pl: PlayerState): void {
+    const time = this.world.time;
+    if (pl.weapon !== c.hud.weapon) {
+      c.hud.weapon = pl.weapon;
+      this.queueTo(pid, message('weaponChange', { level: pl.weapon }));
+    }
+    const timers = [
+      ['turbo', 'turboTime', pl.turbo, pl.turboTime],
+      ['shadow', 'shadowTime', pl.hasShadow(), pl.shadowTime],
+      ['power', 'powerTime', pl.power, pl.powerTime],
+    ] as const;
+    for (const [kind, key, active, end] of timers) {
+      if (!active || end === c.hud[key]) continue;
+      c.hud[key] = end;
+      this.queueTo(pid, message('powerupTimer', { kind, seconds: Math.max(0, Math.round(end - time)) }));
+    }
+  }
+
+  /** `send_map_time`: tempo de mapa e restante (prorrogação depois do tempo normal; 0 = sem limite). */
+  private mapTimeMessage(): AnyMessage {
+    const w = this.settings.world;
+    const mapTime = this.world.mapTime();
+    let left = 0;
+    if (w.timeLimit > 0) {
+      left = w.timeLimit - mapTime;
+      if (left <= 0) left = Math.max(0, w.timeLimit + this.world.extraTimePeriod * w.extraTime - mapTime);
+    }
+    return message('mapTime', { elapsed: Math.trunc(mapTime / 10), left: Math.trunc(left / 10) });
+  }
+
+  /** Chat (RN-CHT-01): `.` = só o time; comandos `/` e moderação são do OG-046. */
+  private chat(pid: number, text: string): void {
+    const name = this.clients.get(pid)?.identity.name ?? '';
+    const team = text.startsWith('.');
+    const body = (team ? text.slice(1) : text).trim();
+    if (!body || text.startsWith('/')) return;
+    const msg = message('text', { kind: team ? 'team' : 'normal', from: pid, text: `${name}: ${body}` });
+    if (!team) this.broadcast(msg);
+    else for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
   }
 
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
-    this.mapIndex = (this.mapIndex + 1) % this.maps.length;
-    const map = this.maps[this.mapIndex] as GameMap;
+    this.nextMap(reason);
+  }
+
+  /** Votantes (RN-VOT). */
+  private voters(): Voter[] {
+    return [...this.clients.values()].map((c) => ({ bot: c.bot, wantExit: c.wantMapExit, mapVote: c.mapVote, negative: c.negativeVotes }));
+  }
+
+  /** `check_map_exit`: atualiza os votos por mapa e troca de mapa se a maioria quer sair. */
+  private checkMapExit(): void {
+    this.sendVotes();
+    if (this.gameOverUntil !== null) return; // já trocando
+    const s = this.settings.server;
+    if (shouldExit(this.voters(), s.requireSpecificMapVote, this.world.mapTime(), s.voteBlockTime)) this.nextMap('vote');
+  }
+
+  private sendVotes(): void {
+    const votes = mapVotes(this.voters(), this.rotation.length);
+    if (votes.length === this.sentVotes.length && votes.every((v, i) => v === this.sentVotes[i])) return;
+    this.sentVotes = votes;
+    this.broadcast(message('mapVotes', { votes }));
+  }
+
+  /** O texto é o mesmo do original, que o cliente reconhece (`want_map_exit_delayed`). */
+  private noEffectWarning(pid: number): void {
+    this.queueTo(pid, message('text', { kind: 'server', from: 255, text: 'Your vote has no effect until you vote for a specific map.' }));
+  }
+
+  private mapListMessage(): AnyMessage {
+    const votes = mapVotes(this.voters(), this.rotation.length);
+    return message('mapList', {
+      revision: 0,
+      maps: this.rotation.map((r, i) => ({ file: r.file, title: r.map.title, author: r.map.author, width: r.map.width, height: r.map.height, votes: votes[i] ?? 0 })),
+    });
+  }
+
+  /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
+  private nextMap(reason: GameOverReason | 'vote'): void {
+    const voters = this.voters();
+    const votes = mapVotes(voters, this.rotation.length);
+    const negative = (map: number) => voters.filter((v) => v.negative.has(map)).length;
+    this.mapIndex = nextMap(this.rotation, votes, this.mapIndex, this.world.frame, negative, this.sim.rng);
+    for (const c of this.clients.values()) {
+      c.wantMapExit = false;
+      if (c.mapVote === this.mapIndex) c.mapVote = -1;
+    }
+    const entry = this.rotation[this.mapIndex] as { map: GameMap; lastGame: number };
+    entry.lastGame = this.world.frame;
+    Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
+    const map = entry.map;
     this.sim.changeMap(map);
+    this.balanceTeams();
     const delayFrames = Math.round(this.settings.server.gameEndDelay * 10);
     this.gameOverUntil = this.world.frame + delayFrames;
-    // todos precisam carregar o novo mapa (`send_map_change_message`)
-    for (const p of this.world.players) if (p) p.awaitingClientReadies++;
+    // todos precisam carregar o novo mapa (`send_map_change_message`); bots não carregam
+    this.world.players.forEach((p, pid) => {
+      if (p && !this.clients.get(pid)?.bot) p.awaitingClientReadies++;
+    });
+    if (reason !== 'vote') this.broadcast(message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }));
     this.broadcast(
-      message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }),
-      message('mapChange', { reason: reason === 'captureLimit' ? 'captureLimit' : 'timeOut', mapIndex: this.mapIndex, file: map.title, title: map.title, crc: map.crc }),
+      message('mapChange', { reason: reason === 'vote' ? 'vote' : reason === 'captureLimit' ? 'captureLimit' : 'timeOut', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: map.title, crc: map.crc }),
+      message('currentMap', { mapIndex: this.mapIndex }),
       message('worldReset', {}),
     );
+    for (const team of [0, 1, 2]) this.dirtyFlags.add(team); // bandeiras do mapa novo
+    this.sendVotes();
+  }
+
+  private mapFile(index: number): string {
+    return (this.rotation[index] as { file: string }).file;
   }
 
   /** Eventos para todos: acumulados e enviados juntos, antes do próximo frame (canal confiável). */
@@ -350,6 +708,8 @@ export class Room {
   }
 
   private flush(): void {
+    for (const team of [...this.dirtyFlags].sort()) this.outbox.push(this.flagUpdate(team));
+    this.dirtyFlags.clear();
     if (this.outbox.length === 0) return;
     const data = encodeFrame(...this.outbox);
     this.outbox = [];

@@ -9,6 +9,8 @@ export interface RoomSpec {
   id: string;
   preset: string;
   maps: GameMap[];
+  /** Nome do arquivo de cada mapa (sem `.txt`). */
+  mapFiles?: readonly string[];
   maxPlayers: number;
   /** Salas fixas não são encerradas quando ficam vazias. */
   persistent?: boolean;
@@ -52,7 +54,7 @@ export class RoomManager {
   create(spec: RoomSpec): Room {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
-    const room = new Room({ id: spec.id, preset: spec.preset, maps: spec.maps, maxPlayers: spec.maxPlayers, seed });
+    const room = new Room({ id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now() });
     this.rooms.set(spec.id, { room, persistent: spec.persistent ?? false, emptySince: null });
     return room;
   }

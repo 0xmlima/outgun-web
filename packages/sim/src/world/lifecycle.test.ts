@@ -178,3 +178,38 @@ describe('limites de tempo', () => {
     expect(ctx.events).toEqual([]);
   });
 });
+
+describe('troca de time (movePlayer, swapPlayers)', () => {
+  it('mover: vai para o slot do outro time com foguetes, morre e larga a bandeira', () => {
+    const { world, sim } = setup();
+    const pl = addPlayer(world, 2);
+    pl.stats.frags = 5;
+    world.rockets[7]!.owner = 2;
+    world.teams[1].flags[0]!.take(2, 100);
+    pl.stats.carriedFlag = 2; // CarriedFlag.Enemy
+    const moved = sim.movePlayer(2, 9);
+    expect(world.players[2]).toBeUndefined();
+    expect(moved.pid).toBe(9);
+    expect(moved.team).toBe(1);
+    expect(moved.dead).toBe(true);
+    expect(moved.stats.frags).toBe(4); // largou a bandeira "de propósito": desfaz o frag da pegada
+    expect(world.rockets[7]!.owner).toBe(9);
+    expect(world.teams[1].flags[0]!.carrier).toBe(-1);
+  });
+
+  it('trocar: os dois mudam de slot e de time; foguetes e atacantes acompanham', () => {
+    const { world, sim } = setup();
+    const a = addPlayer(world, 1);
+    const b = addPlayer(world, 10);
+    a.stats.frags = 3;
+    b.stats.frags = 7;
+    world.rockets[0]!.owner = 1;
+    world.rockets[1]!.owner = 10;
+    b.deathbringerAttacker = 1;
+    sim.swapPlayers(1, 10);
+    expect([world.players[1]!.stats.frags, world.players[1]!.team]).toEqual([7, 0]);
+    expect([world.players[10]!.stats.frags, world.players[10]!.team]).toEqual([3, 1]);
+    expect([world.rockets[0]!.owner, world.rockets[1]!.owner]).toEqual([10, 1]);
+    expect(world.players[1]!.deathbringerAttacker).toBe(10);
+  });
+});
