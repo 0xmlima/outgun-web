@@ -25,6 +25,7 @@
     "@outgun/protocol": "workspace:*",
     "@outgun/settings": "workspace:*",
     "@outgun/sim": "workspace:*",
+    "@outgun/tickets": "workspace:*",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0"
   },
   "devDependencies": {

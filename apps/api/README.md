@@ -1,6 +1,6 @@
 # @outgun/api
 
-API da plataforma do Outgun Web (cards OG-080 e OG-081): contas, salas, partidas e ranking. Fastify 5 +
+API da plataforma do Outgun Web (cards OG-080 a OG-083): contas, salas, partidas e ranking. Fastify 5 +
 Drizzle ORM + PostgreSQL 16 (+ Redis opcional). A especificação OpenAPI publicada é
 [`openapi.json`](openapi.json); com a API no ar, `/openapi.json` e `/docs` (Swagger UI).
 
@@ -37,6 +37,18 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
   15 min. Recuperação: link `WEB_URL/reset-password#token=…`, uso único, 30 min; resposta igual
   exista ou não a conta. Pedidos que mudam estado só com JSON e de origens de `WEB_ORIGINS`.
 - O cliente web chama a API em `/api` (o Vite repassa para a porta 7800 no dev e no preview).
+
+## Nomes e entrada nas salas (OG-082, OG-083)
+
+- `POST /account/username` (a cada 30 dias; nome antigo reservado por 90), `PUT /account/clan-tag`,
+  `GET /names/check?name=`.
+- `POST /rooms/:id/join` `{ name?, password? }` → `{ ticket, wsUrl, name, guest }`: confere sessão
+  (Ranked exige conta), nome de convidado (sufixo `*`, nunca nome de conta), ban, senha da sala e
+  lotação. O ticket é um JWT Ed25519 de 60 s para aquela sala; o game server confere com
+  `GET /.well-known/jwks.json` (renovado a cada 5 min) e aceita cada ticket uma vez só.
+- Rotação: gere a chave nova (`node dist/cli.js ticket-key`), ponha-a **depois** da atual em
+  `TICKET_SIGNING_KEYS` (publicada, ainda sem assinar), espere 5 min (os game servers buscam o JWKS),
+  passe-a para a frente e, após mais 1 min, retire a antiga.
 
 ## Migrations
 

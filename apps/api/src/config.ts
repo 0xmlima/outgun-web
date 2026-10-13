@@ -26,13 +26,19 @@ export interface ApiConfig {
   mailFrom: string;
   /** Rotas de depuração (caixa de saída do MAILER=memory). Nunca em produção. */
   devRoutes: boolean;
-  limits: {
+  /** TICKET_SIGNING_KEYS (kid:base64pkcs8,...): a primeira assina. Vazio fora de produção = chave gerada na partida. */
+  ticketSigningKeys: string;
+  /** Endereço do game server quando a sala ainda não mandou heartbeat ({id} = sala). Nunca em produção. */
+  devRoomWsUrl: string | undefined;
+    limits: {
     /** Falhas de senha por nome de usuário antes da espera (RN-PLT-06). */
     loginFailuresPerUser: number;
     /** Falhas de senha por IP (qualquer usuário) antes da espera. */
     loginFailuresPerIp: number;
     registerPerHourPerIp: number;
     forgotPerHourPerIp: number;
+    /** Tentativas de senha de sala privada por IP e sala. */
+    joinPasswordPerMinute: number;
   };
 }
 
@@ -78,11 +84,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     resendApiKey: env.RESEND_API_KEY || undefined,
     mailFrom: env.MAIL_FROM ?? 'no-reply@outgun.local',
     devRoutes: !production && env.DEV_ROUTES === '1',
+    ticketSigningKeys: env.TICKET_SIGNING_KEYS ?? '',
+    devRoomWsUrl: production ? undefined : (env.DEV_ROOM_WS_URL ?? 'ws://localhost:7700/rooms/{id}'),
     limits: {
       loginFailuresPerUser: 5,
       loginFailuresPerIp: Number(env.LOGIN_FAILURES_PER_IP ?? 10),
       registerPerHourPerIp: Number(env.REGISTER_PER_HOUR ?? 10),
       forgotPerHourPerIp: Number(env.FORGOT_PER_HOUR ?? 10),
+      joinPasswordPerMinute: 10,
     },
   };
 }

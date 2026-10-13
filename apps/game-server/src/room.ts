@@ -3,7 +3,7 @@
 // original (src/server.cpp) para um único mapa em rotação. Times, votação, chat e validação de
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
-import { encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { presetSettings, PRESETS, type GameMode, type GameSettings } from '@outgun/settings';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
@@ -41,6 +41,10 @@ export interface Identity {
   name: string;
   /** Conta da API; null = convidado. */
   accountId: string | null;
+  /** Clan tag da conta (RN-NOM-03), exibida como "(TAG) nome" no chat. */
+  clanTag?: string | null;
+  /** Administrador da plataforma (moderação, OG-046). */
+  admin?: boolean;
 }
 
 export interface RoomOptions {
@@ -485,7 +489,7 @@ export class Room {
           const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
           if (color !== client.color) {
             client.color = color;
-            this.broadcast(message('playerInfo', { pid, color, loggedIn: client.identity.accountId !== null, ranked: false, admin: false, rank: 0, score: 0, negScore: 0, rankedPlayers: 0 }));
+            this.broadcast(message('playerInfo', { pid, color, loggedIn: client.identity.accountId !== null, ranked: false, admin: client.identity.admin ?? false, rank: 0, score: 0, negScore: 0, rankedPlayers: 0 }));
           }
           break;
         }
@@ -618,7 +622,8 @@ export class Room {
 
   /** Chat (RN-CHT-01): `.` = só o time; comandos `/` e moderação são do OG-046. */
   private chat(pid: number, text: string): void {
-    const name = this.clients.get(pid)?.identity.name ?? '';
+    const identity = this.clients.get(pid)?.identity;
+    const name = identity ? chatName(identity.name, identity.clanTag) : '';
     const team = text.startsWith('.');
     const body = (team ? text.slice(1) : text).trim();
     if (!body || text.startsWith('/')) return;

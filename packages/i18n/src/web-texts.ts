@@ -127,5 +127,13 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Invalid clan tag: 1 to 6 characters, no parentheses.': 'Clan tag inválida: 1 a 6 caracteres, sem parênteses.',
     'Once every 30 days. Your old name stays reserved for you for 90 days.': 'Uma vez a cada 30 dias. Seu nome antigo fica reservado para você por 90 dias.',
     'Shown in chat as "(TAG) name".': 'Aparece no chat como "(TAG) nome".',
+    // Entrada na sala (OG-083)
+    'This name belongs to an account. Sign in or choose another.': 'Este nome pertence a uma conta. Entre ou escolha outro.',
+    'Invalid name.': 'Nome inválido.',
+    'You are banned from this room.': 'Você está banido desta sala.',
+    'This room needs a password.': 'Esta sala exige senha.',
+    'The room is full.': 'A sala está cheia.',
+    'The room is not running.': 'A sala não está no ar.',
+    'Room not found.': 'Sala não encontrada.',
   },
 };

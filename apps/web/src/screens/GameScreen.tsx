@@ -42,6 +42,7 @@ export default function GameScreen() {
       const loss = Number(params.get('loss') ?? 0) / 100;
       online = {
         url: params.get('server') ?? defaultServerUrl(),
+        explicitServer: params.has('server'),
         room: params.get('sala') ?? 'main',
         name: params.get('name') ?? 'Convidado',
         ...(lag > 0 || loss > 0 ? { simulate: { rttMs: lag, jitterMs: lag / 10, loss } } : {}),

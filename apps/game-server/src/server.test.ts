@@ -3,6 +3,7 @@
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage } from '@outgun/protocol';
 import { Position } from '@outgun/sim';
+import { fromJwks, generateSigningKey, signTicket, toJwks, type TicketInput } from '@outgun/tickets';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { percentile } from './loop.js';
 import { loadMaps } from './maps.js';
@@ -12,13 +13,15 @@ import { startServer, type RunningServer } from './server.js';
 const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
 let manager: RoomManager;
 let server: RunningServer;
+const apiKey = generateSigningKey('k1');
+const publicKeys = fromJwks(toJwks([apiKey]));
 
 beforeAll(async () => {
   manager = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3 });
   manager.create({ id: 'main', preset: 'classic', maps, maxPlayers: 32, persistent: true });
   manager.create({ id: 'ranked', preset: 'ranked', maps, maxPlayers: 16, persistent: true });
   manager.start();
-  server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true });
+  server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true, ticketKeys: () => publicKeys });
 });
 
 afterAll(() => {
@@ -73,6 +76,43 @@ class Client {
     this.ws.close();
   }
 }
+
+describe('tickets da API (OG-083)', () => {
+  const account: TicketInput = { aud: 'ranked', sub: 'u-1', name: 'Ana', clan: 'XYZ', acct: true, admin: false, ranked: true };
+  const rejected = async (room: string, ticket: string) => {
+    const c = new Client(room);
+    await c.hello(ticket);
+    await c.until(() => c.closed !== null);
+    return c.of('reject')[0]?.reason;
+  };
+
+  it('ticket válido de conta entra no Ranked com o nome do ticket', async () => {
+    const c = new Client('ranked');
+    await c.hello(signTicket(account, apiKey));
+    await c.until(() => c.of('playerJoined').some((m) => m.name === 'Ana'));
+    expect(c.of('reject')).toHaveLength(0);
+    c.close();
+  });
+
+  it('recusa ticket adulterado, de outra sala, vencido, de chave desconhecida ou reutilizado', async () => {
+    const [h, p, sig] = signTicket(account, apiKey).split('.') as [string, string, string];
+    const forged = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(p, 'base64url').toString()), name: 'Admin', admin: true })).toString('base64url');
+    expect(await rejected('ranked', `${h}.${forged}.${sig}`)).toBe('invalidTicket');
+    expect(await rejected('main', signTicket(account, apiKey))).toBe('invalidTicket');
+    expect(await rejected('ranked', signTicket(account, apiKey, Date.now() - 120_000))).toBe('invalidTicket');
+    expect(await rejected('ranked', signTicket(account, generateSigningKey('k9')))).toBe('invalidTicket');
+    const once = signTicket(account, apiKey);
+    const first = new Client('ranked');
+    await first.hello(once);
+    await first.until(() => first.of('playerJoined').length > 0);
+    expect(await rejected('ranked', once)).toBe('invalidTicket');
+    first.close();
+  });
+
+  it('convidado com ticket não entra no Ranked (o ticket diz que não tem conta)', async () => {
+    expect(await rejected('ranked', signTicket({ ...account, sub: 'guest:x', name: 'Visita*', acct: false, clan: null }, apiKey))).toBe('rankedNeedsAccount');
+  });
+});
 
 describe('game server', () => {
   it('health, métricas e lista de salas', async () => {

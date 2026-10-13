@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7700; a 7000 é do AirPlay no macOS), MAPS_DIR (maps/ do repositório),
 // ROTATION (outgun1), PRESET (classic), MAX_PLAYERS (16), DEV_TICKETS (1 = aceita dev:Nome),
+// TICKET_JWKS_URL (chaves dos tickets da API; padrão http://localhost:7800/.well-known/jwks.json),
 // EMPTY_TIMEOUT_S (300).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
 import { startServer } from './server.js';
+import { JwksKeys } from './tickets.js';
 
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
@@ -15,7 +17,11 @@ const maps = loadMaps(env.MAPS_DIR ?? `${repo}maps`, rotation);
 manager.create({ id: 'main', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
 manager.start();
 
+const jwks = new JwksKeys(env.TICKET_JWKS_URL ?? 'http://localhost:7800/.well-known/jwks.json', (t) => console.warn(t));
+jwks.start();
+
 const server = await startServer({
+  ticketKeys: () => jwks.keys,
   port: Number(env.PORT ?? 7700),
   manager,
   devTickets: env.DEV_TICKETS !== '0',
@@ -26,6 +32,7 @@ console.log(`game-server na porta ${server.port}; depuração em http://localhos
 
 const shutdown = () => {
   manager.stop();
+  jwks.stop();
   server.close();
   process.exit(0);
 };

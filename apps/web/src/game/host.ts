@@ -18,6 +18,7 @@ import { GameFont, HudRenderer } from './hud/hud-renderer.js';
 import { OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
+import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
 import { SoundEvents, type SoundContext } from './audio/sound-events.js';
 import { SoundPlayer } from './audio/sound-player.js';
 import { EntityRenderer } from './render/entity-renderer.js';
@@ -42,8 +43,10 @@ export interface OnlineOptions {
   /** Endereço do servidor (ws:// ou wss://), sem a sala. */
   readonly url: string;
   readonly room: string;
-  /** Nome do convidado (até a API emitir tickets, OG-083). */
+  /** Nome do convidado (com conta, a API usa o nome da conta). */
   readonly name: string;
+  /** `url` veio de ?server= (manda no endereço; senão vale o da API). */
+  readonly explicitServer?: boolean;
   /** Rede simulada nos dois sentidos (depuração: ?lag=&loss=). */
   readonly simulate?: LinkConditions;
 }
@@ -268,14 +271,20 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     soundEvents = new SoundEvents((name) => player.has(name));
     void loadManifest().then((m) => m && player.load(m));
     opts.onStatus?.({ kind: 'connecting' });
-    connection = new GameConnection(
-      `${online.url.replace(/\/$/, '')}/rooms/${encodeURIComponent(online.room)}`,
-      `dev:${online.name}`,
-      {
-        onMessages: (messages) => session?.handle(messages, performance.now()),
-        onClose: (reason) => fail(reason),
+    void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false).then(
+      ({ ticket, url }) => {
+        if (destroyed) return;
+        connection = new GameConnection(
+          url,
+          ticket,
+          {
+            onMessages: (messages) => session?.handle(messages, performance.now()),
+            onClose: (reason) => fail(reason),
+          },
+          online.simulate,
+        );
       },
-      online.simulate,
+      (error: unknown) => fail(opts.translate(joinErrorText(error instanceof JoinError ? error.code : 'unknown'))),
     );
     /** Lê a entrada: controles (com reenvio no meio do frame) e bordas de tiro e largar bandeira. */
     const readInput = (now: number) => {

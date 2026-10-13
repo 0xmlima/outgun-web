@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Transporte: WebSocket (uWebSockets.js, D-03) em /rooms/:id, healthcheck, métricas e uma página
-// de depuração. A primeira mensagem do cliente tem de ser `hello`; o ticket da API (OG-083) ainda
-// não existe: com `devTickets`, `dev:Nome` entra como convidado.
+// de depuração. A primeira mensagem do cliente tem de ser `hello` com o ticket da API (OG-083); com
+// `devTickets`, `dev:Nome` entra como convidado.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION, type MessageOf } from '@outgun/protocol';
 import uWS from 'uWebSockets.js';
-import type { Identity } from './room.js';
+import type { KeyObject } from 'node:crypto';
 import type { RoomManager } from './rooms.js';
+import { TicketAuth } from './tickets.js';
 
 export interface ServerOptions {
   port: number;
   host?: string;
   manager: RoomManager;
-  /** Aceita tickets `dev:Nome` (desenvolvimento, até a API emitir tickets). */
+  /** Aceita tickets `dev:Nome` (desenvolvimento e testes). */
   devTickets: boolean;
+  /** Chaves públicas dos tickets da API (JWKS); sem elas, só tickets `dev:`. */
+  ticketKeys?: () => ReadonlyMap<string, KeyObject>;
   /** Pasta com `index.js` etc. de @outgun/protocol, servida em /protocol/ para a página de depuração. */
   protocolDist?: string;
   devPage?: string;
@@ -25,15 +28,6 @@ interface SocketData {
   pid: number;
 }
 
-/** Valida o ticket; null = recusado. */
-function identify(ticket: string, devTickets: boolean): Identity | null {
-  if (devTickets && ticket.startsWith('dev:')) {
-    const name = ticket.slice(4).trim().slice(0, 32) || 'Convidado';
-    return { name, accountId: null };
-  }
-  return null;
-}
-
 export interface RunningServer {
   port: number;
   close(): void;
@@ -41,6 +35,7 @@ export interface RunningServer {
 
 export function startServer(options: ServerOptions): Promise<RunningServer> {
   const { manager } = options;
+  const tickets = new TicketAuth({ devTickets: options.devTickets, ...(options.ticketKeys ? { keys: options.ticketKeys } : {}) });
   const app = uWS.App();
   const reject = (ws: uWS.WebSocket<SocketData>, reason: MessageOf<'reject'>['reason'], text: string) => {
     ws.send(encodeFrame(message('reject', { reason, text })), true);
@@ -82,8 +77,9 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         const [hello, ...rest] = decoded.messages;
         if (hello?.type !== 'hello') return ws.end(4002, 'esperava hello');
         if (hello.protocol !== PROTOCOL_VERSION) return reject(ws, 'protocolMismatch', `protocolo ${PROTOCOL_VERSION} exigido`);
-        const identity = identify(hello.ticket, options.devTickets);
-        if (!identity) return reject(ws, 'invalidTicket', 'ticket inválido');
+        const auth = tickets.identify(hello.ticket, user.roomId);
+        if (!auth.ok) return reject(ws, 'invalidTicket', `ticket inválido (${auth.reason})`);
+        const identity = auth.identity;
         const joined = room.join(
           {
             send: (b) => void ws.send(b, true),

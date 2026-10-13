@@ -618,7 +618,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Em revisão |
 | [OG-081](cards/OG-081-auth.md) | Cadastro, login e recuperação de senha | E5 | 5 | Must | S8 | OG-080 | Em revisão |
 | [OG-082](cards/OG-082-nick-protection.md) | Nome de usuário em jogo, troca de nome e clan tag | E5 | 2 | Must | S8 | OG-081 | Em revisão |
-| [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Pronto |
+| [OG-083](cards/OG-083-join-ticket.md) | Ticket de entrada no game server | E5 | 3 | Must | S8 | OG-081, OG-040 | Em revisão |
 | [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Backlog |
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Backlog |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Backlog |

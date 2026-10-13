@@ -17,7 +17,9 @@ import { devRoutes } from './routes/dev.js';
 import { healthRoutes } from './routes/health.js';
 import { internalRoutes } from './routes/internal.js';
 import { nameRoutes } from './routes/names.js';
+import { joinRoutes } from './routes/join.js';
 import { roomRoutes } from './routes/rooms.js';
+import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
 
 export const API_VERSION = '0.1.0';
 
@@ -39,6 +41,15 @@ export interface Services {
   throttle: LoginThrottle;
   rateLimit: RateLimit;
   mailer: Mailer;
+  /** Chaves dos tickets de entrada; a primeira assina (OG-083). */
+  ticketKeys: SigningKey[];
+}
+
+function ticketKeys(config: ApiConfig): SigningKey[] {
+  if (config.ticketSigningKeys) return parseSigningKeys(config.ticketSigningKeys);
+  if (process.env.NODE_ENV === 'production') throw new Error('TICKET_SIGNING_KEYS é obrigatória em produção');
+  // Desenvolvimento: chave nova a cada partida; os game servers buscam o JWKS.
+  return [generateSigningKey(`dev-${Date.now().toString(36)}`)];
 }
 
 function makeMailer(deps: AppDeps, log: App['log']): Mailer {
@@ -90,6 +101,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     throttle: new LoginThrottle(counters),
     rateLimit: new RateLimit(counters),
     mailer: makeMailer(deps, app.log),
+    ticketKeys: ticketKeys(deps.config),
   };
 
   await app.register(cookie);
@@ -148,6 +160,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(healthRoutes(deps));
   await app.register(roomRoutes(deps));
   await app.register(nameRoutes(deps));
+  await app.register(joinRoutes(deps, services));
   await app.register(authRoutes(deps, services), { prefix: '/auth' });
   await app.register(accountRoutes(deps, services), { prefix: '/account' });
   if (deps.config.devRoutes && services.mailer instanceof MemoryMailer) {
