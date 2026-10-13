@@ -94,6 +94,12 @@ export function splitToLines(parts: readonly Snippet[], width = 79, indent = 4):
 
 export type Translate = (text: string, ...args: string[]) => string;
 
+/** O que o feed descobriu ao tratar uma mensagem (usado pelos sons). */
+export interface FeedFacts {
+  readonly joined?: boolean;
+  readonly spreeStarted?: number;
+}
+
 /**
  * Tradução de texto com cores: o catálogo do 1.0.3 só tem a versão sem `$R`/`$G`/`$B`/`$>` (o
  * original mostrava essas mensagens em inglês); sem a versão com cor, usa a tradução sem cor.
@@ -148,8 +154,12 @@ export class MessageFeed {
     this.push(type, escapeFormatted(text), time, team);
   }
 
-  /** Mensagens do servidor que viram texto na tela. */
-  onMessage(m: AnyMessage, c: FeedContext): void {
+  /**
+   * Mensagens do servidor que viram texto na tela. Devolve o que o som também precisa saber: se a
+   * entrada foi anunciada e quem começou uma sequência de 10 mortes.
+   */
+  onMessage(m: AnyMessage, c: FeedContext): FeedFacts {
+    const facts: { joined?: boolean; spreeStarted?: number } = {};
     const t = this.t;
     const name = (pid: number) => (c.teamOf(pid) === 0 ? '$R' : '$B') + escapeFormatted(c.name(pid)) + '$>';
     const flag = (pid: number, carried: string) => {
@@ -165,7 +175,10 @@ export class MessageFeed {
         for (const pid of m.pids) this.present.add(pid);
         break;
       case 'playerJoined':
-        if (!this.present.has(m.pid)) info(t('$1 entered the game.', (c.teamOf(m.pid) === 0 ? '$R' : '$B') + escapeFormatted(m.name) + '$>'));
+        if (!this.present.has(m.pid)) {
+          info(t('$1 entered the game.', (c.teamOf(m.pid) === 0 ? '$R' : '$B') + escapeFormatted(m.name) + '$>'));
+          facts.joined = true;
+        }
         this.present.add(m.pid);
         break;
       case 'playerLeft':
@@ -189,7 +202,10 @@ export class MessageFeed {
         if (!same && known) {
           const n = (this.spree.get(m.attacker) ?? 0) + 1;
           this.spree.set(m.attacker, n);
-          if (n % 10 === 0) info(t('$1 is on a killing spree!', name(m.attacker)));
+          if (n % 10 === 0) {
+            info(t('$1 is on a killing spree!', name(m.attacker)));
+            facts.spreeStarted = m.attacker;
+          }
         }
         break;
       }
@@ -250,6 +266,7 @@ export class MessageFeed {
       default:
         break;
     }
+    return facts;
   }
 
   /** `netGameoverPeriodStart`: placar final e o objetivo da próxima partida. */

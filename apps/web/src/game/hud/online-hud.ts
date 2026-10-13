@@ -6,7 +6,7 @@ import type { ClientSession } from '@outgun/netcode';
 import { message } from '@outgun/protocol';
 import { CarriedFlag, type WorldCoords, type WorldState } from '@outgun/sim';
 import type { RoomLayout } from '../render/layout.js';
-import { chatPrompt, MessageFeed, type FeedContext, type Translate } from './feed.js';
+import { chatPrompt, MessageFeed, type FeedContext, type FeedFacts, type Translate } from './feed.js';
 import type { HudFlag, HudPlayer, HudState } from './hud-renderer.js';
 import { chatLines, type ScreenLayout } from './screen-layout.js';
 
@@ -55,9 +55,9 @@ export class OnlineHud {
   }
 
   /** Mensagem do servidor (chamar antes de a sessão tratá-la, para nomes de quem sai). */
-  onMessage(m: Parameters<MessageFeed['onMessage']>[0]): void {
+  onMessage(m: Parameters<MessageFeed['onMessage']>[0]): FeedFacts {
     if (m.type === 'gameOver') this.feed.gameOverScores(this.session.teamScores[0], this.session.teamScores[1], this.context());
-    this.feed.onMessage(m, this.context());
+    return this.feed.onMessage(m, this.context());
   }
 
   /** Tecla durante o jogo; devolve true se foi usada pelo chat. */

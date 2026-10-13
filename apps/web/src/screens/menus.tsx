@@ -97,6 +97,19 @@ export function OptionsScreen() {
       disabled: !prefs.lagPrediction,
       onChange: (delta) => setPrefs({ lagPredictionAmount: Math.min(10, Math.max(0, prefs.lagPredictionAmount + delta)) }),
     },
+    {
+      kind: 'choice',
+      label: t('Sounds enabled'),
+      value: prefs.soundEnabled ? '[X]' : '[ ]',
+      onChange: () => setPrefs({ soundEnabled: !prefs.soundEnabled }),
+    },
+    {
+      kind: 'choice',
+      label: t('Volume'),
+      value: String(prefs.soundVolume),
+      disabled: !prefs.soundEnabled,
+      onChange: (delta) => setPrefs({ soundVolume: Math.min(255, Math.max(0, prefs.soundVolume + 15 * delta)) }),
+    },
     { kind: 'action', label: t('Controls'), onActivate: () => void navigate('/options/controls') },
   ];
   return <Menu caption={t('Options')} items={items} onBack={() => void navigate('/')} />;

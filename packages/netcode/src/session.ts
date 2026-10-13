@@ -37,6 +37,11 @@ export type SessionEvent =
   | { kind: 'rocketHitWall'; pos: Position; power: boolean; team: number }
   | { kind: 'rocketHitPlayer'; pos: Position; target: number; team: number }
   | { kind: 'rocketFired'; pos: Position; power: boolean; owner: number }
+  /** Quique na parede ou entre jogadores na extrapolação (o original toca o som pelos callbacks de física). */
+  | { kind: 'playerHitWall'; pid: number }
+  | { kind: 'playerHitPlayer'; pid1: number; pid2: number }
+  /** Uma bandeira que estava no chão ou na base passou a ser carregada (`SAMPLE_CTF_GOT`). */
+  | { kind: 'flagCarried'; team: number }
   | { kind: 'message'; message: AnyMessage };
 
 export interface SessionOptions {
@@ -209,8 +214,11 @@ export class ClientSession {
       playerScreenChange: () => {},
       rocketHitWall: (rid) => removeRocket(rid, true),
       rocketHitPlayer: () => false,
-      playerHitWall: () => {},
-      playerHitPlayer: () => ({ deaths: [false, false], bounceStrength1: 1, bounceStrength2: 1 }),
+      playerHitWall: (pid) => this.emit({ kind: 'playerHitWall', pid }),
+      playerHitPlayer: (pid1, pid2) => {
+        this.emit({ kind: 'playerHitPlayer', pid1, pid2 });
+        return { deaths: [false, false], bounceStrength1: 1, bounceStrength2: 1 };
+      },
       rocketOutOfBounds: (rid) => removeRocket(rid, false),
       shouldApplyPhysicsToPlayer: (pid) => world.players[pid]?.dead === false,
     };
@@ -394,6 +402,7 @@ export class ClientSession {
       if (f.carried) {
         flag.status = 'carried';
         flag.carrier = f.carrier;
+        if (prev && prev.status !== 'carried') this.emit({ kind: 'flagCarried', team });
       } else if (prev && !(prev.home.sameRoom(pos) && prev.home.x === pos.x && prev.home.y === pos.y)) {
         // fora da base: a hora da largada (para o contador de devolução) é quando a vimos cair
         flag.status = 'dropped';

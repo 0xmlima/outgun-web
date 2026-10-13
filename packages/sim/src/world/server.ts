@@ -10,6 +10,7 @@ import { iround, iroundBound, sqr } from '../math.js';
 import { randomShuffle, type Rng } from '../rng.js';
 import { isRun } from './controls.js';
 import { shootRocketFormation } from './rockets.js';
+import type { SampleName } from './samples.js';
 import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
 import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
@@ -67,6 +68,8 @@ export interface ServerHooks {
   powerupPicked?(index: number, pos: Position): void;
   /** Jogador mudou de sala ou renasceu (`game_player_screen_change`). */
   playerScreenChange?(pid: number): void;
+  /** Som para quem está na sala do jogador (`broadcast_screen_sample`). */
+  screenSample?(pid: number, sample: SampleName): void;
   /** Bandeiras de um time (2 = selvagens) mudaram: pegada, largada, devolvida (`ctf_net_flag_status`). */
   flagsChanged?(team: number): void;
 }
@@ -169,14 +172,17 @@ export class ServerSim {
     if (t.hasShadow()) t.visibility = MAXIMUM_SHADOW_VISIBILITY;
     const pups = this.settings.powerups;
     if (t.shield) {
+      const sound = (sample: SampleName) => type !== DamageType.deathbringer && this.hooks.screenSample?.(target, sample);
       if (pups.pupShieldHits) {
         t.shield--;
+        if (!t.shield) sound('shieldl');
       } else {
         t.energy -= damage;
         if (t.energy <= 0) {
           t.energy = 0;
           t.shield = 0;
-        }
+          sound('shieldl');
+        } else sound('shieldd');
       }
     } else {
       t.health -= damage;
@@ -680,6 +686,7 @@ export class ServerSim {
       else if (!to.hasShadow() && from.shadowTime > time + shadowTransferTime) {
         to.visibility = shadowMin;
         to.shadowTime = time + shadowTransferTime;
+        this.hooks.screenSample?.(to.pid, 'helmon');
       }
     };
     shareShadow(pl1, pl2);
@@ -698,12 +705,14 @@ export class ServerSim {
         pl2.deathbringerAttacker = pid1;
         tossA = true;
         tossB = true;
+        this.hooks.screenSample?.(pid2, 'hitdb');
       } else if (pl2.deathbringer && !pl1.deathbringer) {
         pl1.deathbringerEnd = time + deathbringerEffectTime;
         pl1.nextShootFrame = this.frame + iround(deathbringerEffectTime * 10);
         pl1.deathbringerAttacker = pid2;
         tossA = true;
         tossB = true;
+        this.hooks.screenSample?.(pid1, 'hitdb');
       }
 
       // shield: dano proporcional à força da colisão
@@ -721,6 +730,7 @@ export class ServerSim {
           pl2.energy = 0;
           pl1.shield = 0;
           pl2.shield = 0;
+          this.hooks.screenSample?.(pid1, 'shieldl'); // vale para os dois
         } else this.damagePlayer(pid1, pid2, shieldColdam, DamageType.collision);
       } else if (shieldHitBy2) {
         tossA = true;
@@ -888,6 +898,7 @@ export class ServerSim {
         pl.shield = p.pupShieldHits ? p.pupShieldHits : 1;
         if (pl.health < 100) pl.health = 100;
         if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
+        this.hooks.screenSample?.(pid, 'shieldp');
         break;
       case PowerupKind.turbo: {
         share = p.teamTurbo;
@@ -896,6 +907,7 @@ export class ServerSim {
         itemTime = this.addTime(itemTime);
         pl.turbo = true;
         pl.turboTime = time + itemTime;
+        this.hooks.screenSample?.(pid, 'speedon');
         break;
       }
       case PowerupKind.shadow: {
@@ -905,6 +917,7 @@ export class ServerSim {
         itemTime = this.addTime(itemTime);
         pl.visibility = this.settings.world.shadowMinimum;
         pl.shadowTime = time + itemTime;
+        this.hooks.screenSample?.(pid, 'helmon');
         break;
       }
       case PowerupKind.power: {
@@ -914,21 +927,25 @@ export class ServerSim {
         itemTime = this.addTime(itemTime);
         pl.power = true;
         pl.powerTime = time + itemTime;
+        this.hooks.screenSample?.(pid, 'quadon');
         break;
       }
       case PowerupKind.weapon:
         share = p.teamWeapon;
         if (pl.energy < 200) pl.energy = Math.min(200, pl.energy + 100);
         if (pl.weapon < p.pupWeaponMax) pl.weapon++;
+        this.hooks.screenSample?.(pid, 'weaponup');
         break;
       case PowerupKind.megahealth:
         share = p.teamHealth;
         pl.megabonus += p.pupHealthBonus;
+        this.hooks.screenSample?.(pid, 'megaheal');
         break;
       case PowerupKind.deathbringer:
         share = p.teamDeathbringer;
         if (p.pupDeathbringerSwitch && !teammateTouched) pl.deathbringer = !pl.deathbringer;
         else if (!pl.deathbringer) pl.deathbringer = true;
+        this.hooks.screenSample?.(pid, 'getdb');
         break;
       default:
         throw new Error(`power-up inválido no slot ${k}: ${it.kind}`);
@@ -955,9 +972,13 @@ export class ServerSim {
       else pl.shadowTime = 0;
       return;
     }
-    if (pl.deathbringer) pl.deathbringer = false;
-    else if (pl.shield) pl.shield = 0;
-    else pl.weapon = 1;
+    if (pl.deathbringer) {
+      pl.deathbringer = false;
+      this.hooks.screenSample?.(pl.pid, 'getdb');
+    } else if (pl.shield) {
+      pl.shield = 0;
+      this.hooks.screenSample?.(pl.pid, 'shieldl');
+    } else pl.weapon = 1;
   }
 
   /** `drop_powerup`: ao morrer, larga um dos power-ups (sorteado) na posição truncada. */
@@ -984,9 +1005,18 @@ export class ServerSim {
   /** `simulatePlayerPrePhysics` (sem o anti-flood do chat, que fica no servidor de salas). */
   prePhysics(pl: PlayerState): void {
     const time = this.time;
-    if (pl.turbo && time > pl.turboTime) pl.turbo = false;
-    if (pl.power && time > pl.powerTime) pl.power = false;
-    if (pl.hasShadow() && time > pl.shadowTime) pl.visibility = 255;
+    if (pl.turbo && time > pl.turboTime) {
+      pl.turbo = false;
+      this.hooks.screenSample?.(pl.pid, 'speedoff');
+    }
+    if (pl.power && time > pl.powerTime) {
+      pl.power = false;
+      this.hooks.screenSample?.(pl.pid, 'quadoff');
+    }
+    if (pl.hasShadow() && time > pl.shadowTime) {
+      pl.visibility = 255;
+      this.hooks.screenSample?.(pl.pid, 'helmoff');
+    }
     if (pl.hasShadow()) pl.visibility = Math.max(this.settings.world.shadowMinimum, pl.visibility - 10);
     if (pl.deathbringerEnd > time && !pl.dead) this.damagePlayer(pl.pid, pl.deathbringerAttacker, pl.shield ? 12 : 3, DamageType.deathbringer);
   }
@@ -1097,6 +1127,7 @@ export class ServerSim {
       const duration = (this.settings.powerups.pupDeathbringerTime * (sameTeam ? physics.friendlyDeathbringer : 1) * (9000 + (this.rng.rand() % 2000))) / 10000;
       target.deathbringerEnd = this.time + duration;
       target.nextShootFrame = this.frame + iround(duration * 10);
+      this.hooks.screenSample?.(target.pid, 'hitdb');
       if (dist !== 0) target.vel = d.mul(40 / dist); // empurra para fora com velocidade 40
     }
     db.outsideMask = newOutsideMask;

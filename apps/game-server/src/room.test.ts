@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
-import { Position } from '@outgun/sim';
+import { Position, SAMPLES } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
@@ -183,6 +183,27 @@ describe('Room: dados do HUD (OG-065)', () => {
     r.world.teams[1].score = 2;
     r.tick();
     expect(a.conn.of('scoreUpdate')).toEqual([{ type: 'scoreUpdate', team: 'blue', score: 2 }]);
+  });
+});
+
+describe('Room: sons da sala (OG-067)', () => {
+  it('escudo atingido: som para quem está na sala do jogador', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.tick();
+    r.tick();
+    const ana = r.world.players[a.pid]!;
+    const bia = r.world.players[b.pid]!;
+    bia.pos = ana.pos.clone(); // mesma sala
+    ana.shield = 1;
+    ana.energy = 150;
+    r.world.frame = Math.max(r.world.frame, ana.startTakeDamageFrame);
+    r.sim.damagePlayer(a.pid, b.pid, 70, 0);
+    r.tick();
+    const code = (conn: TestConnection) => conn.of('sound').map((m) => m.sample);
+    expect(code(a.conn)).toEqual([SAMPLES.indexOf('shieldd')]);
+    expect(code(b.conn)).toEqual([SAMPLES.indexOf('shieldd')]);
   });
 });
 

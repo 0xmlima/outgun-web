@@ -15,6 +15,7 @@ import {
   gunDirectionFromControls,
   iround,
   isStrafe,
+  SAMPLES,
   ServerSim,
   WorldState,
   type GameMap,
@@ -156,6 +157,12 @@ export class Room {
       },
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
+      screenSample: (pid, sample) => {
+        const pl = this.world.players[pid];
+        if (!pl) return;
+        const msg = message('sound', { sample: SAMPLES.indexOf(sample) });
+        for (const other of this.viewers((p) => p.pos.sameRoom(pl.pos))) this.queueTo(other, msg);
+      },
     });
     this.sim.loadMapFlags();
     this.sim.startGame();

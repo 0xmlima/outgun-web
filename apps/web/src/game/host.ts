@@ -18,6 +18,8 @@ import { GameFont, HudRenderer } from './hud/hud-renderer.js';
 import { OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
+import { SoundEvents, type SoundContext } from './audio/sound-events.js';
+import { SoundPlayer } from './audio/sound-player.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
@@ -31,6 +33,7 @@ export interface GameHost {
   setInputEnabled(enabled: boolean): void;
   setBindings(bindings: Bindings): void;
   setPrediction(prediction: PredictionOptions): void;
+  setSound(sound: { enabled: boolean; volume: number }): void;
   /** Para o laço e solta o canvas (e fecha a conexão). */
   destroy(): void;
 }
@@ -67,6 +70,8 @@ export interface GameOptions {
   readonly prediction: PredictionOptions;
   /** Tradução dos textos do HUD (`_()` do original no idioma escolhido). */
   readonly translate: Translate;
+  /** Som ligado e volume 0..255. */
+  readonly sound: { readonly enabled: boolean; readonly volume: number };
   /** Ações de toque (F1, F2...) e o botão Start do gamepad (`menu`). */
   readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
@@ -130,6 +135,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   /** Minimapa e placar visíveis (F12 do original alterna). */
   let fullHud = true;
   let bindings = opts.bindings;
+  let sounds: SoundPlayer | undefined;
+  let soundEvents: SoundEvents | undefined;
   const input = new GameInput(opts.bindings);
   input.onAction((action) => {
     if (action === 'suicide') {
@@ -220,7 +227,21 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           .catch((err: unknown) => fail(`mapa ${request.file}: ${err instanceof Error ? err.message : String(err)}`));
       },
       onEvent: (ev) => {
-        if (ev.kind === 'message') onlineHud?.onMessage(ev.message);
+        const facts = ev.kind === 'message' ? (onlineHud?.onMessage(ev.message) ?? {}) : {};
+        if (sounds && soundEvents && session) {
+          const s = session;
+          const mine = s.world?.players[s.me];
+          const ctx: SoundContext = { me: s.me, room: mine ? { x: mine.pos.roomX, y: mine.pos.roomY } : null, onscreen: s.onscreen, time: s.renderFrame / 10 };
+          const names = ev.kind === 'message' ? soundEvents.fromMessage(ev.message, ctx, facts) : soundEvents.fromSession(ev, ctx);
+          for (const name of names) {
+            const t0 = performance.now();
+            sounds.play(name);
+            container.dataset.soundDispatchMs = (performance.now() - t0).toFixed(2);
+            // para os testes (tools/visual-compare/audio.mjs)
+            container.dataset.sounds = `${Number(container.dataset.sounds ?? 0) + 1}`;
+            container.dataset.lastSound = name;
+          }
+        }
         const time = (session?.renderFrame ?? 0) / 10;
         if (ev.kind === 'rocketHitWall') entities?.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', coords(ev.pos), ev.team, time);
         else if (ev.kind === 'rocketHitPlayer') entities?.addEffect('gunExplosion', coords(ev.pos), ev.team, time);
@@ -233,6 +254,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     });
     session.prediction = opts.prediction;
     onlineHud = new OnlineHud(session, opts.translate);
+    sounds = new SoundPlayer();
+    sounds.configure(opts.sound.enabled, opts.sound.volume);
+    const player = sounds;
+    soundEvents = new SoundEvents((name) => player.has(name));
+    void loadManifest().then((m) => m && player.load(m));
     opts.onStatus?.({ kind: 'connecting' });
     connection = new GameConnection(
       `${online.url.replace(/\/$/, '')}/rooms/${encodeURIComponent(online.room)}`,
@@ -349,6 +375,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             report(frame);
             container.dataset.lag = s.stats.averageLag.toFixed(2);
             container.dataset.corrections = String(s.stats.corrections);
+            if (sounds) {
+              const lat = sounds.latencyMs();
+              container.dataset.audio = `${sounds.state},${lat.base.toFixed(1)},${lat.output.toFixed(1)}`;
+            }
           } else entities.render({ time: 0, players: [], rockets: [], powerups: [], flags: [], deathbringers: [], multiRoom: false }, world.layout, topLeft);
           if (hud && onlineHud && screen && gameFont) {
             const state = onlineHud.build({ screen, rooms: world.layout, topLeft, fd, now, fps: app.ticker.FPS, showPings: input.sample().showPings, fontHeight: gameFont.height });
@@ -395,10 +425,12 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     setPrediction: (prediction) => {
       if (session) session.prediction = prediction;
     },
+    setSound: (sound) => sounds?.configure(sound.enabled, sound.volume),
     destroy() {
       destroyed = true;
       if (sendTimer !== null) clearTimeout(sendTimer);
       connection?.close();
+      sounds?.destroy();
       input.destroy();
       removeEventListener('keydown', onKey);
       removeEventListener('keydown', onChatKey, true);

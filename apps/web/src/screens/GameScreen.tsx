@@ -14,7 +14,7 @@ import { BitmapText } from '../ui/BitmapText.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 
 export default function GameScreen() {
-  const { t, prefs } = usePrefs();
+  const { t, prefs, setPrefs } = usePrefs();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const hostRef = useRef<HTMLDivElement>(null);
@@ -60,12 +60,14 @@ export default function GameScreen() {
       bindings: prefs.bindings,
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
       translate: (text, ...args) => tRef.current(text, ...args),
+      sound: { enabled: prefs.soundEnabled, volume: prefs.soundVolume },
       onStatus: setStatus,
       onAction: (action) => {
         const t = tRef.current;
         if (action === 'menu') setMenuOpen(true);
         else if (action === 'focusMode') setToast(t('Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).'));
         // telas e mensagens dos cards OG-044/045/066/067
+        else if (action === 'toggleSound') toggleSound.current();
         else if (action !== 'suicide' && action !== 'moreMessages' && action !== 'fullPlayfield') setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
       },
     });
@@ -74,6 +76,10 @@ export default function GameScreen() {
   }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont]);
 
   useEffect(() => host.current?.setBindings(prefs.bindings), [prefs.bindings]);
+  useEffect(() => host.current?.setSound({ enabled: prefs.soundEnabled, volume: prefs.soundVolume }), [prefs.soundEnabled, prefs.soundVolume]);
+  // Ctrl+M: liga e desliga o som (e grava a preferência)
+  const toggleSound = useRef(() => {});
+  toggleSound.current = () => setPrefs({ soundEnabled: !prefs.soundEnabled });
   useEffect(
     () => host.current?.setPrediction({ enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount }),
     [prefs.lagPrediction, prefs.lagPredictionAmount],
