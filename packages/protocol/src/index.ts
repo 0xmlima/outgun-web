@@ -6,3 +6,4 @@ export * from './frame.js';
 export * from './messages.js';
 export * from './docs.js';
 export * from './names.js';
+export * from './replay.js';

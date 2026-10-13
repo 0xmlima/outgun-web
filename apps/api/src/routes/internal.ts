@@ -78,6 +78,8 @@ const MatchDetails = Type.Object({
 
 const MatchResult = Type.Object({
   serverMatchId: Type.String({ minLength: 1, maxLength: 64 }),
+  /** Replay da partida no game server (OG-090). */
+  replayUrl: Type.Optional(Type.String({ minLength: 1, maxLength: 512, pattern: '^https?://' })),
   roomId: Type.Optional(RoomId),
   mode: GameModeSchema,
   ranked: Type.Boolean(),
@@ -259,6 +261,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               startedAt: new Date(body.startedAt),
               endedAt: new Date(body.endedAt),
               details: body.details ?? {},
+              replayUrl: body.replayUrl ?? null,
             })
             .returning({ id: matches.id });
           if (body.players.length > 0) {

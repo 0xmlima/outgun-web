@@ -10,6 +10,7 @@ import type { KeyObject } from 'node:crypto';
 import type { RoomSpawn } from '@outgun/tickets';
 import type { Connection, Room } from './room.js';
 import type { RoomManager } from './rooms.js';
+import type { ReplayStore } from './replay.js';
 import { TicketAuth } from './tickets.js';
 
 export interface ServerOptions {
@@ -30,6 +31,8 @@ export interface ServerOptions {
    * undefined se não puder (sem vaga, mapas inválidos). Sem esta opção, só salas já criadas.
    */
   spawnRoom?: (id: string, spec: RoomSpawn) => Room | undefined;
+  /** Replays gravados (OG-090), servidos em /replays/<chave>.ogr. */
+  replays?: ReplayStore;
 }
 
 const ROOM_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
@@ -151,6 +154,21 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     const rooms = manager.list().map((r) => ({ id: r.id, mode: r.mode, players: r.playerCount, maxPlayers: r.world.maxPlayers, map: r.world.map.title }));
     res.writeHeader('content-type', 'application/json').end(JSON.stringify(rooms));
   });
+
+  if (options.replays) {
+    const store = options.replays;
+    app.get('/replays/:file', (res, req) => {
+      const file = store.path(req.getParameter(0) ?? '');
+      let data: Buffer;
+      try {
+        if (!file) throw new Error('nome inválido');
+        data = readFileSync(file);
+      } catch {
+        return void res.writeStatus('404 Not Found').writeHeader('access-control-allow-origin', '*').end();
+      }
+      res.writeHeader('access-control-allow-origin', '*').writeHeader('content-type', 'application/octet-stream').writeHeader('cache-control', 'public, max-age=31536000, immutable').end(data);
+    });
+  }
 
   if (options.devPage) {
     const page = options.devPage;

@@ -5,7 +5,9 @@
 // API_URL (http://localhost:7800), GS_ID e GS_SECRET (assinatura das rotas internas; padrão dev),
 // CHAT_FILTER (palavras trocadas por * no chat, separadas por vírgula), TRUST_PROXY (1 = X-Forwarded-For),
 // EMPTY_TIMEOUT_S (300), PUBLIC_WS_URL (endereço anunciado à API; ws://localhost:PORT), REGION (local),
-// MAX_ROOMS (50), RANKED_ROTATION (rotação oficial do Ranked; padrão ROTATION), HEARTBEAT (0 = não registra na API).
+// MAX_ROOMS (50), RANKED_ROTATION (rotação oficial do Ranked; padrão ROTATION), HEARTBEAT (0 = não registra na API),
+// CASUAL_BOTS_FILL (bots_fill das salas Casual; padrão 0), REPLAYS (0 = não grava), REPLAY_DIR (var/replays do
+// repositório), REPLAY_PUBLIC_URL (padrão http://<PUBLIC_WS_URL>/replays), REPLAY_RETENTION_DAYS (30; 0 = para sempre).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
@@ -14,6 +16,7 @@ import { JwksKeys } from './tickets.js';
 import { wordSet } from './chat.js';
 import { PlatformClient } from './platform.js';
 import { makeSpawner } from './spawn.js';
+import { ReplayStore } from './replay.js';
 
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
@@ -24,6 +27,19 @@ const platform = new PlatformClient(
   env.GS_SECRET ?? (production ? '' : 'outgun-dev-secret-0000'),
   (t) => console.warn(t),
 );
+const port = Number(env.PORT ?? 7700);
+const publicWsUrl = env.PUBLIC_WS_URL ?? `ws://localhost:${port}`;
+// replays (OG-090): em disco, servidos em /replays/; a URL vai no relatório da partida
+const replays =
+  env.REPLAYS === '0' ? undefined : new ReplayStore(env.REPLAY_DIR ?? `${repo}var/replays`, env.REPLAY_PUBLIC_URL ?? `${publicWsUrl.replace(/^ws/, 'http')}/replays`, Number(env.REPLAY_RETENTION_DAYS ?? 30));
+const pruneReplays = () => {
+  const removed = replays?.prune() ?? 0;
+  if (removed > 0) console.log(`[replays] ${removed} apagados pela retenção`);
+};
+pruneReplays();
+const pruneTimer = setInterval(pruneReplays, 3_600_000);
+pruneTimer.unref();
+
 const manager = new RoomManager({
   emptyTimeoutMs: Number(env.EMPTY_TIMEOUT_S ?? 300) * 1000,
   maxRooms: Number(env.MAX_ROOMS ?? 50),
@@ -41,6 +57,7 @@ const manager = new RoomManager({
     log: (line) => console.log(line),
     // `bots_fill` das salas Casual (OG-054); o preset Clássico tem 0
     ...(env.CASUAL_BOTS_FILL ? { botsFill: Number(env.CASUAL_BOTS_FILL) } : {}),
+    ...(replays ? { replays } : {}),
   },
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
@@ -52,7 +69,6 @@ manager.start();
 const jwks = new JwksKeys(env.TICKET_JWKS_URL ?? 'http://localhost:7800/.well-known/jwks.json', (t) => console.warn(t));
 jwks.start();
 
-const port = Number(env.PORT ?? 7700);
 const server = await startServer({
   spawnRoom: makeSpawner(manager, {
     mapsDir,
@@ -66,11 +82,12 @@ const server = await startServer({
   devTickets: env.DEV_TICKETS !== '0',
   protocolDist: `${repo}packages/protocol/dist`,
   devPage: fileURLToPath(new URL('../dev/index.html', import.meta.url)),
+  ...(replays ? { replays } : {}),
 });
 console.log(`game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 if (env.HEARTBEAT !== '0') {
   platform.startHeartbeat(
-    { wsBaseUrl: env.PUBLIC_WS_URL ?? `ws://localhost:${server.port}`, region: env.REGION ?? 'local', maxRooms: manager.maxRooms },
+    { wsBaseUrl: publicWsUrl, region: env.REGION ?? 'local', maxRooms: manager.maxRooms },
     () => manager.hosted(),
   );
 }

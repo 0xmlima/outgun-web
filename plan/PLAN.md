@@ -629,7 +629,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Concluído |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Concluído |
 | [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Backlog |
-| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Pronto |
+| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Em revisão |
 | [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Pronto |
 | [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Pronto |
 | [OG-100](cards/OG-100-parity-ci.md) | Paridade automatizada no CI | E7 | 3 | Must | S2 | OG-003 | Concluído |
@@ -687,6 +687,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-25 | Cálculo e aplicação do ranking | Como o original (master soma para sempre; servidor com id/senha de ranking; humanos = IPs distintos) / por temporada na API | ✅ **Decidido no OG-084 (divergência intencional, técnica):** o game server calcula os deltas como o original (`score_frag`/`score_neg`, modificador [1/3, 3], truncamento) só em sala **Ranked** com os mínimos (humanos distintos = **contas** distintas); a força de cada jogador é a da **temporada ativa**, que vem no ticket junto da participação (opt-out em `PUT /account/ranking`, vale na próxima entrada). A API soma os deltas por temporada, idempotente (`/internal/matches` por partida, `/internal/rating-deltas` por envio); leaderboard no PostgreSQL. Nova temporada: `cli.js season start NOME`. Spec `plan/specs/ranking.md`. | Agente |
 | D-26 | Nomes dos jogadores na tela | Como o original (`Show player names` = never no código e no `client.cfg`; Ctrl+F3 alterna) / mostrar na mesma sala | ✅ **Decidido no OG-068 (divergência intencional):** padrão web "in same room", para identificar com quem se joga numa sala pública; a opção tem as três escolhas do original. Demais padrões seguem o `client.cfg` distribuído (D-05), inclusive mensagens de morte ligadas. Spec `plan/specs/opcoes-jogador.md`. | Agente |
 | D-27 | Bots em sala sem humanos | Como o original (`bots_fill`/`min_bots` valem mesmo sem ninguém) / sem humanos, nenhum bot | ✅ **Decidido no OG-054 (divergência intencional):** sem humanos a sala fica sem bots — bots sozinhos gastam CPU e manteriam a sala viva para sempre no registro (OG-086). Também: `CASUAL_BOTS_FILL` no game server (padrão 0, como o `gamemod.txt`) e `/bot` liberado ao dono de sala Casual. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/bots-populacao.md) | Tech Lead |
+| D-28 | Replays | Como o original (só com `recording` > 0, arquivo binário do servidor) / sempre que houver destino, formato web | ✅ **Decidido no OG-090 (divergência intencional):** formato próprio versionado (`OGWR`, protocolo web + gzip), gravação de toda partida com destino configurado (`recording` = mínimo de humanos, ≥ 1), arquivos no game server com retenção de 30 dias e URL guardada na API; object storage no OG-103. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/replays.md) | Tech Lead |
 
 ---
 

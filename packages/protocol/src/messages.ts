@@ -100,6 +100,29 @@ const framePlayer = struct(
 );
 
 /** Estado exato do próprio jogador para predição e reconciliação (o original manda vida/energia). */
+/** Jogador no frame do replay: o bloco do frame com a sala (o replay vê o mapa inteiro). */
+const replayPlayer = struct(
+  {
+    pid,
+    roomX,
+    roomY,
+    x: f32,
+    y: f32,
+    vx: f32,
+    vy: f32,
+    dead: bool,
+    deathbringer: bool,
+    deathbringerAffected: bool,
+    shield: bool,
+    turbo: bool,
+    power: bool,
+    controls: u8,
+    gundir: u16,
+    visibility: u8,
+  },
+  'jogador no replay',
+);
+
 const frameSelf = struct(
   {
     roomX,
@@ -378,6 +401,18 @@ export const MESSAGES = {
       minimap: list(minimapPlayer, 32),
       /** Ping de um jogador por frame (rodízio), em ms. */
       ping: optional(struct({ pid, ms: u16 }, 'ping')),
+    },
+  ),
+
+  replayFrame: msg(
+    31,
+    's2c',
+    'frame',
+    '`record_message` (bloco do frame do replay)',
+    'Frame do replay (OG-090): todos os jogadores, de todas as salas, para um espectador onisciente.',
+    {
+      frame: u32,
+      players: list(replayPlayer, 32),
     },
   ),
 

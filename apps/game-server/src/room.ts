@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer } from './moderation.js';
 import { createBotName, neededBots } from './bots.js';
+import { ReplayRecorder } from './replay.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
@@ -87,6 +88,8 @@ export interface RoomOptions {
   reportDeltas?: (report: DeltaReport) => void;
   /** Relógio de parede (ms) para as datas da partida; padrão `Date.now`. */
   wallClock?: () => number;
+  /** Onde gravar os replays (OG-090); ausente = sem gravação. Devolve a URL pública. */
+  replays?: { save(key: string, data: Uint8Array): string };
   /** `bots_fill` das salas Casual (OG-054; o preset Clássico tem 0). Ignorado no Ranked (D-11). */
   botsFill?: number;
 }
@@ -196,6 +199,8 @@ export class Room {
   private readonly sentTeamStats: [string, string] = ['', ''];
   /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
   private readonly dirtyFlags = new Set<number>();
+  /** Replay da partida em curso (OG-090). */
+  private recorder: ReplayRecorder | null = null;
   /** `check_bots`: recalcular a população de bots no próximo frame. */
   private checkBotsPending = true;
   /** `extra_bots` (/bot add e /bot remove). */
@@ -248,18 +253,22 @@ export class Room {
         for (const rid of rids) this.rocketViewers[rid] = new Set(viewers);
         const msg = message('rocketFire', { owner, rockets: [...rids], gundir: iround(gunDir * 256) % 2048, frame: this.world.frame, power, roomX: pos.roomX, roomY: pos.roomY, x: pos.x, y: pos.y });
         for (const pid of viewers) this.queueTo(pid, msg);
+        this.recorder?.event(msg);
       },
       rocketRemoved: (rid, x, y, target) => {
         const msg = message('rocketDelete', { rocket: rid, target: target < 0 ? 255 : target, x, y });
         for (const pid of this.rocketViewers[rid] ?? []) this.queueTo(pid, msg);
+        this.recorder?.event(msg);
         this.rocketViewers[rid] = new Set();
       },
       powerupAppeared: (index) => {
         const it = this.world.items[index]!;
         for (const pid of this.viewers((p) => p.pos.sameRoom(it.pos))) this.queueTo(pid, this.powerupVisible(index));
+        this.recorder?.event(this.powerupVisible(index));
       },
       powerupPicked: (index, pos) => {
         for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
+        this.recorder?.event(message('powerupPicked', { id: index }));
       },
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
@@ -274,6 +283,7 @@ export class Room {
     this.console = this.makeConsole();
     this.sim.loadMapFlags();
     this.sim.startGame();
+    this.startRecording();
   }
 
   get presetId(): string {
@@ -353,6 +363,7 @@ export class Room {
       // de `client_connected`); o reset acima apagou os agendados por `addPlayer`
       this.sim.checkPowerupCreation(false);
       this.broadcast(message('worldReset', {}), message('startGame', {}), this.mapTimeMessage());
+      this.startRecording();
     }
     return { ok: true, pid };
   }
@@ -730,6 +741,7 @@ export class Room {
       this.gameOverUntil = null;
       this.sim.startGame();
       this.broadcast(message('startGame', {}), this.mapTimeMessage());
+      this.startRecording();
     }
     const running = this.gameOverUntil === null;
     if (running) {
@@ -765,6 +777,7 @@ export class Room {
     if (running) this.announceVotes();
     this.playerTimers(running);
     this.flush();
+    if (running) this.recorder?.frame(this.replayFrame());
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
       const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
@@ -832,7 +845,10 @@ export class Room {
     // smute: só o próprio jogador vê as mensagens dele
     if (c.muted === 2) return this.queueTo(pid, msg);
     if (!team) this.broadcast(msg);
-    else for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
+    else {
+      for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
+      this.recorder?.event(msg); // o replay vê o chat dos dois times, como o original
+    }
     if (this.settings.server.logPlayerChat) this.options.log?.(`(chat) ${c.identity.name} [${c.identity.ip ?? '?'}]: ${text}`);
   }
 
@@ -1000,12 +1016,66 @@ export class Room {
     };
   }
 
+  /** `start_recording`: replay novo a cada início de partida, com o estado inicial de um espectador. */
+  private startRecording(): void {
+    if (!this.options.replays) return;
+    const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
+    this.recorder = new ReplayRecorder(
+      { roomId: this.id, mode: this.mode, preset: this.preset.id, map: this.mapFile(this.mapIndex), mapTitle: this.world.map.title, maxPlayers: this.world.maxPlayers, startedAt: new Date(this.wallClock()).toISOString(), startFrame: this.world.frame },
+      init,
+    );
+  }
+
+  /**
+   * `stop_recording`: fecha o frame do fim (os eventos do placar ainda estão no outbox) e grava se houver
+   * humanos suficientes (`recording`, mínimo 1 — D-28). Devolve a URL do replay.
+   */
+  private finishRecording(key: string): string | null {
+    const recorder = this.recorder;
+    this.recorder = null;
+    if (!recorder || !this.options.replays) return null;
+    recorder.event(...this.outbox);
+    recorder.frame(this.replayFrame());
+    const humans = [...this.clients.values()].filter((c) => !c.bot).length;
+    if (humans < Math.max(1, this.settings.server.recording)) return null;
+    return this.options.replays.save(key, recorder.finish());
+  }
+
+  /** Frame do replay: todos os jogadores, como `buildFrame` os mostraria a quem está na sala deles. */
+  private replayFrame(): AnyMessage {
+    const world = this.world;
+    const time = world.time;
+    const players = [...this.clients.keys()].map((pid) => {
+      const h = world.players[pid] as PlayerState;
+      const safeAfterSpawn = world.frame < h.startTakeDamageFrame;
+      return {
+        pid,
+        roomX: h.pos.roomX,
+        roomY: h.pos.roomY,
+        x: h.pos.x,
+        y: h.pos.y,
+        vx: h.dead ? 0 : h.vel.x,
+        vy: h.dead ? 0 : h.vel.y,
+        dead: h.dead,
+        deathbringer: h.deathbringer,
+        deathbringerAffected: h.deathbringerEnd > time,
+        shield: h.shield !== 0,
+        turbo: h.turbo,
+        power: h.power,
+        controls: h.dead ? 0 : h.controls,
+        gundir: iround(h.gundir * 256) % 2048,
+        visibility: safeAfterSpawn ? (world.frame & 2 ? 128 : 220) : h.visibility,
+      };
+    });
+    return message('replayFrame', { frame: world.frame, players });
+  }
+
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
-    this.report(result);
-    // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar
+    // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar (e no fim do replay)
     this.broadcast(...endOfGameMessages([...this.clients.keys()].map((pid) => this.world.players[pid] as PlayerState), [this.world.teams[0], this.world.teams[1]]));
+    this.report(result);
     this.nextMap(reason);
   }
 
@@ -1094,10 +1164,13 @@ export class Room {
       const d = this.participates(c) ? c.deltas.take() : undefined;
       if (d) deltas.set(pid, d);
     }
+    const serverMatchId = `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`;
+    const replayUrl = this.finishRecording(serverMatchId);
     if (!this.options.reportMatch || ![...this.clients.values()].some((c) => !c.bot)) return;
     this.options.reportMatch(
       matchReport({
-        serverMatchId: `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`,
+        serverMatchId,
+        ...(replayUrl ? { replayUrl } : {}),
         roomId: this.id,
         mode: this.mode,
         ranked: this.mode === 'ranked' && (this.rankingEnabled() || deltas.size > 0),
@@ -1193,6 +1266,7 @@ export class Room {
     for (const team of [...this.dirtyFlags].sort()) this.outbox.push(this.flagUpdate(team));
     this.dirtyFlags.clear();
     if (this.outbox.length === 0) return;
+    this.recorder?.event(...this.outbox);
     const data = encodeFrame(...this.outbox);
     this.outbox = [];
     for (const c of this.clients.values()) c.conn.send(data);
