@@ -10,6 +10,8 @@ export const DEFAULT_MENU_FONT = 'Kulmikas';
 
 export interface Prefs {
   readonly locale: Locale;
+  /** Nome do convidado (`Name` do `Menu_player`); com conta, vale o nome da conta. */
+  readonly playerName: string;
   readonly menuFont: string;
   /** Tema gráfico (`''` = sem tema: cores de fábrica, como o `config/client.cfg` distribuído). */
   readonly graphicsTheme: string;
@@ -33,6 +35,7 @@ const STORAGE_KEY = 'outgun.prefs';
 function load(): Prefs {
   const fallback: Prefs = {
     locale: detectLocale(typeof navigator === 'undefined' ? [] : navigator.languages),
+    playerName: '',
     menuFont: DEFAULT_MENU_FONT,
     graphicsTheme: '',
     visibleRooms: 1,
@@ -47,6 +50,7 @@ function load(): Prefs {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Prefs>;
     return {
       locale: LOCALES.includes(saved.locale as Locale) ? (saved.locale as Locale) : fallback.locale,
+      playerName: typeof saved.playerName === 'string' ? saved.playerName.slice(0, 15) : fallback.playerName,
       menuFont: typeof saved.menuFont === 'string' ? saved.menuFont : fallback.menuFont,
       graphicsTheme: typeof saved.graphicsTheme === 'string' ? saved.graphicsTheme : fallback.graphicsTheme,
       visibleRooms:

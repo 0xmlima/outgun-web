@@ -30,6 +30,23 @@ const HOUR = 60 * 60_000;
 /** Nome de sala: imprimível, sem espaços nas pontas. */
 const RoomName = Type.String({ minLength: 1, maxLength: 40, pattern: '^[^\\s\\x00-\\x1f\\x7f](.*[^\\s\\x00-\\x1f\\x7f])?$' });
 
+function summary(r: typeof rooms.$inferSelect, region: string | null, now: number) {
+  const online = roomOnline(r, now);
+  return {
+    id: r.id,
+    name: r.name,
+    mode: r.mode,
+    preset: r.preset,
+    hasPassword: r.passwordHash !== null,
+    maxPlayers: r.maxPlayers,
+    players: online ? r.players : 0,
+    map: online ? r.map : null,
+    online,
+    persistent: r.persistent,
+    region: region ?? null,
+  };
+}
+
 export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit }: Services): FastifyPluginAsyncTypebox {
   const { db } = database;
   return async (app) => {
@@ -53,25 +70,47 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
           .orderBy(asc(rooms.mode), asc(rooms.id));
         const canSpawn = config.devRoomWsUrl !== undefined || (await onlineServers(db, now)).length > 0;
         return {
-          rooms: list
-            .filter(({ room }) => roomListed(room, canSpawn, now))
-            .map(({ room: r, region }) => {
-              const online = roomOnline(r, now);
-              return {
-                id: r.id,
-                name: r.name,
-                mode: r.mode,
-                preset: r.preset,
-                hasPassword: r.passwordHash !== null,
-                maxPlayers: r.maxPlayers,
-                players: online ? r.players : 0,
-                map: online ? r.map : null,
-                online,
-                persistent: r.persistent,
-                region: region ?? null,
-              };
-            }),
+          rooms: list.filter(({ room }) => roomListed(room, canSpawn, now)).map(({ room, region }) => summary(room, region, now)),
         };
+      },
+    );
+
+    app.get(
+      '/rooms/:id',
+      {
+        schema: {
+          tags: ['salas'],
+          summary: 'Uma sala (também as privadas fora do lobby: página do link de convite)',
+          params: Type.Object({ id: RoomId }),
+          response: { 200: Type.Object({ room: RoomSummary }), 404: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const [row] = await db
+          .select({ room: rooms, region: gameServers.region })
+          .from(rooms)
+          .leftJoin(gameServers, eq(gameServers.id, rooms.serverId))
+          .where(eq(rooms.id, request.params.id));
+        if (!row) return reply.code(404).send({ error: 'room_not_found', message: 'room not found' });
+        return { room: summary(row.room, row.region, Date.now()) };
+      },
+    );
+
+    app.get(
+      '/regions',
+      {
+        schema: {
+          tags: ['salas'],
+          summary: 'Regiões com game server no ar e um endereço para medir o ping de cada uma',
+          response: { 200: Type.Object({ regions: Type.Array(Type.Object({ region: Type.String(), pingUrl: Type.String() })) }) },
+        },
+      },
+      async () => {
+        const byRegion = new Map<string, string>();
+        for (const s of (await onlineServers(db)).sort((a, b) => a.players - b.players)) {
+          if (!byRegion.has(s.region)) byRegion.set(s.region, `${s.wsBaseUrl.replace(/^ws/, 'http').replace(/\/$/, '')}/health`);
+        }
+        return { regions: [...byRegion].map(([region, pingUrl]) => ({ region, pingUrl })) };
       },
     );
 
@@ -146,7 +185,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             persistent: false,
             region: server?.region ?? null,
           },
-          inviteUrl: `${config.webUrl}/play?room=${r.id}`,
+          inviteUrl: `${config.webUrl}/rooms/${r.id}`,
         });
       },
     );

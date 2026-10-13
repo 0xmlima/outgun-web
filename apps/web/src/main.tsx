@@ -18,6 +18,7 @@ import {
   ResetPasswordScreen,
 } from './screens/account.js';
 import { ControlsScreen } from './screens/ControlsScreen.js';
+import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.js';
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, OptionsScreen, SourceScreen } from './screens/menus.js';
 import './styles.css';
@@ -47,6 +48,9 @@ const router = createBrowserRouter([
           { path: 'account/delete', element: <DeleteAccountScreen /> },
           { path: 'account/username', element: <ChangeUsernameScreen /> },
           { path: 'account/clan-tag', element: <ClanTagScreen /> },
+          { path: 'rooms', element: <LobbyScreen /> },
+          { path: 'rooms/new', element: <CreateRoomScreen /> },
+          { path: 'rooms/:id', element: <JoinRoomScreen /> },
           { path: 'players/:name', element: <ProfileScreen /> },
           { path: 'matches/:id', element: <MatchScreen /> },
           { path: 'ranking', element: <LeaderboardScreen /> },

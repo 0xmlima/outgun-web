@@ -462,6 +462,168 @@
         }
       }
     },
+    "/rooms/{id}": {
+      "get": {
+        "summary": "Uma sala (também as privadas fora do lobby: página do link de convite)",
+        "tags": ["salas"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["room"],
+                  "properties": {
+                    "room": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "mode",
+                        "preset",
+                        "hasPassword",
+                        "maxPlayers",
+                        "players",
+                        "map",
+                        "online",
+                        "persistent",
+                        "region"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "mode": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["casual"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["ranked"]
+                            }
+                          ]
+                        },
+                        "preset": {
+                          "type": "string"
+                        },
+                        "hasPassword": {
+                          "type": "boolean"
+                        },
+                        "maxPlayers": {
+                          "type": "integer"
+                        },
+                        "players": {
+                          "type": "integer"
+                        },
+                        "map": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "online": {
+                          "type": "boolean"
+                        },
+                        "persistent": {
+                          "type": "boolean"
+                        },
+                        "region": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regions": {
+      "get": {
+        "summary": "Regiões com game server no ar e um endereço para medir o ping de cada uma",
+        "tags": ["salas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["regions"],
+                  "properties": {
+                    "regions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["region", "pingUrl"],
+                        "properties": {
+                          "region": {
+                            "type": "string"
+                          },
+                          "pingUrl": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/seasons": {
       "get": {
         "summary": "Temporadas do ranking (a ativa recebe as partidas Ranked)",

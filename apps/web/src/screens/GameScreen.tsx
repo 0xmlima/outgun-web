@@ -2,10 +2,11 @@
 // Rota do jogo: o PixiJS desenha num canvas próprio controlado por `mountGame`; o React desenha só
 // os overlays (menu do Esc, como no original: "While in the game, press esc to open the menu").
 // Sem parâmetros, "Jogar agora" entra na sala do servidor de jogo (OG-064). Parâmetros de URL:
-// ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim),
+// ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim; a senha
+// da sala vem do lobby no estado da navegação),
 // ?demo=JOGADORES (partida local) e ?map=NOME&theme=TEMA&rooms=N&room=X,Y (visualizador de mapa).
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
 import { DEFAULT_MAP, mountGame, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
 import { defaultServerUrl } from '../game/net/connection.js';
@@ -17,6 +18,8 @@ export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  // senha da sala privada vem do lobby pelo estado da navegação (nunca na URL)
+  const password = (useLocation().state as { password?: string } | null)?.password;
   const hostRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
@@ -44,7 +47,8 @@ export default function GameScreen() {
         url: params.get('server') ?? defaultServerUrl(),
         explicitServer: params.has('server'),
         room: params.get('sala') ?? 'main',
-        name: params.get('name') ?? 'Convidado',
+        name: params.get('name') ?? (prefs.playerName.trim() || 'Convidado'),
+        ...(password ? { password } : {}),
         ...(lag > 0 || loss > 0 ? { simulate: { rttMs: lag, jitterMs: lag / 10, loss } } : {}),
       };
     }

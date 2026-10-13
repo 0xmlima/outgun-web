@@ -11,6 +11,7 @@ import { useAccount } from '../app/account.js';
 import { usePrefs } from '../app/prefs.js';
 import { useFontNames } from '../ui/fonts.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
+import { quickJoin } from './lobby.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
 function cycle<T>(list: readonly T[], current: T, delta: number): T {
@@ -32,13 +33,22 @@ function useGraphicsThemes(): readonly string[] {
 }
 
 export function HomeScreen() {
-  const { t } = usePrefs();
+  const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
   const soon = t('Coming soon');
   const items: MenuItem[] = [
-    { kind: 'action', label: t('Play now'), onActivate: () => void navigate('/play') },
-    { kind: 'action', label: t('Rooms'), onActivate: () => {}, disabled: true, note: soon },
+    {
+      kind: 'action',
+      label: t('Play now'),
+      // sala Casual escolhida pela API (OG-069); sem a API (desenvolvimento), a sala principal
+      onActivate: () =>
+        void quickJoin('casual', prefs.playerName.trim() || 'Convidado').then(
+          (id) => void navigate(`/play?sala=${encodeURIComponent(id)}`),
+          () => void navigate('/play'),
+        ),
+    },
+    { kind: 'action', label: t('Rooms'), onActivate: () => void navigate('/rooms') },
     { kind: 'action', label: t('Ranking'), onActivate: () => void navigate('/ranking') },
     { kind: 'action', label: t('Replays'), onActivate: () => {}, disabled: true, note: soon },
     { kind: 'action', label: t('Options'), onActivate: () => void navigate('/options') },

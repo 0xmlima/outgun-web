@@ -64,7 +64,7 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 - `POST /rooms/quick-join` `{ mode, name?, region? }` ("Jogar agora"): sala pública no ar com vaga e
   mais jogadores (a região pedida primeiro); senão uma sala da plataforma do modo.
 - `POST /rooms` `{ name, preset, password?, maxPlayers?, maps?, region? }` (com conta): sala privada
-  Casual (presets Ranked recusados) → `{ room, inviteUrl }`. Fica no servidor escolhido e é apagada
+  Casual (presets Ranked recusados) → `{ room, inviteUrl }` (`WEB_URL/rooms/<id>`). `GET /rooms/:id` acha a sala do convite; `GET /regions` dá um endereço por região para o cliente medir o ping. Fica no servidor escolhido e é apagada
   depois de 1 h fora do ar.
 
 ## Ranking e temporadas (OG-084)

@@ -127,7 +127,8 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
   });
 
   app.get('/health', (res) => {
-    res.writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));
+    // o lobby mede o ping de cada região com este endereço (OG-069)
+    res.writeHeader('access-control-allow-origin', '*').writeHeader('cache-control', 'no-store').writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));
   });
 
   app.get('/metrics', (res) => {

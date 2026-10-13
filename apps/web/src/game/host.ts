@@ -45,6 +45,8 @@ export interface OnlineOptions {
   readonly room: string;
   /** Nome do convidado (com conta, a API usa o nome da conta). */
   readonly name: string;
+  /** Senha da sala privada (pedida no lobby; vale também para as reconexões). */
+  readonly password?: string;
   /** `url` veio de ?server= (manda no endereço; senão vale o da API). */
   readonly explicitServer?: boolean;
   /** Rede simulada nos dois sentidos (depuração: ?lag=&loss=). */
@@ -295,7 +297,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     void loadManifest().then((m) => m && player.load(m));
     opts.onStatus?.({ kind: 'connecting' });
     const connect = () =>
-      void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false).then(
+      void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false, online.password).then(
         ({ ticket, url }) => {
           if (destroyed || ended) return;
           connection = new GameConnection(

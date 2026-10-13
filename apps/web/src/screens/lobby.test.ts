@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+import { describe, expect, it } from 'vitest';
+import { REFRESH_MS, sortRooms, type RoomSummary } from './lobby.js';
+
+const room = (id: string, players: number, maxPlayers = 16, online = true): RoomSummary => ({
+  id, name: id, mode: 'casual', preset: 'classic', hasPassword: false, maxPlayers, players, map: null, online, persistent: false, region: null,
+});
+
+describe('lobby (OG-069)', () => {
+  it('lista: com gente primeiro, mais cheia antes, lotadas no fim', () => {
+    expect(sortRooms([room('b', 0), room('cheia', 2, 2), room('a', 0), room('meio', 5), room('quase', 9)]).map((r) => r.id)).toEqual(['quase', 'meio', 'a', 'b', 'cheia']);
+  });
+  it('atualiza em até 5 s', () => {
+    expect(REFRESH_MS).toBeLessThanOrEqual(5000);
+  });
+});

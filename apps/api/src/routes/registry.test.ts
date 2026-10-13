@@ -164,7 +164,10 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     const { room, inviteUrl } = res.json();
     expect(room).toMatchObject({ name: 'Treino da tarde', mode: 'casual', preset: 'duel', hasPassword: true, maxPlayers: 2, online: false, region: 'eu' });
     expect(room.id).toMatch(/^p-[a-z0-9]{8}$/);
-    expect(inviteUrl).toBe(`http://localhost:5173/play?room=${room.id}`);
+    expect(inviteUrl).toBe(`http://localhost:5173/rooms/${room.id}`);
+    // a página do convite acha a sala mesmo fora do lobby
+    expect((await app.inject(`/rooms/${room.id}`)).json().room).toMatchObject({ id: room.id, hasPassword: true, online: false });
+    expect((await app.inject('/regions')).json()).toEqual({ regions: [{ region: 'eu', pingUrl: 'http://gs-1.test/health' }] });
 
     // fora do lobby até abrir; entra com a senha e o ticket abre a sala com os mapas pedidos
     expect((await list()).map((r) => r.id)).not.toContain(room.id);
