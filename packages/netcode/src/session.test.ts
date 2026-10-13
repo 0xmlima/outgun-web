@@ -210,6 +210,31 @@ describe('ClientSession', () => {
   });
 });
 
+describe('dados do HUD', () => {
+  it('posição do minimapa vira o centro da célula e marca quando foi vista', () => {
+    const { s } = session();
+    const f = frame(10, [player(0, 100, 100)]);
+    f.minimap = [{ pid: 2, x: 200, y: 10 }]; // 127 células por sala no mapa 2×2
+    s.handle([f], 1000);
+    const p = s.world!.players[2]!;
+    expect([p.pos.roomX, p.pos.roomY]).toEqual([1, 0]);
+    expect(p.pos.x).toBeCloseTo((73 + 0.5) * (472 / 127));
+    expect(s.posUpdated.get(2)).toBe(10);
+  });
+
+  it('placar, arma, power-ups e tempo de mapa', () => {
+    const { s } = session();
+    s.handle([message('mapTime', { elapsed: 30, left: 270 }), frame(500, [player(0, 100, 100)])], 1000);
+    expect([s.mapStart, s.mapEnd]).toEqual([20, 320]);
+    s.handle([message('scoreUpdate', { team: 'blue', score: 3 }), message('weaponChange', { level: 4 }), message('powerupTimer', { kind: 'turbo', seconds: 40 })], 1100);
+    expect(s.teamScores).toEqual([0, 3]);
+    expect(s.weapon).toBe(4);
+    expect(s.powerupEnd.turbo).toBe(90);
+    s.handle([message('gameOver', { reason: 'captureLimit', seconds: 5 })], 1200);
+    expect(s.gameOver).toEqual({ reason: 'captureLimit', red: 0, blue: 3 });
+  });
+});
+
 describe('geometria do mapa toroidal', () => {
   it('delta pega o caminho mais curto pela volta do mapa', () => {
     const a = new Position(0, 0, 5, 5);

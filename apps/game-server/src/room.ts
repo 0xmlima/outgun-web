@@ -70,6 +70,8 @@ interface Client {
   hasInput: boolean;
   /** Último frame com ação do jogador (para o idle kick, RN-IDL-01). */
   lastActivityFrame: number;
+  /** O que o HUD do jogador já recebeu: arma e fim de cada power-up com tempo (`data_weapon_change`, `data_pup_timer`). */
+  hud: { weapon: number; turboTime: number; shadowTime: number; powerTime: number };
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
@@ -102,6 +104,8 @@ export class Room {
   /** Jogadores que conhecem cada foguete (`Rocket::vislist`). */
   private readonly rocketViewers: Set<number>[] = [];
   private readonly now: () => number;
+  /** Placar já enviado (`scoreUpdate` só quando muda). */
+  private readonly sentScores: [number, number] = [0, 0];
   /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
   private readonly dirtyFlags = new Set<number>();
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
@@ -128,7 +132,8 @@ export class Room {
       flagCaptured: (pid, flagTeam, assistant) => this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant })),
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
-      normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' })),
+      normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' }), this.mapTimeMessage()),
+      extraTimePeriodStarted: () => this.broadcast(this.mapTimeMessage()),
       gameOver: (reason, result) => this.onGameOver(reason, result),
       rocketsFired: (owner, rids, gunDir, power, pos) => {
         // quem vê o tiro fica guardado no foguete (`vislist`) para a remoção e as trocas de sala
@@ -180,7 +185,7 @@ export class Room {
     }
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
 
-    this.clients.set(pid, { conn, identity, lastClientFrame: 0, frameOffset: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame });
+    this.clients.set(pid, { conn, identity, lastClientFrame: 0, frameOffset: 0, sentFrags: 0, rs: new RecipientState(), queue: [], bytes: 0, joinedFrame: this.world.frame, guard: new InputGuard(), hasInput: false, lastActivityFrame: this.world.frame, hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 } });
     this.sim.addPlayer(pid);
     this.send(pid, this.welcomeMessages(pid));
     this.broadcast(message('playerJoined', { pid, name: identity.name, color: 0, bot: false }));
@@ -189,7 +194,7 @@ export class Room {
       this.sim.returnAllFlags();
       this.sim.resetWorld();
       this.world.mapStartFrame = this.world.frame;
-      this.broadcast(message('worldReset', {}), message('startGame', {}));
+      this.broadcast(message('worldReset', {}), message('startGame', {}), this.mapTimeMessage());
     }
     return { ok: true, pid };
   }
@@ -201,6 +206,7 @@ export class Room {
       message('serverSettings', { preset, gamemod: (PRESETS.find((p) => p.id === preset)?.overrides ?? ''), locked: PRESETS.find((p) => p.id === preset)?.locked ?? false }),
       message('mapChange', { reason: 'other', mapIndex: this.mapIndex, file: this.mapFile(this.mapIndex), title: this.world.map.title, crc: this.world.map.crc }),
       message('playersPresent', { pids: [...this.clients.keys()] }),
+      this.mapTimeMessage(),
     ];
     for (const [other, c] of this.clients) {
       if (other === pid) continue;
@@ -281,6 +287,11 @@ export class Room {
         case 'clientReady':
           if (pl.awaitingClientReadies > 0) pl.awaitingClientReadies--;
           break;
+        case 'chat':
+          // até 200 caracteres imprimíveis; fora disso é mensagem inválida (`data_text_message`)
+          if (m.text.length > 200 || [...m.text].some((ch) => ch < ' ' || ch === '\x7f')) return this.kick(pid, 'chat inválido');
+          this.chat(pid, m.text);
+          break;
         default:
           // times, votos, chat e opções: OG-044..047
           break;
@@ -317,19 +328,26 @@ export class Room {
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       this.sim.startGame();
-      this.broadcast(message('startGame', {}));
+      this.broadcast(message('startGame', {}), this.mapTimeMessage());
     }
     const running = this.gameOverUntil === null;
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
       this.sim.simulateFrame();
       for (const [pid, c] of this.clients) {
-        const frags = (world.players[pid] as PlayerState).stats.frags;
+        const pl = world.players[pid] as PlayerState;
+        const frags = pl.stats.frags;
         if (frags !== c.sentFrags) {
           c.sentFrags = frags;
           this.broadcast(message('frags', { pid, frags }));
         }
+        this.updateHud(pid, c, pl);
       }
+      world.teams.forEach((t, team) => {
+        if (t.score === this.sentScores[team]) return;
+        this.sentScores[team] = t.score;
+        this.broadcast(message('scoreUpdate', { team: team === 0 ? 'red' : 'blue', score: t.score }));
+      });
     }
     this.flush();
     const views = minimapViews(world, this.settings);
@@ -341,6 +359,48 @@ export class Room {
     }
     this.frameSentTime = this.now();
     world.frame++;
+  }
+
+  /** Arma e tempos de power-up do jogador, quando mudam (`data_weapon_change`, `data_pup_timer`). */
+  private updateHud(pid: number, c: Client, pl: PlayerState): void {
+    const time = this.world.time;
+    if (pl.weapon !== c.hud.weapon) {
+      c.hud.weapon = pl.weapon;
+      this.queueTo(pid, message('weaponChange', { level: pl.weapon }));
+    }
+    const timers = [
+      ['turbo', 'turboTime', pl.turbo, pl.turboTime],
+      ['shadow', 'shadowTime', pl.hasShadow(), pl.shadowTime],
+      ['power', 'powerTime', pl.power, pl.powerTime],
+    ] as const;
+    for (const [kind, key, active, end] of timers) {
+      if (!active || end === c.hud[key]) continue;
+      c.hud[key] = end;
+      this.queueTo(pid, message('powerupTimer', { kind, seconds: Math.max(0, Math.round(end - time)) }));
+    }
+  }
+
+  /** `send_map_time`: tempo de mapa e restante (prorrogação depois do tempo normal; 0 = sem limite). */
+  private mapTimeMessage(): AnyMessage {
+    const w = this.settings.world;
+    const mapTime = this.world.mapTime();
+    let left = 0;
+    if (w.timeLimit > 0) {
+      left = w.timeLimit - mapTime;
+      if (left <= 0) left = Math.max(0, w.timeLimit + this.world.extraTimePeriod * w.extraTime - mapTime);
+    }
+    return message('mapTime', { elapsed: Math.trunc(mapTime / 10), left: Math.trunc(left / 10) });
+  }
+
+  /** Chat (RN-CHT-01): `.` = só o time; comandos `/` e moderação são do OG-046. */
+  private chat(pid: number, text: string): void {
+    const name = this.clients.get(pid)?.identity.name ?? '';
+    const team = text.startsWith('.');
+    const body = (team ? text.slice(1) : text).trim();
+    if (!body || text.startsWith('/')) return;
+    const msg = message('text', { kind: team ? 'team' : 'normal', from: pid, text: `${name}: ${body}` });
+    if (!team) this.broadcast(msg);
+    else for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
   }
 
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */

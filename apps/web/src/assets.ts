@@ -25,7 +25,7 @@ export interface Manifest {
       }
     >
   >;
-  readonly fonts: Readonly<Record<string, { readonly font: FontFiles }>>;
+  readonly fonts: Readonly<Record<string, { readonly font: FontFiles; readonly border?: FontFiles }>>;
   readonly defaultColours: Readonly<Record<string, string>>;
   readonly maps: Readonly<Record<string, { readonly file: string; readonly dir: 'maps' | 'cmaps' }>>;
 }

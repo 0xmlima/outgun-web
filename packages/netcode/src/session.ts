@@ -105,6 +105,28 @@ export class ClientSession {
   /** Pids ocupados (vale também antes de o mapa carregar). */
   readonly present = new Set<number>();
   readonly frags = new Map<number, number>();
+  /** Placar dos times (`welcome`, `scoreUpdate`). */
+  readonly teamScores: [number, number] = [0, 0];
+  /** Nível da arma do próprio jogador (`weaponChange`). */
+  weapon = 1;
+  /** Fim de cada power-up com tempo do próprio jogador, em s do jogo (`powerupTimer`). */
+  readonly powerupEnd = { power: 0, turbo: 0, shadow: 0 };
+  /** Início e fim do mapa em s do jogo (`mapTime`); fim null = sem limite de tempo. */
+  mapStart = 0;
+  mapEnd: number | null = null;
+  /** Prorrogação em andamento ("ET" no relógio). */
+  extraTime = false;
+  /** Placar final enquanto mostra o fim de partida (`gameOver` até `startGame`). */
+  gameOver: { reason: MessageOf<'gameOver'>['reason']; red: number; blue: number } | null = null;
+  /** Ping de cada jogador (ms), em rodízio no frame. */
+  readonly pings = new Map<number, number>();
+  /** Frame em que a posição de cada jogador foi vista pela última vez (frame ou minimapa; `posUpdated`). */
+  readonly posUpdated = new Map<number, number>();
+  private pendingMapTime: MessageOf<'mapTime'> | null = null;
+  /** Último frame do servidor recebido (−1 = nenhum), mesmo carregando o mapa. */
+  lastServerFrame = -1;
+  /** Quando chegou o último pacote do servidor (ms do relógio de quem chama). */
+  lastPacketTime = 0;
   /** Quando cada bandeira (`time.índice`) voltou à base, em s do jogo (pisca por 2 s). */
   readonly flagReturnTime = new Map<string, number>();
   /** Fim do pisca de acerto por jogador (ms do relógio de quem chama). */
@@ -225,16 +247,55 @@ export class ClientSession {
 
   /** Mensagens do servidor, na ordem em que chegaram. */
   handle(messages: readonly AnyMessage[], now: number): void {
+    this.lastPacketTime = now;
     for (const m of messages) this.handleOne(m, now);
   }
 
   private handleOne(m: AnyMessage, now: number): void {
+    // avisa antes de tratar: quem sai ainda tem nome e frags (`player left the game with $2 frags`)
+    if (m.type !== 'frame') this.emit({ kind: 'message', message: m });
     const world = this.world;
     switch (m.type) {
       case 'welcome':
         this.me = m.pid;
         this.maxPlayers = m.maxPlayers;
+        this.teamScores[0] = m.redScore;
+        this.teamScores[1] = m.blueScore;
         break;
+      case 'scoreUpdate':
+        this.teamScores[m.team === 'red' ? 0 : 1] = m.score;
+        break;
+      case 'weaponChange':
+        this.weapon = m.level;
+        break;
+      case 'powerupTimer':
+        if (m.kind === 'power' || m.kind === 'turbo' || m.kind === 'shadow') this.powerupEnd[m.kind] = this.gameTime() + m.seconds;
+        break;
+      case 'mapTime':
+        // vale a partir do frame que vem em seguida (na entrada, o mundo ainda nem existe)
+        this.pendingMapTime = m;
+        break;
+      case 'timeEvent':
+        if (m.kind === 'normalTimeOut' || m.kind === 'normalTimeOutSuddenDeath') this.extraTime = true;
+        break;
+      case 'gameOver':
+        this.gameOver = { reason: m.reason, red: this.teamScores[0], blue: this.teamScores[1] };
+        break;
+      case 'startGame':
+        this.gameOver = null;
+        this.extraTime = false;
+        break;
+      case 'kill':
+      case 'suicideEvent': {
+        const p = this.world?.players[m.type === 'kill' ? m.target : m.pid];
+        if (p) p.dead = true;
+        break;
+      }
+      case 'spawn': {
+        const p = this.world?.players[m.pid];
+        if (p) p.dead = false;
+        break;
+      }
       case 'serverSettings':
         if (PRESETS.some((p) => p.id === m.preset)) this.settings = presetSettings(m.preset);
         break;
@@ -258,6 +319,8 @@ export class ClientSession {
       case 'playerLeft':
         this.names.delete(m.pid);
         this.present.delete(m.pid);
+        this.posUpdated.delete(m.pid);
+        this.pings.delete(m.pid);
         this.frags.delete(m.pid);
         if (world) world.players[m.pid] = undefined;
         this.onscreen.delete(m.pid);
@@ -319,7 +382,6 @@ export class ClientSession {
       default:
         break;
     }
-    if (m.type !== 'frame') this.emit({ kind: 'message', message: m });
   }
 
   private onFlagUpdate(world: WorldState, m: MessageOf<'flagUpdate'>): void {
@@ -365,6 +427,7 @@ export class ClientSession {
 
   /** `process_live_frame_data`. */
   private onFrame(m: MessageOf<'frame'>, now: number): void {
+    this.lastServerFrame = Math.max(this.lastServerFrame, m.frame);
     const world = this.world;
     if (!world) return;
     if (m.frame < world.frame) return; // atrasado
@@ -407,6 +470,13 @@ export class ClientSession {
       this.offsetCount = 0;
     }
 
+    if (this.pendingMapTime) {
+      const t = Math.trunc(m.frame / 10);
+      this.mapStart = t - this.pendingMapTime.elapsed;
+      this.mapEnd = this.pendingMapTime.left > 0 ? t + this.pendingMapTime.left : null;
+      this.pendingMapTime = null;
+    }
+
     this.skipped = m.skipped;
     if (m.skipped) return;
 
@@ -440,7 +510,11 @@ export class ClientSession {
       p.controls = fp.controls;
       p.gundir = dirFromNet(fp.gundir);
       p.visibility = fp.visibility;
+      this.posUpdated.set(fp.pid, m.frame);
     }
+    if (me) this.posUpdated.set(this.me, m.frame);
+    for (const mm of m.minimap) this.minimapPosition(world, mm, m.frame);
+    if (m.ping) this.pings.set(m.ping.pid, m.ping.ms);
 
     // mesma hora-alvo de antes (descontando os frames que chegaram): a diferença é só de simulação
     if (beforeDelta === null || beforeDelta - advanced < 0) return;
@@ -458,6 +532,27 @@ export class ClientSession {
       const off = this.smoothing.get(p.pid) ?? { x: 0, y: 0 };
       this.smoothing.set(p.pid, { x: off.x + d.x, y: off.y + d.y });
     }
+  }
+
+  /** `readMinimapPlayerPosition`: centro da célula do minimapa (`⌊255/w⌋` células por sala). */
+  private minimapPosition(world: WorldState, mm: { pid: number; x: number; y: number }, frame: number): void {
+    if (mm.pid === this.me || this.onscreen.has(mm.pid)) return;
+    const p = this.ensurePlayer(mm.pid);
+    if (!p) return;
+    const xmul = Math.trunc(255 / world.map.width);
+    const ymul = Math.trunc(255 / world.map.height);
+    const rx = Math.trunc(mm.x / xmul);
+    const ry = Math.trunc(mm.y / ymul);
+    if (rx >= world.map.width || ry >= world.map.height) return;
+    p.pos = new Position(rx, ry, ((mm.x % xmul) + 0.5) * (ROOM_WIDTH / xmul), ((mm.y % ymul) + 0.5) * (ROOM_HEIGHT / ymul));
+    p.vel = new Vec(0, 0);
+    p.dead = false;
+    this.posUpdated.set(mm.pid, frame);
+  }
+
+  /** Tempo do jogo (s) do último frame. */
+  gameTime(): number {
+    return (this.world?.frame ?? 0) / 10;
   }
 
   // ---------------------------------------------------------------- envio

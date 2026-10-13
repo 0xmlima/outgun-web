@@ -12,6 +12,11 @@ import { ASSETS, loadManifest } from '../assets.js';
 import { LocalDemo } from './demo.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
+import { boundCodes } from './input/bindings.js';
+import type { Translate } from './hud/feed.js';
+import { GameFont, HudRenderer } from './hud/hud-renderer.js';
+import { OnlineHud } from './hud/online-hud.js';
+import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
@@ -60,6 +65,8 @@ export interface GameOptions {
   readonly font?: string;
   readonly bindings: Bindings;
   readonly prediction: PredictionOptions;
+  /** Tradução dos textos do HUD (`_()` do original no idioma escolhido). */
+  readonly translate: Translate;
   /** Ações de toque (F1, F2...) e o botão Start do gamepad (`menu`). */
   readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
@@ -87,13 +94,16 @@ async function loadMap(name: string): Promise<{ map: GameMap; bytes: Uint8Array 
 /** Vista do `client.cfg` distribuído: sem rolagem, vista passa da borda só em mapas que dão a volta. */
 const VIEW = { scroll: false, view: 'mapWraps', repeatX: false, repeatY: false, wrapsX: false, wrapsY: false } as const;
 
-/** Instala a fonte bitmap no PixiJS (o arquivo .fnt traz o nome da família). */
-async function loadFont(name: string | undefined): Promise<{ family: string; height: number } | null> {
-  const files = name ? (await loadManifest())?.fonts[name]?.font : undefined;
-  if (!files) return null;
+/** Instala a fonte bitmap e a de contorno no PixiJS (o arquivo .fnt traz o nome da família). */
+async function loadFont(name: string | undefined): Promise<GameFont | null> {
+  const entry = name ? (await loadManifest())?.fonts[name] : undefined;
+  if (!entry) return null;
   try {
-    const font = await Assets.load<BitmapFont>(ASSETS + files.fnt);
-    return { family: font.fontFamily, height: font.lineHeight };
+    const [main, border] = await Promise.all([
+      Assets.load<BitmapFont>(ASSETS + entry.font.fnt),
+      entry.border ? Assets.load<BitmapFont>(ASSETS + entry.border.fnt).catch(() => null) : Promise.resolve(null),
+    ]);
+    return new GameFont(main, border);
   } catch {
     return null;
   }
@@ -113,12 +123,24 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   let connection: GameConnection | undefined;
   let sendTimer: ReturnType<typeof setTimeout> | null = null;
   let announced = false;
+  let hud: HudRenderer | undefined;
+  let onlineHud: OnlineHud | undefined;
+  let gameFont: GameFont | null = null;
+  let screen: ScreenLayout | null = null;
+  /** Minimapa e placar visíveis (F12 do original alterna). */
+  let fullHud = true;
+  let bindings = opts.bindings;
   const input = new GameInput(opts.bindings);
   input.onAction((action) => {
     if (action === 'suicide') {
       demo?.suicide();
       session?.send(message('suicide', {}));
     } else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
+    else if (action === 'moreMessages' && onlineHud) onlineHud.showAll = !onlineHud.showAll;
+    else if (action === 'fullPlayfield' && onlineHud) {
+      fullHud = !fullHud;
+      layout();
+    }
     opts.onAction?.(action);
   });
   let visible = opts.visibleRooms;
@@ -144,10 +166,20 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
 
   const layout = () => {
     if (!world) return;
-    world.setPlayfield(
-      { x: 0, y: 0, w: app.screen.width, h: app.screen.height },
-      { visibleRooms: visible, continuousTextures: opts.continuousTextures },
-    );
+    let playfield = { x: 0, y: 0, w: app.screen.width, h: app.screen.height };
+    // partida no servidor: tela dividida como o original (salas, minimapa, placar e barra)
+    if (onlineHud && gameFont) {
+      const t = opts.translate;
+      screen = screenLayout(
+        app.screen.width,
+        app.screen.height,
+        gameFont,
+        { health: t('Health'), energy: t('Energy'), power: t('Power'), turbo: t('Turbo'), shadow: t('Shadow'), weapon0: t('Weapon $1', '0') },
+        fullHud,
+      );
+      playfield = screen.playfield;
+    }
+    world.setPlayfield(playfield, { visibleRooms: visible, continuousTextures: opts.continuousTextures });
   };
 
   /** Troca o mapa desenhado (início da partida e cada troca de mapa do servidor). */
@@ -188,6 +220,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           .catch((err: unknown) => fail(`mapa ${request.file}: ${err instanceof Error ? err.message : String(err)}`));
       },
       onEvent: (ev) => {
+        if (ev.kind === 'message') onlineHud?.onMessage(ev.message);
         const time = (session?.renderFrame ?? 0) / 10;
         if (ev.kind === 'rocketHitWall') entities?.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', coords(ev.pos), ev.team, time);
         else if (ev.kind === 'rocketHitPlayer') entities?.addEffect('gunExplosion', coords(ev.pos), ev.team, time);
@@ -199,6 +232,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       },
     });
     session.prediction = opts.prediction;
+    onlineHud = new OnlineHud(session, opts.translate);
     opts.onStatus?.({ kind: 'connecting' });
     connection = new GameConnection(
       `${online.url.replace(/\/$/, '')}/rooms/${encodeURIComponent(online.room)}`,
@@ -254,8 +288,13 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       if (playing) {
         const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
         if (destroyed) return;
+        gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);
         app.stage.addChild(entities.stage);
+        if (opts.online && font) {
+          hud = new HudRenderer(theme, font, opts.translate, app.renderer.resolution);
+          app.stage.addChild(hud.stage);
+        }
       }
       let readInput: ((now: number) => void) | undefined;
       if (opts.online) readInput = startOnline(opts.online, theme);
@@ -285,8 +324,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         if (session && entities && world?.layout && worldMap && session.world?.map === worldMap) {
           const now = performance.now();
           readInput?.(now);
-          const fd = session.extrapolate(now);
+          const fd = session.skipped || session.gameOver ? null : session.extrapolate(now);
           const me = fd?.players[session.me];
+          // jogo escondido (placar, esperando a partida): só o fundo e os avisos, como o original
+          world.stage.visible = entities.stage.visible = Boolean(fd && me);
           if (fd && me) {
             const s = session;
             topLeft = viewTopLeft(world.layout, coords(me.pos), VIEW);
@@ -308,6 +349,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             report(frame);
             container.dataset.lag = s.stats.averageLag.toFixed(2);
             container.dataset.corrections = String(s.stats.corrections);
+          } else entities.render({ time: 0, players: [], rockets: [], powerups: [], flags: [], deathbringers: [], multiRoom: false }, world.layout, topLeft);
+          if (hud && onlineHud && screen && gameFont) {
+            const state = onlineHud.build({ screen, rooms: world.layout, topLeft, fd, now, fps: app.ticker.FPS, showPings: input.sample().showPings, fontHeight: gameFont.height });
+            if (state) hud.render(state);
           }
         }
         const missing = world?.render(topLeft) ?? 1;
@@ -330,10 +375,23 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     if (me) container.dataset.me = `${me.pos.room.x},${me.pos.room.y},${Math.round(me.pos.x)},${Math.round(me.pos.y)},${me.dead ? 'morto' : 'vivo'},${me.gundir}`;
   };
 
+  /** Chat: antes do jogo e do menu (fase de captura), para o Esc só limpar o texto digitado. */
+  const onChatKey = (ev: KeyboardEvent) => {
+    if (!onlineHud || !input.isEnabled()) return;
+    if (onlineHud.onKey(ev, boundCodes(bindings))) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    }
+  };
+
   addEventListener('keydown', onKey);
+  addEventListener('keydown', onChatKey, true);
   return {
     setInputEnabled: (enabled) => input.setEnabled(enabled),
-    setBindings: (bindings) => input.setBindings(bindings),
+    setBindings: (b) => {
+      bindings = b;
+      input.setBindings(b);
+    },
     setPrediction: (prediction) => {
       if (session) session.prediction = prediction;
     },
@@ -343,6 +401,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       connection?.close();
       input.destroy();
       removeEventListener('keydown', onKey);
+      removeEventListener('keydown', onChatKey, true);
+      hud?.destroy();
       world?.destroy();
       entities?.destroy();
       if (ready) app.destroy(true);

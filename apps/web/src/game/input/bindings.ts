@@ -16,6 +16,7 @@ export const PRESS_ACTIONS = [
   'serverInfo',
   'voteMapChange',
   'moreMessages',
+  'fullPlayfield',
   'toggleNames',
   'toggleSound',
   'screenshot',
@@ -47,6 +48,7 @@ export const ACTION_LABELS: Readonly<Record<Action, string>> = {
   serverInfo: 'Server info',
   voteMapChange: 'Vote map change',
   moreMessages: 'Show more messages',
+  fullPlayfield: 'Show minimap and scoreboard',
   toggleNames: 'Toggle names',
   toggleSound: 'Toggle sound',
   screenshot: 'Screenshot',
@@ -86,6 +88,8 @@ export const CLASSIC_BINDINGS: Bindings = {
   serverInfo: k('F5'),
   voteMapChange: k('F8'),
   moreMessages: k('Insert'),
+  // como o original; fora do modo foco o navegador pode abrir as ferramentas de desenvolvimento
+  fullPlayfield: k('F12'),
   // Ctrl+N abre janela no navegador fora do modo foco: F6 é a alternativa
   toggleNames: [ctrl('KeyN'), { code: 'F6' }],
   toggleSound: [ctrl('KeyM')],

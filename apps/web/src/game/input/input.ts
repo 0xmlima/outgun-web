@@ -56,6 +56,10 @@ export class GameInput {
     this.codes = boundCodes(bindings);
   }
 
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
   /** Com o menu aberto, o jogo não lê teclas (as teclas soltam). */
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;

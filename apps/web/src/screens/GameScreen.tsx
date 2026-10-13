@@ -59,13 +59,14 @@ export default function GameScreen() {
       font: prefs.menuFont,
       bindings: prefs.bindings,
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
+      translate: (text, ...args) => tRef.current(text, ...args),
       onStatus: setStatus,
       onAction: (action) => {
         const t = tRef.current;
         if (action === 'menu') setMenuOpen(true);
         else if (action === 'focusMode') setToast(t('Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).'));
-        // telas e mensagens dos cards OG-044/045/065/066/067
-        else if (action !== 'suicide') setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
+        // telas e mensagens dos cards OG-044/045/066/067
+        else if (action !== 'suicide' && action !== 'moreMessages' && action !== 'fullPlayfield') setToast(t('$1: coming soon', t(ACTION_LABELS[action])));
       },
     });
     host.current = game;
@@ -121,7 +122,7 @@ export default function GameScreen() {
         )}
         {menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
-        ) : (
+        ) : onlineKey !== null && status?.kind === 'ready' ? null : (
           <p className="game-hint">
             <BitmapText
               text={

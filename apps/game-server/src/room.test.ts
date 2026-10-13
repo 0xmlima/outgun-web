@@ -149,6 +149,43 @@ describe('Room', () => {
   });
 });
 
+describe('Room: dados do HUD (OG-065)', () => {
+  it('chat: todos recebem "Nome: texto"; com ponto, só o time; comando é ignorado', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia'); // outro time
+    const c = join(r, 'Cid'); // time da Ana
+    r.handle(a.pid, [message('chat', { text: 'oi', teamOnly: false })]);
+    r.handle(a.pid, [message('chat', { text: '.vem', teamOnly: false })]);
+    r.handle(a.pid, [message('chat', { text: '/help', teamOnly: false })]);
+    r.tick();
+    expect(b.conn.of('text').map((m) => m.text)).toEqual(['Ana: oi']);
+    expect(c.conn.of('text').map((m) => [m.kind, m.text])).toEqual([
+      ['normal', 'Ana: oi'],
+      ['team', 'Ana: vem'],
+    ]);
+  });
+
+  it('chat com caractere de controle é mensagem inválida', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    r.handle(a.pid, [message('chat', { text: 'a\u0007', teamOnly: false })]);
+    expect(a.conn.closed?.[1]).toBe('client_misbehavior');
+  });
+
+  it('tempo de mapa na entrada, arma do jogador e placar quando muda', () => {
+    const r = new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 16, seed: 7 });
+    const a = join(r, 'Ana');
+    expect(a.conn.of('mapTime')).toEqual([{ type: 'mapTime', elapsed: 0, left: 0 }]); // clássico: sem limite
+    r.tick();
+    r.tick();
+    expect(a.conn.of('weaponChange').map((m) => m.level)).toEqual([1]);
+    r.world.teams[1].score = 2;
+    r.tick();
+    expect(a.conn.of('scoreUpdate')).toEqual([{ type: 'scoreUpdate', team: 'blue', score: 2 }]);
+  });
+});
+
 describe('RoomManager', () => {
   it('encerra sala vazia depois do tempo configurado; salas fixas ficam', () => {
     let t = 0;
