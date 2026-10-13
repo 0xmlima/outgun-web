@@ -278,6 +278,7 @@ export function AccountScreen() {
   if (user === null) return leaving ? <Navigate to="/" replace /> : <Navigate to="/login" replace />;
   if (!user) return null;
   const items: MenuItem[] = [
+    { kind: 'action', label: t('My profile'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) },
     { kind: 'action', label: t('Change name'), note: user.username, onActivate: () => void navigate('/account/username') },
     { kind: 'action', label: t('Clan tag'), note: user.clanTag ?? '-', onActivate: () => void navigate('/account/clan-tag') },
     { kind: 'choice', label: t('E-mail'), value: user.email, onChange: () => {}, disabled: true },

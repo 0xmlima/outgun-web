@@ -1009,6 +1009,7 @@ export class Room {
         mode: this.mode,
         ranked: this.mode === 'ranked' && (this.rankingEnabled() || deltas.size > 0),
         deltas: (pid) => deltas.get(pid) ?? { score: 0, neg: 0 },
+        rules: (({ captureLimit, winScoreDifference, timeLimit, extraTime, extraTimePeriods, suddenDeath }) => ({ captureLimit, winScoreDifference, timeLimit, extraTime, extraTimePeriods, suddenDeath }))(this.settings.world),
         map: this.mapFile(this.mapIndex),
         result,
         startedAt,

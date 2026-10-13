@@ -52,6 +52,30 @@ const MatchPlayer = Type.Object({
   negDelta: Count,
   stats: Type.Record(Type.String({ maxLength: 40 }), Type.Number(), { maxProperties: 64 }),
 });
+const Num = Type.Number({ minimum: -1e9, maximum: 1e9 });
+const PlayerName = Type.String({ maxLength: 32 });
+/** Regras, estatísticas de time e capturas (o "save_stats" do original, OG-085). */
+const MatchDetails = Type.Object({
+  reason: Type.String({ maxLength: 20 }),
+  mapTime: Count,
+  mapTitle: Type.String({ maxLength: 64 }),
+  rules: Type.Object({
+    captureLimit: Count,
+    winScoreDifference: Count,
+    timeLimit: Count,
+    extraTime: Count,
+    extraTimePeriods: Count,
+    suddenDeath: Type.Boolean(),
+  }),
+  teams: Type.Array(Type.Record(Type.String({ maxLength: 40 }), Num, { maxProperties: 20 }), { minItems: 2, maxItems: 2 }),
+  // null antes da string na união: com coerceTypes, o Ajv do Fastify converteria null em "".
+  captures: Type.Array(
+    Type.Object({ time: Count, team: Type.Union([Type.Literal(0), Type.Literal(1)]), capturer: PlayerName, assistant: Type.Union([Type.Null(), PlayerName]) }),
+    { maxItems: 500 },
+  ),
+  baseScore: Type.Array(Type.Integer({ minimum: 0, maximum: 32767 }), { minItems: 2, maxItems: 2 }),
+});
+
 const MatchResult = Type.Object({
   serverMatchId: Type.String({ minLength: 1, maxLength: 64 }),
   roomId: Type.Optional(RoomId),
@@ -62,6 +86,7 @@ const MatchResult = Type.Object({
   blueScore: Type.Integer({ minimum: 0, maximum: 32767 }),
   startedAt: Type.String({ format: 'date-time' }),
   endedAt: Type.String({ format: 'date-time' }),
+  details: Type.Optional(MatchDetails),
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
@@ -233,6 +258,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               blueScore: body.blueScore,
               startedAt: new Date(body.startedAt),
               endedAt: new Date(body.endedAt),
+              details: body.details ?? {},
             })
             .returning({ id: matches.id });
           if (body.players.length > 0) {

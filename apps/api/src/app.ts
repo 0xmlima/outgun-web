@@ -18,6 +18,7 @@ import { healthRoutes } from './routes/health.js';
 import { internalRoutes } from './routes/internal.js';
 import { nameRoutes } from './routes/names.js';
 import { joinRoutes } from './routes/join.js';
+import { playerRoutes } from './routes/players.js';
 import { rankingRoutes } from './routes/ranking.js';
 import { roomRoutes } from './routes/rooms.js';
 import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
@@ -161,6 +162,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(healthRoutes(deps));
   await app.register(roomRoutes(deps, services));
   await app.register(rankingRoutes(deps));
+  await app.register(playerRoutes(deps));
   await app.register(nameRoutes(deps));
   await app.register(joinRoutes(deps, services));
   await app.register(authRoutes(deps, services), { prefix: '/auth' });

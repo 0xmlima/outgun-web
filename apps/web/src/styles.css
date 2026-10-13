@@ -185,6 +185,76 @@ body {
   margin: calc(var(--px) * 8px) 0 0;
 }
 
+/* Perfil, partida e ranking (OG-085): tabelas como as do HTML de estatísticas do original. */
+.stats-section h2 {
+  margin: calc(var(--px) * 10px) 0 calc(var(--px) * 4px);
+  padding: 0 calc(var(--px) * 4px);
+  font-size: 1em;
+  color: var(--menu-caption);
+  background: var(--menu-caption-bg);
+}
+.stats-section a {
+  color: var(--menu-active);
+}
+.stats-line,
+.stats-note {
+  margin: calc(var(--px) * 4px) 0;
+}
+.stats-note.error {
+  color: #ff8080;
+}
+.stats-table {
+  border-collapse: collapse;
+  font-size: 0.75em;
+}
+.stats-table.wide {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.stats-table th,
+.stats-table td {
+  border: 1px solid var(--menu-border-highlight);
+  padding: 0 calc(var(--px) * 4px);
+  text-align: right;
+  white-space: nowrap;
+}
+.stats-table th {
+  color: var(--menu-item);
+  font-weight: normal;
+  text-align: left;
+}
+.stats-table td.name {
+  text-align: left;
+}
+.stats-table .team-red th,
+.stats-table th.team-red,
+.stats-table tr.team-red td:first-child {
+  color: #ff8080;
+}
+.stats-table .team-blue th,
+.stats-table th.team-blue,
+.stats-table tr.team-blue td:first-child {
+  color: #80a0ff;
+}
+.stats-tabs {
+  display: flex;
+  gap: calc(var(--px) * 4px);
+  margin: calc(var(--px) * 4px) 0;
+}
+.stats-tabs button {
+  font: inherit;
+  color: var(--menu-item);
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border-highlight);
+  padding: 0 calc(var(--px) * 6px);
+  cursor: pointer;
+}
+.stats-tabs button.active,
+.stats-tabs button:focus-visible {
+  color: var(--menu-active);
+}
+
 .game {
   position: fixed;
   inset: 0;

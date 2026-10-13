@@ -122,6 +122,7 @@ export const matches = pgTable(
     blueScore: smallint('blue_score').notNull(),
     startedAt: tstz('started_at').notNull(),
     endedAt: tstz('ended_at').notNull(),
+    details: jsonb('details').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],

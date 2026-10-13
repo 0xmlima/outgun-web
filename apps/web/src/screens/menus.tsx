@@ -39,6 +39,7 @@ export function HomeScreen() {
   const items: MenuItem[] = [
     { kind: 'action', label: t('Play now'), onActivate: () => void navigate('/play') },
     { kind: 'action', label: t('Rooms'), onActivate: () => {}, disabled: true, note: soon },
+    { kind: 'action', label: t('Ranking'), onActivate: () => void navigate('/ranking') },
     { kind: 'action', label: t('Replays'), onActivate: () => {}, disabled: true, note: soon },
     { kind: 'action', label: t('Options'), onActivate: () => void navigate('/options') },
     { kind: 'action', label: t('Help'), onActivate: () => void navigate('/help') },

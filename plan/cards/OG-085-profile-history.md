@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S9 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-084](OG-084-ranking.md) |
 | Regras de negócio | RN-STA-01, RN-STA-03 |
 | Skills | `outgun-card-workflow` |
@@ -24,11 +24,15 @@ Como jogador, quero ver meu perfil, estatísticas acumuladas e histórico de par
 - Link para replay quando houver.
 
 ## Critérios de aceite
-- [ ] Perfil e partida acessíveis por URL pública.
-- [ ] Estatísticas batem com a tela F4 da partida.
+- [x] Perfil e partida acessíveis por URL pública.
+- [ ] Estatísticas batem com a tela F4 da partida. _(mesma fonte — `PlayerResult` da sim no fim da partida; conferir quando a F4 existir, OG-066)_
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- **Game server**: o resultado da partida ganha `details` (o conteúdo do `save_stats`): motivo, duração, título do mapa, regras ("Game info"), estatísticas dos times e capturas com capturador/assistente e placar-base (pontos de posse).
+- **API**: migration `0006_match_details` (`matches.details`, índice por data). Rotas públicas `GET /players/:nome` (nome comparado como no login: sem maiúsculas/acentos; posição no ranking da temporada; totais **separados por modo** — partidas, vitórias/derrotas/empates, frags, mortes, capturas, assistências, bandeiras devolvidas, portadores mortos, precisão, tempo de jogo), `GET /players/:nome/matches?mode=&limit=&offset=` e `GET /matches/:id`. E-mail nunca aparece. `replayUrl` sempre `null` até os replays (OG-091).
+- **Cliente**: páginas `/players/:nome`, `/matches/:id` e `/ranking` (tabelas no estilo do HTML de estatísticas, com as cores dos menus); "Ranking" no menu inicial e "Meu perfil" na conta. Textos novos em pt-BR.
+- Achado: com `coerceTypes` do Fastify, uma união `string | null` com a string primeiro transforma `null` em `""`; no esquema do resultado o `null` vem primeiro.
+- Prova: `apps/api/src/routes/players.test.ts`, `apps/web/src/screens/stats.test.ts`; E2E real (API + game server + cliente): sala privada, dono com `/set time_limit 1`, partida terminou por tempo em 59 s e apareceu no histórico; prints em `tools/parity/out/prints/085-{perfil,partida,ranking}.png`.

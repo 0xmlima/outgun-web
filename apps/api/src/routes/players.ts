@@ -1,0 +1,210 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Perfil público, histórico e partida (OG-085, RN-STA-01/03): estatísticas separadas por modo
+// (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original.
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import type { AppDeps } from '../app.js';
+import { usernameKey } from '../db/keys.js';
+import { matches, matchPlayers, ratings, users } from '../db/schema.js';
+import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
+import { ErrorSchema, GameModeSchema } from './schemas.js';
+
+const Totals = Type.Object({
+  matches: Type.Integer(),
+  wins: Type.Integer(),
+  losses: Type.Integer(),
+  draws: Type.Integer(),
+  frags: Type.Integer(),
+  kills: Type.Integer(),
+  deaths: Type.Integer(),
+  captures: Type.Integer(),
+  assists: Type.Integer(),
+  flagsReturned: Type.Integer(),
+  carriersKilled: Type.Integer(),
+  shots: Type.Integer(),
+  hits: Type.Integer(),
+  playSeconds: Type.Integer(),
+});
+const MatchSummary = Type.Object({
+  id: Type.String(),
+  endedAt: Type.String(),
+  mode: GameModeSchema,
+  ranked: Type.Boolean(),
+  map: Type.String(),
+  redScore: Type.Integer(),
+  blueScore: Type.Integer(),
+});
+const PlayerLine = Type.Object({
+  slot: Type.Integer(),
+  name: Type.String(),
+  username: Type.Union([Type.String(), Type.Null()]),
+  team: Type.Integer(),
+  isBot: Type.Boolean(),
+  frags: Type.Integer(),
+  kills: Type.Integer(),
+  deaths: Type.Integer(),
+  captures: Type.Integer(),
+  playSeconds: Type.Integer(),
+  scoreDelta: Type.Number(),
+  negDelta: Type.Integer(),
+  stats: Type.Record(Type.String(), Type.Number()),
+});
+
+const won = sql`CASE WHEN ${matchPlayers.team} = 0 THEN ${matches.redScore} > ${matches.blueScore} ELSE ${matches.blueScore} > ${matches.redScore} END`;
+const stat = (key: string) => sql<number>`coalesce(sum((${matchPlayers.stats} ->> ${key})::numeric), 0)::int`;
+
+export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
+  const { db } = database;
+  return async (app) => {
+    app.get(
+      '/players/:name',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Perfil público: nome, clã, posição no ranking e estatísticas por modo',
+          params: Type.Object({ name: Type.String({ minLength: 1, maxLength: 32 }) }),
+          response: {
+            200: Type.Object({
+              user: Type.Object({ id: Type.String(), username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), createdAt: Type.String() }),
+              ranking: Type.Union([
+                Type.Object({ season: Type.String(), score: Type.Number(), neg: Type.Integer(), rating: Type.Number(), rank: Type.Integer(), of: Type.Integer(), matches: Type.Integer(), minimumScore: Type.Integer() }),
+                Type.Null(),
+              ]),
+              totals: Type.Object({ ranked: Totals, casual: Totals }),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [user] = await db.select().from(users).where(eq(users.usernameKey, usernameKey(request.params.name)));
+        if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
+        const season = await activeSeason(db);
+        let ranking = null;
+        if (season) {
+          const r = await playerRating(db, user.id);
+          const [row] = await db.select({ matches: ratings.matches }).from(ratings).where(and(eq(ratings.userId, user.id), eq(ratings.seasonId, season.id)));
+          ranking = { season: season.name, score: r.score, neg: r.neg, rating: (r.score + 1) / (r.neg + 1), rank: r.rank, of: r.of, matches: row?.matches ?? 0, minimumScore: MINIMUM_SCORE };
+        }
+        const rows = await db
+          .select({
+            mode: matches.mode,
+            matches: sql<number>`count(*)::int`,
+            wins: sql<number>`count(*) FILTER (WHERE ${won})::int`,
+            draws: sql<number>`count(*) FILTER (WHERE ${matches.redScore} = ${matches.blueScore})::int`,
+            frags: sql<number>`coalesce(sum(${matchPlayers.frags}), 0)::int`,
+            kills: sql<number>`coalesce(sum(${matchPlayers.kills}), 0)::int`,
+            deaths: sql<number>`coalesce(sum(${matchPlayers.deaths}), 0)::int`,
+            captures: sql<number>`coalesce(sum(${matchPlayers.captures}), 0)::int`,
+            assists: stat('assists'),
+            flagsReturned: stat('flagsReturned'),
+            carriersKilled: stat('carriersKilled'),
+            shots: stat('shots'),
+            hits: stat('hits'),
+            playSeconds: sql<number>`coalesce(sum(${matchPlayers.playSeconds}), 0)::int`,
+          })
+          .from(matchPlayers)
+          .innerJoin(matches, eq(matches.id, matchPlayers.matchId))
+          .where(eq(matchPlayers.userId, user.id))
+          .groupBy(matches.mode);
+        const empty = { matches: 0, wins: 0, losses: 0, draws: 0, frags: 0, kills: 0, deaths: 0, captures: 0, assists: 0, flagsReturned: 0, carriersKilled: 0, shots: 0, hits: 0, playSeconds: 0 };
+        const totals = { ranked: { ...empty }, casual: { ...empty } };
+        for (const { mode, ...t } of rows) totals[mode] = { ...t, losses: t.matches - t.wins - t.draws };
+        return {
+          user: { id: user.id, username: user.username, clanTag: user.clanTag, createdAt: user.createdAt.toISOString() },
+          ranking,
+          totals,
+        };
+      },
+    );
+
+    app.get(
+      '/players/:name/matches',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Histórico de partidas do jogador (mais recentes primeiro)',
+          params: Type.Object({ name: Type.String({ minLength: 1, maxLength: 32 }) }),
+          querystring: Type.Object({
+            mode: Type.Optional(GameModeSchema),
+            limit: Type.Integer({ minimum: 1, maximum: 100, default: 20 }),
+            offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
+          }),
+          response: {
+            200: Type.Object({
+              total: Type.Integer(),
+              matches: Type.Array(Type.Intersect([MatchSummary, Type.Object({ player: Type.Omit(PlayerLine, ['username', 'stats']) })])),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [user] = await db.select({ id: users.id }).from(users).where(eq(users.usernameKey, usernameKey(request.params.name)));
+        if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
+        const { mode, limit, offset } = request.query;
+        const where = and(eq(matchPlayers.userId, user.id), mode ? eq(matches.mode, mode) : undefined);
+        const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(matchPlayers).innerJoin(matches, eq(matches.id, matchPlayers.matchId)).where(where);
+        const rows = await db
+          .select({ m: matches, p: matchPlayers })
+          .from(matchPlayers)
+          .innerJoin(matches, eq(matches.id, matchPlayers.matchId))
+          .where(where)
+          .orderBy(desc(matches.endedAt))
+          .limit(limit)
+          .offset(offset);
+        return {
+          total: count?.n ?? 0,
+          matches: rows.map(({ m, p }) => ({
+            ...summary(m),
+            player: { slot: p.slot, name: p.name, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures, playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta },
+          })),
+        };
+      },
+    );
+
+    app.get(
+      '/matches/:id',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Partida: regras, estatísticas de time, de cada jogador e capturas',
+          params: Type.Object({ id: Type.String({ format: 'uuid' }) }),
+          response: {
+            200: Type.Object({
+              match: Type.Intersect([MatchSummary, Type.Object({ startedAt: Type.String(), roomId: Type.Union([Type.String(), Type.Null()]), seasonId: Type.Union([Type.Integer(), Type.Null()]) })]),
+              details: Type.Record(Type.String(), Type.Unknown()),
+              players: Type.Array(PlayerLine),
+              /** Replay da partida, quando houver (OG-091). */
+              replayUrl: Type.Union([Type.String(), Type.Null()]),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [m] = await db.select().from(matches).where(eq(matches.id, request.params.id));
+        if (!m) return reply.code(404).send({ error: 'match_not_found', message: 'match not found' });
+        const players = await db
+          .select({ p: matchPlayers, username: users.username })
+          .from(matchPlayers)
+          .leftJoin(users, eq(users.id, matchPlayers.userId))
+          .where(eq(matchPlayers.matchId, m.id))
+          .orderBy(asc(matchPlayers.team), desc(matchPlayers.frags), asc(matchPlayers.slot));
+        return {
+          match: { ...summary(m), startedAt: m.startedAt.toISOString(), roomId: m.roomId, seasonId: m.seasonId },
+          details: m.details,
+          players: players.map(({ p, username }) => ({
+            slot: p.slot, name: p.name, username, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures,
+            playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta, stats: p.stats,
+          })),
+          replayUrl: null,
+        };
+      },
+    );
+  };
+}
+
+function summary(m: typeof matches.$inferSelect) {
+  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, map: m.map, redScore: m.redScore, blueScore: m.blueScore };
+}
