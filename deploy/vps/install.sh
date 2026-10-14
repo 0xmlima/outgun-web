@@ -15,6 +15,13 @@ if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1; t
   apt-get install -yq docker.io docker-compose-v2 ufw unattended-upgrades
   systemctl enable --now docker
 fi
+# as imagens Ubuntu da Oracle Cloud trazem regras de iptables que rejeitam tudo menos o SSH (e o
+# encaminhamento do Docker): sai o netfilter-persistent, quem cuida do firewall é o ufw
+if dpkg -s netfilter-persistent >/dev/null 2>&1; then
+  DEBIAN_FRONTEND=noninteractive apt-get purge -yq iptables-persistent netfilter-persistent
+  while iptables -D INPUT -j REJECT --reject-with icmp-host-prohibited 2>/dev/null; do :; done
+  while iptables -D FORWARD -j REJECT --reject-with icmp-host-prohibited 2>/dev/null; do :; done
+fi
 if ! ufw status | grep -q "Status: active"; then
   ufw default deny incoming && ufw default allow outgoing
   ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp

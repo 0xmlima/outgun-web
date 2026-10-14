@@ -1,8 +1,8 @@
 # Outgun Web numa VPS (OG-109)
 
-Uma máquina Linux (Ubuntu/Debian, x86_64) com Docker roda tudo: PostgreSQL, Redis, API, game server,
-cliente web e um Caddy na frente com HTTPS automático (Let's Encrypt). Serve para o beta e para
-qualquer provedor (DigitalOcean, VPS brasileira etc.).
+Uma máquina Linux (Ubuntu/Debian, x86_64 ou arm64) com Docker roda tudo: PostgreSQL, Redis, API,
+game server, cliente web e um Caddy na frente com HTTPS automático (Let's Encrypt). Serve para o beta
+e para qualquer provedor (DigitalOcean, Oracle Cloud com a Ampere A1 grátis, VPS brasileira etc.).
 
 ```
 navegador ──HTTPS──▶ edge (Caddy, 80/443) ──▶ web (Caddy: estáticos + /api ──▶ api)
