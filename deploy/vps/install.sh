@@ -9,12 +9,18 @@ set -euo pipefail
 cd /opt/outgun
 : "${TAG:?defina TAG}"
 
-if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1; then
+# cada pacote que faltar (o deploy.sh já pode ter instalado o Docker; imagens mínimas vêm sem ufw)
+pkgs=""
+command -v docker >/dev/null && docker compose version >/dev/null 2>&1 || pkgs="docker.io docker-compose-v2"
+command -v ufw >/dev/null || pkgs="$pkgs ufw"
+dpkg -s unattended-upgrades >/dev/null 2>&1 || pkgs="$pkgs unattended-upgrades"
+if [ -n "$pkgs" ]; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -q
-  apt-get install -yq docker.io docker-compose-v2 ufw unattended-upgrades
-  systemctl enable --now docker
+  # shellcheck disable=SC2086
+  apt-get install -yq $pkgs
 fi
+systemctl enable --now docker
 # as imagens Ubuntu da Oracle Cloud trazem regras de iptables que rejeitam tudo menos o SSH (e o
 # encaminhamento do Docker): sai o netfilter-persistent, quem cuida do firewall é o ufw
 if dpkg -s netfilter-persistent >/dev/null 2>&1; then
