@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-201](OG-201-menu-principal-v2.md) |
 | Regras de negócio | RN-UI-01 |
 | Skills | `outgun-card-workflow` |
