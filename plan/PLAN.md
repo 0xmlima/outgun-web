@@ -656,9 +656,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Concluído |
 | [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Concluído |
 | [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Concluído |
-| [OG-200](cards/OG-200-design-system-v2.md) | Design system v2: fonte única, tokens e componentes base | E8 | 5 | Must | S13 | — | Em revisão |
-| [OG-201](cards/OG-201-menu-principal-v2.md) | Novo menu principal e moldura das telas | E8 | 5 | Must | S13 | OG-200 | Em revisão |
-| [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Em revisão |
+| [OG-200](cards/OG-200-design-system-v2.md) | Design system v2: fonte única, tokens e componentes base | E8 | 5 | Must | S13 | — | Concluído |
+| [OG-201](cards/OG-201-menu-principal-v2.md) | Novo menu principal e moldura das telas | E8 | 5 | Must | S13 | OG-200 | Concluído |
+| [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Concluído |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Backlog |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
@@ -669,9 +669,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-214](cards/OG-214-relatorio-partida.md) | Relatório de partida | E9 | 5 | Must | S14 | OG-200 | Backlog |
 | [OG-215](cards/OG-215-diretorio-jogadores.md) | Diretório e busca de jogadores | E9 | 3 | Should | S15 | OG-200, OG-211 | Backlog |
 | [OG-216](cards/OG-216-cliente-portal-links.md) | Ligações entre o cliente e o portal | E9 | 2 | Won't (v2) | — | OG-212, OG-214 | Cancelado |
-| [OG-220](cards/OG-220-pipeline-trilha.md) | Pipeline da trilha sonora | E10 | 2 | Must | S13 | — | Em revisão |
-| [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Em revisão |
-| [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Em revisão |
+| [OG-220](cards/OG-220-pipeline-trilha.md) | Pipeline da trilha sonora | E10 | 2 | Must | S13 | — | Concluído |
+| [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Concluído |
+| [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Concluído |
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
 
 **Total:** 86 cards, 353 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 17 cards, 58 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).

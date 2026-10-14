@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S13 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-221](OG-221-player-trilha.md) |
 | Regras de negócio | RN-MUS-04 |
 | Skills | `outgun-card-workflow` |

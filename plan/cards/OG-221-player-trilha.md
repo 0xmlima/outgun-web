@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S13 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-220](OG-220-pipeline-trilha.md) |
 | Regras de negócio | RN-MUS-01, RN-MUS-02, RN-MUS-03 |
 | Skills | `outgun-card-workflow` |
