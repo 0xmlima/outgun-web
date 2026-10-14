@@ -38,6 +38,8 @@ export interface AppDeps {
   counters?: CounterStore;
   /** Substitui o envio de erros configurado em SENTRY_DSN (testes). */
   errors?: ErrorReporter;
+  /** Desligando (OG-103): /health responde 503 para o balanceador tirar a instância do rodízio. */
+  lifecycle?: { stopping: boolean };
 }
 
 /** Serviços montados a partir das dependências, usados pelas rotas de conta. */

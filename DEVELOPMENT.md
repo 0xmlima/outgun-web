@@ -72,6 +72,11 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - `pnpm --filter @outgun/e2e e2e` (depois de `pnpm build`): Playwright com o Chrome instalado (no CI, o Chromium do Playwright). Sobe um PostgreSQL descartável no Docker (porta 55433; `E2E_DATABASE_URL` usa outro), a API (17800), o game server (17700, tickets de verdade, partidas de 1 minuto com 3 bots) e o `vite preview` (14173), e percorre cadastro → lobby → "Jogar agora" → partida até o fim → perfil com a partida → página da partida → ranking; também confere que convidado no Ranked vai para o login. Prints em `tools/parity/out/prints/og101/`, relatório e traces de falha em `tools/parity/out/e2e/`.
 - `node tools/load/run.mjs [--rooms 20] [--players 32] [--seconds 60] [--warmup 20] [--workers 4] [--lag MS] [--jitter MS] [--loss PCT] [--server ws://...]`: sobe um game server próprio (porta 17790) com as salas fixas (variável `ROOMS` do game server) e N×M clientes headless em processos separados, com rede ruim simulada opcional; o relatório (tick por sala e do processo, CPU, tráfego por cliente, frames) sai em `tools/parity/out/load/report.md`. O resultado de referência está em `plan/reports/OG-101-carga.md`.
 
+## Deploy (OG-103)
+
+- `deploy/`: imagens de produção (`deploy/Dockerfile`, alvos `api`, `game-server`, `web`), configuração do Fly.io (`deploy/fly/`), backup (`deploy/backup/`), homologação local (`bash deploy/staging.sh build|up|down`, em http://localhost:18080) e os testes de deploy sem queda, drenagem e restore. Guia em `deploy/README.md`; workflow em `.github/workflows/deploy.yml`.
+- Game server: no SIGTERM drena (sem salas novas; cada sala fecha no fim da partida, até `DRAIN_TIMEOUT_S`); `INSTANCE_ID`/`FLY_MACHINE_ID` publica as salas também em `/m/<id>/rooms/...` (com `fly-replay` para a máquina certa); `{instance}` em `PUBLIC_WS_URL` e `GS_ID`. API: no SIGTERM, `/health` 503 por `SHUTDOWN_GRACE_S` antes de fechar; o HMAC aceita `base.<instância>` com o segredo de `base`.
+
 ## Segurança (OG-104)
 
 - Revisão ASVS nível 1 e anti-cheat em `plan/reports/OG-104-seguranca.md` (achados, correções e a lista de verificação do deploy).

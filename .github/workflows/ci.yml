@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # o deploy (deploy.yml) roda o CI inteiro antes
+  workflow_call:
 
 jobs:
   ci:
@@ -25,6 +27,8 @@ jobs:
       - run: pnpm check:licenses
       - name: Regras de alerta e painel (OG-102)
         run: bash tools/observability/check.sh
+      - name: Workflows (actionlint)
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
       - name: Relatório de paridade com o Outgun original
         if: always()
         run: pnpm parity --report tools/parity/out/parity-report.md
@@ -33,6 +37,15 @@ jobs:
         with:
           name: parity-report
           path: tools/parity/out/parity-report.md
+
+  images:
+    # as imagens de produção (OG-103) continuam construindo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: for t in api game-server web; do docker build -f deploy/Dockerfile --target "$t" -t "outgun-$t:ci" .; done
+      - run: docker build -t outgun-backup:ci deploy/backup
 
   e2e:
     runs-on: ubuntu-latest

@@ -99,9 +99,32 @@ export class RoomManager {
     return this.options.maxRooms ?? 1000;
   }
 
-  /** Cabe mais uma sala aberta sob demanda. */
+  /** Cabe mais uma sala aberta sob demanda (nunca durante a drenagem). */
   get hasCapacity(): boolean {
-    return this.rooms.size < this.maxRooms;
+    return !this.draining && this.rooms.size < this.maxRooms;
+  }
+
+  /** Desligando (OG-103): sem salas novas; as atuais fecham no fim da partida. */
+  draining = false;
+
+  /**
+   * Drena o processo: cada sala termina a partida em andamento e fecha; resolve quando não sobra
+   * sala ou depois de `timeoutMs` (aí fecha as que restam, como o `stop`).
+   */
+  drain(timeoutMs: number): Promise<void> {
+    this.draining = true;
+    for (const { room } of this.rooms.values()) room.drain();
+    return new Promise((resolve) => {
+      const started = this.clock.now();
+      const check = () => {
+        if (this.rooms.size === 0 || this.clock.now() - started >= timeoutMs) {
+          this.stop();
+          return resolve();
+        }
+        this.clock.setTimeout(check, 250);
+      };
+      check();
+    });
   }
 
   hosted(): HostedRoom[] {
@@ -138,6 +161,10 @@ export class RoomManager {
     const now = begin;
     const observer = this.observer;
     for (const [id, entry] of this.rooms) {
+      if (entry.room.finished) {
+        this.close(id);
+        continue;
+      }
       if (observer) {
         const start = this.clock.now();
         try {

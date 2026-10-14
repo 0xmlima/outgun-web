@@ -86,6 +86,17 @@ describe('observabilidade da API', () => {
     await secure.app.close();
   });
 
+  it('desligando, /health responde 503 para o balanceador (OG-103)', async () => {
+    const lifecycle = { stopping: false };
+    const app = await buildApp({ config: loadConfig({}), database: fakeDatabase, logger: false, lifecycle });
+    expect((await app.inject({ url: '/health' })).statusCode).toBe(200);
+    lifecycle.stopping = true;
+    const res = await app.inject({ url: '/health' });
+    expect(res.statusCode).toBe(503);
+    expect(res.json().status).toBe('stopping');
+    await app.close();
+  });
+
   it('com METRICS_TOKEN, /metrics exige o token', async () => {
     const { app } = await setup({ METRICS_TOKEN: 'segredo' });
     expect((await app.inject({ url: '/metrics' })).statusCode).toBe(401);

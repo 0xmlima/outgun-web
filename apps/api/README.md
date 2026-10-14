@@ -33,6 +33,7 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 | `SENTRY_DSN`          | vazio (desligado)                                 | Erros 5xx e exceções para um serviço compatível com Sentry (OG-102)      |
 | `SENTRY_ENVIRONMENT`  | `NODE_ENV`                                        | Ambiente nos logs e nos erros                                            |
 | `RELEASE`             | vazio                                             | Versão nos logs e nos erros                                              |
+| `SHUTDOWN_GRACE_S`    | `5`                                               | No SIGTERM, tempo com /health em 503 antes de fechar (deploy sem queda)  |
 
 Observabilidade (OG-102): logs JSON (pino) com `service`, `env` e `reqId` (o `x-request-id` recebido,
 se bem formado, ou um novo; devolvido na resposta); a entrada numa sala registra o `jti` do ticket,

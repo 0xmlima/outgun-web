@@ -186,6 +186,10 @@ export class Room {
   private readonly announcer: VoteAnnouncer = { votes: 0, needed: 0, nextFrame: 0 };
   /** Placar de fim de partida: até este frame o mundo não é simulado. */
   private gameOverUntil: number | null = null;
+  /** Servidor desligando (OG-103): a sala fecha no fim da partida em andamento. */
+  private draining = false;
+  /** Partida acabou durante a drenagem (ou não há humanos): o gerenciador fecha a sala. */
+  finished = false;
   private outbox: AnyMessage[] = [];
   /** Expulsões por `client_misbehavior` (para log e métricas). */
   readonly kicks: { pid: number; name: string; reason: string }[] = [];
@@ -798,8 +802,14 @@ export class Room {
     this.uptimeFrames++;
     if (this.checkBotsPending) this.checkBots();
     for (const c of this.clients.values()) c.guard.tick();
+    if (this.draining && ![...this.clients.values()].some((c) => !c.bot)) this.finished = true;
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
+      if (this.draining) {
+        // a partida seguinte não começa: o placar já foi mostrado e o resultado enviado
+        this.finished = true;
+        return;
+      }
       this.sim.startGame();
       this.broadcast(message('startGame', {}), this.mapTimeMessage());
       this.startRecording();
@@ -1404,6 +1414,16 @@ export class Room {
       avgBytesPerSecond: rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0,
       maxBytesPerSecond: rates.length ? Math.max(...rates) : 0,
     };
+  }
+
+  /**
+   * Drenagem (OG-103): avisa os jogadores; a sala fecha no fim da partida em andamento (o placar e o
+   * resultado saem normalmente), ou na hora se só houver bots.
+   */
+  drain(): void {
+    if (this.draining) return;
+    this.draining = true;
+    this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
   }
 
   /** Encerra a sala: avisa e fecha todas as conexões. */

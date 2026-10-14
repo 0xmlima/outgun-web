@@ -25,6 +25,11 @@ describe('escolha do servidor', () => {
     expect(pickServer([s('a', 10), s('b', 2), s('c', 0, 10)])?.id).toBe('b');
   });
 
+  it('servidor drenando (maxRooms 0) fica fora', () => {
+    expect(pickServer([s('a', 0, 0, 'eu', 0), s('b', 9)])?.id).toBe('b');
+    expect(pickServer([s('a', 0, 0, 'eu', 0)])).toBeUndefined();
+  });
+
   it('a região pedida tem preferência, se houver vaga nela', () => {
     expect(pickServer([s('a', 0, 1, 'us'), s('b', 9, 1, 'eu')], 'eu')?.id).toBe('b');
     expect(pickServer([s('a', 0, 1, 'us'), s('b', 9, 10, 'eu')], 'eu')?.id).toBe('a');
@@ -131,6 +136,16 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     const online = await post('/rooms/main/join', { name: 'Ana' });
     expect(online.json().wsUrl).toBe('ws://gs-1.test/rooms/main');
     expect(claims(online.json().ticket, 'main').spawn).toBeUndefined();
+  });
+
+  it('servidor drenando (maxRooms 0, OG-103) não recebe salas novas, nem a que já esteve nele', async () => {
+    // gs-2 começou a drenar e já fechou a ranked; gs-1 segue normal
+    await heartbeat('gs-2', [], 'eu', 0);
+    await heartbeat('gs-1', [{ id: 'main', players: 12 }]);
+    await t.db.update(rooms).set({ lastHeartbeatAt: null }).where(eq(rooms.id, 'ranked'));
+    const res = await post('/rooms/ranked/join', {}, true);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().wsUrl).toBe('ws://gs-1.test/rooms/ranked');
   });
 
   it('"Jogar agora" junta jogadores na sala pública mais cheia do modo', async () => {

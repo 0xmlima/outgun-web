@@ -12,3 +12,6 @@ apps/web/public/assets/
 
 # replays gravados pelo game server em desenvolvimento (OG-090)
 var/
+
+# segredos da homologação local (OG-103)
+deploy/.env.staging

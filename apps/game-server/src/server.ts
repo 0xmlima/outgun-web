@@ -39,6 +39,12 @@ export interface ServerOptions {
   telemetry?: GameTelemetry;
   /** Exige `Authorization: Bearer <token>` em /metrics. */
   metricsToken?: string;
+  /**
+   * Id desta instância (no Fly, FLY_MACHINE_ID; OG-103). As salas também respondem em
+   * `/m/<id>/rooms/...`: o endereço anunciado à API leva o id da máquina, e um pedido que o proxy
+   * entregar a outra máquina recebe `fly-replay` para ser reenviado à certa.
+   */
+  instanceId?: string;
   /** Conexões abertas ao mesmo tempo por IP, jogadores e espectadores (OG-104; padrão 8, 0 = sem limite). */
   maxConnectionsPerIp?: number;
   /** Log estruturado das entradas e recusas (com o `jti` do ticket para correlacionar com a API). */
@@ -81,6 +87,22 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
     return forwarded || Buffer.from(res.getRemoteAddressAsText()).toString();
   };
+  /** Segmento depois de `name` no caminho (`/m/x/rooms/<id>/spectate` → id), com ou sem o prefixo da instância. */
+  const segment = (req: uWS.HttpRequest, name: string) => {
+    const parts = req.getUrl().split('/');
+    const i = parts.indexOf(name, 1);
+    return i === -1 ? '' : (parts[i + 1] ?? '');
+  };
+  /** Pedido em `/m/<outra>/...`: manda o proxy da plataforma reenviar para a instância certa. */
+  const elsewhere = (res: uWS.HttpResponse, req: uWS.HttpRequest): boolean => {
+    const parts = req.getUrl().split('/');
+    if (parts[1] !== 'm' || !options.instanceId) return false;
+    const target = parts[2] ?? '';
+    if (target === options.instanceId) return false;
+    if (!/^[a-z0-9]{1,32}$/.test(target)) res.writeStatus('404 Not Found').end();
+    else res.writeStatus('409 Conflict').writeHeader('fly-replay', `instance=${target}`).end();
+    return true;
+  };
   const send = (ws: uWS.WebSocket<unknown>, data: Uint8Array) => {
     telemetry.bytesSent.inc(data.length);
     ws.send(data, true);
@@ -92,12 +114,13 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     ws.end(4000, reason);
   };
 
-  app.ws<SocketData>('/rooms/:id', {
+  const playerSocket: uWS.WebSocketBehavior<SocketData> = {
     compression: uWS.DISABLED,
     maxPayloadLength: 64 * 1024,
     idleTimeout: 60,
     upgrade: (res, req, context) => {
-      const roomId = req.getParameter(0) ?? '';
+      if (elsewhere(res, req)) return;
+      const roomId = segment(req, 'rooms');
       if (!manager.get(roomId) && !(options.spawnRoom && ROOM_ID.test(roomId))) {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
@@ -180,15 +203,17 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       }
       user.pid = -1;
     },
-  });
+  };
+  for (const path of ['/rooms/:id', '/m/:machine/rooms/:id']) app.ws<SocketData>(path, playerSocket);
 
   // Espectadores ao vivo (OG-092): sem ticket, só recebem; o atraso é o `spectating_delay` da sala.
-  app.ws<{ roomId: string; ip: string; conn: Connection | null }>('/rooms/:id/spectate', {
+  const spectatorSocket: uWS.WebSocketBehavior<{ roomId: string; ip: string; conn: Connection | null }> = {
     compression: uWS.DISABLED,
     maxPayloadLength: 1024,
     idleTimeout: 120,
     upgrade: (res, req, context) => {
-      const roomId = req.getParameter(0) ?? '';
+      if (elsewhere(res, req)) return;
+      const roomId = segment(req, 'rooms');
       if (!manager.get(roomId)) {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
@@ -225,7 +250,8 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       }
       user.conn = null;
     },
-  });
+  };
+  for (const path of ['/rooms/:id/spectate', '/m/:machine/rooms/:id/spectate']) app.ws(path, spectatorSocket);
 
   app.get('/health', (res) => {
     // o lobby mede o ping de cada região com este endereço (OG-069)
@@ -244,8 +270,9 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
 
   if (options.replays) {
     const store = options.replays;
-    app.get('/replays/:file', (res, req) => {
-      const file = store.path(req.getParameter(0) ?? '');
+    const replay = (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
+      if (elsewhere(res, req)) return;
+      const file = store.path(segment(req, 'replays'));
       let data: Buffer;
       try {
         if (!file) throw new Error('nome inválido');
@@ -254,7 +281,9 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         return void res.writeStatus('404 Not Found').writeHeader('access-control-allow-origin', '*').end();
       }
       res.writeHeader('access-control-allow-origin', '*').writeHeader('content-type', 'application/octet-stream').writeHeader('cache-control', 'public, max-age=31536000, immutable').end(data);
-    });
+    };
+    app.get('/replays/:file', replay);
+    app.get('/m/:machine/replays/:file', replay);
   }
 
   if (options.devPage) {

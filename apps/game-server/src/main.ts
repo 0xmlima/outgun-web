@@ -12,6 +12,8 @@
 // Observabilidade (OG-102): LOG_LEVEL (info), METRICS_TOKEN (exige Bearer em /metrics), SENTRY_DSN (erros),
 // SENTRY_ENVIRONMENT (padrão NODE_ENV), RELEASE (versão nos logs e erros).
 // MAX_CONNECTIONS_PER_IP (8; 0 = sem limite).
+// INSTANCE_ID (padrão FLY_MACHINE_ID): salas também em /m/<id>/rooms/...; `{instance}` em PUBLIC_WS_URL vira esse id.
+// DRAIN_TIMEOUT_S (240): prazo da drenagem no SIGTERM.
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
@@ -43,7 +45,8 @@ process.on('unhandledRejection', (error) => {
 const metrics: { telemetry?: GameTelemetry } = {};
 const platform = new PlatformClient(
   env.API_URL ?? 'http://localhost:7800',
-  env.GS_ID ?? 'dev',
+  // `{instance}` em GS_ID (ex. gs-gru.{instance}): uma entrada no registro por máquina, segredo do grupo
+  (env.GS_ID ?? 'dev').replace('{instance}', env.INSTANCE_ID ?? env.FLY_MACHINE_ID ?? ''),
   env.GS_SECRET ?? (production ? '' : 'outgun-dev-secret-0000'),
   (t, level = 'error') => {
     if (level === 'info') return logger.info({ component: 'platform' }, t);
@@ -52,7 +55,9 @@ const platform = new PlatformClient(
   },
 );
 const port = Number(env.PORT ?? 7700);
-const publicWsUrl = env.PUBLIC_WS_URL ?? `ws://localhost:${port}`;
+// várias máquinas no mesmo domínio (Fly, OG-103): `{instance}` em PUBLIC_WS_URL vira o id da máquina
+const instanceId = env.INSTANCE_ID ?? env.FLY_MACHINE_ID;
+const publicWsUrl = (env.PUBLIC_WS_URL ?? `ws://localhost:${port}`).replace('{instance}', instanceId ?? '');
 // replays (OG-090): em disco, servidos em /replays/; a URL vai no relatório da partida
 const replays =
   env.REPLAYS === '0' ? undefined : new ReplayStore(env.REPLAY_DIR ?? `${repo}var/replays`, env.REPLAY_PUBLIC_URL ?? `${publicWsUrl.replace(/^ws/, 'http')}/replays`, Number(env.REPLAY_RETENTION_DAYS ?? 30));
@@ -127,26 +132,38 @@ const server = await startServer({
   ...(replays ? { replays } : {}),
   telemetry,
   logger,
+  ...(instanceId ? { instanceId } : {}),
   ...(env.METRICS_TOKEN ? { metricsToken: env.METRICS_TOKEN } : {}),
   ...(env.MAX_CONNECTIONS_PER_IP ? { maxConnectionsPerIp: Number(env.MAX_CONNECTIONS_PER_IP) } : {}),
 });
 if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
-if (env.HEARTBEAT !== '0') {
-  platform.startHeartbeat(
-    { wsBaseUrl: publicWsUrl, region: env.REGION ?? 'local', maxRooms: manager.maxRooms },
-    () => manager.hosted(),
-  );
-}
+// o heartbeat lê este objeto a cada envio: na drenagem, maxRooms 0 tira o servidor da escolha da API
+const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms };
+if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted());
 
-const shutdown = async () => {
+let stopping = false;
+/**
+ * SIGTERM (deploy, OG-103): drena — sem salas novas, cada sala fecha no fim da partida em
+ * andamento, até DRAIN_TIMEOUT_S; SIGINT (Ctrl+C) para na hora. Nos dois casos quem ainda está nas
+ * salas sai com os deltas do ranking enviados (`stop()` do original).
+ */
+const shutdown = async (drain: boolean) => {
+  if (stopping) return;
+  stopping = true;
+  if (drain) {
+    serverInfo.maxRooms = 0;
+    const timeoutS = Number(env.DRAIN_TIMEOUT_S ?? 240);
+    logger.info({ rooms: manager.list().length, timeoutS }, 'drenando: as salas fecham no fim da partida');
+    await manager.drain(timeoutS * 1000);
+  } else manager.stop();
   platform.stopHeartbeat();
-  manager.stop(); // quem está nas salas sai: os deltas do ranking são enviados (`stop()` do original)
   jwks.stop();
   server.close();
   await platform.drain();
   await reporter.flush();
+  logger.info('game-server encerrado');
   process.exit(0);
 };
-process.on('SIGINT', () => void shutdown());
-process.on('SIGTERM', () => void shutdown());
+process.on('SIGINT', () => void shutdown(false));
+process.on('SIGTERM', () => void shutdown(true));

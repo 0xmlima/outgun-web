@@ -48,7 +48,9 @@ export function verifyInternalRequest(
   if (typeof serverId !== 'string' || typeof timestamp !== 'string' || typeof signature !== 'string') {
     return { ok: false, reason: 'missing headers' };
   }
-  const keys = secrets.get(serverId);
+  // `base.instancia` (várias máquinas do mesmo grupo, OG-103) usa o segredo de `base`
+  const instance = /^([^.]+)\.[a-z0-9]{1,32}$/.exec(serverId);
+  const keys = secrets.get(serverId) ?? (instance ? secrets.get(instance[1] as string) : undefined);
   if (!keys) return { ok: false, reason: 'unknown server' };
   if (!/^\d{1,15}$/.test(timestamp) || Math.abs(now - Number(timestamp)) > maxSkewMs) {
     return { ok: false, reason: 'stale timestamp' };

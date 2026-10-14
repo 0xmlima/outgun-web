@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const repo = fileURLToPath(new URL('../..', import.meta.url));
 const database = process.env.E2E_DATABASE_URL ?? 'postgres://outgun:outgun@localhost:55433/outgun';
-const web = 'http://localhost:14173';
+// E2E_BASE_URL: roda contra um ambiente já no ar (homologação, deploy/staging.sh) em vez de subir os serviços
+const external = process.env.E2E_BASE_URL;
+const web = external ?? 'http://localhost:14173';
 
 export default defineConfig({
   testDir: 'tests',
@@ -29,50 +31,52 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  webServer: [
-    {
-      name: 'api',
-      command: `node ${repo}apps/api/dist/main.js`,
-      url: 'http://localhost:17800/health',
-      env: {
-        PORT: '17800',
-        DATABASE_URL: database,
-        MAILER: 'memory',
-        DEV_ROUTES: '1',
-        WEB_URL: web,
-        DEV_ROOM_WS_URL: 'ws://localhost:17700/rooms/{id}',
-        LOG_LEVEL: 'warn',
-      },
-      reuseExistingServer: false,
-      timeout: 60_000,
-    },
-    {
-      name: 'game-server',
-      command: `node ${repo}apps/game-server/dist/main.js`,
-      url: 'http://localhost:17700/health',
-      env: {
-        PORT: '17700',
-        API_URL: 'http://localhost:17800',
-        TICKET_JWKS_URL: 'http://localhost:17800/.well-known/jwks.json',
-        PUBLIC_WS_URL: 'ws://localhost:17700',
-        DEV_TICKETS: '0',
-        ROTATION: '2 versus 2 (duel)',
-        CASUAL_BOTS_FILL: '3',
-        GAMEMOD: 'time_limit 1|game_end_delay 3',
-        REPLAYS: '0',
-        LOG_LEVEL: 'warn',
-      },
-      reuseExistingServer: false,
-      timeout: 60_000,
-    },
-    {
-      name: 'web',
-      command: `pnpm --filter @outgun/web exec vite preview --port 14173 --strictPort`,
-      cwd: repo,
-      url: web,
-      env: { API_URL: 'http://localhost:17800' },
-      reuseExistingServer: false,
-      timeout: 60_000,
-    },
-  ],
+  webServer: external
+    ? []
+    : [
+        {
+          name: 'api',
+          command: `node ${repo}apps/api/dist/main.js`,
+          url: 'http://localhost:17800/health',
+          env: {
+            PORT: '17800',
+            DATABASE_URL: database,
+            MAILER: 'memory',
+            DEV_ROUTES: '1',
+            WEB_URL: web,
+            DEV_ROOM_WS_URL: 'ws://localhost:17700/rooms/{id}',
+            LOG_LEVEL: 'warn',
+          },
+          reuseExistingServer: false,
+          timeout: 60_000,
+        },
+        {
+          name: 'game-server',
+          command: `node ${repo}apps/game-server/dist/main.js`,
+          url: 'http://localhost:17700/health',
+          env: {
+            PORT: '17700',
+            API_URL: 'http://localhost:17800',
+            TICKET_JWKS_URL: 'http://localhost:17800/.well-known/jwks.json',
+            PUBLIC_WS_URL: 'ws://localhost:17700',
+            DEV_TICKETS: '0',
+            ROTATION: '2 versus 2 (duel)',
+            CASUAL_BOTS_FILL: '3',
+            GAMEMOD: 'time_limit 1|game_end_delay 3',
+            REPLAYS: '0',
+            LOG_LEVEL: 'warn',
+          },
+          reuseExistingServer: false,
+          timeout: 60_000,
+        },
+        {
+          name: 'web',
+          command: `pnpm --filter @outgun/web exec vite preview --port 14173 --strictPort`,
+          cwd: repo,
+          url: web,
+          env: { API_URL: 'http://localhost:17800' },
+          reuseExistingServer: false,
+          timeout: 60_000,
+        },
+      ],
 });

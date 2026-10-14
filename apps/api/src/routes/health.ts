@@ -3,18 +3,19 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { API_VERSION, type AppDeps } from '../app.js';
 
 const Health = Type.Object({
-  status: Type.Union([Type.Literal('ok'), Type.Literal('degraded')]),
+  status: Type.Union([Type.Literal('ok'), Type.Literal('degraded'), Type.Literal('stopping')]),
   version: Type.String(),
   database: Type.Boolean(),
   redis: Type.Union([Type.Literal('ok'), Type.Literal('down'), Type.Literal('disabled')]),
 });
 
-export function healthRoutes({ database, redis }: AppDeps): FastifyPluginAsyncTypebox {
+export function healthRoutes({ database, redis, lifecycle }: AppDeps): FastifyPluginAsyncTypebox {
   return async (app) => {
     app.get(
       '/health',
       { schema: { tags: ['sistema'], summary: 'Estado da API e das dependências', response: { 200: Health, 503: Health } } },
       async (_request, reply) => {
+        if (lifecycle?.stopping) return reply.code(503).send({ status: 'stopping', version: API_VERSION, database: true, redis: 'disabled' });
         const db = await database.sql`SELECT 1`.then(
           () => true,
           () => false,

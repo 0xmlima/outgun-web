@@ -58,7 +58,8 @@ export type Placement = { ok: true; wsUrl: string; spawn?: RoomSpawn } | { ok: f
 export async function placeRoom(db: Db, room: RoomRow, devRoomWsUrl: string | undefined, region?: string, now = Date.now()): Promise<Placement> {
   if (roomOnline(room, now) && room.wsUrl) return { ok: true, wsUrl: room.wsUrl };
   const servers = await onlineServers(db, now);
-  const server = servers.find((s) => s.id === room.serverId) ?? pickServer(servers, region);
+  // volta ao servidor de antes se ele ainda aceita salas (maxRooms 0 = drenando, OG-103)
+  const server = servers.find((s) => s.id === room.serverId && s.maxRooms > 0) ?? pickServer(servers, region);
   if (server) {
     const wsUrl = `${server.wsBaseUrl.replace(/\/$/, '')}/rooms/${room.id}`;
     if (server.id !== room.serverId || wsUrl !== room.wsUrl) {
