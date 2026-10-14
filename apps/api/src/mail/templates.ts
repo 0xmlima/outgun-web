@@ -39,3 +39,35 @@ export function passwordResetMail(to: string, username: string, link: string, lo
       `<p><a href="${escape(link)}">${escape(t.action)}</a></p><p>${escape(t.ignore)}</p>`,
   };
 }
+
+const WELCOME = {
+  'pt-BR': {
+    subject: 'Bem-vindo ao Outgun Web',
+    hello: (name: string) => `Olá, ${name}!`,
+    body: 'Sua conta no Outgun Web está pronta. O jogo é o Outgun 1.0.3 no navegador: as mesmas regras, a mesma física e os mesmos mapas, sem instalar nada.',
+    play: 'Jogar agora',
+    tips: 'Setas movem, Ctrl atira, Shift corre: leve a bandeira inimiga até a sua base. Durante o beta, use "Enviar feedback" no menu para contar se o jogo está fiel ao original.',
+    bye: 'Nos vemos na arena.',
+  },
+  en: {
+    subject: 'Welcome to Outgun Web',
+    hello: (name: string) => `Hi, ${name}!`,
+    body: 'Your Outgun Web account is ready. The game is Outgun 1.0.3 in the browser: same rules, physics and maps, nothing to install.',
+    play: 'Play now',
+    tips: 'Arrows move, Ctrl shoots, Shift runs: take the enemy flag to your base. During the beta, use "Send feedback" in the menu to tell us if the game feels like the original.',
+    bye: 'See you in the arena.',
+  },
+} as const;
+
+/** Boas-vindas depois do cadastro (D-23: Resend). */
+export function welcomeMail(to: string, username: string, webUrl: string, locale: MailLocale): Mail {
+  const t = WELCOME[locale];
+  return {
+    to,
+    subject: t.subject,
+    text: `${t.hello(username)}\n\n${t.body}\n\n${t.play}: ${webUrl}\n\n${t.tips}\n\n${t.bye}\n`,
+    html:
+      `<p>${escape(t.hello(username))}</p><p>${escape(t.body)}</p>` +
+      `<p><a href="${escape(webUrl)}">${escape(t.play)}</a></p><p>${escape(t.tips)}</p><p>${escape(t.bye)}</p>`,
+  };
+}

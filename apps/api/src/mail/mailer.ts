@@ -37,7 +37,7 @@ async function post(url: string, headers: Record<string, string>, body: unknown)
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
-  if (!res.ok) throw new Error(`envio de e-mail falhou: HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`envio de e-mail falhou: HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 300)}`);
 }
 
 /** API de envio do Mailpit (POST /api/v1/send). */

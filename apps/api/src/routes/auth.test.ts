@@ -63,6 +63,15 @@ describe.skipIf(!pgAdminUrl)('contas (OG-081)', () => {
     expect((await post('/auth/register', { username: 'Termos2', email: 't2@x.com', password: 'senha-boa-123', termsVersion: 'ontem' }, { ip: freshIp() })).statusCode).toBe(400);
   });
 
+  it('cadastro manda o e-mail de boas-vindas no idioma escolhido', async () => {
+    mailer.outbox.length = 0;
+    expect((await register('Boas', 'boas@x.com')).statusCode).toBe(201);
+    await new Promise((r) => setTimeout(r, 20));
+    const mail = mailer.outbox.find((m) => m.to === 'boas@x.com');
+    expect(mail?.subject).toBe('Bem-vindo ao Outgun Web');
+    expect(mail?.text).toContain('Olá, Boas!');
+  });
+
   it('cadastro entra na hora, com cookie httpOnly e SameSite', async () => {
     const res = await register('Ana', 'Ana@Exemplo.com');
     expect(res.statusCode).toBe(201);

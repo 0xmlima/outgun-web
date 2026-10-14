@@ -10,7 +10,9 @@ import { seed } from './db/seed.js';
 import { startSeason } from './ranking.js';
 import { createInvites } from './beta.js';
 import { usernameKey } from './db/keys.js';
-import { users } from './db/schema.js';
+import { playerProfiles, users } from './db/schema.js';
+import { mailLocale, welcomeMail } from './mail/templates.js';
+import { mailerFor } from './app.js';
 import { eq } from 'drizzle-orm';
 import { exportSigningKey, generateSigningKey } from '@outgun/tickets';
 
@@ -45,6 +47,17 @@ try {
   } else if (command === 'ticket-key') {
     // Nova chave Ed25519 para TICKET_SIGNING_KEYS (ponha na frente da atual para rotacionar).
     console.log(exportSigningKey(generateSigningKey(arg1 ?? `k${new Date().toISOString().slice(0, 10)}`)));
+  } else if (command === 'welcome' && arg1) {
+    // Reenvia o e-mail de boas-vindas a uma conta (D-23: Resend; MAILER e RESEND_API_KEY do ambiente).
+    const [user] = await database.db.select().from(users).where(eq(users.usernameKey, usernameKey(arg1)));
+    if (!user) {
+      console.error(`conta não encontrada: ${arg1}`);
+      process.exitCode = 1;
+    } else {
+      const [profile] = await database.db.select({ language: playerProfiles.language }).from(playerProfiles).where(eq(playerProfiles.userId, user.id));
+      await mailerFor(config).send(welcomeMail(user.email, user.username, config.webUrl, mailLocale(profile?.language)));
+      console.log(`boas-vindas enviadas para ${user.username}`);
+    }
   } else if (command === 'invite') {
     // Convite do beta fechado (OG-106) sem passar pelo painel: o primeiro admin se cadastra com ele.
     const [code] = await createInvites(database.db, { count: 1, maxUses: Number(arg1 ?? 1) || 1, note: arg2 ?? 'cli' });
@@ -60,7 +73,7 @@ try {
       process.exitCode = 1;
     } else console.log(`${rows[0]!.username}: ${arg2}`);
   } else {
-    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player');
+    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player | welcome NOME');
     process.exitCode = 2;
   }
 } finally {

@@ -28,8 +28,10 @@ A versão é o hash do commit (`TAG` no `.env`).
 
 - `ROTATION` (mapas da rotação, separados por vírgula), `GAMEMOD` (linhas de gamemod separadas por
   `|`), `CASUAL_BOTS_FILL`, `MAX_ROOMS`, `MAX_PLAYERS` — ou pelo painel admin (`/admin`).
-- `MAILER=resend` + `RESEND_API_KEY` + `MAIL_FROM` para mandar os e-mails de recuperação de senha
-  (o padrão `log` só registra no log).
+- `MAILER=resend` + `RESEND_API_KEY` + `MAIL_FROM` para mandar os e-mails (boas-vindas e recuperação
+  de senha; o padrão `log` só registra no log). Sem domínio verificado no Resend, use
+  `MAIL_FROM=onboarding@resend.dev` (o Resend só entrega para o e-mail dono da conta). Reenviar as
+  boas-vindas: `docker compose exec -T api node dist/cli.js welcome NOME`.
 - `SENTRY_DSN` para o envio de erros.
 
 ## Operação

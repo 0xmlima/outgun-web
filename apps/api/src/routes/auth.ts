@@ -12,7 +12,7 @@ import type { SessionUser } from '../auth/sessions.js';
 import { newToken, tokenHash } from '../auth/tokens.js';
 import { emailKey, usernameKey } from '../db/keys.js';
 import { betaInvites, betaInviteUses, passwordResets, playerProfiles, users } from '../db/schema.js';
-import { mailLocale, passwordResetMail } from '../mail/templates.js';
+import { mailLocale, passwordResetMail, welcomeMail } from '../mail/templates.js';
 import { ErrorSchema } from './schemas.js';
 
 export const RESET_TTL_MS = 30 * 60_000;
@@ -126,6 +126,10 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         if (created === 'email_taken') return fail(reply, 409, 'email_taken', 'e-mail already in use');
         if (created === 'invalid_invite') return fail(reply, 403, 'invalid_invite', 'invite code is invalid, used up or expired');
         await sessions.create(created.id, request, reply);
+        // boas-vindas: sem esperar o envio (falha do e-mail não impede o cadastro)
+        mailer.send(welcomeMail(created.email, created.username, deps.config.webUrl, mailLocale(language))).catch((error: unknown) => {
+          request.log.error({ err: error }, 'e-mail de boas-vindas não enviado');
+        });
         return reply.code(201).send({ user: toPublic(created) });
       },
     );

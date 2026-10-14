@@ -63,8 +63,11 @@ function ticketKeys(config: ApiConfig): SigningKey[] {
 }
 
 function makeMailer(deps: AppDeps, log: App['log']): Mailer {
-  const { config } = deps;
-  if (deps.mailer) return deps.mailer;
+  return deps.mailer ?? mailerFor(deps.config, log);
+}
+
+/** Envio de e-mail configurado em MAILER (também usado pela CLI). */
+export function mailerFor(config: ApiConfig, log: Pick<App['log'], 'info'> = { info: (...args: unknown[]) => console.log(...args) } as Pick<App['log'], 'info'>): Mailer {
   switch (config.mailer) {
     case 'memory':
       return new MemoryMailer();
@@ -74,7 +77,7 @@ function makeMailer(deps: AppDeps, log: App['log']): Mailer {
       if (!config.resendApiKey) throw new Error('MAILER=resend exige RESEND_API_KEY');
       return new ResendMailer(config.resendApiKey, config.mailFrom);
     default:
-      return new LogMailer(log);
+      return new LogMailer(log as App['log']);
   }
 }
 
