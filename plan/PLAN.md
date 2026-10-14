@@ -2,6 +2,8 @@
 
 > Port do **Outgun 1.0.3** (C++/Allegro, CTF 2D multiplayer até 32 jogadores) para um jogo **web, online, jogável no navegador**, com cadastro, ranking e paridade de regras com o original.
 >
+> **v2 (desde 2026-10-14):** o port terminou (S0–S12). Daqui em diante o jogo evolui por conta própria, sem exigência de fidelidade ao original — ver a [seção 15](#15-v2--o-jogo-segue-seu-próprio-caminho).
+>
 > Este arquivo é a fonte única de verdade do projeto: visão, stack, arquitetura, **regras de negócio**, metodologia ágil, roadmap e índice de cards. Os detalhes de cada card ficam em [`cards/`](cards/).
 
 ---
@@ -23,6 +25,7 @@
 12. [Decisões em aberto](#12-decisões-em-aberto)
 13. [Glossário](#13-glossário)
 14. [Mapa do código-fonte original](#14-mapa-do-código-fonte-original)
+15. [v2 — o jogo segue seu próprio caminho](#15-v2--o-jogo-segue-seu-próprio-caminho)
 
 ---
 
@@ -35,11 +38,10 @@
 
 **Para agentes (Claude Code):**
 1. Antes de qualquer card, use a skill `outgun-card-workflow` (`.claude/skills/outgun-card-workflow`).
-2. Cards que portam comportamento do original **exigem** a skill `outgun-re-spec` antes da implementação, gerando uma spec em `plan/specs/`.
-3. Cards da simulação (épico E2) só fecham com testes da skill `outgun-parity-harness`.
-4. Cards de conteúdo/assets usam a skill `outgun-asset-pipeline`.
+2. Cards de conteúdo/assets (temas, mapas, música) usam a skill `outgun-asset-pipeline`.
+3. **v1 (S0–S12):** cards de port exigiam `outgun-re-spec` e cards da simulação, `outgun-parity-harness`. **Na v2 essas duas skills estão desativadas** (`.claude/skills-disabled/`): o original é referência opcional.
 
-**Regra de ouro:** quando o código original e a documentação HTML (`doc/`) divergirem, **o código vence** — registre a divergência na spec e em [Decisões em aberto](#12-decisões-em-aberto).
+**Regra de ouro (v1):** quando o código original e a documentação HTML (`doc/`) divergirem, **o código vence** — registre a divergência na spec e em [Decisões em aberto](#12-decisões-em-aberto).
 
 ---
 
@@ -148,6 +150,8 @@ O repositório não tinha nenhuma skill. Adicionamos quatro em `.claude/skills/`
 | [`outgun-parity-harness`](../.claude/skills/outgun-parity-harness/SKILL.md) | Cards do épico E2 (simulação) e OG-003/OG-100 | Build do original em Docker, gravação de golden traces (JSONL) e comparação com a sim TS |
 | [`outgun-asset-pipeline`](../.claude/skills/outgun-asset-pipeline/SKILL.md) | Cards de conteúdo (E1) | Conversão PCX/WAV/DAT/idiomas e manifesto de assets |
 | [`outgun-card-workflow`](../.claude/skills/outgun-card-workflow/SKILL.md) | Sempre, ao pegar/fechar um card | Fluxo de status, DoR/DoD, convenções de branch/commit |
+
+> **v2 (2026-10-14):** `outgun-re-spec` e `outgun-parity-harness` foram desativadas (movidas para `.claude/skills-disabled/`, com instruções para reativar). Seguem ativas `outgun-card-workflow` (revisada para a v2) e `outgun-asset-pipeline` (agora também para a trilha sonora).
 
 **Ferramentas complementares recomendadas** (não são skills): `clangd`/`ctags` para navegar no C++; `bear` + `compile_commands.json` gerado no build Docker (OG-002) para "go to definition" confiável.
 
@@ -476,13 +480,15 @@ A mudança de status é feita **no cabeçalho do card e na tabela da seção 10*
 ### 8.3 Definition of Ready (DoR)
 - [ ] História e critérios de aceite claros e testáveis.
 - [ ] Dependências em "Concluído" (ou explicitamente paralelizáveis).
-- [ ] Referências ao código original identificadas (quando for port).
+- [ ] Referências ao código original identificadas (v1, cards de port).
+- [ ] Decisões de produto de que o card depende tomadas pelo PO (v2).
 - [ ] Estimativa feita.
 
 ### 8.4 Definition of Done (DoD)
 - [ ] Critérios de aceite atendidos e demonstrados.
-- [ ] Spec em `plan/specs/` criada/atualizada (cards de port).
-- [ ] Testes unitários; **testes de paridade** para cards da simulação.
+- [ ] Spec em `plan/specs/` criada/atualizada (v1, cards de port).
+- [ ] Testes unitários; **testes de paridade** para cards da simulação (v1; na v2, testes da regra nova — ver OG-230).
+- [ ] Cards de interface (v2): prints desktop e celular anexados.
 - [ ] Lint, typecheck e CI verdes.
 - [ ] Sem divergência silenciosa: divergências intencionais registradas na seção 12.
 - [ ] Documentação do card ("Notas de implementação") atualizada.
@@ -548,6 +554,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | E5 | Plataforma | Contas, nick, ranking, perfil, lobby, admin |
 | E6 | Replays e espectador | Gravação, player de replay, espectador ao vivo |
 | E7 | Qualidade, operação e lançamento | Paridade no CI, E2E, carga, observabilidade, deploy, segurança, beta |
+| E8 | **v2** — Visual e menus | Design system com fonte única, menu principal e telas modernas e legíveis |
+| E9 | **v2** — Portal e perfil social | Site público fora do cliente: perfis, companheiros, marcos, relatórios de partida |
+| E10 | **v2** — Trilha sonora | Música no menu e nas partidas, com opção para desligar |
+| E11 | **v2** — Jogabilidade | Mudanças de física e regras a partir dos achados do beta |
 
 ### 9.2 Roadmap por sprint
 | Sprint | Tema | Cards | Marco |
@@ -565,6 +575,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | S10 | Bots, gerador e replays | OG-050, OG-051, OG-052, OG-053, OG-054, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
 | S11 | Endurecimento | OG-101, OG-102, OG-103, OG-104, OG-087 | |
 | S12 | Beta e lançamento | OG-109, OG-106, OG-108, OG-107, OG-105 | **M5 — Lançamento público** |
+| S13 | v2: base visual e trilha | OG-200, OG-201, OG-202, OG-220, OG-221, OG-222 | |
+| S14 | v2: telas e portal | OG-203, OG-205, OG-210, OG-211 | |
+| S15 | v2: perfil social e relatórios | OG-212, OG-213, OG-214, OG-215, OG-216 | **M6 — v2 visual e social** |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -643,8 +656,25 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Concluído |
 | [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Concluído |
 | [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Concluído |
+| [OG-200](cards/OG-200-design-system-v2.md) | Design system v2: fonte única, tokens e componentes base | E8 | 5 | Must | S13 | — | Pronto |
+| [OG-201](cards/OG-201-menu-principal-v2.md) | Novo menu principal e moldura das telas | E8 | 5 | Must | S13 | OG-200 | Pronto |
+| [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Pronto |
+| [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Backlog |
+| [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
+| [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
+| [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Must | S14 | OG-200 | Backlog |
+| [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Backlog |
+| [OG-212](cards/OG-212-perfil-social.md) | Página de perfil social | E9 | 5 | Must | S15 | OG-210, OG-211 | Backlog |
+| [OG-213](cards/OG-213-marcos.md) | Marcos (milestones) do jogador | E9 | 3 | Should | S15 | OG-211 | Backlog |
+| [OG-214](cards/OG-214-relatorio-partida-portal.md) | Relatório de partida no portal | E9 | 5 | Must | S15 | OG-210 | Backlog |
+| [OG-215](cards/OG-215-diretorio-jogadores.md) | Diretório e busca de jogadores | E9 | 3 | Should | S15 | OG-210, OG-211 | Backlog |
+| [OG-216](cards/OG-216-cliente-portal-links.md) | Ligações entre o cliente e o portal | E9 | 2 | Must | S15 | OG-212, OG-214 | Backlog |
+| [OG-220](cards/OG-220-pipeline-trilha.md) | Pipeline da trilha sonora | E10 | 2 | Must | S13 | — | Pronto |
+| [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Pronto |
+| [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Pronto |
+| [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
 
-**Total:** 69 cards (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts), 295 pontos.
+**Total:** 86 cards, 360 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 17 cards, 65 pts.
 
 ---
 
@@ -699,6 +729,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-32 | Observabilidade sem fornecedor fixo | SDK oficial do Sentry (`@sentry/node`, `@sentry/browser`) / métricas e logs próprios + envio de erros pelo protocolo de envelope do Sentry | ✅ **Decidido no OG-102 (delegada):** métricas no formato do Prometheus num registro próprio (`packages/observability`, sem alocação no caminho do tick), logs JSON com pino (`service`, `env`, `reqId`, `room`, `jti` do ticket para ligar a API ao game server) e erros enviados por `fetch` no formato de envelope do Sentry, aceito por Sentry e GlitchTip. O SDK oficial instrumentaria o uWebSockets.js e somaria peso ao cliente; o envelope é estável e documentado. Tudo desligado sem `SENTRY_DSN`/`VITE_SENTRY_DSN`; painel e alertas em Prometheus + Grafana + Alertmanager (`tools/observability/`). Qual serviço de erros e para onde vão os alertas fica para o deploy (OG-103) | Tech Lead |
 | D-33 | Ban por dispositivo (RN-PLT-05) | Fingerprint do navegador / id aleatório guardado no navegador | ✅ **Decidido no OG-104 (delegada):** id aleatório de 144 bits em `localStorage` (`outgun.device`), mandado só ao pedir entrada numa sala; a API usa e guarda apenas o SHA-256 truncado (32 hex) — nos bans e no ticket (`dev`) — nunca o id cru. Fingerprint seria mais difícil de trocar, mas é rastreamento sem consentimento (LGPD) e frágil; limpar os dados do site troca o id, por isso o ban continua também por conta e IP. A política de privacidade (OG-105) deve citar o id | Tech Lead |
 | D-34 | Painel admin × game servers | API chama cada game server (porta de controle) / comandos e configuração na resposta do heartbeat | ✅ **Decidido no OG-087 (delegada):** o painel grava o comando (`admin_commands`) e a auditoria na API; o game server recebe na resposta do heartbeat (≤ 3 s), executa pelas mesmas ações do console e confirma no heartbeat seguinte (o ban é criado com a conta, IP e dispositivo que só o game server conhece). Nenhuma porta de entrada nova nos game servers e funciona com várias máquinas por região. Presets: os do jogo (inclusive o Ranked travado) só mudam com uma versão nova — no painel são só leitura; o painel cria presets Casual versionados (histórico em `casual_preset_versions`), validados (só regras de jogo/saúde/power-ups/física/bots). Rotações por modo valem nas salas da plataforma a partir da próxima troca de mapa. Papéis: moderador (salas, denúncias, bans de sala, auditoria) e admin (tudo + mensagem geral, bans de plataforma, presets, rotações, papéis) | Tech Lead |
+| D-35 | **v2** — Fonte única da interface (OG-200) | Inter / Manrope / Space Grotesk / Barlow / outra (licença OFL, self-hosted) | Inter: a mais legível em tamanhos pequenos e em tabelas (algarismos tabulares), acentos completos | PO |
+| D-36 | **v2** — Onde fica o portal (OG-210) | App separado com SSR (`apps/portal`) / rotas pré-renderizadas pela API / mesma SPA do cliente | App separado com SSR leve no mesmo domínio: prévia de link (Open Graph) e carga pequena; decidir no card | Tech Lead (delegada) |
+| D-37 | **v2** — Música fora do Casual | Só Casual (pedido do PO) / também Ranked / também espectador e replay | Casual e espectador com música; Ranked e replay sem, salvo preferência do PO | PO |
+| D-38 | **v2** — Licença e crédito da trilha sonora | Licença das faixas geradas no Suno (artista "ozzylords"): própria do autor / CC BY / CC BY-SA / só para o Outgun Web | Confirmar que o plano do Suno usado permite redistribuição e escolher licença compatível com distribuir junto do código GPL (ex.: CC BY-SA 4.0) | PO |
+| D-39 | **v2** — Visibilidade do perfil social | Público como hoje (OG-085) / público com opção de esconder companheiros e histórico / só para quem tem conta | Público, com opção de esconder companheiros e histórico (a LGPD pede controle quando se expõe com quem a pessoa joga) | PO |
 
 ---
 
@@ -751,3 +786,36 @@ Como <persona>, quero <ação>, para <benefício>.
 | Render | `src/graphics.cpp` (`draw_player`, `draw_rocket`, `draw_pup`, efeitos) |
 | Menus | `src/client_menus.*`, `src/menu.*` |
 | Docs do usuário | `doc/*.html` (game, gamemod, maps, map-tutorial, admin, menus) |
+
+---
+
+## 15. v2 — o jogo segue seu próprio caminho
+
+Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no ar para levantar melhorias de física e de conceitos do jogo. A partir daqui:
+
+- **Fidelidade ao original deixa de ser requisito.** O Outgun 1.0.3 em `_legacy/` continua como referência histórica e fonte de assets; mudanças de regra e física são decisões novas (D-NN), não divergências a justificar.
+- **Skills:** `outgun-re-spec` e `outgun-parity-harness` desativadas; `outgun-card-workflow` revisada; `outgun-asset-pipeline` mantida. O job de paridade do CI continua enquanto a sim não mudar e sai no OG-230.
+- **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249).
+
+### 15.1 Prioridades (P0)
+1. **Novo menu (E8):** visual limpo, moderno e legível; **uma única fonte**, sem opção de troca.
+2. **Perfil social e relatórios (E9):** página pública para conhecer outros jogadores (companheiros de time, marcos, partidas, kills, deaths...) e relatórios de partida fora do cliente do jogo. Não é rede social com interação: é navegar e conhecer.
+3. **Trilha sonora (E10):** "Outgun Epic" no menu; nas partidas casuais, as demais músicas em ordem aleatória; opção para desligar.
+
+### 15.2 Regras de negócio da v2
+| RN | Regra |
+|---|---|
+| RN-UI-01 | Toda tela fora da partida usa o design system v2 (tokens e componentes do OG-200) e funciona de 360 px de largura a telas grandes, por teclado, mouse, toque e gamepad. |
+| RN-UI-02 | A interface usa **uma única fonte** (D-35). O jogador não pode trocá-la. |
+| RN-UI-03 | Texto e fundo com contraste mínimo AA (4,5:1). |
+| RN-UI-04 | "Jogar agora" fica a um clique da tela inicial. |
+| RN-SOC-01 | Perfis, relatórios de partida e ranking têm URL pública estável, abrem fora do cliente do jogo e têm prévia de link. |
+| RN-SOC-02 | O perfil mostra números por modo (Ranked/Casual) e por período, companheiros e rivais frequentes e partidas recentes; bots e convidados não entram como companheiros/rivais. |
+| RN-SOC-03 | Marcos são concedidos automaticamente por feitos em partidas com conta, com data de conquista, inclusive retroativamente. |
+| RN-SOC-04 | Jogadores podem ser buscados por nome ou clã, sem diferença de maiúsculas e acentos. |
+| RN-SOC-05 | O portal só mostra dados públicos; e-mail e dados sensíveis nunca aparecem. Visibilidade conforme a D-39. |
+| RN-MUS-01 | O menu toca "Outgun Epic" em loop. |
+| RN-MUS-02 | Partidas casuais tocam as demais faixas de `songs/` em ordem aleatória, sem repetir até todas tocarem; "Outgun Epic" nunca toca em partida. Outros modos seguem a D-37. |
+| RN-MUS-03 | Música e efeitos têm volumes separados; a música começa só após um gesto do jogador (política de autoplay). |
+| RN-MUS-04 | Nas Opções, o jogador liga/desliga a trilha sonora e ajusta o volume; a escolha é salva e sincronizada com a conta. |
+| RN-MUS-05 | Música nunca entra no carregamento inicial do jogo; é baixada sob demanda e não é baixada com a trilha desligada. |

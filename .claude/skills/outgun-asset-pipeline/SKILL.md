@@ -1,11 +1,11 @@
 ---
 name: outgun-asset-pipeline
-description: Converte os assets do Outgun original (mapas .txt, gráficos PCX, sons WAV, fontes Allegro .dat, idiomas) para formatos web e gera o manifesto de assets. Use nos cards do épico E1 (OG-010 a OG-014), ao adicionar um tema gráfico, tema de som, fonte, idioma ou mapa, ou quando um asset aparecer errado no cliente web.
+description: Converte os assets do Outgun original (mapas .txt, gráficos PCX, sons WAV, fontes Allegro .dat, idiomas) para formatos web e gera o manifesto de assets. Use nos cards do épico E1 (OG-010 a OG-014), ao adicionar um tema gráfico, tema de som, fonte, idioma ou mapa, trilha sonora (pasta songs/, épico E10) ou quando um asset aparecer errado no cliente web.
 ---
 
 # Outgun — pipeline de assets
 
-Os originais ficam intocados; o pipeline (`tools/asset-pipeline/`) lê de `_legacy/` (caminhos da tabela abaixo relativos a ela) e escreve em `apps/web/public/assets/` (gerado, com hash de conteúdo) + `manifest.json`. O pipeline deve ser **idempotente** e rodar no CI.
+Os originais ficam intocados; o pipeline (`tools/asset-pipeline/`) lê de `_legacy/` (caminhos da tabela abaixo relativos a ela, exceto `songs/`, que fica na raiz) e escreve em `apps/web/public/assets/` (gerado, com hash de conteúdo) + `manifest.json`. O pipeline deve ser **idempotente** e rodar no CI.
 
 ## Inventário
 | Origem | Formato | Destino |
@@ -18,6 +18,7 @@ Os originais ficam intocados; o pipeline (`tools/asset-pipeline/`) lê de `_lega
 | `sound/<tema>/*.txt` | **alias**: conteúdo = nome de outro sample (ex. `diedb.txt` → `death2`) | resolver para o arquivo real no manifesto |
 | `fonts/*.dat` | datafile Allegro compactado (magic `slh.ALL`, LZSS) | BMFont `.fnt` + `.png` |
 | `languages/*.txt` | uma frase por linha não comentada; chave = linha correspondente em `en.txt`; placeholders `$1..$n` | JSON i18next, placeholders `{{1}}` |
+| `songs/*.mp3` (v2, raiz do repo) | MP3 da trilha sonora; `Outgun epic.mp3` é o tema do menu, as demais formam a playlist das partidas | transcodificar (decisão no OG-220), entrada `music` no manifesto com faixa, papel (`menu`/`match`), duração e créditos; **nunca pré-carregar**: o cliente baixa sob demanda |
 
 ## Regras de conversão
 - **Transparência:** no Allegro, magenta puro `#FF00FF` é a cor de máscara. Converter para alpha 0. Verifique também PCX de 8 bits com paleta (o índice da paleta que for magenta).
@@ -25,7 +26,7 @@ Os originais ficam intocados; o pipeline (`tools/asset-pipeline/`) lê de `_lega
 - **Texturas de chão e parede** precisam ter lados potência de 2 e são repetidas (tile) — `graphics.cpp:2872-2905`.
 - **Arquivos ausentes num tema** caem no desenho procedural do cliente (o original faz o mesmo: `graphics.cpp`). O manifesto lista só o que existe.
 - **Encoding:** ler textos como `latin1`, escrever UTF-8.
-- **Fontes:** preferir exportar glifos com o utilitário `dat` do Allegro dentro do container do OG-002 (`tools/parity/docker`); só escrever unpacker LZSS próprio se o container não servir. Conferir caracteres acentuados (pt-BR, fi, it).
+- **Fontes:** na v2 os menus usam uma fonte web única (OG-200); as fontes bitmap do original continuam no manifesto só para o HUD/temas legados. Preferir exportar glifos com o utilitário `dat` do Allegro dentro do container do OG-002 (`tools/parity/docker`); só escrever unpacker LZSS próprio se o container não servir. Conferir caracteres acentuados (pt-BR, fi, it).
 - **Mapas:** nunca "corrigir" um mapa na conversão; erro de mapa é bug do parser ou mapa inválido (RN-MAP-05).
 
 ## Implementação atual (OG-012)

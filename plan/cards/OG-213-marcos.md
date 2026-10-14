@@ -1,0 +1,34 @@
+# OG-213 — Marcos (milestones) do jogador
+
+| Campo | Valor |
+|---|---|
+| Épico | E9 |
+| Tipo | Feature |
+| Prioridade | Should |
+| Estimativa | 3 pts |
+| Sprint | S15 |
+| Status | Backlog |
+| Dependências | [OG-211](OG-211-api-social.md) |
+| Regras de negócio | RN-SOC-03 |
+| Skills | `outgun-card-workflow` |
+
+## História
+Como jogador, quero ganhar marcos ao atingir feitos, para ter objetivos e mostrar minha história no jogo.
+
+## Contexto
+- Dados já existentes em `match_players` e `matches.details` (OG-085).
+
+## Escopo
+- Catálogo de marcos versionado no código (lista inicial a validar com o PO: 1ª partida, 1ª captura, 10/100/1000 partidas, 100/1000/10000 kills, 50 capturas, precisão ≥ 50% numa partida, 10 vitórias seguidas, jogou o beta...).
+- Cálculo no fim de cada partida e cálculo retroativo (script) para o histórico já gravado.
+- Data de conquista de cada marco; marcos no perfil e na tela de fim de partida.
+
+## Critérios de aceite
+- [ ] Testes do cálculo de cada marco; script retroativo idempotente.
+- [ ] Marcos aparecem no perfil (OG-212).
+
+## Notas técnicas
+- Só partidas com conta; kills em bots não contam para marcos.
+
+## Notas de implementação
+(preenchido durante a execução)

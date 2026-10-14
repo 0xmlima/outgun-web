@@ -1,6 +1,6 @@
 # Oráculo do Outgun original
 
-O jogo original, compilado dentro de Docker, é a referência de comportamento do port (PLAN.md seções 2 e 3; skill `outgun-parity-harness`). Cards: OG-002 (oráculo) e OG-003 (golden traces). O único patch, `patches/001-trace.patch`, adiciona as opções `-trace`/`-tracescript`; sem elas o jogo se comporta como o original.
+O jogo original, compilado dentro de Docker, é a referência de comportamento do port (PLAN.md seções 2 e 3; skill `outgun-parity-harness`, desativada na v2 em `.claude/skills-disabled/`). Cards: OG-002 (oráculo) e OG-003 (golden traces). O único patch, `patches/001-trace.patch`, adiciona as opções `-trace`/`-tracescript`; sem elas o jogo se comporta como o original.
 
 Golden traces: cenários em `scenarios/`, traces em `traces/`, formato e passo a passo em [`trace-schema.md`](trace-schema.md), comparação no pacote `@outgun/parity` (`src/`).
 
