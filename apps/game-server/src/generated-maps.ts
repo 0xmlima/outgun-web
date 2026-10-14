@@ -40,7 +40,7 @@ export class GeneratedMaps {
   /** Blocos de `mapgen/` em ordem alfabética (spec mapgen.md); sem a pasta, o bloco embutido. */
   private loadBlocks(): MapgenBlock[] {
     if (this.blocks) return this.blocks;
-    let names: string[] = [];
+    let names: string[];
     try {
       names = this.mapgenDir ? readdirSync(this.mapgenDir).filter((f) => f.endsWith('.txt')).sort() : [];
     } catch {
