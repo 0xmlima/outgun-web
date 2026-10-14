@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 5 pts |
 | Sprint | — |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-068](OG-068-player-options.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec` |

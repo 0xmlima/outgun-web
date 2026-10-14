@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S12 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-064](OG-064-prediction-interpolation.md), [OG-102](OG-102-observability.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

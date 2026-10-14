@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | — |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-011](OG-011-map-generator.md) |
 | Regras de negócio | RN-MAP-06, RN-VOT-04 |
 | Skills | `outgun-re-spec` |

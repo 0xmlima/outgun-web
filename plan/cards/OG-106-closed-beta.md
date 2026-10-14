@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S12 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-087](OG-087-admin-panel.md), [OG-081](OG-081-auth.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

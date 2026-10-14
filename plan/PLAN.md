@@ -584,7 +584,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Concluído |
 | [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Concluído |
-| [OG-015](cards/OG-015-random-maps-rotation.md) | Mapas aleatórios na rotação da sala (envio do mapa gerado) | E1 | 3 | Should | — | OG-011 | Em revisão |
+| [OG-015](cards/OG-015-random-maps-rotation.md) | Mapas aleatórios na rotação da sala (envio do mapa gerado) | E1 | 3 | Should | — | OG-011 | Concluído |
 | [OG-020](cards/OG-020-geometry-walls.md) | Geometria e paredes (colisão contínua) | E2 | 8 | Must | S2 | OG-004, OG-010 | Concluído |
 | [OG-021](cards/OG-021-player-movement.md) | Movimento do jogador e troca de sala | E2 | 5 | Must | S2 | OG-020 | Concluído |
 | [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Concluído |
@@ -621,7 +621,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-067](cards/OG-067-audio.md) | Áudio | E4 | 3 | Must | S7 | OG-012 | Concluído |
 | [OG-068](cards/OG-068-player-options.md) | Opções do jogador | E4 | 3 | Should | S9 | OG-060 | Concluído |
 | [OG-069](cards/OG-069-lobby.md) | Lobby de salas | E4 | 5 | Must | S9 | OG-086 | Concluído |
-| [OG-070](cards/OG-070-advanced-options.md) | Opções gráficas e de jogo avançadas do original | E4 | 5 | Could | — | OG-068 | Em revisão |
+| [OG-070](cards/OG-070-advanced-options.md) | Opções gráficas e de jogo avançadas do original | E4 | 5 | Could | — | OG-068 | Concluído |
 | [OG-080](cards/OG-080-api-db.md) | API e banco de dados | E5 | 5 | Must | S8 | OG-001 | Concluído |
 | [OG-081](cards/OG-081-auth.md) | Cadastro, login e recuperação de senha | E5 | 5 | Must | S8 | OG-080 | Concluído |
 | [OG-082](cards/OG-082-nick-protection.md) | Nome de usuário em jogo, troca de nome e clan tag | E5 | 2 | Must | S8 | OG-081 | Concluído |
@@ -639,10 +639,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Concluído |
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Concluído |
 | [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento (execução) | E7 | 3 | Must | S12 | OG-106 a OG-109 | Bloqueado |
-| [OG-106](cards/OG-106-closed-beta.md) | Beta fechado: convites, feedback e triagem | E7 | 5 | Must | S12 | OG-087, OG-081 | Em revisão |
-| [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Em revisão |
-| [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Em revisão |
-| [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Em revisão |
+| [OG-106](cards/OG-106-closed-beta.md) | Beta fechado: convites, feedback e triagem | E7 | 5 | Must | S12 | OG-087, OG-081 | Concluído |
+| [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Concluído |
+| [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Concluído |
+| [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Concluído |
 
 **Total:** 69 cards (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts), 295 pontos.
 

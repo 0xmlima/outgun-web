@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S12 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-104](OG-104-security.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
