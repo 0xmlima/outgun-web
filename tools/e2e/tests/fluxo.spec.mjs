@@ -40,7 +40,10 @@ test('o cliente é servido com CSP e cabeçalhos de segurança', async ({ reques
 
 const menuItem = (page, label) => page.locator('button.menu-item', { hasText: label });
 // tela inicial no design system v2 (OG-201)
-const homeItem = (page, label) => page.locator('button.ui-menu-item', { hasText: label });
+const homeItem = (page, label) =>
+  page.locator('button.ui-menu-item').filter({
+    has: page.locator('.ui-menu-label', { hasText: new RegExp(`^${label}$`) }),
+  });
 
 test('cadastro com convite, partida até o fim, feedback, histórico e ranking', async ({
   page,
@@ -130,9 +133,9 @@ test('beta fechado: cadastro sem convite recusado; "Jogar agora" sem conta vai p
   await page.getByRole('switch', { name: /Aceito os termos de uso/ }).click();
   await page.getByRole('button', { name: 'Criar conta' }).click();
   // o erro do convite aparece junto do campo (OG-202)
-  await expect(page.locator('.ui-field', { has: page.getByLabel('Código de convite') })).toContainText(
-    'O beta fechado precisa de um código de convite.',
-  );
+  await expect(
+    page.locator('.ui-field', { has: page.getByLabel('Código de convite') }),
+  ).toContainText('O beta fechado precisa de um código de convite.');
   await page.goto('/');
   await homeItem(page, 'Jogar agora').click();
   await expect(page).toHaveURL(/\/login$/);
@@ -154,7 +157,9 @@ test('termos, privacidade e sobre no rodapé (OG-107)', async ({ page }) => {
   await page.screenshot({ path: prints('9-sobre.png'), fullPage: true });
 });
 
-test('tela inicial: cada ação do menu, da barra e do rodapé leva à sua tela (OG-201)', async ({ page }) => {
+test('tela inicial: cada ação do menu, da barra e do rodapé leva à sua tela (OG-201)', async ({
+  page,
+}) => {
   const home = async () => {
     await page.goto('/');
     await expect(homeItem(page, 'Jogar agora')).toBeFocused();

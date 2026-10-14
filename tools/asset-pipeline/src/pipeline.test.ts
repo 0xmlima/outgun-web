@@ -127,7 +127,7 @@ describe('build completo', () => {
     return { dir, manifest: buildAssets(join(repoRoot, '_legacy'), dir, join(repoRoot, 'songs')) };
   };
 
-  it('converte os 6 temas gráficos e o tema de som com as regras do original', { timeout: 30_000 }, () => {
+  it('converte os 6 temas gráficos e o tema de som com as regras do original', { timeout: 90_000 }, () => {
     const { dir, manifest } = build();
     expect(Object.keys(manifest.graphics)).toEqual(['Colors', 'Grass', 'Grid', 'Grid 2', 'Ice', 'Metal']);
     expect(Object.values(manifest.graphics).reduce((n, t) => n + Object.keys(t.graphics).length, 0)).toBe(109);

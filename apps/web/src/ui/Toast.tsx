@@ -38,7 +38,8 @@ export function ToastProvider({ children, closeLabel }: { readonly children: Rea
   return (
     <ToastContext value={show}>
       {children}
-      <div className="ui-toasts" role="status" aria-live="polite">
+      {/* só aria-live (sem role="status"): a região vazia não concorre com o status de cada tela */}
+      <div className="ui-toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`ui-toast ui-tone-${t.tone}`}>
             <span>{t.message}</span>
