@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S13 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | RN-MUS-01, RN-MUS-05 |
 | Skills | `outgun-card-workflow`, `outgun-asset-pipeline` |
