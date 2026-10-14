@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Moldura das telas: escala inteira dos pixels, fonte escolhida e, nos menus, rodapé com o link para
-// o código-fonte (GPL, OG-005).
+// Moldura das telas fora da partida (OG-201, design system v2): barra superior com logo, navegação e
+// conta; rodapé com Sobre, Termos, Privacidade e o código-fonte (GPL, OG-005). As telas ainda no
+// visual antigo (caixas de menu com fonte bitmap) aparecem centralizadas no meio, com a escala
+// inteira de pixels, até migrarem (OG-202, OG-203).
 import { useEffect, useState } from 'react';
-import { Link, Outlet } from 'react-router';
-import { BitmapText } from '../ui/BitmapText.js';
-import { FontProvider } from '../ui/fonts.js';
+import { Link, NavLink, Outlet } from 'react-router';
+import { useAccount } from './account.js';
+import { useMusicMode } from './music/MusicProvider.js';
+import { usePlayNow } from './play-now.js';
 import { usePrefs } from './prefs.js';
+import { Button } from '../ui/Button.js';
+import { FontProvider, GAME_FONT } from '../ui/fonts.js';
+import { useGamepadKeys } from '../ui/gamepad.js';
+import { ToastProvider } from '../ui/Toast.js';
+import './shell.css';
 
 /** Endereço do código-fonte; até existir o repositório público, a página /source explica a GPL. */
 export const SOURCE_URL: string = import.meta.env.VITE_SOURCE_URL ?? '/source';
@@ -27,59 +35,106 @@ function usePixelScale(): number {
 
 export function SourceLink() {
   const { t } = usePrefs();
-  const label = <BitmapText text={t('Source code (GPL)')} />;
-  return SOURCE_URL.startsWith('/') ? (
-    <Link to={SOURCE_URL}>{label}</Link>
-  ) : (
-    <a href={SOURCE_URL}>{label}</a>
-  );
+  const label = t('Source code (GPL)');
+  return SOURCE_URL.startsWith('/') ? <Link to={SOURCE_URL}>{label}</Link> : <a href={SOURCE_URL}>{label}</a>;
 }
 
-/** Termos, privacidade e sobre (OG-107), no rodapé de todas as telas de menu. */
-function LegalLinks() {
-  const { t } = usePrefs();
-  return (
-    <span className="shell-legal">
-      <Link to="/about">
-        <BitmapText text={t('About')} />
-      </Link>{' '}
-      <Link to="/terms">
-        <BitmapText text={t('Terms')} />
-      </Link>{' '}
-      <Link to="/privacy">
-        <BitmapText text={t('Privacy')} />
-      </Link>
-    </span>
-  );
-}
-
-/** Raiz de todas as rotas: idioma do documento, escala dos pixels e fonte dos menus. */
+/** Raiz de todas as rotas: idioma do documento, escala dos pixels, fonte bitmap e avisos (OG-200). */
 export function Root() {
-  const { prefs } = usePrefs();
+  const { prefs, t } = usePrefs();
   const scale = usePixelScale();
   useEffect(() => {
     document.documentElement.lang = prefs.locale;
     document.documentElement.style.setProperty('--px', String(scale));
   }, [prefs.locale, scale]);
   return (
-    <FontProvider name={prefs.menuFont}>
-      <Outlet />
+    <FontProvider name={GAME_FONT}>
+      <ToastProvider closeLabel={t('Close')}>
+        <Outlet />
+      </ToastProvider>
     </FontProvider>
   );
 }
 
-/** Telas de menu: conteúdo centralizado e rodapé com o código-fonte. */
-export function Shell() {
+/** Conta na barra: "Entrar" para o convidado; nome e clã para quem entrou. */
+function AccountChip() {
+  const { t } = usePrefs();
+  const { user } = useAccount();
+  if (user === undefined) return null;
+  if (!user)
+    return (
+      <Link className="app-account ui-button ui-button-secondary" to="/login">
+        {t('Sign in')}
+      </Link>
+    );
   return (
-    <div className="shell">
-      <main className="shell-main">
+    <Link className="app-account app-account-user" to="/account" aria-label={`${t('Account')}: ${user.username}`}>
+      <span className="app-avatar" aria-hidden="true">
+        {user.username.slice(0, 1).toUpperCase()}
+      </span>
+      <span className="app-account-name">
+        {user.clanTag && <span className="app-clan">{user.clanTag}</span>}
+        {user.username}
+      </span>
+    </Link>
+  );
+}
+
+function TopBar() {
+  const { t } = usePrefs();
+  const playNow = usePlayNow();
+  const links = [
+    ['/rooms', t('Rooms')],
+    ['/ranking', t('Ranking')],
+    ['/replays', t('Replays')],
+  ] as const;
+  return (
+    <header className="app-topbar">
+      <Link to="/" className="app-logo">
+        <img src="/favicon.svg" alt="" width="28" height="28" />
+        <span>Outgun</span>
+      </Link>
+      <nav className="app-nav" aria-label={t('Main navigation')}>
+        <Button variant="primary" className="app-nav-play" onClick={playNow}>
+          {t('Play now')}
+        </Button>
+        {links.map(([to, label]) => (
+          <NavLink key={to} to={to} className="app-nav-link">
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      <AccountChip />
+    </header>
+  );
+}
+
+function Footer() {
+  const { t } = usePrefs();
+  return (
+    <footer className="app-footer">
+      <span>Outgun Web</span>
+      <nav aria-label={t('Legal')}>
+        <Link to="/about">{t('About')}</Link>
+        <Link to="/terms">{t('Terms')}</Link>
+        <Link to="/privacy">{t('Privacy')}</Link>
+        <SourceLink />
+      </nav>
+    </footer>
+  );
+}
+
+/** Telas fora da partida: barra superior, conteúdo, rodapé e gamepad (OG-200). */
+export function Shell() {
+  useGamepadKeys();
+  useMusicMode('menu'); // "Outgun Epic" em loop nas telas fora da partida (RN-MUS-01)
+  return (
+    <div className="ui-page app-shell">
+      <TopBar />
+      <main className="app-main">
         <Outlet />
       </main>
-      <footer className="shell-footer">
-        <BitmapText text="Outgun Web" />
-        <LegalLinks />
-        <SourceLink />
-      </footer>
+      <Footer />
     </div>
   );
 }

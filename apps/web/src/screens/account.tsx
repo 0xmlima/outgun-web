@@ -1,18 +1,46 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Telas de conta (OG-081): entrar, criar conta, recuperar e redefinir a senha, conta (troca de senha,
-// exportação e exclusão de dados). Todas no estilo dos menus do original.
-import { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+// exportação e exclusão de dados). No design system v2 (OG-202): formulários web de verdade, com
+// autocomplete para os gerenciadores de senha e o erro junto do campo.
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router';
 import { useAccount, type AccountUser } from '../app/account.js';
 import { TERMS_VERSION } from '@outgun/content';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
-import { BitmapText } from '../ui/BitmapText.js';
-import { Menu, type MenuItem } from '../ui/Menu.js';
+import { Badge, Button } from '../ui/Button.js';
+import { TextField, ToggleField } from '../ui/Field.js';
+import { MenuList, type MenuListItem } from '../ui/MenuList.js';
+import { Form, FormMessageLine, Page } from '../ui/Page.js';
+import { Panel } from '../ui/Panel.js';
 
 const MIN_PASSWORD = 8;
 
-type Message = { readonly text: string; readonly error: boolean } | null;
+/** Campo ao qual a mensagem se refere (fica junto dele); sem campo, vai no pé do formulário. */
+type Field = 'invite' | 'username' | 'email' | 'password' | 'confirm' | 'current' | 'clanTag';
+type Message = { readonly text: string; readonly error: boolean; readonly field?: Field } | null;
+
+/** Campo de cada erro da API. */
+export function errorField(code: string): Field | undefined {
+  switch (code) {
+    case 'username_taken':
+    case 'invalid_username':
+    case 'username_cooldown':
+      return 'username';
+    case 'email_taken':
+    case 'invalid_email':
+      return 'email';
+    case 'invite_required':
+    case 'invalid_invite':
+      return 'invite';
+    case 'invalid_password':
+    case 'weak_password':
+      return 'password';
+    case 'invalid_clan_tag':
+      return 'clanTag';
+  }
+  return undefined;
+}
 
 function useErrorText(): (error: unknown) => string {
   const { t } = usePrefs();
@@ -55,15 +83,6 @@ function useErrorText(): (error: unknown) => string {
   };
 }
 
-function MessageLine({ message }: { readonly message: Message }) {
-  if (!message) return null;
-  return (
-    <p className={message.error ? 'menu-message error' : 'menu-message'} role={message.error ? 'alert' : 'status'}>
-      <BitmapText text={message.text} />
-    </p>
-  );
-}
-
 /** Estado comum: mensagem e "enviando" (ignora Enter repetido). */
 function useSubmit() {
   const errorText = useErrorText();
@@ -76,12 +95,17 @@ function useSubmit() {
     try {
       await fn();
     } catch (error) {
-      setMessage({ text: errorText(error), error: true });
+      const field = error instanceof ApiError ? errorField(error.code) : undefined;
+      setMessage({ text: errorText(error), error: true, ...(field ? { field } : {}) });
     } finally {
       setBusy(false);
     }
   };
-  return { message, setMessage, busy, run };
+  /** Erro do campo `field`, para o `error` do `TextField`. */
+  const fieldError = (field: Field) => (message?.error && message.field === field ? message.text : undefined);
+  /** Mensagem geral (sem campo). */
+  const general: Message = message && !message.field ? message : null;
+  return { setMessage, busy, run, fieldError, general };
 }
 
 export function LoginScreen() {
@@ -90,7 +114,7 @@ export function LoginScreen() {
   const { user, setUser } = useAccount();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, general } = useSubmit();
   // Quem chega já logado vai para a conta; quem acabou de entrar aqui segue para o início.
   const [signedIn, setSignedIn] = useState(false);
   if (user && !signedIn) return <Navigate to="/account" replace />;
@@ -106,27 +130,31 @@ export function LoginScreen() {
       setUser(r.user);
       void navigate('/');
     });
-  const items: MenuItem[] = [
-    { kind: 'action', label: t('Play as guest'), onActivate: () => void navigate('/play') },
-    { kind: 'text', label: t('Username'), value: username, onChange: setUsername, maxLength: 15, autoComplete: 'username' },
-    {
-      kind: 'text',
-      label: t('Password'),
-      value: password,
-      onChange: setPassword,
-      password: true,
-      maxLength: 128,
-      autoComplete: 'current-password',
-      onEnter: () => void submit(),
-    },
-    { kind: 'action', label: t('Sign in'), onActivate: () => void submit() },
-    { kind: 'action', label: t('Create account'), onActivate: () => void navigate('/register') },
-    { kind: 'action', label: t('Forgot your password?'), onActivate: () => void navigate('/forgot-password') },
-  ];
   return (
-    <Menu caption={t('Sign in')} items={items} onBack={() => void navigate('/')}>
-      <MessageLine message={message} />
-    </Menu>
+    <Page title={t('Sign in')} width="narrow" onBack={() => void navigate('/')} backLabel={t('Back')}>
+      <Panel>
+        <Form
+          label={t('Sign in')}
+          onSubmit={() => void submit()}
+          actions={
+            <Button type="submit" variant="primary" block disabled={busy}>
+              {t('Sign in')}
+            </Button>
+          }
+        >
+          <TextField label={t('Username')} value={username} onChange={setUsername} maxLength={15} autoComplete="username" autoFocus />
+          <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" />
+        </Form>
+        <FormMessageLine message={general} />
+        <div className="ui-links">
+          <Link to="/register">{t('Create account')}</Link>
+          <Link to="/forgot-password">{t('Forgot your password?')}</Link>
+        </div>
+      </Panel>
+      <Button variant="ghost" onClick={() => void navigate('/play')}>
+        {t('Play as guest')}
+      </Button>
+    </Page>
   );
 }
 
@@ -149,7 +177,7 @@ export function RegisterScreen() {
       () => {},
     );
   }, []);
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, fieldError, general } = useSubmit();
   // Quem chega já logado vai para a conta; quem acabou de entrar aqui segue para o início.
   const [signedIn, setSignedIn] = useState(false);
   if (user && !signedIn) return <Navigate to="/account" replace />;
@@ -157,11 +185,11 @@ export function RegisterScreen() {
   const submit = () =>
     run(async () => {
       if (password.length < MIN_PASSWORD) {
-        setMessage({ text: t('The password must have at least 8 characters.'), error: true });
+        setMessage({ text: t('The password must have at least 8 characters.'), error: true, field: 'password' });
         return;
       }
       if (password !== confirm) {
-        setMessage({ text: t('The passwords do not match.'), error: true });
+        setMessage({ text: t('The passwords do not match.'), error: true, field: 'confirm' });
         return;
       }
       if (!accepted) {
@@ -175,33 +203,42 @@ export function RegisterScreen() {
       setUser(r.user);
       void navigate('/');
     });
-  const items: MenuItem[] = [
-    ...(beta || invite ? [{ kind: 'text' as const, label: t('Invite code'), value: invite, onChange: setInvite, maxLength: 32 }] : []),
-    { kind: 'text', label: t('Username'), value: username, onChange: setUsername, maxLength: 15, autoComplete: 'username' },
-    { kind: 'text', label: t('E-mail'), value: email, onChange: setEmail, maxLength: 254, autoComplete: 'email' },
-    { kind: 'text', label: t('Password'), value: password, onChange: setPassword, password: true, maxLength: 128, autoComplete: 'new-password' },
-    {
-      kind: 'text',
-      label: t('Confirm password'),
-      value: confirm,
-      onChange: setConfirm,
-      password: true,
-      maxLength: 128,
-      autoComplete: 'new-password',
-      onEnter: () => void submit(),
-    },
-    { kind: 'choice', label: t('I accept the terms of use and the privacy policy'), value: accepted ? t('Yes') : t('No'), onChange: () => setAccepted((a) => !a) },
-    { kind: 'action', label: t('Read the terms of use'), onActivate: () => void navigate('/terms') },
-    { kind: 'action', label: t('Read the privacy policy'), onActivate: () => void navigate('/privacy') },
-    { kind: 'action', label: t('Create account'), onActivate: () => void submit() },
-  ];
   return (
-    <Menu caption={t('Create account')} items={items} onBack={() => void navigate('/login')}>
-      <p className="menu-message">
-        <BitmapText text={t('E-mail (used only to recover your password)')} />
-      </p>
-      <MessageLine message={message} />
-    </Menu>
+    <Page title={t('Create account')} width="narrow" onBack={() => void navigate('/login')} backLabel={t('Back')}>
+      <Panel>
+        <Form
+          label={t('Create account')}
+          onSubmit={() => void submit()}
+          actions={
+            <Button type="submit" variant="primary" block disabled={busy}>
+              {t('Create account')}
+            </Button>
+          }
+        >
+          {(beta || invite) && <TextField label={t('Invite code')} value={invite} onChange={setInvite} maxLength={32} error={fieldError('invite')} />}
+          <TextField label={t('Username')} value={username} onChange={setUsername} maxLength={15} autoComplete="username" error={fieldError('username')} />
+          <TextField label={t('E-mail')} type="email" value={email} onChange={setEmail} maxLength={254} autoComplete="email" hint={t('E-mail (used only to recover your password)')} error={fieldError('email')} />
+          <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="new-password" error={fieldError('password')} />
+          <TextField label={t('Confirm password')} type="password" value={confirm} onChange={setConfirm} maxLength={128} autoComplete="new-password" error={fieldError('confirm')} />
+          <ToggleField
+            label={t('I accept the terms of use and the privacy policy')}
+            checked={accepted}
+            onChange={setAccepted}
+            hint={
+              <span className="ui-links">
+                <a href="/terms" target="_blank">
+                  {t('Read the terms of use')}
+                </a>
+                <a href="/privacy" target="_blank">
+                  {t('Read the privacy policy')}
+                </a>
+              </span>
+            }
+          />
+        </Form>
+        <FormMessageLine message={general} />
+      </Panel>
+    </Page>
   );
 }
 
@@ -209,29 +246,30 @@ export function ForgotPasswordScreen() {
   const { t, prefs } = usePrefs();
   const navigate = useNavigate();
   const [login, setLogin] = useState('');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, general } = useSubmit();
   const submit = () =>
     run(async () => {
       if (!login.trim()) return;
       await api('/auth/password/forgot', { body: { login, language: prefs.locale } });
       setMessage({ text: t('If the account exists, a recovery link was sent to its e-mail. The link expires in 30 minutes.'), error: false });
     });
-  const items: MenuItem[] = [
-    {
-      kind: 'text',
-      label: t('Username or e-mail'),
-      value: login,
-      onChange: setLogin,
-      maxLength: 254,
-      autoComplete: 'username',
-      onEnter: () => void submit(),
-    },
-    { kind: 'action', label: t('Send recovery link'), onActivate: () => void submit() },
-  ];
   return (
-    <Menu caption={t('Forgot your password?')} items={items} onBack={() => void navigate('/login')}>
-      <MessageLine message={message} />
-    </Menu>
+    <Page title={t('Forgot your password?')} width="narrow" onBack={() => void navigate('/login')} backLabel={t('Back')}>
+      <Panel>
+        <Form
+          label={t('Forgot your password?')}
+          onSubmit={() => void submit()}
+          actions={
+            <Button type="submit" variant="primary" block disabled={busy || !login.trim()}>
+              {t('Send recovery link')}
+            </Button>
+          }
+        >
+          <TextField label={t('Username or e-mail')} value={login} onChange={setLogin} maxLength={254} autoComplete="username" autoFocus />
+        </Form>
+        <FormMessageLine message={general} />
+      </Panel>
+    </Page>
   );
 }
 
@@ -243,7 +281,7 @@ export function ResetPasswordScreen() {
   const [token] = useState(() => new URLSearchParams(location.hash.slice(1)).get('token') ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, fieldError, general } = useSubmit();
   useEffect(() => {
     if (location.hash) history.replaceState(null, '', location.pathname);
   }, []);
@@ -251,35 +289,35 @@ export function ResetPasswordScreen() {
   const submit = () =>
     run(async () => {
       if (password.length < MIN_PASSWORD) {
-        setMessage({ text: t('The password must have at least 8 characters.'), error: true });
+        setMessage({ text: t('The password must have at least 8 characters.'), error: true, field: 'password' });
         return;
       }
       if (password !== confirm) {
-        setMessage({ text: t('The passwords do not match.'), error: true });
+        setMessage({ text: t('The passwords do not match.'), error: true, field: 'confirm' });
         return;
       }
       const r = await api<{ user: AccountUser }>('/auth/password/reset', { body: { token, password } });
       setUser(r.user);
       void navigate('/');
     });
-  const items: MenuItem[] = [
-    { kind: 'text', label: t('New password'), value: password, onChange: setPassword, password: true, maxLength: 128, autoComplete: 'new-password' },
-    {
-      kind: 'text',
-      label: t('Confirm password'),
-      value: confirm,
-      onChange: setConfirm,
-      password: true,
-      maxLength: 128,
-      autoComplete: 'new-password',
-      onEnter: () => void submit(),
-    },
-    { kind: 'action', label: t('Save'), onActivate: () => void submit(), disabled: !token },
-  ];
   return (
-    <Menu caption={t('Reset password')} items={items} onBack={() => void navigate('/')}>
-      <MessageLine message={token ? message : { text: t('This link is invalid or has expired. Ask for a new one.'), error: true }} />
-    </Menu>
+    <Page title={t('Reset password')} width="narrow" onBack={() => void navigate('/')} backLabel={t('Back')}>
+      <Panel>
+        <Form
+          label={t('Reset password')}
+          onSubmit={() => void submit()}
+          actions={
+            <Button type="submit" variant="primary" block disabled={busy || !token}>
+              {t('Save')}
+            </Button>
+          }
+        >
+          <TextField label={t('New password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="new-password" error={fieldError('password')} />
+          <TextField label={t('Confirm password')} type="password" value={confirm} onChange={setConfirm} maxLength={128} autoComplete="new-password" error={fieldError('confirm')} />
+        </Form>
+        <FormMessageLine message={token ? general : { text: t('This link is invalid or has expired. Ask for a new one.'), error: true }} />
+      </Panel>
+    </Page>
   );
 }
 
@@ -298,60 +336,92 @@ export function AccountScreen() {
   const { t } = usePrefs();
   const navigate = useNavigate();
   const { user, logout } = useAccount();
-  const { message, run } = useSubmit();
+  const { run, general } = useSubmit();
   // Ao sair por aqui, o destino é o início, não o login.
   const [leaving, setLeaving] = useState(false);
   if (user === null) return leaving ? <Navigate to="/" replace /> : <Navigate to="/login" replace />;
   if (!user) return null;
-  const items: MenuItem[] = [
-    { kind: 'action', label: t('My profile'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) },
-    { kind: 'action', label: t('Change name'), note: user.username, onActivate: () => void navigate('/account/username') },
-    { kind: 'action', label: t('Clan tag'), note: user.clanTag ?? '-', onActivate: () => void navigate('/account/clan-tag') },
-    { kind: 'choice', label: t('E-mail'), value: user.email, onChange: () => {}, disabled: true },
-    { kind: 'action', label: t('Change password'), onActivate: () => void navigate('/account/password') },
-    { kind: 'action', label: t('Export my data'), onActivate: () => void run(downloadExport) },
+  const items: MenuListItem[] = [
+    { label: t('My profile'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) },
+    { label: t('Change name'), aside: user.username, onActivate: () => void navigate('/account/username') },
+    { label: t('Clan tag'), aside: user.clanTag ?? '—', onActivate: () => void navigate('/account/clan-tag') },
+    { label: t('Change password'), onActivate: () => void navigate('/account/password') },
+    { label: t('Export my data'), onActivate: () => void run(downloadExport) },
     {
-      kind: 'action',
       label: t('Sign out'),
       onActivate: () => {
         setLeaving(true);
         void logout();
       },
     },
-    { kind: 'action', label: t('Delete account'), onActivate: () => void navigate('/account/delete') },
+    { label: t('Delete account'), aside: <Badge tone="danger">{t('permanent')}</Badge>, onActivate: () => void navigate('/account/delete') },
   ];
   return (
-    <Menu caption={t('Account')} items={items} onBack={() => void navigate('/')}>
-      <MessageLine message={message} />
-    </Menu>
+    <Page title={t('Account')} subtitle={`${user.clanTag ? `${user.clanTag} ` : ''}${user.username} · ${user.email}`} width="narrow" onBack={() => void navigate('/')} backLabel={t('Back')}>
+      <MenuList label={t('Account')} items={items} autoFocus />
+      <FormMessageLine message={general} />
+    </Page>
+  );
+}
+
+/** Formulário de uma tela de conta, com a explicação acima. */
+function AccountForm({ title, note, onSubmit, submitLabel, submitDisabled, danger, children, message }: {
+  readonly title: string;
+  readonly note?: string;
+  readonly onSubmit: () => void;
+  readonly submitLabel: string;
+  readonly submitDisabled?: boolean;
+  readonly danger?: boolean;
+  readonly children: ReactNode;
+  readonly message: Message;
+}) {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  return (
+    <Page title={title} width="narrow" onBack={() => void navigate('/account')} backLabel={t('Back')}>
+      <Panel>
+        {note && <p className="ui-muted">{note}</p>}
+        <Form
+          label={title}
+          onSubmit={onSubmit}
+          actions={
+            <Button type="submit" variant={danger ? 'danger' : 'primary'} block disabled={submitDisabled}>
+              {submitLabel}
+            </Button>
+          }
+        >
+          {children}
+        </Form>
+        <FormMessageLine message={message} />
+      </Panel>
+    </Page>
   );
 }
 
 export function ChangePasswordScreen() {
   const { t } = usePrefs();
-  const navigate = useNavigate();
   const { user } = useAccount();
   const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, fieldError, general } = useSubmit();
   if (user === null) return <Navigate to="/login" replace />;
 
   const submit = () =>
     run(async () => {
       if (password.length < MIN_PASSWORD) {
-        setMessage({ text: t('The password must have at least 8 characters.'), error: true });
+        setMessage({ text: t('The password must have at least 8 characters.'), error: true, field: 'password' });
         return;
       }
       if (password !== confirm) {
-        setMessage({ text: t('The passwords do not match.'), error: true });
+        setMessage({ text: t('The passwords do not match.'), error: true, field: 'confirm' });
         return;
       }
       try {
         await api('/account/password', { body: { currentPassword: current, newPassword: password } });
       } catch (error) {
         if (error instanceof ApiError && error.code === 'invalid_credentials') {
-          setMessage({ text: t('Wrong password.'), error: true });
+          setMessage({ text: t('Wrong password.'), error: true, field: 'current' });
           return;
         }
         throw error;
@@ -361,34 +431,22 @@ export function ChangePasswordScreen() {
       setConfirm('');
       setMessage({ text: t('Password changed. Other sessions were signed out.'), error: false });
     });
-  const items: MenuItem[] = [
-    { kind: 'text', label: t('Current password'), value: current, onChange: setCurrent, password: true, maxLength: 128, autoComplete: 'current-password' },
-    { kind: 'text', label: t('New password'), value: password, onChange: setPassword, password: true, maxLength: 128, autoComplete: 'new-password' },
-    {
-      kind: 'text',
-      label: t('Confirm password'),
-      value: confirm,
-      onChange: setConfirm,
-      password: true,
-      maxLength: 128,
-      autoComplete: 'new-password',
-      onEnter: () => void submit(),
-    },
-    { kind: 'action', label: t('Save'), onActivate: () => void submit() },
-  ];
   return (
-    <Menu caption={t('Change password')} items={items} onBack={() => void navigate('/account')}>
-      <MessageLine message={message} />
-    </Menu>
+    <AccountForm title={t('Change password')} onSubmit={() => void submit()} submitLabel={t('Save')} submitDisabled={busy} message={general}>
+      {/* campo de usuário oculto: os gerenciadores de senha sabem de qual conta é a senha nova */}
+      <input type="text" name="username" autoComplete="username" value={user?.username ?? ''} readOnly hidden />
+      <TextField label={t('Current password')} type="password" value={current} onChange={setCurrent} maxLength={128} autoComplete="current-password" error={fieldError('current')} />
+      <TextField label={t('New password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="new-password" error={fieldError('password')} />
+      <TextField label={t('Confirm password')} type="password" value={confirm} onChange={setConfirm} maxLength={128} autoComplete="new-password" error={fieldError('confirm')} />
+    </AccountForm>
   );
 }
 
 export function DeleteAccountScreen() {
   const { t } = usePrefs();
-  const navigate = useNavigate();
   const { user, setUser } = useAccount();
   const [password, setPassword] = useState('');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, fieldError, general } = useSubmit();
   const [deleted, setDeleted] = useState(false);
   if (user === null) return deleted ? <Navigate to="/" replace /> : <Navigate to="/login" replace />;
 
@@ -398,7 +456,7 @@ export function DeleteAccountScreen() {
         await api('/account', { method: 'DELETE', body: { password } });
       } catch (error) {
         if (error instanceof ApiError && error.code === 'invalid_credentials') {
-          setMessage({ text: t('Wrong password.'), error: true });
+          setMessage({ text: t('Wrong password.'), error: true, field: 'password' });
           return;
         }
         throw error;
@@ -406,36 +464,28 @@ export function DeleteAccountScreen() {
       setDeleted(true);
       setUser(null);
     });
-  const items: MenuItem[] = [
-    {
-      kind: 'text',
-      label: t('Password'),
-      value: password,
-      onChange: setPassword,
-      password: true,
-      maxLength: 128,
-      autoComplete: 'current-password',
-    },
-    { kind: 'action', label: t('Delete account permanently'), onActivate: () => void submit(), disabled: !password },
-  ];
   return (
-    <Menu caption={t('Delete account')} items={items} onBack={() => void navigate('/account')}>
-      <p className="menu-message">
-        <BitmapText text={t('Your account and personal data are erased. Past matches stay, without your name.')} />
-      </p>
-      <MessageLine message={message} />
-    </Menu>
+    <AccountForm
+      title={t('Delete account')}
+      note={t('Your account and personal data are erased. Past matches stay, without your name.')}
+      onSubmit={() => void submit()}
+      submitLabel={t('Delete account permanently')}
+      submitDisabled={busy || !password}
+      danger
+      message={general}
+    >
+      <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" error={fieldError('password')} />
+    </AccountForm>
   );
 }
 
 /** Troca do nome de usuário (OG-082): uma vez a cada 30 dias; o antigo fica reservado por 90. */
 export function ChangeUsernameScreen() {
   const { t } = usePrefs();
-  const navigate = useNavigate();
   const { user, setUser } = useAccount();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, fieldError, general } = useSubmit();
   if (user === null) return <Navigate to="/login" replace />;
 
   const submit = () =>
@@ -447,43 +497,33 @@ export function ChangeUsernameScreen() {
         setMessage({ text: t('Name changed to $1.', r.user.username), error: false });
       } catch (error) {
         if (error instanceof ApiError && error.code === 'invalid_credentials') {
-          setMessage({ text: t('Wrong password.'), error: true });
+          setMessage({ text: t('Wrong password.'), error: true, field: 'password' });
           return;
         }
         throw error;
       }
     });
-  const items: MenuItem[] = [
-    { kind: 'text', label: t('New name'), value: username, onChange: setUsername, maxLength: 15, autoComplete: 'off' },
-    {
-      kind: 'text',
-      label: t('Password'),
-      value: password,
-      onChange: setPassword,
-      password: true,
-      maxLength: 128,
-      autoComplete: 'current-password',
-      onEnter: () => void submit(),
-    },
-    { kind: 'action', label: t('Save'), onActivate: () => void submit(), disabled: !username || !password },
-  ];
   return (
-    <Menu caption={t('Change name')} items={items} onBack={() => void navigate('/account')}>
-      <p className="menu-message">
-        <BitmapText text={t('Once every 30 days. Your old name stays reserved for you for 90 days.')} />
-      </p>
-      <MessageLine message={message} />
-    </Menu>
+    <AccountForm
+      title={t('Change name')}
+      note={t('Once every 30 days. Your old name stays reserved for you for 90 days.')}
+      onSubmit={() => void submit()}
+      submitLabel={t('Save')}
+      submitDisabled={busy || !username || !password}
+      message={general}
+    >
+      <TextField label={t('New name')} value={username} onChange={setUsername} maxLength={15} autoComplete="off" error={fieldError('username')} />
+      <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" error={fieldError('password')} />
+    </AccountForm>
   );
 }
 
 /** Clan tag (OG-082): aparece como "(TAG) nome" no chat. */
 export function ClanTagScreen() {
   const { t } = usePrefs();
-  const navigate = useNavigate();
   const { user, setUser } = useAccount();
   const [tag, setTag] = useState(user?.clanTag ?? '');
-  const { message, setMessage, run } = useSubmit();
+  const { setMessage, busy, run, fieldError, general } = useSubmit();
   if (user === null) return <Navigate to="/login" replace />;
 
   const save = (clanTag: string | null) =>
@@ -493,17 +533,14 @@ export function ClanTagScreen() {
       setTag(r.user.clanTag ?? '');
       setMessage({ text: t('Saved.'), error: false });
     });
-  const items: MenuItem[] = [
-    { kind: 'text', label: t('Clan tag'), value: tag, onChange: setTag, maxLength: 6, onEnter: () => void save(tag || null) },
-    { kind: 'action', label: t('Save'), onActivate: () => void save(tag || null) },
-    { kind: 'action', label: t('Remove clan tag'), onActivate: () => void save(null), disabled: !user?.clanTag },
-  ];
   return (
-    <Menu caption={t('Clan tag')} items={items} onBack={() => void navigate('/account')}>
-      <p className="menu-message">
-        <BitmapText text={t('Shown in chat as "(TAG) name".')} />
-      </p>
-      <MessageLine message={message} />
-    </Menu>
+    <AccountForm title={t('Clan tag')} note={t('Shown in chat as "(TAG) name".')} onSubmit={() => void save(tag || null)} submitLabel={t('Save')} submitDisabled={busy} message={general}>
+      <TextField label={t('Clan tag')} value={tag} onChange={setTag} maxLength={6} error={fieldError('clanTag')} />
+      {user?.clanTag && (
+        <Button variant="ghost" onClick={() => void save(null)}>
+          {t('Remove clan tag')}
+        </Button>
+      )}
+    </AccountForm>
   );
 }

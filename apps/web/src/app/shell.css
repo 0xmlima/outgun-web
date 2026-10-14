@@ -1,0 +1,289 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Moldura das telas (OG-201): barra superior, conteúdo com rolagem própria e rodapé. O fundo lembra o
+   jogo sem baixar nada: o brilho das duas bases (vermelha e azul) sobre a grade das salas. */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(60rem 40rem at -10% 110%, rgb(255 90 90 / 13%), transparent 60%),
+    radial-gradient(60rem 40rem at 110% -10%, rgb(92 140 255 / 15%), transparent 60%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 4rem),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 4rem),
+    var(--surface-0);
+}
+
+.app-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: rgb(11 16 32 / 85%);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.app-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text) !important;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+.app-logo img {
+  border-radius: var(--radius-sm);
+}
+.app-nav {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.app-nav-play {
+  flex: none;
+  min-height: 2.25rem;
+  white-space: nowrap;
+  margin-right: var(--space-2);
+}
+.app-nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted) !important;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-nav-link:hover {
+  color: var(--text) !important;
+  background: var(--surface-2);
+}
+.app-nav-link.active {
+  color: var(--text) !important;
+  background: var(--surface-2);
+}
+.app-account {
+  min-height: 2.25rem;
+  text-decoration: none;
+}
+.app-account-user {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text) !important;
+}
+.app-account-user:hover {
+  background: var(--surface-2);
+}
+.app-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+.app-account-name {
+  max-width: 12rem;
+  overflow: hidden;
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-clan {
+  margin-right: var(--space-1);
+  color: var(--text-accent);
+}
+
+/* Celular: logo e conta em cima; a navegação vai para uma segunda linha, rolável se faltar espaço. */
+@media (max-width: 40rem) {
+  .app-topbar {
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+  }
+  .app-nav {
+    order: 3;
+    flex-basis: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+.app-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* telas ainda no visual antigo: a caixa de menu centralizada, como antes */
+.app-main > .menu,
+.app-main > .text-page {
+  margin: auto;
+  font-family: 'Courier New', monospace;
+  font-size: calc(var(--px) * 13px);
+  line-height: 1.25;
+  color: var(--menu-item);
+}
+.app-main > .text-page {
+  max-height: 100%;
+}
+
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.app-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+.app-footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.app-footer a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* Tela inicial (OG-201) */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-top: var(--space-7);
+}
+.home-title {
+  font-size: clamp(2.5rem, 1.8rem + 3.5vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  width: fit-content;
+  background: linear-gradient(100deg, var(--text-team-red), var(--text) 45%, var(--text-team-blue));
+  background-clip: text;
+  color: transparent;
+}
+.home-tagline {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (min-width: 64rem) {
+  .home-grid:has(.ui-panel) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+.ui-menu.home-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+.home-menu > li {
+  display: flex;
+}
+.home-menu > li.primary {
+  grid-column: 1 / -1;
+}
+@media (max-width: 40rem) {
+  .home {
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+  }
+}
+
+/* Opções (OG-202) */
+.options-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.options-colors:focus-visible {
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+.options-colors.disabled {
+  opacity: 0.5;
+}
+.options-colors .swatch {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid var(--surface-0);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.options-colors .swatch.selected {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.controls-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.controls-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.controls-row.capturing {
+  background: var(--surface-2);
+}
+.controls-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.controls-keys kbd {
+  padding: 0.125rem var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+.controls-buttons {
+  display: flex;
+  gap: var(--space-1);
+}
+@media (max-width: 40rem) {
+  .controls-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.options-tab .ui-panel {
+  max-width: 48rem;
+}

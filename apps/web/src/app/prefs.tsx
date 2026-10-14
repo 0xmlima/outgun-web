@@ -5,9 +5,6 @@ import { detectLocale, LOCALES, translate, type Locale } from '@outgun/i18n';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
 
-/** Fonte padrão dos menus (uma das 25 fontes do original convertidas no OG-013). */
-export const DEFAULT_MENU_FONT = 'Kulmikas';
-
 export type ShowNames = 'never' | 'sameRoom' | 'always';
 export type ShowStats = 'off' | 'teams' | 'players';
 export type SkipMaps = 'none' | 'dimmed' | 'highlighted';
@@ -25,7 +22,6 @@ export interface Prefs {
   readonly favoriteColors: readonly number[];
   /** `Use random color`: não envia as favoritas. */
   readonly randomColor: boolean;
-  readonly menuFont: string;
   /** Tema gráfico (`''` = sem tema: cores de fábrica, como o `config/client.cfg` distribuído). */
   readonly graphicsTheme: string;
   /** `Colour theme` e `Prefer main theme colours`. */
@@ -87,6 +83,9 @@ export interface Prefs {
   /** `Volume` 0..255 (padrão 128, passo 15 no menu do original). */
   readonly soundVolume: number;
   readonly soundTheme: string;
+  /** Trilha sonora (OG-222, RN-MUS-04): ligada e volume 0..100, separados dos efeitos. */
+  readonly musicEnabled: boolean;
+  readonly musicVolume: number;
 }
 
 const STORAGE_KEY = 'outgun.prefs';
@@ -107,7 +106,6 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     playerName: '',
     favoriteColors: completeColors([]),
     randomColor: false,
-    menuFont: DEFAULT_MENU_FONT,
     graphicsTheme: '',
     colourTheme: '',
     preferThemeColours: true,
@@ -149,6 +147,8 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     soundEnabled: true,
     soundVolume: 128,
     soundTheme: 'Visa',
+    musicEnabled: true,
+    musicVolume: 50,
   };
 }
 
@@ -157,7 +157,10 @@ const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fa
 const str = (v: unknown, fallback: string, max = 64) => (typeof v === 'string' ? v.slice(0, max) : fallback);
 const oneOf = <T extends string>(v: unknown, options: readonly T[], fallback: T): T => (options.includes(v as T) ? (v as T) : fallback);
 
-/** Preferências salvas (navegador ou conta), conferidas campo a campo; o que vier errado volta ao padrão. */
+/**
+ * Preferências salvas (navegador ou conta), conferidas campo a campo; o que vier errado volta ao padrão.
+ * Campos que deixaram de existir (ex.: `menuFont`, removido no OG-200) são ignorados e somem no próximo salvamento.
+ */
 export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Prefs {
   const quick = Array.isArray(saved.quickMessages) ? saved.quickMessages : [];
   return {
@@ -165,7 +168,6 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     playerName: str(saved.playerName, fallback.playerName, 15),
     favoriteColors: saved.favoriteColors === undefined ? fallback.favoriteColors : completeColors(saved.favoriteColors),
     randomColor: bool(saved.randomColor, fallback.randomColor),
-    menuFont: str(saved.menuFont, fallback.menuFont),
     graphicsTheme: str(saved.graphicsTheme, fallback.graphicsTheme),
     colourTheme: str(saved.colourTheme, fallback.colourTheme),
     preferThemeColours: bool(saved.preferThemeColours, fallback.preferThemeColours),
@@ -207,6 +209,8 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     soundEnabled: bool(saved.soundEnabled, fallback.soundEnabled),
     soundVolume: int(saved.soundVolume, 0, 255, fallback.soundVolume),
     soundTheme: str(saved.soundTheme, fallback.soundTheme),
+    musicEnabled: bool(saved.musicEnabled, fallback.musicEnabled),
+    musicVolume: int(saved.musicVolume, 0, 100, fallback.musicVolume),
   };
 }
 

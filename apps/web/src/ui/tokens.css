@@ -1,0 +1,80 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Design system v2 (OG-200, RN-UI-01..03): a fonte única (Inter, D-35) e os tokens de cor, espaço,
+   raio, sombra e tipografia. Convenção conferida por tokens.test.ts: todo `--text-*` tem contraste
+   ≥ 4,5:1 sobre todo `--surface-*`, e todo `--text-on-X` sobre `--X`. */
+
+/* Inter variável, só o subconjunto latino (pt-BR, fi, it), servida pelo próprio site. OFL-1.1. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* superfícies, da mais funda (fundo da página) à mais alta (campos, item em foco) */
+  --surface-0: #0b1020;
+  --surface-1: #121a2b;
+  --surface-2: #1a2438;
+  --surface-3: #233048;
+  --border: #2e3d58;
+  --border-strong: #4a5d80;
+
+  /* texto */
+  --text: #eef2f8;
+  --text-muted: #a3b0c4;
+  --text-accent: #5cc8ff;
+  --text-danger: #ff7a7a;
+  --text-success: #5fd88f;
+  --text-warning: #f5c451;
+  --text-team-red: #ff7a7a;
+  --text-team-blue: #7fa8ff;
+
+  /* destaque e perigo como fundo (botões), com o texto que vai sobre eles */
+  --accent: #5cc8ff;
+  --accent-hover: #8ad8ff;
+  --text-on-accent: #06121f;
+  --danger: #ff7a7a;
+  --danger-hover: #ff9c9c;
+  --text-on-danger: #1a0505;
+  --focus-ring: #5cc8ff;
+
+  /* espaçamentos (múltiplos de 4 px na fonte-base de 16 px) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 45%);
+
+  /* tipografia: escala fixa em rem; a fonte-base cresce com a tela (legível de 360 px a 4K) */
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size-root: clamp(16px, 0.35vw + 10px, 22px);
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
+  --leading: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  --duration: 120ms;
+  --content-width: 72rem;
+}

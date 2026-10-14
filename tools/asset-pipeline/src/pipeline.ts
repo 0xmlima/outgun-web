@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { readOutgunFont, toBmFont } from './font.js';
+import { MENU_TRACK, mp3Duration, MUSIC_CREDIT, MUSIC_LICENSE, trackId, trackTitle, type MusicTrack } from './music.js';
 import { decodePcx } from './pcx.js';
 import { encodePng } from './png.js';
 
@@ -94,6 +95,8 @@ export interface AssetManifest {
    * para o cliente desenhar o mapa que o servidor anunciar. A chave é o nome sem `.txt`.
    */
   maps: Record<string, { file: string; dir: 'maps' | 'cmaps' }>;
+  /** Trilha sonora (OG-220): a faixa do menu primeiro, depois as das partidas. */
+  music: MusicTrack[];
 }
 
 const contentHash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex').slice(0, 10);
@@ -151,8 +154,8 @@ export function parseColourDefs(text: string): Record<string, string> {
   return colours;
 }
 
-/** Converte `graphics/` e `sound/` de `gameRoot` para `outDir` e devolve o manifesto. */
-export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
+/** Converte `graphics/` e `sound/` de `gameRoot` (e a trilha de `songsRoot`) para `outDir` e devolve o manifesto. */
+export function buildAssets(gameRoot: string, outDir: string, songsRoot?: string): AssetManifest {
   if (existsSync(outDir)) rmSync(outDir, { recursive: true });
   mkdirSync(outDir, { recursive: true });
   const manifest: AssetManifest = {
@@ -162,6 +165,7 @@ export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
     fonts: {},
     defaultColours: parseColourDefs(readFileSync(join(gameRoot, 'src/colour_def.inc'), 'latin1')),
     maps: {},
+    music: [],
   };
 
   const graphicsRoot = join(gameRoot, 'graphics');
@@ -238,6 +242,24 @@ export function buildAssets(gameRoot: string, outDir: string): AssetManifest {
     }
   }
 
+  if (songsRoot && existsSync(songsRoot)) {
+    for (const file of readdirSync(songsRoot).sort()) {
+      if (!file.toLowerCase().endsWith('.mp3')) continue;
+      const id = trackId(file);
+      const bytes = readFileSync(join(songsRoot, file));
+      manifest.music.push({
+        id,
+        title: trackTitle(file),
+        role: id === MENU_TRACK ? 'menu' : 'match',
+        file: writeHashed(outDir, 'music', id, 'mp3', bytes),
+        duration: Math.round(mp3Duration(bytes) * 10) / 10,
+        credit: MUSIC_CREDIT,
+        license: MUSIC_LICENSE,
+      });
+    }
+    manifest.music.sort((a, b) => (a.role === b.role ? 0 : a.role === 'menu' ? -1 : 1));
+  }
+
   writeFileSync(join(outDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   writeFileSync(join(outDir, 'preview.html'), previewPage(manifest));
   return manifest;
@@ -256,6 +278,11 @@ function previewPage(manifest: AssetManifest): string {
       return `<h2>${esc(theme)}</h2><div class="grid">${cards}</div>`;
     })
     .join('\n');
+  const music = manifest.music.length
+    ? `<h2>Música (${esc(manifest.music[0]!.credit)})</h2><ul class="sounds">${manifest.music
+        .map((m) => `<li><span>${esc(m.title)}</span><em>${m.role} · ${m.duration} s</em><audio controls preload="none" src="${esc(m.file)}"></audio></li>`)
+        .join('\n')}</ul>`
+    : '';
   const sounds = Object.entries(manifest.sounds)
     .map(([theme, s]) => {
       const rows = Object.entries(s.samples)
@@ -293,6 +320,7 @@ figure.font img { width: 256px; height: auto; background: #224; }
 ${themes}
 <h2>Fontes (atlas BMFont)</h2><div class="grid">${fonts}</div>
 ${sounds}
+${music}
 </body>
 </html>
 `;

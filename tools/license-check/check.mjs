@@ -27,6 +27,9 @@ const ALLOWED = new Set([
   'Python-2.0',
   'Unlicense',
   'Zlib',
+  // fontes (Inter, OG-200): a OFL permite empacotar e distribuir a fonte junto de qualquer software,
+  // desde que ela mesma não seja vendida sozinha e mantenha a licença (registrada em CREDITS.md)
+  'OFL-1.1',
 ]);
 
 function isAllowed(expression) {

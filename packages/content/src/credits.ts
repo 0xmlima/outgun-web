@@ -84,5 +84,18 @@ export const ORIGINAL_CREDITS: readonly CreditGroup[] = [
   },
 ];
 
+/** Créditos do que entrou no Outgun Web depois do port (v2): fonte da interface, música... */
+export const WEB_CREDITS: readonly CreditGroup[] = [
+  {
+    role: 'Interface font',
+    people: ['Inter, by Rasmus Andersson (SIL Open Font License 1.1)'],
+  },
+  {
+    // D-38: trilha composta pelo PO; os títulos das faixas vêm do manifesto (OG-220)
+    role: 'Music',
+    people: ['Thiago Vasconcellos (CC BY-SA 4.0)'],
+  },
+];
+
 /** Licença do jogo original e do port (COPYING). */
 export const LICENSE_SPDX = 'GPL-2.0-or-later';

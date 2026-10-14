@@ -13,6 +13,8 @@ import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
+import { GAME_FONT } from '../ui/fonts.js';
+import { useMusicMode } from '../app/music/MusicProvider.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
 
@@ -58,6 +60,9 @@ export default function GameScreen() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
+  // trilha (OG-221, D-37): playlist só nas salas Casual; até o servidor dizer o modo, silêncio
+  const [roomMode, setRoomMode] = useState<'casual' | 'ranked' | null>(null);
+  useMusicMode(roomMode === 'casual' ? 'match' : 'off');
   const [toast, setToast] = useState<string | null>(null);
   /** Tela F1–F5 aberta (OG-066); `auto` = aberta sozinha no fim da partida (`stats_autoshowing`). */
   const [info, setInfo] = useState<{ kind: InfoKind; auto: boolean } | null>(null);
@@ -101,7 +106,7 @@ export default function GameScreen() {
       room: [rx || 0, ry || 0],
       demoPlayers: demo,
       demoStress: params.get('stress') === '1',
-      font: prefs.menuFont,
+      font: GAME_FONT,
       bindings: prefs.bindings,
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
       translate: (text, ...args) => tRef.current(text, ...args),
@@ -110,6 +115,7 @@ export default function GameScreen() {
       preferThemeColours: prefs.preferThemeColours,
       client: clientOptions(prefs),
       onStatus: setStatus,
+      onRoomMode: setRoomMode,
       onAction: (action) => {
         const t = tRef.current;
         if (action === 'menu') setMenuOpen(true);
@@ -127,7 +133,7 @@ export default function GameScreen() {
     });
     host.current = game;
     return () => game.destroy();
-  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont, prefs.colourTheme, prefs.preferThemeColours]);
+  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.colourTheme, prefs.preferThemeColours]);
 
   // opções que mudam sem recarregar a partida
   const client = clientOptions(prefs);

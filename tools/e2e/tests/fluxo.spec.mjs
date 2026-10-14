@@ -39,6 +39,11 @@ test('o cliente é servido com CSP e cabeçalhos de segurança', async ({ reques
 });
 
 const menuItem = (page, label) => page.locator('button.menu-item', { hasText: label });
+// tela inicial no design system v2 (OG-201)
+const homeItem = (page, label) =>
+  page.locator('button.ui-menu-item').filter({
+    has: page.locator('.ui-menu-label', { hasText: new RegExp(`^${label}$`) }),
+  });
 
 test('cadastro com convite, partida até o fim, feedback, histórico e ranking', async ({
   page,
@@ -47,7 +52,7 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
   // 1. Cadastro (beta fechado: com o link do convite)
   await registerWithInvite(page, baseURL, name, password);
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator('.menu')).toContainText(name);
+  await expect(page.locator('.app-account')).toContainText(name);
 
   // 2. Lobby: a sala do game server aparece pelo heartbeat; "Jogar agora" no Casual
   await page.goto('/rooms');
@@ -120,24 +125,25 @@ test('beta fechado: cadastro sem convite recusado; "Jogar agora" sem conta vai p
   await page.getByLabel('E-mail').fill('semconvite@outgun.local');
   await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByLabel('Confirmar senha').fill(password);
-  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
   // sem aceitar os termos (OG-107) nem chega à API
-  await expect(page.locator('.menu')).toContainText(
+  await expect(page.getByRole('alert')).toContainText(
     'Aceite os termos de uso e a política de privacidade',
   );
-  await page.locator('button.menu-item', { hasText: 'Aceito os termos de uso' }).click();
-  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
-  await expect(page.locator('.menu')).toContainText(
-    'O beta fechado precisa de um código de convite.',
-  );
+  await page.getByRole('switch', { name: /Aceito os termos de uso/ }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
+  // o erro do convite aparece junto do campo (OG-202)
+  await expect(
+    page.locator('.ui-field', { has: page.getByLabel('Código de convite') }),
+  ).toContainText('O beta fechado precisa de um código de convite.');
   await page.goto('/');
-  await menuItem(page, 'Jogar agora').click();
+  await homeItem(page, 'Jogar agora').click();
   await expect(page).toHaveURL(/\/login$/);
 });
 
 test('termos, privacidade e sobre no rodapé (OG-107)', async ({ page }) => {
   await page.goto('/');
-  await page.locator('.shell-footer a', { hasText: 'Privacidade' }).click();
+  await page.locator('.app-footer a', { hasText: 'Privacidade' }).click();
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.locator('.text-page')).toContainText(
     'O que guardamos, por quê e por quanto tempo',
@@ -149,6 +155,62 @@ test('termos, privacidade e sobre no rodapé (OG-107)', async ({ page }) => {
   await page.goto('/about');
   await expect(page.locator('.text-page')).toContainText('Fabiana Cecin');
   await page.screenshot({ path: prints('9-sobre.png'), fullPage: true });
+});
+
+test('tela inicial: cada ação do menu, da barra e do rodapé leva à sua tela (OG-201)', async ({
+  page,
+}) => {
+  const home = async () => {
+    await page.goto('/');
+    await expect(homeItem(page, 'Jogar agora')).toBeFocused();
+  };
+  for (const [label, url] of [
+    ['Salas', /\/rooms$/],
+    ['Criar sala privada', /\/login$/],
+    ['Ranking', /\/ranking$/],
+    ['Replays', /\/replays$/],
+    ['Opções', /\/options$/],
+    ['Ajuda', /\/help$/],
+    ['Créditos', /\/credits$/],
+    ['Entrar', /\/login$/],
+  ]) {
+    await home();
+    await homeItem(page, label).click();
+    await expect(page, label).toHaveURL(url);
+  }
+  // teclado: atalho numérico e Enter, como nos menus do original
+  await home();
+  await page.keyboard.press('4');
+  await expect(page).toHaveURL(/\/ranking$/);
+  await home();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/rooms$/);
+  // barra superior e rodapé
+  for (const [label, url] of [
+    ['Salas', /\/rooms$/],
+    ['Ranking', /\/ranking$/],
+    ['Replays', /\/replays$/],
+  ]) {
+    await home();
+    await page.locator('.app-nav a', { hasText: label }).click();
+    await expect(page).toHaveURL(url);
+  }
+  await home();
+  await page.locator('.app-topbar a', { hasText: 'Entrar' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.locator('.app-logo').click();
+  await expect(page).toHaveURL(/\/$/);
+  for (const [label, url] of [
+    ['Sobre', /\/about$/],
+    ['Termos', /\/terms$/],
+    ['Privacidade', /\/privacy$/],
+    ['Código-fonte', /\/source$/],
+  ]) {
+    await home();
+    await page.locator('.app-footer a', { hasText: label }).click();
+    await expect(page).toHaveURL(url);
+  }
 });
 
 test('convidado não entra no Ranked: vai para o login', async ({ page }) => {
