@@ -35,6 +35,24 @@ export function SourceLink() {
   );
 }
 
+/** Termos, privacidade e sobre (OG-107), no rodapé de todas as telas de menu. */
+function LegalLinks() {
+  const { t } = usePrefs();
+  return (
+    <span className="shell-legal">
+      <Link to="/about">
+        <BitmapText text={t('About')} />
+      </Link>{' '}
+      <Link to="/terms">
+        <BitmapText text={t('Terms')} />
+      </Link>{' '}
+      <Link to="/privacy">
+        <BitmapText text={t('Privacy')} />
+      </Link>
+    </span>
+  );
+}
+
 /** Raiz de todas as rotas: idioma do documento, escala dos pixels e fonte dos menus. */
 export function Root() {
   const { prefs } = usePrefs();
@@ -59,6 +77,7 @@ export function Shell() {
       </main>
       <footer className="shell-footer">
         <BitmapText text="Outgun Web" />
+        <LegalLinks />
         <SourceLink />
       </footer>
     </div>

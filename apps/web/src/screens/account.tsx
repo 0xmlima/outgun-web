@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { useAccount, type AccountUser } from '../app/account.js';
+import { TERMS_VERSION } from '@outgun/content';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { BitmapText } from '../ui/BitmapText.js';
@@ -30,6 +31,10 @@ function useErrorText(): (error: unknown) => string {
         return t('Invalid username: up to 15 characters, no spaces at the ends.');
       case 'invalid_email':
         return t('Invalid e-mail.');
+      case 'invite_required':
+        return t('The closed beta needs an invite code.');
+      case 'invalid_invite':
+        return t('This invite code is invalid, already used or expired.');
       case 'invalid_password':
         return t('The password must have at least 8 characters.');
       case 'weak_password':
@@ -133,6 +138,17 @@ export function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  // beta fechado (OG-106): convite pelo link (/register?invite=CODIGO) ou digitado
+  const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? '');
+  const [beta, setBeta] = useState(false);
+  // termos de uso e política de privacidade (OG-107): aceite obrigatório, versão vai para a conta
+  const [accepted, setAccepted] = useState(false);
+  useEffect(() => {
+    api<{ beta: boolean }>('/beta').then(
+      (r) => setBeta(r.beta),
+      () => {},
+    );
+  }, []);
   const { message, setMessage, run } = useSubmit();
   // Quem chega já logado vai para a conta; quem acabou de entrar aqui segue para o início.
   const [signedIn, setSignedIn] = useState(false);
@@ -148,14 +164,19 @@ export function RegisterScreen() {
         setMessage({ text: t('The passwords do not match.'), error: true });
         return;
       }
+      if (!accepted) {
+        setMessage({ text: t('Accept the terms of use and the privacy policy to create the account.'), error: true });
+        return;
+      }
       const r = await api<{ user: AccountUser }>('/auth/register', {
-        body: { username, email, password, language: prefs.locale },
+        body: { username, email, password, language: prefs.locale, termsVersion: TERMS_VERSION, ...(invite.trim() ? { invite: invite.trim() } : {}) },
       });
       setSignedIn(true);
       setUser(r.user);
       void navigate('/');
     });
   const items: MenuItem[] = [
+    ...(beta || invite ? [{ kind: 'text' as const, label: t('Invite code'), value: invite, onChange: setInvite, maxLength: 32 }] : []),
     { kind: 'text', label: t('Username'), value: username, onChange: setUsername, maxLength: 15, autoComplete: 'username' },
     { kind: 'text', label: t('E-mail'), value: email, onChange: setEmail, maxLength: 254, autoComplete: 'email' },
     { kind: 'text', label: t('Password'), value: password, onChange: setPassword, password: true, maxLength: 128, autoComplete: 'new-password' },
@@ -169,6 +190,9 @@ export function RegisterScreen() {
       autoComplete: 'new-password',
       onEnter: () => void submit(),
     },
+    { kind: 'choice', label: t('I accept the terms of use and the privacy policy'), value: accepted ? t('Yes') : t('No'), onChange: () => setAccepted((a) => !a) },
+    { kind: 'action', label: t('Read the terms of use'), onActivate: () => void navigate('/terms') },
+    { kind: 'action', label: t('Read the privacy policy'), onActivate: () => void navigate('/privacy') },
     { kind: 'action', label: t('Create account'), onActivate: () => void submit() },
   ];
   return (

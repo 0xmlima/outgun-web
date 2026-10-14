@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   /** DSN do serviço de erros (Sentry/GlitchTip, OG-102); sem ele, nada é enviado. */
   readonly VITE_SENTRY_DSN?: string;
+  /** Contato de quem opera o serviço (e-mail ou página), mostrado na política de privacidade (OG-107). */
+  readonly VITE_OPERATOR_CONTACT?: string;
   /** Versão do build, enviada junto dos erros. */
   readonly VITE_RELEASE?: string;
 }

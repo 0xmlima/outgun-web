@@ -42,6 +42,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const user = await sessions.current(request);
     const device = body.device ? deviceHash(body.device) : null;
     // Convidado só no Casual (RN-PLT-02, RN-MOD-03).
+    // beta fechado (OG-106): só quem tem conta (o cadastro exige convite)
+    if (!user && deps.config.beta) return fail(401, 'beta_account_required', 'the closed beta needs an account');
     if (!user && room.mode === 'ranked') return fail(401, 'account_required', 'ranked rooms require an account');
 
     let name: string;

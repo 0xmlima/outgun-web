@@ -23,7 +23,8 @@ RUN pnpm turbo run build --filter=@outgun/api... --filter=@outgun/game-server...
 RUN node tools/asset-pipeline/dist/cli.js
 ARG VITE_SENTRY_DSN=
 ARG VITE_RELEASE=
-RUN VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_RELEASE=$VITE_RELEASE pnpm --filter @outgun/web exec vite build
+ARG VITE_OPERATOR_CONTACT=
+RUN VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_RELEASE=$VITE_RELEASE VITE_OPERATOR_CONTACT=$VITE_OPERATOR_CONTACT pnpm --filter @outgun/web exec vite build
 # cabeçalhos de segurança do cliente para o Caddy, gerados de apps/web/security-headers.ts
 RUN node --experimental-strip-types deploy/web/caddy-headers.mjs > /repo/security-headers.caddy
 RUN pnpm --filter @outgun/api deploy --prod --legacy /out/api \

@@ -10,7 +10,7 @@ import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { usernameKey } from '../db/keys.js';
-import { matches, matchPlayers, playerProfiles, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
+import { feedback, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
 import { playerRating } from '../ranking.js';
 import { ErrorSchema } from './schemas.js';
@@ -241,6 +241,8 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
             isAdmin: users.isAdmin,
             usernameChangedAt: users.usernameChangedAt,
             createdAt: users.createdAt,
+            termsVersion: users.termsVersion,
+            termsAcceptedAt: users.termsAcceptedAt,
           })
           .from(users)
           .where(eq(users.id, user.id));
@@ -256,9 +258,17 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
           .innerJoin(matches, eq(matches.id, matchPlayers.matchId))
           .where(eq(matchPlayers.userId, user.id))
           .orderBy(desc(matches.endedAt));
+        const userFeedback = await db
+          .select({ createdAt: feedback.createdAt, kind: feedback.kind, fidelity: feedback.fidelity, overall: feedback.overall, veteran: feedback.veteran, text: feedback.text, context: feedback.context, status: feedback.status })
+          .from(feedback)
+          .where(eq(feedback.userId, user.id));
+        const reports = await db
+          .select({ createdAt: playerReports.createdAt, roomId: playerReports.roomId, target: playerReports.targetName, reason: playerReports.reason })
+          .from(playerReports)
+          .where(eq(playerReports.reporterUserId, user.id));
         return reply
           .header('content-disposition', 'attachment; filename="outgun-account.json"')
-          .send({ exportedAt: new Date().toISOString(), account, profile, sessions: userSessions, ratings: userRatings, matches: history });
+          .send({ exportedAt: new Date().toISOString(), account, profile, sessions: userSessions, ratings: userRatings, matches: history, feedback: userFeedback, reportsMade: reports });
       },
     );
 
@@ -275,10 +285,11 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
       async (request, reply) => {
         const user = await requireUser(request, reply);
         if (!user || !(await checkPassword(request, reply, user, request.body.password))) return reply;
-        // Partidas jogadas ficam, mas anônimas (RN-PLT-04): sem vínculo e sem o nome. Sessões, perfil,
-        // ranking e links de senha caem em cascata.
+        // Partidas jogadas ficam, mas anônimas (RN-PLT-04): sem vínculo e sem o nome; o feedback do beta
+        // também perde o nome (OG-107). Sessões, perfil, ranking e links de senha caem em cascata.
         await db.transaction(async (tx) => {
           await tx.update(matchPlayers).set({ name: ANONYMOUS_NAME }).where(eq(matchPlayers.userId, user.id));
+          await tx.update(feedback).set({ username: ANONYMOUS_NAME }).where(eq(feedback.userId, user.id));
           await tx.delete(users).where(eq(users.id, user.id));
         });
         sessions.clearCookie(reply);

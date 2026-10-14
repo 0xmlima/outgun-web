@@ -5,7 +5,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameMap } from '@outgun/sim';
 import type { RoomSpawn } from '@outgun/tickets';
-import { loadMaps } from './maps.js';
+import { loadMaps, resolveRotation } from './maps.js';
+import type { GeneratedMaps } from './generated-maps.js';
 import { findPreset } from './presets.js';
 import type { Room } from './room.js';
 import type { RoomManager } from './rooms.js';
@@ -18,6 +19,8 @@ export interface SpawnerOptions {
    */
   rotations: Record<RoomSpawn['mode'], readonly string[]>;
   log?: (line: string) => void;
+  /** Mapas gerados para as entradas `random_map` (OG-015). */
+  generatedMaps?: GeneratedMaps;
 }
 
 /** Mapas da pasta por nome, com cache (nomes com barra ou inexistentes dão undefined). */
@@ -46,16 +49,19 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       options.log?.(`sala ${id} recusada: limite de ${manager.maxRooms} salas`);
       return undefined;
     }
-    // Ranked sempre com a rotação oficial; Casual pode trazer a sua (mapas desconhecidos saem).
-    const wanted = spec.mode === 'casual' && spec.maps ? spec.maps.filter((m) => map(m)) : [];
-    const files = wanted.length > 0 ? wanted : options.rotations[spec.mode].filter((m) => map(m));
-    if (files.length === 0) return undefined;
+    // Ranked sempre com a rotação oficial; Casual pode trazer a sua (mapas desconhecidos saem);
+    // as duas aceitam `random_map L A ...` (OG-015)
+    const wanted = spec.mode === 'casual' && spec.maps ? resolveRotation(spec.maps, map, options.generatedMaps) : [];
+    const slots = wanted.length > 0 ? wanted : resolveRotation(options.rotations[spec.mode], map, options.generatedMaps);
+    if (slots.length === 0) return undefined;
+    const files = slots.map((s) => s.file);
     const room = manager.create({
       id,
       name: spec.name,
       preset: preset.id,
-      maps: files.map((f) => map(f)!),
+      maps: slots.map((s) => s.map),
       mapFiles: files,
+      ...(slots.some((s) => s.random) ? { randomSlots: slots.map((s) => s.random ?? null) } : {}),
       maxPlayers: spec.maxPlayers,
       persistent: spec.persistent,
     });

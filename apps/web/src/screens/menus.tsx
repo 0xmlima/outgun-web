@@ -7,6 +7,7 @@ import { useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
+import { ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 import { quickJoin } from './lobby.js';
@@ -24,7 +25,8 @@ export function HomeScreen() {
       onActivate: () =>
         void quickJoin('casual', prefs.playerName.trim() || 'Convidado').then(
           (id) => void navigate(`/play?sala=${encodeURIComponent(id)}`),
-          () => void navigate('/play'),
+          // beta fechado (OG-106): sem conta, vai para o login
+          (e: unknown) => void navigate(e instanceof ApiError && e.code === 'beta_account_required' ? '/login' : '/play'),
         ),
     },
     { kind: 'action', label: t('Rooms'), onActivate: () => void navigate('/rooms') },
@@ -33,6 +35,7 @@ export function HomeScreen() {
     { kind: 'action', label: t('Options'), onActivate: () => void navigate('/options') },
     { kind: 'action', label: t('Help'), onActivate: () => void navigate('/help') },
     { kind: 'action', label: t('Credits'), onActivate: () => void navigate('/credits') },
+    ...(user ? [{ kind: 'action' as const, label: t('Send feedback'), onActivate: () => void navigate('/feedback') }] : []),
     ...(user && (user.isAdmin || user.isModerator) ? [{ kind: 'action' as const, label: t('Moderation'), onActivate: () => void navigate('/admin') }] : []),
     user
       ? { kind: 'action', label: t('Account'), note: user.username, onActivate: () => void navigate('/account') }

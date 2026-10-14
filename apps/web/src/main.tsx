@@ -23,6 +23,7 @@ import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.j
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
+import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
 import './styles.css';
 
@@ -33,6 +34,7 @@ const GameScreen = lazy(() => import('./screens/GameScreen.js'));
 const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
 // painel admin (OG-087): só moderadores e admins baixam
 const AdminScreen = lazy(() => import('./screens/AdminScreen.js'));
+const FeedbackScreen = lazy(() => import('./screens/FeedbackScreen.js'));
 const SpectateScreen = lazy(() => import('./screens/ReplayScreen.js').then((m) => ({ default: m.SpectateScreen })));
 
 const router = createBrowserRouter([
@@ -50,6 +52,9 @@ const router = createBrowserRouter([
           { path: 'replays', element: <ReplaysScreen /> },
           { path: 'credits', element: <CreditsScreen /> },
           { path: 'source', element: <SourceScreen /> },
+          { path: 'terms', element: <TermsScreen /> },
+          { path: 'privacy', element: <PrivacyScreen /> },
+          { path: 'about', element: <AboutScreen /> },
           { path: 'login', element: <LoginScreen /> },
           { path: 'register', element: <RegisterScreen /> },
           { path: 'forgot-password', element: <ForgotPasswordScreen /> },
@@ -65,6 +70,14 @@ const router = createBrowserRouter([
           { path: 'players/:name', element: <ProfileScreen /> },
           { path: 'matches/:id', element: <MatchScreen /> },
           { path: 'ranking', element: <LeaderboardScreen /> },
+          {
+            path: 'feedback',
+            element: (
+              <Suspense fallback={null}>
+                <FeedbackScreen />
+              </Suspense>
+            ),
+          },
           {
             path: 'admin',
             element: (

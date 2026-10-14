@@ -41,6 +41,7 @@
     "typebox": "1.3.34"
   },
   "devDependencies": {
+    "@outgun/content": "workspace:*",
     "@types/node": "^22.20.5"
   }
 }

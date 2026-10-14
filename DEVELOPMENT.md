@@ -72,12 +72,33 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - `pnpm --filter @outgun/e2e e2e` (depois de `pnpm build`): Playwright com o Chrome instalado (no CI, o Chromium do Playwright). Sobe um PostgreSQL descartável no Docker (porta 55433; `E2E_DATABASE_URL` usa outro), a API (17800), o game server (17700, tickets de verdade, partidas de 1 minuto com 3 bots) e o `vite preview` (14173), e percorre cadastro → lobby → "Jogar agora" → partida até o fim → perfil com a partida → página da partida → ranking; também confere que convidado no Ranked vai para o login. Prints em `tools/parity/out/prints/og101/`, relatório e traces de falha em `tools/parity/out/e2e/`.
 - `node tools/load/run.mjs [--rooms 20] [--players 32] [--seconds 60] [--warmup 20] [--workers 4] [--lag MS] [--jitter MS] [--loss PCT] [--server ws://...]`: sobe um game server próprio (porta 17790) com as salas fixas (variável `ROOMS` do game server) e N×M clientes headless em processos separados, com rede ruim simulada opcional; o relatório (tick por sala e do processo, CPU, tráfego por cliente, frames) sai em `tools/parity/out/load/report.md`. O resultado de referência está em `plan/reports/OG-101-carga.md`.
 
+## Beta fechado (OG-106)
+
+- `BETA=1` na API: cadastro só com convite (`/register?invite=CÓDIGO`) e partidas só com conta. Convites no painel (aba Convites, admin) ou `node apps/api/dist/cli.js invite [usos] [observação]`; papel de uma conta: `cli.js role NOME admin|moderator|player`.
+- Feedback: "Enviar feedback" no menu (logado) e no menu do jogo (Esc), com nota de fidelidade ao original 1–5, nota geral, "joguei o original" e texto; o contexto (sala, mapa, versão, tela, navegador) vai junto. Triagem na aba Feedback do painel (resumo da fidelidade de veteranos — meta do lançamento: 20 com média 4+ —, status, CSV).
+- O E2E roda com `BETA=1` e cria os convites pelo Admin do seed.
+
+## Termos, privacidade e sobre (OG-107)
+
+- `/terms`, `/privacy` e `/about` (links no rodapé). O conteúdo e as versões ficam em `packages/content/src/privacy.ts`: o inventário de dados pessoais é conferido contra o banco por `apps/api/src/privacy.test.ts` — **tabela nova no schema precisa ser classificada lá**, senão o teste falha. Textos em pt-BR e inglês; são rascunho para revisão de quem opera o serviço.
+- O cadastro exige aceitar termos e política e grava `users.terms_version`/`terms_accepted_at`. `VITE_OPERATOR_CONTACT` no build mostra o contato do responsável (no `deploy.sh` da VPS, variável de ambiente).
+
+## Telemetria de rede (OG-108)
+
+- Na partida online o cliente amostra a rede uma vez por segundo (ping medido pelo servidor, atraso dos controles, correções de predição, frames recebidos, fps) e manda um resumo anônimo (`POST /api/telemetry`, por `sendBeacon`) ao sair, a cada 5 min e ao fechar a aba; só com 30 s ou mais de partida. Desliga em Opções → Jogo ("Enviar estatísticas anônimas da rede"). A API guarda em `net_reports` sem conta, nome nem IP (a região vem do servidor da sala), soma no `/metrics` (`outgun_client_*`) e agrega por região no painel (aba Rede) e no Grafana (linha "Clientes").
+
+## Mapas aleatórios na rotação (OG-015)
+
+- Toda rotação (`ROTATION`, `RANKED_ROTATION`, rotações do painel, mapas de sala privada) aceita `random_map L A [bordas respawn respawn-repetitivo verde s|a]`, a linha do gamemod original. A sala gera `mapgen_<n>` com os blocos de `mapgen/` (`MAPGEN_DIR`) cada vez que a entrada entra; a lista de mapas mostra `<Random>`; o cliente baixa o texto de `<game server>/maps/mapgen_<n>.txt` e o replay leva o texto embutido (`header.mapText`).
+
 ## Painel admin (OG-087)
 
 - `/admin` no cliente (item "Moderação" no menu para moderadores e admins): salas ao vivo com os jogadores (kick, ban, mute, mensagem), denúncias do `/report`, bans, auditoria, presets e rotações; papéis só para admin. API em `/admin/*` (sessão + papel; `users.is_moderator`); toda ação grava em `admin_actions`.
 - Os comandos chegam ao game server na resposta do heartbeat e a confirmação volta no seguinte (decisão D-34); a configuração do painel (presets Casual, rotações) também. Contas do seed: `Admin` (admin) / senha `outgun-dev`; para um moderador, use o painel (aba Papéis) ou `UPDATE users SET is_moderator = true`.
 
 ## Deploy (OG-103)
+
+- VPS de qualquer provedor (OG-109): `bash deploy/vps/deploy.sh root@IP` (guia em `deploy/vps/README.md`). É o caminho do beta; o Fly.io fica como opção.
 
 - `deploy/`: imagens de produção (`deploy/Dockerfile`, alvos `api`, `game-server`, `web`), configuração do Fly.io (`deploy/fly/`), backup (`deploy/backup/`), homologação local (`bash deploy/staging.sh build|up|down`, em http://localhost:18080) e os testes de deploy sem queda, drenagem e restore. Guia em `deploy/README.md`; workflow em `.github/workflows/deploy.yml`.
 - Game server: no SIGTERM drena (sem salas novas; cada sala fecha no fim da partida, até `DRAIN_TIMEOUT_S`); `INSTANCE_ID`/`FLY_MACHINE_ID` publica as salas também em `/m/<id>/rooms/...` (com `fly-replay` para a máquina certa); `{instance}` em `PUBLIC_WS_URL` e `GS_ID`. API: no SIGTERM, `/health` 503 por `SHUTDOWN_GRACE_S` antes de fechar; o HMAC aceita `base.<instância>` com o segredo de `base`.

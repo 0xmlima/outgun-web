@@ -40,6 +40,7 @@ export default defineConfig({
           command: `node ${repo}apps/api/dist/main.js`,
           url: 'http://localhost:17800/health',
           env: {
+            BETA: '1',
             PORT: '17800',
             DATABASE_URL: database,
             MAILER: 'memory',
@@ -61,7 +62,8 @@ export default defineConfig({
             TICKET_JWKS_URL: 'http://localhost:17800/.well-known/jwks.json',
             PUBLIC_WS_URL: 'ws://localhost:17700',
             DEV_TICKETS: '0',
-            ROTATION: '2 versus 2 (duel)',
+            // a sala começa num mapa gerado na hora (OG-015): o navegador baixa do game server
+            ROTATION: 'random_map 2 2,2 versus 2 (duel)',
             CASUAL_BOTS_FILL: '3',
             GAMEMOD: 'time_limit 1|game_end_delay 3',
             REPLAYS: '0',

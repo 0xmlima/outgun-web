@@ -13,6 +13,7 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  real,
   serial,
   smallint,
   text,
@@ -39,6 +40,9 @@ export const users = pgTable(
     isAdmin: boolean('is_admin').notNull().default(false),
     /** Moderador (OG-087): salas, denúncias, bans de sala e auditoria no painel. */
     isModerator: boolean('is_moderator').notNull().default(false),
+    /** Termos e política aceitos no cadastro (OG-107). */
+    termsVersion: text('terms_version'),
+    termsAcceptedAt: tstz('terms_accepted_at'),
     usernameChangedAt: tstz('username_changed_at'),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
@@ -326,6 +330,73 @@ export const playerReports = pgTable('player_reports', {
   createdAt: tstz('created_at').notNull().defaultNow(),
 });
 
+/** Convites do beta fechado (OG-106). */
+export const betaInvites = pgTable('beta_invites', {
+  code: text('code').primaryKey(),
+  note: text('note').notNull().default(''),
+  maxUses: integer('max_uses').notNull().default(1),
+  uses: integer('uses').notNull().default(0),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+  expiresAt: tstz('expires_at'),
+  revokedAt: tstz('revoked_at'),
+});
+
+export const betaInviteUses = pgTable(
+  'beta_invite_uses',
+  {
+    code: text('code')
+      .notNull()
+      .references(() => betaInvites.code, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    usedAt: tstz('used_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.code, t.userId] })],
+);
+
+export const feedbackKind = pgEnum('feedback_kind', ['bug', 'suggestion', 'praise', 'other']);
+export const feedbackStatus = pgEnum('feedback_status', ['new', 'confirmed', 'critical', 'resolved', 'dismissed']);
+
+/** Feedback dos testadores (OG-106). */
+export const feedback = pgTable('feedback', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  username: text('username').notNull(),
+  kind: feedbackKind('kind').notNull(),
+  fidelity: smallint('fidelity'),
+  overall: smallint('overall'),
+  veteran: boolean('veteran').notNull().default(false),
+  text: text('text').notNull().default(''),
+  context: jsonb('context').$type<Record<string, string | number>>().notNull().default({}),
+  status: feedbackStatus('status').notNull().default('new'),
+  note: text('note').notNull().default(''),
+  handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),
+  handledAt: tstz('handled_at'),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+});
+
+/** Resumos anônimos da rede dos clientes (OG-108). */
+export const netReports = pgTable('net_reports', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+  roomId: text('room_id'),
+  region: text('region'),
+  version: text('version').notNull(),
+  browser: text('browser').notNull(),
+  durationS: integer('duration_s').notNull(),
+  pingP50: integer('ping_p50'),
+  pingP95: integer('ping_p95'),
+  lagP50: integer('lag_p50').notNull(),
+  lagP95: integer('lag_p95').notNull(),
+  fpsP5: integer('fps_p5').notNull(),
+  fpsP50: integer('fps_p50').notNull(),
+  correctionsPerMin: real('corrections_per_min').notNull(),
+  stallSeconds: integer('stall_seconds').notNull(),
+  framesPerSecond: real('frames_per_second').notNull(),
+});
+
 export const allTables = {
   users,
   sessions,
@@ -344,6 +415,10 @@ export const allTables = {
   casual_presets: casualPresets,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
+  beta_invites: betaInvites,
+  beta_invite_uses: betaInviteUses,
+  feedback,
+  net_reports: netReports,
   password_resets: passwordResets,
   reserved_names: reservedNames,
 };

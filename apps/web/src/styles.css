@@ -79,6 +79,14 @@ body {
   padding: calc(var(--px) * 4px) calc(var(--px) * 8px);
   color: var(--menu-disabled);
 }
+.shell-legal a {
+  margin: 0 calc(var(--px) * 6px);
+}
+.legal .stats-table td.wrap {
+  white-space: normal;
+  vertical-align: top;
+  min-width: 12em;
+}
 .shell-footer a,
 .text-link a {
   color: var(--menu-item);
@@ -299,6 +307,18 @@ body {
   display: block;
   width: 100%;
   box-sizing: border-box;
+}
+.feedback-rating {
+  border: none;
+  margin: calc(var(--px) * 6px) 0;
+  padding: 0;
+}
+.feedback-rating label {
+  margin-right: calc(var(--px) * 8px);
+}
+.feedback label {
+  display: block;
+  margin: calc(var(--px) * 6px) 0;
 }
 .admin-room h2 {
   font-size: 0.85em;

@@ -5,11 +5,11 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
-import { api, ApiError } from '../app/api.js';
+import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
 
-type Tab = 'rooms' | 'reports' | 'bans' | 'audit' | 'presets' | 'rotations' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
 
 interface RosterEntry {
   uid: number;
@@ -99,12 +99,14 @@ export default function AdminScreen() {
   const allowed = isAdmin || (user?.isModerator ?? false);
   const tabs: [Tab, string][] = [
     ['rooms', t('Live rooms')],
+    ['feedback', t('Feedback')],
+    ['network', t('Network')],
     ['reports', t('Reports')],
     ['bans', t('Bans')],
     ['audit', t('Audit log')],
     ['presets', t('Presets')],
     ['rotations', t('Map rotations')],
-    ...(isAdmin ? ([['roles', t('Roles')]] as [Tab, string][]) : []),
+    ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
   ];
   return (
     <TextPage caption={t('Moderation')} onBack={() => void navigate('/')}>
@@ -120,6 +122,9 @@ export default function AdminScreen() {
             ))}
           </p>
           {tab === 'rooms' && <RoomsTab isAdmin={isAdmin} />}
+          {tab === 'feedback' && <FeedbackTab />}
+          {tab === 'network' && <NetworkTab />}
+          {tab === 'invites' && isAdmin && <InvitesTab />}
           {tab === 'reports' && <ReportsTab />}
           {tab === 'bans' && <BansTab isAdmin={isAdmin} />}
           {tab === 'audit' && <AuditTab />}
@@ -570,6 +575,270 @@ function RolesTab() {
         </button>
       </form>
       <Status text={status.text} error={status.error} />
+    </section>
+  );
+}
+
+interface FeedbackRow {
+  id: number;
+  username: string;
+  kind: string;
+  fidelity: number | null;
+  overall: number | null;
+  veteran: boolean;
+  text: string;
+  context: Record<string, string | number>;
+  status: string;
+  note: string;
+  createdAt: string;
+}
+interface Summary {
+  people: number;
+  average: number | null;
+  distribution: number[];
+}
+
+const STATUSES = ['new', 'confirmed', 'critical', 'resolved', 'dismissed'] as const;
+
+/** Feedback do beta (OG-106): resumo da fidelidade (critério do lançamento), filtros e triagem. */
+function FeedbackTab() {
+  const { t } = usePrefs();
+  const [status, setStatus] = useState('');
+  const query = status ? `?status=${status}` : '';
+  const list = useLoad<{ summary: { all: Summary; veterans: Summary; openCritical: number }; feedback: FeedbackRow[] }>(`/admin/feedback${query}`, 15_000);
+  const [msg, setMsg] = useState<{ text?: string; error?: string }>({});
+  const triage = (id: number, next: string) =>
+    api(`/admin/feedback/${id}`, { body: { status: next } }).then(
+      () => {
+        setMsg({ text: t('Done.') });
+        list.reload();
+      },
+      (e: unknown) => setMsg({ error: errorText(e) }),
+    );
+  const label: Record<string, string> = { new: t('new'), confirmed: t('confirmed'), critical: t('critical'), resolved: t('resolved'), dismissed: t('dismissed') };
+  const line = (title: string, x: Summary) => `${title}: ${x.people} · ${t('average')} ${x.average ?? '-'} · ${x.distribution.map((n, i) => `${i + 1}★ ${n}`).join('  ')}`;
+  const sum = list.data?.summary;
+  return (
+    <section className="stats-section">
+      {sum && (
+        <>
+          <p className="stats-line">{line(t('Fidelity, veterans (goal: 20 with average 4+)'), sum.veterans)}</p>
+          <p className="stats-line">{line(t('Fidelity, everyone'), sum.all)}</p>
+          <p className="stats-line">{t('Open critical bugs: $1', String(sum.openCritical))}</p>
+        </>
+      )}
+      <p className="stats-tabs">
+        {['', ...STATUSES].map((s) => (
+          <button key={s} type="button" className={s === status ? 'active' : ''} onClick={() => setStatus(s)}>
+            {s ? label[s] : t('All')}
+          </button>
+        ))}{' '}
+        <a href={`${API_URL}/admin/feedback.csv${query}`}>{t('Download CSV')}</a>
+      </p>
+      <Status text={msg.text} error={msg.error ?? list.error} />
+      {list.data && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Date')}</th>
+              <th>{t('Player')}</th>
+              <th>{t('Type')}</th>
+              <th>{t('Fidelity')}</th>
+              <th>{t('Overall')}</th>
+              <th>{t('Text')}</th>
+              <th>{t('Status')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.feedback.map((f) => (
+              <tr key={f.id}>
+                <td>{when(f.createdAt)}</td>
+                <td className="name">
+                  {f.username}
+                  {f.veteran ? ' (v)' : ''}
+                </td>
+                <td className="name">{f.kind}</td>
+                <td>{f.fidelity ?? '-'}</td>
+                <td>{f.overall ?? '-'}</td>
+                <td className="name" title={Object.entries(f.context).map(([k, v]) => `${k}: ${v}`).join('\n')}>
+                  {f.text}
+                </td>
+                <td>
+                  <select value={f.status} onChange={(e) => void triage(f.id, e.target.value)} aria-label={t('Status')}>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {label[s]}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+interface Invite {
+  code: string;
+  note: string;
+  uses: number;
+  maxUses: number;
+  usedBy: string[];
+  createdAt: string;
+  expiresAt: string | null;
+  revoked: boolean;
+}
+
+/** Convites do beta (OG-106): gerar, copiar o link e revogar. */
+function InvitesTab() {
+  const { t } = usePrefs();
+  const list = useLoad<{ beta: boolean; invites: Invite[] }>('/admin/invites');
+  const [form, setForm] = useState({ count: '5', maxUses: '1', note: '', expiresDays: '' });
+  const [msg, setMsg] = useState<{ text?: string; error?: string }>({});
+  const link = (code: string) => `${location.origin}/register?invite=${code}`;
+  const create = (ev: FormEvent) => {
+    ev.preventDefault();
+    const body = { count: Number(form.count) || 1, maxUses: Number(form.maxUses) || 1, ...(form.note ? { note: form.note } : {}), ...(form.expiresDays ? { expiresDays: Number(form.expiresDays) } : {}) };
+    api<{ codes: string[] }>('/admin/invites', { body }).then(
+      (r) => {
+        setMsg({ text: t('$1 invites created.', String(r.codes.length)) });
+        list.reload();
+      },
+      (e: unknown) => setMsg({ error: errorText(e) }),
+    );
+  };
+  const revoke = (code: string) =>
+    api(`/admin/invites/${code}`, { method: 'DELETE' }).then(
+      () => list.reload(),
+      (e: unknown) => setMsg({ error: errorText(e) }),
+    );
+  return (
+    <section className="stats-section">
+      {list.data && !list.data.beta && <p className="stats-note">{t('The server is not in closed beta (BETA=1): invites are not required to sign up.')}</p>}
+      <form className="admin-form" onSubmit={create}>
+        <label>
+          {t('How many')} <input value={form.count} size={3} inputMode="numeric" onChange={(e) => setForm({ ...form, count: e.target.value.replace(/\D/g, '') })} />
+        </label>{' '}
+        <label>
+          {t('Uses each')} <input value={form.maxUses} size={4} inputMode="numeric" onChange={(e) => setForm({ ...form, maxUses: e.target.value.replace(/\D/g, '') })} />
+        </label>{' '}
+        <label>
+          {t('Days valid (empty = no end)')} <input value={form.expiresDays} size={4} inputMode="numeric" onChange={(e) => setForm({ ...form, expiresDays: e.target.value.replace(/\D/g, '') })} />
+        </label>{' '}
+        <label>
+          {t('Note')} <input value={form.note} maxLength={200} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+        </label>{' '}
+        <button type="submit">{t('Create invites')}</button>
+      </form>
+      <Status text={msg.text} error={msg.error ?? list.error} />
+      {list.data && list.data.invites.length > 0 && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Invite link')}</th>
+              <th>{t('Uses')}</th>
+              <th>{t('Used by')}</th>
+              <th>{t('Note')}</th>
+              <th>{t('Until')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.invites.map((i) => (
+              <tr key={i.code}>
+                <td className="name">
+                  <code>{i.revoked ? i.code : link(i.code)}</code>
+                </td>
+                <td>
+                  {i.uses}/{i.maxUses}
+                </td>
+                <td className="name">{i.usedBy.join(', ') || '-'}</td>
+                <td className="name">{i.note}</td>
+                <td>{i.revoked ? t('revoked') : i.expiresAt ? when(i.expiresAt) : t('no end')}</td>
+                <td>
+                  {!i.revoked && i.uses < i.maxUses && (
+                    <>
+                      <button type="button" onClick={() => void navigator.clipboard?.writeText(link(i.code))}>
+                        {t('Copy link')}
+                      </button>{' '}
+                      <button type="button" onClick={() => void revoke(i.code)}>
+                        {t('Revoke')}
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+interface RegionNet {
+  region: string;
+  reports: number;
+  seconds: number;
+  ping_p50: number | null;
+  ping_p95: number | null;
+  lag_p50: number;
+  corrections_per_min: number;
+  fps_p5: number;
+  stall_pct: number;
+}
+
+/** Rede dos jogadores por região (telemetria anônima, OG-108): para ajustar rede e predição. */
+function NetworkTab() {
+  const { t } = usePrefs();
+  const [days, setDays] = useState(7);
+  const net = useLoad<{ regions: RegionNet[] }>(`/admin/network?days=${days}`, 30_000);
+  return (
+    <section className="stats-section">
+      <p className="stats-tabs">
+        {[1, 7, 30].map((d) => (
+          <button key={d} type="button" className={d === days ? 'active' : ''} onClick={() => setDays(d)}>
+            {t('$1 days', String(d))}
+          </button>
+        ))}
+      </p>
+      <Status error={net.error} />
+      {net.data?.regions.length === 0 && <p className="stats-note">{t('No reports yet.')}</p>}
+      {net.data && net.data.regions.length > 0 && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Region')}</th>
+              <th>{t('Matches')}</th>
+              <th>{t('Minutes')}</th>
+              <th>{t('Ping p50 / p95 (ms)')}</th>
+              <th>{t('Control delay p50 (ms)')}</th>
+              <th>{t('Corrections/min')}</th>
+              <th>{t('fps p5')}</th>
+              <th>{t('Frame drops')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {net.data.regions.map((r) => (
+              <tr key={r.region}>
+                <td className="name">{r.region}</td>
+                <td>{r.reports}</td>
+                <td>{Math.round(r.seconds / 60)}</td>
+                <td>
+                  {r.ping_p50 ?? '-'} / {r.ping_p95 ?? '-'}
+                </td>
+                <td>{r.lag_p50}</td>
+                <td>{r.corrections_per_min}</td>
+                <td>{r.fps_p5}</td>
+                <td>{r.stall_pct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </section>
   );
 }

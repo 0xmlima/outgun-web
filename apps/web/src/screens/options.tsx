@@ -160,6 +160,7 @@ export function OptionsSectionScreen() {
           value: String(prefs.minimapBandwidth),
           onChange: (d) => setPrefs({ minimapBandwidth: Math.min(640, Math.max(0, prefs.minimapBandwidth + 20 * d)) }),
         },
+        toggle('shareNetStats', 'Send anonymous network statistics'),
         toggle('showFlagMessages', 'Show flag messages'),
         toggle('showKillMessages', 'Show killing messages'),
         select<ShowStats>('showStats', 'Show stats after the round', [

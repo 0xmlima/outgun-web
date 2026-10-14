@@ -13,10 +13,12 @@
 // SENTRY_ENVIRONMENT (padrão NODE_ENV), RELEASE (versão nos logs e erros).
 // MAX_CONNECTIONS_PER_IP (8; 0 = sem limite).
 // INSTANCE_ID (padrão FLY_MACHINE_ID): salas também em /m/<id>/rooms/...; `{instance}` em PUBLIC_WS_URL vira esse id.
+// MAPGEN_DIR (mapgen/ do repositório): blocos de paredes dos mapas `random_map` da rotação (OG-015).
 // DRAIN_TIMEOUT_S (240): prazo da drenagem no SIGTERM.
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
-import { loadMaps } from './maps.js';
+import { resolveRotation } from './maps.js';
+import { GeneratedMaps } from './generated-maps.js';
 import { RoomManager } from './rooms.js';
 import { startServer } from './server.js';
 import { JwksKeys } from './tickets.js';
@@ -30,6 +32,8 @@ import { GameTelemetry } from './telemetry.js';
 
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
+// mapas aleatórios da rotação (OG-015): blocos de paredes de mapgen/ do jogo (MAPGEN_DIR)
+const generatedMaps = new GeneratedMaps(env.MAPGEN_DIR ?? `${repo}mapgen`);
 const production = env.NODE_ENV === 'production';
 const logger = createLogger({ service: 'game-server', level: env.LOG_LEVEL ?? 'info', ...(env.RELEASE ? { version: env.RELEASE } : {}) });
 const reporter = new ErrorReporter({ dsn: env.SENTRY_DSN, service: 'game-server', environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV, release: env.RELEASE });
@@ -98,20 +102,36 @@ const manager = new RoomManager({
     ...(replays ? { replays } : {}),
     maxSpectators: Number(env.MAX_SPECTATORS ?? 16),
     ...(env.GAMEMOD ? { gamemod: env.GAMEMOD.split('|').join('\n') } : {}),
+    generatedMaps,
   },
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
 // rotação oficial de cada modo; o painel admin (OG-087) pode trocá-la pela resposta do heartbeat
 const rotations: Record<'casual' | 'ranked', readonly string[]> = { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation };
 const mapsDir = env.MAPS_DIR ?? `${repo}maps`;
-const maps = loadMaps(mapsDir, rotation);
+// `random_map L A ...` na rotação (OG-015): mapas gerados com os blocos de mapgen/
+const mapFile = mapLoader(mapsDir);
+const fixedRoom = (id: string, name: string, preset: string, maxPlayers: number) => {
+  const slots = resolveRotation(rotation, mapFile, generatedMaps);
+  if (slots.length === 0) throw new Error(`rotação sem mapas válidos: ${rotation.join(', ')}`);
+  manager.create({
+    id,
+    name,
+    preset,
+    maps: slots.map((s) => s.map),
+    mapFiles: slots.map((s) => s.file),
+    ...(slots.some((s) => s.random) ? { randomSlots: slots.map((s) => s.random ?? null) } : {}),
+    maxPlayers,
+    persistent: true,
+  });
+};
 const telemetry = new GameTelemetry(manager, logger, reporter);
 metrics.telemetry = telemetry;
 manager.observer = telemetry;
-manager.create({ id: 'main', name: 'Principal', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
+fixedRoom('main', 'Principal', env.PRESET ?? 'classic', Number(env.MAX_PLAYERS ?? 16));
 for (const spec of (env.ROOMS ?? '').split(',').filter(Boolean)) {
   const [id = '', preset = env.PRESET ?? 'classic', max = env.MAX_PLAYERS ?? '16'] = spec.split(':');
-  manager.create({ id, name: id, preset, maps: loadMaps(mapsDir, rotation), mapFiles: rotation, maxPlayers: Number(max), persistent: true });
+  fixedRoom(id, id, preset, Number(max));
 }
 manager.start();
 
@@ -122,6 +142,7 @@ const server = await startServer({
   spawnRoom: makeSpawner(manager, {
     rotations,
     mapsDir,
+    generatedMaps,
     log: (line) => logger.info(line),
   }),
   ticketKeys: () => jwks.keys,
@@ -135,6 +156,7 @@ const server = await startServer({
   ...(replays ? { replays } : {}),
   telemetry,
   logger,
+  generatedMaps,
   ...(instanceId ? { instanceId } : {}),
   ...(env.METRICS_TOKEN ? { metricsToken: env.METRICS_TOKEN } : {}),
   ...(env.MAX_CONNECTIONS_PER_IP ? { maxConnectionsPerIp: Number(env.MAX_CONNECTIONS_PER_IP) } : {}),
@@ -143,7 +165,7 @@ if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 // o heartbeat lê este objeto a cada envio: na drenagem, maxRooms 0 tira o servidor da escolha da API
 const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms };
-const panel = new AdminPanelLink({ manager, rotations, map: mapLoader(mapsDir), log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
+const panel = new AdminPanelLink({ manager, rotations, map: mapFile, generatedMaps, log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
 if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted(), 3000, panel);
 
 let stopping = false;

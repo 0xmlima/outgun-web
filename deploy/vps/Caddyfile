@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Borda HTTPS da VPS (OG-109). Certificado automático para DOMAIN (Let's Encrypt, sem e-mail).
+
+{$DOMAIN} {
+	encode zstd gzip
+	# game server: WebSocket das salas, replays e /health (ping do lobby); /metrics não sai da máquina
+	handle_path /gs/* {
+		@metrics path /metrics
+		respond @metrics 404
+		reverse_proxy game-server:7700
+	}
+	handle {
+		@metrics path /api/metrics
+		respond @metrics 404
+		reverse_proxy web:8080
+	}
+}

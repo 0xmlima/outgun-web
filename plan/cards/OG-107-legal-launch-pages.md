@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S12 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-104](OG-104-security.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -26,12 +26,17 @@ Como jogador, quero saber quais dados o jogo guarda e as regras de uso, e como v
 - Os textos legais são rascunho para revisão do PO (não substituem orientação jurídica).
 
 ## Critérios de aceite
-- [ ] Cada dado pessoal guardado pelo código aparece na política (conferido contra o schema).
-- [ ] Cadastro registra a versão dos termos aceitos.
-- [ ] Páginas navegáveis por teclado e com as fontes do jogo.
+- [x] Cada dado pessoal guardado pelo código aparece na política (conferido contra o schema).
+- [x] Cadastro registra a versão dos termos aceitos.
+- [x] Páginas navegáveis por teclado e com as fontes do jogo.
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- `packages/content/src/privacy.ts`: versões dos termos e da política, inventário de dados (o quê, onde, por quê, por quanto tempo; pt-BR e inglês), seções da política e dos termos (conduta, conta, créditos, LGPD, o que não fazemos, terceiros opcionais). `TABLES` classifica toda tabela do banco; `apps/api/src/privacy.test.ts` falha se uma tabela nova não for classificada, se uma tabela com dado pessoal não estiver no inventário ou se uma coluna típica de dado pessoal (ip, e-mail, user agent, ids de usuário...) aparecer em tabela marcada como "não pessoal".
+- Páginas `/terms`, `/privacy` (tabela do inventário) e `/about` (o que é, como jogar, créditos do original, software livre), em `TextPage` (teclado e fontes do jogo; textos em Latin-1, como exige o teste do i18n); links no rodapé de todas as telas de menu.
+- Cadastro: item "Aceito os termos de uso e a política de privacidade" (obrigatório na tela) + atalhos para ler; a API grava `terms_version` e `terms_accepted_at` (migration `0013_terms_acceptance`).
+- Correções para a política ser verdadeira: a exclusão de conta agora também tira o nome do feedback do beta (vira "(anon)"); a exportação LGPD inclui o feedback e as denúncias feitas.
+- `VITE_OPERATOR_CONTACT` (build) mostra o contato de quem opera; sem ele aparece "a definir pelo responsável" — **pendência do PO/comunidade antes da publicação aberta**, junto da revisão dos textos.
+- E2E: aceite no cadastro, páginas pelo rodapé (prints `og101/8-privacidade.png`, `9-sobre.png`).

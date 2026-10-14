@@ -4,6 +4,7 @@
 import type { GameMap } from '@outgun/sim';
 import { FixedRateLoop, percentile, realClock, type Clock } from './loop.js';
 import { Room, type RoomOptions } from './room.js';
+import type { RandomMapParams } from './generated-maps.js';
 
 export interface RoomSpec {
   id: string;
@@ -18,6 +19,8 @@ export interface RoomSpec {
   persistent?: boolean;
   /** Vaga guardada para quem caiu (s); padrão do gerenciador ou 15. */
   reconnectSeconds?: number;
+  /** Entradas `random_map` alinhadas com `maps` (OG-015). */
+  randomSlots?: readonly (RandomMapParams | null)[];
 }
 
 interface Entry {
@@ -34,7 +37,7 @@ export interface ManagerOptions {
   /** Semente das salas (testes); padrão: aleatória por sala. */
   seed?: () => number;
   /** Auditoria, filtro do chat e log, iguais para todas as salas (OG-046). */
-  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'onMisbehavior' | 'reportPlayer' | 'reconnectSeconds' | 'reportMatch' | 'reportDeltas' | 'maxSpectators' | 'gamemod' | 'botsFill' | 'replays'>;
+  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'onMisbehavior' | 'reportPlayer' | 'generatedMaps' | 'reconnectSeconds' | 'reportMatch' | 'reportDeltas' | 'maxSpectators' | 'gamemod' | 'botsFill' | 'replays'>;
   /** Quantas salas o processo hospeda no máximo (as abertas sob demanda; padrão: sem limite). */
   maxRooms?: number;
   /** Recebe a duração de cada tick e os erros das salas (métricas, OG-102). */
@@ -92,7 +95,7 @@ export class RoomManager {
   create(spec: RoomSpec): Room {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
-    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
+    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
     this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null });
     return room;
   }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Utilitários: node dist/cli.js migrate up|down [N]|status, seed, openapi [arquivo], season start NOME, ticket-key [kid].
+// Utilitários: node dist/cli.js migrate up|down [N]|status, seed, openapi [arquivo], season start NOME, ticket-key [kid],
+// invite [usos] [observação] (convite do beta), role NOME admin|moderator|player.
 import { writeFileSync } from 'node:fs';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
@@ -7,6 +8,10 @@ import { connect } from './db/client.js';
 import { appliedVersions, loadMigrations, migrateDown, migrateUp } from './db/migrate.js';
 import { seed } from './db/seed.js';
 import { startSeason } from './ranking.js';
+import { createInvites } from './beta.js';
+import { usernameKey } from './db/keys.js';
+import { users } from './db/schema.js';
+import { eq } from 'drizzle-orm';
 import { exportSigningKey, generateSigningKey } from '@outgun/tickets';
 
 const [command, arg1, arg2] = process.argv.slice(2);
@@ -40,8 +45,22 @@ try {
   } else if (command === 'ticket-key') {
     // Nova chave Ed25519 para TICKET_SIGNING_KEYS (ponha na frente da atual para rotacionar).
     console.log(exportSigningKey(generateSigningKey(arg1 ?? `k${new Date().toISOString().slice(0, 10)}`)));
+  } else if (command === 'invite') {
+    // Convite do beta fechado (OG-106) sem passar pelo painel: o primeiro admin se cadastra com ele.
+    const [code] = await createInvites(database.db, { count: 1, maxUses: Number(arg1 ?? 1) || 1, note: arg2 ?? 'cli' });
+    console.log(code);
+  } else if (command === 'role' && arg1 && ['admin', 'moderator', 'player'].includes(arg2 ?? '')) {
+    const rows = await database.db
+      .update(users)
+      .set({ isAdmin: arg2 === 'admin', isModerator: arg2 === 'moderator', updatedAt: new Date() })
+      .where(eq(users.usernameKey, usernameKey(arg1)))
+      .returning({ username: users.username });
+    if (rows.length === 0) {
+      console.error(`conta não encontrada: ${arg1}`);
+      process.exitCode = 1;
+    } else console.log(`${rows[0]!.username}: ${arg2}`);
   } else {
-    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid]');
+    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player');
     process.exitCode = 2;
   }
 } finally {

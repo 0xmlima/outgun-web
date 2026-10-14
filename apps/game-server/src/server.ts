@@ -14,6 +14,7 @@ import type { ReplayStore } from './replay.js';
 import { TicketAuth } from './tickets.js';
 import { metricsAuthorized, PROMETHEUS_CONTENT_TYPE, type Logger } from '@outgun/observability';
 import { GameTelemetry } from './telemetry.js';
+import type { GeneratedMaps } from './generated-maps.js';
 
 export interface ServerOptions {
   port: number;
@@ -35,6 +36,8 @@ export interface ServerOptions {
   spawnRoom?: (id: string, spec: RoomSpawn) => Room | undefined;
   /** Replays gravados (OG-090), servidos em /replays/<chave>.ogr. */
   replays?: ReplayStore;
+  /** Mapas gerados da rotação (OG-015), servidos em /maps/mapgen_<n>.txt para o cliente baixar. */
+  generatedMaps?: GeneratedMaps;
   /** Métricas (OG-102); sem elas, o servidor cria as suas. */
   telemetry?: GameTelemetry;
   /** Exige `Authorization: Bearer <token>` em /metrics. */
@@ -267,6 +270,19 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     const rooms = manager.list().map((r) => ({ id: r.id, mode: r.mode, players: r.playerCount, maxPlayers: r.world.maxPlayers, map: r.world.map.title }));
     res.writeHeader('content-type', 'application/json').end(JSON.stringify(rooms));
   });
+
+  if (options.generatedMaps) {
+    const generated = options.generatedMaps;
+    const mapText = (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
+      if (elsewhere(res, req)) return;
+      const m = /^(mapgen_\d+)\.txt$/.exec(segment(req, 'maps'));
+      const text = m ? generated.text(m[1] as string) : undefined;
+      if (text === undefined) return void res.writeStatus('404 Not Found').writeHeader('access-control-allow-origin', '*').end();
+      res.writeHeader('access-control-allow-origin', '*').writeHeader('content-type', 'text/plain; charset=utf-8').writeHeader('cache-control', 'public, max-age=3600').end(text);
+    };
+    app.get('/maps/:file', mapText);
+    app.get('/m/:machine/maps/:file', mapText);
+  }
 
   if (options.replays) {
     const store = options.replays;
