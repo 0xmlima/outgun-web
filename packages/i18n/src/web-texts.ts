@@ -481,6 +481,16 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Watch recorded matches': 'Assista a partidas gravadas',
     'Your recent matches': 'Suas últimas partidas',
     Profile: 'Perfil',
+    // opções e conta (OG-202)
+    Game: 'Jogo',
+    Graphics: 'Gráficos',
+    Audio: 'Áudio',
+    Language: 'Idioma',
+    'Sound effects': 'Efeitos sonoros',
+    'Add key': 'Adicionar tecla',
+    'Press a key...': 'Pressione uma tecla...',
+    Default: 'Padrão',
+    permanent: 'definitivo',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
   },
 };

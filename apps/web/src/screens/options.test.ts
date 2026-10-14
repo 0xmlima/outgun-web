@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { completeColors, defaultPrefs, parsePrefs } from '../app/prefs.js';
-import { moveColor } from './options.js';
+import { moveColor, optionsTab } from './options.js';
 
 describe('opções do jogador (OG-068)', () => {
   it('favoritas: as 16 cores, sem repetir, as salvas primeiro', () => {
@@ -35,5 +35,17 @@ describe('opções do jogador (OG-068)', () => {
     const p = parsePrefs({ menuFont: 'Kulmikas', soundVolume: 200 }, defaultPrefs([]));
     expect(p.soundVolume).toBe(200);
     expect('menuFont' in p).toBe(false);
+  });
+
+  it('abas das opções (OG-202): os endereços dos submenus antigos abrem a aba que os contém', () => {
+    expect(optionsTab(undefined)).toBe('game');
+    expect(optionsTab('player')).toBe('game');
+    expect(optionsTab('quick-messages')).toBe('game');
+    expect(optionsTab('theme')).toBe('graphics');
+    expect(optionsTab('graphics')).toBe('graphics');
+    expect(optionsTab('sounds')).toBe('sounds');
+    expect(optionsTab('controls')).toBe('controls');
+    expect(optionsTab('language')).toBe('language');
+    expect(optionsTab('xyz')).toBe('game');
   });
 });

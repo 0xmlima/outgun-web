@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Opções → Controles: esquema de teclas e remapeamento de cada ação (OG-063, plan/specs/entrada.md).
+// Aba da página de opções no design system v2 (OG-202): cada ação mostra as teclas atuais; "Adicionar
+// tecla" espera a próxima tecla e Delete (ou "Padrão") volta a ação ao esquema.
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
 import {
   ACTION_LABELS,
@@ -15,14 +16,14 @@ import {
   type Action,
   type Scheme,
 } from '../game/input/bindings.js';
-import { BitmapText } from '../ui/BitmapText.js';
-import { Menu, type MenuItem } from '../ui/Menu.js';
+import { Button } from '../ui/Button.js';
+import { ChoiceField, FieldGroup } from '../ui/Field.js';
+import { Panel } from '../ui/Panel.js';
 
 const SCHEME_LABELS: Record<Scheme, string> = { classic: 'Classic', browser: 'Browser (no Ctrl/Alt)' };
 
-export function ControlsScreen() {
+export function ControlsPanel() {
   const { t, prefs, setPrefs } = usePrefs();
-  const navigate = useNavigate();
   const [capturing, setCapturing] = useState<Action | null>(null);
   const bindings = prefs.bindings;
 
@@ -56,34 +57,48 @@ export function ControlsScreen() {
   const current = serializeBindings(bindings);
   const scheme = (Object.keys(SCHEMES) as Scheme[]).find((s) => serializeBindings(SCHEMES[s]) === current);
   const schemes = Object.keys(SCHEMES) as Scheme[];
-
-  const items: MenuItem[] = [
-    {
-      kind: 'choice',
-      label: t('Control scheme'),
-      value: scheme ? t(SCHEME_LABELS[scheme]) : t('Custom'),
-      onChange: (delta) => {
-        const i = scheme ? schemes.indexOf(scheme) : -1;
-        setPrefs({ bindings: SCHEMES[schemes[(i + delta + schemes.length) % schemes.length]!] });
-      },
-    },
-    ...ACTIONS.map(
-      (action): MenuItem => ({
-        kind: 'action',
-        label: t(ACTION_LABELS[action]),
-        note: bindings[action].slice(0, 3).map(chordLabel).join(', ') || '-',
-        onActivate: () => setCapturing(action),
-        onDelete: () => setPrefs({ bindings: { ...bindings, [action]: (SCHEMES[scheme ?? 'classic'] ?? CLASSIC_BINDINGS)[action] } }),
-      }),
-    ),
-    { kind: 'action', label: t('Restore defaults'), onActivate: () => setPrefs({ bindings: CLASSIC_BINDINGS }) },
-  ];
+  const restore = (action: Action) => setPrefs({ bindings: { ...bindings, [action]: (SCHEMES[scheme ?? 'classic'] ?? CLASSIC_BINDINGS)[action] } });
 
   return (
-    <Menu caption={t('Controls')} items={items} onBack={() => !capturing && void navigate('/options')}>
-      <p className="menu-help">
-        <BitmapText text={capturing ? t('Press a key for $1 (Esc cancels)', t(ACTION_LABELS[capturing])) : t('Enter adds a key, Delete restores the default.')} />
+    <Panel title={t('Controls')} actions={<Button onClick={() => setPrefs({ bindings: CLASSIC_BINDINGS })}>{t('Restore defaults')}</Button>}>
+      <p className="ui-muted" role="status">
+        {capturing ? t('Press a key for $1 (Esc cancels)', t(ACTION_LABELS[capturing])) : t('Enter adds a key, Delete restores the default.')}
       </p>
-    </Menu>
+      <FieldGroup>
+        <ChoiceField
+          label={t('Control scheme')}
+          value={scheme ?? 'custom'}
+          options={[...schemes.map((s) => ({ value: s, label: t(SCHEME_LABELS[s]) })), ...(scheme ? [] : [{ value: 'custom', label: t('Custom') }])]}
+          onChange={(next) => next !== 'custom' && setPrefs({ bindings: SCHEMES[next as Scheme] })}
+        />
+        <ul className="controls-list">
+          {ACTIONS.map((action) => (
+            <li key={action} className={capturing === action ? 'controls-row capturing' : 'controls-row'}>
+              <span className="controls-action">{t(ACTION_LABELS[action])}</span>
+              <span className="controls-keys">
+                {bindings[action].length === 0 ? <span className="ui-muted">—</span> : bindings[action].map((chord, i) => <kbd key={i}>{chordLabel(chord)}</kbd>)}
+              </span>
+              <span className="controls-buttons">
+                <Button
+                  data-ui-control=""
+                  aria-label={`${t(ACTION_LABELS[action])}: ${t('Add key')}`}
+                  onClick={() => setCapturing(action)}
+                  onKeyDown={(ev) => {
+                    if (ev.key !== 'Delete') return;
+                    ev.preventDefault();
+                    restore(action);
+                  }}
+                >
+                  {capturing === action ? t('Press a key...') : t('Add key')}
+                </Button>
+                <Button variant="ghost" onClick={() => restore(action)}>
+                  {t('Default')}
+                </Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </FieldGroup>
+    </Panel>
   );
 }

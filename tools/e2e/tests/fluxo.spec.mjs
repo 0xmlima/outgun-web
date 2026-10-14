@@ -122,14 +122,15 @@ test('beta fechado: cadastro sem convite recusado; "Jogar agora" sem conta vai p
   await page.getByLabel('E-mail').fill('semconvite@outgun.local');
   await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByLabel('Confirmar senha').fill(password);
-  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
   // sem aceitar os termos (OG-107) nem chega à API
-  await expect(page.locator('.menu')).toContainText(
+  await expect(page.getByRole('alert')).toContainText(
     'Aceite os termos de uso e a política de privacidade',
   );
-  await page.locator('button.menu-item', { hasText: 'Aceito os termos de uso' }).click();
-  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
-  await expect(page.locator('.menu')).toContainText(
+  await page.getByRole('switch', { name: /Aceito os termos de uso/ }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
+  // o erro do convite aparece junto do campo (OG-202)
+  await expect(page.locator('.ui-field', { has: page.getByLabel('Código de convite') })).toContainText(
     'O beta fechado precisa de um código de convite.',
   );
   await page.goto('/');

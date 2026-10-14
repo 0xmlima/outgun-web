@@ -18,11 +18,10 @@ import {
   RegisterScreen,
   ResetPasswordScreen,
 } from './screens/account.js';
-import { ControlsScreen } from './screens/ControlsScreen.js';
 import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.js';
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
-import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
+import { OptionsScreen } from './screens/options.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
 import './ui/tokens.css';
@@ -50,8 +49,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <HomeScreen /> },
           { path: 'options', element: <OptionsScreen /> },
-          { path: 'options/controls', element: <ControlsScreen /> },
-          { path: 'options/:section', element: <OptionsSectionScreen /> },
+          { path: 'options/:section', element: <OptionsScreen /> },
           { path: 'help', element: <HelpScreen /> },
           { path: 'replays', element: <ReplaysScreen /> },
           { path: 'credits', element: <CreditsScreen /> },
