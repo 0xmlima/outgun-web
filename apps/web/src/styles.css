@@ -1,4 +1,24 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Tokens de cor dos menus: graphics/Ice/colours.txt do original. */
+:root {
+  --screen-bg: #000015;
+  --menu-bg: #000040;
+  --menu-border-shadow: #000030;
+  --menu-border-highlight: #4040b0;
+  --menu-caption: #ffffff;
+  --menu-caption-bg: #000090;
+  --menu-item: #9090ff;
+  --menu-active: #00ffff;
+  --menu-disabled: #777777;
+  --menu-value: #ffffff;
+  --menu-shortcut: #b0d0b0;
+  --menu-shortcut-disabled: #506050;
+  --scrollbar: #0000ff;
+  --scrollbar-bg: #000077;
+  --px: 1;
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,9 +31,10 @@ body,
 }
 
 body {
-  background: var(--surface-0);
-  color: var(--text);
-  font: var(--text-md) / var(--leading) var(--font);
+  background: var(--screen-bg);
+  color: var(--menu-item);
+  /* Usada só enquanto a fonte bitmap carrega ou sem os assets. */
+  font: calc(var(--px) * 13px) / 1.25 'Courier New', monospace;
   overflow: hidden;
 }
 
@@ -26,10 +47,109 @@ body {
   white-space: nowrap;
 }
 
+/* Texto bitmap: um pixel da fonte vira --px pixels de CSS, sem suavização. */
+.btext {
+  display: inline-block;
+  vertical-align: middle;
+  white-space: pre;
+}
+.btext canvas {
+  display: block;
+  width: calc(var(--w) * var(--px) * 1px);
+  height: calc(var(--h) * var(--px) * 1px);
+  image-rendering: pixelated;
+}
+
 .legal .stats-table td.wrap {
   white-space: normal;
   vertical-align: top;
   min-width: 12em;
+}
+
+/* Caixa de menu com borda em relevo, como src/menu.cpp. */
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: calc(var(--px) * 300px);
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--menu-bg);
+  border: calc(var(--px) * 2px) solid;
+  border-color: var(--menu-border-highlight) var(--menu-border-shadow) var(--menu-border-shadow)
+    var(--menu-border-highlight);
+}
+.menu-caption {
+  margin: 0;
+  padding: calc(var(--px) * 3px) calc(var(--px) * 8px);
+  background: var(--menu-caption-bg);
+  color: var(--menu-caption);
+  font-size: inherit;
+  font-weight: normal;
+  text-align: center;
+}
+.menu-items {
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-color: var(--scrollbar) var(--scrollbar-bg);
+  margin: 0;
+  padding: calc(var(--px) * 6px) 0;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--px) * 6px);
+  width: 100%;
+  padding: calc(var(--px) * 2px) calc(var(--px) * 10px) calc(var(--px) * 2px) calc(var(--px) * 6px);
+  border: 0;
+  background: none;
+  color: var(--menu-item);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:focus {
+  outline: none;
+}
+.menu-item.active {
+  color: var(--menu-active);
+}
+.menu-item.active:focus-visible {
+  outline: calc(var(--px) * 1px) dotted var(--menu-active);
+  outline-offset: calc(var(--px) * -1px);
+}
+.menu-item.disabled {
+  color: var(--menu-disabled);
+  cursor: default;
+}
+.menu-shortcut {
+  min-width: calc(var(--px) * 10px);
+  color: var(--menu-shortcut);
+}
+.menu-item.disabled .menu-shortcut {
+  color: var(--menu-shortcut-disabled);
+}
+.menu-label {
+  flex: 1;
+}
+.menu-value {
+  color: var(--menu-value);
+}
+.menu-colors {
+  display: flex;
+  gap: calc(var(--px) * 2px);
+  margin-left: auto;
+}
+.menu-colors .swatch {
+  width: calc(var(--px) * 9px);
+  height: calc(var(--px) * 9px);
+  border: calc(var(--px) * 1px) solid var(--menu-bg);
+}
+.menu-colors .swatch.selected {
+  border-color: var(--menu-active);
+  outline: calc(var(--px) * 1px) solid var(--menu-active);
+}
+.menu-note {
+  color: var(--menu-disabled);
 }
 
 /* Perfil, partida, ranking, termos, admin e feedback: tabelas e formulários simples nos tokens v2 (OG-203). */
@@ -145,7 +265,6 @@ body {
 .game-overlay {
   position: absolute;
   inset: 0;
-  font-family: var(--font);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,31 +275,27 @@ body {
 }
 /* Telas F1–F5 (OG-066): cores `stats_*` de src/colour_def.inc, fundo opaco (`Stats screen alpha` 255). */
 .info-screen {
-  font-size: var(--text-sm);
-  line-height: 1.4;
-  font-variant-numeric: tabular-nums;
   max-width: 96%;
   max-height: 96%;
   overflow: auto;
-  padding: 0.5rem 1.25rem 1rem;
+  padding: calc(var(--px) * 4px) calc(var(--px) * 10px) calc(var(--px) * 8px);
   background: #000000;
   color: #ffffff;
 }
 .info-screen h2 {
-  font-weight: var(--weight-bold);
-  margin: 0 -1.25rem 0.75rem;
-  padding: 0.25rem 0;
+  margin: 0 calc(var(--px) * -10px) calc(var(--px) * 6px);
+  padding: calc(var(--px) * 2px) 0;
   text-align: center;
   font-size: 1em;
   background: #007700;
 }
 .info-screen table {
   border-collapse: collapse;
-  margin: 0 auto 0.75rem;
+  margin: 0 auto calc(var(--px) * 6px);
 }
 .info-screen caption {
   text-align: left;
-  padding: 0.25rem 0.5rem;
+  padding: calc(var(--px) * 2px) calc(var(--px) * 4px);
 }
 .info-screen caption.tone-red {
   background: #600000;
@@ -190,7 +305,7 @@ body {
 }
 .info-screen th,
 .info-screen td {
-  padding: 0 0.625rem;
+  padding: 0 calc(var(--px) * 5px);
   text-align: right;
   white-space: nowrap;
 }
@@ -203,7 +318,7 @@ body {
   text-align: left;
 }
 .info-screen p {
-  margin: 0.5rem 0 0;
+  margin: calc(var(--px) * 4px) 0 0;
 }
 .info-screen .tone-red {
   color: #ff6060;
@@ -222,39 +337,76 @@ body {
 }
 .game-hint {
   position: absolute;
-  bottom: 1rem;
+  bottom: calc(var(--px) * 8px);
   margin: 0;
-  color: var(--text-muted);
+  color: var(--menu-disabled);
+}
+.menu-help {
+  margin: 0;
+  padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
+  color: var(--menu-disabled);
 }
 .replay-bar {
   position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 0.75rem;
+  left: calc(var(--px) * 8px);
+  right: calc(var(--px) * 8px);
+  bottom: calc(var(--px) * 6px);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 1.25rem;
-  padding: 0.5rem 1rem;
+  gap: calc(var(--px) * 4px) calc(var(--px) * 10px);
+  padding: calc(var(--px) * 4px) calc(var(--px) * 8px);
   background: rgb(0 0 0 / 70%);
-  color: var(--text);
+  color: var(--menu-value);
 }
 .replay-bar input[type='range'] {
-  flex: 1 1 25rem;
+  flex: 1 1 calc(var(--px) * 200px);
 }
 .replay-bar small {
   flex-basis: 100%;
-  color: var(--text-muted);
+  color: var(--menu-disabled);
 }
 .replay-buttons {
   display: flex;
-  gap: 0.75rem;
+  gap: calc(var(--px) * 6px);
 }
 .game-toast {
   position: absolute;
-  top: 1rem;
+  top: calc(var(--px) * 8px);
   margin: 0;
-  color: var(--text);
+  color: var(--menu-value);
+}
+
+/* Campo de texto dos menus (OG-081): o texto aparece na fonte bitmap; o <input> real fica por cima,
+   transparente, para digitação, leitores de tela e preenchimento automático de senhas. */
+.menu-text {
+  cursor: text;
+}
+.menu-field {
+  position: relative;
+  min-width: calc(var(--px) * 130px);
+  color: var(--menu-value);
+}
+.menu-field input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  opacity: 0;
+  font: inherit;
+}
+.menu-message {
+  margin: 0;
+  padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
+  color: var(--menu-value);
+  text-align: center;
+}
+.menu-message.error {
+  color: var(--menu-active);
 }
 
 /* "Ver relatório" no fim da partida (OG-214) */
@@ -264,9 +416,4 @@ body {
   left: 50%;
   transform: translateX(-50%);
   pointer-events: auto;
-}
-
-/* Menu Esc da partida (OG-205): o MenuList do design system num painel */
-.game-menu {
-  min-width: min(22rem, 92vw);
 }
