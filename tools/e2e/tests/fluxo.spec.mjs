@@ -38,8 +38,8 @@ test('o cliente é servido com CSP e cabeçalhos de segurança', async ({ reques
   expect(res.headers()['x-frame-options']).toBe('DENY');
 });
 
-// menu do jogo (ainda no visual antigo até o OG-205)
-const menuItem = (page, label) => page.locator('button.menu-item', { hasText: label });
+// menu Esc da partida (MenuList do design system desde o OG-205)
+const menuItem = (page, label) => page.locator('.game-menu button.ui-menu-item', { hasText: label });
 // lobby no design system v2 (OG-203)
 const lobbyPlay = (page) => page.locator('.lobby').getByRole('button', { name: 'Jogar agora' });
 // tela inicial no design system v2 (OG-201)

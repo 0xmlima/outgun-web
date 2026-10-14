@@ -45,7 +45,6 @@ export interface ReplayOptions {
   readonly theme: string;
   readonly visibleRooms: number;
   readonly continuousTextures: boolean;
-  readonly font?: string;
   readonly colourTheme?: string;
   readonly preferThemeColours?: boolean;
   /** Começa neste ponto (s). */
@@ -204,7 +203,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
         if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
         const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
         app.renderer.background.color = theme.colours.screen_background ?? '#000000';
-        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont()]);
         return { theme, sprites, font };
       })();
       await setup;

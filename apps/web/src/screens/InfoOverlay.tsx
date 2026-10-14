@@ -9,7 +9,6 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { usePrefs } from '../app/prefs.js';
 import type { GameHost } from '../game/host.js';
 import { MAP_SORTS, mapScreen, playerScreen, serverScreen, teamScreen, type InfoScreen, type MapSort } from '../game/hud/info-screens.js';
-import { BitmapText } from '../ui/BitmapText.js';
 import { TextLines } from '../ui/TextPage.js';
 
 export type InfoKind = 'help' | 'maps' | 'teams' | 'players' | 'server';
@@ -112,7 +111,7 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
     return (
       <section className="info-screen help" aria-label={t('Help')}>
         <h2>
-          <BitmapText text={t('Help')} />
+          {t('Help')}
         </h2>
         <TextLines lines={catalog(prefs.locale).help} />
       </section>
@@ -137,20 +136,20 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
   return (
     <section className={`info-screen ${kind}`} aria-label={screen.title} style={statsBackground(prefs.statsAlpha)}>
       <h2>
-        <BitmapText text={screen.title} />
+        {screen.title}
       </h2>
       {screen.tables.map((table, i) => (
         <table key={i}>
           {table.caption && (
             <caption className={`tone-${table.captionTone ?? 'text'}`}>
-              <BitmapText text={table.caption} />
+              {table.caption}
             </caption>
           )}
           {table.header && (
             <thead>
               <tr>
                 {table.header.map((h, j) => (
-                  <th key={j}>{h && <BitmapText text={h} />}</th>
+                  <th key={j}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -159,7 +158,7 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
             {visibleRows(i, table.rows).map((row, r) => (
               <tr key={r} className={`tone-${row.tone}`}>
                 {row.cells.map((c, j) => (
-                  <td key={j}>{c && <BitmapText text={c} />}</td>
+                  <td key={j}>{c}</td>
                 ))}
               </tr>
             ))}
@@ -168,7 +167,7 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
       ))}
       {screen.footer.map((row, i) => (
         <p key={i} className={`tone-${row.tone}`}>
-          <BitmapText text={row.cells.join(' ')} />
+          {row.cells.join(' ')}
         </p>
       ))}
     </section>

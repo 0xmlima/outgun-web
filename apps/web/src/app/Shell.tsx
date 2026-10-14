@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Moldura das telas fora da partida (OG-201, design system v2): barra superior com logo, navegação e
-// conta; rodapé com Sobre, Termos, Privacidade e o código-fonte (GPL, OG-005). As telas ainda no
-// visual antigo (caixas de menu com fonte bitmap) aparecem centralizadas no meio, com a escala
-// inteira de pixels, até migrarem (OG-202, OG-203).
-import { useEffect, useState } from 'react';
+// conta; rodapé com Sobre, Termos, Privacidade e o código-fonte (GPL, OG-005).
+import { useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAccount } from './account.js';
 import { useMusicMode } from './music/MusicProvider.js';
 import { usePlayNow } from './play-now.js';
 import { usePrefs } from './prefs.js';
 import { Button } from '../ui/Button.js';
-import { FontProvider, GAME_FONT } from '../ui/fonts.js';
 import { useGamepadKeys } from '../ui/gamepad.js';
 import { ToastProvider } from '../ui/Toast.js';
 import './shell.css';
@@ -18,41 +15,22 @@ import './shell.css';
 /** Endereço do código-fonte; até existir o repositório público, a página /source explica a GPL. */
 export const SOURCE_URL: string = import.meta.env.VITE_SOURCE_URL ?? '/source';
 
-/** Os menus do original foram desenhados para 640×480: escala inteira que cabe na janela. */
-function pixelScale(): number {
-  return Math.max(1, Math.min(4, Math.floor(Math.min(innerWidth / 640, innerHeight / 480))));
-}
-
-function usePixelScale(): number {
-  const [scale, setScale] = useState(pixelScale);
-  useEffect(() => {
-    const update = () => setScale(pixelScale());
-    addEventListener('resize', update);
-    return () => removeEventListener('resize', update);
-  }, []);
-  return scale;
-}
-
 export function SourceLink() {
   const { t } = usePrefs();
   const label = t('Source code (GPL)');
   return SOURCE_URL.startsWith('/') ? <Link to={SOURCE_URL}>{label}</Link> : <a href={SOURCE_URL}>{label}</a>;
 }
 
-/** Raiz de todas as rotas: idioma do documento, escala dos pixels, fonte bitmap e avisos (OG-200). */
+/** Raiz de todas as rotas: idioma do documento e avisos (OG-200). */
 export function Root() {
   const { prefs, t } = usePrefs();
-  const scale = usePixelScale();
   useEffect(() => {
     document.documentElement.lang = prefs.locale;
-    document.documentElement.style.setProperty('--px', String(scale));
-  }, [prefs.locale, scale]);
+  }, [prefs.locale]);
   return (
-    <FontProvider name={GAME_FONT}>
-      <ToastProvider closeLabel={t('Close')}>
-        <Outlet />
-      </ToastProvider>
-    </FontProvider>
+    <ToastProvider closeLabel={t('Close')}>
+      <Outlet />
+    </ToastProvider>
   );
 }
 

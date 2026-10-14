@@ -12,11 +12,10 @@ import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameSta
 import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
-import { BitmapText } from '../ui/BitmapText.js';
 import { Button } from '../ui/Button.js';
-import { GAME_FONT } from '../ui/fonts.js';
 import { useMusicMode } from '../app/music/MusicProvider.js';
-import { Menu, type MenuItem } from '../ui/Menu.js';
+import { MenuList, type MenuListItem } from '../ui/MenuList.js';
+import { Panel } from '../ui/Panel.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
 
 /** Opções do jogador que valem na partida (OG-068). */
@@ -107,7 +106,6 @@ export default function GameScreen() {
       room: [rx || 0, ry || 0],
       demoPlayers: demo,
       demoStress: params.get('stress') === '1',
-      font: GAME_FONT,
       bindings: prefs.bindings,
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
       translate: (text, ...args) => tRef.current(text, ...args),
@@ -214,15 +212,14 @@ export default function GameScreen() {
   const sala = params.get('sala');
   // margem de 1 min para o relógio do servidor (ended_at) e o do navegador
   const openReport = () => lastGameOverAt !== null && sala && void navigate(`/rooms/${encodeURIComponent(sala)}/report?${new URLSearchParams({ after: new Date(lastGameOverAt - 60_000).toISOString() })}`);
-  const items: MenuItem[] = [
-    { kind: 'action', label: t('Back to game'), onActivate: () => setMenuOpen(false) },
-    ...(lastGameOverAt !== null && sala ? [{ kind: 'action' as const, label: t('View match report'), onActivate: openReport }] : []),
+  const items: MenuListItem[] = [
+    { label: t('Back to game'), onActivate: () => setMenuOpen(false) },
+    ...(lastGameOverAt !== null && sala ? [{ label: t('View match report'), onActivate: openReport }] : []),
     {
-      kind: 'action',
       label: t('Send feedback'),
       onActivate: () => void navigate(`/feedback?${new URLSearchParams({ sala: params.get('sala') ?? 'main', ...(status?.kind === 'ready' ? { mapa: status.map.title } : {}) })}`),
     },
-    { kind: 'action', label: t('Leave game'), onActivate: () => void navigate('/') },
+    { label: t('Leave game'), onActivate: () => void navigate('/') },
   ];
 
   return (
@@ -231,7 +228,7 @@ export default function GameScreen() {
       <div className="game-overlay">
         {toast && !menuOpen && (
           <p className="game-toast" role="status">
-            <BitmapText text={toast} />
+            {toast}
           </p>
         )}
         {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
@@ -241,22 +238,22 @@ export default function GameScreen() {
           </Button>
         )}
         {menuOpen ? (
-          <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
+          <div className="game-menu">
+            <Panel title="Outgun">
+              <MenuList label="Outgun" items={items} onBack={() => setMenuOpen(false)} autoFocus />
+            </Panel>
+          </div>
         ) : onlineKey !== null && status?.kind === 'ready' ? null : (
           <p className="game-hint">
-            <BitmapText
-              text={
-                status?.kind === 'error'
-                  ? status.message
-                  : status?.kind === 'ready'
-                    ? `${status.map.title} - ${t('Press Esc for the menu')}`
-                    : status?.kind === 'connecting'
-                      ? t('Connecting to the game server...')
-                      : status?.kind === 'reconnecting'
-                        ? t('Connection lost. Reconnecting...')
-                        : t('Press Esc for the menu')
-              }
-            />
+            {status?.kind === 'error'
+              ? status.message
+              : status?.kind === 'ready'
+                ? `${status.map.title} - ${t('Press Esc for the menu')}`
+                : status?.kind === 'connecting'
+                  ? t('Connecting to the game server...')
+                  : status?.kind === 'reconnecting'
+                    ? t('Connection lost. Reconnecting...')
+                    : t('Press Esc for the menu')}
           </p>
         )}
       </div>

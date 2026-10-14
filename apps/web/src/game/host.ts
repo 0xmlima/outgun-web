@@ -7,7 +7,7 @@ import { parseMapFile } from '@outgun/content';
 import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
 import { message } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
-import { Application, Assets, TilingSprite, type BitmapFont, type Texture } from 'pixi.js';
+import { Application, Assets, BitmapFontManager, TilingSprite, type Texture } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
@@ -111,8 +111,6 @@ export interface GameOptions {
   readonly demoPlayers?: number;
   /** Demonstração em teste de carga (armas no máximo, tiro contínuo). */
   readonly demoStress?: boolean;
-  /** Fonte bitmap dos nomes e contagens (uma das fontes do original). */
-  readonly font?: string;
   readonly bindings: Bindings;
   readonly prediction: PredictionOptions;
   /** Tradução dos textos do HUD (`_()` do original no idioma escolhido). */
@@ -179,19 +177,26 @@ function viewOptions(g: GraphicsOptions, wraps: { x: boolean; y: boolean }): Vie
   return { scroll: g.scroll, view: g.viewOverBorder, repeatX: repeat(wraps.x), repeatY: repeat(wraps.y), wrapsX: wraps.x, wrapsY: wraps.y };
 }
 
-/** Instala a fonte bitmap e a de contorno no PixiJS (o arquivo .fnt traz o nome da família). */
-export async function loadFont(name: string | undefined): Promise<GameFont | null> {
-  const entry = name ? (await loadManifest())?.fonts[name] : undefined;
-  if (!entry) return null;
-  try {
-    const [main, border] = await Promise.all([
-      Assets.load<BitmapFont>(ASSETS + entry.font.fnt),
-      entry.border ? Assets.load<BitmapFont>(ASSETS + entry.border.fnt).catch(() => null) : Promise.resolve(null),
-    ]);
-    return new GameFont(main, border);
-  } catch {
-    return null;
-  }
+/** Tamanho (px CSS) do texto da partida: HUD, chat, nomes e placar (OG-205). */
+export const GAME_FONT_SIZE = 13;
+
+/**
+ * Fonte da partida (OG-205, RN-UI-02): a Inter do design system (D-35) num atlas `BitmapFont` do
+ * PixiJS na resolução do dispositivo — nítida em qualquer escala e barata para texto que muda todo
+ * quadro. Sem fonte de contorno: o HUD contorna desenhando o texto deslocado (como sem borda no original).
+ */
+export async function loadFont(): Promise<GameFont> {
+  const css = `500 ${GAME_FONT_SIZE}px Inter`;
+  await document.fonts?.load(css).catch(() => undefined);
+  const main = BitmapFontManager.install({
+    name: 'OutgunInter',
+    style: { fontFamily: 'Inter, system-ui, sans-serif', fontSize: GAME_FONT_SIZE, fontWeight: '500', fill: '#ffffff' },
+    // Latin-1, como os textos do jogo (packages/i18n)
+    chars: [[' ', '~'], ['\u00a0', '\u00ff']],
+    resolution: Math.max(1, devicePixelRatio || 1),
+    padding: 2,
+  });
+  return new GameFont(main, null);
 }
 
 const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
@@ -520,7 +525,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       }
       const playing = Boolean(opts.online || opts.demoPlayers);
       if (playing) {
-        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont()]);
         if (destroyed) return;
         gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);

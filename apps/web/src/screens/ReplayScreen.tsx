@@ -7,7 +7,6 @@ import { GENERATED_MAP, serverHttpBase } from '../game/host.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
-import { GAME_FONT } from '../ui/fonts.js';
 import { useMusicMode } from '../app/music/MusicProvider.js';
 import { decodeFrame, PROTOCOL_VERSION, type Replay } from '@outgun/protocol';
 import { defaultServerUrl } from '../game/net/connection.js';
@@ -53,7 +52,6 @@ export default function ReplayScreen() {
           theme: prefs.graphicsTheme,
           visibleRooms: prefs.visibleRooms,
           continuousTextures: prefs.continuousTextures,
-          font: GAME_FONT,
           colourTheme: prefs.colourTheme,
           preferThemeColours: prefs.preferThemeColours,
           startSeconds: start,
@@ -139,7 +137,6 @@ export function SpectateScreen() {
       theme: prefs.graphicsTheme,
       visibleRooms: prefs.visibleRooms,
       continuousTextures: prefs.continuousTextures,
-      font: GAME_FONT,
       colourTheme: prefs.colourTheme,
       preferThemeColours: prefs.preferThemeColours,
       live: true,
