@@ -385,6 +385,11 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Pause': 'Pausar',
     'Copy link': 'Copiar link',
     'Link copied': 'Link copiado',
+    // privacidade do perfil social (OG-211)
+    'Profile privacy': 'Privacidade do perfil',
+    'Hide my teammates and rivals': 'Esconder meus companheiros e rivais',
+    'You also stop appearing in the lists of other players.': 'Você também deixa de aparecer nas listas dos outros jogadores.',
+    'Hide my match history': 'Esconder meu histórico de partidas',
     'Back': 'Voltar',
     'PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom':
       'PgUp/PgDn velocidade · Home normal · P pausa · setas sala · F seguir jogador · +/- do teclado numérico zoom',
@@ -505,5 +510,10 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Hide full rooms': 'Esconder salas lotadas',
     Full: 'Lotada',
     'Link copied': 'Link copiado',
+    // privacidade do perfil social (OG-211)
+    'Profile privacy': 'Privacidade do perfil',
+    'Hide my teammates and rivals': 'Esconder meus companheiros e rivais',
+    'You also stop appearing in the lists of other players.': 'Você também deixa de aparecer nas listas dos outros jogadores.',
+    'Hide my match history': 'Esconder meu histórico de partidas',
   },
 };

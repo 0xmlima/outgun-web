@@ -74,6 +74,9 @@ export const playerProfiles = pgTable('player_profiles', {
   favoriteColors: smallint('favorite_colors').array().notNull().default(sql`'{}'`),
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
   rankingParticipation: boolean('ranking_participation').notNull().default(true),
+  /** Privacidade do perfil social (OG-211, D-39). */
+  hideCompanions: boolean('hide_companions').notNull().default(false),
+  hideHistory: boolean('hide_history').notNull().default(false),
   updatedAt: tstz('updated_at').notNull().defaultNow(),
 });
 

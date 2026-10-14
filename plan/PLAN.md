@@ -663,7 +663,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Pronto |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
-| [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Pronto |
+| [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Em revisão |
 | [OG-212](cards/OG-212-perfil-social.md) | Página de perfil social | E9 | 5 | Must | S15 | OG-200, OG-211 | Backlog |
 | [OG-213](cards/OG-213-marcos.md) | Marcos (milestones) do jogador | E9 | 3 | Should | S15 | OG-211 | Backlog |
 | [OG-214](cards/OG-214-relatorio-partida.md) | Relatório de partida | E9 | 5 | Must | S14 | OG-200 | Pronto |

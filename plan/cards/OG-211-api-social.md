@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-085](OG-085-profile-history.md) |
 | Regras de negócio | RN-SOC-02, RN-SOC-03, RN-SOC-04 |
 | Skills | `outgun-card-workflow` |
@@ -27,12 +27,15 @@ Como jogador, quero descobrir com quem mais jogo, contra quem, e como evoluí, p
 - Privacidade (D-39): perfil público; na conta, opções "esconder companheiros/rivais" e "esconder histórico de partidas" (migration + rota de conta); escondido, a API não devolve esses dados nem lista o jogador como companheiro de outros.
 
 ## Critérios de aceite
-- [ ] Testes com Postgres cobrindo companheiros, rivais, evolução e busca.
-- [ ] p95 < 50 ms com 100 mil partidas sintéticas (medição no card).
-- [ ] Esquema OpenAPI atualizado (`openapi.test.ts`).
+- [x] Testes com Postgres cobrindo companheiros, rivais, evolução e busca (`social.test.ts`; rodam no fechamento).
+- [ ] p95 < 50 ms com 100 mil partidas sintéticas (medição no card; `SOCIAL_BENCH=1`, no fechamento).
+- [ ] Esquema OpenAPI atualizado (`openapi.test.ts`; regerado no fechamento).
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Rotas em `routes/social.ts`; migration `0014_social` (colunas `hide_companions`/`hide_history` em `player_profiles` e 4 índices). Teto de custo: só as últimas 2 000 partidas do jogador entram em companheiros/rivais; série com os últimos 500 pontos; cache em memória de 30 s (a resposta do dono não entra).
+- Série de evolução = deltas das partidas ranqueadas da temporada ativa + `rating_deltas` (deltas fora do fim da partida), acumulados.
+- Privacidade: `GET/PUT /account/privacy` e dois alternadores na tela Conta. Histórico escondido também zera `/players/:nome/matches` (campo novo `hidden`), exceto para o dono.
+- Busca: prefixo de `usernameKey` (LIKE com curingas escapados) ou clã exato sem diferenciar maiúsculas; o nome exato vem primeiro.
