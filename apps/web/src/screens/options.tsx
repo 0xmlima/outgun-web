@@ -9,7 +9,6 @@ import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
 import { type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
-import { useFontNames } from '../ui/fonts.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 
 function cycle<T>(list: readonly T[], current: T, delta: number): T {
@@ -66,7 +65,7 @@ export function OptionsScreen() {
     { kind: 'action', label: t('Game options'), onActivate: go('game') },
     { kind: 'action', label: t('Quick messages'), onActivate: go('quick-messages') },
     { kind: 'action', label: t('Controls'), onActivate: go('controls') },
-    { kind: 'action', label: t('Theme and font'), onActivate: go('theme') },
+    { kind: 'action', label: t('Theme'), onActivate: go('theme') },
     { kind: 'action', label: t('Graphic options'), onActivate: go('graphics') },
     { kind: 'action', label: t('Sound options'), onActivate: go('sounds') },
     { kind: 'action', label: t('Choose language'), onActivate: go('language') },
@@ -79,7 +78,6 @@ export function OptionsSectionScreen() {
   const { user } = useAccount();
   const navigate = useNavigate();
   const { section = '' } = useParams();
-  const fonts = useFontNames();
   const lists = useManifestLists();
   const [colorIndex, setColorIndex] = useState(0);
   const [ranking, setRanking] = useState<boolean | null>(null);
@@ -197,7 +195,7 @@ export function OptionsSectionScreen() {
       ];
       break;
     case 'theme': {
-      caption = t('Theme and font');
+      caption = t('Theme');
       const themes = ['', ...lists.themes];
       const colourThemes = ['', ...lists.colourThemes];
       items = [
@@ -224,13 +222,6 @@ export function OptionsSectionScreen() {
           onChange: (d) => setPrefs({ backgroundTheme: cycle(['', ...lists.backgrounds], prefs.backgroundTheme, d) }),
         },
         toggle('preferThemeBackground', 'Prefer main theme background'),
-        {
-          kind: 'choice',
-          label: t('Font'),
-          value: prefs.menuFont,
-          disabled: fonts.length === 0,
-          onChange: (d) => setPrefs({ menuFont: cycle(fonts, prefs.menuFont, d) }),
-        },
       ];
       break;
     }

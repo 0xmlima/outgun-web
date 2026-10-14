@@ -423,7 +423,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Player options': 'Opções do jogador',
     'Game options': 'Opções de jogo',
     'Quick messages': 'Mensagens rápidas',
-    'Theme and font': 'Tema e fonte',
     'Graphic options': 'Opções gráficas',
     'Sound options': 'Opções de som',
     'Favorite colors': 'Cores favoritas',
@@ -453,7 +452,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'always': 'sempre',
     'FPS limit': 'Limite de FPS',
     'Theme': 'Tema',
-    'Font': 'Fonte',
     // palavras curtas que faltavam (OG-068/069/085)
     'guest': 'convidado',
     'players': 'jogadores',
@@ -470,5 +468,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'power': 'força',
     'Nr': 'Nº',
     'Vote': 'Voto',
+    // design system v2 (OG-200)
+    Close: 'Fechar',
   },
 };

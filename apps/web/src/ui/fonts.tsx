@@ -10,6 +10,12 @@ export interface LoadedFont {
   readonly image: HTMLImageElement;
 }
 
+/**
+ * Fonte bitmap fixa (uma das 25 do original, OG-013) das telas ainda não migradas para o design system v2
+ * e dos textos dentro da partida, até o OG-205. A escolha de fonte saiu no OG-200 (RN-UI-02).
+ */
+export const GAME_FONT = 'Kulmikas';
+
 const fontPromises = new Map<string, Promise<LoadedFont | null>>();
 
 function loadFont(name: string): Promise<LoadedFont | null> {
@@ -28,19 +34,6 @@ function loadFont(name: string): Promise<LoadedFont | null> {
     fontPromises.set(name, promise);
   }
   return promise;
-}
-
-/** Nomes das fontes disponíveis no manifesto (vazio sem assets). */
-export function useFontNames(): readonly string[] {
-  const [names, setNames] = useState<readonly string[]>([]);
-  useEffect(() => {
-    let alive = true;
-    void loadManifest().then((m) => alive && setNames(m ? Object.keys(m.fonts) : []));
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return names;
 }
 
 const FontContext = createContext<LoadedFont | null>(null);

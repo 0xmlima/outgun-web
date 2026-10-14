@@ -30,4 +30,10 @@ describe('opções do jogador (OG-068)', () => {
     expect(p.quickMessages.slice(0, 3)).toEqual(['oi', '', 'x'.repeat(30)]);
     expect(p.playerName).toBe('Nome bem compri');
   });
+
+  it('prefs antigas com menuFont (removida no OG-200) carregam sem erro e perdem o campo', () => {
+    const p = parsePrefs({ menuFont: 'Kulmikas', soundVolume: 200 }, defaultPrefs([]));
+    expect(p.soundVolume).toBe(200);
+    expect('menuFont' in p).toBe(false);
+  });
 });

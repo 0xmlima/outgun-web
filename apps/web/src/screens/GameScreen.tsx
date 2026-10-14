@@ -13,6 +13,7 @@ import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
+import { GAME_FONT } from '../ui/fonts.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
 
@@ -101,7 +102,7 @@ export default function GameScreen() {
       room: [rx || 0, ry || 0],
       demoPlayers: demo,
       demoStress: params.get('stress') === '1',
-      font: prefs.menuFont,
+      font: GAME_FONT,
       bindings: prefs.bindings,
       prediction: { enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount },
       translate: (text, ...args) => tRef.current(text, ...args),
@@ -127,7 +128,7 @@ export default function GameScreen() {
     });
     host.current = game;
     return () => game.destroy();
-  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.menuFont, prefs.colourTheme, prefs.preferThemeColours]);
+  }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.colourTheme, prefs.preferThemeColours]);
 
   // opções que mudam sem recarregar a partida
   const client = clientOptions(prefs);

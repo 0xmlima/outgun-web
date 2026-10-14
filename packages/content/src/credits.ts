@@ -84,5 +84,13 @@ export const ORIGINAL_CREDITS: readonly CreditGroup[] = [
   },
 ];
 
+/** Créditos do que entrou no Outgun Web depois do port (v2): fonte da interface, música... */
+export const WEB_CREDITS: readonly CreditGroup[] = [
+  {
+    role: 'Interface font',
+    people: ['Inter, by Rasmus Andersson (SIL Open Font License 1.1)'],
+  },
+];
+
 /** Licença do jogo original e do port (COPYING). */
 export const LICENSE_SPDX = 'GPL-2.0-or-later';

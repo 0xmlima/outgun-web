@@ -4,7 +4,9 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router';
 import { BitmapText } from '../ui/BitmapText.js';
-import { FontProvider } from '../ui/fonts.js';
+import { FontProvider, GAME_FONT } from '../ui/fonts.js';
+import { useGamepadKeys } from '../ui/gamepad.js';
+import { ToastProvider } from '../ui/Toast.js';
 import { usePrefs } from './prefs.js';
 
 /** Endereço do código-fonte; até existir o repositório público, a página /source explica a GPL. */
@@ -53,23 +55,26 @@ function LegalLinks() {
   );
 }
 
-/** Raiz de todas as rotas: idioma do documento, escala dos pixels e fonte dos menus. */
+/** Raiz de todas as rotas: idioma do documento, escala dos pixels, fonte bitmap e avisos (OG-200). */
 export function Root() {
-  const { prefs } = usePrefs();
+  const { prefs, t } = usePrefs();
   const scale = usePixelScale();
   useEffect(() => {
     document.documentElement.lang = prefs.locale;
     document.documentElement.style.setProperty('--px', String(scale));
   }, [prefs.locale, scale]);
   return (
-    <FontProvider name={prefs.menuFont}>
-      <Outlet />
+    <FontProvider name={GAME_FONT}>
+      <ToastProvider closeLabel={t('Close')}>
+        <Outlet />
+      </ToastProvider>
     </FontProvider>
   );
 }
 
-/** Telas de menu: conteúdo centralizado e rodapé com o código-fonte. */
+/** Telas de menu: conteúdo centralizado, rodapé com o código-fonte e gamepad (OG-200). */
 export function Shell() {
+  useGamepadKeys();
   return (
     <div className="shell">
       <main className="shell-main">

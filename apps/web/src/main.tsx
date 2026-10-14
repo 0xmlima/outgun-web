@@ -25,6 +25,8 @@ import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } fr
 import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
+import './ui/tokens.css';
+import './ui/components.css';
 import './styles.css';
 
 installErrorReporting();
@@ -36,6 +38,8 @@ const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
 const AdminScreen = lazy(() => import('./screens/AdminScreen.js'));
 const FeedbackScreen = lazy(() => import('./screens/FeedbackScreen.js'));
 const SpectateScreen = lazy(() => import('./screens/ReplayScreen.js').then((m) => ({ default: m.SpectateScreen })));
+// vitrine do design system v2 (OG-200): só no desenvolvimento, fora do build de produção
+const DevUiScreen = import.meta.env.DEV ? lazy(() => import('./screens/DevUiScreen.js')) : null;
 
 const router = createBrowserRouter([
   {
@@ -112,6 +116,18 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      ...(DevUiScreen
+        ? [
+            {
+              path: 'dev/ui',
+              element: (
+                <Suspense fallback={null}>
+                  <DevUiScreen />
+                </Suspense>
+              ),
+            },
+          ]
+        : []),
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

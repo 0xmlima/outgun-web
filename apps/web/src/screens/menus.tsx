@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Telas de menu do shell (OG-060). Replays: abrir arquivo ou ir às partidas (OG-091); lobby em
 // lobby.tsx (OG-069), opções em options.tsx (OG-068) e conta em account.tsx (OG-081).
-import { ORIGINAL_CREDITS } from '@outgun/content';
+import { ORIGINAL_CREDITS, WEB_CREDITS } from '@outgun/content';
 import { catalog } from '@outgun/i18n';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router';
@@ -60,7 +60,7 @@ export function CreditsScreen() {
   const lines = [
     t('Outgun Web is a port of Outgun 1.0.3 to the browser.'),
     ' ',
-    ...ORIGINAL_CREDITS.flatMap((group) => [
+    ...[...ORIGINAL_CREDITS, ...WEB_CREDITS].flatMap((group) => [
       group.role,
       ...group.people.map((person) => `   ${person}`),
       ' ',
