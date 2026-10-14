@@ -18,7 +18,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 
 ## Iniciar
 1. Mude o status para `Em andamento` **no cabeçalho do card e na tabela da seção 10** (mesmo commit): `python3 tools/dev/set-status.py NNN "Em andamento"`.
-2. Crie a branch `og-NNN-<slug>`.
+2. Crie a branch `og-NNN-<slug>` **a partir da `v2`** (ou da branch do card anterior, se depender dele). A `main` é a v1 (tag `v1.0.0`, beta): só correções do beta vão nela.
 3. Leia as RNs listadas no card (PLAN seção 6 e 15).
 4. Cards de **interface** (épico E8 em diante): siga o design system v2 (`apps/web/src/ui/`, tokens e fonte única do OG-200). Nada de fontes bitmap nem de estilo novo fora dos tokens.
 5. Cards de **conteúdo/assets** (temas, mapas, música): siga a skill `outgun-asset-pipeline`.
@@ -28,7 +28,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 - Commits: `OG-NNN: <verbo no presente> <o quê>`.
 - Mantenha `packages/sim` puro (sem Node/DOM, sem `Math.random` — use o `Rng` injetado).
 - Não modifique os arquivos do jogo original (`_legacy/`).
-- Rode `bash tools/dev/verify.sh` antes de todo commit.
+- **Economia de tokens:** não rode testes, lint nem a suíte durante os cards. Só `pnpm typecheck` do pacote tocado se precisar confirmar uma dúvida. A verificação completa é feita no fechamento da sprint.
 - Descoberta de trabalho fora do escopo → **novo card** (próximo ID livre, status `Backlog`, linha na seção 10), não aumentar o card atual.
 
 ## Entregar
@@ -36,6 +36,11 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 2. Preencha "Notas de implementação" no card: decisões, links, prints.
 3. Cards de interface: anexe **prints** (desktop e celular quando a tela for responsiva) em `tools/parity/out/prints/` e mostre no relatório.
 4. Mude o status para `Em revisão` (card + seção 10). **Agentes nunca movem para `Concluído`** — isso é feito pelo PO/revisor.
+
+## Fechar a sprint
+1. Rode `bash tools/dev/verify.sh` uma vez na ponta da pilha de branches; corrija o que quebrar (commit `OG-NNN: corrige ...` no card culpado ou `Sprint SNN: corrige ...`).
+2. Prints das telas, relatório curto ao PO.
+3. Na aprovação: `git merge --no-ff` na `v2` ("Sprint SNN: ... aprovados pelo PO"), status `Concluído`, tag `v2.0.0-sNN`, push da `v2` e da tag, apagar as branches dos cards.
 
 ## Bloqueio
 Status `Bloqueado` + uma linha no card: `> Bloqueado por: <card/decisão> — <motivo>`. Se for uma decisão em aberto (D-NN), avise o usuário.

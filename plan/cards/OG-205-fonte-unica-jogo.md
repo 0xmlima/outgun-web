@@ -19,7 +19,7 @@ Como jogador, quero ler HUD, chat e placar com a mesma fonte nítida dos menus.
 - `game/render/draw-list.ts`, `screens/GameScreen.tsx`, `InfoOverlay.tsx`, `ReplayScreen.tsx` usam fontes bitmap do original.
 
 ## Escopo
-- HUD, chat, mensagens, placar (Tab), F1–F5 e replay com a fonte da D-35 (texto do Pixi com a fonte carregada, ou overlay HTML onde fizer mais sentido).
+- HUD, chat, mensagens, placar (Tab), F1–F5 e replay com a Inter (D-35) (texto do Pixi com a fonte carregada, ou overlay HTML onde fizer mais sentido).
 - Nitidez em qualquer escala; sem regressão de desempenho (p95 do quadro igual ou melhor).
 
 ## Critérios de aceite

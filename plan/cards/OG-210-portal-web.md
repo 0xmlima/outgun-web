@@ -4,15 +4,17 @@
 |---|---|
 | Épico | E9 |
 | Tipo | Infra |
-| Prioridade | Must |
+| Prioridade | Won't (v2) |
 | Estimativa | 5 pts |
-| Sprint | S14 |
-| Status | Backlog |
+| Sprint | — |
+| Status | Cancelado |
 | Dependências | [OG-200](OG-200-design-system-v2.md) |
 | Regras de negócio | RN-SOC-01, RN-SOC-05 |
 | Skills | `outgun-card-workflow` |
 
 ## História
+> Cancelado em 2026-10-14 pelo PO (D-36): o jogo ainda é nichado; quando chegar a hora, o site público será feito num repositório dedicado. Perfil social e relatórios ficam no cliente atual, servidos junto do servidor do jogo.
+
 Como jogador, quero abrir perfis, partidas e ranking num site normal, compartilhável por link, sem carregar o cliente do jogo.
 
 ## Contexto

@@ -8,7 +8,7 @@
 | Estimativa | 3 pts |
 | Sprint | S15 |
 | Status | Backlog |
-| Dependências | [OG-210](OG-210-portal-web.md), [OG-211](OG-211-api-social.md) |
+| Dependências | [OG-200](OG-200-design-system-v2.md), [OG-211](OG-211-api-social.md) |
 | Regras de negócio | RN-SOC-04 |
 | Skills | `outgun-card-workflow` |
 
@@ -20,7 +20,7 @@ Como jogador, quero buscar outros jogadores por nome ou clã e ver quem está ma
 
 ## Escopo
 - Página `/jogadores` com busca, mais ativos da semana e clãs.
-- Ranking da temporada no portal (substitui a `LeaderboardScreen` do cliente).
+- Ranking da temporada no novo visual (substitui a `LeaderboardScreen`).
 
 ## Critérios de aceite
 - [ ] Busca indiferente a acentos/maiúsculas; prints.

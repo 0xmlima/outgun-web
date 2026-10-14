@@ -4,15 +4,17 @@
 |---|---|
 | Épico | E9 |
 | Tipo | Feature |
-| Prioridade | Must |
+| Prioridade | Won't (v2) |
 | Estimativa | 2 pts |
-| Sprint | S15 |
-| Status | Backlog |
-| Dependências | [OG-212](OG-212-perfil-social.md), [OG-214](OG-214-relatorio-partida-portal.md) |
+| Sprint | — |
+| Status | Cancelado |
+| Dependências | [OG-212](OG-212-perfil-social.md), [OG-214](OG-214-relatorio-partida.md) |
 | Regras de negócio | RN-SOC-01 |
 | Skills | `outgun-card-workflow` |
 
 ## História
+> Cancelado em 2026-10-14 junto com o OG-210: sem portal, os atalhos foram para o OG-212 e o OG-214.
+
 Como jogador, quero ir do jogo para o meu perfil ou para o relatório da partida com um clique.
 
 ## Contexto

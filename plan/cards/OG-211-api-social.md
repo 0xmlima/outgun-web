@@ -24,6 +24,7 @@ Como jogador, quero descobrir com quem mais jogo, contra quem, e como evoluí, p
 - `GET /players?busca=`: busca por nome/clã (mesma comparação do login), paginada.
 - Índices e limite de custo (consultas agregadas com teto; cache curto).
 - Bots e convidados não aparecem como companheiros/rivais.
+- Privacidade (D-39): perfil público; na conta, opções "esconder companheiros/rivais" e "esconder histórico de partidas" (migration + rota de conta); escondido, a API não devolve esses dados nem lista o jogador como companheiro de outros.
 
 ## Critérios de aceite
 - [ ] Testes com Postgres cobrindo companheiros, rivais, evolução e busca.
@@ -31,7 +32,7 @@ Como jogador, quero descobrir com quem mais jogo, contra quem, e como evoluí, p
 - [ ] Esquema OpenAPI atualizado (`openapi.test.ts`).
 
 ## Notas técnicas
-- Visibilidade do perfil segue a D-39.
+- —
 
 ## Notas de implementação
 (preenchido durante a execução)

@@ -22,7 +22,7 @@ Como jogador, quero ouvir o tema "Outgun Epic" no menu e músicas variadas duran
 - Serviço de música separado dos efeitos (canal e volume próprios), vivo entre as rotas.
 - Menu: "Outgun Epic" em loop.
 - Partida Casual: playlist aleatória com as demais faixas, sem repetir até tocar todas, transição suave (crossfade) entre faixas e ao entrar/sair da partida; continua entre trocas de mapa.
-- Ranked, espectador e replay seguem a D-37.
+- Espectador ao vivo: mesma playlist do Casual. Ranked e replay: sem música (D-37).
 - Respeita a política de autoplay do navegador (começa no primeiro gesto do jogador).
 - Música não abafa os efeitos do jogo (mixagem padrão com a música mais baixa).
 

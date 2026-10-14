@@ -17,11 +17,11 @@ Como jogador, quero uma interface limpa e legível, com uma única fonte bem esc
 
 ## Contexto
 - Hoje os menus imitam o original: fontes bitmap Allegro (`apps/web/src/ui/BitmapText.tsx`, `fonts.tsx`), escala inteira de 640×480 (`app/Shell.tsx`) e a opção "Tema e fonte" (`screens/options.tsx`) que troca entre 25 fontes. Fica datado e difícil de ler.
-- Fonte escolhida pelo PO na D-35.
+- Fonte: **Inter** (D-35), variável, licença OFL.
 
 ## Escopo
-- Fonte web única (D-35), servida pelo próprio site (woff2, subset latino com acentos pt-BR/fi/it, licença OFL registrada em `CREDITS.md` e no check de licenças).
-- Tokens CSS em `:root` (cores, superfícies, texto, destaque, perigo, espaçamentos, raios, sombras, escala tipográfica) num pacote compartilhado com o portal (`packages/ui` ou equivalente; decisão no card).
+- Fonte única **Inter** (D-35), servida pelo próprio site (woff2, subset latino com acentos pt-BR/fi/it, licença OFL registrada em `CREDITS.md` e no check de licenças).
+- Tokens CSS em `:root` (cores, superfícies, texto, destaque, perigo, espaçamentos, raios, sombras, escala tipográfica) em `apps/web/src/ui/`.
 - Componentes base: `Button`, `MenuList` (reaproveita `menu-nav.ts`: setas, Enter, Esc, atalhos numéricos e gamepad), `Field` (texto, senha, escolha, alternador, deslizante), `Panel`, `Tabs`, `Table`, `Toast`, `Badge`.
 - Layout fluido (sem escala inteira de pixels), legível de 360 px de largura até 4K; contraste AA.
 - Remover a escolha de fonte das opções e a pref `menuFont` (migração silenciosa das prefs salvas e do `prefs-sync`).
