@@ -62,6 +62,11 @@ interface SocketData {
   ip: string;
   /** Conexão entregue à sala (para a sala saber se a queda é da conexão atual do jogador). */
   conn: Connection | null;
+  /** Momento do último ping de WebSocket ainda sem pong (0 = nenhum) e quando foi enviado o último. */
+  pingSent: number;
+  lastPing: number;
+  /** Ping suavizado (ms). */
+  rtt: number | undefined;
 }
 
 export interface RunningServer {
@@ -135,7 +140,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         return;
       }
       res.upgrade<SocketData>(
-        { roomId, pid: -1, ip, conn: null },
+        { roomId, pid: -1, ip, conn: null, pingSent: 0, lastPing: 0, rtt: undefined },
         req.getHeader('sec-websocket-key'),
         req.getHeader('sec-websocket-protocol'),
         req.getHeader('sec-websocket-extensions'),
@@ -148,6 +153,13 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     message: (ws, data, isBinary) => {
       telemetry.bytesReceived.inc(data.byteLength);
       const user = ws.getUserData();
+      // ping: frame de controle do WebSocket (o navegador responde sozinho), no máximo um a cada 2 s
+      const now = performance.now();
+      if (user.pid !== -1 && now - user.lastPing >= 2000) {
+        user.lastPing = now;
+        user.pingSent = now;
+        ws.ping();
+      }
       let room = manager.get(user.roomId);
       // antes do hello a sala pode não existir ainda: o ticket pode pedir a abertura
       if (!room && user.pid !== -1) return ws.end(1001, 'sala encerrada');
@@ -182,6 +194,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
           moved: (pid) => {
             user.pid = pid;
           },
+          rtt: () => user.rtt,
         };
         // `resume` junto do hello: volta à vaga guardada depois de uma queda (OG-047). Sem o token (outra aba
         // ou navegador), quem tem conta volta pela conta à vaga dele ou à do bot substituto (OG-261/262)
@@ -198,6 +211,13 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         return;
       }
       room!.handle(user.pid, decoded.messages);
+    },
+    pong: (ws) => {
+      const user = ws.getUserData();
+      if (user.pingSent === 0) return; // pong de um ping automático do uWS
+      const ms = performance.now() - user.pingSent;
+      user.pingSent = 0;
+      user.rtt = user.rtt === undefined ? ms : user.rtt * 0.7 + ms * 0.3;
     },
     close: (ws, code) => {
       const user = ws.getUserData();

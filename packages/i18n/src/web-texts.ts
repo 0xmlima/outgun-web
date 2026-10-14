@@ -641,6 +641,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'in same room': 'na mesma sala',
     'always': 'sempre',
     'FPS limit': 'Limite de FPS',
+    'unlimited': 'sem limite',
     'Theme': 'Tema',
     // palavras curtas que faltavam (OG-068/069/085)
     'guest': 'convidado',

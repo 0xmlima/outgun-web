@@ -18,7 +18,8 @@ import { Tabs } from '../ui/Tabs.js';
 import { ControlsPanel } from './ControlsScreen.js';
 
 /** Limites de FPS oferecidos (o original aceita 1..10000; 60 é o padrão). */
-const FPS_LIMITS = [30, 50, 60, 75, 100, 120, 144, 200, 240, 10000];
+// 0 = sem limite (o navegador ainda segue a taxa de atualização do monitor)
+const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240];
 
 /** Troca de lugar a cor selecionada com a vizinha (`Colorselect::handleKey` com Ctrl). */
 export function moveColor(colors: readonly number[], selected: number, delta: -1 | 1, carry: boolean): { colors: number[]; selected: number } {
@@ -286,8 +287,8 @@ export function OptionsScreen() {
               {toggle('mapInfoMode', 'Map info mode')}
               <ChoiceField
                 label={t('FPS limit')}
-                value={String(FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 60)}
-                options={FPS_LIMITS.map((v) => ({ value: String(v), label: String(v) }))}
+                value={String(FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 0)}
+                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t('unlimited') : String(v) }))}
                 onChange={(v) => setPrefs({ fpsLimit: Number(v) })}
               />
             </FieldGroup>
