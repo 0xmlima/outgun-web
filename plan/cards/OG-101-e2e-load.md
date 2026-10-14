@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S11 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-064](OG-064-prediction-interpolation.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
