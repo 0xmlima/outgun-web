@@ -3,12 +3,18 @@
 // pedido por cada tela (`useMusicMode`).
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { loadManifest } from '../../assets.js';
+import { usePrefs } from '../prefs.js';
 import { MusicPlayer, type MusicMode } from './player.js';
 
 const MusicContext = createContext<MusicPlayer | null>(null);
 
 export function MusicProvider({ children }: { readonly children: ReactNode }) {
   const [player] = useState(() => new MusicPlayer());
+  const { prefs } = usePrefs();
+  // OG-222: efeito imediato; desligada, nenhuma faixa é baixada
+  useEffect(() => {
+    player.configure(prefs.musicEnabled, prefs.musicVolume / 100);
+  }, [player, prefs.musicEnabled, prefs.musicVolume]);
   useEffect(() => {
     let alive = true;
     void loadManifest().then((m) => alive && player.setTracks(m?.music ?? []));

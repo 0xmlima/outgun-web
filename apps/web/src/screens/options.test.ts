@@ -48,4 +48,20 @@ describe('opções do jogador (OG-068)', () => {
     expect(optionsTab('language')).toBe('language');
     expect(optionsTab('xyz')).toBe('game');
   });
+
+  it('trilha sonora (OG-222): ligada a 50% por padrão; prefs antigas sem os campos ganham o padrão', () => {
+    const d = defaultPrefs([]);
+    expect(d).toMatchObject({ musicEnabled: true, musicVolume: 50 });
+    expect(parsePrefs({ soundVolume: 90 }, d)).toMatchObject({ musicEnabled: true, musicVolume: 50, soundVolume: 90 });
+  });
+
+  it('trilha sonora: valores da conta (sincronização) valem; inválidos voltam ao padrão', () => {
+    const d = defaultPrefs([]);
+    // o PrefsSync aplica as opções da conta com parsePrefs, como as demais
+    expect(parsePrefs({ musicEnabled: false, musicVolume: 20 }, d)).toMatchObject({ musicEnabled: false, musicVolume: 20 });
+    expect(parsePrefs({ musicEnabled: 'não', musicVolume: 150 }, d)).toMatchObject({ musicEnabled: true, musicVolume: 50 });
+    // ida e volta pelo JSON salvo no navegador e na conta
+    const saved = JSON.parse(JSON.stringify({ ...d, musicEnabled: false, musicVolume: 35 })) as Record<string, unknown>;
+    expect(parsePrefs(saved, d)).toEqual({ ...d, musicEnabled: false, musicVolume: 35 });
+  });
 });

@@ -83,6 +83,9 @@ export interface Prefs {
   /** `Volume` 0..255 (padrão 128, passo 15 no menu do original). */
   readonly soundVolume: number;
   readonly soundTheme: string;
+  /** Trilha sonora (OG-222, RN-MUS-04): ligada e volume 0..100, separados dos efeitos. */
+  readonly musicEnabled: boolean;
+  readonly musicVolume: number;
 }
 
 const STORAGE_KEY = 'outgun.prefs';
@@ -144,6 +147,8 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     soundEnabled: true,
     soundVolume: 128,
     soundTheme: 'Visa',
+    musicEnabled: true,
+    musicVolume: 50,
   };
 }
 
@@ -204,6 +209,8 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     soundEnabled: bool(saved.soundEnabled, fallback.soundEnabled),
     soundVolume: int(saved.soundVolume, 0, 255, fallback.soundVolume),
     soundTheme: str(saved.soundTheme, fallback.soundTheme),
+    musicEnabled: bool(saved.musicEnabled, fallback.musicEnabled),
+    musicVolume: int(saved.musicVolume, 0, 100, fallback.musicVolume),
   };
 }
 

@@ -297,6 +297,13 @@ export function OptionsScreen() {
       break;
     case 'sounds':
       content = (
+        <>
+        <Panel title={t('Soundtrack')}>
+          <FieldGroup>
+            <ToggleField label={t('Play the soundtrack')} checked={prefs.musicEnabled} onChange={(musicEnabled) => setPrefs({ musicEnabled })} hint={t('"Outgun Epic" in the menus; the other tracks shuffled in Casual matches.')} />
+            <SliderField label={t('Music volume')} value={prefs.musicVolume} min={0} max={100} step={5} format={(v) => `${v}%`} disabled={!prefs.musicEnabled} onChange={(musicVolume) => setPrefs({ musicVolume })} />
+          </FieldGroup>
+        </Panel>
         <Panel title={t('Sound effects')}>
           <FieldGroup>
             {toggle('soundEnabled', 'Sounds enabled')}
@@ -304,6 +311,7 @@ export function OptionsScreen() {
             {named('Theme', prefs.soundTheme, lists.soundThemes, null, (soundTheme) => setPrefs({ soundTheme }))}
           </FieldGroup>
         </Panel>
+        </>
       );
       break;
     case 'controls':

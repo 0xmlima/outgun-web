@@ -671,7 +671,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-216](cards/OG-216-cliente-portal-links.md) | Ligações entre o cliente e o portal | E9 | 2 | Won't (v2) | — | OG-212, OG-214 | Cancelado |
 | [OG-220](cards/OG-220-pipeline-trilha.md) | Pipeline da trilha sonora | E10 | 2 | Must | S13 | — | Em revisão |
 | [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Em revisão |
-| [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Em andamento |
+| [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Em revisão |
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
 
 **Total:** 86 cards, 353 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 17 cards, 58 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).

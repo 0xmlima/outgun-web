@@ -491,6 +491,11 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Press a key...': 'Pressione uma tecla...',
     Default: 'Padrão',
     permanent: 'definitivo',
+    // trilha sonora (OG-222)
+    Soundtrack: 'Trilha sonora',
+    'Play the soundtrack': 'Tocar a trilha sonora',
+    'Music volume': 'Volume da música',
+    '"Outgun Epic" in the menus; the other tracks shuffled in Casual matches.': '"Outgun Epic" nos menus; as outras faixas em ordem aleatória nas partidas casuais.',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
   },
 };
