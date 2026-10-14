@@ -364,6 +364,30 @@ body {
   padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
   color: var(--menu-disabled);
 }
+.replay-bar {
+  position: absolute;
+  left: calc(var(--px) * 8px);
+  right: calc(var(--px) * 8px);
+  bottom: calc(var(--px) * 6px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--px) * 4px) calc(var(--px) * 10px);
+  padding: calc(var(--px) * 4px) calc(var(--px) * 8px);
+  background: rgb(0 0 0 / 70%);
+  color: var(--menu-value);
+}
+.replay-bar input[type='range'] {
+  flex: 1 1 calc(var(--px) * 200px);
+}
+.replay-bar small {
+  flex-basis: 100%;
+  color: var(--menu-disabled);
+}
+.replay-buttons {
+  display: flex;
+  gap: calc(var(--px) * 6px);
+}
 .game-toast {
   position: absolute;
   top: calc(var(--px) * 8px);

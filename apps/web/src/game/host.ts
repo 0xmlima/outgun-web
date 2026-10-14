@@ -130,7 +130,7 @@ export type GameStatus =
 /** Primeiro mapa da rotação padrão (`maps/`) quando nenhum é pedido. */
 export const DEFAULT_MAP = 'coliseu';
 
-async function loadMap(name: string): Promise<{ map: GameMap; bytes: Uint8Array }> {
+export async function loadMap(name: string): Promise<{ map: GameMap; bytes: Uint8Array }> {
   const manifest = await loadManifest();
   const entry = manifest?.maps[name];
   if (!entry) throw new Error(`mapa não encontrado: ${name}`);
@@ -144,7 +144,7 @@ async function loadMap(name: string): Promise<{ map: GameMap; bytes: Uint8Array 
 const VIEW = { scroll: false, view: 'mapWraps', repeatX: false, repeatY: false, wrapsX: false, wrapsY: false } as const;
 
 /** Instala a fonte bitmap e a de contorno no PixiJS (o arquivo .fnt traz o nome da família). */
-async function loadFont(name: string | undefined): Promise<GameFont | null> {
+export async function loadFont(name: string | undefined): Promise<GameFont | null> {
   const entry = name ? (await loadManifest())?.fonts[name] : undefined;
   if (!entry) return null;
   try {

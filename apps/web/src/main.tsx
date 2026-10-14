@@ -21,12 +21,13 @@ import {
 import { ControlsScreen } from './screens/ControlsScreen.js';
 import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.js';
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
-import { CreditsScreen, HelpScreen, HomeScreen, SourceScreen } from './screens/menus.js';
+import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
 import './styles.css';
 
 // O jogo (e, a partir do OG-061, o PixiJS) só é baixado ao entrar na partida.
 const GameScreen = lazy(() => import('./screens/GameScreen.js'));
+const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
 
 const router = createBrowserRouter([
   {
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
           { path: 'options/controls', element: <ControlsScreen /> },
           { path: 'options/:section', element: <OptionsSectionScreen /> },
           { path: 'help', element: <HelpScreen /> },
+          { path: 'replays', element: <ReplaysScreen /> },
           { path: 'credits', element: <CreditsScreen /> },
           { path: 'source', element: <SourceScreen /> },
           { path: 'login', element: <LoginScreen /> },
@@ -64,6 +66,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={null}>
             <GameScreen />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'replay',
+        element: (
+          <Suspense fallback={null}>
+            <ReplayScreen />
           </Suspense>
         ),
       },

@@ -412,6 +412,9 @@ export class ClientSession {
       case 'frame':
         this.onFrame(m, now);
         break;
+      case 'replayFrame':
+        this.onReplayFrame(m);
+        break;
       case 'flagUpdate':
         if (world) this.onFlagUpdate(world, m);
         else this.flagsBeforeMap.set(m.team, m);
@@ -558,13 +561,7 @@ export class ClientSession {
     else this.clockOffset -= 0.002; // cede 0,2 ms por frame: acompanha um aumento de latência
     this.hasFrame = true;
 
-    if (advanced > 0) rocketFrameAdvance(this.physicsContext(world), advanced, this.callbacks(world, true));
-    world.frame = m.frame;
-    world.time = m.frame / 10;
-    world.explosions = world.explosions.filter((db) => !db.expired(world.frame));
-    const ready = this.pendingRockets.filter((r) => r.frame <= world.frame);
-    this.pendingRockets = this.pendingRockets.filter((r) => r.frame > world.frame);
-    for (const r of ready) r.create();
+    this.advanceWorld(world, m.frame);
 
     // atraso: do envio dos controles até o frame que os aplicou
     this.clFrameWorld = m.lastClientFrame;
@@ -582,12 +579,7 @@ export class ClientSession {
       this.offsetCount = 0;
     }
 
-    if (this.pendingMapTime) {
-      const t = Math.trunc(m.frame / 10);
-      this.mapStart = t - this.pendingMapTime.elapsed;
-      this.mapEnd = this.pendingMapTime.left > 0 ? t + this.pendingMapTime.left : null;
-      this.pendingMapTime = null;
-    }
+    this.applyMapTime(m.frame);
 
     this.skipped = m.skipped;
     if (m.skipped) return;
@@ -644,6 +636,61 @@ export class ClientSession {
       const off = this.smoothing.get(p.pid) ?? { x: 0, y: 0 };
       this.smoothing.set(p.pid, { x: off.x + d.x, y: off.y + d.y });
     }
+  }
+
+  /** Foguetes andam até o frame novo; explosões velhas saem; tiros anunciados para ele nascem. */
+  private advanceWorld(world: WorldState, frame: number): void {
+    const advanced = frame - world.frame;
+    if (advanced > 0) rocketFrameAdvance(this.physicsContext(world), advanced, this.callbacks(world, true));
+    world.frame = frame;
+    world.time = frame / 10;
+    world.explosions = world.explosions.filter((db) => !db.expired(world.frame));
+    const ready = this.pendingRockets.filter((r) => r.frame <= world.frame);
+    this.pendingRockets = this.pendingRockets.filter((r) => r.frame > world.frame);
+    for (const r of ready) r.create();
+  }
+
+  private applyMapTime(frame: number): void {
+    if (!this.pendingMapTime) return;
+    const t = Math.trunc(frame / 10);
+    this.mapStart = t - this.pendingMapTime.elapsed;
+    this.mapEnd = this.pendingMapTime.left > 0 ? t + this.pendingMapTime.left : null;
+    this.pendingMapTime = null;
+  }
+
+  /** Frame de replay (OG-091): espectador que vê todos os jogadores, cada um na sua sala. */
+  private onReplayFrame(m: MessageOf<'replayFrame'>): void {
+    this.lastServerFrame = Math.max(this.lastServerFrame, m.frame);
+    const world = this.world;
+    if (!world || m.frame < world.frame) return;
+    this.stats.framesReceived++;
+    this.advanceWorld(world, m.frame);
+    this.applyMapTime(m.frame);
+    this.hasFrame = true;
+    this.skipped = false;
+    this.onscreen.clear();
+    for (const rp of m.players) {
+      const p = this.ensurePlayer(rp.pid);
+      if (!p) continue;
+      this.onscreen.add(rp.pid);
+      p.pos = new Position(rp.roomX, rp.roomY, rp.x, rp.y);
+      p.vel = new Vec(rp.vx, rp.vy);
+      p.dead = rp.dead;
+      p.deathbringer = rp.deathbringer;
+      p.deathbringerEnd = rp.deathbringerAffected ? Infinity : -Infinity;
+      p.shield = rp.shield ? 1 : 0;
+      p.turbo = rp.turbo;
+      p.power = rp.power;
+      p.controls = rp.controls;
+      p.gundir = dirFromNet(rp.gundir);
+      p.visibility = rp.visibility;
+      this.posUpdated.set(rp.pid, m.frame);
+    }
+  }
+
+  /** O último frame recebido andado `frames` à frente (replay: movimento suave entre os frames). */
+  extrapolateBy(frames: number): WorldState | null {
+    return this.extrapolateWith(frames);
   }
 
   /** `readMinimapPlayerPosition`: centro da célula do minimapa (`⌊255/w⌋` células por sala). */

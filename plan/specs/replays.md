@@ -20,3 +20,9 @@ Fontes: `src/server.cpp:675-760` (`recording_active`, `start_recording`, `stop_r
 - Grava sempre que o game server tem destino de replays (`REPLAYS=0` desliga), não só com `recording` > 0; `recording` continua sendo o mínimo de humanos no fim (mínimo 1).
 - Sem o ping em rodízio e sem sons no replay v1 (a mensagem `sound` não tem posição); o player pode derivar sons dos eventos.
 - Replay apagado pela retenção deixa a URL na API apontando para 404.
+
+## Player (OG-091)
+- `packages/netcode/src/replay.ts` (`ReplayPlayer`): passa o bloco inicial e os blocos de frame por um `ClientSession` de espectador (`me` = −1; `maxPlayers` do cabeçalho). O `ClientSession` ganhou `replayFrame` (todos os jogadores, cada um na sua sala; foguetes e explosões andam como num frame normal) e `extrapolateBy` (movimento suave entre os frames). Seek para trás refaz do começo; para a frente aplica os blocos sem efeitos. 10 min de partida: < 2 s (teste), ~0,3 s no navegador para 2 min.
+- Web: `/replays` (menu) abre um `.ogr` do computador — como a lista de arquivos do menu de replays do original — ou leva às partidas do perfil; a página da partida (`/matches/:id`) leva a `/replay?src=URL&t=SEGUNDOS`. O arquivo é lido com `DecompressionStream('gzip')`.
+- Teclas do original (`GuiClient`, src/guiclient.cpp:2580-2660): PageUp/PageDown dobram/dividem a velocidade (1/32× a 128×), Home volta a 1×, P pausa, setas trocam a sala do canto, + e − do teclado numérico mudam o zoom (passos de 1/4 até 3 salas, 1/2 até 5). A mais: F segue um jogador (Esc solta), barra de posição e "Copiar link" com o tempo atual.
+- Sem sons no player v1 (o original toca com a frequência proporcional à velocidade e cala acima de 10×) e sem minimapa/placar; nomes sempre visíveis.
