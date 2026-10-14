@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "dev:all": "node tools/dev/dev-all.mjs",
     "test": "turbo run test",
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",

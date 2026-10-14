@@ -54,6 +54,10 @@ Fluxo de cards, branches e commits: `plan/PLAN.md` seção 8 e a skill `.claude/
 
 GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:licenses` exige o cabeçalho SPDX em todo código novo de `apps/`, `packages/` e `tools/` e só aceita dependências de produção com licença compatível (lista em `tools/license-check/check.mjs`). Ao adicionar uma dependência com licença fora da lista, discuta antes com o PO.
 
+## Tudo de uma vez
+
+`pnpm dev:all` (`tools/dev/dev-all.mjs`): sobe PostgreSQL, Redis e Mailpit no Docker (recria o container se a porta não foi publicada), compila os pacotes, gera os assets na primeira vez, aplica migrations e o seed, e roda API (7800), game server (7700, `CASUAL_BOTS_FILL=8`) e cliente (http://localhost:5173) num terminal só. Ctrl+C encerra os três; os containers seguem (`docker compose -f apps/api/compose.yaml down`). `SKIP_BUILD=1` pula o build; `ROTATION` e `CASUAL_BOTS_FILL` passam para o game server.
+
 ## Cliente web (`apps/web`)
 
 - `pnpm assets` uma vez (gera `apps/web/public/assets/`, ignorado pelo git: fontes, gráficos e sons convertidos). Sem ele o cliente funciona, mas os textos usam uma fonte CSS no lugar das fontes bitmap do original.
