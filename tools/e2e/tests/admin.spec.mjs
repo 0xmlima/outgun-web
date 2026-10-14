@@ -25,7 +25,7 @@ test('moderação pelo painel: mute e kick numa sala ao vivo, com auditoria', as
   await registerWithInvite(player, baseURL, victim, 'senha-e2e-123');
   await expect(player.locator('.app-account')).toContainText(victim);
   await player.goto('/rooms');
-  await player.locator('button.menu-item', { hasText: 'Jogar agora' }).click();
+  await player.locator('.lobby').getByRole('button', { name: 'Jogar agora' }).click();
   await expect(player.locator('.game')).toHaveAttribute('data-status', 'ready', {
     timeout: 30_000,
   });

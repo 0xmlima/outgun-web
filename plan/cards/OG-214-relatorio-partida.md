@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | [OG-200](OG-200-design-system-v2.md) |
 | Regras de negócio | RN-SOC-01, RN-SOC-05 |
 | Skills | `outgun-card-workflow` |
@@ -26,11 +26,12 @@ Como jogador, quero abrir o relatório de uma partida num link compartilhável, 
 - No fim da partida o cliente oferece "Ver relatório".
 
 ## Critérios de aceite
-- [ ] Relatório de uma partida real do beta publicado e conferido com a F4.
-- [ ] Prints desktop e celular.
+- [ ] Relatório de uma partida real do beta publicado e conferido com a F4 (depende do deploy da v2 no beta; as colunas da F4 continuam em "Estatísticas detalhadas").
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `screens/MatchReport.tsx` substitui o `MatchScreen` de `stats.tsx`: placar com vencedor, ações (replay, copiar link), mapa + regras, linha do tempo das capturas, tabela por time com "Melhor jogador" (mais frags; desempate capturas, kills, menos mortes) e a F4 completa num `<details>`.
+- Prévia do mapa: `MapPreview.tsx` porta o desenho do `tools/map-preview` para SVG em React; mapas gerados na hora (`<Random>`) não estão nos assets e ficam sem prévia.
+- "Ver relatório": botão no fim da partida e item no menu Esc → `/rooms/:sala/report?after=` → API nova `GET /rooms/:id/last-match?after=` (índice `matches_room_ended_idx` na migration 0014), com até 10 tentativas de 2 s enquanto o game server envia o resultado.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
-import { REFRESH_MS, sortRooms, type RoomSummary } from './lobby.js';
+import { filterRooms, REFRESH_MS, sortRooms, type RoomSummary } from './lobby.js';
 
 const room = (id: string, players: number, maxPlayers = 16, online = true): RoomSummary => ({
   id, name: id, mode: 'casual', preset: 'classic', hasPassword: false, maxPlayers, players, map: null, online, persistent: false, region: null,
@@ -12,5 +12,12 @@ describe('lobby (OG-069)', () => {
   });
   it('atualiza em até 5 s', () => {
     expect(REFRESH_MS).toBeLessThanOrEqual(5000);
+  });
+
+  it('filtros (OG-203): busca por nome ou mapa, sem diferenciar maiúsculas, e esconder lotadas', () => {
+    const rooms = [{ ...room('Principal', 3), map: 'Coliseu' }, room('Treino', 2, 2), room('Amigos', 0)];
+    expect(filterRooms(rooms, 'coli', false).map((r) => r.id)).toEqual(['Principal']);
+    expect(filterRooms(rooms, 'TREI', false).map((r) => r.id)).toEqual(['Treino']);
+    expect(filterRooms(rooms, '', true).map((r) => r.id)).toEqual(['Principal', 'Amigos']);
   });
 });

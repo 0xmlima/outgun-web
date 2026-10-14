@@ -7,6 +7,7 @@ import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, seasons, users } from '../db/schema.js';
 import { activeSeason, applyDeltas } from '../ranking.js';
+import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
@@ -362,6 +363,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               })),
             );
           }
+          await recordMatchSocial(tx, match!.id);
           // Ranking (OG-084): só partida ranqueada e com temporada ativa; o servidor já calculou os deltas.
           if (body.ranked && season) {
             await applyDeltas(
@@ -400,7 +402,10 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             .onConflictDoNothing()
             .returning({ id: ratingDeltas.deltaId });
           if (!row) return false; // reenvio
-          if (user && season) await applyDeltas(tx, season.id, [{ userId: user.id, score: d.scoreDelta, neg: d.negDelta, match: false }]);
+          if (user && season) {
+            await applyDeltas(tx, season.id, [{ userId: user.id, score: d.scoreDelta, neg: d.negDelta, match: false }]);
+            await recordRatingPoint(tx, user.id, season.id, d.scoreDelta, d.negDelta);
+          }
           return true;
         });
         return { applied };

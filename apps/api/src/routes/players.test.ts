@@ -86,4 +86,12 @@ describe.skipIf(!pgAdminUrl)('perfil e histórico (OG-085)', () => {
     expect((await app.inject(`/matches/${ranked}`)).json().replayUrl).toBeNull();
     expect((await app.inject('/matches/00000000-0000-4000-8000-000000000000')).statusCode).toBe(404);
   });
+
+  it('última partida da sala (OG-214), opcionalmente só depois de um instante', async () => {
+    const casual = (await app.inject('/players/Jogador1/matches?mode=casual')).json().matches[0].id;
+    expect((await app.inject('/rooms/main/last-match')).json()).toEqual({ id: casual });
+    expect((await app.inject('/rooms/main/last-match?after=2026-10-13T12:04:00.000Z')).json()).toEqual({ id: casual });
+    expect((await app.inject('/rooms/main/last-match?after=2026-10-13T12:06:00.000Z')).statusCode).toBe(404);
+    expect((await app.inject('/rooms/nenhuma/last-match')).statusCode).toBe(404);
+  });
 });

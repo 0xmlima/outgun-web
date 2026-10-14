@@ -497,5 +497,28 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Music volume': 'Volume da música',
     '"Outgun Epic" in the menus; the other tracks shuffled in Casual matches.': '"Outgun Epic" nos menus; as outras faixas em ordem aleatória nas partidas casuais.',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
+    // telas restantes no visual v2 (OG-203)
+    'A .ogr file saved on this computer': 'Um arquivo .ogr salvo neste computador',
+    'Every match has a "Watch" link': 'Cada partida tem o link "Assistir"',
+    'Search rooms': 'Buscar salas',
+    'Room or map': 'Sala ou mapa',
+    'Hide full rooms': 'Esconder salas lotadas',
+    Full: 'Lotada',
+    // privacidade do perfil social (OG-211)
+    'Profile privacy': 'Privacidade do perfil',
+    'Hide my teammates and rivals': 'Esconder meus companheiros e rivais',
+    'You also stop appearing in the lists of other players.': 'Você também deixa de aparecer nas listas dos outros jogadores.',
+    'Hide my match history': 'Esconder meu histórico de partidas',
+    // relatório de partida (OG-214)
+    'Match report': 'Relatório da partida',
+    'View match report': 'Ver relatório',
+    'Red team wins': 'Vitória do time vermelho',
+    'Blue team wins': 'Vitória do time azul',
+    'Best player': 'Melhor jogador',
+    'Watch replay': 'Assistir ao replay',
+    'Detailed statistics': 'Estatísticas detalhadas',
+    'No captures.': 'Nenhuma captura.',
+    'Waiting for the match report...': 'Aguardando o relatório da partida...',
+    'The report is not ready yet.': 'O relatório ainda não está pronto.',
   },
 };

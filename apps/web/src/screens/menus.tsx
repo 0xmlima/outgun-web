@@ -8,10 +8,10 @@ import { Link, useNavigate } from 'react-router';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
 import { usePrefs } from '../app/prefs.js';
-import { Menu, type MenuItem } from '../ui/Menu.js';
 import { usePlayNow } from '../app/play-now.js';
 import { Badge } from '../ui/Button.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
+import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { type HistoryEntry, useApi } from './stats.js';
@@ -160,14 +160,14 @@ export function ReplaysScreen() {
   const { user } = useAccount();
   const navigate = useNavigate();
   const file = useRef<HTMLInputElement>(null);
-  const items: MenuItem[] = [
-    { kind: 'action', label: t('Open replay file'), onActivate: () => file.current?.click() },
-    ...(user ? [{ kind: 'action' as const, label: t('My matches'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) }] : []),
-    { kind: 'action', label: t('Ranking'), onActivate: () => void navigate('/ranking') },
+  const items: MenuListItem[] = [
+    { label: t('Open replay file'), description: t('A .ogr file saved on this computer'), onActivate: () => file.current?.click() },
+    ...(user ? [{ label: t('My matches'), description: t('Every match has a "Watch" link'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) }] : []),
+    { label: t('Ranking'), onActivate: () => void navigate('/ranking') },
   ];
   return (
-    <>
-      <Menu caption={t('Replays')} items={items} />
+    <Page title={t('Replays')} onBack={() => void navigate('/')} width="narrow">
+      <MenuList label={t('Replays')} items={items} autoFocus />
       <input
         ref={file}
         type="file"
@@ -178,7 +178,7 @@ export function ReplaysScreen() {
           if (f) void navigate('/replay', { state: { file: f } });
         }}
       />
-    </>
+    </Page>
   );
 }
 

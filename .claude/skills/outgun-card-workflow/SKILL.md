@@ -17,9 +17,9 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 3. Respeite WIP: no máximo 2 cards `Em andamento` por agente.
 
 ## Iniciar
-1. Mude o status para `Em andamento` **no cabeçalho do card e na tabela da seção 10** (mesmo commit): `python3 tools/dev/set-status.py NNN "Em andamento"`.
-2. Crie a branch `og-NNN-<slug>` **a partir da `v2`** (ou da branch do card anterior, se depender dele). A `main` é a v1 (tag `v1.0.0`, beta): só correções do beta vão nela.
-3. Leia as RNs listadas no card (PLAN seção 6 e 15).
+1. Mude o status para `Em andamento` **no cabeçalho do card e na tabela da seção 10**: `python3 tools/dev/set-status.py NNN "Em andamento"` (aceita vários IDs: `203,205`). Vai no primeiro commit do card, não num commit próprio.
+2. **Uma branch por sprint** (`sNN`, saindo da `v2`); cada card é uma sequência de commits `OG-NNN: ...` nela (sem branch por card nem pilha). A `main` é a v1 (tag `v1.0.0`, beta): só correções do beta vão nela.
+3. Leia só as RNs listadas no card (`grep -n "RN-XXX-NN" plan/PLAN.md`), nunca o PLAN inteiro.
 4. Cards de **interface** (épico E8 em diante): siga o design system v2 (`apps/web/src/ui/`, tokens e fonte única do OG-200). Nada de fontes bitmap nem de estilo novo fora dos tokens.
 5. Cards de **conteúdo/assets** (temas, mapas, música): siga a skill `outgun-asset-pipeline`.
 6. Card que **muda a simulação** (`packages/sim`): registre a mudança como decisão D-NN (PLAN seção 12) com o porquê (ex.: achado do beta) e atualize/regrave os testes que dependiam do comportamento antigo. Comparar com o original é opcional.
@@ -29,18 +29,22 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 - Mantenha `packages/sim` puro (sem Node/DOM, sem `Math.random` — use o `Rng` injetado).
 - Não modifique os arquivos do jogo original (`_legacy/`).
 - **Economia de tokens:** não rode testes, lint nem a suíte durante os cards. Só `pnpm typecheck` do pacote tocado se precisar confirmar uma dúvida. A verificação completa é feita no fechamento da sprint.
+- Leia arquivos por trecho (`grep -n` + `sed -n`), não inteiros; não use subagentes nem `/code-review` por card.
+- Medições pedidas em critérios (FPS, p95) são feitas uma vez, no fechamento, com script reaproveitável — não a cada iteração.
 - Descoberta de trabalho fora do escopo → **novo card** (próximo ID livre, status `Backlog`, linha na seção 10), não aumentar o card atual.
 
 ## Entregar
 1. Verifique a **Definition of Done** (PLAN 8.4) item a item; marque os critérios de aceite do card (`- [x]`).
-2. Preencha "Notas de implementação" no card: decisões, links, prints.
-3. Cards de interface: anexe **prints** (desktop e celular quando a tela for responsiva) em `tools/parity/out/prints/` e mostre no relatório.
-4. Mude o status para `Em revisão` (card + seção 10). **Agentes nunca movem para `Concluído`** — isso é feito pelo PO/revisor.
+2. Preencha "Notas de implementação" no card em **até ~5 linhas**: decisões e pendências (nada de repetir o diff).
+3. **Sem prints** (desde a S14): só se o PO pedir uma tela específica. Critérios de aceite que pedem prints não se aplicam.
+4. Mude o status para `Em revisão` (card + seção 10) no último commit do card. **Agentes nunca movem para `Concluído`** — isso é feito pelo PO/revisor.
+5. Sem relatório por card: uma linha ("OG-NNN em revisão") e segue para o próximo. O relatório é só no fechamento da sprint.
 
 ## Fechar a sprint
 1. Rode `bash tools/dev/verify.sh` uma vez na ponta da pilha de branches; corrija o que quebrar (commit `OG-NNN: corrige ...` no card culpado ou `Sprint SNN: corrige ...`).
-2. Prints das telas, relatório curto ao PO.
-3. Na aprovação: `git merge --no-ff` na `v2` ("Sprint SNN: ... aprovados pelo PO"), status `Concluído`, tag `v2.0.0-sNN`, push da `v2` e da tag, apagar as branches dos cards.
+2. Relatório curto ao PO (por card: 1–2 linhas; achados; provisórios; perguntas só de produto).
+3. Na aprovação: `git merge --no-ff sNN` na `v2` ("Sprint SNN: ... aprovados pelo PO"), status `Concluído` (um commit, todos os IDs), tag `v2.0.0-sNN`, push da `v2` e da tag, apagar a branch `sNN`.
+4. Atualize a memória com **um** handoff curto da sprint (substitui o da sprint anterior, não acumula).
 
 ## Bloqueio
 Status `Bloqueado` + uma linha no card: `> Bloqueado por: <card/decisão> — <motivo>`. Se for uma decisão em aberto (D-NN), avise o usuário.

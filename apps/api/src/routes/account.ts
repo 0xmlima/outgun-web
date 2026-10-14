@@ -220,6 +220,47 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
       },
     );
 
+    const Privacy = Type.Object({ hideCompanions: Type.Boolean(), hideHistory: Type.Boolean() });
+
+    app.get(
+      '/privacy',
+      {
+        schema: {
+          tags: ['contas'],
+          summary: 'Privacidade do perfil social: esconder companheiros/rivais e o histórico de partidas',
+          response: { 200: Privacy, 401: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const [row] = await db.select({ hideCompanions: playerProfiles.hideCompanions, hideHistory: playerProfiles.hideHistory }).from(playerProfiles).where(eq(playerProfiles.userId, user.id));
+        return row ?? { hideCompanions: false, hideHistory: false };
+      },
+    );
+
+    app.put(
+      '/privacy',
+      {
+        schema: {
+          tags: ['contas'],
+          summary: 'Muda a privacidade do perfil social (vale na hora; o cache público expira em 30 s)',
+          body: Privacy,
+          response: { 200: Privacy, 401: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const set = { hideCompanions: request.body.hideCompanions, hideHistory: request.body.hideHistory };
+        await db
+          .insert(playerProfiles)
+          .values({ userId: user.id, ...set })
+          .onConflictDoUpdate({ target: playerProfiles.userId, set: { ...set, updatedAt: new Date() } });
+        return set;
+      },
+    );
+
     app.get(
       '/export',
       {

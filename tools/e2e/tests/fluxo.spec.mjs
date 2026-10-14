@@ -38,7 +38,10 @@ test('o cliente é servido com CSP e cabeçalhos de segurança', async ({ reques
   expect(res.headers()['x-frame-options']).toBe('DENY');
 });
 
+// menu do jogo (ainda no visual antigo até o OG-205)
 const menuItem = (page, label) => page.locator('button.menu-item', { hasText: label });
+// lobby no design system v2 (OG-203)
+const lobbyPlay = (page) => page.locator('.lobby').getByRole('button', { name: 'Jogar agora' });
 // tela inicial no design system v2 (OG-201)
 const homeItem = (page, label) =>
   page.locator('button.ui-menu-item').filter({
@@ -56,9 +59,9 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
 
   // 2. Lobby: a sala do game server aparece pelo heartbeat; "Jogar agora" no Casual
   await page.goto('/rooms');
-  await expect(page.locator('.menu')).toContainText('Principal', { timeout: 20_000 });
+  await expect(page.getByRole('table')).toContainText('Principal', { timeout: 20_000 });
   await page.screenshot({ path: prints('1-lobby.png') });
-  await menuItem(page, 'Jogar agora').click();
+  await lobbyPlay(page).click();
   await expect(page).toHaveURL(/\/play\?sala=main/);
 
   // 3. Partida: entra com o ticket da API e joga com os bots
@@ -85,8 +88,9 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
   await page.keyboard.press('Escape');
   await menuItem(page, 'Enviar feedback').click();
   await expect(page).toHaveURL(/\/feedback\?sala=main&mapa=/);
-  await page.locator('fieldset').first().getByLabel('5').check();
-  await page.getByLabel('Joguei o Outgun original').check();
+  // nota de fidelidade: a escolha começa em "—"; ← volta para 5
+  await page.getByLabel('A sensação de jogo').press('ArrowLeft');
+  await page.getByRole('switch', { name: 'Joguei o Outgun original' }).click();
   await page.getByLabel('Conte mais').fill('A física dos foguetes está igual ao original.');
   await page.getByRole('button', { name: 'Enviar' }).click();
   await expect(page.getByRole('status')).toHaveText('Obrigado! Seu feedback foi enviado.');
@@ -114,6 +118,12 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
       return r.regions.reduce((n, x) => n + x.reports, 0);
     })
     .toBeGreaterThan(0);
+
+  // 8. Sala privada (OG-203): formulário do design system, entra na sala criada
+  await page.goto('/rooms/new');
+  await page.getByLabel('Nome da sala').fill(`e2e ${name}`);
+  await page.getByRole('button', { name: 'Criar e jogar' }).click();
+  await expect(page).toHaveURL(/\/play\?sala=/);
 });
 
 test('beta fechado: cadastro sem convite recusado; "Jogar agora" sem conta vai para o login', async ({
@@ -145,15 +155,15 @@ test('termos, privacidade e sobre no rodapé (OG-107)', async ({ page }) => {
   await page.goto('/');
   await page.locator('.app-footer a', { hasText: 'Privacidade' }).click();
   await expect(page).toHaveURL(/\/privacy$/);
-  await expect(page.locator('.text-page')).toContainText(
+  await expect(page.locator('.ui-prose')).toContainText(
     'O que guardamos, por quê e por quanto tempo',
   );
-  await expect(page.locator('.text-page')).toContainText('Identificador aleatório do navegador');
+  await expect(page.locator('.ui-prose')).toContainText('Identificador aleatório do navegador');
   await page.screenshot({ path: prints('8-privacidade.png'), fullPage: true });
   await page.goto('/terms');
-  await expect(page.locator('.text-page')).toContainText('Conduta');
+  await expect(page.locator('.ui-prose')).toContainText('Conduta');
   await page.goto('/about');
-  await expect(page.locator('.text-page')).toContainText('Fabiana Cecin');
+  await expect(page.locator('.ui-prose')).toContainText('Fabiana Cecin');
   await page.screenshot({ path: prints('9-sobre.png'), fullPage: true });
 });
 
@@ -215,10 +225,8 @@ test('tela inicial: cada ação do menu, da barra e do rodapé leva à sua tela 
 
 test('convidado não entra no Ranked: vai para o login', async ({ page }) => {
   await page.goto('/rooms');
-  await expect(page.locator('.menu')).toContainText('Jogar agora');
-  await page.locator('button.menu-item', { hasText: 'Modo' }).focus();
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('.menu')).toContainText('Ranqueado');
-  await menuItem(page, 'Jogar agora').click();
+  await page.getByRole('tab', { name: 'Ranqueado' }).click();
+  await expect(page.locator('.lobby')).toContainText('Ranqueado: sem power-ups');
+  await lobbyPlay(page).click();
   await expect(page).toHaveURL(/\/login$/);
 });

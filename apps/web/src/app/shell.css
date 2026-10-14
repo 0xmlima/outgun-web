@@ -129,19 +129,6 @@
   min-height: 0;
   overflow-y: auto;
 }
-/* telas ainda no visual antigo: a caixa de menu centralizada, como antes */
-.app-main > .menu,
-.app-main > .text-page {
-  margin: auto;
-  font-family: 'Courier New', monospace;
-  font-size: calc(var(--px) * 13px);
-  line-height: 1.25;
-  color: var(--menu-item);
-}
-.app-main > .text-page {
-  max-height: 100%;
-}
-
 .app-footer {
   display: flex;
   flex-wrap: wrap;
@@ -286,4 +273,114 @@
 }
 .options-tab .ui-panel {
   max-width: 48rem;
+}
+
+/* Lobby (OG-203) */
+.lobby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.lobby-name {
+  flex: 1 1 14rem;
+  max-width: 20rem;
+}
+.lobby-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-5);
+}
+.lobby-filters > :first-child {
+  flex: 1 1 14rem;
+  max-width: 24rem;
+}
+.lobby-room {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.lobby-maps summary {
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+}
+.lobby-maps ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Relatório de partida (OG-214) */
+.report-score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}
+.report-points {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.report-team {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+.report-team.red,
+.report-timeline .red .report-clock {
+  color: var(--text-team-red);
+}
+.report-team.blue,
+.report-timeline .blue .report-clock {
+  color: var(--text-team-blue);
+}
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-4);
+}
+.map-preview {
+  display: block;
+  width: 100%;
+  max-height: 20rem;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-sm);
+}
+.report-timeline {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.report-timeline li {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr auto;
+  gap: var(--space-3);
+}
+.report-clock,
+.report-running {
+  font-variant-numeric: tabular-nums;
+}
+.report-running {
+  color: var(--text-muted);
+}
+.report-player {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.report-team-panel.red {
+  border-top: 3px solid var(--text-team-red);
+}
+.report-team-panel.blue {
+  border-top: 3px solid var(--text-team-blue);
+}
+.report-details summary {
+  cursor: pointer;
+  font-weight: var(--weight-medium);
 }

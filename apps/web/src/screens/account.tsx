@@ -9,7 +9,7 @@ import { TERMS_VERSION } from '@outgun/content';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { TextField, ToggleField } from '../ui/Field.js';
+import { FieldGroup, TextField, ToggleField } from '../ui/Field.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
 import { Form, FormMessageLine, Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
@@ -360,7 +360,45 @@ export function AccountScreen() {
     <Page title={t('Account')} subtitle={`${user.clanTag ? `${user.clanTag} ` : ''}${user.username} · ${user.email}`} width="narrow" onBack={() => void navigate('/')} backLabel={t('Back')}>
       <MenuList label={t('Account')} items={items} autoFocus />
       <FormMessageLine message={general} />
+      <PrivacyPanel />
     </Page>
+  );
+}
+
+/** Privacidade do perfil social (OG-211, D-39): o perfil é público; dá para esconder companheiros e histórico. */
+function PrivacyPanel() {
+  const { t } = usePrefs();
+  const [privacy, setPrivacy] = useState<{ hideCompanions: boolean; hideHistory: boolean } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api<{ hideCompanions: boolean; hideHistory: boolean }>('/account/privacy').then(
+      (r) => alive && setPrivacy(r),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const change = (patch: Partial<{ hideCompanions: boolean; hideHistory: boolean }>) => {
+    if (!privacy) return;
+    const before = privacy;
+    const next = { ...privacy, ...patch };
+    setPrivacy(next);
+    api('/account/privacy', { method: 'PUT', body: next }).catch(() => setPrivacy(before));
+  };
+  return (
+    <Panel title={t('Profile privacy')}>
+      <FieldGroup>
+        <ToggleField
+          label={t('Hide my teammates and rivals')}
+          hint={t('You also stop appearing in the lists of other players.')}
+          checked={privacy?.hideCompanions ?? false}
+          disabled={!privacy}
+          onChange={(hideCompanions) => change({ hideCompanions })}
+        />
+        <ToggleField label={t('Hide my match history')} checked={privacy?.hideHistory ?? false} disabled={!privacy} onChange={(hideHistory) => change({ hideHistory })} />
+      </FieldGroup>
+    </Panel>
   );
 }
 

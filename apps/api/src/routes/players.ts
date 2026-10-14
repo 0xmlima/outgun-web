@@ -2,10 +2,10 @@
 // Perfil público, histórico e partida (OG-085, RN-STA-01/03): estatísticas separadas por modo
 // (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import type { AppDeps } from '../app.js';
+import { and, asc, desc, eq, gte, sql } from 'drizzle-orm';
+import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { matches, matchPlayers, ratings, users } from '../db/schema.js';
+import { matches, matchPlayers, playerProfiles, ratings, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
 import { ErrorSchema, GameModeSchema } from './schemas.js';
 
@@ -53,7 +53,7 @@ const PlayerLine = Type.Object({
 const won = sql`CASE WHEN ${matchPlayers.team} = 0 THEN ${matches.redScore} > ${matches.blueScore} ELSE ${matches.blueScore} > ${matches.redScore} END`;
 const stat = (key: string) => sql<number>`coalesce(sum((${matchPlayers.stats} ->> ${key})::numeric), 0)::int`;
 
-export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
+export function playerRoutes({ database }: AppDeps, { sessions }: Services): FastifyPluginAsyncTypebox {
   const { db } = database;
   return async (app) => {
     app.get(
@@ -133,6 +133,8 @@ export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
           response: {
             200: Type.Object({
               total: Type.Integer(),
+              /** O jogador escondeu o histórico (OG-211, D-39); o dono continua vendo. */
+              hidden: Type.Boolean(),
               matches: Type.Array(Type.Intersect([MatchSummary, Type.Object({ player: Type.Omit(PlayerLine, ['username', 'stats']) })])),
             }),
             404: ErrorSchema,
@@ -140,8 +142,13 @@ export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         },
       },
       async (request, reply) => {
-        const [user] = await db.select({ id: users.id }).from(users).where(eq(users.usernameKey, usernameKey(request.params.name)));
+        const [user] = await db
+          .select({ id: users.id, hideHistory: playerProfiles.hideHistory })
+          .from(users)
+          .leftJoin(playerProfiles, eq(playerProfiles.userId, users.id))
+          .where(eq(users.usernameKey, usernameKey(request.params.name)));
         if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
+        if (user.hideHistory && (await sessions.current(request))?.id !== user.id) return { total: 0, hidden: true, matches: [] };
         const { mode, limit, offset } = request.query;
         const where = and(eq(matchPlayers.userId, user.id), mode ? eq(matches.mode, mode) : undefined);
         const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(matchPlayers).innerJoin(matches, eq(matches.id, matchPlayers.matchId)).where(where);
@@ -155,11 +162,36 @@ export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
           .offset(offset);
         return {
           total: count?.n ?? 0,
+          hidden: false,
           matches: rows.map(({ m, p }) => ({
             ...summary(m),
             player: { slot: p.slot, name: p.name, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures, playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta },
           })),
         };
+      },
+    );
+
+    app.get(
+      '/rooms/:id/last-match',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Última partida registrada de uma sala (o "Ver relatório" do fim de partida, OG-214)',
+          params: Type.Object({ id: Type.String({ minLength: 1, maxLength: 64 }) }),
+          querystring: Type.Object({ after: Type.Optional(Type.String({ format: 'date-time' })) }),
+          response: { 200: Type.Object({ id: Type.String() }), 404: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const { after } = request.query;
+        const [m] = await db
+          .select({ id: matches.id })
+          .from(matches)
+          .where(and(eq(matches.roomId, request.params.id), after ? gte(matches.endedAt, new Date(after)) : undefined))
+          .orderBy(desc(matches.endedAt))
+          .limit(1);
+        if (!m) return reply.code(404).send({ error: 'match_not_found', message: 'match not found' });
+        return m;
       },
     );
 
