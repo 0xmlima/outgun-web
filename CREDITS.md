@@ -29,6 +29,10 @@ Allegro, HawkNL e Pthreads-win32. O port web não usa essas bibliotecas; elas ap
 
 - **Inter** (OG-200, D-35), de Rasmus Andersson e colaboradores — <https://rsms.me/inter/>. Licença **SIL Open Font License 1.1** (OFL-1.1); distribuída pelo pacote `@fontsource-variable/inter`, servida pelo próprio site (subconjunto latino). A OFL permite incluir a fonte em qualquer software; ela não pode ser vendida sozinha.
 
+## Música
+
+- **Trilha sonora** (OG-220, D-38): **Thiago Vasconcellos**. Dez faixas em `songs/` ("Outgun Epic" no menu; as demais nas partidas), distribuídas com o jogo com autorização do autor. A licença das faixas para redistribuição fora do jogo ainda será definida pelo autor. Os créditos também aparecem na tela de créditos e no manifesto de assets.
+
 ## Licença
 
 O código original e o port são distribuídos sob a **GNU General Public License, versão 2 ou (a seu critério) qualquer versão posterior** — texto completo em `COPYING`. Arquivos novos do port levam o cabeçalho `SPDX-License-Identifier: GPL-2.0-or-later`, verificado por `pnpm check:licenses`, que também bloqueia dependências de produção com licença incompatível.

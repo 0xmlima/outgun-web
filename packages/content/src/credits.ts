@@ -90,6 +90,11 @@ export const WEB_CREDITS: readonly CreditGroup[] = [
     role: 'Interface font',
     people: ['Inter, by Rasmus Andersson (SIL Open Font License 1.1)'],
   },
+  {
+    // D-38: trilha composta pelo PO; os títulos das faixas vêm do manifesto (OG-220)
+    role: 'Music',
+    people: ['Thiago Vasconcellos'],
+  },
 ];
 
 /** Licença do jogo original e do port (COPYING). */

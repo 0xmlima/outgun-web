@@ -30,6 +30,18 @@ export interface Manifest {
   readonly sounds: Readonly<Record<string, { readonly name: string; readonly samples: Readonly<Record<string, string | null>> }>>;
   readonly defaultColours: Readonly<Record<string, string>>;
   readonly maps: Readonly<Record<string, { readonly file: string; readonly dir: 'maps' | 'cmaps' }>>;
+  /** Trilha sonora (OG-220): só o manifesto; o MP3 é baixado quando for tocar (RN-MUS-05). */
+  readonly music?: readonly MusicTrack[];
+}
+
+export interface MusicTrack {
+  readonly id: string;
+  readonly title: string;
+  readonly role: 'menu' | 'match';
+  readonly file: string;
+  /** Segundos. */
+  readonly duration: number;
+  readonly credit: string;
 }
 
 let manifestPromise: Promise<Manifest | null> | undefined;
