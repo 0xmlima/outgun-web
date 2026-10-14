@@ -564,7 +564,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S9 | Ranking e social | OG-049, OG-084, OG-085, OG-086, OG-066, OG-068, OG-069 | **M3 — Contas e ranking** |
 | S10 | Bots, gerador e replays | OG-050, OG-051, OG-052, OG-053, OG-054, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
 | S11 | Endurecimento | OG-101, OG-102, OG-103, OG-104, OG-087 | |
-| S12 | Beta e lançamento | OG-105 | **M5 — Lançamento público** |
+| S12 | Beta e lançamento | OG-109, OG-106, OG-108, OG-107, OG-105 | **M5 — Lançamento público** |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -638,9 +638,13 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Concluído |
 | [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Concluído |
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Concluído |
-| [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento | E7 | 5 | Must | S12 | todos Must | Backlog |
+| [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento (execução) | E7 | 3 | Must | S12 | OG-106 a OG-109 | Bloqueado |
+| [OG-106](cards/OG-106-closed-beta.md) | Beta fechado: convites, feedback e triagem | E7 | 5 | Must | S12 | OG-087, OG-081 | Pronto |
+| [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Pronto |
+| [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Pronto |
+| [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Pronto |
 
-**Total:** 65 cards (OG-048 quebrado em OG-050 a OG-054; seus 13 pts saem da soma), 282 pontos.
+**Total:** 69 cards (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts), 295 pontos.
 
 ---
 
