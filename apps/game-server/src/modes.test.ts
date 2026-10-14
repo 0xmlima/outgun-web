@@ -8,7 +8,7 @@ import { loadMaps } from './maps.js';
 import { rankingMinimumsMet, type MatchReport } from './match-report.js';
 import { Room, type Connection, type Identity } from './room.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
 const account = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
 class TestConnection implements Connection {

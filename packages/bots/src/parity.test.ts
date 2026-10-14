@@ -21,7 +21,7 @@ function loadDumps(name: string): BotDump[] {
 }
 
 function loadMap(file: string): AreaMap {
-  const r = parseMapFile(file, readFileSync(join(repoRoot, file)));
+  const r = parseMapFile(file, readFileSync(join(repoRoot, '_legacy', file)));
   if (!r.ok) throw new Error(r.errors.join('\n'));
   return new AreaMap(r.map);
 }

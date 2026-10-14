@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7700; a 7000 é do AirPlay no macOS), MAPS_DIR (maps/ do repositório),
+// Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7700; a 7000 é do AirPlay no macOS), MAPS_DIR (_legacy/maps/ do repositório),
 // ROTATION (outgun1), PRESET (classic), MAX_PLAYERS (16), DEV_TICKETS (1 = aceita dev:Nome; padrão 1 fora de produção e 0 com NODE_ENV=production),
 // TICKET_JWKS_URL (chaves dos tickets da API; padrão http://localhost:7800/.well-known/jwks.json),
 // API_URL (http://localhost:7800), GS_ID e GS_SECRET (assinatura das rotas internas; padrão dev),
@@ -13,7 +13,7 @@
 // SENTRY_ENVIRONMENT (padrão NODE_ENV), RELEASE (versão nos logs e erros).
 // MAX_CONNECTIONS_PER_IP (8; 0 = sem limite).
 // INSTANCE_ID (padrão FLY_MACHINE_ID): salas também em /m/<id>/rooms/...; `{instance}` em PUBLIC_WS_URL vira esse id.
-// MAPGEN_DIR (mapgen/ do repositório): blocos de paredes dos mapas `random_map` da rotação (OG-015).
+// MAPGEN_DIR (_legacy/mapgen/ do repositório): blocos de paredes dos mapas `random_map` da rotação (OG-015).
 // DRAIN_TIMEOUT_S (240): prazo da drenagem no SIGTERM.
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
@@ -33,7 +33,7 @@ import { GameTelemetry } from './telemetry.js';
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
 // mapas aleatórios da rotação (OG-015): blocos de paredes de mapgen/ do jogo (MAPGEN_DIR)
-const generatedMaps = new GeneratedMaps(env.MAPGEN_DIR ?? `${repo}mapgen`);
+const generatedMaps = new GeneratedMaps(env.MAPGEN_DIR ?? `${repo}_legacy/mapgen`);
 const production = env.NODE_ENV === 'production';
 const logger = createLogger({ service: 'game-server', level: env.LOG_LEVEL ?? 'info', ...(env.RELEASE ? { version: env.RELEASE } : {}) });
 const reporter = new ErrorReporter({ dsn: env.SENTRY_DSN, service: 'game-server', environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV, release: env.RELEASE });
@@ -108,7 +108,7 @@ const manager = new RoomManager({
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
 // rotação oficial de cada modo; o painel admin (OG-087) pode trocá-la pela resposta do heartbeat
 const rotations: Record<'casual' | 'ranked', readonly string[]> = { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation };
-const mapsDir = env.MAPS_DIR ?? `${repo}maps`;
+const mapsDir = env.MAPS_DIR ?? `${repo}_legacy/maps`;
 // `random_map L A ...` na rotação (OG-015): mapas gerados com os blocos de mapgen/
 const mapFile = mapLoader(mapsDir);
 const fixedRoom = (id: string, name: string, preset: string, maxPlayers: number) => {

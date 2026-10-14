@@ -43,10 +43,11 @@ CMD ["node", "dist/main.js"]
 
 # --- game server ---
 FROM node:22.20.0-bookworm-slim AS game-server
-ENV NODE_ENV=production PORT=7700 MAPS_DIR=/app/maps REPLAY_DIR=/data/replays
+ENV NODE_ENV=production PORT=7700 MAPS_DIR=/app/maps MAPGEN_DIR=/app/mapgen REPLAY_DIR=/data/replays
 WORKDIR /app
 COPY --from=build --chown=node:node /out/game-server /app
-COPY --from=build --chown=node:node /repo/maps /app/maps
+COPY --from=build --chown=node:node /repo/_legacy/maps /app/maps
+COPY --from=build --chown=node:node /repo/_legacy/mapgen /app/mapgen
 RUN mkdir -p /data/replays && chown node:node /data/replays
 USER node
 EXPOSE 7700

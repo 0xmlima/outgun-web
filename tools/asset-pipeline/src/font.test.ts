@@ -28,7 +28,7 @@ describe('fontes Allegro x a própria Allegro', () => {
 
   for (const file of files) {
     it(file, () => {
-      const decoded = readOutgunFont(readFileSync(join(repoRoot, 'fonts', file)));
+      const decoded = readOutgunFont(readFileSync(join(repoRoot, '_legacy/fonts', file)));
       for (const kind of ['font', 'border'] as const) {
         const ref = reference[file]![kind];
         const ours = decoded[kind];
@@ -48,7 +48,7 @@ describe('fontes Allegro x a própria Allegro', () => {
 });
 
 describe('BMFont', () => {
-  const { font } = readOutgunFont(readFileSync(join(repoRoot, 'fonts/Kauno.dat')));
+  const { font } = readOutgunFont(readFileSync(join(repoRoot, '_legacy/fonts/Kauno.dat')));
   const bm = toBmFont(font!, 'Kauno', 'Kauno.png');
 
   it('descreve os 192 glifos (ASCII e Latin-1, com acentos do pt-BR)', () => {

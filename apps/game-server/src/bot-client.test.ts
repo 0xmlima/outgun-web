@@ -8,7 +8,7 @@ import { runBotMatches } from './bot-stats.js';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1', 'verde']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1', 'verde']);
 
 class TestConnection implements Connection {
   received: AnyMessage[] = [];

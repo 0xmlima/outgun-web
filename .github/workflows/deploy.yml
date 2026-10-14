@@ -5,10 +5,10 @@
 # FLY_PREFIX (outgun), WEB_HOST, SENTRY_DSN_WEB opcionais.
 name: Deploy
 
+# Só manual por enquanto: o beta roda numa VPS (deploy/vps) e o Fly.io ainda não foi adotado.
+# Para o deploy contínuo, volte o gatilho para push na main e tags v* e cadastre o FLY_API_TOKEN.
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref_type == 'tag' && 'production' || 'staging' }}

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { ORIGINAL_CREDITS } from './credits.js';
 
 // README.txt do original está em ISO-8859-1; a comparação usa só ASCII para não depender disso.
-const readme = readFileSync(join(import.meta.dirname, '../../../README.txt'), 'latin1');
+const readme = readFileSync(join(import.meta.dirname, '../../../_legacy/README.txt'), 'latin1');
 
 describe('créditos do original', () => {
   it('cobre todas as seções de créditos do README.txt', () => {

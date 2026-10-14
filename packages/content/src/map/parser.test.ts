@@ -28,7 +28,7 @@ interface ExpectedMap {
 function filePath(key: string): string {
   return key.startsWith('/fixtures/')
     ? join(repoRoot, 'tools/parity', key.slice(1))
-    : join(repoRoot, key);
+    : join(repoRoot, '_legacy', key);
 }
 
 const coords = (c: WorldCoords) => [c.room.x, c.room.y, c.x, c.y];

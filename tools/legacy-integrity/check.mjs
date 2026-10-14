@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(here, '..', '..');
+const legacyRoot = join(here, '..', '..', '_legacy');
 const manifest = readFileSync(join(here, 'checksums.sha256'), 'utf8');
 
 const problems = [];
@@ -23,7 +23,7 @@ for (const line of manifest.split('\n')) {
   let actual;
   try {
     actual = createHash('sha256')
-      .update(readFileSync(join(repoRoot, file)))
+      .update(readFileSync(join(legacyRoot, file)))
       .digest('hex');
   } catch {
     problems.push(`removido: ${file}`);

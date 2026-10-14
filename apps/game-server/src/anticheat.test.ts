@@ -11,7 +11,7 @@ import { RoomManager } from './rooms.js';
 import { startServer, type RunningServer } from './server.js';
 import { WsTestClient } from './ws-test-client.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
 let manager: RoomManager;
 let server: RunningServer;
 

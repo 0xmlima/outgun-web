@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room } from './room.js';
 
-const MAPS = fileURLToPath(new URL('../../../maps', import.meta.url));
+const MAPS = fileURLToPath(new URL('../../../_legacy/maps', import.meta.url));
 const FILES = ['2 versus 2 (duel)'];
 const maps = loadMaps(MAPS, FILES);
 

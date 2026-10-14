@@ -13,7 +13,7 @@ import type { MatchReport } from './match-report.js';
 import { ReplayStore } from './replay.js';
 import { Room, type Connection } from './room.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
 const silent: Connection = { send: () => {}, close: () => {} };
 
 function setup(maxPlayers = 16) {

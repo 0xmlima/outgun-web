@@ -10,3 +10,5 @@ tools/parity/traces
 var
 deploy/.env*
 *.dll
+plan
+_legacy/doc

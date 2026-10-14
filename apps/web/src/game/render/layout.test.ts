@@ -15,7 +15,7 @@ import {
 
 const repo = join(import.meta.dirname, '../../../../..');
 const loadMap = (dir: string, name: string) => {
-  const result = parseMapFile(name, readFileSync(join(repo, dir, `${name}.txt`)));
+  const result = parseMapFile(name, readFileSync(join(repo, '_legacy', dir, `${name}.txt`)));
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return result.map;
 };

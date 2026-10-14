@@ -33,9 +33,9 @@ export function mapByCrc(crc: number): GameMap {
   const cached = mapCache.get(crc);
   if (cached) return cached;
   for (const dir of ['maps', 'cmaps']) {
-    for (const file of readdirSync(join(repoRoot, dir))) {
+    for (const file of readdirSync(join(repoRoot, '_legacy', dir))) {
       if (!file.endsWith('.txt')) continue;
-      const result = parseMapFile(file, readFileSync(join(repoRoot, dir, file)));
+      const result = parseMapFile(file, readFileSync(join(repoRoot, '_legacy', dir, file)));
       if (result.ok) mapCache.set(result.map.crc, result.map);
     }
   }

@@ -8,7 +8,8 @@ import { parseMapFile } from '../../packages/content/dist/index.js';
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 const targets = process.argv.slice(2);
-const inputs = targets.length > 0 ? targets : [join(repoRoot, 'maps'), join(repoRoot, 'cmaps')];
+const inputs =
+  targets.length > 0 ? targets : [join(repoRoot, '_legacy/maps'), join(repoRoot, '_legacy/cmaps')];
 
 const files = inputs.flatMap((input) =>
   statSync(input).isDirectory()

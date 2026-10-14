@@ -12,7 +12,7 @@ import { startServer, type RunningServer } from './server.js';
 import { makeSpawner } from './spawn.js';
 import { WsTestClient } from './ws-test-client.js';
 
-const mapsDir = fileURLToPath(new URL('../../../maps', import.meta.url));
+const mapsDir = fileURLToPath(new URL('../../../_legacy/maps', import.meta.url));
 const maps = loadMaps(mapsDir, ['outgun1']);
 let manager: RoomManager;
 let server: RunningServer;

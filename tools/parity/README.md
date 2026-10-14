@@ -13,7 +13,7 @@ pnpm oracle server --bottest --seconds 30 --bots 6 --time-limit 2 --map outgun1
 pnpm oracle replay "/out/server/replay/<arquivo>.replay" --shots 6 --interval 5
 pnpm oracle mappic                # imagem de todos os mapas de maps/ e cmaps/
 pnpm oracle mapgen 4 3            # gerador de mapas aleatórios original
-pnpm oracle compile-commands      # compile_commands.json na raiz, para o clangd navegar em src/
+pnpm oracle compile-commands      # _legacy/compile_commands.json, para o clangd navegar em _legacy/src/
 pnpm oracle trace move-straight   # grava traces/move-straight.jsonl.gz a partir de scenarios/move-straight.txt
 pnpm oracle fixture rng           # compila e roda tools/parity/fixtures/rng.cpp contra o código original
 ```
@@ -36,7 +36,7 @@ Resultados ficam em `tools/parity/out/` (montado como `/out` no container; ignor
 
 Ajustes de build, todos dentro da imagem (o repositório não é alterado):
 
-- `compile.sh` chama `make -C src`, mas o snapshot só tem `src/Makefile.common`; o Dockerfile copia para `Makefile`.
+- Os fontes vêm de `_legacy/` (citações `src/...` abaixo são relativas a ela). `compile.sh` chama `make -C src`, mas o snapshot só tem `src/Makefile.common`; o Dockerfile copia para `Makefile`.
 - `-std=gnu++98`: o código usa conversão implícita de stream para `bool` (removida no C++11).
 - `-fpermissive`: lookup em duas fases nos templates de `menu.h` (GCC moderno é mais estrito).
 - `mapgen-tool` não tem alvo no Makefile; é ligado a partir de `src/tools/mapgen-main.cpp` e dos objetos do servidor.

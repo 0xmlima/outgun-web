@@ -8,7 +8,7 @@ import { loadMaps } from './maps.js';
 import type { Connection } from './room.js';
 import { RoomManager } from './rooms.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['2 versus 2 (duel)']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['2 versus 2 (duel)']);
 
 class TestConnection implements Connection {
   received: AnyMessage[] = [];

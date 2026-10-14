@@ -62,7 +62,7 @@ describe('decodificador PCX x ImageMagick', () => {
   });
   for (const [path, expected] of entries) {
     it(path, () => {
-      const image = decodePcx(readFileSync(join(repoRoot, 'graphics', path)));
+      const image = decodePcx(readFileSync(join(repoRoot, '_legacy/graphics', path)));
       expect([image.width, image.height]).toEqual(expected.size);
       expect(sha(image.rgb)).toBe(expected.rgbSha256);
     });
@@ -90,7 +90,7 @@ describe('conversão dos gráficos', () => {
   });
 
   it('sprites: magenta vira transparente e o resto é opaco', () => {
-    const source = readFileSync(join(repoRoot, 'graphics/Metal/player.pcx'));
+    const source = readFileSync(join(repoRoot, '_legacy/graphics/Metal/player.pcx'));
     const image = decodePcx(source);
     const { png } = convertGraphic('player', source);
     const { pixels } = readPng(png);
@@ -104,7 +104,7 @@ describe('conversão dos gráficos', () => {
   });
 
   it('mapas de alpha: o índice da paleta vira o valor de cinza (sem conversão de cor)', () => {
-    const source = readFileSync(join(repoRoot, 'graphics/Metal/player_team.pcx'));
+    const source = readFileSync(join(repoRoot, '_legacy/graphics/Metal/player_team.pcx'));
     const image = decodePcx(source);
     const { png, kind } = convertGraphic('player_team', source);
     expect(kind).toBe('alpha');
@@ -112,7 +112,7 @@ describe('conversão dos gráficos', () => {
   });
 
   it('texturas são opacas mesmo se contiverem magenta', () => {
-    const { png } = convertGraphic('floor_normal1', readFileSync(join(repoRoot, 'graphics/Metal/floor_normal1.pcx')));
+    const { png } = convertGraphic('floor_normal1', readFileSync(join(repoRoot, '_legacy/graphics/Metal/floor_normal1.pcx')));
     const { pixels } = readPng(png);
     for (let p = 3; p < pixels.length; p += 4) expect(pixels[p]).toBe(255);
   });
@@ -124,7 +124,7 @@ describe('build completo', () => {
   const build = () => {
     const dir = mkdtempSync(join(tmpdir(), 'outgun-assets-'));
     dirs.push(dir);
-    return { dir, manifest: buildAssets(repoRoot, dir) };
+    return { dir, manifest: buildAssets(join(repoRoot, '_legacy'), dir) };
   };
 
   it('converte os 6 temas gráficos e o tema de som com as regras do original', { timeout: 30_000 }, () => {
@@ -140,7 +140,7 @@ describe('build completo', () => {
     // Mapas copiados sem alteração (o cliente os interpreta com @outgun/content).
     expect(manifest.maps.coliseu?.dir).toBe('maps');
     expect(manifest.maps.arena?.dir).toBe('cmaps');
-    expect(readFileSync(join(dir, manifest.maps.coliseu!.file))).toEqual(readFileSync(join(repoRoot, 'maps/coliseu.txt')));
+    expect(readFileSync(join(dir, manifest.maps.coliseu!.file))).toEqual(readFileSync(join(repoRoot, '_legacy/maps/coliseu.txt')));
     const visa = manifest.sounds.Visa!;
     expect(visa.name).toBe('Outgun sounds, by Visa-Valtteri Pimia');
     expect(Object.keys(visa.samples)).toEqual([...SAMPLES]);

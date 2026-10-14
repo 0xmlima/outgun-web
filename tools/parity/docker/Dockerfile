@@ -22,16 +22,16 @@ ENV OUTGUN_CXXFLAGS=$OUTGUN_CXXFLAGS
 
 WORKDIR /outgun
 # Dados do jogo: o executável procura config/, maps/, languages/... no próprio diretório.
-COPY src/ src/
-COPY config/ config/
-COPY maps/ maps/
-COPY cmaps/ cmaps/
-COPY mapgen/ mapgen/
-COPY languages/ languages/
-COPY graphics/ graphics/
-COPY sound/ sound/
-COPY fonts/ fonts/
-COPY keyboard.dat ./
+COPY _legacy/src/ src/
+COPY _legacy/config/ config/
+COPY _legacy/maps/ maps/
+COPY _legacy/cmaps/ cmaps/
+COPY _legacy/mapgen/ mapgen/
+COPY _legacy/languages/ languages/
+COPY _legacy/graphics/ graphics/
+COPY _legacy/sound/ sound/
+COPY _legacy/fonts/ fonts/
+COPY _legacy/keyboard.dat ./
 COPY tools/parity/patches/ /oracle/patches/
 
 # O compile.sh original chama "make -C src", mas o snapshot só traz Makefile.common: a cópia é feita aqui,

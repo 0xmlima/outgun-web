@@ -2,8 +2,8 @@
 
 Este repositório tem duas partes:
 
-- **Código original do Outgun 1.0.3** (raiz: `src/`, `maps/`, `config/`, `graphics/`...). É a referência do port e **não deve ser alterado**; `pnpm check:legacy` confere isso.
-- **Monorepo do port web** (`apps/`, `packages/`, `tools/`), descrito em `plan/PLAN.md` (seção 5.2).
+- **Código original do Outgun 1.0.3** em `_legacy/` (`src/`, `maps/`, `config/`, `graphics/`...). É a referência do port e **não deve ser alterado**; `pnpm check:legacy` confere isso. Os mapas, gráficos, sons, fontes e idiomas do cliente web são convertidos dali no build (`pnpm assets`). Citações como `src/world.cpp:3447` nos comentários apontam para `_legacy/src/`.
+- **Monorepo do port web** (`apps/`, `packages/`, `tools/`, `deploy/`).
 
 ## Requisitos
 
@@ -89,7 +89,7 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 
 ## Mapas aleatórios na rotação (OG-015)
 
-- Toda rotação (`ROTATION`, `RANKED_ROTATION`, rotações do painel, mapas de sala privada) aceita `random_map L A [bordas respawn respawn-repetitivo verde s|a]`, a linha do gamemod original. A sala gera `mapgen_<n>` com os blocos de `mapgen/` (`MAPGEN_DIR`) cada vez que a entrada entra; a lista de mapas mostra `<Random>`; o cliente baixa o texto de `<game server>/maps/mapgen_<n>.txt` e o replay leva o texto embutido (`header.mapText`).
+- Toda rotação (`ROTATION`, `RANKED_ROTATION`, rotações do painel, mapas de sala privada) aceita `random_map L A [bordas respawn respawn-repetitivo verde s|a]`, a linha do gamemod original. A sala gera `mapgen_<n>` com os blocos de `_legacy/mapgen/` (`MAPGEN_DIR`) cada vez que a entrada entra; a lista de mapas mostra `<Random>`; o cliente baixa o texto de `<game server>/maps/mapgen_<n>.txt` e o replay leva o texto embutido (`header.mapText`).
 
 ## Painel admin (OG-087)
 

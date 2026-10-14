@@ -19,7 +19,7 @@ export interface BotStats {
 }
 
 export function runBotMatches(opts: { matches: number; bots: number; minutes: number; map: string; seed: number; gamemod?: string[] }): BotStats {
-  const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), [opts.map]);
+  const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), [opts.map]);
   const gamemod = [`time_limit ${opts.minutes}`, ...(opts.gamemod ?? [])].join('\n');
   const room = new Room({ id: 'bot-stats', preset: 'classic', maps, mapFiles: [opts.map], maxPlayers: 16, seed: opts.seed, botTest: true, gamemod });
   for (let i = 0; i < opts.bots; i++) room.addBot();

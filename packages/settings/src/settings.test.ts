@@ -71,7 +71,7 @@ describe('gamemod x configurações efetivas do original (cabeçalho dos traces)
 
 describe('registro de settings', () => {
   it('contém exatamente as settings de src/server_settings.cpp', () => {
-    const source = readFileSync(join(repoRoot, 'src/server_settings.cpp'), 'latin1');
+    const source = readFileSync(join(repoRoot, '_legacy/src/server_settings.cpp'), 'latin1');
     const names = new Set([...source.matchAll(/new GS_[\w<>]+\s*\(\s*"([a-z_0-9]+)"/g)].map((m) => m[1]));
     // Settings criadas por variáveis (portSetting, ipSetting, privSetting, srvmonitSetting).
     for (const extra of ['server_port', 'server_ip', 'private_server', 'srvmonit_port']) names.add(extra);
@@ -83,7 +83,7 @@ describe('leitura de gamemod', () => {
   const apply = (text: string) => applyGamemod(classicSettings(), text);
 
   it('o Clássico embutido é idêntico a config/gamemod.txt e lê sem erros', () => {
-    expect(CLASSIC_GAMEMOD).toBe(readFileSync(join(repoRoot, 'config/gamemod.txt'), 'latin1'));
+    expect(CLASSIC_GAMEMOD).toBe(readFileSync(join(repoRoot, '_legacy/config/gamemod.txt'), 'latin1'));
     expect(applyGamemod(codeDefaults(), CLASSIC_GAMEMOD).errors).toEqual([]);
   });
 

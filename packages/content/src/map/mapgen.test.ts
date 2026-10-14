@@ -10,7 +10,7 @@ import { parseMap } from './parser.js';
 
 const repoRoot = join(import.meta.dirname, '../../../..');
 /** Os blocos na ordem em que o original os listou (o `readdir` do container). */
-const blocks: MapgenBlock[] = expected.blocks.map((name) => ({ name, text: readFileSync(join(repoRoot, 'mapgen', name), 'latin1') }));
+const blocks: MapgenBlock[] = expected.blocks.map((name) => ({ name, text: readFileSync(join(repoRoot, '_legacy/mapgen', name), 'latin1') }));
 
 /** Sem as linhas de comentário (versão e data). */
 const significant = (text: string) =>

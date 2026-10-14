@@ -7,7 +7,7 @@ import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
 import { RoomManager } from './rooms.js';
 
-const MAPS = fileURLToPath(new URL('../../../maps', import.meta.url));
+const MAPS = fileURLToPath(new URL('../../../_legacy/maps', import.meta.url));
 const maps = loadMaps(MAPS, ['outgun1']);
 
 class TestConnection implements Connection {

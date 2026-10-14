@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { RoomManager } from './rooms.js';
 import { makeSpawner } from './spawn.js';
 
-const mapsDir = fileURLToPath(new URL('../../../maps', import.meta.url));
+const mapsDir = fileURLToPath(new URL('../../../_legacy/maps', import.meta.url));
 
 describe('abertura de sala sob demanda (OG-086)', () => {
   const setup = () => {

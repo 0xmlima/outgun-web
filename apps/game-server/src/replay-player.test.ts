@@ -10,7 +10,7 @@ import { loadMaps } from './maps.js';
 import { message } from '@outgun/protocol';
 import { Room } from './room.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
 
 /** Partida de bots gravada; devolve o replay e as posições do servidor por frame. */
 function record(minutes: number) {

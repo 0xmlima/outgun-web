@@ -12,7 +12,7 @@ import { startServer, type RunningServer } from './server.js';
 import { mapLoader } from './spawn.js';
 
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
-const map = mapLoader(`${repo}maps`);
+const map = mapLoader(`${repo}_legacy/maps`);
 
 class TestConnection implements Connection {
   received: AnyMessage[] = [];
@@ -34,7 +34,7 @@ describe('random_map na rotação (OG-015)', () => {
   });
 
   it('a rotação mistura mapas da pasta e gerados; nome inexistente sai', () => {
-    const generated = new GeneratedMaps(`${repo}mapgen`, 7);
+    const generated = new GeneratedMaps(`${repo}_legacy/mapgen`, 7);
     const slots = resolveRotation(['outgun1', 'random_map 3 2', 'nao-existe'], map, generated);
     expect(slots.map((s) => s.file)).toEqual(['outgun1', expect.stringMatching(/^mapgen_\d+$/)]);
     expect(slots[1]).toMatchObject({ random: { width: 3, height: 2 }, map: { width: 3, height: 2, title: '<Random>' } });
@@ -42,7 +42,7 @@ describe('random_map na rotação (OG-015)', () => {
   });
 
   it('cada vez que a entrada entra é um mapa novo; a lista mostra <Random>; o replay leva o texto', () => {
-    const generated = new GeneratedMaps(`${repo}mapgen`, 11);
+    const generated = new GeneratedMaps(`${repo}_legacy/mapgen`, 11);
     const slots = resolveRotation(['random_map 2 2', 'outgun1'], map, generated);
     const m = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3, roomDefaults: { generatedMaps: generated } });
     const room = m.create({ id: 'r', preset: 'classic', maps: slots.map((s) => s.map), mapFiles: slots.map((s) => s.file), randomSlots: slots.map((s) => s.random ?? null), maxPlayers: 8 });
@@ -72,7 +72,7 @@ describe('random_map na rotação (OG-015)', () => {
 
   describe('game server', () => {
     let server: RunningServer;
-    const generated = new GeneratedMaps(`${repo}mapgen`, 5);
+    const generated = new GeneratedMaps(`${repo}_legacy/mapgen`, 5);
     let file = '';
     beforeAll(async () => {
       const m = new RoomManager({ emptyTimeoutMs: 60_000 });

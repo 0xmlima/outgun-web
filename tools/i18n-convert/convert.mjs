@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { convertLanguage, textLines } from '../../packages/i18n/dist/convert.js';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
-const read = (name) => readFileSync(join(root, 'languages', name), 'latin1');
+const read = (name) => readFileSync(join(root, '_legacy/languages', name), 'latin1');
 const english = read('en.txt');
 const files = { en: 'en', 'pt-BR': 'ptBR', fi: 'fi', it: 'it' };
 const catalogs = {};

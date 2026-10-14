@@ -8,7 +8,7 @@ import { buildFrame, minimapPosition, minimapViews, RecipientState, seesRocket }
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
 
-const MAPS = fileURLToPath(new URL('../../../maps', import.meta.url));
+const MAPS = fileURLToPath(new URL('../../../_legacy/maps', import.meta.url));
 const [map] = loadMaps(MAPS, ['outgun1']); // 6x6 salas
 
 /** Mundo real: jogadores criados como a sim cria, depois posicionados à mão. */

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { CATALOGS } from './catalogs.generated.js';
 import { catalog, convertLanguage, detectLocale, isLatin1, LOCALES, phrases, textLines, translate, WEB_TEXTS } from './index.js';
 
-const languages = join(import.meta.dirname, '../../../languages');
+const languages = join(import.meta.dirname, '../../../_legacy/languages');
 const read = (name: string) => readFileSync(join(languages, name), 'latin1');
 const FILES = { 'pt-BR': 'ptBR', fi: 'fi', it: 'it' } as const;
 

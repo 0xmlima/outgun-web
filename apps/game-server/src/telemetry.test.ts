@@ -5,7 +5,7 @@ import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
 import { GameTelemetry } from './telemetry.js';
 
-const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1']);
+const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
 
 describe('GameTelemetry', () => {
   it('mede cada tick do processo e de cada sala', () => {

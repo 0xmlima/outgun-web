@@ -33,7 +33,7 @@ const expected = JSON.parse(
 ) as Record<string, Expected>;
 
 function loadMap(name: string): AreaMap {
-  const path = name.startsWith('/fixtures/') ? join(repoRoot, 'tools/parity/fixtures', name.slice(10)) : join(repoRoot, name);
+  const path = name.startsWith('/fixtures/') ? join(repoRoot, 'tools/parity/fixtures', name.slice(10)) : join(repoRoot, '_legacy', name);
   const result = parseMapFile(name, readFileSync(path));
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return new AreaMap(result.map);
@@ -114,7 +114,7 @@ describe('DistanceTables', () => {
 
 describe('cache compartilhado', () => {
   it('reaproveita o AreaMap do mesmo mapa e libera com o último usuário', () => {
-    const map = parseMapFile('outgun1', readFileSync(join(repoRoot, 'maps/outgun1.txt')));
+    const map = parseMapFile('outgun1', readFileSync(join(repoRoot, '_legacy/maps/outgun1.txt')));
     if (!map.ok) throw new Error('mapa');
     const a = acquireAreaMap(map.map);
     const b = acquireAreaMap(map.map);

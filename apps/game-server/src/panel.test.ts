@@ -11,7 +11,7 @@ import type { Connection } from './room.js';
 import { RoomManager } from './rooms.js';
 import { makeSpawner, mapLoader } from './spawn.js';
 
-const mapsDir = fileURLToPath(new URL('../../../maps', import.meta.url));
+const mapsDir = fileURLToPath(new URL('../../../_legacy/maps', import.meta.url));
 const map = mapLoader(mapsDir);
 
 class TestConnection implements Connection {

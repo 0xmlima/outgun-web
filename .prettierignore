@@ -1,23 +1,10 @@
 # Código e assets do Outgun original: referência intocada (ver plan/PLAN.md).
+_legacy/
+
+# O src/ dos apps e pacotes nunca passou pelo Prettier (o padrão sem barra inicial vale em qualquer
+# nível); mantido assim para não reformatar o código todo de uma vez.
 src/
-maps/
-cmaps/
-mapgen/
-config/
-graphics/
-sound/
-fonts/
-languages/
-doc/
-client_stats/
-server_stats/
-*.txt
-*.dat
-*.dll
-*.bat
 *.sh
-icon.xpm
-COPYING
 
 # Planejamento é escrito à mão.
 plan/
