@@ -219,6 +219,26 @@ html {
 .ui-menu-item:focus-visible {
   outline-offset: 0;
 }
+.ui-menu-item.primary {
+  min-height: 4.5rem;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+.ui-menu-item.primary:hover,
+.ui-menu-item.primary.current:focus-visible {
+  background: var(--accent-hover);
+  border-color: var(--text);
+}
+.ui-menu-item.primary .ui-menu-label {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+.ui-menu-item.primary .ui-menu-description,
+.ui-menu-item.primary .ui-menu-shortcut {
+  color: var(--text-on-accent);
+  border-color: currentColor;
+}
 .ui-menu-item[aria-disabled] {
   cursor: default;
   color: var(--text-muted);
@@ -485,6 +505,12 @@ html {
   padding: var(--space-2) var(--space-3);
   text-align: left;
   white-space: nowrap;
+}
+@media (max-width: 30rem) {
+  .ui-table th,
+  .ui-table td {
+    padding: var(--space-2);
+  }
 }
 .ui-table .end {
   text-align: right;

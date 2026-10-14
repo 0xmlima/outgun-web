@@ -470,5 +470,17 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Vote': 'Voto',
     // design system v2 (OG-200)
     Close: 'Fechar',
+    // moldura e tela inicial (OG-201)
+    'Main navigation': 'Navegação principal',
+    'Main menu': 'Menu principal',
+    Legal: 'Informações legais',
+    'Capture the flag with friends, right in the browser.': 'Capture a bandeira com os amigos, direto no navegador.',
+    'Open rooms, Casual and Ranked': 'Salas abertas, Casual e Ranqueado',
+    'Play with friends using an invite link': 'Jogue com os amigos por um link de convite',
+    'Season leaderboard': 'Classificação da temporada',
+    'Watch recorded matches': 'Assista a partidas gravadas',
+    'Your recent matches': 'Suas últimas partidas',
+    Profile: 'Perfil',
+    'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
   },
 };

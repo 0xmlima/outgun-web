@@ -23,7 +23,7 @@ test('moderação pelo painel: mute e kick numa sala ao vivo, com auditoria', as
   );
   const player = await playerCtx.newPage();
   await registerWithInvite(player, baseURL, victim, 'senha-e2e-123');
-  await expect(player.locator('.menu')).toContainText(victim);
+  await expect(player.locator('.app-account')).toContainText(victim);
   await player.goto('/rooms');
   await player.locator('button.menu-item', { hasText: 'Jogar agora' }).click();
   await expect(player.locator('.game')).toHaveAttribute('data-status', 'ready', {
@@ -43,8 +43,8 @@ test('moderação pelo painel: mute e kick numa sala ao vivo, com auditoria', as
   await admin.getByLabel('Nome de usuário').fill('Admin');
   await admin.getByLabel('Senha', { exact: true }).fill('outgun-dev');
   await admin.keyboard.press('Enter');
-  await expect(admin.locator('.menu')).toContainText('Moderação');
-  await admin.locator('button.menu-item', { hasText: 'Moderação' }).click();
+  await expect(admin.locator('.ui-menu')).toContainText('Moderação');
+  await admin.locator('button.ui-menu-item', { hasText: 'Moderação' }).click();
   await expect(admin).toHaveURL(/\/admin$/);
   const row = admin.locator('tr', { hasText: victim });
   await expect(row).toBeVisible({ timeout: 15_000 });

@@ -60,40 +60,15 @@ body {
   image-rendering: pixelated;
 }
 
-.shell {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.shell-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
-  padding: calc(var(--px) * 8px);
-}
-.shell-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: calc(var(--px) * 4px) calc(var(--px) * 8px);
-  color: var(--menu-disabled);
-}
-.shell-legal a {
-  margin: 0 calc(var(--px) * 6px);
-}
 .legal .stats-table td.wrap {
   white-space: normal;
   vertical-align: top;
   min-width: 12em;
 }
-.shell-footer a,
 .text-link a {
   color: var(--menu-item);
   text-decoration: none;
 }
-.shell-footer a:hover,
-.shell-footer a:focus-visible,
 .text-link a:hover,
 .text-link a:focus-visible {
   color: var(--menu-active);

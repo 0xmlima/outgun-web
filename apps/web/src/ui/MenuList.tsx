@@ -13,6 +13,8 @@ export interface MenuListItem {
   readonly aside?: ReactNode;
   readonly onActivate: () => void;
   readonly disabled?: boolean;
+  /** A ação principal da tela (ex.: "Jogar agora"), em destaque. */
+  readonly primary?: boolean;
 }
 
 interface MenuListProps {
@@ -23,9 +25,10 @@ interface MenuListProps {
   readonly onBack?: () => void;
   /** Põe o foco no primeiro item ao montar (telas cujo conteúdo principal é a lista). */
   readonly autoFocus?: boolean;
+  readonly className?: string;
 }
 
-export function MenuList({ label, items, onBack, autoFocus = false }: MenuListProps) {
+export function MenuList({ label, items, onBack, autoFocus = false, className }: MenuListProps) {
   const [current, setCurrent] = useState(() => firstEnabled(items));
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -60,18 +63,21 @@ export function MenuList({ label, items, onBack, autoFocus = false }: MenuListPr
   };
 
   return (
-    <ul className="ui-menu" role="menu" aria-label={label} onKeyDown={onKeyDown}>
+    <ul className={className ? `ui-menu ${className}` : 'ui-menu'} role="menu" aria-label={label} onKeyDown={onKeyDown}>
       {items.map((item, index) => {
         const digit = shortcutDigit(index);
+        const classes = ['ui-menu-item'];
+        if (index === current) classes.push('current');
+        if (item.primary) classes.push('primary');
         return (
-          <li key={index} role="none">
+          <li key={index} role="none" className={item.primary ? 'primary' : undefined}>
             <button
               ref={(el) => {
                 refs.current[index] = el;
               }}
               type="button"
               role="menuitem"
-              className={index === current ? 'ui-menu-item current' : 'ui-menu-item'}
+              className={classes.join(' ')}
               aria-disabled={item.disabled ? true : undefined}
               tabIndex={index === current ? 0 : -1}
               onFocus={() => !item.disabled && setCurrent(index)}

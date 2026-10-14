@@ -32,7 +32,7 @@ interface Profile {
   totals: Record<Mode, Totals>;
 }
 
-interface MatchSummary {
+export interface MatchSummary {
   id: string;
   endedAt: string;
   mode: Mode;
@@ -42,7 +42,7 @@ interface MatchSummary {
   blueScore: number;
 }
 
-interface HistoryEntry extends MatchSummary {
+export interface HistoryEntry extends MatchSummary {
   player: { team: number; frags: number; kills: number; deaths: number; captures: number; scoreDelta: number; negDelta: number };
 }
 
@@ -85,7 +85,7 @@ interface Leaderboard {
 }
 
 /** Carrega `path` da API; `null` = não encontrado. */
-function useApi<T>(path: string): { data: T | null | undefined; error: string | null } {
+export function useApi<T>(path: string): { data: T | null | undefined; error: string | null } {
   const [state, setState] = useState<{ data: T | null | undefined; error: string | null }>({ data: undefined, error: null });
   useEffect(() => {
     let alive = true;

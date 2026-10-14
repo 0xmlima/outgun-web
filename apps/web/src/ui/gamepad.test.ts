@@ -28,6 +28,11 @@ describe('gamepad nas telas (OG-200)', () => {
     expect(r.keys).toEqual(['ArrowRight']);
   });
 
+  it('LB/RB pulam de controle (Shift+Tab/Tab)', () => {
+    expect(padKeys(new Map(), press(4), 0).keys).toEqual(['FocusPrevious']);
+    expect(padKeys(new Map(), press(5), 0).keys).toEqual(['FocusNext']);
+  });
+
   it('o analógico esquerdo também navega', () => {
     expect(padKeys(new Map(), { buttons: [], axes: [0, -0.9] }, 0).keys).toEqual(['ArrowUp']);
     expect(padKeys(new Map(), { buttons: [], axes: [0.8, 0] }, 0).keys).toEqual(['ArrowRight']);

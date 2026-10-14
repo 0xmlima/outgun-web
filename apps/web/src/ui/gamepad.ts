@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Gamepad nas telas fora da partida (OG-200, RN-UI-01): o direcional e o analógico esquerdo viram
-// setas, A vira Enter e B vira Esc, com repetição ao segurar. As teclas são entregues ao elemento em
-// foco como eventos de teclado, então todo componente que funciona por teclado funciona por gamepad.
+// setas, A vira Enter, B vira Esc e LB/RB pulam para o controle anterior/seguinte (como Shift+Tab e
+// Tab: saem de uma lista para a barra superior ou uma tabela), com repetição ao segurar. As teclas
+// são entregues ao elemento em foco como eventos de teclado, então todo componente que funciona por
+// teclado funciona por gamepad.
 import { useEffect } from 'react';
 
 /** Botões do mapeamento "standard" da Gamepad API. */
@@ -12,6 +14,8 @@ const PAD_KEYS: readonly (readonly [button: number, key: string])[] = [
   [15, 'ArrowRight'],
   [0, 'Enter'],
   [1, 'Escape'],
+  [4, 'FocusPrevious'],
+  [5, 'FocusNext'],
 ];
 const AXIS_THRESHOLD = 0.5;
 export const REPEAT_DELAY_MS = 400;
@@ -53,8 +57,23 @@ export function padKeys(state: PadState, input: PadInput, now: number): { state:
   return { state: next, keys };
 }
 
+const TABBABLE = 'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]';
+
+/** Tab sintético não move o foco: anda pelos controles alcançáveis por Tab na ordem do documento. */
+function moveFocus(step: 1 | -1): void {
+  const all = [...document.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
+  if (all.length === 0) return;
+  const index = all.indexOf(document.activeElement as HTMLElement);
+  const next = index < 0 ? (step > 0 ? 0 : all.length - 1) : (index + step + all.length) % all.length;
+  all[next]?.focus();
+}
+
 /** Entrega a tecla ao elemento em foco; Enter que nenhum componente tratou vira clique. */
 export function dispatchKey(key: string): void {
+  if (key === 'FocusNext' || key === 'FocusPrevious') {
+    moveFocus(key === 'FocusNext' ? 1 : -1);
+    return;
+  }
   const target = document.activeElement instanceof HTMLElement ? document.activeElement : document.body;
   const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
   const handled = !target.dispatchEvent(event);
