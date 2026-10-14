@@ -415,6 +415,21 @@ export const MESSAGES = {
       players: list(replayPlayer, 32),
     },
   ),
+  spectatorStart: msg(
+    32,
+    's2c',
+    'event',
+    'espectador do relay (`spectating_delay`)',
+    'Espectador ao vivo (OG-092): começa uma partida; em seguida vêm o estado inicial e os frames do replay, com o atraso da sala.',
+    {
+      protocol: u16,
+      maxPlayers: u8,
+      /** Atraso em segundos (`spectating_delay`). */
+      delay: u16,
+      map: str(64),
+      mapTitle: str(64),
+    },
+  ),
 
   // ------------------------------------------------------------ jogadores
   playerJoined: msg(

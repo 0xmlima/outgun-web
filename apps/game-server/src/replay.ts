@@ -23,11 +23,22 @@ export class ReplayRecorder {
     this.pending.push(...messages);
   }
 
-  /** Fecha o frame: o estado de todos e os eventos acumulados. */
-  frame(state: AnyMessage): void {
-    this.chunks.push(encodeFrame(state, ...this.pending));
+  /** Fecha o frame: o estado de todos e os eventos acumulados. Devolve o bloco (para os espectadores). */
+  frame(state: AnyMessage): Uint8Array {
+    const chunk = encodeFrame(state, ...this.pending);
+    this.chunks.push(chunk);
     this.pending = [];
     this.frames++;
+    return chunk;
+  }
+
+  /** Bloco do estado inicial. */
+  get initChunk(): Uint8Array {
+    return this.chunks[0]!;
+  }
+
+  get replayHeader(): Omit<ReplayHeader, 'frames'> {
+    return this.header;
   }
 
   get frameCount(): number {

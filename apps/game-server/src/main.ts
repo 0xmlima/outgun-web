@@ -7,7 +7,8 @@
 // EMPTY_TIMEOUT_S (300), PUBLIC_WS_URL (endereço anunciado à API; ws://localhost:PORT), REGION (local),
 // MAX_ROOMS (50), RANKED_ROTATION (rotação oficial do Ranked; padrão ROTATION), HEARTBEAT (0 = não registra na API),
 // CASUAL_BOTS_FILL (bots_fill das salas Casual; padrão 0), REPLAYS (0 = não grava), REPLAY_DIR (var/replays do
-// repositório), REPLAY_PUBLIC_URL (padrão http://<PUBLIC_WS_URL>/replays), REPLAY_RETENTION_DAYS (30; 0 = para sempre).
+// repositório), REPLAY_PUBLIC_URL (padrão http://<PUBLIC_WS_URL>/replays), REPLAY_RETENTION_DAYS (30; 0 = para sempre),
+// MAX_SPECTATORS (espectadores ao vivo por sala; 16), GAMEMOD (linhas de gamemod para todas as salas, separadas por |).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
@@ -58,6 +59,8 @@ const manager = new RoomManager({
     // `bots_fill` das salas Casual (OG-054); o preset Clássico tem 0
     ...(env.CASUAL_BOTS_FILL ? { botsFill: Number(env.CASUAL_BOTS_FILL) } : {}),
     ...(replays ? { replays } : {}),
+    maxSpectators: Number(env.MAX_SPECTATORS ?? 16),
+    ...(env.GAMEMOD ? { gamemod: env.GAMEMOD.split('|').join('\n') } : {}),
   },
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');

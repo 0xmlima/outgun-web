@@ -1,6 +1,6 @@
 <!-- Gerado por `pnpm --filter @outgun/protocol gen:messages` a partir de src/messages.ts. Não edite à mão. -->
 
-# Protocolo Outgun Web v3
+# Protocolo Outgun Web v4
 
 Cada mensagem WebSocket binária contém uma ou mais mensagens: `[código u8][campos na ordem abaixo]`.
 Inteiros little-endian; `string` e `lista` levam o comprimento como varuint (7 bits por byte).
@@ -9,7 +9,7 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 ## Handshake
 
 1. O cliente abre o WebSocket e envia `hello` com `protocol` e o ticket da API.
-2. Versão diferente de 3 ou ticket inválido: `reject` e o servidor fecha a conexão.
+2. Versão diferente de 4 ou ticket inválido: `reject` e o servidor fecha a conexão.
 3. Aceito: `welcome`, `serverSettings`, jogadores presentes, bandeiras, placar; depois `frame` a cada 100 ms.
 
 ## Mensagens
@@ -39,6 +39,7 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 22 | [`minimapBandwidth`](#minimapbandwidth) | cliente → servidor | event | `data_set_minimap_player_bandwidth` | Jogadores no minimapa por frame. |
 | 30 | [`frame`](#frame) | servidor → cliente | frame | `broadcast_frame` | Estado do frame para um jogador: quem está na mesma sala, minimapa e o próprio estado. |
 | 31 | [`replayFrame`](#replayframe) | servidor → cliente | frame | `record_message` (bloco do frame do replay) | Frame do replay (OG-090): todos os jogadores, de todas as salas, para um espectador onisciente. |
+| 32 | [`spectatorStart`](#spectatorstart) | servidor → cliente | event | espectador do relay (`spectating_delay`) | Espectador ao vivo (OG-092): começa uma partida; em seguida vêm o estado inicial e os frames do replay, com o atraso da sala. |
 | 40 | [`playerJoined`](#playerjoined) | servidor → cliente | event | `data_new_player` + `data_name_update` + `data_bot` | Jogador entrou na sala. |
 | 41 | [`playerLeft`](#playerleft) | servidor → cliente | event | `data_player_left` | Jogador saiu. |
 | 42 | [`playerName`](#playername) | servidor → cliente | event | `data_name_update` | Nome de um jogador. |
@@ -255,6 +256,16 @@ Código 31. Frame do replay (OG-090): todos os jogadores, de todas as salas, par
 
 - `frame`: u32
 - `players`: lista (até 32) de jogador no replay
+
+### spectatorStart
+
+Código 32. Espectador ao vivo (OG-092): começa uma partida; em seguida vêm o estado inicial e os frames do replay, com o atraso da sala.
+
+- `protocol`: u16
+- `maxPlayers`: u8
+- `delay`: u16
+- `map`: string (UTF-8, até 64 bytes)
+- `mapTitle`: string (UTF-8, até 64 bytes)
 
 ### playerJoined
 

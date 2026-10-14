@@ -28,6 +28,7 @@ import './styles.css';
 // O jogo (e, a partir do OG-061, o PixiJS) só é baixado ao entrar na partida.
 const GameScreen = lazy(() => import('./screens/GameScreen.js'));
 const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
+const SpectateScreen = lazy(() => import('./screens/ReplayScreen.js').then((m) => ({ default: m.SpectateScreen })));
 
 const router = createBrowserRouter([
   {
@@ -66,6 +67,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={null}>
             <GameScreen />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'spectate',
+        element: (
+          <Suspense fallback={null}>
+            <SpectateScreen />
           </Suspense>
         ),
       },

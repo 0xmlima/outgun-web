@@ -129,6 +129,38 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     },
   });
 
+  // Espectadores ao vivo (OG-092): sem ticket, só recebem; o atraso é o `spectating_delay` da sala.
+  app.ws<{ roomId: string; conn: Connection | null }>('/rooms/:id/spectate', {
+    compression: uWS.DISABLED,
+    maxPayloadLength: 1024,
+    idleTimeout: 120,
+    upgrade: (res, req, context) => {
+      const roomId = req.getParameter(0) ?? '';
+      if (!manager.get(roomId)) {
+        res.writeStatus('404 Not Found').end('sala inexistente');
+        return;
+      }
+      res.upgrade({ roomId, conn: null }, req.getHeader('sec-websocket-key'), req.getHeader('sec-websocket-protocol'), req.getHeader('sec-websocket-extensions'), context);
+    },
+    open: (ws) => {
+      const user = ws.getUserData();
+      const room = manager.get(user.roomId);
+      const conn: Connection = { send: (b) => void ws.send(b, true), close: (code, reason) => ws.end(code, reason) };
+      if (!room) return ws.end(1001, 'sala encerrada');
+      if (!room.addSpectator(conn)) {
+        ws.send(encodeFrame(message('reject', { reason: 'serverFull', text: 'Limite de espectadores da sala.' })), true);
+        return ws.end(4000, 'serverFull');
+      }
+      user.conn = conn;
+    },
+    message: () => {},
+    close: (ws) => {
+      const user = ws.getUserData();
+      if (user.conn) manager.get(user.roomId)?.removeSpectator(user.conn);
+      user.conn = null;
+    },
+  });
+
   app.get('/health', (res) => {
     // o lobby mede o ping de cada região com este endereço (OG-069)
     res.writeHeader('access-control-allow-origin', '*').writeHeader('cache-control', 'no-store').writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));

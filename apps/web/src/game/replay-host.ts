@@ -34,6 +34,8 @@ export interface ReplayStatus {
 export interface ReplayHost {
   seek(frame: number): void;
   togglePause(): void;
+  /** Troca o replay (espectador: começou outra partida). */
+  setReplay(replay: Replay): void;
   destroy(): void;
 }
 
@@ -48,6 +50,8 @@ export interface ReplayOptions {
   readonly startSeconds?: number;
   readonly onStatus: (status: ReplayStatus) => void;
   readonly onError: (message: string) => void;
+  /** Ao vivo (espectador, OG-092): os blocos chegam em `replay.frames`; toca no tempo real, sem velocidade nem seek. */
+  readonly live?: boolean;
 }
 
 /** Lê um `.ogr`: prefixo, gzip (DecompressionStream) e blocos. */
@@ -69,10 +73,11 @@ function zoom(visible: number, dir: 1 | -1): number {
   return Math.max(1, visible - (visible <= 3 ? 0.25 : visible <= 5 ? 0.5 : 1));
 }
 
-export function mountReplay(container: HTMLElement, replay: Replay, opts: ReplayOptions): ReplayHost {
+export function mountReplay(container: HTMLElement, initial: Replay | null, opts: ReplayOptions): ReplayHost {
   const app = new Application();
   let destroyed = false;
   let ready = false;
+  let replay: Replay | null = null;
   let player: ReplayPlayer | undefined;
   let rate = 1;
   let paused = false;
@@ -81,9 +86,13 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
   let room: [number, number] = [0, 0];
   let follow = -1;
   let world: WorldRenderer | undefined;
+  let entities: EntityRenderer | undefined;
   let map: GameMap | undefined;
+  let mapName = '';
   let lastStatus = '';
-  let renderer: EntityRenderer | undefined;
+  /** Aberturas em ordem (um mapa carregando de cada vez). */
+  let opening = Promise.resolve();
+  let setup: Promise<{ theme: Awaited<ReturnType<typeof loadRoomTheme>>; sprites: Awaited<ReturnType<typeof loadEntitySprites>>; font: Awaited<ReturnType<typeof loadFont>> }> | null = null;
 
   const status = () => {
     const s = player?.session;
@@ -94,8 +103,8 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
       paused,
       following: follow >= 0 ? (s?.names.get(follow) ?? null) : null,
       room,
-      mapTitle: replay.header.mapTitle,
-      ended: !!player && player.position >= player.length,
+      mapTitle: replay?.header.mapTitle ?? '',
+      ended: !opts.live && !!player && player.position >= player.length,
     };
     const key = JSON.stringify(st);
     if (key !== lastStatus) {
@@ -111,8 +120,7 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
     const w = player?.session.world;
     if (!w) return;
     const pids = w.players.flatMap((p, i) => (p ? [i] : []));
-    const after = pids.find((pid) => pid > follow);
-    follow = after ?? -1;
+    follow = pids.find((pid) => pid > follow) ?? -1;
   };
 
   const onKey = (ev: KeyboardEvent) => {
@@ -124,10 +132,10 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
     if (move) {
       follow = -1;
       room = [positiveModulo(room[0] + move[0], map.width), positiveModulo(room[1] + move[1], map.height)];
-    } else if (ev.key === 'PageUp') rate = Math.min(RATE_MAX, rate * 2);
-    else if (ev.key === 'PageDown') rate = Math.max(RATE_MIN, rate / 2);
-    else if (ev.key === 'Home') rate = 1;
-    else if (ev.key === 'p' || ev.key === 'P') paused = !paused;
+    } else if (ev.key === 'PageUp' && !opts.live) rate = Math.min(RATE_MAX, rate * 2);
+    else if (ev.key === 'PageDown' && !opts.live) rate = Math.max(RATE_MIN, rate / 2);
+    else if (ev.key === 'Home' && !opts.live) rate = 1;
+    else if ((ev.key === 'p' || ev.key === 'P') && !opts.live) paused = !paused;
     else if (ev.code === 'NumpadAdd') visible = zoom(visible, -1);
     else if (ev.code === 'NumpadSubtract') visible = zoom(visible, 1);
     else if (ev.key === 'f' || ev.key === 'F') nextFollow();
@@ -138,6 +146,49 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
     status();
   };
 
+  /** Carrega mapa e renderers do replay (reaproveita se o mapa é o mesmo) e cria o player. */
+  const open = async (next: Replay) => {
+    if (!setup) throw new Error('player não iniciado');
+    const { theme, sprites, font } = await setup;
+    if (destroyed) return;
+    if (next.header.map !== mapName || !world) {
+      const { map: loaded, bytes } = await loadMap(next.header.map);
+      const source = await createRoomSource(loaded, next.header.map, bytes, theme);
+      if (destroyed) return source.destroy();
+      world?.destroy();
+      world = new WorldRenderer(loaded.width, loaded.height, theme, source, app.renderer.resolution);
+      app.stage.addChildAt(world.stage, 0);
+      map = loaded;
+      mapName = next.header.map;
+      layout();
+    }
+    if (!entities) {
+      entities = new EntityRenderer(theme, sprites, font);
+      entities.showNames = 'always';
+      app.stage.addChild(entities.stage);
+    }
+    const recorded = next.init.find((m) => m.type === 'mapChange');
+    if (recorded?.type === 'mapChange' && map && recorded.crc !== map.crc) console.warn(`replay: CRC do mapa ${map.crc} ≠ ${recorded.crc} gravado`);
+    const fx = entities;
+    const p = new ReplayPlayer(next, map!, (ev) => {
+      const time = (p.session.world?.frame ?? 0) / 10;
+      const at = (pos: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: pos.roomX, y: pos.roomY }, x: pos.x, y: pos.y });
+      if (ev.kind === 'rocketHitWall') fx.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);
+      else if (ev.kind === 'rocketHitPlayer') fx.addEffect('gunExplosion', at(ev.pos), ev.team, time);
+    });
+    replay = next;
+    player = p;
+    subFrame = 0;
+    if (opts.live) p.seek(Math.max(0, p.length - 1));
+    else if (opts.startSeconds) p.seek(opts.startSeconds * 10);
+    else p.step();
+    status();
+  };
+
+  const setReplay = (next: Replay) => {
+    opening = opening.then(() => open(next)).catch((err: unknown) => opts.onError(err instanceof Error ? err.message : String(err)));
+  };
+
   void (async () => {
     try {
       await app.init({ resizeTo: container, resolution: devicePixelRatio || 1, autoDensity: true, antialias: false, background: '#000000' });
@@ -146,36 +197,21 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
       app.canvas.className = 'game-canvas';
       app.canvas.setAttribute('aria-label', 'Outgun replay');
       container.append(app.canvas);
-      const manifest = await loadManifest();
-      if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
-      const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
-      const [{ map: loaded, bytes }, sprites, font] = await Promise.all([loadMap(replay.header.map), loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
-      if (destroyed) return;
-      map = loaded;
-      const recorded = replay.init.find((m) => m.type === 'mapChange');
-      if (recorded?.type === 'mapChange' && recorded.crc !== map.crc) console.warn(`replay: CRC do mapa ${map.crc} ≠ ${recorded.crc} gravado`);
-      const source = await createRoomSource(map, replay.header.map, bytes, theme);
-      if (destroyed) return source.destroy();
-      app.renderer.background.color = theme.colours.screen_background ?? '#000000';
-      world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
-      app.stage.addChild(world.stage);
-      const entities = (renderer = new EntityRenderer(theme, sprites, font));
-      entities.showNames = 'always';
-      app.stage.addChild(entities.stage);
+      setup = (async () => {
+        const manifest = await loadManifest();
+        if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
+        const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+        app.renderer.background.color = theme.colours.screen_background ?? '#000000';
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
+        return { theme, sprites, font };
+      })();
+      await setup;
       app.renderer.on('resize', layout);
-      layout();
-      const p = new ReplayPlayer(replay, map, (ev) => {
-        const time = (p.session.world?.frame ?? 0) / 10;
-        const at = (pos: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: pos.roomX, y: pos.roomY }, x: pos.x, y: pos.y });
-        if (ev.kind === 'rocketHitWall') entities.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);
-        else if (ev.kind === 'rocketHitPlayer') entities.addEffect('gunExplosion', at(ev.pos), ev.team, time);
-      });
-      player = p;
-      if (opts.startSeconds) p.seek(opts.startSeconds * 10);
-      else p.step();
-      status();
+      if (initial) setReplay(initial);
       app.ticker.add((ticker) => {
-        if (!world?.layout) return;
+        const p = player;
+        if (!p || !world?.layout || !entities) return;
+        if (opts.live && p.length - p.position > 5) p.seek(p.length - 1); // atrasou (aba em segundo plano): alcança
         if (!paused && p.position < p.length) {
           subFrame += Math.min(ticker.deltaMS, 250) * 0.01 * rate;
           while (subFrame >= 1) {
@@ -183,6 +219,8 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
             if (!p.step()) break;
           }
         }
+        // ao vivo, não extrapola além do último frame recebido
+        if (p.position >= p.length) subFrame = Math.min(subFrame, 1);
         const s = p.session;
         const fd = s.world ? s.extrapolateBy(paused ? 0 : Math.min(1, subFrame)) : null;
         let topLeft: WorldCoords = { room: { x: room[0], y: room[1] }, x: 0, y: 0 };
@@ -205,6 +243,7 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
         }
         world.render(topLeft);
         container.dataset.position = String(p.position);
+        container.dataset.frame = String(s.world?.frame ?? -1);
         status();
       });
       container.dataset.status = 'ready';
@@ -216,7 +255,7 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
   addEventListener('keydown', onKey);
   return {
     seek(frame) {
-      if (!player) return;
+      if (!player || opts.live) return;
       player.seek(frame);
       subFrame = 0;
       status();
@@ -225,11 +264,12 @@ export function mountReplay(container: HTMLElement, replay: Replay, opts: Replay
       paused = !paused;
       status();
     },
+    setReplay,
     destroy() {
       destroyed = true;
       removeEventListener('keydown', onKey);
       world?.destroy();
-      renderer?.destroy();
+      entities?.destroy();
       if (ready) app.destroy(true);
     },
   };

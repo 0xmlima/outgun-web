@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Player de replay (OG-091): `/replay?src=URL&t=SEGUNDOS` (ou um arquivo escolhido em /replays), com a
-// barra de tempo, a velocidade e um link compartilhável que guarda o ponto atual.
+// barra de tempo, a velocidade e um link compartilhável que guarda o ponto atual. Espectador ao vivo
+// (OG-092): `/spectate?src=wss://.../rooms/ID/spectate` (ou `?sala=ID` no servidor padrão) toca o stream
+// da sala com o atraso de `spectating_delay`.
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
+import { decodeFrame, PROTOCOL_VERSION, type Replay } from '@outgun/protocol';
+import { defaultServerUrl } from '../game/net/connection.js';
 import { mountReplay, readReplay, type ReplayHost, type ReplayStatus } from '../game/replay-host.js';
 
 const clock = (frames: number) => {
@@ -107,6 +111,99 @@ export default function ReplayScreen() {
               </button>
             </span>
             <small>{t('PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom')}</small>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SpectateScreen() {
+  const { t, prefs } = usePrefs();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const src = params.get('src') ?? `${defaultServerUrl()}/rooms/${encodeURIComponent(params.get('sala') ?? 'main')}/spectate`;
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<ReplayStatus | null>(null);
+  const [delay, setDelay] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hostRef.current) return;
+    const host = mountReplay(hostRef.current, null, {
+      theme: prefs.graphicsTheme,
+      visibleRooms: prefs.visibleRooms,
+      continuousTextures: prefs.continuousTextures,
+      font: prefs.menuFont,
+      colourTheme: prefs.colourTheme,
+      preferThemeColours: prefs.preferThemeColours,
+      live: true,
+      onStatus: setStatus,
+      onError: setError,
+    });
+    const ws = new WebSocket(src);
+    ws.binaryType = 'arraybuffer';
+    /** Partida em curso; `awaitingInit`: o próximo pacote é o estado inicial dela. */
+    let replay: Replay | null = null;
+    let awaitingInit = false;
+    ws.onmessage = (ev) => {
+      const r = decodeFrame(new Uint8Array(ev.data as ArrayBuffer), 's2c');
+      if (!r.ok) return;
+      const start = r.messages.find((m) => m.type === 'spectatorStart');
+      const reject = r.messages.find((m) => m.type === 'reject');
+      if (reject?.type === 'reject') return setError(reject.text || reject.reason);
+      if (start?.type === 'spectatorStart') {
+        if (start.protocol !== PROTOCOL_VERSION) return setError(t('This server uses another version of the game.'));
+        setDelay(start.delay);
+        replay = {
+          version: 1,
+          protocol: start.protocol,
+          header: { roomId: '', mode: '', preset: '', map: start.map, mapTitle: start.mapTitle, maxPlayers: start.maxPlayers, startedAt: '', startFrame: 0, frames: 0 },
+          init: [],
+          frames: [],
+        };
+        awaitingInit = true;
+      } else if (replay && awaitingInit) {
+        replay.init = r.messages;
+        awaitingInit = false;
+        host.setReplay(replay);
+      } else replay?.frames.push(r.messages);
+    };
+    ws.onclose = (ev) => ev.code !== 1000 && setError(`${t('Disconnected')} (${ev.code}${ev.reason ? `: ${ev.reason}` : ''})`);
+    return () => {
+      ws.onclose = null;
+      ws.close();
+      host.destroy();
+    };
+    // as preferências valem na abertura
+  }, [src]);
+
+  return (
+    <div className="game replay" data-status={error ? 'error' : status ? 'ready' : 'loading'}>
+      <div ref={hostRef} className="game-host" />
+      <div className="game-overlay">
+        {error && (
+          <p className="game-toast" role="alert">
+            {error}
+          </p>
+        )}
+        {!error && !status && delay !== null && (
+          <p className="game-toast" role="status">
+            {t('Live with $1 s delay: the match appears after the delay.', String(delay))}
+          </p>
+        )}
+        {status && (
+          <div className="replay-bar">
+            <span>
+              {t('Live')} · {status.mapTitle} · {t('$1 s delay', String(delay ?? 0))}
+              {status.following ? ` · ${t('following $1', status.following)}` : ` · ${t('room $1', `${status.room[0]},${status.room[1]}`)}`}
+            </span>
+            <span className="replay-buttons">
+              <button type="button" onClick={() => void navigate(-1)}>
+                {t('Back')}
+              </button>
+            </span>
+            <small>{t('Arrows room · F follow player · keypad +/- zoom')}</small>
           </div>
         )}
       </div>

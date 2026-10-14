@@ -11,6 +11,7 @@ import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type Co
 import { BotClient, type BotHost } from './bot-client.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
+import { SpectatorStream } from './spectators.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
@@ -95,6 +96,8 @@ export interface RoomOptions {
   botTest?: boolean;
   /** Linhas de gamemod por cima do preset desde a criação (como um /set inicial). */
   gamemod?: string;
+  /** Espectadores ao vivo por sala (OG-092; padrão 16). */
+  maxSpectators?: number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -218,6 +221,8 @@ export class Room {
   private readonly botRng: GlibcRand;
   /** Regras de bandeira já anunciadas (`flagModeMask`). */
   private sentFlagModes = '';
+  /** Espectadores ao vivo com atraso (OG-092). */
+  private readonly spectators: SpectatorStream;
 
   constructor(private readonly options: RoomOptions) {
     const preset = PRESETS.find((p) => p.id === options.preset);
@@ -235,6 +240,7 @@ export class Room {
     const rng = new GlibcRand(options.seed);
     this.botNameRng = new GlibcRand(options.seed + 1);
     this.botRng = new GlibcRand(options.seed + 2);
+    this.spectators = new SpectatorStream(options.maxSpectators ?? 16);
     if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
@@ -505,6 +511,19 @@ export class Room {
       mapByFile: (file) => room.rotation.find((r) => r.file === file)?.map,
       deliver: (pid, messages) => room.handle(pid, messages),
     };
+  }
+
+  /** Espectador ao vivo (OG-092): recebe o replay com `spectating_delay`; false com a sala cheia de espectadores. */
+  addSpectator(conn: Connection): boolean {
+    return this.spectators.add(conn);
+  }
+
+  removeSpectator(conn: Connection): void {
+    this.spectators.remove(conn);
+  }
+
+  get spectatorCount(): number {
+    return this.spectators.count;
   }
 
   /** Clientes virtuais dos bots presentes. */
@@ -816,7 +835,8 @@ export class Room {
     }
     this.playerTimers(running);
     this.flush();
-    if (running) this.recorder?.frame(this.replayFrame());
+    if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()));
+    this.spectators.tick(world.frame, this.settings.server.spectatingDelay);
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
       const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
@@ -1058,13 +1078,14 @@ export class Room {
   }
 
   /** `start_recording`: replay novo a cada início de partida, com o estado inicial de um espectador. */
+  /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
   private startRecording(): void {
-    if (!this.options.replays) return;
     const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
     this.recorder = new ReplayRecorder(
       { roomId: this.id, mode: this.mode, preset: this.preset.id, map: this.mapFile(this.mapIndex), mapTitle: this.world.map.title, maxPlayers: this.world.maxPlayers, startedAt: new Date(this.wallClock()).toISOString(), startFrame: this.world.frame },
       init,
     );
+    this.spectators.begin(this.recorder.replayHeader, this.recorder.initChunk);
   }
 
   /**
@@ -1074,9 +1095,10 @@ export class Room {
   private finishRecording(key: string): string | null {
     const recorder = this.recorder;
     this.recorder = null;
-    if (!recorder || !this.options.replays) return null;
+    if (!recorder) return null;
     recorder.event(...this.outbox);
-    recorder.frame(this.replayFrame());
+    this.spectators.frame(recorder.frame(this.replayFrame()));
+    if (!this.options.replays) return null;
     const humans = [...this.clients.values()].filter((c) => !c.bot).length;
     if (humans < Math.max(1, this.settings.server.recording)) return null;
     return this.options.replays.save(key, recorder.finish());
@@ -1372,5 +1394,6 @@ export class Room {
       c.conn.close(1001, 'sala encerrada');
       this.leave(pid);
     }
+    this.spectators.close();
   }
 }

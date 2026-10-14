@@ -116,6 +116,7 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
       online: true,
       persistent: true,
       region: 'local',
+      spectateUrl: 'ws://localhost:7700/rooms/main/spectate',
     });
     const [row] = await t.db.select().from(rooms).where(eq(rooms.id, 'main'));
     expect(row?.serverId).toBe('gs-1');
