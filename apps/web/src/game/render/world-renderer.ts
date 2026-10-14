@@ -16,6 +16,8 @@ export interface WorldViewOptions {
   readonly continuousTextures: boolean;
   readonly repeatX?: boolean;
   readonly repeatY?: boolean;
+  /** "Map info mode" (OG-070): repinta as salas com respawn, spawn e grade. */
+  readonly mapInfo?: boolean;
 }
 
 interface CachedRoom {
@@ -34,6 +36,7 @@ export class WorldRenderer {
   private readonly sprites: Sprite[] = [];
   private layoutValue: RoomLayout | undefined;
   private continuous = true;
+  private mapInfo = false;
   /** Muda a cada troca de layout: pinturas de um layout antigo são descartadas. */
   private generation = 0;
   private frame = 0;
@@ -58,10 +61,11 @@ export class WorldRenderer {
   setPlayfield(playfield: Rect, opts: WorldViewOptions): RoomLayout {
     const layout = roomLayout(playfield, this.mapW, this.mapH, opts.visibleRooms, opts.repeatX, opts.repeatY);
     const old = this.layoutValue;
-    if (!old || old.roomW !== layout.roomW || old.roomH !== layout.roomH || this.continuous !== opts.continuousTextures)
+    if (!old || old.roomW !== layout.roomW || old.roomH !== layout.roomH || this.continuous !== opts.continuousTextures || this.mapInfo !== (opts.mapInfo ?? false))
       this.invalidate();
     this.layoutValue = layout;
     this.continuous = opts.continuousTextures;
+    this.mapInfo = opts.mapInfo ?? false;
     this.clip.clear().rect(layout.x0, layout.y0, layout.width, layout.height).fill(0xffffff);
     this.lastViewKey = '';
     return layout;
@@ -132,7 +136,7 @@ export class WorldRenderer {
     const width = Math.round(layout.roomW * this.resolution);
     const height = Math.round(layout.roomH * this.resolution);
     this.source
-      .paint(rx, ry, { width, height, texelSize: this.resolution, texRoomX: this.continuous ? rx : 0, texRoomY: this.continuous ? ry : 0 }, urgent)
+      .paint(rx, ry, { width, height, texelSize: this.resolution, texRoomX: this.continuous ? rx : 0, texRoomY: this.continuous ? ry : 0, mapInfo: this.mapInfo }, urgent)
       .then((image) => {
         if (generation !== this.generation || this.cache.get(key) !== created) {
           if ('close' in image) image.close();

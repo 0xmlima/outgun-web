@@ -2,6 +2,7 @@
 // Entidades e efeitos sobre as salas: port de `GuiClient::draw_playfield` e das funções `draw_*` de
 // src/graphics.cpp (plan/specs/render-entidades.md). Sprites do tema quando existem; senão as
 // formas procedurais do original.
+import { DEFAULT_GRAPHICS, emphasizeFlag, type GraphicsOptions } from '../graphics-options.js';
 import { Container, Graphics, Texture } from 'pixi.js';
 import { DrawList } from './draw-list.js';
 import { ROOM_HEIGHT, ROOM_WIDTH, type WorldCoords } from '@outgun/sim';
@@ -63,6 +64,8 @@ export class EntityRenderer {
   private topLeft!: WorldCoords;
   /** `Show player names` (`Menu_graphics::showName`, OG-068). */
   showNames: 'never' | 'sameRoom' | 'always' = 'sameRoom';
+  /** Opções gráficas avançadas (OG-070). */
+  graphics: GraphicsOptions = DEFAULT_GRAPHICS;
 
   constructor(
     private readonly theme: RoomTheme,
@@ -119,12 +122,18 @@ export class EntityRenderer {
 
     // 1. mortos
     for (const p of frame.players) if (p.dead && this.onScreen(p.pos, PLAYER_SPRITE_SIZE)) this.drawDead(p);
+    // 2. bandeiras sumidas (opção do original, desligada no client.cfg distribuído)
+    if (this.graphics.oldFlagPositions)
+      for (const f of frame.oldFlags ?? []) if (this.onScreen(f.pos, 120)) this.drawFlag({ team: f.team, pos: f.pos, carrier: -1, flash: false, returnIn: 0 }, 100, false, f.unknownFor);
+    const visibleRooms = Math.max(this.layout.visibleX, this.layout.visibleY);
+    const emphasize = emphasizeFlag(this.graphics.emphasizeFlags, visibleRooms);
     // 3. power-ups (e a fumaça do deathbringer no chão)
     for (const pup of frame.powerups) if (this.onScreen(pup.pos, 60)) this.drawPowerup(pup.kind, pup.pos, t);
     // 4. rastros de turbo
-    for (const fx of this.effects) if (fx.kind === 'turbo' && fx.player && t - fx.time <= 0.3) this.drawPlayerBody(fx.player, fx.pos, t, Math.trunc(fx.alpha * (90 - (t - fx.time) * 300)), true);
+    if (!this.graphics.lessTransparency) for (const fx of this.effects) if (fx.kind === 'turbo' && fx.player && t - fx.time <= 0.3) this.drawPlayerBody(fx.player, fx.pos, t, Math.trunc(fx.alpha * (90 - (t - fx.time) * 300)), true);
     // 5. bandeiras no chão
-    for (const f of frame.flags) if (f.carrier === -1 && this.onScreen(f.pos, 120)) this.drawFlag(f, 255, frame.multiRoom);
+    for (const f of frame.flags)
+      if (f.carrier === -1 && this.onScreen(f.pos, 120)) this.drawFlag({ ...f, flash: f.flash && this.graphics.highlightReturnedFlags }, 255, emphasize);
     // 6. foguetes
     for (const r of frame.rockets) if (this.onScreen(r.pos, 34)) this.drawRocket(r.team, r.power, r.pos, r.direction, r.shadow, t);
     // 7. jogadores: o próprio time primeiro, o próprio jogador por último
@@ -133,7 +142,7 @@ export class EntityRenderer {
     if (me && !me.dead) order.push(me);
     for (const p of order) if (this.onScreen(p.pos, 120)) this.drawPlayer(p, frame, t);
     // 8. anel do portador do deathbringer
-    for (const p of order) if (p.deathbringer && this.onScreen(p.pos, PLAYER_SPRITE_SIZE)) this.drawCarrierCircle(p);
+    if (!this.graphics.lessTransparency) for (const p of order) if (p.deathbringer && this.onScreen(p.pos, PLAYER_SPRITE_SIZE)) this.drawCarrierCircle(p);
     // 9. efeitos
     for (const fx of this.effects) this.drawEffect(fx, t);
     // 10. explosões de deathbringer
@@ -277,13 +286,14 @@ export class EntityRenderer {
     }
   }
 
-  private drawFlag(f: FlagView, alpha: number, multiRoom: boolean): void {
+  /** `draw_flag`; `unknownFor` = segundos sem notícia da bandeira sumida (contador a partir de 3 s). */
+  private drawFlag(f: FlagView, alpha: number, emphasize: boolean, unknownFor = 0): void {
     const L = this.list;
     const team = this.c(['team_red_basic', 'team_blue_basic', 'wild_flag'][f.team]!);
     const flash = this.c(['team_red_flash', 'team_blue_flash', 'wild_flag_flash'][f.team]!);
     const sprite = (f.flash ? this.sprites.flagFlash : this.sprites.flag)?.[f.team];
     for (const [x, y] of this.at(f.pos)) {
-      if (multiRoom && !f.flash) {
+      if (emphasize && !f.flash) {
         // ênfase: quatro triângulos apontando para a bandeira
         const a = this.pf(20);
         const d = [-a, 3 * a, a, 3 * a, 0, 2 * a];
@@ -301,6 +311,7 @@ export class EntityRenderer {
         g.rect(x, y - this.pf(18), this.pf(20) + 1, this.pf(18) + 1).fill({ color: f.flash ? flash : team, alpha: alpha / 255 });
       }
       if (f.returnIn >= 3) this.timer(String(Math.trunc(f.returnIn)), x, y, team);
+      else if (unknownFor >= 3) this.timer(String(Math.trunc(unknownFor)), x, y, team);
     }
   }
 
@@ -367,7 +378,7 @@ export class EntityRenderer {
 
   private drawPlayer(p: PlayerView, frame: EntityFrame, t: number): void {
     const carried = frame.flags.find((f) => f.carrier === p.pid);
-    if (carried) this.drawFlag({ ...carried, pos: p.pos }, 255, frame.multiRoom);
+    if (carried) this.drawFlag({ ...carried, pos: p.pos }, 255, emphasizeFlag(this.graphics.emphasizeFlags, Math.max(this.layout.visibleX, this.layout.visibleY)));
     if (p.turboTrail && t > (this.nextTurbo.get(p.pid) ?? 0)) {
       this.nextTurbo.set(p.pid, t + 0.05);
       this.effects.push({ kind: 'turbo', pos: p.pos, time: t, team: p.team, alpha: p.alpha / 255, player: { ...p, hitfx: 0, power: false } });
@@ -435,6 +446,14 @@ export class EntityRenderer {
       case 'smoke': {
         const s = smoke(delta, fx.alpha);
         if (s.alpha <= 0) return;
+        if (this.graphics.lessTransparency) {
+          // "Less transparency effects": cinza opaco, metade do raio (`draw_deathbringer_smoke`)
+          if (s.alpha <= 10) return;
+          const v = Math.max(0, 120 - s.alpha);
+          const grey = (v << 16) | (v << 8) | v;
+          for (const [x, y] of this.at(fx.pos)) this.list.g().circle(x, y - this.pf(s.rise), this.pfd(s.radius) / 2).fill(grey);
+          return;
+        }
         const col = this.c(fx.team === 0 ? 'deathbringer_smoke_red' : fx.team === 1 ? 'deathbringer_smoke_blue' : 'deathbringer_smoke');
         for (const [x, y] of this.at(fx.pos)) this.list.g().circle(x, y - this.pf(s.rise), this.pfd(s.radius)).fill({ color: col, alpha: s.alpha / 255 });
         return;

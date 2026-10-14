@@ -8,7 +8,7 @@ import { Navigate, useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
-import { QUICK_MESSAGE_LENGTH, usePrefs, type Prefs, type ShowNames, type ShowStats, type SkipMaps } from '../app/prefs.js';
+import { type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useFontNames } from '../ui/fonts.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 
@@ -31,8 +31,9 @@ export function moveColor(colors: readonly number[], selected: number, delta: -1
 }
 
 function useManifestLists() {
-  const [lists, setLists] = useState<{ themes: string[]; colourThemes: string[]; soundThemes: string[]; playerColours: string[] }>({
+  const [lists, setLists] = useState<{ themes: string[]; colourThemes: string[]; backgrounds: string[]; soundThemes: string[]; playerColours: string[] }>({
     themes: [],
+    backgrounds: [],
     colourThemes: [],
     soundThemes: [],
     playerColours: [],
@@ -44,6 +45,7 @@ function useManifestLists() {
       setLists({
         themes: Object.keys(m.graphics),
         colourThemes: Object.entries(m.graphics).filter(([, v]) => v.colours).map(([k]) => k),
+        backgrounds: Object.entries(m.graphics).filter(([, v]) => v.graphics.background).map(([k]) => k),
         soundThemes: Object.keys(m.sounds),
         playerColours: Array.from({ length: 16 }, (_, i) => m.defaultColours[`player${String(i + 1).padStart(2, '0')}`] ?? '#888888'),
       });
@@ -169,6 +171,8 @@ export function OptionsSectionScreen() {
           ['players', 'players'],
         ]),
         toggle('showServerInfo', 'Show server info when connected'),
+        toggle('stayDeadInMenus', 'Stay dead when in a menu at round start'),
+        toggle('underlineAccounts', 'Underline players with an account'),
         select<SkipMaps>('skipMaps', 'Skip maps in rotation', [
           ['none', 'none'],
           ['dimmed', 'dimmed'],
@@ -214,6 +218,14 @@ export function OptionsSectionScreen() {
         toggle('preferThemeColours', 'Prefer main theme colours'),
         {
           kind: 'choice',
+          label: t('Background theme'),
+          value: prefs.backgroundTheme || t('<no background>'),
+          disabled: lists.backgrounds.length === 0,
+          onChange: (d) => setPrefs({ backgroundTheme: cycle(['', ...lists.backgrounds], prefs.backgroundTheme, d) }),
+        },
+        toggle('preferThemeBackground', 'Prefer main theme background'),
+        {
+          kind: 'choice',
           label: t('Font'),
           value: prefs.menuFont,
           disabled: fonts.length === 0,
@@ -236,7 +248,43 @@ export function OptionsSectionScreen() {
           value: String(prefs.visibleRooms),
           onChange: (d) => setPrefs({ visibleRooms: Math.min(20, Math.max(1, prefs.visibleRooms + d)) }),
         },
+        toggle('scroll', 'Scrolling'),
+        toggle('lessTransparency', 'Less transparency effects'),
         toggle('continuousTextures', 'Continuous textures between rooms'),
+        select<MinimapPlayers>('minimapPlayers', 'Disappeared players on minimap', [
+          ['fade', 'fade out'],
+          ['hideEarly', 'hide early'],
+          ['hideLate', 'hide late'],
+        ]),
+        toggle('highlightReturnedFlags', 'Highlight returned and dropped flags'),
+        select<EmphasizeFlags>('emphasizeFlags', 'Make flags extra-visible', [
+          ['never', 'never'],
+          ['multiRoom', 'multi-roomed'],
+          ['always', 'always'],
+        ]),
+        toggle('oldFlagPositions', 'Show flag disappearance positions'),
+        toggle('spawnHighlight', 'Highlight self after spawn'),
+        select<NeighborMarkers>('neighborMarkers', 'Markers for nearby players and flags in game', [
+          ['never', 'never'],
+          ['oneRoom', 'single-roomed'],
+          ['always', 'always'],
+        ]),
+        toggle('boxVisibleArea', 'Box visible area on map in game'),
+        select<ViewOverBorder>('viewOverBorder', 'Let view follow over map border', [
+          ['never', 'never'],
+          ['mapDoesntFit', "when all rooms aren't shown"],
+          ['mapWraps', 'if the border has doorways'],
+          ['always', 'always'],
+        ]),
+        toggle('repeatMap', 'Allow parts of map to repeat on screen'),
+        toggle('highlightUnknownMaps', 'Highlight maps not in the game'),
+        {
+          kind: 'choice',
+          label: t('Stats screen alpha'),
+          value: String(prefs.statsAlpha),
+          onChange: (d) => setPrefs({ statsAlpha: Math.min(255, Math.max(0, prefs.statsAlpha + 15 * d)) }),
+        },
+        toggle('mapInfoMode', 'Map info mode'),
         {
           kind: 'choice',
           label: t('FPS limit'),

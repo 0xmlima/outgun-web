@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Imagem de uma sala: port de `Graphics::drawRoomBackground` com antialiasing (src/graphics.cpp:
 // 489-588, plan/specs/render-salas.md). A sala é desenhada uma vez num canvas e vira textura.
-import { ROOM_HEIGHT, ROOM_WIDTH, type GameMap, type Wall } from '@outgun/sim';
+import { PLAYER_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, type GameMap, type Wall } from '@outgun/sim';
 import { colour, type Fill, type RoomTheme } from './theme.js';
 
 /** `Graphics::flagpos_radius` (src/graphics.h:518), em unidades do mundo. */
@@ -22,6 +22,8 @@ export interface PaintOptions {
   /** Sala usada para alinhar as texturas: a própria com texturas contínuas, senão (0, 0). */
   readonly texRoomX: number;
   readonly texRoomY: number;
+  /** "Map info mode" (OG-070): áreas de respawn, pontos de spawn e grade 16×12. */
+  readonly mapInfo?: boolean;
 }
 
 /** Escala e deslocamento que fazem a sala 472×354 preencher o bitmap (cortando o excesso). */
@@ -128,6 +130,16 @@ export function paintRoom(ctx: Ctx2D, map: GameMap, rx: number, ry: number, them
   // 2. áreas de chão
   if (room) fillWalls(ctx, room.ground, theme.floor, opts, x0, y0, scale);
 
+  // 2b. modo de informação: áreas de respawn dos times (alfa 120), aumentadas do raio do jogador
+  if (opts.mapInfo)
+    for (const team of [0, 1] as const) {
+      ctx.globalAlpha = 120 / 255;
+      ctx.fillStyle = colour(theme, team === 0 ? 'team_red_basic' : 'team_blue_basic');
+      for (const r of map.teams[team].respawn)
+        if (r.room.x === rx && r.room.y === ry) ctx.fillRect(x0 + (r.x1 - PLAYER_RADIUS) * scale, y0 + (r.y1 - PLAYER_RADIUS) * scale, (r.x2 - r.x1 + 2 * PLAYER_RADIUS) * scale, (r.y2 - r.y1 + 2 * PLAYER_RADIUS) * scale);
+      ctx.globalAlpha = 1;
+    }
+
   // 3. marcas das bandeiras vermelhas, azuis e neutras (misturadas por cima)
   const markColours = [colour(theme, 'team_red_basic'), colour(theme, 'team_blue_basic'), colour(theme, 'wild_flag')];
   const flagLists = [map.teams[0].flags, map.teams[1].flags, map.wildFlags];
@@ -157,5 +169,30 @@ export function paintRoom(ctx: Ctx2D, map: GameMap, rx: number, ry: number, them
 
   // 5. paredes
   if (room) fillWalls(ctx, room.walls, theme.wall, opts, x0, y0, scale);
+
+  // 6. modo de informação: pontos de spawn e a grade (linhas do meio e da sala em destaque)
+  if (opts.mapInfo) {
+    for (const team of [0, 1] as const) {
+      ctx.fillStyle = colour(theme, team === 0 ? 'team_red_basic' : 'team_blue_basic');
+      for (const sp of map.teams[team].spawn)
+        if (sp.room.x === rx && sp.room.y === ry) {
+          ctx.beginPath();
+          ctx.arc(x0 + sp.x * scale, y0 + sp.y * scale, PLAYER_RADIUS * scale, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+    }
+    const line = opts.texelSize;
+    for (let y = 1; y < 12; y++) {
+      ctx.fillStyle = colour(theme, y === 6 ? 'map_info_grid_main' : 'map_info_grid');
+      ctx.fillRect(0, Math.round(y0 + ((ROOM_HEIGHT * y) / 12) * scale), width, line);
+    }
+    for (let x = 1; x < 16; x++) {
+      ctx.fillStyle = colour(theme, x === 8 ? 'map_info_grid_main' : 'map_info_grid');
+      ctx.fillRect(Math.round(x0 + ((ROOM_WIDTH * x) / 16) * scale), 0, line, height);
+    }
+    ctx.fillStyle = colour(theme, 'map_info_grid_room');
+    ctx.fillRect(0, 0, width, line);
+    ctx.fillRect(0, 0, line, height);
+  }
   ctx.restore();
 }

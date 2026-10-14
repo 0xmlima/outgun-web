@@ -2,9 +2,10 @@
 // Telas F1–F5 sobre a partida (OG-066, spec plan/specs/telas-estatisticas.md): ajuda, lista de mapas
 // com voto, estatísticas dos times e dos jogadores, regras do servidor. As teclas de cada tela vêm
 // antes do chat e dos controles (`handleInfoScreenKeypress`), como no original.
+import { loadManifest } from '../assets.js';
 import { catalog } from '@outgun/i18n';
 import { PRESETS } from '@outgun/settings';
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { usePrefs } from '../app/prefs.js';
 import type { GameHost } from '../game/host.js';
 import { MAP_SORTS, mapScreen, playerScreen, serverScreen, teamScreen, type InfoScreen, type MapSort } from '../game/hud/info-screens.js';
@@ -21,6 +22,11 @@ interface Props {
   readonly kind: InfoKind;
   readonly host: GameHost | null;
   readonly onClose: () => void;
+}
+
+/** "Stats screen alpha" (OG-070): opacidade do fundo das telas F1–F5 (255 = opaco). */
+function statsBackground(alpha: number): CSSProperties {
+  return { background: `rgba(0, 0, 0, ${(alpha / 255).toFixed(3)})` };
 }
 
 export function InfoOverlay({ kind, host, onClose }: Props) {
@@ -44,6 +50,11 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
   useEffect(() => setScroll(0), [kind, sort]);
 
   const session = host?.session() ?? null;
+  // mapas do jogo (manifesto de assets), para "Highlight maps not in maps.txt" (OG-070)
+  const [knownMaps, setKnownMaps] = useState<ReadonlySet<string> | null>(null);
+  useEffect(() => {
+    void loadManifest().then((m) => setKnownMaps(new Set(Object.keys(m?.maps ?? {}))));
+  }, []);
 
   useEffect(() => {
     if (!host) return;
@@ -109,7 +120,7 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
   }
   if (!session) return null;
   let screen: InfoScreen;
-  if (kind === 'maps') screen = mapScreen(session, sort, host?.mapVote() ?? -1, edit, t);
+  if (kind === 'maps') screen = mapScreen(session, sort, host?.mapVote() ?? -1, edit, t, prefs.highlightUnknownMaps && knownMaps ? (file) => file !== 'random' && !knownMaps.has(file) : undefined);
   else if (kind === 'teams') screen = teamScreen(session, t);
   else if (kind === 'players') screen = playerScreen(session, page, t);
   else screen = serverScreen(session.settings, PRESETS.find((x) => x.id === session.preset)?.description.split(':')[0] ?? session.preset, t('Server info'), t);
@@ -124,7 +135,7 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
     return rows;
   };
   return (
-    <section className={`info-screen ${kind}`} aria-label={screen.title}>
+    <section className={`info-screen ${kind}`} aria-label={screen.title} style={statsBackground(prefs.statsAlpha)}>
       <h2>
         <BitmapText text={screen.title} />
       </h2>

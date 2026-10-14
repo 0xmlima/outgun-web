@@ -9,12 +9,10 @@ import type { RoomLayout } from '../render/layout.js';
 import { chatPrompt, MessageFeed, type FeedContext, type FeedFacts, type Translate } from './feed.js';
 import type { HudFlag, HudPlayer, HudState } from './hud-renderer.js';
 import { chatLines, type ScreenLayout } from './screen-layout.js';
+import { DEFAULT_GRAPHICS, minimapFade, showNeighborMarkers, type GraphicsOptions } from '../graphics-options.js';
 
 const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
 
-/** Opção "Minimap players: fade" do original: some de 10 a 20 frames sem notícia. */
-const FADE_START = 10;
-const FADE_MAX = 20;
 /** Bandeira de quem saiu da vista fica marcada por 30 s. */
 const OLD_FLAG_FRAMES = 300;
 /** Duração do destaque ao nascer (s). */
@@ -78,10 +76,16 @@ export class OnlineHud {
   /** Mensagens rápidas (Alt+1..0) e filtros do feed (OG-068). */
   private quick: { enabled: boolean; immediate: boolean; messages: readonly string[] } = { enabled: false, immediate: false, messages: [] };
 
-  setOptions(o: { showFlagMessages: boolean; showKillMessages: boolean; quickMessages: { enabled: boolean; immediate: boolean; messages: readonly string[] } }): void {
+  /** Bandeiras sumidas do último quadro (o renderer de entidades as desenha na sala). */
+  lastOldFlags: readonly { team: 0 | 1 | 2; pos: WorldCoords; unknownFor: number }[] = [];
+  /** Opções gráficas avançadas (OG-070). */
+  graphics: GraphicsOptions = DEFAULT_GRAPHICS;
+
+  setOptions(o: { showFlagMessages: boolean; showKillMessages: boolean; quickMessages: { enabled: boolean; immediate: boolean; messages: readonly string[] }; graphics?: GraphicsOptions }): void {
     this.feed.showFlagMessages = o.showFlagMessages;
     this.feed.showKillMessages = o.showKillMessages;
     this.quick = o.quickMessages;
+    if (o.graphics) this.graphics = o.graphics;
   }
 
   private sendChat(): void {
@@ -145,6 +149,8 @@ export class OnlineHud {
     const shadow = s.powerupEnd.shadow > time;
     const roomVis = Array.from({ length: fx.map.width }, () => new Array<number>(fx.map.height).fill(shadow ? 255 : 0));
     const alphaOf = new Map<number, number>();
+    // "Disappeared players on minimap": fade (10→20 frames), hide early (12) ou hide late (20)
+    const { max: FADE_MAX, start: FADE_START } = minimapFade(this.graphics.minimapPlayers);
     for (const p of fx.players) {
       if (!p) continue;
       const updated = s.posUpdated.get(p.pid) ?? -Infinity;
@@ -183,11 +189,12 @@ export class OnlineHud {
         pos,
         alpha: alphaOf.get(p.pid) ?? 0,
         me: p.pid === s.me,
+        account: s.playerInfo.get(p.pid)?.loggedIn ?? false,
       });
     }
 
     const flags: HudFlag[] = [];
-    const oldFlags: { team: 0 | 1 | 2; pos: WorldCoords }[] = [];
+    const oldFlags: { team: 0 | 1 | 2; pos: WorldCoords; unknownFor: number }[] = [];
     for (const team of [0, 1, 2] as const)
       fx.flagsOf(team).forEach((f, i) => {
         const key = `${team}.${i}`;
@@ -197,17 +204,19 @@ export class OnlineHud {
             team,
             pos: coords(f.pos),
             carried: false,
-            flash: time < (s.flagReturnTime.get(key) ?? -10) + 2 && Math.trunc((time * 15) % 3) === 0,
+            flash: this.graphics.highlightReturnedFlags && time < (s.flagReturnTime.get(key) ?? -10) + 2 && Math.trunc((time * 15) % 3) === 0,
             alpha: 255,
           });
           return;
         }
         const carrierPos = posOf(f.carrier) ?? coords(f.pos);
         if (s.onscreen.has(f.carrier) || f.carrier === s.me) this.flagSeen.set(key, carrierPos);
-        else if ((s.posUpdated.get(f.carrier) ?? -Infinity) > frame - OLD_FLAG_FRAMES) oldFlags.push({ team, pos: this.flagSeen.get(key) ?? coords(f.pos) });
+        else if (this.graphics.oldFlagPositions && (s.posUpdated.get(f.carrier) ?? -Infinity) > frame - OLD_FLAG_FRAMES)
+          oldFlags.push({ team, pos: this.flagSeen.get(key) ?? coords(f.pos), unknownFor: (frame - (s.posUpdated.get(f.carrier) ?? frame)) / 10 });
         flags.push({ team, pos: carrierPos, carried: true, flash: false, alpha: alphaOf.get(f.carrier) ?? 0 });
       });
 
+    this.lastOldFlags = oldFlags;
     // destaque ao nascer
     const meP = opts.fd?.players[s.me] ?? fx.players[s.me];
     if (!meP || meP.dead) this.deadAfterHighlighted = true;
@@ -242,7 +251,7 @@ export class OnlineHud {
             power: s.powerupEnd.power - time,
             turbo: s.powerupEnd.turbo - time,
             shadow: s.powerupEnd.shadow - time,
-            highlight: meP.dead ? 0 : highlight,
+            highlight: meP.dead || !this.graphics.spawnHighlight ? 0 : highlight,
             pos: coords(meP.pos),
           }
         : null,
@@ -253,7 +262,11 @@ export class OnlineHud {
       // com o mapa carregado, "Waiting game start - next map is" aparece também junto do placar
       hidden: hiddenGame ? { gameOver: s.gameOver, waitingMap: s.world?.map.title ?? null } : null,
       notResponding: s.lastPacketTime > 0 && opts.now - s.lastPacketTime > 1000,
-      highlightRooms: opts.rooms.visibleX > 1 || opts.rooms.visibleY > 1,
+      // caixa da área visível: com mais de uma sala ou rolagem, se a opção estiver ligada
+      neighborMarkers: showNeighborMarkers(this.graphics.neighborMarkers, Math.max(opts.rooms.visibleX, opts.rooms.visibleY)),
+      solidFog: this.graphics.lessTransparency,
+      underlineAccounts: this.graphics.underlineAccounts,
+      highlightRooms: (opts.rooms.visibleX > 1 || opts.rooms.visibleY > 1 || this.graphics.scroll) && this.graphics.boxVisibleArea,
       changeTeams: this.wantChangeTeams,
       mapExit: this.wantMapExit ? (this.mapExitDelayed ? 'delayed' : 'on') : null,
     };

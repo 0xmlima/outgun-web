@@ -27,6 +27,25 @@ function clientOptions(p: Prefs): ClientOptions {
     fpsLimit: p.fpsLimit,
     soundTheme: p.soundTheme,
     quickMessages: { enabled: p.quickMessagesEnabled, immediate: p.quickMessagesImmediate, messages: p.quickMessages },
+    // opções gráficas avançadas do original (OG-070)
+    graphics: {
+      scroll: p.scroll,
+      lessTransparency: p.lessTransparency,
+      minimapPlayers: p.minimapPlayers,
+      highlightReturnedFlags: p.highlightReturnedFlags,
+      emphasizeFlags: p.emphasizeFlags,
+      oldFlagPositions: p.oldFlagPositions,
+      spawnHighlight: p.spawnHighlight,
+      neighborMarkers: p.neighborMarkers,
+      boxVisibleArea: p.boxVisibleArea,
+      viewOverBorder: p.viewOverBorder,
+      repeatMap: p.repeatMap,
+      mapInfoMode: p.mapInfoMode,
+      underlineAccounts: p.underlineAccounts,
+      stayDeadInMenus: p.stayDeadInMenus,
+      backgroundTheme: p.backgroundTheme,
+      preferThemeBackground: p.preferThemeBackground,
+    },
   };
 }
 
