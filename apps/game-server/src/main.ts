@@ -9,6 +9,8 @@
 // CASUAL_BOTS_FILL (bots_fill das salas Casual; padrão 0), REPLAYS (0 = não grava), REPLAY_DIR (var/replays do
 // repositório), REPLAY_PUBLIC_URL (padrão http://<PUBLIC_WS_URL>/replays), REPLAY_RETENTION_DAYS (30; 0 = para sempre),
 // MAX_SPECTATORS (espectadores ao vivo por sala; 16), GAMEMOD (linhas de gamemod para todas as salas, separadas por |).
+// Observabilidade (OG-102): LOG_LEVEL (info), METRICS_TOKEN (exige Bearer em /metrics), SENTRY_DSN (erros),
+// SENTRY_ENVIRONMENT (padrão NODE_ENV), RELEASE (versão nos logs e erros).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
@@ -18,15 +20,34 @@ import { wordSet } from './chat.js';
 import { PlatformClient } from './platform.js';
 import { makeSpawner } from './spawn.js';
 import { ReplayStore } from './replay.js';
+import { createLogger, ErrorReporter } from '@outgun/observability';
+import { GameTelemetry } from './telemetry.js';
 
 const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
 const production = env.NODE_ENV === 'production';
+const logger = createLogger({ service: 'game-server', level: env.LOG_LEVEL ?? 'info', ...(env.RELEASE ? { version: env.RELEASE } : {}) });
+const reporter = new ErrorReporter({ dsn: env.SENTRY_DSN, service: 'game-server', environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV, release: env.RELEASE });
+process.on('uncaughtException', (error) => {
+  logger.fatal({ err: error }, 'exceção não tratada');
+  reporter.capture(error, { level: 'fatal' });
+  void reporter.flush().finally(() => process.exit(1));
+});
+process.on('unhandledRejection', (error) => {
+  logger.error({ err: error }, 'promise rejeitada sem tratamento');
+  reporter.capture(error);
+});
+// as métricas dependem do gerenciador, criado depois dos callbacks que contam erros
+const metrics: { telemetry?: GameTelemetry } = {};
 const platform = new PlatformClient(
   env.API_URL ?? 'http://localhost:7800',
   env.GS_ID ?? 'dev',
   env.GS_SECRET ?? (production ? '' : 'outgun-dev-secret-0000'),
-  (t) => console.warn(t),
+  (t, level = 'error') => {
+    if (level === 'info') return logger.info({ component: 'platform' }, t);
+    metrics.telemetry?.errors.inc(1, { kind: 'platform' });
+    logger.warn({ component: 'platform' }, t);
+  },
 );
 const port = Number(env.PORT ?? 7700);
 const publicWsUrl = env.PUBLIC_WS_URL ?? `ws://localhost:${port}`;
@@ -35,7 +56,7 @@ const replays =
   env.REPLAYS === '0' ? undefined : new ReplayStore(env.REPLAY_DIR ?? `${repo}var/replays`, env.REPLAY_PUBLIC_URL ?? `${publicWsUrl.replace(/^ws/, 'http')}/replays`, Number(env.REPLAY_RETENTION_DAYS ?? 30));
 const pruneReplays = () => {
   const removed = replays?.prune() ?? 0;
-  if (removed > 0) console.log(`[replays] ${removed} apagados pela retenção`);
+  if (removed > 0) logger.info({ removed }, 'replays apagados pela retenção');
 };
 pruneReplays();
 const pruneTimer = setInterval(pruneReplays, 3_600_000);
@@ -46,16 +67,20 @@ const manager = new RoomManager({
   maxRooms: Number(env.MAX_ROOMS ?? 50),
   roomDefaults: {
     audit: (roomId, entry) => {
-      console.log(`[admin] ${roomId}: ${entry.actor.name} ${entry.action} ${entry.target?.name ?? ''} ${entry.reason}`);
+      logger.info({ room: roomId, action: entry.action, actor: entry.actor.name, target: entry.target?.name, reason: entry.reason }, 'ação de moderação');
       platform.audit(roomId, entry);
     },
     reportMatch: (report) => {
-      console.log(`[partida] ${report.roomId} ${report.map} ${report.redScore}x${report.blueScore}${report.ranked ? ' (ranqueada)' : ''}`);
+      logger.info({ room: report.roomId, map: report.map, red: report.redScore, blue: report.blueScore, ranked: report.ranked }, 'fim de partida');
       platform.reportMatch(report);
     },
     reportDeltas: (report) => platform.reportDeltas(report),
     chatFilter: wordSet((env.CHAT_FILTER ?? '').split(',')),
-    log: (line) => console.log(line),
+    log: (line) => logger.info(line),
+    onMisbehavior: (kick) => {
+      metrics.telemetry?.errors.inc(1, { kind: 'misbehavior' });
+      logger.warn({ name: kick.name, ip: kick.ip, reason: kick.reason }, 'jogador expulso por mensagem inválida');
+    },
     // `bots_fill` das salas Casual (OG-054); o preset Clássico tem 0
     ...(env.CASUAL_BOTS_FILL ? { botsFill: Number(env.CASUAL_BOTS_FILL) } : {}),
     ...(replays ? { replays } : {}),
@@ -66,17 +91,20 @@ const manager = new RoomManager({
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
 const mapsDir = env.MAPS_DIR ?? `${repo}maps`;
 const maps = loadMaps(mapsDir, rotation);
+const telemetry = new GameTelemetry(manager, logger, reporter);
+metrics.telemetry = telemetry;
+manager.observer = telemetry;
 manager.create({ id: 'main', name: 'Principal', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
 manager.start();
 
-const jwks = new JwksKeys(env.TICKET_JWKS_URL ?? 'http://localhost:7800/.well-known/jwks.json', (t) => console.warn(t));
+const jwks = new JwksKeys(env.TICKET_JWKS_URL ?? 'http://localhost:7800/.well-known/jwks.json', (t) => logger.warn({ component: 'jwks' }, t));
 jwks.start();
 
 const server = await startServer({
   spawnRoom: makeSpawner(manager, {
     mapsDir,
     rotations: { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation },
-    log: (line) => console.log(line),
+    log: (line) => logger.info(line),
   }),
   ticketKeys: () => jwks.keys,
   trustProxy: env.TRUST_PROXY === '1',
@@ -86,8 +114,11 @@ const server = await startServer({
   protocolDist: `${repo}packages/protocol/dist`,
   devPage: fileURLToPath(new URL('../dev/index.html', import.meta.url)),
   ...(replays ? { replays } : {}),
+  telemetry,
+  logger,
+  ...(env.METRICS_TOKEN ? { metricsToken: env.METRICS_TOKEN } : {}),
 });
-console.log(`game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
+logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 if (env.HEARTBEAT !== '0') {
   platform.startHeartbeat(
     { wsBaseUrl: publicWsUrl, region: env.REGION ?? 'local', maxRooms: manager.maxRooms },
@@ -101,6 +132,7 @@ const shutdown = async () => {
   jwks.stop();
   server.close();
   await platform.drain();
+  await reporter.flush();
   process.exit(0);
 };
 process.on('SIGINT', () => void shutdown());

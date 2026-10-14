@@ -46,22 +46,27 @@ export class PlatformClient {
     private readonly apiUrl: string,
     private readonly serverId: string,
     private readonly secret: string,
-    private readonly log: (line: string) => void,
+    /** `error`: falha ao falar com a API (conta nas métricas); `info`: mudança de estado. */
+    private readonly log: (line: string, level?: 'info' | 'error') => void,
   ) {}
+
+  private requests = 0;
 
   async post(path: string, body: unknown, attempts = 3, quiet = false): Promise<boolean> {
     const text = JSON.stringify(body);
+    // correlação com o log da API (OG-102): o mesmo id nas tentativas de um envio
+    const reqId = `gs-${this.serverId}-${(++this.requests).toString(36).padStart(6, '0')}`;
     for (let i = 0; i < attempts; i++) {
       try {
         const res = await fetch(this.apiUrl + path, {
           method: 'POST',
-          headers: { 'content-type': 'application/json', ...signInternalRequest(this.serverId, this.secret, 'POST', path, text) },
+          headers: { 'content-type': 'application/json', 'x-request-id': reqId, ...signInternalRequest(this.serverId, this.secret, 'POST', path, text) },
           body: text,
           signal: AbortSignal.timeout(5000),
         });
         if (res.ok) return true;
         if (res.status < 500) {
-          if (!quiet) this.log(`API ${path}: HTTP ${res.status} ${await res.text()}`);
+          if (!quiet) this.log(`API ${path}: HTTP ${res.status} ${await res.text()} (${reqId})`, 'error');
           return false;
         }
       } catch {
@@ -69,7 +74,7 @@ export class PlatformClient {
       }
       if (i + 1 < attempts) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
     }
-    if (!quiet) this.log(`API ${path}: sem resposta`);
+    if (!quiet) this.log(`API ${path}: sem resposta (${reqId})`, 'error');
     return false;
   }
 
@@ -113,7 +118,7 @@ export class PlatformClient {
       try {
         const ok = await this.post('/internal/rooms/heartbeat', heartbeatBody(server, rooms()), 1, true);
         // só a mudança vai para o log (sem API, no desenvolvimento, falharia a cada 3 s)
-        if (ok !== up) this.log(ok ? 'registro de salas: heartbeat aceito pela API' : 'registro de salas: API não aceitou o heartbeat');
+        if (ok !== up) this.log(ok ? 'registro de salas: heartbeat aceito pela API' : 'registro de salas: API não aceitou o heartbeat', ok ? 'info' : 'error');
         up = ok;
       } finally {
         busy = false;

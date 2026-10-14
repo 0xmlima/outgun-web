@@ -94,9 +94,10 @@ export function parseSigningKeys(value: string): SigningKey[] {
     });
 }
 
-export function signTicket(input: TicketInput, key: SigningKey, now = Date.now()): string {
+/** `jti` pode vir de quem emite, para registrar no log (correlação com o game server, OG-102). */
+export function signTicket(input: TicketInput, key: SigningKey, now = Date.now(), jti: string = randomUUID()): string {
   const iat = Math.floor(now / 1000);
-  const claims: TicketClaims = { iss: TICKET_ISSUER, ...input, iat, exp: iat + TICKET_TTL_S, jti: randomUUID() };
+  const claims: TicketClaims = { iss: TICKET_ISSUER, ...input, iat, exp: iat + TICKET_TTL_S, jti };
   const head = `${json({ alg: 'EdDSA', typ: 'JWT', kid: key.kid })}.${json(claims)}`;
   return `${head}.${b64(sign(null, Buffer.from(head), key.privateKey))}`;
 }

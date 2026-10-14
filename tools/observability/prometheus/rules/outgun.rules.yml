@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Alertas do Outgun Web (OG-102). Testes: tools/observability/check.sh (promtool test rules).
+groups:
+  - name: outgun-game-server
+    rules:
+      - record: outgun:tick_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum by (instance, le) (rate(outgun_tick_duration_seconds_bucket[1m])))
+      - alert: OutgunTickP95Alto
+        expr: outgun:tick_duration_seconds:p95 > 0.020
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: 'p95 do tick acima de 20 ms em {{ $labels.instance }}'
+          description: 'O tick de 10 Hz tem 100 ms; acima de 20 ms no p95 o servidor está perto de atrasar frames (p95 atual {{ $value | humanizeDuration }}).'
+      - alert: OutgunTicksDescartados
+        expr: increase(outgun_ticks_skipped_total[5m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: 'Ticks descartados por atraso em {{ $labels.instance }}'
+      - alert: OutgunTrafegoPorClienteAlto
+        expr: outgun_client_bytes_per_second_avg > 10240
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Tráfego médio por cliente acima de 10 KB/s (RNF) em {{ $labels.instance }}'
+      - alert: OutgunExcecoesNoTick
+        expr: increase(outgun_errors_total{kind="tick"}[5m]) > 0
+        labels: { severity: page }
+        annotations:
+          summary: 'Exceção no tick de uma sala em {{ $labels.instance }}'
+  - name: outgun-api
+    rules:
+      - alert: OutgunApiLatenciaAlta
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!="unmatched"}[5m]))) > 0.5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'p95 da API acima de 500 ms'
+      - alert: OutgunApiErros5xx
+        expr: sum(rate(outgun_api_errors_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: 'API respondendo 5xx (mais de 3 por minuto)'
+  - name: outgun-alvos
+    rules:
+      - alert: OutgunAlvoFora
+        expr: up{job=~"game-server|api"} == 0
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: '{{ $labels.job }} ({{ $labels.instance }}) não responde a /metrics'

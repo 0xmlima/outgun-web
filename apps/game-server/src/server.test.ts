@@ -168,8 +168,14 @@ describe('game server', () => {
   it('health, métricas e lista de salas', async () => {
     const health = await (await fetch(`http://127.0.0.1:${server.port}/health`)).json();
     expect(health).toMatchObject({ status: 'ok', rooms: 3 });
-    const metrics = await (await fetch(`http://127.0.0.1:${server.port}/metrics`)).text();
-    expect(metrics).toMatch(/^outgun_tick_lateness_p99_ms /m);
+    const res = await fetch(`http://127.0.0.1:${server.port}/metrics`);
+    expect(res.headers.get('content-type')).toMatch(/^text\/plain; version=0\.0\.4/);
+    const metrics = await res.text();
+    expect(metrics).toMatch(/^outgun_tick_duration_seconds_bucket\{le="0\.02"\} \d+$/m);
+    expect(metrics).toMatch(/^outgun_rooms\{mode="ranked"\} 1$/m);
+    expect(metrics).toMatch(/^outgun_ws_sent_bytes_total \d+$/m);
+    expect(metrics).toMatch(/^outgun_ws_connections_total\{kind="player",result="accepted"\} \d+$/m);
+    expect(metrics).toMatch(/^process_resident_memory_bytes \d+$/m);
     const rooms = (await (await fetch(`http://127.0.0.1:${server.port}/rooms`)).json()) as { id: string }[];
     expect(rooms.map((r) => r.id).sort()).toEqual(['main', 'ranked', 'volta']);
   });

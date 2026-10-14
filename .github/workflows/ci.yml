@@ -23,6 +23,8 @@ jobs:
       - run: pnpm build
       - run: pnpm check:legacy
       - run: pnpm check:licenses
+      - name: Regras de alerta e painel (OG-102)
+        run: bash tools/observability/check.sh
       - name: Relatório de paridade com o Outgun original
         if: always()
         run: pnpm parity --report tools/parity/out/parity-report.md

@@ -23,7 +23,10 @@ import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.j
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
+import { installErrorReporting } from './app/errors.js';
 import './styles.css';
+
+installErrorReporting();
 
 // O jogo (e, a partir do OG-061, o PixiJS) só é baixado ao entrar na partida.
 const GameScreen = lazy(() => import('./screens/GameScreen.js'));

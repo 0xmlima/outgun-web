@@ -15,6 +15,13 @@ export interface ApiConfig {
   /** Diferença máxima entre o relógio do game server e o da API. */
   internalMaxSkewMs: number;
   logLevel: string;
+  /** Exige `Authorization: Bearer <token>` em /metrics (OG-102). */
+  metricsToken: string | undefined;
+  /** DSN do serviço de erros (Sentry/GlitchTip); vazio desliga. */
+  sentryDsn: string | undefined;
+  /** Ambiente e versão nos logs e nos erros. */
+  environment: string;
+  release: string | undefined;
   /** Confiar em X-Forwarded-For (só atrás de um proxy reverso). */
   trustProxy: boolean;
   /** Endereço do cliente web (links dos e-mails). */
@@ -61,6 +68,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     internalSecrets: parseSecrets(env.INTERNAL_SECRETS ?? (env.NODE_ENV === 'production' ? '' : 'dev:outgun-dev-secret-0000')),
     internalMaxSkewMs: Number(env.INTERNAL_MAX_SKEW_S ?? 30) * 1000,
     logLevel: env.LOG_LEVEL ?? 'info',
+    metricsToken: env.METRICS_TOKEN || undefined,
+    sentryDsn: env.SENTRY_DSN || undefined,
+    environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV ?? 'development',
+    release: env.RELEASE || undefined,
     trustProxy: env.TRUST_PROXY === '1',
     webUrl,
     webOrigins: (env.WEB_ORIGINS ?? `${webUrl},http://localhost:5173,http://localhost:4173`)

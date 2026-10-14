@@ -22,6 +22,7 @@ import { playerRoutes } from './routes/players.js';
 import { rankingRoutes } from './routes/ranking.js';
 import { roomRoutes } from './routes/rooms.js';
 import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
+import { DURATION_BUCKETS, ErrorReporter, loggerOptions, metricsAuthorized, PROMETHEUS_CONTENT_TYPE, Registry, registerProcessMetrics, requestId } from '@outgun/observability';
 
 export const API_VERSION = '0.1.0';
 
@@ -35,6 +36,8 @@ export interface AppDeps {
   mailer?: Mailer;
   /** Substitui os contadores de tentativas (padrão: Redis, ou memória sem Redis). */
   counters?: CounterStore;
+  /** Substitui o envio de erros configurado em SENTRY_DSN (testes). */
+  errors?: ErrorReporter;
 }
 
 /** Serviços montados a partir das dependências, usados pelas rotas de conta. */
@@ -71,13 +74,16 @@ function makeMailer(deps: AppDeps, log: App['log']): Mailer {
 }
 
 function createFastify(deps: AppDeps) {
+  const base = loggerOptions({ service: 'api', level: deps.config.logLevel, env: deps.config.environment, ...(deps.config.release ? { version: deps.config.release } : {}) });
   return Fastify({
     logger:
       deps.logger === false
         ? false
         : typeof deps.logger === 'object'
-          ? { level: deps.logger.level ?? 'trace', stream: deps.logger.stream }
-          : { level: deps.config.logLevel },
+          ? { ...base, level: deps.logger.level ?? 'trace', stream: deps.logger.stream }
+          : base,
+    // correlação (OG-102): aproveita o x-request-id de quem chamou (game server, proxy) e o devolve
+    genReqId: (req) => requestId(req.headers['x-request-id']),
     bodyLimit: 256 * 1024,
     trustProxy: deps.config.trustProxy,
   }).withTypeProvider<TypeBoxTypeProvider>();
@@ -106,6 +112,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     ticketKeys: ticketKeys(deps.config),
   };
 
+  observe(app, deps);
   await app.register(cookie);
   // Só JSON: um formulário de outro site não consegue mandar application/json sem CORS.
   app.removeContentTypeParser('text/plain');
@@ -172,6 +179,43 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   }
   await app.register(internalRoutes(deps), { prefix: '/internal' });
   return app;
+}
+
+/** Métricas HTTP, /metrics, x-request-id na resposta e envio de erros 5xx (OG-102). */
+function observe(app: App, deps: AppDeps): void {
+  const registry = new Registry();
+  const duration = registry.histogram('http_request_duration_seconds', 'Duração dos pedidos HTTP por método, rota e status.', DURATION_BUCKETS);
+  const errors = registry.counter('outgun_api_errors_total', 'Respostas 5xx e exceções não tratadas.');
+  const reporter = deps.errors ?? new ErrorReporter({ dsn: deps.config.sentryDsn, service: 'api', environment: deps.config.environment, release: deps.config.release });
+  registry.counterFrom('outgun_error_reports_total', 'Erros enviados ao serviço de erros, por resultado.', () => [
+    [{ result: 'sent' }, reporter.counts.sent],
+    [{ result: 'dropped' }, reporter.counts.dropped],
+    [{ result: 'failed' }, reporter.counts.failed],
+  ]);
+  registerProcessMetrics(registry);
+
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('x-request-id', request.id);
+  });
+  app.addHook('onResponse', async (request, reply) => {
+    // rota do roteador (`/players/:name`), não a URL: cardinalidade fixa; 404 sem rota vira "unmatched"
+    const route = request.routeOptions.url ?? 'unmatched';
+    if (route === '/metrics') return;
+    duration.observe(reply.elapsedTime / 1000, { method: request.method, route, status: String(reply.statusCode) });
+    if (reply.statusCode >= 500) errors.inc(1, { route });
+  });
+  app.addHook('onError', async (request, _reply, error) => {
+    if ((error as { statusCode?: number }).statusCode !== undefined && (error as { statusCode: number }).statusCode < 500) return;
+    reporter.capture(error, { tags: { route: request.routeOptions.url ?? 'unmatched', method: request.method, reqId: request.id } });
+  });
+  app.addHook('onClose', async () => {
+    await reporter.flush();
+  });
+
+  app.get('/metrics', { schema: { hide: true } }, async (request, reply) => {
+    if (!metricsAuthorized(deps.config.metricsToken, request.headers.authorization)) return reply.code(401).send();
+    return reply.header('content-type', PROMETHEUS_CONTENT_TYPE).header('cache-control', 'no-store').send(registry.render());
+  });
 }
 
 /**

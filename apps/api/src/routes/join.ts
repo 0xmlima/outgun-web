@@ -73,6 +73,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const place = await placeRoom(db, room, deps.config.devRoomWsUrl, body.region);
     if (!place.ok) return fail(503, 'room_offline', 'no game server available');
 
+    const jti = randomUUID();
     const ticket = signTicket(
       {
         aud: room.id,
@@ -88,7 +89,11 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         ...(place.spawn ? { spawn: place.spawn } : {}),
       },
       ticketKeys[0]!,
+      Date.now(),
+      jti,
     );
+    // o game server registra o mesmo jti quando o jogador entra (OG-102)
+    request.log.info({ jti, room: room.id, account: user?.id ?? null, server: place.wsUrl }, 'ticket emitido');
     return { ok: true, ticket, wsUrl: place.wsUrl, name, guest: !user, roomId: room.id };
   }
 

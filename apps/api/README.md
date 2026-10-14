@@ -29,6 +29,15 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 | `LOG_LEVEL`           | `info`                                            | Nível do pino                                                            |
 | `DEV_ROOM_WS_URL`     | `ws://localhost:7700/rooms/{id}` fora de produção | Servidor usado quando nenhum game server mandou heartbeat                |
 | `ROOMS_PER_HOUR`      | `10`                                              | Salas privadas criadas por conta por hora                                |
+| `METRICS_TOKEN`       | vazio (aberto)                                    | Exige `Authorization: Bearer <token>` em `/metrics`                      |
+| `SENTRY_DSN`          | vazio (desligado)                                 | Erros 5xx e exceções para um serviço compatível com Sentry (OG-102)      |
+| `SENTRY_ENVIRONMENT`  | `NODE_ENV`                                        | Ambiente nos logs e nos erros                                            |
+| `RELEASE`             | vazio                                             | Versão nos logs e nos erros                                              |
+
+Observabilidade (OG-102): logs JSON (pino) com `service`, `env` e `reqId` (o `x-request-id` recebido,
+se bem formado, ou um novo; devolvido na resposta); a entrada numa sala registra o `jti` do ticket,
+que o game server também registra. `GET /metrics` (formato Prometheus): `http_request_duration_seconds`
+por método, rota e status, `outgun_api_errors_total`, CPU, memória e atraso do event loop.
 
 ## Contas (OG-081)
 

@@ -34,9 +34,21 @@ export interface ManagerOptions {
   /** Semente das salas (testes); padrão: aleatória por sala. */
   seed?: () => number;
   /** Auditoria, filtro do chat e log, iguais para todas as salas (OG-046). */
-  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'reconnectSeconds' | 'reportMatch' | 'reportDeltas' | 'maxSpectators' | 'gamemod' | 'botsFill' | 'replays'>;
+  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'onMisbehavior' | 'reconnectSeconds' | 'reportMatch' | 'reportDeltas' | 'maxSpectators' | 'gamemod' | 'botsFill' | 'replays'>;
   /** Quantas salas o processo hospeda no máximo (as abertas sob demanda; padrão: sem limite). */
   maxRooms?: number;
+  /** Recebe a duração de cada tick e os erros das salas (métricas, OG-102). */
+  observer?: TickObserver;
+}
+
+/** Medições do loop para as métricas (OG-102). Tempos em ms. */
+export interface TickObserver {
+  /** Um tick de todas as salas: duração e atraso em relação ao horário ideal. */
+  tick(durationMs: number, latenessMs: number): void;
+  /** Um tick de uma sala (simulação + serialização). */
+  roomTick(durationMs: number): void;
+  /** A sala lançou exceção no tick; as outras salas seguem. */
+  roomError(roomId: string, error: unknown): void;
 }
 
 /** O que o heartbeat conta à API sobre cada sala (OG-086). */
@@ -57,9 +69,12 @@ export class RoomManager {
   readonly loop: FixedRateLoop;
   /** Duração do processamento de cada tick (ms), para métricas. */
   private readonly tickCosts: number[] = [];
+  /** Métricas do loop (OG-102); pode ser ligado depois de criar o gerenciador. */
+  observer: TickObserver | undefined;
 
   constructor(private readonly options: ManagerOptions) {
     this.clock = options.clock ?? realClock;
+    this.observer = options.observer;
     this.loop = new FixedRateLoop(100, () => this.tickAll(), this.clock);
   }
 
@@ -121,13 +136,24 @@ export class RoomManager {
   tickAll(): void {
     const begin = this.clock.now();
     const now = begin;
+    const observer = this.observer;
     for (const [id, entry] of this.rooms) {
-      entry.room.tick();
+      if (observer) {
+        const start = this.clock.now();
+        try {
+          entry.room.tick();
+        } catch (error) {
+          observer.roomError(id, error);
+        }
+        observer.roomTick(this.clock.now() - start);
+      } else entry.room.tick();
       if (entry.room.playerCount > 0 || entry.persistent) entry.emptySince = null;
       else if (entry.emptySince === null) entry.emptySince = now;
       else if (now - entry.emptySince >= this.options.emptyTimeoutMs) this.close(id);
     }
-    this.tickCosts.push(this.clock.now() - begin);
+    const cost = this.clock.now() - begin;
+    observer?.tick(cost, this.loop.stats.lastLateness);
+    this.tickCosts.push(cost);
     if (this.tickCosts.length > 600) this.tickCosts.shift();
   }
 

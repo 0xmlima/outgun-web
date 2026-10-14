@@ -12,6 +12,8 @@ import type { Connection, Room } from './room.js';
 import type { RoomManager } from './rooms.js';
 import type { ReplayStore } from './replay.js';
 import { TicketAuth } from './tickets.js';
+import { metricsAuthorized, PROMETHEUS_CONTENT_TYPE, type Logger } from '@outgun/observability';
+import { GameTelemetry } from './telemetry.js';
 
 export interface ServerOptions {
   port: number;
@@ -33,6 +35,12 @@ export interface ServerOptions {
   spawnRoom?: (id: string, spec: RoomSpawn) => Room | undefined;
   /** Replays gravados (OG-090), servidos em /replays/<chave>.ogr. */
   replays?: ReplayStore;
+  /** Métricas (OG-102); sem elas, o servidor cria as suas. */
+  telemetry?: GameTelemetry;
+  /** Exige `Authorization: Bearer <token>` em /metrics. */
+  metricsToken?: string;
+  /** Log estruturado das entradas e recusas (com o `jti` do ticket para correlacionar com a API). */
+  logger?: Logger;
 }
 
 const ROOM_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
@@ -53,9 +61,18 @@ export interface RunningServer {
 export function startServer(options: ServerOptions): Promise<RunningServer> {
   const { manager } = options;
   const tickets = new TicketAuth({ devTickets: options.devTickets, ...(options.ticketKeys ? { keys: options.ticketKeys } : {}) });
+  const telemetry = options.telemetry ?? new GameTelemetry(manager);
+  manager.observer ??= telemetry;
+  const log = options.logger;
   const app = uWS.App();
+  const send = (ws: uWS.WebSocket<unknown>, data: Uint8Array) => {
+    telemetry.bytesSent.inc(data.length);
+    ws.send(data, true);
+  };
   const reject = (ws: uWS.WebSocket<SocketData>, reason: MessageOf<'reject'>['reason'], text: string) => {
-    ws.send(encodeFrame(message('reject', { reason, text })), true);
+    telemetry.rejected('player', reason);
+    log?.info({ room: ws.getUserData().roomId, ip: ws.getUserData().ip, reason }, 'entrada recusada');
+    send(ws, encodeFrame(message('reject', { reason, text })));
     ws.end(4000, reason);
   };
 
@@ -80,6 +97,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       );
     },
     message: (ws, data, isBinary) => {
+      telemetry.bytesReceived.inc(data.byteLength);
       const user = ws.getUserData();
       let room = manager.get(user.roomId);
       // antes do hello a sala pode não existir ainda: o ticket pode pedir a abertura
@@ -89,13 +107,19 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       const decoded = decodeFrame(new Uint8Array(data.slice(0)), 'c2s');
       if (!decoded.ok) {
         // depois de entrar, erro de formato é `client_misbehavior`, como no original
-        if (user.pid === -1) return ws.end(4002, 'mensagem inválida');
+        if (user.pid === -1) {
+          telemetry.rejected('player', 'malformed');
+          return ws.end(4002, 'mensagem inválida');
+        }
         room?.misbehaved(user.pid, decoded.error);
         return;
       }
       if (user.pid === -1) {
         const [hello, ...rest] = decoded.messages;
-        if (hello?.type !== 'hello') return ws.end(4002, 'esperava hello');
+        if (hello?.type !== 'hello') {
+          telemetry.rejected('player', 'malformed');
+          return ws.end(4002, 'esperava hello');
+        }
         if (hello.protocol !== PROTOCOL_VERSION) return reject(ws, 'protocolMismatch', `protocolo ${PROTOCOL_VERSION} exigido`);
         const auth = tickets.identify(hello.ticket, user.roomId);
         if (!auth.ok) return reject(ws, 'invalidTicket', `ticket inválido (${auth.reason})`);
@@ -103,7 +127,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         if (!room) return reject(ws, 'roomClosed', 'sala indisponível neste servidor');
         const identity = { ...auth.identity, ip: user.ip };
         const conn: Connection = {
-          send: (b) => void ws.send(b, true),
+          send: (b) => send(ws, b),
           close: (code, reason) => ws.end(code, reason),
           // troca de time muda o pid do jogador
           moved: (pid) => {
@@ -117,6 +141,8 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         if (!joined.ok) return reject(ws, joined.reason, joined.text);
         user.pid = joined.pid;
         user.conn = conn;
+        telemetry.opened('player');
+        log?.info({ room: user.roomId, pid: joined.pid, jti: auth.jti, account: identity.accountId, ip: user.ip }, 'jogador entrou');
         if (others.length > 0) room.handle(user.pid, others);
         return;
       }
@@ -124,7 +150,10 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     },
     close: (ws) => {
       const user = ws.getUserData();
-      if (user.pid !== -1 && user.conn) manager.get(user.roomId)?.disconnect(user.pid, user.conn);
+      if (user.pid !== -1 && user.conn) {
+        telemetry.closed('player');
+        manager.get(user.roomId)?.disconnect(user.pid, user.conn);
+      }
       user.pid = -1;
     },
   });
@@ -145,18 +174,23 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     open: (ws) => {
       const user = ws.getUserData();
       const room = manager.get(user.roomId);
-      const conn: Connection = { send: (b) => void ws.send(b, true), close: (code, reason) => ws.end(code, reason) };
+      const conn: Connection = { send: (b) => send(ws, b), close: (code, reason) => ws.end(code, reason) };
       if (!room) return ws.end(1001, 'sala encerrada');
       if (!room.addSpectator(conn)) {
-        ws.send(encodeFrame(message('reject', { reason: 'serverFull', text: 'Limite de espectadores da sala.' })), true);
+        telemetry.rejected('spectator', 'serverFull');
+        send(ws, encodeFrame(message('reject', { reason: 'serverFull', text: 'Limite de espectadores da sala.' })));
         return ws.end(4000, 'serverFull');
       }
       user.conn = conn;
+      telemetry.opened('spectator');
     },
     message: () => {},
     close: (ws) => {
       const user = ws.getUserData();
-      if (user.conn) manager.get(user.roomId)?.removeSpectator(user.conn);
+      if (user.conn) {
+        telemetry.closed('spectator');
+        manager.get(user.roomId)?.removeSpectator(user.conn);
+      }
       user.conn = null;
     },
   });
@@ -166,20 +200,9 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     res.writeHeader('access-control-allow-origin', '*').writeHeader('cache-control', 'no-store').writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));
   });
 
-  app.get('/metrics', (res) => {
-    const m = manager.metrics();
-    const lines = [
-      ['outgun_rooms', m.rooms],
-      ['outgun_players', m.players],
-      ['outgun_ticks_total', m.ticks],
-      ['outgun_ticks_skipped_total', m.skippedTicks],
-      ['outgun_tick_lateness_p50_ms', m.latenessP50],
-      ['outgun_tick_lateness_p99_ms', m.latenessP99],
-      ['outgun_tick_lateness_max_ms', m.latenessMax],
-      ['outgun_tick_cost_p99_ms', m.tickCostP99],
-      ['outgun_client_bytes_per_second_avg', m.clientBytesPerSecond],
-    ];
-    res.writeHeader('content-type', 'text/plain; version=0.0.4').end(lines.map(([k, v]) => `${k} ${v}`).join('\n') + '\n');
+  app.get('/metrics', (res, req) => {
+    if (!metricsAuthorized(options.metricsToken, req.getHeader('authorization') || undefined)) return void res.writeStatus('401 Unauthorized').end();
+    res.writeHeader('content-type', PROMETHEUS_CONTENT_TYPE).writeHeader('cache-control', 'no-store').end(telemetry.render());
   });
 
   app.get('/rooms', (res) => {

@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# promtool test rules: o alerta do p95 do tick dispara com ticks de 30 ms e fica quieto com 3 ms.
+rule_files:
+  - outgun.rules.yml
+evaluation_interval: 10s
+tests:
+  - interval: 10s
+    # 100 ticks por 10 s; no servidor "lento" 10% passam de 20 ms (p95 ≈ 35 ms), no "rapido" nenhum
+    input_series:
+      - series: 'outgun_tick_duration_seconds_bucket{instance="lento",le="0.005"}'
+        values: '0+90x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="lento",le="0.02"}'
+        values: '0+90x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="lento",le="0.05"}'
+        values: '0+100x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="lento",le="+Inf"}'
+        values: '0+100x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="rapido",le="0.005"}'
+        values: '0+100x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="rapido",le="0.02"}'
+        values: '0+100x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="rapido",le="0.05"}'
+        values: '0+100x30'
+      - series: 'outgun_tick_duration_seconds_bucket{instance="rapido",le="+Inf"}'
+        values: '0+100x30'
+    alert_rule_test:
+      - eval_time: 30s
+        alertname: OutgunTickP95Alto
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: OutgunTickP95Alto
+        exp_alerts:
+          - exp_labels: { severity: page, instance: lento }
+            exp_annotations:
+              summary: 'p95 do tick acima de 20 ms em lento'
+              description: 'O tick de 10 Hz tem 100 ms; acima de 20 ms no p95 o servidor está perto de atrasar frames (p95 atual 35ms).'
+  - interval: 10s
+    input_series:
+      - series: 'up{job="api",instance="api:7800"}'
+        values: '1 1 0 0 0 0 0 0 0 0'
+      - series: 'outgun_errors_total{instance="gs",kind="tick"}'
+        values: '0 0 0 1 1 1'
+    alert_rule_test:
+      - eval_time: 90s
+        alertname: OutgunAlvoFora
+        exp_alerts:
+          - exp_labels: { severity: page, job: api, instance: 'api:7800' }
+            exp_annotations:
+              summary: 'api (api:7800) não responde a /metrics'
+      - eval_time: 50s
+        alertname: OutgunExcecoesNoTick
+        exp_alerts:
+          - exp_labels: { severity: page, instance: gs, kind: tick }
+            exp_annotations:
+              summary: 'Exceção no tick de uma sala em gs'

@@ -27,19 +27,20 @@ Este repositório tem duas partes:
 
 ## Pacotes
 
-| Pacote              | Papel                                                                             | Card            |
-| ------------------- | --------------------------------------------------------------------------------- | --------------- |
-| `packages/sim`      | Simulação determinística (port de `src/world.cpp`), sem dependências de Node/DOM  | E2              |
-| `packages/protocol` | Mensagens binárias cliente/servidor                                               | OG-041          |
-| `packages/content`  | Mapas, gerador, manifesto de assets                                               | OG-010 a OG-012 |
-| `packages/settings` | Configurações de sala e presets                                                   | OG-030          |
-| `packages/i18n`     | Traduções                                                                         | OG-014          |
-| `packages/tickets`  | Ticket de entrada no game server (JWT Ed25519: API assina, servidor confere)      | OG-083          |
-| `packages/netcode`  | Cliente de rede do jogo: estado recebido, foguetes locais, predição, suavização   | OG-064          |
-| `packages/bots`     | IA dos bots (port de `src/robot.cpp` e `src/bot_support.cpp`)                     | OG-050 a OG-053 |
-| `apps/game-server`  | Servidor de jogo (10 Hz)                                                          | OG-040          |
-| `apps/api`          | Contas, ranking, salas (Fastify + Drizzle + PostgreSQL; ver `apps/api/README.md`) | OG-080          |
-| `apps/web`          | Cliente web                                                                       | OG-060          |
+| Pacote                   | Papel                                                                             | Card            |
+| ------------------------ | --------------------------------------------------------------------------------- | --------------- |
+| `packages/sim`           | Simulação determinística (port de `src/world.cpp`), sem dependências de Node/DOM  | E2              |
+| `packages/protocol`      | Mensagens binárias cliente/servidor                                               | OG-041          |
+| `packages/content`       | Mapas, gerador, manifesto de assets                                               | OG-010 a OG-012 |
+| `packages/settings`      | Configurações de sala e presets                                                   | OG-030          |
+| `packages/i18n`          | Traduções                                                                         | OG-014          |
+| `packages/tickets`       | Ticket de entrada no game server (JWT Ed25519: API assina, servidor confere)      | OG-083          |
+| `packages/netcode`       | Cliente de rede do jogo: estado recebido, foguetes locais, predição, suavização   | OG-064          |
+| `packages/bots`          | IA dos bots (port de `src/robot.cpp` e `src/bot_support.cpp`)                     | OG-050 a OG-053 |
+| `packages/observability` | Métricas Prometheus, logs JSON (pino) e envio de erros (Sentry/GlitchTip)         | OG-102          |
+| `apps/game-server`       | Servidor de jogo (10 Hz)                                                          | OG-040          |
+| `apps/api`               | Contas, ranking, salas (Fastify + Drizzle + PostgreSQL; ver `apps/api/README.md`) | OG-080          |
+| `apps/web`               | Cliente web                                                                       | OG-060          |
 
 `packages/sim`, `packages/netcode` e `packages/bots` têm regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
 
@@ -65,6 +66,13 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - Entrada na partida (OG-083): `/play` pede o ticket à API (`POST /api/rooms/:id/join`) e conecta no endereço devolvido (`?server=` ainda manda no endereço). Sem a API no ar, usa o ticket `dev:Nome`, aceito só com `DEV_TICKETS` (padrão no desenvolvimento). O game server busca as chaves em `TICKET_JWKS_URL` (padrão `http://localhost:7800/.well-known/jwks.json`).
 - Contas (OG-081): as telas Entrar, Criar conta, Esqueceu a senha, Conta usam a API em `/api`; `vite dev` e `vite preview` repassam para `http://localhost:7800` (`API_URL` muda o destino; `VITE_API_URL` no build aponta para outro endereço). Suba a API conforme `apps/api/README.md`. Sem a API, o jogo segue como convidado.
 - `VITE_SOURCE_URL` (opcional, no build): endereço público do código-fonte para o link "Código-fonte (GPL)"; sem ele o link abre a página `/source`.
+
+## Observabilidade (OG-102)
+
+- Game server e API expõem `GET /metrics` no formato do Prometheus (`METRICS_TOKEN` exige `Authorization: Bearer`). Game server: `outgun_tick_duration_seconds` (tick de todas as salas: simulação + serialização), `outgun_room_tick_duration_seconds`, `outgun_tick_lateness_seconds`, `outgun_rooms`/`outgun_players` por modo, `outgun_bots`, `outgun_spectators`, bytes enviados/recebidos, conexões por resultado, `outgun_errors_total{kind}`. API: `http_request_duration_seconds{method,route,status}` e `outgun_api_errors_total`. Os dois: CPU, memória e atraso do event loop.
+- Logs em JSON (pino) com `service`, `env` e `version` (`RELEASE`); `LOG_LEVEL` muda o nível. Correlação: a API devolve e registra o `x-request-id` (o game server manda `gs-<id>-<n>` nas chamadas internas) e a entrada numa sala registra o `jti` do ticket na API ("ticket emitido") e no game server ("jogador entrou").
+- Erros: com `SENTRY_DSN` (API e game server) ou `VITE_SENTRY_DSN` no build do cliente, exceções vão para um serviço compatível com Sentry (Sentry ou GlitchTip), no máximo 30 por minuto (10 no cliente). Sem DSN, nada sai da máquina.
+- Painel e alertas: `docker compose -f tools/observability/docker-compose.yml up -d` sobe Prometheus (http://localhost:9090), Alertmanager (:9093) e Grafana (http://localhost:3000, painel "Outgun") coletando o game server (7700) e a API (7800) locais. `bash tools/observability/check.sh` confere as configurações e roda os testes das regras de alerta (`promtool test rules`; p95 do tick > 20 ms por 1 min, ticks descartados, tráfego por cliente > 10 KB/s, exceção no tick, API lenta ou com 5xx, alvo fora do ar).
 
 ## Utilitários de desenvolvimento (`tools/dev/`)
 

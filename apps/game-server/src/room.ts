@@ -80,6 +80,8 @@ export interface RoomOptions {
   chatFilter?: ReadonlySet<string>;
   /** Log do servidor (chat com `log_player_chat`). */
   log?: (line: string) => void;
+  /** Jogador expulso por mensagem inválida ou excesso (métricas e log, OG-102). */
+  onMisbehavior?: (kick: { name: string; ip: string | undefined; reason: string }) => void;
   /** Quanto tempo a vaga de quem caiu fica guardada (s; padrão 15, 0 = sai na hora como o original). */
   reconnectSeconds?: number;
   /** Resultado de cada partida para a API (OG-049). */
@@ -772,6 +774,8 @@ export class Room {
     const c = this.clients.get(pid);
     if (!c) return;
     this.kicks.push({ pid, name: c.identity.name, reason });
+    if (this.kicks.length > 50) this.kicks.shift();
+    this.options.onMisbehavior?.({ name: c.identity.name, ip: c.identity.ip, reason });
     c.conn.send(encodeFrame(message('disconnecting', { reason: 'misbehavior', seconds: 0 })));
     c.conn.close(4003, 'client_misbehavior');
     this.leave(pid);

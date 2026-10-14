@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@outgun/content": "workspace:*",
+    "@outgun/observability": "workspace:*",
     "@outgun/protocol": "workspace:*",
     "@outgun/settings": "workspace:*",
     "@outgun/sim": "workspace:*",

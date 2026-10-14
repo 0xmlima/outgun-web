@@ -208,6 +208,9 @@ importers:
       '@node-rs/argon2':
         specifier: 2.2.1
         version: 2.2.1
+      '@outgun/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@outgun/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -242,6 +245,9 @@ importers:
       '@outgun/content':
         specifier: workspace:*
         version: link:../../packages/content
+      '@outgun/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@outgun/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -279,6 +285,9 @@ importers:
       '@outgun/netcode':
         specifier: workspace:*
         version: link:../../packages/netcode
+      '@outgun/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@outgun/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -360,6 +369,16 @@ importers:
       '@outgun/sim':
         specifier: workspace:*
         version: link:../sim
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+
+  packages/observability:
+    dependencies:
+      pino:
+        specifier: 10.4.0
+        version: 10.4.0
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

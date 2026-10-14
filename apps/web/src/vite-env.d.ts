@@ -8,4 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_GAME_SERVER?: string;
   /** Endereço da API da plataforma (padrão: /api no mesmo domínio). */
   readonly VITE_API_URL?: string;
+  /** DSN do serviço de erros (Sentry/GlitchTip, OG-102); sem ele, nada é enviado. */
+  readonly VITE_SENTRY_DSN?: string;
+  /** Versão do build, enviada junto dos erros. */
+  readonly VITE_RELEASE?: string;
 }
