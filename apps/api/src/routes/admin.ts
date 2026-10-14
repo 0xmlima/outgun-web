@@ -502,6 +502,27 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       return reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="feedback.csv"').send([header.join(','), ...lines].join('\r\n') + '\r\n');
     });
 
+    // --- telemetria de rede (OG-108) ---
+    app.get(
+      '/network',
+      { schema: { tags: ['admin'], summary: 'Rede dos jogadores por região (resumos anônimos dos últimos dias)', querystring: Type.Object({ days: Type.Optional(Type.Integer({ minimum: 1, maximum: 90 })) }) } },
+      async (request, reply) => {
+        if (!(await guard(request, reply, 'moderator'))) return reply;
+        const days = request.query.days ?? 7;
+        const rows = await db.execute<Record<string, string | number | null>>(sql`
+          SELECT coalesce(region, '?') AS region, count(*)::int AS reports, sum(duration_s)::int AS seconds,
+            round(percentile_cont(0.5) WITHIN GROUP (ORDER BY ping_p50))::int AS ping_p50,
+            round(percentile_cont(0.95) WITHIN GROUP (ORDER BY ping_p95))::int AS ping_p95,
+            round(percentile_cont(0.5) WITHIN GROUP (ORDER BY lag_p50))::int AS lag_p50,
+            round(avg(corrections_per_min)::numeric, 1)::float AS corrections_per_min,
+            round(percentile_cont(0.5) WITHIN GROUP (ORDER BY fps_p5))::int AS fps_p5,
+            round((100.0 * sum(stall_seconds) / greatest(sum(duration_s), 1))::numeric, 1)::float AS stall_pct
+          FROM net_reports WHERE created_at > now() - make_interval(days => ${days})
+          GROUP BY 1 ORDER BY 2 DESC`);
+        return { days, regions: [...rows] };
+      },
+    );
+
     // --- papéis ---
     app.put(
       '/users/:username/role',

@@ -13,6 +13,7 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  real,
   serial,
   smallint,
   text,
@@ -373,6 +374,26 @@ export const feedback = pgTable('feedback', {
   createdAt: tstz('created_at').notNull().defaultNow(),
 });
 
+/** Resumos anônimos da rede dos clientes (OG-108). */
+export const netReports = pgTable('net_reports', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+  roomId: text('room_id'),
+  region: text('region'),
+  version: text('version').notNull(),
+  browser: text('browser').notNull(),
+  durationS: integer('duration_s').notNull(),
+  pingP50: integer('ping_p50'),
+  pingP95: integer('ping_p95'),
+  lagP50: integer('lag_p50').notNull(),
+  lagP95: integer('lag_p95').notNull(),
+  fpsP5: integer('fps_p5').notNull(),
+  fpsP50: integer('fps_p50').notNull(),
+  correctionsPerMin: real('corrections_per_min').notNull(),
+  stallSeconds: integer('stall_seconds').notNull(),
+  framesPerSecond: real('frames_per_second').notNull(),
+});
+
 export const allTables = {
   users,
   sessions,
@@ -394,6 +415,7 @@ export const allTables = {
   beta_invites: betaInvites,
   beta_invite_uses: betaInviteUses,
   feedback,
+  net_reports: netReports,
   password_resets: passwordResets,
   reserved_names: reservedNames,
 };

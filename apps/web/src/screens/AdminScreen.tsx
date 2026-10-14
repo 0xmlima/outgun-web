@@ -9,7 +9,7 @@ import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
 
-type Tab = 'rooms' | 'feedback' | 'reports' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
 
 interface RosterEntry {
   uid: number;
@@ -100,6 +100,7 @@ export default function AdminScreen() {
   const tabs: [Tab, string][] = [
     ['rooms', t('Live rooms')],
     ['feedback', t('Feedback')],
+    ['network', t('Network')],
     ['reports', t('Reports')],
     ['bans', t('Bans')],
     ['audit', t('Audit log')],
@@ -122,6 +123,7 @@ export default function AdminScreen() {
           </p>
           {tab === 'rooms' && <RoomsTab isAdmin={isAdmin} />}
           {tab === 'feedback' && <FeedbackTab />}
+          {tab === 'network' && <NetworkTab />}
           {tab === 'invites' && isAdmin && <InvitesTab />}
           {tab === 'reports' && <ReportsTab />}
           {tab === 'bans' && <BansTab isAdmin={isAdmin} />}
@@ -768,6 +770,70 @@ function InvitesTab() {
                     </>
                   )}
                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+interface RegionNet {
+  region: string;
+  reports: number;
+  seconds: number;
+  ping_p50: number | null;
+  ping_p95: number | null;
+  lag_p50: number;
+  corrections_per_min: number;
+  fps_p5: number;
+  stall_pct: number;
+}
+
+/** Rede dos jogadores por região (telemetria anônima, OG-108): para ajustar rede e predição. */
+function NetworkTab() {
+  const { t } = usePrefs();
+  const [days, setDays] = useState(7);
+  const net = useLoad<{ regions: RegionNet[] }>(`/admin/network?days=${days}`, 30_000);
+  return (
+    <section className="stats-section">
+      <p className="stats-tabs">
+        {[1, 7, 30].map((d) => (
+          <button key={d} type="button" className={d === days ? 'active' : ''} onClick={() => setDays(d)}>
+            {t('$1 days', String(d))}
+          </button>
+        ))}
+      </p>
+      <Status error={net.error} />
+      {net.data?.regions.length === 0 && <p className="stats-note">{t('No reports yet.')}</p>}
+      {net.data && net.data.regions.length > 0 && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Region')}</th>
+              <th>{t('Matches')}</th>
+              <th>{t('Minutes')}</th>
+              <th>{t('Ping p50 / p95 (ms)')}</th>
+              <th>{t('Control delay p50 (ms)')}</th>
+              <th>{t('Corrections/min')}</th>
+              <th>{t('fps p5')}</th>
+              <th>{t('Frame drops')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {net.data.regions.map((r) => (
+              <tr key={r.region}>
+                <td className="name">{r.region}</td>
+                <td>{r.reports}</td>
+                <td>{Math.round(r.seconds / 60)}</td>
+                <td>
+                  {r.ping_p50 ?? '-'} / {r.ping_p95 ?? '-'}
+                </td>
+                <td>{r.lag_p50}</td>
+                <td>{r.corrections_per_min}</td>
+                <td>{r.fps_p5}</td>
+                <td>{r.stall_pct}%</td>
               </tr>
             ))}
           </tbody>

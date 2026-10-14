@@ -21,6 +21,8 @@ import { OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
+import { browserName, NetTelemetry, sendNetReport } from './net/telemetry.js';
+import { API_URL } from '../app/api.js';
 import { SoundEvents, type SoundContext } from './audio/sound-events.js';
 import { SoundPlayer } from './audio/sound-player.js';
 import { EntityRenderer } from './render/entity-renderer.js';
@@ -86,6 +88,8 @@ export interface OnlineOptions {
   readonly explicitServer?: boolean;
   /** Rede simulada nos dois sentidos (depuração: ?lag=&loss=). */
   readonly simulate?: LinkConditions;
+  /** Manda o resumo anônimo da rede ao servidor (OG-108; opção do jogador). */
+  readonly telemetry?: boolean;
 }
 
 export interface GameOptions {
@@ -283,8 +287,35 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     fail(message);
   };
 
+  /** Telemetria de rede (OG-108): amostra por segundo; resumo a cada 5 min, ao sair e ao fechar a aba. */
+  let telemetry: { stop: () => void } | null = null;
+  const startTelemetry = (online: OnlineOptions) => {
+    if (online.telemetry === false) return;
+    const net = new NetTelemetry({ room: online.room, version: import.meta.env.VITE_RELEASE ?? 'dev', browser: browserName(navigator.userAgent) });
+    const flush = () => {
+      const report = net.report();
+      if (report) sendNetReport(API_URL, report);
+    };
+    let n = 0;
+    const timer = setInterval(() => {
+      const s = session;
+      if (!s || !s.world) return;
+      net.sample({ pingMs: s.pings.get(s.me), lagFrames: s.stats.averageLag, fps: ready ? app.ticker.FPS : 0, framesReceived: s.stats.framesReceived, corrections: s.stats.corrections });
+      if (++n % 300 === 0) flush();
+    }, 1000);
+    addEventListener('pagehide', flush);
+    telemetry = {
+      stop: () => {
+        clearInterval(timer);
+        removeEventListener('pagehide', flush);
+        flush();
+      },
+    };
+  };
+
   /** Partida no servidor: sessão, conexão e envio dos controles a 10 Hz. */
   const startOnline = (online: OnlineOptions, theme: RoomTheme) => {
+    startTelemetry(online);
     let lastFire = false;
     let lastDrop = false;
     let mapLoad = Promise.resolve();
@@ -579,6 +610,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     },
     destroy() {
       destroyed = true;
+      telemetry?.stop();
       clearTimeout(reconnectTimer);
       if (sendTimer !== null) clearTimeout(sendTimer);
       connection?.close();

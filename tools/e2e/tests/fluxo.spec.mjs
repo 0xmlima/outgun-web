@@ -3,7 +3,7 @@
 // perfil com a partida no histórico → página da partida → ranking. Os textos do menu ficam num
 // span oculto do BitmapText; por isso os testes conferem o conteúdo, não a visibilidade.
 import { expect, test } from '@playwright/test';
-import { registerWithInvite } from './helpers.mjs';
+import { adminGet, registerWithInvite } from './helpers.mjs';
 
 const name = `E2e${Date.now().toString(36).slice(-7)}`;
 const password = 'senha-e2e-123';
@@ -99,6 +99,14 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
   await page.goto('/ranking');
   await expect(page.locator('body')).toContainText('Só partidas ranqueadas contam');
   await page.screenshot({ path: prints('7-ranking.png'), fullPage: true });
+
+  // 7. Telemetria de rede (OG-108): ao sair da partida o cliente mandou o resumo anônimo
+  await expect
+    .poll(async () => {
+      const r = await adminGet(baseURL, '/api/admin/network?days=1');
+      return r.regions.reduce((n, x) => n + x.reports, 0);
+    })
+    .toBeGreaterThan(0);
 });
 
 test('beta fechado: cadastro sem convite recusado; "Jogar agora" sem conta vai para o login', async ({

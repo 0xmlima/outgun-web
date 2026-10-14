@@ -14,6 +14,7 @@ import { LogMailer, MailpitMailer, MemoryMailer, ResendMailer, type Mailer } fro
 import { accountRoutes } from './routes/account.js';
 import { adminRoutes } from './routes/admin.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { telemetryRoutes } from './routes/telemetry.js';
 import { authRoutes } from './routes/auth.js';
 import { devRoutes } from './routes/dev.js';
 import { healthRoutes } from './routes/health.js';
@@ -96,6 +97,10 @@ function createFastify(deps: AppDeps) {
 export type App = ReturnType<typeof createFastify>;
 
 declare module 'fastify' {
+  interface FastifyInstance {
+    /** Registro de métricas da API (/metrics). */
+    metrics: Registry;
+  }
   interface FastifyRequest {
     /** Corpo cru (JSON), usado na verificação HMAC das rotas internas. */
     rawBody?: string;
@@ -184,6 +189,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(internalRoutes(deps), { prefix: '/internal' });
   await app.register(adminRoutes(deps, services), { prefix: '/admin' });
   await app.register(feedbackRoutes(deps, services));
+  await app.register(telemetryRoutes(deps, services));
   return app;
 }
 
@@ -217,6 +223,8 @@ function observe(app: App, deps: AppDeps): void {
     [{ result: 'failed' }, reporter.counts.failed],
   ]);
   registerProcessMetrics(registry);
+  // as rotas registram as suas métricas aqui (ex. telemetria de rede, OG-108)
+  app.decorate('metrics', registry);
 
   app.addHook('onRequest', async (request, reply) => {
     reply.header('x-request-id', request.id);

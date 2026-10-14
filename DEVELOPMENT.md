@@ -78,6 +78,10 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - Feedback: "Enviar feedback" no menu (logado) e no menu do jogo (Esc), com nota de fidelidade ao original 1–5, nota geral, "joguei o original" e texto; o contexto (sala, mapa, versão, tela, navegador) vai junto. Triagem na aba Feedback do painel (resumo da fidelidade de veteranos — meta do lançamento: 20 com média 4+ —, status, CSV).
 - O E2E roda com `BETA=1` e cria os convites pelo Admin do seed.
 
+## Telemetria de rede (OG-108)
+
+- Na partida online o cliente amostra a rede uma vez por segundo (ping medido pelo servidor, atraso dos controles, correções de predição, frames recebidos, fps) e manda um resumo anônimo (`POST /api/telemetry`, por `sendBeacon`) ao sair, a cada 5 min e ao fechar a aba; só com 30 s ou mais de partida. Desliga em Opções → Jogo ("Enviar estatísticas anônimas da rede"). A API guarda em `net_reports` sem conta, nome nem IP (a região vem do servidor da sala), soma no `/metrics` (`outgun_client_*`) e agrega por região no painel (aba Rede) e no Grafana (linha "Clientes").
+
 ## Painel admin (OG-087)
 
 - `/admin` no cliente (item "Moderação" no menu para moderadores e admins): salas ao vivo com os jogadores (kick, ban, mute, mensagem), denúncias do `/report`, bans, auditoria, presets e rotações; papéis só para admin. API em `/admin/*` (sessão + papel; `users.is_moderator`); toda ação grava em `admin_actions`.

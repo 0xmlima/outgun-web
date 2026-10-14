@@ -28,6 +28,18 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'This username is already taken.': 'Este nome de usuário já está em uso.',
     'The password must have at least 8 characters.': 'A senha precisa ter pelo menos 8 caracteres.',
     'This password is too common. Choose another.': 'Essa senha é comum demais. Escolha outra.',
+    // telemetria de rede (OG-108)
+    Network: 'Rede',
+    '$1 days': '$1 dias',
+    'No reports yet.': 'Nenhum resumo ainda.',
+    Region: 'Região',
+    Minutes: 'Minutos',
+    'Ping p50 / p95 (ms)': 'Ping p50 / p95 (ms)',
+    'Control delay p50 (ms)': 'Atraso dos controles p50 (ms)',
+    'Corrections/min': 'Correções/min',
+    'fps p5': 'fps p5',
+    'Frame drops': 'Quedas de frames',
+    'Send anonymous network statistics': 'Enviar estatísticas anônimas da rede',
     // beta fechado (OG-106)
     '$1 invites created.': '$1 convites criados.',
     Bug: 'Bug',

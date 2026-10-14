@@ -69,6 +69,7 @@ export default function GameScreen() {
         room: params.get('sala') ?? 'main',
         name: params.get('name') ?? (prefs.playerName.trim() || 'Convidado'),
         ...(password ? { password } : {}),
+        telemetry: prefs.shareNetStats,
         ...(lag > 0 || loss > 0 ? { simulate: { rttMs: lag, jitterMs: lag / 10, loss } } : {}),
       };
     }

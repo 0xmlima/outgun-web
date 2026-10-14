@@ -39,6 +39,8 @@ export interface Prefs {
   readonly lagPrediction: boolean;
   /** 0..10: quanto do atraso a predição compensa (`Lag prediction amount`). */
   readonly lagPredictionAmount: number;
+  /** Manda estatísticas anônimas da rede (OG-108). */
+  readonly shareNetStats: boolean;
   /** `Bandwidth for out-of-room players (cps)`: 0..640, passo 20; vai ao servidor como cps/20. */
   readonly minimapBandwidth: number;
   readonly showFlagMessages: boolean;
@@ -89,6 +91,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     bindings: CLASSIC_BINDINGS,
     lagPrediction: true,
     lagPredictionAmount: 10,
+    shareNetStats: true,
     minimapBandwidth: 80,
     showFlagMessages: true,
     showKillMessages: true,
@@ -128,6 +131,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
     lagPrediction: bool(saved.lagPrediction, fallback.lagPrediction),
     lagPredictionAmount: int(saved.lagPredictionAmount, 0, 10, fallback.lagPredictionAmount),
+    shareNetStats: bool(saved.shareNetStats, fallback.shareNetStats),
     minimapBandwidth: int(saved.minimapBandwidth, 0, 640, fallback.minimapBandwidth),
     showFlagMessages: bool(saved.showFlagMessages, fallback.showFlagMessages),
     showKillMessages: bool(saved.showKillMessages, fallback.showKillMessages),

@@ -20,6 +20,19 @@ export async function createInvite(baseURL, note = 'e2e') {
   return code;
 }
 
+/** GET autenticado como o Admin do seed (JSON). */
+export async function adminGet(baseURL, path) {
+  const api = await playwrightRequest.newContext({
+    baseURL,
+    extraHTTPHeaders: { origin: new URL(baseURL).origin },
+  });
+  await api.post('/api/auth/login', { data: { username: 'Admin', password: 'outgun-dev' } });
+  const res = await api.get(path);
+  const body = await res.json();
+  await api.dispose();
+  return body;
+}
+
 /** Cadastro pela tela, com o convite no link; termina logado na tela inicial. */
 export async function registerWithInvite(page, baseURL, name, password) {
   const code = await createInvite(baseURL, name);
