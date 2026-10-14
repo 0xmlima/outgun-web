@@ -4,10 +4,11 @@
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { applyGamemod, presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { BotClient, type BotHost } from './bot-client.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
@@ -42,8 +43,6 @@ export interface Connection {
   moved?(pid: number): void;
 }
 
-/** Bots não têm conexão (a IA é do OG-053). */
-const BOT_CONNECTION: Connection = { send: () => {}, close: () => {} };
 /** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
 const OFFLINE: Connection = { send: () => {}, close: () => {} };
 
@@ -92,6 +91,10 @@ export interface RoomOptions {
   replays?: { save(key: string, data: Uint8Array): string };
   /** `bots_fill` das salas Casual (OG-054; o preset Clássico tem 0). Ignorado no Ranked (D-11). */
   botsFill?: number;
+  /** Teste de bots (`-bottest` do original): bots jogam sem humanos (testes e medições; nunca em produção). */
+  botTest?: boolean;
+  /** Linhas de gamemod por cima do preset desde a criação (como um /set inicial). */
+  gamemod?: string;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -211,6 +214,10 @@ export class Room {
   private readonly botNameRng: GlibcRand;
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
   private frameSentTime = 0;
+  /** Sorteio dos bots (no original, o `rand()` global; aqui separado para não mexer na sequência do mundo). */
+  private readonly botRng: GlibcRand;
+  /** Regras de bandeira já anunciadas (`flagModeMask`). */
+  private sentFlagModes = '';
 
   constructor(private readonly options: RoomOptions) {
     const preset = PRESETS.find((p) => p.id === options.preset);
@@ -220,12 +227,14 @@ export class Room {
     this.id = options.id;
     this.preset = preset;
     this.mode = preset.mode;
-    this.settings = presetSettings(preset.id);
+    this.settings = options.gamemod ? applyGamemod(presetSettings(preset.id), options.gamemod).settings : presetSettings(preset.id);
+    if (options.gamemod) this.setLines = [options.gamemod];
 
     this.now = options.now ?? (() => performance.now());
     this.createdAt = this.matchStartedAt = this.wallClock();
     const rng = new GlibcRand(options.seed);
     this.botNameRng = new GlibcRand(options.seed + 1);
+    this.botRng = new GlibcRand(options.seed + 2);
     if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
@@ -386,6 +395,7 @@ export class Room {
     }
     out.push(teamStatsMessage(0, this.world.teams[0]), teamStatsMessage(1, this.world.teams[1])); // `send_team_stats`
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
+    out.push(message('flagModes', this.sim.flagModes())); // `send_flag_modes` na entrada
     return out;
   }
 
@@ -474,10 +484,32 @@ export class Room {
     return res;
   }
 
-  /** Bot marcado (sem IA até o OG-053): ocupa uma vaga e dá lugar a humanos; sem nome, um de `bot_name_lang`. */
+  /** Bot com IA (OG-053): cliente virtual que ocupa uma vaga e dá lugar a humanos; sem nome, um de `bot_name_lang`. */
   private spawnBot(name?: string): JoinResult {
     const botName = name ?? createBotName(this.botNameRng, this.settings.server.botNameLang, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
-    return this.join(BOT_CONNECTION, { name: botName, accountId: null }, { bot: true });
+    const bot = new BotClient(this.botHost(), this.botRng, this.now);
+    const res = this.join(bot, { name: botName, accountId: null }, { bot: true });
+    if (res.ok) bot.attach(res.pid);
+    else bot.close();
+    return res;
+  }
+
+  private botHost(): BotHost {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- o bot guarda a sala
+    const room = this;
+    return {
+      get frame() {
+        return room.world.frame;
+      },
+      botPing: () => room.settings.server.botPing,
+      mapByFile: (file) => room.rotation.find((r) => r.file === file)?.map,
+      deliver: (pid, messages) => room.handle(pid, messages),
+    };
+  }
+
+  /** Clientes virtuais dos bots presentes. */
+  botClients(): BotClient[] {
+    return [...this.clients.values()].flatMap((c) => (c.bot && c.conn instanceof BotClient ? [c.conn] : []));
   }
 
   /** `init_bots` (RN-BOT-01): tira os bots que sobram ou completa até o necessário. */
@@ -486,7 +518,7 @@ export class Room {
     if (this.mode === 'ranked') return;
     const s = this.settings.server;
     const bots = this.bots().length;
-    const needed = neededBots({ humans: this.clients.size - bots, maxPlayers: this.world.maxPlayers, minBots: s.minBots, botsFill: s.botsFill, balanceBot: s.balanceBot, extraBots: this.extraBots });
+    const needed = neededBots({ humans: this.clients.size - bots, maxPlayers: this.world.maxPlayers, minBots: s.minBots, botsFill: s.botsFill, balanceBot: s.balanceBot, extraBots: this.extraBots, botTest: this.options.botTest ?? false });
     for (let i = bots; i > needed; i--) this.dropBot(botToRemove(this.slots(), this.world.maxPlayers));
     for (let i = bots; i < needed; i++) if (!this.spawnBot().ok) break;
     this.checkBotsPending = false; // as entradas e saídas acima já estão contadas
@@ -775,6 +807,13 @@ export class Room {
       });
     }
     if (running) this.announceVotes();
+    const flagModes = this.sim.flagModes();
+    const flagModesKey = JSON.stringify(flagModes);
+    if (flagModesKey !== this.sentFlagModes) {
+      // `send_flag_modes(pid_all)` quando a máscara muda (troca de mapa ou /set)
+      if (this.sentFlagModes !== '') this.broadcast(message('flagModes', flagModes));
+      this.sentFlagModes = flagModesKey;
+    }
     this.playerTimers(running);
     this.flush();
     if (running) this.recorder?.frame(this.replayFrame());
@@ -787,6 +826,8 @@ export class Room {
     }
     this.frameSentTime = this.now();
     this.thinkAfterBroadcast();
+    // `bot_loop` de cada bot: recebe o que chegou (com `bot_ping`) e decide para o próximo frame
+    for (const bot of this.botClients()) bot.step();
     world.frame++;
   }
 

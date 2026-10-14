@@ -51,6 +51,8 @@ export interface SessionOptions {
   onMapChange(request: MapRequest): void;
   /** Efeitos e mensagens que a interface mostra (placar, mortes, chat...). */
   onEvent?(event: SessionEvent): void;
+  /** Sem tela (cliente virtual de bot): não mede nem suaviza as correções da extrapolação. */
+  headless?: boolean;
 }
 
 /** Opções do jogador para a predição (`lagPrediction`, `lagPredictionAmount` do original). */
@@ -544,7 +546,7 @@ export class ClientSession {
     this.stats.framesReceived++;
 
     // onde cada jogador estaria "agora" antes deste frame (para medir e suavizar a correção)
-    const beforeDelta = this.timeDelta(now);
+    const beforeDelta = this.options.headless ? null : this.timeDelta(now);
     const before = new Map<number, { pos: Position; dead: boolean }>();
     if (beforeDelta !== null)
       for (const p of this.extrapolateWith(beforeDelta)?.players ?? []) if (p) before.set(p.pid, { pos: p.pos.clone(), dead: p.dead });

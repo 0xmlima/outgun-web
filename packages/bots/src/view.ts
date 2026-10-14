@@ -41,12 +41,31 @@ export class BotPlayer extends PlayerState {
     if (clearlyVisible) this.posUpdated = frame;
   }
 
-  /** Cópia independente (para `futureMe`). */
+  /**
+   * Cópia para a extrapolação (`futureMe`, previsões de fuga): leva o que a física e o bot leem do
+   * jogador; o resto (estatísticas, tempos) fica com os valores iniciais.
+   */
   cloneBot(): BotPlayer {
-    const c = new BotPlayer(this.pid, this.team);
-    Object.assign(c, this);
-    c.pos = this.pos.clone();
-    c.prevMapUpdateRoom = { ...this.prevMapUpdateRoom };
+    const c = Object.create(BotPlayer.prototype) as BotPlayer;
+    Object.assign(c, {
+      pid: this.pid,
+      team: this.team,
+      used: this.used,
+      dead: this.dead,
+      pos: this.pos.clone(),
+      vel: this.vel,
+      controls: this.controls,
+      accelerationMode: this.accelerationMode,
+      gundir: this.gundir,
+      turbo: this.turbo,
+      deathbringer: this.deathbringer,
+      deathbringerAffected: this.deathbringerAffected,
+      weapon: this.weapon,
+      shadowTime: this.shadowTime,
+      posUpdated: this.posUpdated,
+      onscreen: this.onscreen,
+      name: this.name,
+    });
     return c;
   }
 }
@@ -78,8 +97,14 @@ export class BotView {
    */
   bases: [WorldCoords[], WorldCoords[], WorldCoords[]];
 
-  constructor(map: GameMap, maxPlayers: number, physics: PhysicsSettings, rules: BotFlagRules) {
-    this.world = new WorldState(map, maxPlayers);
+  /**
+   * `world`: o mundo recebido pelo cliente, compartilhado (foguetes, power-ups, bandeiras e explosões
+   * são lidos dele sem cópia); sem ele, a visão tem um mundo próprio (testes). Os jogadores do bot
+   * ficam sempre em `players`.
+   */
+  constructor(map: GameMap, maxPlayers: number, physics: PhysicsSettings, rules: BotFlagRules, world?: WorldState) {
+    this.ownWorld = !world;
+    this.world = world ?? new WorldState(map, maxPlayers);
     this.players = Array.from({ length: maxPlayers }, (_, pid) => new BotPlayer(pid, pid < maxPlayers / 2 ? 0 : 1));
     this.enemiesSeenFrame = new Float64Array(map.width * map.height);
     this.physics = physics;
@@ -95,9 +120,11 @@ export class BotView {
     return this.players.length;
   }
 
-  /** Mantém `world.players` (usado pela física) em sincronia com `used`. */
+  private readonly ownWorld: boolean;
+
+  /** Mantém `world.players` em sincronia com `used` (só num mundo próprio). */
   syncUsed(): void {
-    this.players.forEach((p, i) => (this.world.players[i] = p.used ? p : undefined));
+    if (this.ownWorld) this.players.forEach((p, i) => (this.world.players[i] = p.used ? p : undefined));
   }
 
   seenIndex(room: RoomCoords): number {

@@ -101,10 +101,14 @@ export class AreaMap {
 
   /** Área que contém `pos`; para sala inválida devolve a primeira área (`AreaMap::identifyArea`). */
   identifyArea(pos: WorldCoords): Area {
-    const column = pos.room.x >= 0 && pos.room.y >= 0 ? this.rooms[pos.room.x] : undefined;
-    const level = pos.room.y < this.map.height ? column?.[pos.room.y] : undefined;
-     
-    return level ? findInLevel(level, pos.x, pos.y) : this.areas[0]!;
+    return this.identifyAreaAt(pos.room.x, pos.room.y, pos.x, pos.y);
+  }
+
+  /** `identifyArea` sem montar um `WorldCoords`. */
+  identifyAreaAt(roomX: number, roomY: number, x: number, y: number): Area {
+    const column = roomX >= 0 && roomY >= 0 ? this.rooms[roomX] : undefined;
+    const level = roomY < this.map.height ? column?.[roomY] : undefined;
+    return level ? findInLevel(level, x, y) : this.areas[0]!;
   }
 
   private splitRoom(roomPos: RoomCoords): AreaMapLevel {

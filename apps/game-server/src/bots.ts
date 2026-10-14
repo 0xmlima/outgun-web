@@ -12,6 +12,8 @@ export interface BotNeeds {
   balanceBot: boolean;
   /** Saldo do `/bot add` e `/bot remove`. */
   extraBots: number;
+  /** Teste de bots (`-bottest` do original): bots jogam mesmo sem humanos. */
+  botTest?: boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ export interface BotNeeds {
  * `balance_bot`, mais um se o total ficar ímpar. Divergência D-27: sem humanos, nenhum bot.
  */
 export function neededBots(n: BotNeeds): number {
-  if (n.humans === 0) return 0;
+  if (n.humans === 0 && !n.botTest) return 0;
   let needed = Math.max(n.botsFill - n.humans, n.minBots) + n.extraBots;
   if (needed < 0) needed = 0;
   else if (n.humans + needed > n.maxPlayers) needed = n.maxPlayers - n.humans;

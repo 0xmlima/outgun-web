@@ -111,19 +111,39 @@ export function buildDistanceTable(
   }
 }
 
+/**
+ * Tabelas com peso de respawn 0 dependem só do mapa e do centro (o time não entra na conta): são
+ * calculadas uma vez por área e compartilhadas por todos os bots do mapa. Só leitura.
+ */
+const zeroWeightTables = new WeakMap<AreaMap, Map<Area, Int32Array>>();
+
+function zeroWeightTable(areaMap: AreaMap, start: Area): Int32Array {
+  let byStart = zeroWeightTables.get(areaMap);
+  if (!byStart) zeroWeightTables.set(areaMap, (byStart = new Map()));
+  let table = byStart.get(start);
+  if (!table) {
+    table = new Int32Array(areaMap.areas.length);
+    buildDistanceTable(table, start, 0, 0);
+    byStart.set(start, table);
+  }
+  return table;
+}
+
 /** As três tabelas de um bot, recalculadas só quando o centro ou o peso mudam (`DistanceTableDescriptor`). */
 export class DistanceTables {
   private readonly tables: Int32Array[];
+  /** Tabela própria de cada id (as de peso 0 apontam para as compartilhadas). */
+  private readonly own: Int32Array[];
   private readonly centers: (Area | null)[] = [null, null, null];
   private readonly weights: number[] = [0, 0, 0];
 
   constructor(readonly areaMap: AreaMap) {
-    this.tables = [0, 1, 2].map(() => new Int32Array(areaMap.areas.length).fill(-1));
+    this.own = [0, 1, 2].map(() => new Int32Array(areaMap.areas.length).fill(-1));
+    this.tables = [...this.own];
   }
 
   /** Distância de `area` ao centro da tabela; -1 se não alcança ou a tabela não foi construída. */
   distance(id: DistanceTableId, area: Area): number {
-     
     return this.tables[id]![area.index]!;
   }
 
@@ -131,8 +151,13 @@ export class DistanceTables {
     if (this.centers[id] === start && this.weights[id] === respawnWeight) return;
     this.centers[id] = start;
     this.weights[id] = respawnWeight;
-     
-    buildDistanceTable(this.tables[id]!, start, respawnWeight, team);
+    if (respawnWeight === 0) {
+      this.tables[id] = zeroWeightTable(this.areaMap, start);
+      return;
+    }
+    const own = this.own[id]!;
+    this.tables[id] = own;
+    buildDistanceTable(own, start, respawnWeight, team);
   }
 
   /** Centro e peso da última construção (o `DistanceTableDescriptor`); centro null = nunca construída. */

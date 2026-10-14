@@ -67,6 +67,14 @@ decidem em sequência numa thread própria, uma vez por frame.
 - **Tabelas de distância por bot e AreaMap compartilhado** (D-29, bots-areamap.md).
 - **`gunDir` no giro livre** difere do original na 15ª casa decimal (atan2/cos/sin do V8 × glibc com `-ffast-math`); tolerância 1e-9.
 
+## Cliente virtual na web (OG-053)
+- `apps/game-server/src/bot-client.ts`: o bot é uma `Connection` da sala. A sala manda a ele os mesmos bytes que a um humano (frame com a área de interesse do OG-042, eventos, minimapa); eles ficam na caixa de entrada por `bot_ping / 100` frames (`ServerClientLocalConnection`: só o sentido servidor → bot tem atraso) e são decodificados com o `ClientSession` do netcode (foguetes simulados a partir dos eventos, como o `ClientBase`). No fim de cada frame (`bot_loop`), se chegou frame novo, a visão é sincronizada (posições só quando atualizadas — palpites do bot ficam; minimapa marca `fromMinimapUpdate`), o bot decide e manda `input` (com `clientFrame` e o histórico para a extrapolação) e `fire` quando muda. Na entrada manda um frame vazio (`client_connected`).
+- Bases do mapa do cliente: lista vazia num `flagUpdate` remove as bases daquele time (o `remove_flags` do original); com `random_wild_flag` as bases do arquivo ficam e a bandeira sorteada não tem base — no original isso faz `flagIgnored` ler `bases[fi]` fora do vetor e derruba o servidor; aqui a bandeira conta como fora da base.
+- `flagModes` (`data_flag_modes`): a sala passa a mandar as regras de bandeira em vigor na entrada e quando mudam (já existia no protocolo, mas não era enviado).
+- Física do cliente: `max_run_speed` recalculado com as settings recebidas (`calc_max_run_speed`: 29,5 no Clássico; o servidor usa 27,1875). O original recebe a física em `float`; a web usa os valores exatos do preset (diferença na 8ª casa).
+- Chat de time "d"/"a": o bot marca a preferência do companheiro e o primeiro bot do time confirma com `.Roger - ...`.
+- Sorteio: um `GlibcRand` por sala para os bots (D-31).
+
 ## Vetores de teste
 Patch `tools/parity/patches/002-bottrace.patch`: com a diretiva `bottrace` no cenário, o oráculo grava
 em `NOME.bots.jsonl.gz`, para cada decisão de cada bot, a visão do cliente (jogadores com

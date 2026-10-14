@@ -106,7 +106,19 @@ export class RobotCore {
   /** Atraso em frames entre o mundo recebido e o efeito dos controles (`averageLag`). */
   averageLag = 0;
   /** Eu extrapolado por `averageLag` (`futureMe`); `myPos` é a posição dele. */
-  futureMe!: BotPlayer;
+  private future!: BotPlayer;
+  /** Área de `myPos` (`futureMe` não se move durante a decisão). */
+  private myAreaMemo: Area | null = null;
+
+  get futureMe(): BotPlayer {
+    return this.future;
+  }
+
+  set futureMe(p: BotPlayer) {
+    this.future = p;
+    this.myAreaMemo = null;
+  }
+
 
   constructor(
     readonly view: BotView,
@@ -141,11 +153,11 @@ export class RobotCore {
   }
 
   areaOf(pos: Position): Area {
-    return this.areaMap.identifyArea({ room: { x: pos.roomX, y: pos.roomY }, x: pos.x, y: pos.y });
+    return this.areaMap.identifyAreaAt(pos.roomX, pos.roomY, pos.x, pos.y);
   }
 
   myArea(): Area {
-    return this.areaOf(this.myPos);
+    return (this.myAreaMemo ??= this.areaOf(this.myPos));
   }
 
   distance(id: DistanceTableId, area: Area): number {

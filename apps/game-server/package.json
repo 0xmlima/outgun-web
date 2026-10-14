@@ -29,6 +29,7 @@
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0"
   },
   "devDependencies": {
+    "@outgun/bots": "workspace:*",
     "@outgun/netcode": "workspace:*",
     "@types/node": "^22.0.0"
   }
