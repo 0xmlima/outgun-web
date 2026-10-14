@@ -634,7 +634,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Concluído |
 | [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Concluído |
 | [OG-100](cards/OG-100-parity-ci.md) | Paridade automatizada no CI | E7 | 3 | Must | S2 | OG-003 | Concluído |
-| [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Pronto |
+| [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Em revisão |
 | [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Em revisão |
 | [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Pronto |
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Pronto |

@@ -33,3 +33,36 @@ jobs:
         with:
           name: parity-report
           path: tools/parity/out/parity-report.md
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: outgun
+          POSTGRES_PASSWORD: outgun
+          POSTGRES_DB: outgun
+        ports: ['55433:5432']
+        options: --health-cmd "pg_isready -U outgun" --health-interval 2s --health-retries 30
+    env:
+      E2E_DATABASE_URL: postgres://outgun:outgun@localhost:55433/outgun
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @outgun/e2e exec playwright install --with-deps chromium
+      - name: E2E (cadastro → lobby → partida → fim → ranking)
+        run: pnpm --filter @outgun/e2e e2e
+      - name: Carga de fumaça (2 salas × 8 jogadores, rede ruim)
+        run: node tools/load/run.mjs --rooms 2 --players 8 --seconds 20 --warmup 8 --workers 2 --lag 150 --loss 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e
+          path: tools/parity/out/e2e/

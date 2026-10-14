@@ -1336,7 +1336,10 @@ export class Room {
     this.recorder?.event(...this.outbox);
     const data = encodeFrame(...this.outbox);
     this.outbox = [];
-    for (const c of this.clients.values()) c.conn.send(data);
+    for (const c of this.clients.values()) {
+      c.bytes += data.length;
+      c.conn.send(data);
+    }
   }
 
   private send(pid: number, messages: AnyMessage[]): void {

@@ -77,7 +77,7 @@ describe('Ranked (RN-MOD-02): sem power-ups', () => {
     for (const pid of pids) deaths += r.world.players[pid]!.stats.deaths;
     // a partida teve mortes (e portanto renascimentos) de verdade
     expect(deaths).toBeGreaterThan(10);
-  });
+  }, 20_000); // 6.000 ticks: com o turbo rodando tudo em paralelo, passa dos 5 s padrão
 
   it('no Casual (Clássico) os power-ups aparecem', () => {
     const { r, join } = setup('classic');

@@ -67,6 +67,11 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - Contas (OG-081): as telas Entrar, Criar conta, Esqueceu a senha, Conta usam a API em `/api`; `vite dev` e `vite preview` repassam para `http://localhost:7800` (`API_URL` muda o destino; `VITE_API_URL` no build aponta para outro endereço). Suba a API conforme `apps/api/README.md`. Sem a API, o jogo segue como convidado.
 - `VITE_SOURCE_URL` (opcional, no build): endereço público do código-fonte para o link "Código-fonte (GPL)"; sem ele o link abre a página `/source`.
 
+## Testes E2E e de carga (OG-101)
+
+- `pnpm --filter @outgun/e2e e2e` (depois de `pnpm build`): Playwright com o Chrome instalado (no CI, o Chromium do Playwright). Sobe um PostgreSQL descartável no Docker (porta 55433; `E2E_DATABASE_URL` usa outro), a API (17800), o game server (17700, tickets de verdade, partidas de 1 minuto com 3 bots) e o `vite preview` (14173), e percorre cadastro → lobby → "Jogar agora" → partida até o fim → perfil com a partida → página da partida → ranking; também confere que convidado no Ranked vai para o login. Prints em `tools/parity/out/prints/og101/`, relatório e traces de falha em `tools/parity/out/e2e/`.
+- `node tools/load/run.mjs [--rooms 20] [--players 32] [--seconds 60] [--warmup 20] [--workers 4] [--lag MS] [--jitter MS] [--loss PCT] [--server ws://...]`: sobe um game server próprio (porta 17790) com as salas fixas (variável `ROOMS` do game server) e N×M clientes headless em processos separados, com rede ruim simulada opcional; o relatório (tick por sala e do processo, CPU, tráfego por cliente, frames) sai em `tools/parity/out/load/report.md`. O resultado de referência está em `plan/reports/OG-101-carga.md`.
+
 ## Observabilidade (OG-102)
 
 - Game server e API expõem `GET /metrics` no formato do Prometheus (`METRICS_TOKEN` exige `Authorization: Bearer`). Game server: `outgun_tick_duration_seconds` (tick de todas as salas: simulação + serialização), `outgun_room_tick_duration_seconds`, `outgun_tick_lateness_seconds`, `outgun_rooms`/`outgun_players` por modo, `outgun_bots`, `outgun_spectators`, bytes enviados/recebidos, conexões por resultado, `outgun_errors_total{kind}`. API: `http_request_duration_seconds{method,route,status}` e `outgun_api_errors_total`. Os dois: CPU, memória e atraso do event loop.

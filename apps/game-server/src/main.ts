@@ -11,6 +11,7 @@
 // MAX_SPECTATORS (espectadores ao vivo por sala; 16), GAMEMOD (linhas de gamemod para todas as salas, separadas por |).
 // Observabilidade (OG-102): LOG_LEVEL (info), METRICS_TOKEN (exige Bearer em /metrics), SENTRY_DSN (erros),
 // SENTRY_ENVIRONMENT (padrão NODE_ENV), RELEASE (versão nos logs e erros).
+// ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
@@ -95,6 +96,10 @@ const telemetry = new GameTelemetry(manager, logger, reporter);
 metrics.telemetry = telemetry;
 manager.observer = telemetry;
 manager.create({ id: 'main', name: 'Principal', preset: env.PRESET ?? 'classic', maps, mapFiles: rotation, maxPlayers: Number(env.MAX_PLAYERS ?? 16), persistent: true });
+for (const spec of (env.ROOMS ?? '').split(',').filter(Boolean)) {
+  const [id = '', preset = env.PRESET ?? 'classic', max = env.MAX_PLAYERS ?? '16'] = spec.split(':');
+  manager.create({ id, name: id, preset, maps: loadMaps(mapsDir, rotation), mapFiles: rotation, maxPlayers: Number(max), persistent: true });
+}
 manager.start();
 
 const jwks = new JwksKeys(env.TICKET_JWKS_URL ?? 'http://localhost:7800/.well-known/jwks.json', (t) => logger.warn({ component: 'jwks' }, t));

@@ -203,7 +203,7 @@ export class Registry {
 export const PROMETHEUS_CONTENT_TYPE = 'text/plain; version=0.0.4; charset=utf-8';
 
 /** Faixas para durações curtas (s): do tick do jogo (ms) a pedidos HTTP lentos. */
-export const DURATION_BUCKETS = [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2.5];
+export const DURATION_BUCKETS = [0.0005, 0.001, 0.002, 0.005, 0.01, 0.015, 0.02, 0.03, 0.05, 0.1, 0.25, 0.5, 1, 2.5];
 
 /** Métricas do processo Node: CPU, memória e atraso do event loop. */
 export function registerProcessMetrics(registry: Registry): void {
