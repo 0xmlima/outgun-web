@@ -122,7 +122,7 @@ export function LobbyScreen() {
 
   const fail = (e: unknown) => {
     const code = e instanceof ApiError ? e.code : 'unknown';
-    if (code === 'account_required') void navigate('/login');
+    if (code === 'account_required' || code === 'beta_account_required') void navigate('/login');
     else setError(t(code === 'no_room' ? 'No room available right now.' : joinErrorText(code)));
   };
   const enter = (room: RoomSummary) => {

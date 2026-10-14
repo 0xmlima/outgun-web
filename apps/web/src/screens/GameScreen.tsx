@@ -183,6 +183,11 @@ export default function GameScreen() {
 
   const items: MenuItem[] = [
     { kind: 'action', label: t('Back to game'), onActivate: () => setMenuOpen(false) },
+    {
+      kind: 'action',
+      label: t('Send feedback'),
+      onActivate: () => void navigate(`/feedback?${new URLSearchParams({ sala: params.get('sala') ?? 'main', ...(status?.kind === 'ready' ? { mapa: status.map.title } : {}) })}`),
+    },
     { kind: 'action', label: t('Leave game'), onActivate: () => void navigate('/') },
   ];
 

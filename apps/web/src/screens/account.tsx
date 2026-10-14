@@ -30,6 +30,10 @@ function useErrorText(): (error: unknown) => string {
         return t('Invalid username: up to 15 characters, no spaces at the ends.');
       case 'invalid_email':
         return t('Invalid e-mail.');
+      case 'invite_required':
+        return t('The closed beta needs an invite code.');
+      case 'invalid_invite':
+        return t('This invite code is invalid, already used or expired.');
       case 'invalid_password':
         return t('The password must have at least 8 characters.');
       case 'weak_password':
@@ -133,6 +137,15 @@ export function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  // beta fechado (OG-106): convite pelo link (/register?invite=CODIGO) ou digitado
+  const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? '');
+  const [beta, setBeta] = useState(false);
+  useEffect(() => {
+    api<{ beta: boolean }>('/beta').then(
+      (r) => setBeta(r.beta),
+      () => {},
+    );
+  }, []);
   const { message, setMessage, run } = useSubmit();
   // Quem chega já logado vai para a conta; quem acabou de entrar aqui segue para o início.
   const [signedIn, setSignedIn] = useState(false);
@@ -149,13 +162,14 @@ export function RegisterScreen() {
         return;
       }
       const r = await api<{ user: AccountUser }>('/auth/register', {
-        body: { username, email, password, language: prefs.locale },
+        body: { username, email, password, language: prefs.locale, ...(invite.trim() ? { invite: invite.trim() } : {}) },
       });
       setSignedIn(true);
       setUser(r.user);
       void navigate('/');
     });
   const items: MenuItem[] = [
+    ...(beta || invite ? [{ kind: 'text' as const, label: t('Invite code'), value: invite, onChange: setInvite, maxLength: 32 }] : []),
     { kind: 'text', label: t('Username'), value: username, onChange: setUsername, maxLength: 15, autoComplete: 'username' },
     { kind: 'text', label: t('E-mail'), value: email, onChange: setEmail, maxLength: 254, autoComplete: 'email' },
     { kind: 'text', label: t('Password'), value: password, onChange: setPassword, password: true, maxLength: 128, autoComplete: 'new-password' },

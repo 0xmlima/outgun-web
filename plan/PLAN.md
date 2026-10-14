@@ -639,7 +639,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Concluído |
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Concluído |
 | [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento (execução) | E7 | 3 | Must | S12 | OG-106 a OG-109 | Bloqueado |
-| [OG-106](cards/OG-106-closed-beta.md) | Beta fechado: convites, feedback e triagem | E7 | 5 | Must | S12 | OG-087, OG-081 | Pronto |
+| [OG-106](cards/OG-106-closed-beta.md) | Beta fechado: convites, feedback e triagem | E7 | 5 | Must | S12 | OG-087, OG-081 | Em revisão |
 | [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Pronto |
 | [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Pronto |
 | [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Em revisão |

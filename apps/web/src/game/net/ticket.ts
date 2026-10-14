@@ -37,6 +37,8 @@ export function joinErrorText(code: string): string {
   switch (code) {
     case 'account_required':
       return 'Ranked matches require an account.';
+    case 'beta_account_required':
+      return 'The closed beta needs an account: sign in, or create one with your invite.';
     case 'name_registered':
       return 'This name belongs to an account. Sign in or choose another.';
     case 'invalid_name':

@@ -33,6 +33,7 @@ const GameScreen = lazy(() => import('./screens/GameScreen.js'));
 const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
 // painel admin (OG-087): só moderadores e admins baixam
 const AdminScreen = lazy(() => import('./screens/AdminScreen.js'));
+const FeedbackScreen = lazy(() => import('./screens/FeedbackScreen.js'));
 const SpectateScreen = lazy(() => import('./screens/ReplayScreen.js').then((m) => ({ default: m.SpectateScreen })));
 
 const router = createBrowserRouter([
@@ -65,6 +66,14 @@ const router = createBrowserRouter([
           { path: 'players/:name', element: <ProfileScreen /> },
           { path: 'matches/:id', element: <MatchScreen /> },
           { path: 'ranking', element: <LeaderboardScreen /> },
+          {
+            path: 'feedback',
+            element: (
+              <Suspense fallback={null}>
+                <FeedbackScreen />
+              </Suspense>
+            ),
+          },
           {
             path: 'admin',
             element: (

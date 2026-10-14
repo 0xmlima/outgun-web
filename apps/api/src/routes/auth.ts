@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Cadastro, login, logout e recuperação de senha (OG-081; RN-PLT-01, 03 e 06).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import { checkRegisteredName } from '@outgun/protocol';
@@ -11,7 +11,7 @@ import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, validPassword, verifyPassword
 import type { SessionUser } from '../auth/sessions.js';
 import { newToken, tokenHash } from '../auth/tokens.js';
 import { emailKey, usernameKey } from '../db/keys.js';
-import { passwordResets, playerProfiles, users } from '../db/schema.js';
+import { betaInvites, betaInviteUses, passwordResets, playerProfiles, users } from '../db/schema.js';
 import { mailLocale, passwordResetMail } from '../mail/templates.js';
 import { ErrorSchema } from './schemas.js';
 
@@ -70,12 +70,16 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
             email: Type.String({ minLength: 3, maxLength: 254 }),
             password: Password,
             language: Language,
+            /** Código de convite, obrigatório no beta fechado (OG-106). */
+            invite: Type.Optional(Type.String({ maxLength: 32 })),
           }),
-          response: { 201: UserReply, 400: ErrorSchema, 409: ErrorSchema, 429: ErrorSchema },
+          response: { 201: UserReply, 400: ErrorSchema, 403: ErrorSchema, 409: ErrorSchema, 429: ErrorSchema },
         },
       },
       async (request, reply) => {
         const { username, email, password, language } = request.body;
+        const invite = request.body.invite?.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (deps.config.beta && !invite) return fail(reply, 403, 'invite_required', 'the closed beta needs an invite code');
         if (!(await rateLimit.allow(`register:${request.ip}`, deps.config.limits.registerPerHourPerIp, HOUR))) {
           return fail(reply, 429, 'rate_limited', 'too many accounts created from this address, try later');
         }
@@ -89,6 +93,16 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           if (await nameOwner(tx, username)) return 'username_taken' as const;
           const [mailTaken] = await tx.select({ id: users.id }).from(users).where(eq(users.emailKey, emailKey(email)));
           if (mailTaken) return 'email_taken' as const;
+          // beta: o convite vale se não foi revogado, não venceu e ainda tem usos (trava a linha)
+          const [code] =
+            deps.config.beta && invite
+              ? await tx
+                  .update(betaInvites)
+                  .set({ uses: sql`${betaInvites.uses} + 1` })
+                  .where(and(eq(betaInvites.code, invite), isNull(betaInvites.revokedAt), sql`${betaInvites.uses} < ${betaInvites.maxUses}`, or(isNull(betaInvites.expiresAt), gt(betaInvites.expiresAt, new Date()))))
+                  .returning({ code: betaInvites.code })
+              : [];
+          if (deps.config.beta && !code) return 'invalid_invite' as const;
           const [user] = await tx
             .insert(users)
             .values({ username, usernameKey: usernameKey(username), email: email.trim(), emailKey: emailKey(email), passwordHash })
@@ -96,10 +110,12 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
             .returning();
           if (!user) return 'username_taken' as const; // corrida entre dois cadastros
           await tx.insert(playerProfiles).values({ userId: user.id, language: mailLocale(language) });
+          if (code) await tx.insert(betaInviteUses).values({ code: code.code, userId: user.id });
           return user;
         });
         if (created === 'username_taken') return fail(reply, 409, 'username_taken', 'username already in use');
         if (created === 'email_taken') return fail(reply, 409, 'email_taken', 'e-mail already in use');
+        if (created === 'invalid_invite') return fail(reply, 403, 'invalid_invite', 'invite code is invalid, used up or expired');
         await sessions.create(created.id, request, reply);
         return reply.code(201).send({ user: toPublic(created) });
       },

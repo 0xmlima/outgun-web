@@ -300,6 +300,18 @@ body {
   width: 100%;
   box-sizing: border-box;
 }
+.feedback-rating {
+  border: none;
+  margin: calc(var(--px) * 6px) 0;
+  padding: 0;
+}
+.feedback-rating label {
+  margin-right: calc(var(--px) * 8px);
+}
+.feedback label {
+  display: block;
+  margin: calc(var(--px) * 6px) 0;
+}
 .admin-room h2 {
   font-size: 0.85em;
 }

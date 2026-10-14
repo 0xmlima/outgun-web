@@ -41,6 +41,8 @@ if [ ! -f .env ]; then
   chmod 600 .env
   echo "segredos gerados em /opt/outgun/.env"
 fi
+# beta fechado (OG-106) ligado por padrão; a publicação aberta põe BETA=0 no .env
+grep -q '^BETA=' .env || echo "BETA=1" >> .env
 # a versão fica no .env: `docker compose` sem argumentos usa a instalada
 if grep -q '^TAG=' .env; then sed -i "s/^TAG=.*/TAG=$TAG/" .env; else echo "TAG=$TAG" >> .env; fi
 mkdir -p backups && chmod 700 backups # os dumps têm hashes de senha e e-mails

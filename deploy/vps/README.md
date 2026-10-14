@@ -40,8 +40,10 @@ cd /opt/outgun
 docker compose ps                        # estado
 docker compose logs -f game-server       # logs (JSON)
 docker compose exec -T backup sh /usr/local/bin/backup.sh   # backup agora
-# promover uma conta a admin (depois que a pessoa se cadastrou):
-docker compose exec -T postgres psql -U outgun -c "UPDATE users SET is_admin = true WHERE username_key = lower('Nome')"
+# beta fechado (BETA=1, padrão): convite para o primeiro cadastro (os outros saem do painel /admin)
+docker compose exec -T api node dist/cli.js invite 1 "admin"
+# promover uma conta a admin (ou moderator / player) depois que a pessoa se cadastrou:
+docker compose exec -T api node dist/cli.js role Nome admin
 ```
 
 Restore (apaga o banco de destino): confira antes num banco temporário, como em

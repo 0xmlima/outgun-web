@@ -40,6 +40,7 @@ export default defineConfig({
           command: `node ${repo}apps/api/dist/main.js`,
           url: 'http://localhost:17800/health',
           env: {
+            BETA: '1',
             PORT: '17800',
             DATABASE_URL: database,
             MAILER: 'memory',

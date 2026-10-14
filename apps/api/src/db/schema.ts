@@ -326,6 +326,53 @@ export const playerReports = pgTable('player_reports', {
   createdAt: tstz('created_at').notNull().defaultNow(),
 });
 
+/** Convites do beta fechado (OG-106). */
+export const betaInvites = pgTable('beta_invites', {
+  code: text('code').primaryKey(),
+  note: text('note').notNull().default(''),
+  maxUses: integer('max_uses').notNull().default(1),
+  uses: integer('uses').notNull().default(0),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+  expiresAt: tstz('expires_at'),
+  revokedAt: tstz('revoked_at'),
+});
+
+export const betaInviteUses = pgTable(
+  'beta_invite_uses',
+  {
+    code: text('code')
+      .notNull()
+      .references(() => betaInvites.code, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    usedAt: tstz('used_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.code, t.userId] })],
+);
+
+export const feedbackKind = pgEnum('feedback_kind', ['bug', 'suggestion', 'praise', 'other']);
+export const feedbackStatus = pgEnum('feedback_status', ['new', 'confirmed', 'critical', 'resolved', 'dismissed']);
+
+/** Feedback dos testadores (OG-106). */
+export const feedback = pgTable('feedback', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  username: text('username').notNull(),
+  kind: feedbackKind('kind').notNull(),
+  fidelity: smallint('fidelity'),
+  overall: smallint('overall'),
+  veteran: boolean('veteran').notNull().default(false),
+  text: text('text').notNull().default(''),
+  context: jsonb('context').$type<Record<string, string | number>>().notNull().default({}),
+  status: feedbackStatus('status').notNull().default('new'),
+  note: text('note').notNull().default(''),
+  handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),
+  handledAt: tstz('handled_at'),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+});
+
 export const allTables = {
   users,
   sessions,
@@ -344,6 +391,9 @@ export const allTables = {
   casual_presets: casualPresets,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
+  beta_invites: betaInvites,
+  beta_invite_uses: betaInviteUses,
+  feedback,
   password_resets: passwordResets,
   reserved_names: reservedNames,
 };

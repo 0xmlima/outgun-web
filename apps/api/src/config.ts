@@ -15,6 +15,8 @@ export interface ApiConfig {
   /** Diferença máxima entre o relógio do game server e o da API. */
   internalMaxSkewMs: number;
   logLevel: string;
+  /** Beta fechado (OG-106): cadastro só com convite e partidas só com conta. */
+  beta: boolean;
   /** Exige `Authorization: Bearer <token>` em /metrics (OG-102). */
   metricsToken: string | undefined;
   /** DSN do serviço de erros (Sentry/GlitchTip); vazio desliga. */
@@ -68,6 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     internalSecrets: parseSecrets(env.INTERNAL_SECRETS ?? (env.NODE_ENV === 'production' ? '' : 'dev:outgun-dev-secret-0000')),
     internalMaxSkewMs: Number(env.INTERNAL_MAX_SKEW_S ?? 30) * 1000,
     logLevel: env.LOG_LEVEL ?? 'info',
+    beta: env.BETA === '1',
     metricsToken: env.METRICS_TOKEN || undefined,
     sentryDsn: env.SENTRY_DSN || undefined,
     environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV ?? 'development',

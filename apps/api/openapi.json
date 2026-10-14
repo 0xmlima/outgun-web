@@ -2090,6 +2090,10 @@
                   "language": {
                     "type": "string",
                     "maxLength": 10
+                  },
+                  "invite": {
+                    "type": "string",
+                    "maxLength": 32
                   }
                 }
               }
@@ -2142,6 +2146,25 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -4980,6 +5003,276 @@
         }
       }
     },
+    "/admin/invites": {
+      "get": {
+        "summary": "Convites do beta",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "summary": "Gera códigos de convite do beta",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["count"],
+                "properties": {
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "maxUses": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "expiresDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/invites/{code}": {
+      "delete": {
+        "summary": "Revoga um convite",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9]{10}$"
+            },
+            "in": "path",
+            "name": "code",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/feedback": {
+      "get": {
+        "summary": "Feedback do beta com o resumo das notas de fidelidade",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["new"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["confirmed"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["critical"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["resolved"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["dismissed"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["bug"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["suggestion"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["praise"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["other"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "kind",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/feedback/{id}": {
+      "post": {
+        "summary": "Triagem de um feedback",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["new"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["confirmed"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["critical"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["resolved"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["dismissed"]
+                      }
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/feedback.csv": {
+      "get": {
+        "summary": "Feedback do beta em CSV",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["new"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["confirmed"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["critical"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["resolved"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["dismissed"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["bug"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["suggestion"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["praise"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["other"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "kind",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/role": {
       "put": {
         "summary": "Muda o papel de uma conta (jogador, moderador, admin)",
@@ -5027,6 +5320,176 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/beta": {
+      "get": {
+        "summary": "Se o servidor está em beta fechado (cadastro com convite)",
+        "tags": ["beta"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["beta"],
+                  "properties": {
+                    "beta": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback": {
+      "post": {
+        "summary": "Feedback de quem joga: tipo, notas de fidelidade e geral, texto e contexto (só com conta)",
+        "tags": ["beta"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["kind", "text"],
+                "properties": {
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["bug"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["suggestion"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["praise"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["other"]
+                      }
+                    ]
+                  },
+                  "fidelity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "overall": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "veteran": {
+                    "type": "boolean"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  "context": {
+                    "type": "object",
+                    "maxProperties": 16,
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

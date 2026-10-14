@@ -5,12 +5,13 @@
 // comandos para as salas vão aos game servers na resposta do heartbeat.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { casualPresetProblems, PRESETS } from '@outgun/settings';
-import { and, desc, eq, gt, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gt, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { createInvites } from '../beta.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { usernameKey } from '../db/keys.js';
-import { adminActions, adminCommands, bans, casualPresets, casualPresetVersions, mapRotations, playerReports, rooms, users } from '../db/schema.js';
+import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, feedback, mapRotations, playerReports, rooms, users } from '../db/schema.js';
 import { ONLINE_MS } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 
@@ -373,6 +374,133 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         return { mode, maps, version: row!.version };
       },
     );
+
+    // --- beta fechado (OG-106): convites e feedback ---
+    app.get('/invites', { schema: { tags: ['admin'], summary: 'Convites do beta' } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'admin'))) return reply;
+      const rows = await db
+        .select({ invite: betaInvites, by: users.username })
+        .from(betaInvites)
+        .leftJoin(users, eq(users.id, betaInvites.createdBy))
+        .orderBy(desc(betaInvites.createdAt))
+        .limit(500);
+      const used = await db
+        .select({ code: betaInviteUses.code, username: users.username })
+        .from(betaInviteUses)
+        .innerJoin(users, eq(users.id, betaInviteUses.userId));
+      return {
+        beta: deps.config.beta,
+        invites: rows.map(({ invite: i, by }) => ({
+          code: i.code,
+          note: i.note,
+          uses: i.uses,
+          maxUses: i.maxUses,
+          usedBy: used.filter((u) => u.code === i.code).map((u) => u.username),
+          createdBy: by,
+          createdAt: i.createdAt.toISOString(),
+          expiresAt: i.expiresAt?.toISOString() ?? null,
+          revoked: i.revokedAt !== null,
+        })),
+      };
+    });
+
+    app.post(
+      '/invites',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Gera códigos de convite do beta',
+          body: Type.Object({
+            count: Type.Integer({ minimum: 1, maximum: 50 }),
+            maxUses: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+            note: Type.Optional(Type.String({ maxLength: 200 })),
+            expiresDays: Type.Optional(Type.Integer({ minimum: 1, maximum: 365 })),
+          }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'admin');
+        if (!user) return reply;
+        const b = request.body;
+        const codes = await createInvites(db, { ...b, createdBy: user.id });
+        await audit(user, 'invite', { reason: b.note ?? '', details: { count: b.count, maxUses: b.maxUses ?? 1, ...(b.expiresDays ? { expiresDays: b.expiresDays } : {}) } });
+        return reply.code(201).send({ codes });
+      },
+    );
+
+    app.delete('/invites/:code', { schema: { tags: ['admin'], summary: 'Revoga um convite', params: Type.Object({ code: Type.String({ pattern: '^[A-Z0-9]{10}$' }) }) } }, async (request, reply) => {
+      const user = await guard(request, reply, 'admin');
+      if (!user) return reply;
+      const [row] = await db.update(betaInvites).set({ revokedAt: new Date() }).where(and(eq(betaInvites.code, request.params.code), isNull(betaInvites.revokedAt))).returning();
+      if (!row) return reply.code(404).send({ error: 'not_found', message: 'no such active invite' });
+      await audit(user, 'invite-revoke', { details: { code: row.code } });
+      return reply.code(204).send(null);
+    });
+
+    const feedbackFilter = (q: { status?: string | undefined; kind?: string | undefined }) =>
+      and(q.status ? eq(feedback.status, q.status as 'new') : undefined, q.kind ? eq(feedback.kind, q.kind as 'bug') : undefined);
+    const FeedbackQuery = Type.Object({
+      status: Type.Optional(Type.Union(['new', 'confirmed', 'critical', 'resolved', 'dismissed'].map((x) => Type.Literal(x)))),
+      kind: Type.Optional(Type.Union(['bug', 'suggestion', 'praise', 'other'].map((x) => Type.Literal(x)))),
+    });
+
+    app.get('/feedback', { schema: { tags: ['admin'], summary: 'Feedback do beta com o resumo das notas de fidelidade', querystring: FeedbackQuery } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'moderator'))) return reply;
+      const rows = await db.select().from(feedback).where(feedbackFilter(request.query)).orderBy(desc(feedback.createdAt)).limit(500);
+      // resumo: a última nota de cada pessoa (veteranos à parte, critério do OG-105: ≥ 20 com média ≥ 4)
+      const rated = await db.execute<{ veteran: boolean; fidelity: number }>(sql`
+        SELECT DISTINCT ON (user_id) veteran, fidelity FROM feedback
+        WHERE fidelity IS NOT NULL AND user_id IS NOT NULL ORDER BY user_id, created_at DESC`);
+      const summarize = (list: { fidelity: number }[]) => ({
+        people: list.length,
+        average: list.length ? Math.round((list.reduce((a, r) => a + r.fidelity, 0) / list.length) * 100) / 100 : null,
+        distribution: [1, 2, 3, 4, 5].map((n) => list.filter((r) => r.fidelity === n).length),
+      });
+      const all = [...rated];
+      const critical = await db.select({ n: count() }).from(feedback).where(eq(feedback.status, 'critical'));
+      return {
+        summary: { all: summarize(all), veterans: summarize(all.filter((r) => r.veteran)), openCritical: critical[0]!.n },
+        feedback: rows.map((f) => ({ id: f.id, username: f.username, kind: f.kind, fidelity: f.fidelity, overall: f.overall, veteran: f.veteran, text: f.text, context: f.context, status: f.status, note: f.note, createdAt: f.createdAt.toISOString() })),
+      };
+    });
+
+    app.post(
+      '/feedback/:id',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Triagem de um feedback',
+          params: Type.Object({ id: Type.Integer() }),
+          body: Type.Object({ status: Type.Union(['new', 'confirmed', 'critical', 'resolved', 'dismissed'].map((x) => Type.Literal(x))), note: Type.Optional(Reason) }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const status = request.body.status as 'new';
+        const [row] = await db
+          .update(feedback)
+          .set({ status, ...(request.body.note !== undefined ? { note: request.body.note } : {}), handledBy: user.id, handledAt: new Date() })
+          .where(eq(feedback.id, request.params.id))
+          .returning();
+        if (!row) return reply.code(404).send({ error: 'not_found', message: 'no such feedback' });
+        await audit(user, 'feedback', { targetUserId: row.userId, targetName: row.username, reason: request.body.note ?? '', details: { feedback: row.id, status } });
+        return { id: row.id, status: row.status };
+      },
+    );
+
+    app.get('/feedback.csv', { schema: { tags: ['admin'], summary: 'Feedback do beta em CSV', querystring: FeedbackQuery } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'moderator'))) return reply;
+      const rows = await db.select().from(feedback).where(feedbackFilter(request.query)).orderBy(desc(feedback.createdAt));
+      const cell = (v: unknown) => {
+        const s = v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+        // aspas dobradas; fórmulas de planilha neutralizadas (=, +, -, @)
+        return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
+      };
+      const header = ['id', 'data', 'jogador', 'tipo', 'fidelidade', 'geral', 'veterano', 'texto', 'status', 'nota', 'contexto'];
+      const lines = rows.map((f) => [f.id, f.createdAt.toISOString(), f.username, f.kind, f.fidelity, f.overall, f.veteran, f.text, f.status, f.note, f.context].map(cell).join(','));
+      return reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="feedback.csv"').send([header.join(','), ...lines].join('\r\n') + '\r\n');
+    });
 
     // --- papéis ---
     app.put(
