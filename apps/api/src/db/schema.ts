@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigserial,
   boolean,
+  date,
   doublePrecision,
   index,
   inet,
@@ -194,6 +195,49 @@ export const ratingDeltas = pgTable(
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.serverId, t.deltaId] })],
+);
+
+/** Resumos da API social (OG-211, src/social-stats.ts): pares de contas, totais por dia e pontos de rating. */
+export const playerPairs = pgTable(
+  'player_pairs',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    otherId: uuid('other_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    together: integer('together').notNull().default(0),
+    wonTogether: integer('won_together').notNull().default(0),
+    lostTogether: integer('lost_together').notNull().default(0),
+    against: integer('against').notNull().default(0),
+    wonAgainst: integer('won_against').notNull().default(0),
+    lostAgainst: integer('lost_against').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.otherId] })],
+);
+
+export const playerDaily = pgTable(
+  'player_daily',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+    matches: integer('matches').notNull().default(0),
+    wins: integer('wins').notNull().default(0),
+    kills: integer('kills').notNull().default(0),
+    deaths: integer('deaths').notNull().default(0),
+    captures: integer('captures').notNull().default(0),
+    playSeconds: integer('play_seconds').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
+export const ratingPoints = pgTable(
+  'rating_points',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: integer('season_id').notNull().references(() => seasons.id, { onDelete: 'cascade' }),
+    at: tstz('at').notNull(),
+    scoreDelta: doublePrecision('score_delta').notNull(),
+    negDelta: integer('neg_delta').notNull(),
+  },
+  (t) => [index('rating_points_user_idx').on(t.userId, t.seasonId, t.at)],
 );
 
 export const bans = pgTable('bans', {
@@ -411,6 +455,9 @@ export const allTables = {
   match_players: matchPlayers,
   ratings,
   rating_deltas: ratingDeltas,
+  player_pairs: playerPairs,
+  player_daily: playerDaily,
+  rating_points: ratingPoints,
   bans,
   admin_actions: adminActions,
   player_reports: playerReports,

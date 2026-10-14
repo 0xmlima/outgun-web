@@ -28,14 +28,14 @@ Como jogador, quero descobrir com quem mais jogo, contra quem, e como evoluí, p
 
 ## Critérios de aceite
 - [x] Testes com Postgres cobrindo companheiros, rivais, evolução e busca (`social.test.ts`; rodam no fechamento).
-- [ ] p95 < 50 ms com 100 mil partidas sintéticas (medição no card; `SOCIAL_BENCH=1`, no fechamento).
-- [ ] Esquema OpenAPI atualizado (`openapi.test.ts`; regerado no fechamento).
+- [x] p95 < 50 ms com 100 mil partidas sintéticas: social 14,3 ms, evolução 18,5 ms, busca 6,5 ms (`SOCIAL_BENCH=1 pnpm --filter @outgun/api exec vitest run social.bench`; 16 jogadores por partida, 2 mil contas).
+- [x] Esquema OpenAPI atualizado (`openapi.test.ts`).
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-- Rotas em `routes/social.ts`; migration `0014_social` (colunas `hide_companions`/`hide_history` em `player_profiles` e 4 índices). Teto de custo: só as últimas 2 000 partidas do jogador entram em companheiros/rivais; série com os últimos 500 pontos; cache em memória de 30 s (a resposta do dono não entra).
-- Série de evolução = deltas das partidas ranqueadas da temporada ativa + `rating_deltas` (deltas fora do fim da partida), acumulados.
+- Rotas em `routes/social.ts`; migration `0014_social`: colunas `hide_companions`/`hide_history` e três resumos (`player_pairs`, `player_daily`, `rating_points`) atualizados na gravação da partida/delta (`src/social-stats.ts`) e preenchidos pela própria migration. A 1ª versão agregava as partidas a cada pedido e media p95 de 523 ms; com os resumos, cada consulta é uma leitura por índice. Série com os últimos 500 pontos; cache em memória de 30 s (a resposta do dono não entra). Períodos de 7/30 dias contam dias UTC.
+- Resumos entram no inventário de dados pessoais (`TABLES`/`DATA_INVENTORY`); excluir a conta apaga em cascata.
 - Privacidade: `GET/PUT /account/privacy` e dois alternadores na tela Conta. Histórico escondido também zera `/players/:nome/matches` (campo novo `hidden`), exceto para o dono.
 - Busca: prefixo de `usernameKey` (LIKE com curingas escapados) ou clã exato sem diferenciar maiúsculas; o nome exato vem primeiro.

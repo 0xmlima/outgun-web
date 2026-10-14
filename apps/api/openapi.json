@@ -1223,10 +1223,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["total", "matches"],
+                  "required": ["total", "hidden", "matches"],
                   "properties": {
                     "total": {
                       "type": "integer"
+                    },
+                    "hidden": {
+                      "type": "boolean"
                     },
                     "matches": {
                       "type": "array",
@@ -1335,6 +1338,70 @@
                           }
                         ]
                       }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/last-match": {
+      "get": {
+        "summary": "Última partida registrada de uma sala (o \"Ver relatório\" do fim de partida, OG-214)",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "after",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "string"
                     }
                   }
                 }
@@ -1568,6 +1635,453 @@
                     },
                     "message": {
                       "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{name}/social": {
+      "get": {
+        "summary": "Companheiros e rivais mais frequentes e o clã do jogador",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "path",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["hidden", "companions", "rivals", "clan"],
+                  "properties": {
+                    "hidden": {
+                      "type": "boolean"
+                    },
+                    "companions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["username", "clanTag", "matches", "wins", "losses"],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "matches": {
+                            "type": "integer"
+                          },
+                          "wins": {
+                            "type": "integer"
+                          },
+                          "losses": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "rivals": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": ["username", "clanTag", "matches", "wins", "losses"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "clanTag": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "matches": {
+                                "type": "integer"
+                              },
+                              "wins": {
+                                "type": "integer"
+                              },
+                              "losses": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["draws", "balance"],
+                            "properties": {
+                              "draws": {
+                                "type": "integer"
+                              },
+                              "balance": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "clan": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": ["tag", "members"],
+                          "properties": {
+                            "tag": {
+                              "type": "string"
+                            },
+                            "members": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{name}/progress": {
+      "get": {
+        "summary": "Evolução: rating por temporada, série da temporada ativa e totais por período",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "path",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["hidden", "seasons", "series", "periods"],
+                  "properties": {
+                    "hidden": {
+                      "type": "boolean"
+                    },
+                    "seasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "name", "active", "score", "neg", "rating", "matches"],
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "active": {
+                            "type": "boolean"
+                          },
+                          "score": {
+                            "type": "number"
+                          },
+                          "neg": {
+                            "type": "integer"
+                          },
+                          "rating": {
+                            "type": "number"
+                          },
+                          "matches": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "series": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["at", "score", "neg", "rating"],
+                        "properties": {
+                          "at": {
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": "number"
+                          },
+                          "neg": {
+                            "type": "integer"
+                          },
+                          "rating": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    },
+                    "periods": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": ["days7", "days30", "all"],
+                          "properties": {
+                            "days7": {
+                              "type": "object",
+                              "required": [
+                                "matches",
+                                "wins",
+                                "kills",
+                                "deaths",
+                                "captures",
+                                "playSeconds"
+                              ],
+                              "properties": {
+                                "matches": {
+                                  "type": "integer"
+                                },
+                                "wins": {
+                                  "type": "integer"
+                                },
+                                "kills": {
+                                  "type": "integer"
+                                },
+                                "deaths": {
+                                  "type": "integer"
+                                },
+                                "captures": {
+                                  "type": "integer"
+                                },
+                                "playSeconds": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "days30": {
+                              "type": "object",
+                              "required": [
+                                "matches",
+                                "wins",
+                                "kills",
+                                "deaths",
+                                "captures",
+                                "playSeconds"
+                              ],
+                              "properties": {
+                                "matches": {
+                                  "type": "integer"
+                                },
+                                "wins": {
+                                  "type": "integer"
+                                },
+                                "kills": {
+                                  "type": "integer"
+                                },
+                                "deaths": {
+                                  "type": "integer"
+                                },
+                                "captures": {
+                                  "type": "integer"
+                                },
+                                "playSeconds": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "all": {
+                              "type": "object",
+                              "required": [
+                                "matches",
+                                "wins",
+                                "kills",
+                                "deaths",
+                                "captures",
+                                "playSeconds"
+                              ],
+                              "properties": {
+                                "matches": {
+                                  "type": "integer"
+                                },
+                                "wins": {
+                                  "type": "integer"
+                                },
+                                "kills": {
+                                  "type": "integer"
+                                },
+                                "deaths": {
+                                  "type": "integer"
+                                },
+                                "captures": {
+                                  "type": "integer"
+                                },
+                                "playSeconds": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players": {
+      "get": {
+        "summary": "Busca de jogadores pelo começo do nome (mesma comparação do login) ou pelo clã",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "query",
+            "name": "busca",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 0
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["total", "players"],
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "players": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["username", "clanTag"],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -3190,6 +3704,115 @@
                   "required": ["participate"],
                   "properties": {
                     "participate": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/privacy": {
+      "get": {
+        "summary": "Privacidade do perfil social: esconder companheiros/rivais e o histórico de partidas",
+        "tags": ["contas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["hideCompanions", "hideHistory"],
+                  "properties": {
+                    "hideCompanions": {
+                      "type": "boolean"
+                    },
+                    "hideHistory": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Muda a privacidade do perfil social (vale na hora; o cache público expira em 30 s)",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["hideCompanions", "hideHistory"],
+                "properties": {
+                  "hideCompanions": {
+                    "type": "boolean"
+                  },
+                  "hideHistory": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["hideCompanions", "hideHistory"],
+                  "properties": {
+                    "hideCompanions": {
+                      "type": "boolean"
+                    },
+                    "hideHistory": {
                       "type": "boolean"
                     }
                   }

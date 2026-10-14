@@ -12,8 +12,6 @@ import { playerProfiles, users } from '../db/schema.js';
 import { activeSeason } from '../ranking.js';
 import { ErrorSchema } from './schemas.js';
 
-/** Teto de custo: só as últimas partidas do jogador entram nas agregações. */
-export const SOCIAL_MATCH_WINDOW = 2000;
 /** Pontos da série de evolução (os mais recentes). */
 export const PROGRESS_POINTS = 500;
 const LIST_SIZE = 10;
@@ -122,54 +120,30 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
               }
             : null;
           if (hidden) return { hidden: true, companions: [], rivals: [], clan };
-          // resultado de cada partida do jogador: 1 vitória, 0 empate, -1 derrota
-          const rows = await db.execute<{ username: string; clan_tag: string | null; together: number; won_together: number; lost_together: number; against: number; won_against: number; lost_against: number }>(sql`
-            WITH mine AS (
-              SELECT mp.match_id, mp.team,
-                sign(CASE WHEN mp.team = 0 THEN m.red_score - m.blue_score ELSE m.blue_score - m.red_score END)::int AS result
-              FROM match_players mp JOIN matches m ON m.id = mp.match_id
-              WHERE mp.user_id = ${t.id}
-              ORDER BY m.ended_at DESC
-              LIMIT ${SOCIAL_MATCH_WINDOW}
-            )
-            SELECT u.username, u.clan_tag,
-              count(*) FILTER (WHERE o.team = mine.team)::int AS together,
-              count(*) FILTER (WHERE o.team = mine.team AND mine.result > 0)::int AS won_together,
-              count(*) FILTER (WHERE o.team = mine.team AND mine.result < 0)::int AS lost_together,
-              count(*) FILTER (WHERE o.team <> mine.team)::int AS against,
-              count(*) FILTER (WHERE o.team <> mine.team AND mine.result > 0)::int AS won_against,
-              count(*) FILTER (WHERE o.team <> mine.team AND mine.result < 0)::int AS lost_against
-            FROM mine
-            JOIN match_players o ON o.match_id = mine.match_id AND o.user_id IS NOT NULL AND o.user_id <> ${t.id} AND NOT o.is_bot
-            JOIN users u ON u.id = o.user_id
-            LEFT JOIN player_profiles pp ON pp.user_id = u.id
-            WHERE NOT coalesce(pp.hide_companions, false)
-            GROUP BY u.id, u.username, u.clan_tag`);
-          const all = [...rows];
-          const top = <R>(key: (r: (typeof all)[number]) => number, map: (r: (typeof all)[number]) => R) =>
-            all
-              .filter((r) => key(r) > 0)
-              .sort((a, b) => key(b) - key(a) || a.username.localeCompare(b.username))
-              .slice(0, LIST_SIZE)
-              .map(map);
+          // resumos de player_pairs (src/social-stats.ts); quem esconde companheiros não aparece aqui
+          type Pair = { username: string; clan_tag: string | null; together: number; won_together: number; lost_together: number; against: number; won_against: number; lost_against: number };
+          const top = (order: 'together' | 'against') =>
+            db.execute<Pair>(sql`
+              SELECT u.username, u.clan_tag, pp.together, pp.won_together, pp.lost_together, pp.against, pp.won_against, pp.lost_against
+              FROM player_pairs pp
+              JOIN users u ON u.id = pp.other_id
+              LEFT JOIN player_profiles pr ON pr.user_id = pp.other_id
+              WHERE pp.user_id = ${t.id} AND ${sql.raw(`pp.${order}`)} > 0 AND NOT coalesce(pr.hide_companions, false)
+              ORDER BY ${sql.raw(`pp.${order}`)} DESC, u.username_key
+              LIMIT ${LIST_SIZE}`);
+          const [companions, rivals] = await Promise.all([top('together'), top('against')]);
           return {
             hidden: false,
-            companions: top(
-              (r) => r.together,
-              (r) => ({ username: r.username, clanTag: r.clan_tag, matches: r.together, wins: r.won_together, losses: r.lost_together }),
-            ),
-            rivals: top(
-              (r) => r.against,
-              (r) => ({
-                username: r.username,
-                clanTag: r.clan_tag,
-                matches: r.against,
-                wins: r.won_against,
-                losses: r.lost_against,
-                draws: r.against - r.won_against - r.lost_against,
-                balance: r.won_against - r.lost_against,
-              }),
-            ),
+            companions: companions.map((r) => ({ username: r.username, clanTag: r.clan_tag, matches: r.together, wins: r.won_together, losses: r.lost_together })),
+            rivals: rivals.map((r) => ({
+              username: r.username,
+              clanTag: r.clan_tag,
+              matches: r.against,
+              wins: r.won_against,
+              losses: r.lost_against,
+              draws: r.against - r.won_against - r.lost_against,
+              balance: r.won_against - r.lost_against,
+            })),
             clan,
           };
         });
@@ -212,15 +186,9 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
             ? (
                 await db.execute<{ at: Date | string; score: number; neg: number }>(sql`
                   SELECT at, score, neg FROM (
-                    SELECT at, sum(score) OVER w AS score, sum(neg) OVER w AS neg
-                    FROM (
-                      SELECT m.ended_at AS at, mp.score_delta AS score, mp.neg_delta AS neg
-                      FROM match_players mp JOIN matches m ON m.id = mp.match_id
-                      WHERE mp.user_id = ${t.id} AND m.ranked AND m.season_id = ${season.id}
-                      UNION ALL
-                      SELECT created_at, score_delta, neg_delta FROM rating_deltas
-                      WHERE user_id = ${t.id} AND season_id = ${season.id}
-                    ) d
+                    SELECT at, sum(score_delta) OVER w AS score, sum(neg_delta) OVER w AS neg
+                    FROM rating_points
+                    WHERE user_id = ${t.id} AND season_id = ${season.id}
                     WINDOW w AS (ORDER BY at ROWS UNBOUNDED PRECEDING)
                     ORDER BY at DESC
                     LIMIT ${PROGRESS_POINTS}
@@ -231,19 +199,13 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
                 return { at: new Date(p.at).toISOString(), score, neg, rating: (score + 1) / (neg + 1) };
               })
             : [];
+          // totais por dia (UTC) de player_daily: 7 e 30 dias contam hoje
           const [p] = await db.execute<Record<string, number>>(sql`
-            WITH mine AS (
-              SELECT m.ended_at,
-                (CASE WHEN mp.team = 0 THEN m.red_score > m.blue_score ELSE m.blue_score > m.red_score END) AS won,
-                mp.kills, mp.deaths, mp.captures, mp.play_seconds
-              FROM match_players mp JOIN matches m ON m.id = mp.match_id
-              WHERE mp.user_id = ${t.id}
-            )
             SELECT
-              ${periodColumns('d7', sql`ended_at > now() - interval '7 days'`)},
-              ${periodColumns('d30', sql`ended_at > now() - interval '30 days'`)},
+              ${periodColumns('d7', sql`day > current_date - 7`)},
+              ${periodColumns('d30', sql`day > current_date - 30`)},
               ${periodColumns('all', sql`true`)}
-            FROM mine`);
+            FROM player_daily WHERE user_id = ${t.id}`);
           const period = (prefix: string) => ({
             matches: p?.[`${prefix}_matches`] ?? 0,
             wins: p?.[`${prefix}_wins`] ?? 0,
@@ -296,11 +258,6 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
 
 /** Totais de um período como colunas `<prefixo>_matches`, `_wins`, `_kills`, `_deaths`, `_captures`, `_play`. */
 function periodColumns(prefix: string, when: SQL) {
-  const as = (c: string) => sql.raw(`${prefix}_${c}`);
-  return sql`count(*) FILTER (WHERE ${when})::int AS ${as('matches')},
-    count(*) FILTER (WHERE ${when} AND won)::int AS ${as('wins')},
-    coalesce(sum(kills) FILTER (WHERE ${when}), 0)::int AS ${as('kills')},
-    coalesce(sum(deaths) FILTER (WHERE ${when}), 0)::int AS ${as('deaths')},
-    coalesce(sum(captures) FILTER (WHERE ${when}), 0)::int AS ${as('captures')},
-    coalesce(sum(play_seconds) FILTER (WHERE ${when}), 0)::int AS ${as('play')}`;
+  const sum = (col: string, as: string) => sql`coalesce(sum(${sql.raw(col)}) FILTER (WHERE ${when}), 0)::int AS ${sql.raw(`${prefix}_${as}`)}`;
+  return sql.join([sum('matches', 'matches'), sum('wins', 'wins'), sum('kills', 'kills'), sum('deaths', 'deaths'), sum('captures', 'captures'), sum('play_seconds', 'play')], sql`, `);
 }

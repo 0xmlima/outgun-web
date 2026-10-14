@@ -44,17 +44,26 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
       return app.inject({ method: 'POST', url, payload: body, headers: { 'content-type': 'application/json', ...signInternalRequest('gs-1', SECRET, 'POST', url, body) } });
     };
     const line = (slot: number, name: string, team: 0 | 1, opts: { bot?: boolean; guest?: boolean; scoreDelta?: number } = {}) => ({
-      slot, userId: opts.bot || opts.guest ? null : ids[name], name, team, isBot: opts.bot ?? false, frags: 3, kills: 3, deaths: 1, captures: 0, playSeconds: 300,
+      slot, ...(opts.bot || opts.guest ? {} : { userId: ids[name] }), name, team, isBot: opts.bot ?? false, frags: 3, kills: 3, deaths: 1, captures: 0, playSeconds: 300,
       scoreDelta: opts.scoreDelta ?? 0, negDelta: opts.scoreDelta ? 2 : 0, stats: {},
     });
+    const ok = async (res: Promise<{ statusCode: number; body: string }>) => {
+      const r = await res;
+      expect(r.statusCode, r.body).toBe(201);
+    };
     const at = (daysAgo: number) => ({ startedAt: new Date(Date.now() - daysAgo * DAY - 300_000).toISOString(), endedAt: new Date(Date.now() - daysAgo * DAY).toISOString() });
-    const details = { reason: 'timeLimit', mapTime: 300, teams: [], captures: [], baseScore: [0, 0] };
+    const details = {
+      reason: 'timeLimit', mapTime: 300, mapTitle: 'The Blunt',
+      rules: { captureLimit: 1, winScoreDifference: 1, timeLimit: 0, extraTime: 0, extraTimePeriods: 1, suddenDeath: false },
+      teams: [{ score: 0, kills: 3, shots: 30 }, { score: 0, kills: 3, shots: 30 }],
+      captures: [], baseScore: [0, 0],
+    };
     // 40 dias atrás: J1 e J3 (vermelho) vencem J2, um bot e um convidado
-    expect((await send({ ...at(40), serverMatchId: 's1', roomId: 'main', map: 'outgun1', details, mode: 'casual', ranked: false, redScore: 1, blueScore: 0, players: [line(0, 'Jogador1', 0), line(1, 'Jogador3', 0), line(2, 'Convidado', 0, { guest: true }), line(8, 'Jogador2', 1), line(9, 'Bot', 1, { bot: true })] })).statusCode).toBe(201);
+    await ok(send({ ...at(40), serverMatchId: 's1', roomId: 'main', map: 'outgun1', details, mode: 'casual', ranked: false, redScore: 1, blueScore: 0, players: [line(0, 'Jogador1', 0), line(1, 'Jogador3', 0), line(2, 'Convidado', 0, { guest: true }), line(8, 'Jogador2', 1), line(9, 'Bot', 1, { bot: true })] }));
     // 10 dias atrás: empate ranqueado J1 × J2
-    expect((await send({ ...at(10), serverMatchId: 's2', roomId: 'ranked', map: 'outgun1', details, mode: 'ranked', ranked: true, redScore: 0, blueScore: 0, players: [line(0, 'Jogador1', 0, { scoreDelta: 150 }), line(8, 'Jogador2', 1, { scoreDelta: 1 })] })).statusCode).toBe(201);
+    await ok(send({ ...at(10), serverMatchId: 's2', roomId: 'ranked', map: 'outgun1', details, mode: 'ranked', ranked: true, redScore: 0, blueScore: 0, players: [line(0, 'Jogador1', 0, { scoreDelta: 150 }), line(8, 'Jogador2', 1, { scoreDelta: 1 })] }));
     // ontem: J1 e J3 (azul) vencem J2
-    expect((await send({ ...at(1), serverMatchId: 's3', roomId: 'main', map: 'outgun1', details, mode: 'casual', ranked: false, redScore: 0, blueScore: 2, players: [line(0, 'Jogador2', 0), line(8, 'Jogador1', 1), line(9, 'Jogador3', 1)] })).statusCode).toBe(201);
+    await ok(send({ ...at(1), serverMatchId: 's3', roomId: 'main', map: 'outgun1', details, mode: 'casual', ranked: false, redScore: 0, blueScore: 2, players: [line(0, 'Jogador2', 0), line(8, 'Jogador1', 1), line(9, 'Jogador3', 1)] }));
   });
   afterAll(async () => {
     await app?.close();

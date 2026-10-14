@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
-import { migrateUp } from '../db/migrate.js';
+import { migrateDown, migrateUp } from '../db/migrate.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
@@ -41,7 +41,10 @@ describe.skipIf(!pgAdminUrl || !process.env.SOCIAL_BENCH)('API social: desempenh
       CROSS JOIN generate_series(0, 15) s
       LEFT JOIN users u ON u.username = 'b' || (CASE WHEN s < 4 THEN 1 + (m.n * 7 + s) % 50 ELSE 1 + (m.n * 31 + s * 101) % ${ACCOUNTS} END)
       ON CONFLICT DO NOTHING`);
-    await t.db.execute(sql`ANALYZE`);
+    // refaz a 0014: o preenchimento dela gera os resumos sociais das partidas acima
+    await migrateDown(t.sql, 1);
+    await migrateUp(t.sql);
+    await t.db.execute(sql`VACUUM ANALYZE`);
     const config = { ...loadConfig({}), databaseUrl: t.url };
     app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false });
   }, 600_000);
@@ -63,7 +66,7 @@ describe.skipIf(!pgAdminUrl || !process.env.SOCIAL_BENCH)('API social: desempenh
   };
 
   it('p95 < 50 ms sem cache (um jogador diferente por pedido) e na busca', async () => {
-    // o mais popular (b1..b50, ~13 mil partidas cada, cortadas na janela de 2 mil) e jogadores comuns
+    // os populares (b1..b50, ~8 mil partidas cada) e jogadores comuns (~600)
     const social = await p95((i) => `/players/b${i < 50 ? i + 1 : 51 + i}/social`);
     const progress = await p95((i) => `/players/b${i + 300}/progress`);
     const search = await p95((i) => `/players?busca=b${(i % 90) + 10}`);

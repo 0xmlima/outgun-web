@@ -385,22 +385,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Pause': 'Pausar',
     'Copy link': 'Copiar link',
     'Link copied': 'Link copiado',
-    // privacidade do perfil social (OG-211)
-    'Profile privacy': 'Privacidade do perfil',
-    'Hide my teammates and rivals': 'Esconder meus companheiros e rivais',
-    'You also stop appearing in the lists of other players.': 'Você também deixa de aparecer nas listas dos outros jogadores.',
-    'Hide my match history': 'Esconder meu histórico de partidas',
-    // relatório de partida (OG-214)
-    'Match report': 'Relatório da partida',
-    'View match report': 'Ver relatório',
-    'Red team wins': 'Vitória do time vermelho',
-    'Blue team wins': 'Vitória do time azul',
-    'Best player': 'Melhor jogador',
-    'Watch replay': 'Assistir ao replay',
-    'Detailed statistics': 'Estatísticas detalhadas',
-    'No captures.': 'Nenhuma captura.',
-    'Waiting for the match report...': 'Aguardando o relatório da partida...',
-    'The report is not ready yet.': 'O relatório ainda não está pronto.',
     'Back': 'Voltar',
     'PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom':
       'PgUp/PgDn velocidade · Home normal · P pausa · setas sala · F seguir jogador · +/- do teclado numérico zoom',
@@ -520,7 +504,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Room or map': 'Sala ou mapa',
     'Hide full rooms': 'Esconder salas lotadas',
     Full: 'Lotada',
-    'Link copied': 'Link copiado',
     // privacidade do perfil social (OG-211)
     'Profile privacy': 'Privacidade do perfil',
     'Hide my teammates and rivals': 'Esconder meus companheiros e rivais',
