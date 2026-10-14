@@ -22,7 +22,8 @@ import { startServer } from './server.js';
 import { JwksKeys } from './tickets.js';
 import { wordSet } from './chat.js';
 import { PlatformClient } from './platform.js';
-import { makeSpawner } from './spawn.js';
+import { makeSpawner, mapLoader } from './spawn.js';
+import { AdminPanelLink } from './panel.js';
 import { ReplayStore } from './replay.js';
 import { createLogger, ErrorReporter } from '@outgun/observability';
 import { GameTelemetry } from './telemetry.js';
@@ -100,6 +101,8 @@ const manager = new RoomManager({
   },
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
+// rotação oficial de cada modo; o painel admin (OG-087) pode trocá-la pela resposta do heartbeat
+const rotations: Record<'casual' | 'ranked', readonly string[]> = { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation };
 const mapsDir = env.MAPS_DIR ?? `${repo}maps`;
 const maps = loadMaps(mapsDir, rotation);
 const telemetry = new GameTelemetry(manager, logger, reporter);
@@ -117,8 +120,8 @@ jwks.start();
 
 const server = await startServer({
   spawnRoom: makeSpawner(manager, {
+    rotations,
     mapsDir,
-    rotations: { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation },
     log: (line) => logger.info(line),
   }),
   ticketKeys: () => jwks.keys,
@@ -140,7 +143,8 @@ if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 // o heartbeat lê este objeto a cada envio: na drenagem, maxRooms 0 tira o servidor da escolha da API
 const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms };
-if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted());
+const panel = new AdminPanelLink({ manager, rotations, map: mapLoader(mapsDir), log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
+if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted(), 3000, panel);
 
 let stopping = false;
 /**

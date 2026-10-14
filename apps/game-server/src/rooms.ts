@@ -61,6 +61,8 @@ export interface HostedRoom {
   persistent: boolean;
   players: number;
   map: string;
+  /** Jogadores, para o painel admin (OG-087). */
+  roster: ReturnType<Room['roster']>;
 }
 
 export class RoomManager {
@@ -137,6 +139,7 @@ export class RoomManager {
       persistent,
       players: room.playerCount,
       map: room.world.map.title,
+      roster: room.roster(),
     }));
   }
 

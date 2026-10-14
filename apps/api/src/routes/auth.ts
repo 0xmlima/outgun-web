@@ -25,11 +25,12 @@ export const PublicUser = Type.Object({
   email: Type.String(),
   clanTag: Type.Union([Type.String(), Type.Null()]),
   isAdmin: Type.Boolean(),
+  isModerator: Type.Boolean(),
 });
 const UserReply = Type.Object({ user: PublicUser });
 
 export function toPublic(u: Omit<SessionUser, 'sessionId'>) {
-  return { id: u.id, username: u.username, email: u.email, clanTag: u.clanTag, isAdmin: u.isAdmin };
+  return { id: u.id, username: u.username, email: u.email, clanTag: u.clanTag, isAdmin: u.isAdmin, isModerator: u.isModerator };
 }
 
 const Password = Type.String({ minLength: MIN_PASSWORD, maxLength: MAX_PASSWORD });

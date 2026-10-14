@@ -4,7 +4,8 @@
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { applyGamemod, presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { applyGamemod, settingsOf, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { findPreset } from './presets.js';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
@@ -63,6 +64,23 @@ export interface Identity {
   ip?: string;
   /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
   device?: string;
+}
+
+/** Comando do painel admin para esta sala (resposta do heartbeat, OG-087). */
+export interface RemoteCommand {
+  id: number;
+  kind: 'kick' | 'ban' | 'mute' | 'unmute' | 'message';
+  uid?: number;
+  minutes?: number;
+  reason?: string;
+  text?: string;
+  actor: string;
+}
+
+export interface RemoteResult {
+  ok: boolean;
+  text?: string;
+  target?: { name: string; accountId?: string; ip?: string; device?: string };
 }
 
 export interface RoomOptions {
@@ -237,14 +255,14 @@ export class Room {
   private readonly spectators: SpectatorStream;
 
   constructor(private readonly options: RoomOptions) {
-    const preset = PRESETS.find((p) => p.id === options.preset);
+    const preset = findPreset(options.preset);
     if (!preset) throw new Error(`preset desconhecido: ${options.preset}`);
     if (options.maps.length === 0) throw new Error('rotação de mapas vazia');
     if (options.maxPlayers % 2 !== 0 || options.maxPlayers < 2 || options.maxPlayers > 32) throw new Error(`max_players inválido: ${options.maxPlayers}`);
     this.id = options.id;
     this.preset = preset;
     this.mode = preset.mode;
-    this.settings = options.gamemod ? applyGamemod(presetSettings(preset.id), options.gamemod).settings : presetSettings(preset.id);
+    this.settings = options.gamemod ? applyGamemod(settingsOf(preset), options.gamemod).settings : settingsOf(preset);
     if (options.gamemod) this.setLines = [options.gamemod];
 
     this.now = options.now ?? (() => performance.now());
@@ -1067,7 +1085,7 @@ export class Room {
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       resetSettings: () => {
-        const fresh = presetSettings(this.preset.id);
+        const fresh = settingsOf(this.preset);
         for (const group of ['world', 'powerups', 'physics', 'server'] as const) Object.assign(this.settings[group], fresh[group]);
         if (this.mode === 'casual' && this.options.botsFill !== undefined) this.settings.server.botsFill = this.options.botsFill;
         this.checkBotsPending = true;
@@ -1311,6 +1329,17 @@ export class Room {
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
   private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
     this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
+    if (this.pendingRotation) {
+      // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados
+      this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
+      this.pendingRotation = null;
+      for (const c of this.clients.values()) {
+        c.mapVote = -1;
+        c.negativeVotes.clear();
+      }
+      forced = 0;
+      this.broadcast(this.mapListMessage());
+    }
     const voters = this.voters();
     const votes = mapVotes(voters, this.rotation.length);
     const negative = (map: number) => voters.filter((v) => v.negative.has(map)).length;
@@ -1424,6 +1453,56 @@ export class Room {
     if (this.draining) return;
     this.draining = true;
     this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
+  }
+
+  /** Rotação que entra na próxima troca de mapa (painel admin, OG-087). */
+  private pendingRotation: { map: GameMap; file: string }[] | null = null;
+
+  setRotation(entries: readonly { map: GameMap; file: string }[]): void {
+    if (entries.length === 0) return;
+    const same = entries.length === this.rotation.length && entries.every((e, i) => e.file === this.rotation[i]?.file);
+    this.pendingRotation = same ? null : [...entries];
+  }
+
+  /** Jogadores para o painel admin (heartbeat, OG-087). */
+  roster(): { uid: number; name: string; team: number; accountId?: string; bot: boolean; muted: number }[] {
+    return [...this.clients].map(([pid, c]) => ({
+      uid: c.uid,
+      name: c.identity.name.slice(0, 32),
+      team: this.world.teamOf(pid) === 1 ? 1 : 0,
+      ...(c.identity.accountId ? { accountId: c.identity.accountId } : {}),
+      bot: c.bot,
+      muted: c.muted,
+    }));
+  }
+
+  /**
+   * Comando do painel admin (OG-087), pelas mesmas ações do console (`/kick`, `/ban`, `/mute`):
+   * o autor aparece pelo nome de quem usou o painel. A auditoria já foi feita na API.
+   */
+  remoteCommand(cmd: RemoteCommand): RemoteResult {
+    const actor: ConsolePlayer = { pid: -1, uid: -1, name: cmd.actor, team: -1, account: null, admin: true, muted: 0, bot: false, ranked: false };
+    if (cmd.kind === 'message') {
+      if (!cmd.text) return { ok: false, text: 'no text' };
+      this.console.broadcastText('admin', `${cmd.actor}: ${cmd.text}`);
+      return { ok: true };
+    }
+    const entry = [...this.clients].find(([, c]) => c.uid === cmd.uid && !c.bot);
+    if (!entry) return { ok: false, text: 'player is not in the room any more' };
+    const [pid, c] = entry;
+    const target = { name: c.identity.name.slice(0, 32), ...(c.identity.accountId ? { accountId: c.identity.accountId } : {}), ...(c.identity.ip ? { ip: c.identity.ip } : {}), ...(c.identity.device ? { device: c.identity.device } : {}) };
+    switch (cmd.kind) {
+      case 'kick':
+      case 'ban': {
+        const minutes = cmd.kind === 'ban' ? Math.min(cmd.minutes ?? 60, 7 * 24 * 60) : 0;
+        const ok = this.console.kick(pid, actor, minutes, cmd.reason ?? '');
+        return ok ? { ok, target } : { ok, text: 'already being kicked' };
+      }
+      case 'mute':
+      case 'unmute':
+        this.console.setMuted(pid, cmd.kind === 'mute' ? 1 : 0, actor, true);
+        return { ok: true, target };
+    }
   }
 
   /** Encerra a sala: avisa e fecha todas as conexões. */

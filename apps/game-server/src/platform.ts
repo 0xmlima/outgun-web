@@ -4,6 +4,7 @@
 import { signInternalRequest } from '@outgun/tickets';
 import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
+import type { RemoteCommand } from './room.js';
 import type { DeltaReport, MatchReport } from './match-report.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -51,6 +52,39 @@ export function heartbeatBody(server: ServerInfo, rooms: readonly HostedRoom[]):
   return { server: { ...server, wsBaseUrl: base }, rooms: rooms.map((r) => ({ ...r, map: r.map.slice(0, 64), wsUrl: `${base}/rooms/${r.id}` })) };
 }
 
+/** Comando do painel admin (OG-087), como vem da API. */
+export type PanelCommand = RemoteCommand & { roomId: string };
+
+export interface PanelConfig {
+  version: string;
+  presets: { id: string; description: string; overrides: string }[];
+  rotations: { casual?: string[]; ranked?: string[] };
+}
+
+export interface HeartbeatReply {
+  commands: PanelCommand[];
+  config: PanelConfig;
+}
+
+export interface CommandAck {
+  id: number;
+  ok: boolean;
+  text?: string;
+  target?: { name: string; accountId?: string; ip?: string; device?: string };
+}
+
+/** O que o heartbeat precisa do painel: as confirmações a mandar e o que fazer com a resposta. */
+export interface PanelHandlers {
+  takeAcks(): CommandAck[];
+  requeue(acks: CommandAck[]): void;
+  onReply(reply: HeartbeatReply): void;
+}
+
+function isHeartbeatReply(x: unknown): x is HeartbeatReply {
+  const r = x as Partial<HeartbeatReply> | undefined;
+  return typeof r === 'object' && r !== null && Array.isArray(r.commands) && typeof r.config === 'object' && r.config !== null;
+}
+
 export class PlatformClient {
   private heartbeat: NodeJS.Timeout | undefined;
 
@@ -65,6 +99,11 @@ export class PlatformClient {
   private requests = 0;
 
   async post(path: string, body: unknown, attempts = 3, quiet = false): Promise<boolean> {
+    return (await this.send(path, body, attempts, quiet)).ok;
+  }
+
+  /** POST assinado; com sucesso, devolve também o corpo JSON da resposta. */
+  private async send(path: string, body: unknown, attempts: number, quiet: boolean): Promise<{ ok: boolean; reply?: unknown }> {
     const text = JSON.stringify(body);
     // correlação com o log da API (OG-102): o mesmo id nas tentativas de um envio
     const reqId = `gs-${this.serverId}-${(++this.requests).toString(36).padStart(6, '0')}`;
@@ -76,10 +115,10 @@ export class PlatformClient {
           body: text,
           signal: AbortSignal.timeout(5000),
         });
-        if (res.ok) return true;
+        if (res.ok) return { ok: true, reply: await res.json().catch(() => undefined) };
         if (res.status < 500) {
           if (!quiet) this.log(`API ${path}: HTTP ${res.status} ${await res.text()} (${reqId})`, 'error');
-          return false;
+          return { ok: false };
         }
       } catch {
         // tenta de novo
@@ -87,7 +126,7 @@ export class PlatformClient {
       if (i + 1 < attempts) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
     }
     if (!quiet) this.log(`API ${path}: sem resposta (${reqId})`, 'error');
-    return false;
+    return { ok: false };
   }
 
   private readonly pending = new Set<Promise<boolean>>();
@@ -126,14 +165,18 @@ export class PlatformClient {
    * Heartbeat a cada `everyMs` (3 s): a API tira do lobby a sala sem heartbeat por 10 s. Uma
    * tentativa por vez, sem repetição (o próximo heartbeat já é a nova tentativa).
    */
-  startHeartbeat(server: ServerInfo, rooms: () => readonly HostedRoom[], everyMs = 3000): void {
+  startHeartbeat(server: ServerInfo, rooms: () => readonly HostedRoom[], everyMs = 3000, panel?: PanelHandlers): void {
     let busy = false;
     let up: boolean | undefined;
     const beat = async () => {
       if (busy) return;
       busy = true;
+      // confirmações dos comandos do painel (OG-087): voltam para a fila se o envio falhar
+      const acks = panel?.takeAcks() ?? [];
       try {
-        const ok = await this.post('/internal/rooms/heartbeat', heartbeatBody(server, rooms()), 1, true);
+        const { ok, reply } = await this.send('/internal/rooms/heartbeat', { ...heartbeatBody(server, rooms()), ...(acks.length ? { acks } : {}) }, 1, true);
+        if (!ok) panel?.requeue(acks);
+        else if (panel && isHeartbeatReply(reply)) panel.onReply(reply);
         // só a mudança vai para o log (sem API, no desenvolvimento, falharia a cada 3 s)
         if (ok !== up) this.log(ok ? 'registro de salas: heartbeat aceito pela API' : 'registro de salas: API não aceitou o heartbeat', ok ? 'info' : 'error');
         up = ok;

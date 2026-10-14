@@ -13,6 +13,7 @@ const web = external ?? 'http://localhost:14173';
 
 export default defineConfig({
   testDir: 'tests',
+  globalSetup: './global-setup.mjs',
   timeout: 240_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

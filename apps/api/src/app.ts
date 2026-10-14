@@ -12,6 +12,7 @@ import { LoginThrottle, MemoryCounterStore, RateLimit, RedisCounterStore, type C
 import { SessionStore } from './auth/sessions.js';
 import { LogMailer, MailpitMailer, MemoryMailer, ResendMailer, type Mailer } from './mail/mailer.js';
 import { accountRoutes } from './routes/account.js';
+import { adminRoutes } from './routes/admin.js';
 import { authRoutes } from './routes/auth.js';
 import { devRoutes } from './routes/dev.js';
 import { healthRoutes } from './routes/health.js';
@@ -180,6 +181,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     await app.register(devRoutes(services.mailer), { prefix: '/dev' });
   }
   await app.register(internalRoutes(deps), { prefix: '/internal' });
+  await app.register(adminRoutes(deps, services), { prefix: '/admin' });
   return app;
 }
 

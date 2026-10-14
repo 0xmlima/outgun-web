@@ -37,6 +37,8 @@ export const users = pgTable(
     passwordHash: text('password_hash').notNull(),
     clanTag: text('clan_tag'),
     isAdmin: boolean('is_admin').notNull().default(false),
+    /** Moderador (OG-087): salas, denúncias, bans de sala e auditoria no painel. */
+    isModerator: boolean('is_moderator').notNull().default(false),
     usernameChangedAt: tstz('username_changed_at'),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
@@ -94,6 +96,8 @@ export const rooms = pgTable('rooms', {
   map: text('map'),
   lastHeartbeatAt: tstz('last_heartbeat_at'),
   maps: text('maps').array(),
+  /** Jogadores na sala, do último heartbeat (painel admin, OG-087). */
+  roster: jsonb('roster').$type<RosterEntry[]>().notNull().default([]),
   createdAt: tstz('created_at').notNull().defaultNow(),
 }, (t) => [index('rooms_server_idx').on(t.serverId)]);
 
@@ -239,6 +243,68 @@ export const reservedNames = pgTable(
   (t) => [index('reserved_names_user_idx').on(t.userId)],
 );
 
+/** Jogador na lista da sala que o game server manda no heartbeat. */
+export interface RosterEntry {
+  uid: number;
+  name: string;
+  team: number;
+  accountId?: string;
+  bot: boolean;
+  muted: number;
+}
+
+export const adminCommandKind = pgEnum('admin_command_kind', ['kick', 'ban', 'mute', 'unmute', 'message']);
+
+/** Comandos do painel para um game server, entregues na resposta do heartbeat (OG-087). */
+export const adminCommands = pgTable('admin_commands', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  serverId: text('server_id').notNull(),
+  roomId: text('room_id').notNull(),
+  kind: adminCommandKind('kind').notNull(),
+  args: jsonb('args').$type<{ uid?: number; minutes?: number; reason?: string; text?: string }>().notNull().default({}),
+  actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  actorName: text('actor_name').notNull(),
+  platform: boolean('platform').notNull().default(false),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+  deliveredAt: tstz('delivered_at'),
+  doneAt: tstz('done_at'),
+  result: jsonb('result').$type<Record<string, unknown>>(),
+});
+
+export const casualPresets = pgTable('casual_presets', {
+  id: text('id').primaryKey(),
+  description: text('description').notNull(),
+  overrides: text('overrides').notNull().default(''),
+  version: integer('version').notNull().default(1),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+  deletedAt: tstz('deleted_at'),
+});
+
+export const casualPresetVersions = pgTable(
+  'casual_preset_versions',
+  {
+    presetId: text('preset_id')
+      .notNull()
+      .references(() => casualPresets.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    description: text('description').notNull(),
+    overrides: text('overrides').notNull(),
+    deleted: boolean('deleted').notNull().default(false),
+    changedBy: uuid('changed_by').references(() => users.id, { onDelete: 'set null' }),
+    changedAt: tstz('changed_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.presetId, t.version] })],
+);
+
+export const mapRotations = pgTable('map_rotations', {
+  mode: gameMode('mode').primaryKey(),
+  maps: text('maps').array().notNull(),
+  version: integer('version').notNull().default(1),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+});
+
 export const reportStatus = pgEnum('report_status', ['open', 'dismissed', 'actioned']);
 
 /** Denúncias do `/report` (OG-104), atendidas no painel admin (OG-087). */
@@ -274,6 +340,10 @@ export const allTables = {
   bans,
   admin_actions: adminActions,
   player_reports: playerReports,
+  admin_commands: adminCommands,
+  casual_presets: casualPresets,
+  casual_preset_versions: casualPresetVersions,
+  map_rotations: mapRotations,
   password_resets: passwordResets,
   reserved_names: reservedNames,
 };

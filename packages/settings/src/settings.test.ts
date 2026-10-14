@@ -5,7 +5,7 @@ import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { CLASSIC_GAMEMOD } from './classic-gamemod.js';
 import { applyGamemod } from './gamemod.js';
-import { classicSettings, hasNoPowerups, PRESETS, presetSettings } from './presets.js';
+import { casualPresetProblems, classicSettings, hasNoPowerups, PRESETS, presetSettings, settingsOf } from './presets.js';
 import { SETTINGS } from './registry.js';
 import { codeDefaults, type GameSettings } from './types.js';
 
@@ -47,7 +47,7 @@ function asCpp(group: Record<string, unknown>): Record<string, number> {
 }
 
 describe('gamemod x configurações efetivas do original (cabeçalho dos traces)', () => {
-  const files = readdirSync(tracesDir).filter((f) => f.endsWith('.jsonl.gz'));
+  const files = readdirSync(tracesDir).filter((f) => f.endsWith('.jsonl.gz') && !f.endsWith('.bots.jsonl.gz')); // os .bots.* são da IA (OG-050), sem cabeçalho de configuração
   it('há traces com casos limite de configuração', () => {
     expect(files).toEqual(expect.arrayContaining(['settings-classic.jsonl.gz', 'settings-edge.jsonl.gz', 'settings-zero-chances.jsonl.gz']));
   });
@@ -150,5 +150,18 @@ describe('presets por modo (D-10)', () => {
     expect(ranked.world).toEqual(classic.world);
     expect(ranked.physics).toEqual(classic.physics);
     expect(ranked.server).toEqual({ ...classic.server, minBots: 0, botsFill: 0 });
+  });
+});
+
+describe('presets Casual do painel (OG-087)', () => {
+  it('aceita regras de jogo, saúde, power-ups, física e bots; recusa as do servidor e as desconhecidas', () => {
+    expect(casualPresetProblems('; comentário\nrocket_damage 140\npups_max 50%\nbots_fill 4\nfriction 0.5\nmax_players 8')).toEqual([]);
+    expect(casualPresetProblems('server_name Teste')).toEqual(['server_name: configuração do servidor, não de preset']);
+    expect(casualPresetProblems('nao_existe 1')).toEqual(['nao_existe: configuração desconhecida']);
+    expect(casualPresetProblems('rocket_damage muito').length).toBeGreaterThan(0);
+  });
+
+  it('settingsOf aplica as linhas sobre o Clássico', () => {
+    expect(settingsOf({ id: 'teste', overrides: 'rocket_damage 140' }).world.rocketDamage).toBe(140);
   });
 });

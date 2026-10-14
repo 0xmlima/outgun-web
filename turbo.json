@@ -10,7 +10,15 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/parity/traces/**",
+        "$TURBO_ROOT$/tools/parity/scenarios/**",
+        "$TURBO_ROOT$/maps/**",
+        "$TURBO_ROOT$/config/**",
+        "$TURBO_ROOT$/languages/**"
+      ]
     }
   }
 }
