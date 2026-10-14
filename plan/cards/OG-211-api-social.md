@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-085](OG-085-profile-history.md) |
 | Regras de negócio | RN-SOC-02, RN-SOC-03, RN-SOC-04 |
 | Skills | `outgun-card-workflow` |

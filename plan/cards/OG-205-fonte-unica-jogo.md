@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-200](OG-200-design-system-v2.md) |
 | Regras de negócio | RN-UI-02 |
 | Skills | `outgun-card-workflow` |
@@ -24,7 +24,7 @@ Como jogador, quero ler HUD, chat e placar com a mesma fonte nítida dos menus.
 
 ## Critérios de aceite
 - [ ] Nenhum texto da partida usa fonte bitmap; fontes bitmap saem do carregamento.
-- [ ] Medição de FPS antes/depois no card; prints.
+- [ ] Medição de FPS antes/depois no card.
 
 ## Notas técnicas
 - Avaliar `BitmapText` do Pixi gerado a partir da fonte web (atlas) para texto que muda todo quadro.

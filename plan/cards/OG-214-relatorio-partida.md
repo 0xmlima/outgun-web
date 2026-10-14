@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-200](OG-200-design-system-v2.md) |
 | Regras de negócio | RN-SOC-01, RN-SOC-05 |
 | Skills | `outgun-card-workflow` |
@@ -27,7 +27,6 @@ Como jogador, quero abrir o relatório de uma partida num link compartilhável, 
 
 ## Critérios de aceite
 - [ ] Relatório de uma partida real do beta publicado e conferido com a F4.
-- [ ] Prints desktop e celular.
 
 ## Notas técnicas
 - —

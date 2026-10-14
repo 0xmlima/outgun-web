@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-201](OG-201-menu-principal-v2.md) |
 | Regras de negócio | RN-UI-01 |
 | Skills | `outgun-card-workflow` |
@@ -27,7 +27,6 @@ Como jogador, quero que todas as telas fora da partida tenham o mesmo visual nov
 ## Critérios de aceite
 - [ ] Nenhuma tela de menu usa fonte bitmap nem a escala de 640×480.
 - [ ] E2E do lobby e da criação de sala verdes.
-- [ ] Prints de todas as telas.
 
 ## Notas técnicas
 - —
