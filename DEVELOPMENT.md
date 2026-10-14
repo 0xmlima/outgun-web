@@ -3,7 +3,7 @@
 Este repositório tem duas partes:
 
 - **Código original do Outgun 1.0.3** em `_legacy/` (`src/`, `maps/`, `config/`, `graphics/`...). É a referência do port e **não deve ser alterado**; `pnpm check:legacy` confere isso. Os mapas, gráficos, sons, fontes e idiomas do cliente web são convertidos dali no build (`pnpm assets`). Citações como `src/world.cpp:3447` nos comentários apontam para `_legacy/src/`.
-- **Monorepo do port web** (`apps/`, `packages/`, `tools/`, `deploy/`).
+- **Monorepo do port web** (`apps/`, `packages/`, `tools/`, `deploy/`), descrito em `plan/PLAN.md` (seção 5.2), com os cards de cada etapa em `plan/cards/` e as specs do original em `plan/specs/`.
 
 ## Requisitos
 

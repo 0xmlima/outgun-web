@@ -15,11 +15,5 @@ var/
 # segredos da homologação local (OG-103)
 deploy/.env.staging
 
-# planejamento, cards, specs e o fluxo dos agentes: ficam só na máquina de quem desenvolve
-plan/
-.claude/
-CLAUDE.md
-AGENTS.md
-
 # gerado pelo oráculo (pnpm oracle compile-commands)
 _legacy/compile_commands.json

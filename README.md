@@ -30,3 +30,10 @@ publicar numa VPS, em [deploy/vps/README.md](deploy/vps/README.md).
 ## Licença
 
 GNU GPL 2 ou posterior ([COPYING](COPYING)), como o original. Créditos em [CREDITS.md](CREDITS.md).
+
+## Como foi feito
+
+O port foi planejado e executado em sprints, card a card: o plano, as regras de negócio, as decisões
+e o quadro estão em [plan/PLAN.md](plan/PLAN.md), cada card em [plan/cards/](plan/cards/) e as
+especificações extraídas do código original em [plan/specs/](plan/specs/). O fluxo de trabalho com o
+Claude Code está em [CLAUDE.md](CLAUDE.md) e [.claude/skills/](.claude/skills/).
