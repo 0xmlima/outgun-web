@@ -31,7 +31,6 @@ if [ ! -f .env ]; then
   gs=$(secret)
   {
     echo "DOMAIN=${DOMAIN:-${ip//./-}.sslip.io}"
-    echo "ACME_EMAIL=${ACME_EMAIL:-}"
     echo "POSTGRES_PASSWORD=$(secret)"
     echo "TICKET_SIGNING_KEYS=$(docker run --rm "outgun-api:$TAG" node dist/cli.js ticket-key)"
     echo "INTERNAL_SECRETS=vps:$gs"

@@ -1,8 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Borda HTTPS da VPS (OG-109). Certificado automático para DOMAIN (Let's Encrypt).
-{
-	email {$ACME_EMAIL}
-}
+# Borda HTTPS da VPS (OG-109). Certificado automático para DOMAIN (Let's Encrypt, sem e-mail).
 
 {$DOMAIN} {
 	encode zstd gzip
