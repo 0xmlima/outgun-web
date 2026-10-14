@@ -7,7 +7,7 @@ import { parseMapFile } from '@outgun/content';
 import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
 import { message } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
-import { Application, Assets, type BitmapFont } from 'pixi.js';
+import { Application, Assets, TilingSprite, type BitmapFont, type Texture } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
@@ -26,7 +26,8 @@ import { API_URL } from '../app/api.js';
 import { SoundEvents, type SoundContext } from './audio/sound-events.js';
 import { SoundPlayer } from './audio/sound-player.js';
 import { EntityRenderer } from './render/entity-renderer.js';
-import { viewTopLeft } from './render/layout.js';
+import { mapWraps, viewTopLeft, type ViewOptions } from './render/layout.js';
+import { DEFAULT_GRAPHICS, type GraphicsOptions } from './graphics-options.js';
 import { createRoomSource } from './render/room-source.js';
 import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme, type RoomTheme } from './render/theme.js';
@@ -63,6 +64,8 @@ export interface ClientOptions {
   readonly fpsLimit: number;
   readonly soundTheme: string;
   readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
+  /** Opções gráficas avançadas do original (OG-070). */
+  readonly graphics?: GraphicsOptions;
 }
 
 export const DEFAULT_CLIENT: ClientOptions = {
@@ -167,7 +170,12 @@ export async function loadMap(name: string, source: { text?: string | undefined;
 }
 
 /** Vista do `client.cfg` distribuído: sem rolagem, vista passa da borda só em mapas que dão a volta. */
-const VIEW = { scroll: false, view: 'mapWraps', repeatX: false, repeatY: false, wrapsX: false, wrapsY: false } as const;
+/** Vista do jogador (`viewTopLeft`): rolagem, borda e repetição das opções gráficas, "dá a volta" do mapa. */
+function viewOptions(g: GraphicsOptions, wraps: { x: boolean; y: boolean }): ViewOptions {
+  // `repeatMapX/Y`: só com "Allow parts of map to repeat", e com borda passável ou vista "always"
+  const repeat = (w: boolean) => g.repeatMap && (g.viewOverBorder === 'always' || w);
+  return { scroll: g.scroll, view: g.viewOverBorder, repeatX: repeat(wraps.x), repeatY: repeat(wraps.y), wrapsX: wraps.x, wrapsY: wraps.y };
+}
 
 /** Instala a fonte bitmap e a de contorno no PixiJS (o arquivo .fnt traz o nome da família). */
 export async function loadFont(name: string | undefined): Promise<GameFont | null> {
@@ -201,6 +209,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   let hud: HudRenderer | undefined;
   let onlineHud: OnlineHud | undefined;
   let client: ClientOptions = opts.client ?? DEFAULT_CLIENT;
+  const graphics = (): GraphicsOptions => client.graphics ?? DEFAULT_GRAPHICS;
+  /** O mapa atual "dá a volta" (borda passável) em cada eixo. */
+  let wraps = { x: false, y: false };
+  /** Fundo da tela em mosaico (fica sempre atrás das salas). */
+  let backTiles: TilingSprite | null = null;
   /** Favoritas e banda do minimapa já enviadas nesta conexão (`sendFavoriteColors`, `sendMinimapBandwidth`). */
   let sentClient: { colors: string; minimap: number } | null = null;
   const sendClientSettings = () => {
@@ -275,7 +288,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       );
       playfield = screen.playfield;
     }
-    world.setPlayfield(playfield, { visibleRooms: visible, continuousTextures: opts.continuousTextures });
+    const v = viewOptions(graphics(), wraps);
+    world.setPlayfield(playfield, { visibleRooms: visible, continuousTextures: opts.continuousTextures, repeatX: v.repeatX, repeatY: v.repeatY, mapInfo: graphics().mapInfoMode });
   };
 
   /** Troca o mapa desenhado (início da partida e cada troca de mapa do servidor). */
@@ -291,7 +305,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     world?.destroy();
     world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
     worldMap = map;
-    app.stage.addChildAt(world.stage, 0);
+    wraps = mapWraps(map);
+    app.stage.addChildAt(world.stage, backTiles ? 1 : 0);
     announced = false;
     layout();
     return map;
@@ -343,6 +358,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     let mapLoad = Promise.resolve();
     session = new ClientSession({
       send: (messages) => connection?.send(messages),
+      // "Stay dead when in a menu at round start": com o menu do jogo aberto, não nasce
+      holdReady: () => graphics().stayDeadInMenus && !input.isEnabled(),
       onMapChange: (request) => {
         // um mapa de cada vez, na ordem em que o servidor pediu
         mapLoad = mapLoad
@@ -483,12 +500,28 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       app.ticker.maxFPS = client.fpsLimit;
       if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
+      // fundo da tela em mosaico (`load_background`): o do tema principal, se preferido e existir, senão o escolhido
+      const g = graphics();
+      const bgTheme = g.preferThemeBackground && manifest.graphics[opts.theme]?.graphics.background ? opts.theme : g.backgroundTheme;
+      const bg = bgTheme ? manifest.graphics[bgTheme]?.graphics.background : undefined;
+      if (bg) {
+        const texture = await Assets.load<Texture>(ASSETS + bg.file);
+        if (destroyed) return;
+        const tiles = new TilingSprite({ texture, width: app.screen.width, height: app.screen.height });
+        app.stage.addChildAt(tiles, 0);
+        backTiles = tiles;
+        app.renderer.on('resize', (w: number, h: number) => {
+          tiles.width = w;
+          tiles.height = h;
+        });
+      }
       const playing = Boolean(opts.online || opts.demoPlayers);
       if (playing) {
         const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
         if (destroyed) return;
         gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);
+        entities.graphics = graphics();
         entities.showNames = client.showNames;
         app.stage.addChild(entities.stage);
         if (opts.online && font) {
@@ -516,7 +549,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             demo.setMyInput(input.sample());
             for (const ev of demo.step()) entities.addEffect(ev.kind, ev.pos, ev.team, demo.world.frame / 10);
           }
-          topLeft = viewTopLeft(world.layout, demo.mePosition(), VIEW);
+          topLeft = viewTopLeft(world.layout, demo.mePosition(), viewOptions(graphics(), wraps));
           const frame = demo.frame(world.layout.visibleX > 1 || world.layout.visibleY > 1);
           entities.render(frame, world.layout, topLeft);
           report(frame);
@@ -530,7 +563,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           world.stage.visible = entities.stage.visible = Boolean(fd && me);
           if (fd && me) {
             const s = session;
-            topLeft = viewTopLeft(world.layout, coords(me.pos), VIEW);
+            topLeft = viewTopLeft(world.layout, coords(me.pos), viewOptions(graphics(), wraps));
             const frame = entityFrameFromWorld(fd, {
               me: s.me,
               name: (pid) => s.names.get(pid) ?? '',
@@ -545,6 +578,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
               maxRunSpeed: s.settings.physics.maxRunSpeed,
               multiRoom: world.layout.visibleX > 1 || world.layout.visibleY > 1,
             });
+            // bandeiras sumidas do quadro anterior do HUD (opção "Show flag disappearance positions")
+            if (onlineHud?.lastOldFlags.length) Object.assign(frame, { oldFlags: onlineHud.lastOldFlags });
             entities.render(frame, world.layout, topLeft);
             report(frame);
             container.dataset.lag = s.stats.averageLag.toFixed(2);
@@ -597,7 +632,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   addEventListener('keydown', onKey);
   addEventListener('keydown', onChatKey, true);
   return {
-    setInputEnabled: (enabled) => input.setEnabled(enabled),
+    setInputEnabled: (enabled) => {
+      input.setEnabled(enabled);
+      // menu fechou: o jogador que ficou morto na troca de mapa pode nascer (OG-070)
+      if (enabled) session?.releaseReady();
+    },
     setBindings: (b) => {
       bindings = b;
       input.setBindings(b);
@@ -621,9 +660,14 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     },
     setClient: (next) => {
       const themeChanged = next.soundTheme !== client.soundTheme;
+      const relayout = JSON.stringify(next.graphics ?? DEFAULT_GRAPHICS) !== JSON.stringify(graphics());
       client = next;
       onlineHud?.setOptions(next);
-      if (entities) entities.showNames = next.showNames;
+      if (entities) {
+        entities.showNames = next.showNames;
+        entities.graphics = graphics();
+      }
+      if (relayout) layout();
       if (ready) app.ticker.maxFPS = next.fpsLimit;
       if (themeChanged && sounds) {
         const player = sounds;

@@ -34,9 +34,9 @@ ficam no navegador (convidado) e também na conta (logado).
 | Game | Save game / replay statistics | não | ❌ removidas (o perfil guarda as partidas, OG-085) |
 | Game | Show stats after the round | off | ✅ preferência; a tela é do OG-066 |
 | Game | Show server info when connected | não | ✅ preferência; a tela (F5) é do OG-066 |
-| Game | Stay dead when in a menu at round start | sim | ⏳ OG-070 (precisa do servidor) |
+| Game | Stay dead when in a menu at round start | sim | ✅ OG-070 (o `clientReady` espera o menu do jogo fechar; spec opcoes-graficas.md) |
 | Game | Skip maps in rotation | dimmed | ✅ preferência; a lista de mapas (F2) é do OG-066 |
-| Game | Underline master/server-authenticated players | sim / não | ⏳ OG-070 (sublinhar quem tem conta) |
+| Game | Underline master/server-authenticated players | sim / não | ✅ OG-070 (sublinha quem tem conta; o de servidor não existe na web) |
 | Game | Get server list at startup | sim | ❌ removida (o lobby é sempre ao vivo) |
 | Quick messages | Enable / Send immediately / Alt+1..0 (30) | não / não / vazias | ✅ |
 | Controls | teclas, mouse | — | ✅ OG-063 (D-15) |
@@ -44,14 +44,14 @@ ficam no navegador (convidado) e também na conta (logado).
 | Controls | Joystick (Allegro) | — | ❌ trocado pelo gamepad do navegador (D-15) |
 | Screen mode | resolução, cores, janela, flipping | — | ❌ removido (navegador; modo foco/tela cheia D-15) |
 | Theme | Theme | — / sem tema | ✅ |
-| Theme | Background theme / Prefer main theme background | — / sim | ⏳ OG-070 (é a imagem de fundo dos **menus**; só o tema Metal tem) |
+| Theme | Background theme / Prefer main theme background | `<no background>` / sim | ✅ OG-070 (fundo da tela fora das salas, em mosaico; só o tema Metal tem) |
 | Theme | Colour theme / Prefer main theme colours | — / sim | ✅ |
 | Theme | Font | — | ✅ |
 | Graphics | Rooms on screen in game | 2 (1..20) | ✅ (web: 1, `client.cfg` distribuído, D-05) |
 | Graphics | Continuous textures | sim | ✅ |
 | Graphics | Show player names | never / never | ✅ never / in same room / always; padrão web **in same room** (D-26) |
 | Graphics | FPS limit | 60 (1..10000) | ✅ |
-| Graphics | Rooms in replay, Scrolling, Antialiasing, Less transparency, Disappeared players on minimap, Highlight returned flags, Extra-visible flags, Flag disappearance positions, Highlight self after spawn, Neighbor markers, Box visible area, View over border, Repeat map, Highlight unknown maps, Stats screen alpha, Map info mode | vários | ⏳ OG-070 (o renderer desenha hoje o comportamento padrão de cada uma) |
+| Graphics | Scrolling, Less transparency, Disappeared players on minimap, Highlight returned flags, Extra-visible flags, Flag disappearance positions, Highlight self after spawn, Neighbor markers, Box visible area, View over border, Repeat map, Highlight unknown maps, Stats screen alpha, Map info mode | vários | ✅ OG-070 (spec `opcoes-graficas.md`); Antialiasing não se aplica (o navegador sempre suaviza); Rooms in replay fica com o player (OG-091) |
 | Sounds | Enabled / Volume / Theme | sim / 128 / — | ✅ |
 | Language | idiomas do catálogo | — | ✅ |
 | Bug report policy | — | — | ❌ removido |

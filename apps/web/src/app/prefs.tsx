@@ -11,6 +11,11 @@ export const DEFAULT_MENU_FONT = 'Kulmikas';
 export type ShowNames = 'never' | 'sameRoom' | 'always';
 export type ShowStats = 'off' | 'teams' | 'players';
 export type SkipMaps = 'none' | 'dimmed' | 'highlighted';
+/** Opções gráficas avançadas do original (OG-070, plan/specs/opcoes-graficas.md). */
+export type MinimapPlayers = 'fade' | 'hideEarly' | 'hideLate';
+export type EmphasizeFlags = 'never' | 'multiRoom' | 'always';
+export type NeighborMarkers = 'never' | 'oneRoom' | 'always';
+export type ViewOverBorder = 'never' | 'mapDoesntFit' | 'mapWraps' | 'always';
 
 export interface Prefs {
   readonly locale: Locale;
@@ -33,6 +38,28 @@ export interface Prefs {
   readonly showNames: ShowNames;
   /** `FPS limit` (1..10000; 60). */
   readonly fpsLimit: number;
+  // OG-070: opções gráficas avançadas (padrões do client.cfg distribuído)
+  readonly scroll: boolean;
+  readonly lessTransparency: boolean;
+  readonly minimapPlayers: MinimapPlayers;
+  readonly highlightReturnedFlags: boolean;
+  readonly emphasizeFlags: EmphasizeFlags;
+  readonly oldFlagPositions: boolean;
+  readonly spawnHighlight: boolean;
+  readonly neighborMarkers: NeighborMarkers;
+  readonly boxVisibleArea: boolean;
+  readonly viewOverBorder: ViewOverBorder;
+  readonly repeatMap: boolean;
+  readonly highlightUnknownMaps: boolean;
+  /** `Stats screen alpha` 0..255 (passo 15). */
+  readonly statsAlpha: number;
+  readonly mapInfoMode: boolean;
+  readonly stayDeadInMenus: boolean;
+  /** `Underline master-authenticated players`: quem tem conta, no placar. */
+  readonly underlineAccounts: boolean;
+  /** Fundo da tela (`background.pcx`): tema escolhido (`''` = nenhum) e "Prefer main theme background". */
+  readonly backgroundTheme: string;
+  readonly preferThemeBackground: boolean;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
   /** Predição do próprio jogador (`Lag prediction`; ligada por padrão na web, D-18). */
@@ -88,6 +115,24 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     continuousTextures: true,
     showNames: 'sameRoom',
     fpsLimit: 60,
+    scroll: false,
+    lessTransparency: false,
+    minimapPlayers: 'fade',
+    highlightReturnedFlags: false,
+    emphasizeFlags: 'never',
+    oldFlagPositions: false,
+    spawnHighlight: true,
+    neighborMarkers: 'never',
+    boxVisibleArea: true,
+    viewOverBorder: 'mapWraps',
+    repeatMap: false,
+    highlightUnknownMaps: false,
+    statsAlpha: 255,
+    mapInfoMode: false,
+    stayDeadInMenus: true,
+    underlineAccounts: true,
+    backgroundTheme: '',
+    preferThemeBackground: true,
     bindings: CLASSIC_BINDINGS,
     lagPrediction: true,
     lagPredictionAmount: 10,
@@ -128,6 +173,24 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     continuousTextures: bool(saved.continuousTextures, fallback.continuousTextures),
     showNames: oneOf(saved.showNames, ['never', 'sameRoom', 'always'], fallback.showNames),
     fpsLimit: int(saved.fpsLimit, 1, 10000, fallback.fpsLimit),
+    scroll: bool(saved.scroll, fallback.scroll),
+    lessTransparency: bool(saved.lessTransparency, fallback.lessTransparency),
+    minimapPlayers: oneOf(saved.minimapPlayers, ['fade', 'hideEarly', 'hideLate'], fallback.minimapPlayers),
+    highlightReturnedFlags: bool(saved.highlightReturnedFlags, fallback.highlightReturnedFlags),
+    emphasizeFlags: oneOf(saved.emphasizeFlags, ['never', 'multiRoom', 'always'], fallback.emphasizeFlags),
+    oldFlagPositions: bool(saved.oldFlagPositions, fallback.oldFlagPositions),
+    spawnHighlight: bool(saved.spawnHighlight, fallback.spawnHighlight),
+    neighborMarkers: oneOf(saved.neighborMarkers, ['never', 'oneRoom', 'always'], fallback.neighborMarkers),
+    boxVisibleArea: bool(saved.boxVisibleArea, fallback.boxVisibleArea),
+    viewOverBorder: oneOf(saved.viewOverBorder, ['never', 'mapDoesntFit', 'mapWraps', 'always'], fallback.viewOverBorder),
+    repeatMap: bool(saved.repeatMap, fallback.repeatMap),
+    highlightUnknownMaps: bool(saved.highlightUnknownMaps, fallback.highlightUnknownMaps),
+    statsAlpha: int(saved.statsAlpha, 0, 255, fallback.statsAlpha),
+    mapInfoMode: bool(saved.mapInfoMode, fallback.mapInfoMode),
+    stayDeadInMenus: bool(saved.stayDeadInMenus, fallback.stayDeadInMenus),
+    underlineAccounts: bool(saved.underlineAccounts, fallback.underlineAccounts),
+    backgroundTheme: str(saved.backgroundTheme, fallback.backgroundTheme),
+    preferThemeBackground: bool(saved.preferThemeBackground, fallback.preferThemeBackground),
     bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
     lagPrediction: bool(saved.lagPrediction, fallback.lagPrediction),
     lagPredictionAmount: int(saved.lagPredictionAmount, 0, 10, fallback.lagPredictionAmount),

@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 5 pts |
 | Sprint | — |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | [OG-068](OG-068-player-options.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec` |
@@ -26,10 +26,18 @@ Como jogador veterano, quero as opções gráficas finas do original para deixar
 - Rooms on screen in replay fica com os replays (OG-091).
 
 ## Critérios de aceite
-- [ ] Cada opção do escopo implementada com o default do `client.cfg` distribuído e comparada com print do original.
+- [x] Cada opção do escopo implementada com o default do `client.cfg` distribuído e comparada com print do original.
 
 ## Notas técnicas
 - O renderer já desenha o comportamento padrão de cada opção; o card só acrescenta as alternativas.
 
 ## Notas de implementação
-_(preencher durante a execução: decisões, divergências intencionais, links de PR e specs)_
+- Spec: `plan/specs/opcoes-graficas.md` (fontes, padrões do `client.cfg` distribuído por índice, algoritmo, divergências); `opcoes-jogador.md` atualizada.
+- Preferências novas (padrões = `client.cfg` distribuído, D-05), sincronizadas com a conta como as outras, e o objeto `GraphicsOptions` (`apps/web/src/game/graphics-options.ts`) que o jogo recebe por `setClient`.
+- Gráficos: rolagem, vista sobre a borda e repetição do mapa (o port de `getViewStartCoord`/`mapWraps` já existia; agora seguem as opções e o "dá a volta" de cada mapa), jogadores sumidos no minimapa (fade/cedo/tarde), piscar de bandeira devolvida, bandeiras enfatizadas (never/multi-roomed/always), posições onde a bandeira sumiu (minimapa e sala, com os segundos sem notícia), destaque ao nascer, marcadores de vizinhos, caixa da área visível (também com rolagem), menos transparência (névoa sólida no minimapa, sem rastro de turbo e sem círculo do portador do deathbringer, fumaça opaca e menor), mapas fora do jogo destacados na lista F2, alfa do fundo das telas F1–F5 e modo de informação do mapa (áreas de respawn, pontos de spawn, grade 16×12 pintados no fundo das salas).
+- Jogo: ficar morto no menu (`ClientSession.holdReady`/`releaseReady`: o `clientReady` da troca de mapa espera o menu do jogo fechar) e sublinhado no placar de quem tem conta (`playerInfo.loggedIn`).
+- Tema: fundo da tela em mosaico (`background` do tema; "Prefer main theme background").
+- **Divergências silenciosas corrigidas:** a web piscava bandeiras devolvidas, desenhava os marcadores de vizinhos e as posições de bandeiras sumidas sempre e enfatizava as bandeiras com mais de uma sala — no `client.cfg` distribuído as quatro vêm desligadas; agora seguem as opções (padrão desligado, como o original).
+- Não se aplicam: Antialiasing (o canvas do navegador sempre suaviza), Underline server-authenticated (sem `auth.txt` na web), Rooms on screen in replay (player de replay, OG-091).
+- Comparação com o original (oráculo, `--cfg` no replay): prints em `tools/parity/out/og070/` — `original-enfase.png` × `web-enfase.png` (quatro triângulos), `original-metal.png` × `web-online-metal.png` (fundo estrelado em volta das salas), `web-info-mapa.png` (modo de informação, que o original não grava no `client.cfg`).
+- Testes: `graphics-options.test.ts` (padrões, valores inválidos, fade, ênfase, marcadores) e `session.test.ts` (clientReady segurado).

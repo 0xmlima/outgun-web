@@ -50,6 +50,8 @@ export interface HudPlayer {
   /** 0..255: quão recente é a posição (`ClientPlayer::alpha`); 0 = fora do minimapa. */
   readonly alpha: number;
   readonly me: boolean;
+  /** Tem conta (sublinhado no placar com "Underline master-authenticated players", OG-070). */
+  readonly account?: boolean;
 }
 
 export interface HudFlag {
@@ -73,7 +75,7 @@ export interface HudState {
   readonly players: readonly HudPlayer[];
   readonly flags: readonly HudFlag[];
   /** Bandeiras carregadas por quem saiu da vista há pouco (posição antiga). */
-  readonly oldFlags: readonly { team: 0 | 1 | 2; pos: WorldCoords }[];
+  readonly oldFlags: readonly { team: 0 | 1 | 2; pos: WorldCoords; unknownFor: number }[];
   /** Visibilidade de cada sala 0..255 (`calculateVisibilities`), [x][y]. */
   readonly roomVis: readonly (readonly number[])[];
   readonly scores: readonly [number, number];
@@ -99,6 +101,10 @@ export interface HudState {
   readonly notResponding: boolean;
   /** Destaca no minimapa as salas na tela (mais de 1 sala na tela). */
   readonly highlightRooms: boolean;
+  /** Opções do OG-070 que o HUD desenha: marcadores de vizinhos, névoa sólida, sublinhado de quem tem conta. */
+  readonly neighborMarkers?: boolean;
+  readonly solidFog?: boolean;
+  readonly underlineAccounts?: boolean;
   /** Pediu troca de time (Ctrl+End): "CHANGE TEAMS" piscando. */
   readonly changeTeams: boolean;
   /** Votou para sair do mapa (F8): "EXIT MAP" piscando, ou cinza se o voto ainda não vale. */
@@ -337,6 +343,8 @@ export class HudRenderer {
       const light = (v: number) => 40 + Math.trunc((v * 215) / 255);
       const textCol = `#${[16, 8, 0].map((sh) => light((pc >> sh) & 255).toString(16).padStart(2, '0')).join('')}`;
       const y = (teamY[p.team] as number) + (line[p.team] as number) * lineH;
+      // `draw_scoreboard_name`: sublinha quem tem conta (opção, ligada no client.cfg distribuído)
+      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.font.height, sbx + 8 + font.width(p.name.slice(0, 15)) - 2, textCol);
       this.text(p.name.slice(0, 15), sbx + 8, y, textCol);
       const pts = String(s.showPings ? p.ping : p.frags);
       this.text(pts, sbx + 20 * charW - font.width(pts), y, this.teamLight(p.team));
@@ -385,7 +393,8 @@ export class HudRenderer {
         const vis = (s.roomVis[rx]?.[ry] ?? 0) / 255;
         if (vis >= 0.99) continue;
         const room = minimapRoom(r, map.width, map.height, rx, ry);
-        this.list.g().rect(room.x, room.y, room.w, room.h).fill({ color: this.c('map_fog'), alpha: FOG_MAX_ALPHA * (1 - vis) });
+        // "Less transparency effects": névoa inteira em toda sala sem visão completa (`minibg_fog`)
+        this.list.g().rect(room.x, room.y, room.w, room.h).fill({ color: this.c('map_fog'), alpha: FOG_MAX_ALPHA * (s.solidFog ? 1 : 1 - vis) });
       }
     if (s.highlightRooms) this.highlightRooms(s, r);
 
@@ -503,9 +512,11 @@ export class HudRenderer {
           } else g.circle(x + 0.5, y + 0.5, R.scale * (10 - 5 * dist)).stroke({ color: col, width: 1, alpha });
         }
     };
-    for (const f of s.oldFlags) marker(true, f.pos, f.team, true, 150 / 255);
-    for (const p of s.players) if (p.alpha > 0) marker(false, p.pos, p.team, false, p.alpha / 255);
-    for (const f of s.flags) if (!f.carried || f.alpha > 0) marker(true, f.pos, f.team, false, f.carried ? f.alpha / 255 : 1);
+    if (s.neighborMarkers) {
+      for (const f of s.oldFlags) marker(true, f.pos, f.team, true, 150 / 255);
+      for (const p of s.players) if (p.alpha > 0) marker(false, p.pos, p.team, false, p.alpha / 255);
+      for (const f of s.flags) if (!f.carried || f.alpha > 0) marker(true, f.pos, f.team, false, f.carried ? f.alpha / 255 : 1);
+    }
 
     if (s.self && s.self.highlight > 0) {
       const radius = R.scale * (8 * s.self.highlight + 1) * 15; // PLAYER_RADIUS = 15

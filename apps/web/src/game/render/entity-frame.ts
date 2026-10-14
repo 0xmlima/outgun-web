@@ -73,6 +73,11 @@ export interface EntityFrame {
   readonly deathbringers: readonly DeathbringerView[];
   /** Mais de uma sala na tela (ênfase das bandeiras na opção "multi-roomed"). */
   readonly multiRoom: boolean;
+  /**
+   * Bandeiras carregadas por quem saiu da vista, onde foram vistas por último, com os segundos sem
+   * notícia (opção "Show flag disappearance positions", OG-070).
+   */
+  readonly oldFlags?: readonly { readonly team: 0 | 1 | 2; readonly pos: WorldCoords; readonly unknownFor: number }[];
 }
 
 /** Efeitos criados por eventos (`create_*`). */

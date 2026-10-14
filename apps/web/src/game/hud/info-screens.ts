@@ -160,13 +160,17 @@ export function sortMaps(maps: readonly { title: string; author: string; width: 
 }
 
 /** F2 — `map_list`. */
-export function mapScreen(s: ClientSession, key: MapSort, ownVote: number, edit: string, t: T): InfoScreen {
+/**
+ * Lista de mapas (F2). `unknown(file)`: o mapa não está entre os do jogo (gerado ou próprio do
+ * servidor); com "Highlight maps not in maps.txt" (OG-070) ele aparece destacado.
+ */
+export function mapScreen(s: ClientSession, key: MapSort, ownVote: number, edit: string, t: T, unknown?: (file: string) => boolean): InfoScreen {
   const rows = sortMaps(s.mapList, s.mapVoteCounts, key).map((i): Row => {
     const m = s.mapList[i]!;
     const votes = s.mapVoteCounts[i] ?? 0;
     return {
       cells: [String(i + 1), votes > 0 ? String(votes) : '-', ownVote === i ? '*' : '', m.title.slice(0, 20), m.width > 0 ? `${m.width}x${m.height}` : '', m.author.slice(0, 27)],
-      tone: i === s.currentMapIndex ? 'selected' : 'text',
+      tone: i === s.currentMapIndex ? 'selected' : unknown?.(m.file) ? 'highlight' : 'text',
     };
   });
   return {

@@ -278,3 +278,19 @@ describe('SimulatedLink', () => {
     expect(link.receive(1000)).toEqual([1, 2]);
   });
 });
+
+describe('ficar morto no menu (OG-070)', () => {
+  it('com o menu aberto o clientReady da troca de mapa espera; ao fechar, vai uma vez só', () => {
+    const sent: AnyMessage[] = [];
+    let menuOpen = true;
+    const s: ClientSession = new ClientSession({ send: (m) => sent.push(...m), onMapChange: () => {}, holdReady: () => menuOpen });
+    s.setMap(MAP);
+    expect(sent.filter((m) => m.type === 'clientReady')).toHaveLength(0);
+    menuOpen = false;
+    s.releaseReady();
+    s.releaseReady();
+    expect(sent.filter((m) => m.type === 'clientReady')).toHaveLength(1);
+    s.setMap(MAP); // menu fechado: na hora
+    expect(sent.filter((m) => m.type === 'clientReady')).toHaveLength(2);
+  });
+});

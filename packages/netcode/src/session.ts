@@ -53,6 +53,11 @@ export interface SessionOptions {
   onEvent?(event: SessionEvent): void;
   /** Sem tela (cliente virtual de bot): não mede nem suaviza as correções da extrapolação. */
   headless?: boolean;
+  /**
+   * "Stay dead when in a menu at round start" (OG-070): enquanto devolver true, o `clientReady` da
+   * troca de mapa espera (o jogador não nasce); `releaseReady()` o manda.
+   */
+  holdReady?: () => boolean;
 }
 
 /** Opções do jogador para a predição (`lagPrediction`, `lagPredictionAmount` do original). */
@@ -258,6 +263,17 @@ export class ClientSession {
     this.skipped = true;
     for (const m of this.flagsBeforeMap.values()) this.onFlagUpdate(world, m);
     this.flagsBeforeMap.clear();
+    if (this.options.holdReady?.()) this.readyHeld = true;
+    else this.options.send([message('clientReady', {})]);
+  }
+
+  /** `client_ready` segurado pelo menu aberto (src/guiclient.cpp:2790-2795). */
+  private readyHeld = false;
+
+  /** O menu fechou: manda o `clientReady` segurado, se houver. */
+  releaseReady(): void {
+    if (!this.readyHeld) return;
+    this.readyHeld = false;
     this.options.send([message('clientReady', {})]);
   }
 
