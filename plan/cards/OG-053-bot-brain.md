@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S10 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-051](OG-051-bot-navigation.md), [OG-052](OG-052-bot-combat.md) |
 | Regras de negócio | RN-BOT-02 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

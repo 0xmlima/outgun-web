@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S10 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-042](OG-042-snapshots-aoi.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec` |

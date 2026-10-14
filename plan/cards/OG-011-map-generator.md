@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S10 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-010](OG-010-map-parser.md) |
 | Regras de negócio | RN-MAP-06, RN-VOT-04 |
 | Skills | `outgun-re-spec`, `outgun-parity-harness` |

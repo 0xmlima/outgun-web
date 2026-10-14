@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S10 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-090](OG-090-replay-recording.md), [OG-065](OG-065-hud.md) |
 | Regras de negócio | — |
 | Skills | `outgun-re-spec` |
