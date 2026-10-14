@@ -36,7 +36,7 @@ export interface Prefs {
   readonly continuousTextures: boolean;
   /** `Show player names` (D-26: padrão "na mesma sala"). */
   readonly showNames: ShowNames;
-  /** `FPS limit` (1..10000; 60). */
+  /** `FPS limit` (0 = sem limite; 1..10000). */
   readonly fpsLimit: number;
   // OG-070: opções gráficas avançadas (padrões do client.cfg distribuído)
   readonly scroll: boolean;
@@ -114,7 +114,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     visibleRooms: 1,
     continuousTextures: true,
     showNames: 'sameRoom',
-    fpsLimit: 60,
+    fpsLimit: 0,
     scroll: false,
     lessTransparency: false,
     minimapPlayers: 'fade',
@@ -172,7 +172,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     visibleRooms: int(saved.visibleRooms, 1, 20, fallback.visibleRooms),
     continuousTextures: bool(saved.continuousTextures, fallback.continuousTextures),
     showNames: oneOf(saved.showNames, ['never', 'sameRoom', 'always'], fallback.showNames),
-    fpsLimit: int(saved.fpsLimit, 1, 10000, fallback.fpsLimit),
+    fpsLimit: int(saved.fpsLimit, 0, 10000, fallback.fpsLimit),
     scroll: bool(saved.scroll, fallback.scroll),
     lessTransparency: bool(saved.lessTransparency, fallback.lessTransparency),
     minimapPlayers: oneOf(saved.minimapPlayers, ['fade', 'hideEarly', 'hideLate'], fallback.minimapPlayers),
