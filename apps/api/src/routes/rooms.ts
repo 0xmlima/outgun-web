@@ -24,6 +24,8 @@ const RoomSummary = Type.Object({
   persistent: Type.Boolean(),
   /** Região do servidor que hospeda (ou vai hospedar) a sala. */
   region: Type.Union([Type.String(), Type.Null()]),
+  /** Espectador ao vivo (OG-092): WebSocket do game server; null para sala com senha ou fora do ar. */
+  spectateUrl: Type.Union([Type.Null(), Type.String()]),
 });
 
 const HOUR = 60 * 60_000;
@@ -44,6 +46,7 @@ function summary(r: typeof rooms.$inferSelect, region: string | null, now: numbe
     online,
     persistent: r.persistent,
     region: region ?? null,
+    spectateUrl: online && r.wsUrl && r.passwordHash === null ? `${r.wsUrl}/spectate` : null,
   };
 }
 
@@ -184,6 +187,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             online: false,
             persistent: false,
             region: server?.region ?? null,
+            spectateUrl: null,
           },
           inviteUrl: `${config.webUrl}/rooms/${r.id}`,
         });

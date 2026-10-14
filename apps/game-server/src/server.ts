@@ -10,6 +10,7 @@ import type { KeyObject } from 'node:crypto';
 import type { RoomSpawn } from '@outgun/tickets';
 import type { Connection, Room } from './room.js';
 import type { RoomManager } from './rooms.js';
+import type { ReplayStore } from './replay.js';
 import { TicketAuth } from './tickets.js';
 
 export interface ServerOptions {
@@ -30,6 +31,8 @@ export interface ServerOptions {
    * undefined se não puder (sem vaga, mapas inválidos). Sem esta opção, só salas já criadas.
    */
   spawnRoom?: (id: string, spec: RoomSpawn) => Room | undefined;
+  /** Replays gravados (OG-090), servidos em /replays/<chave>.ogr. */
+  replays?: ReplayStore;
 }
 
 const ROOM_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
@@ -126,6 +129,38 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     },
   });
 
+  // Espectadores ao vivo (OG-092): sem ticket, só recebem; o atraso é o `spectating_delay` da sala.
+  app.ws<{ roomId: string; conn: Connection | null }>('/rooms/:id/spectate', {
+    compression: uWS.DISABLED,
+    maxPayloadLength: 1024,
+    idleTimeout: 120,
+    upgrade: (res, req, context) => {
+      const roomId = req.getParameter(0) ?? '';
+      if (!manager.get(roomId)) {
+        res.writeStatus('404 Not Found').end('sala inexistente');
+        return;
+      }
+      res.upgrade({ roomId, conn: null }, req.getHeader('sec-websocket-key'), req.getHeader('sec-websocket-protocol'), req.getHeader('sec-websocket-extensions'), context);
+    },
+    open: (ws) => {
+      const user = ws.getUserData();
+      const room = manager.get(user.roomId);
+      const conn: Connection = { send: (b) => void ws.send(b, true), close: (code, reason) => ws.end(code, reason) };
+      if (!room) return ws.end(1001, 'sala encerrada');
+      if (!room.addSpectator(conn)) {
+        ws.send(encodeFrame(message('reject', { reason: 'serverFull', text: 'Limite de espectadores da sala.' })), true);
+        return ws.end(4000, 'serverFull');
+      }
+      user.conn = conn;
+    },
+    message: () => {},
+    close: (ws) => {
+      const user = ws.getUserData();
+      if (user.conn) manager.get(user.roomId)?.removeSpectator(user.conn);
+      user.conn = null;
+    },
+  });
+
   app.get('/health', (res) => {
     // o lobby mede o ping de cada região com este endereço (OG-069)
     res.writeHeader('access-control-allow-origin', '*').writeHeader('cache-control', 'no-store').writeHeader('content-type', 'application/json').end(JSON.stringify({ status: 'ok', ...manager.metrics() }));
@@ -151,6 +186,21 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     const rooms = manager.list().map((r) => ({ id: r.id, mode: r.mode, players: r.playerCount, maxPlayers: r.world.maxPlayers, map: r.world.map.title }));
     res.writeHeader('content-type', 'application/json').end(JSON.stringify(rooms));
   });
+
+  if (options.replays) {
+    const store = options.replays;
+    app.get('/replays/:file', (res, req) => {
+      const file = store.path(req.getParameter(0) ?? '');
+      let data: Buffer;
+      try {
+        if (!file) throw new Error('nome inválido');
+        data = readFileSync(file);
+      } catch {
+        return void res.writeStatus('404 Not Found').writeHeader('access-control-allow-origin', '*').end();
+      }
+      res.writeHeader('access-control-allow-origin', '*').writeHeader('content-type', 'application/octet-stream').writeHeader('cache-control', 'public, max-age=31536000, immutable').end(data);
+    });
+  }
 
   if (options.devPage) {
     const page = options.devPage;

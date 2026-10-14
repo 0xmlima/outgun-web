@@ -269,15 +269,13 @@ describe('Room: times (OG-044)', () => {
 
   it('bots equilibram os times sozinhos quando a diferença chega a 2', () => {
     const r = small();
-    join(r, 'Ana');
-    r.addBot('b1');
-    r.addBot('b2');
-    // tira o humano do time com 1: fica 2 × 0
-    const lonely = [...Array(4).keys()].find((pid) => r.world.players[pid] && r.bots().every((b) => r.world.teamOf(b) !== r.world.teamOf(pid)));
-    if (lonely !== undefined) r.leave(lonely);
+    const ana = join(r, 'Ana').pid;
+    for (const name of ['b1', 'b2', 'b3']) r.addBot(name);
+    // tira os dois bots do outro time: fica 2 × 0
+    for (const b of r.bots().filter((b) => r.world.teamOf(b) !== r.world.teamOf(ana))) r.removeBot(b);
+    expect(r.bots()).toHaveLength(1);
     r.tick();
-    const teams = r.bots().map((b) => r.world.teamOf(b));
-    expect(new Set(teams).size).toBe(2);
+    expect(r.world.teamOf(r.bots()[0] as number)).not.toBe(r.world.teamOf(ana));
   });
 
   it('cores favoritas: a primeira livre do time', () => {

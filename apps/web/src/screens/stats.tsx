@@ -363,7 +363,7 @@ export function MatchScreen() {
                   <tr>
                     <th>{t('Replay')}</th>
                     <td>
-                      <a href={m.replayUrl}>{t('Watch')}</a>
+                      <Link to={`/replay?src=${encodeURIComponent(m.replayUrl)}`}>{t('Watch')}</Link>
                     </td>
                   </tr>
                 )}

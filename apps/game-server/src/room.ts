@@ -4,10 +4,14 @@
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { applyGamemod, presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
-import { runCommand, type AuditEntry, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { BotClient, type BotHost } from './bot-client.js';
+import { createBotName, neededBots } from './bots.js';
+import { ReplayRecorder } from './replay.js';
+import { SpectatorStream } from './spectators.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
@@ -40,8 +44,6 @@ export interface Connection {
   moved?(pid: number): void;
 }
 
-/** Bots não têm conexão (a IA é do OG-048). */
-const BOT_CONNECTION: Connection = { send: () => {}, close: () => {} };
 /** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
 const OFFLINE: Connection = { send: () => {}, close: () => {} };
 
@@ -86,6 +88,16 @@ export interface RoomOptions {
   reportDeltas?: (report: DeltaReport) => void;
   /** Relógio de parede (ms) para as datas da partida; padrão `Date.now`. */
   wallClock?: () => number;
+  /** Onde gravar os replays (OG-090); ausente = sem gravação. Devolve a URL pública. */
+  replays?: { save(key: string, data: Uint8Array): string };
+  /** `bots_fill` das salas Casual (OG-054; o preset Clássico tem 0). Ignorado no Ranked (D-11). */
+  botsFill?: number;
+  /** Teste de bots (`-bottest` do original): bots jogam sem humanos (testes e medições; nunca em produção). */
+  botTest?: boolean;
+  /** Linhas de gamemod por cima do preset desde a criação (como um /set inicial). */
+  gamemod?: string;
+  /** Espectadores ao vivo por sala (OG-092; padrão 16). */
+  maxSpectators?: number;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -193,8 +205,24 @@ export class Room {
   private readonly sentTeamStats: [string, string] = ['', ''];
   /** Times cujas bandeiras mudaram no frame (um `flagUpdate` por time, antes do frame). */
   private readonly dirtyFlags = new Set<number>();
+  /** Replay da partida em curso (OG-090). */
+  private recorder: ReplayRecorder | null = null;
+  /** `check_bots`: recalcular a população de bots no próximo frame. */
+  private checkBotsPending = true;
+  /** `extra_bots` (/bot add e /bot remove). */
+  private extraBots = 0;
+  /** `reservedBotNames`: nomes já gerados nesta sala. */
+  private readonly reservedBotNames = new Set<string>();
+  /** Nomes de bots com sorteio próprio, para não mexer na sequência do mundo. */
+  private readonly botNameRng: GlibcRand;
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
   private frameSentTime = 0;
+  /** Sorteio dos bots (no original, o `rand()` global; aqui separado para não mexer na sequência do mundo). */
+  private readonly botRng: GlibcRand;
+  /** Regras de bandeira já anunciadas (`flagModeMask`). */
+  private sentFlagModes = '';
+  /** Espectadores ao vivo com atraso (OG-092). */
+  private readonly spectators: SpectatorStream;
 
   constructor(private readonly options: RoomOptions) {
     const preset = PRESETS.find((p) => p.id === options.preset);
@@ -204,11 +232,16 @@ export class Room {
     this.id = options.id;
     this.preset = preset;
     this.mode = preset.mode;
-    this.settings = presetSettings(preset.id);
+    this.settings = options.gamemod ? applyGamemod(presetSettings(preset.id), options.gamemod).settings : presetSettings(preset.id);
+    if (options.gamemod) this.setLines = [options.gamemod];
 
     this.now = options.now ?? (() => performance.now());
     this.createdAt = this.matchStartedAt = this.wallClock();
     const rng = new GlibcRand(options.seed);
+    this.botNameRng = new GlibcRand(options.seed + 1);
+    this.botRng = new GlibcRand(options.seed + 2);
+    this.spectators = new SpectatorStream(options.maxSpectators ?? 16);
+    if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
     this.rotation = order.map((i) => ({ map: options.maps[i] as GameMap, file: options.mapFiles?.[i] ?? (options.maps[i] as GameMap).title, lastGame: 0 }));
@@ -235,18 +268,22 @@ export class Room {
         for (const rid of rids) this.rocketViewers[rid] = new Set(viewers);
         const msg = message('rocketFire', { owner, rockets: [...rids], gundir: iround(gunDir * 256) % 2048, frame: this.world.frame, power, roomX: pos.roomX, roomY: pos.roomY, x: pos.x, y: pos.y });
         for (const pid of viewers) this.queueTo(pid, msg);
+        this.recorder?.event(msg);
       },
       rocketRemoved: (rid, x, y, target) => {
         const msg = message('rocketDelete', { rocket: rid, target: target < 0 ? 255 : target, x, y });
         for (const pid of this.rocketViewers[rid] ?? []) this.queueTo(pid, msg);
+        this.recorder?.event(msg);
         this.rocketViewers[rid] = new Set();
       },
       powerupAppeared: (index) => {
         const it = this.world.items[index]!;
         for (const pid of this.viewers((p) => p.pos.sameRoom(it.pos))) this.queueTo(pid, this.powerupVisible(index));
+        this.recorder?.event(this.powerupVisible(index));
       },
       powerupPicked: (index, pos) => {
         for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
+        this.recorder?.event(message('powerupPicked', { id: index }));
       },
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
@@ -261,6 +298,7 @@ export class Room {
     this.console = this.makeConsole();
     this.sim.loadMapFlags();
     this.sim.startGame();
+    this.startRecording();
   }
 
   get presetId(): string {
@@ -286,7 +324,7 @@ export class Room {
     if (this.clients.size >= this.world.maxPlayers) {
       const bot = opts.bot ? -1 : botToRemove(this.slots(), this.world.maxPlayers);
       if (bot === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
-      this.removeBot(bot);
+      this.dropBot(bot);
     }
     const team = joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam());
     const pid = freeSlot(this.slots(), this.world.maxPlayers, team);
@@ -325,6 +363,7 @@ export class Room {
       disconnectedFrame: null,
     });
     const pl = this.sim.addPlayer(pid);
+    this.checkBotsPending = true;
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
@@ -339,6 +378,7 @@ export class Room {
       // de `client_connected`); o reset acima apagou os agendados por `addPlayer`
       this.sim.checkPowerupCreation(false);
       this.broadcast(message('worldReset', {}), message('startGame', {}), this.mapTimeMessage());
+      this.startRecording();
     }
     return { ok: true, pid };
   }
@@ -361,6 +401,7 @@ export class Room {
     }
     out.push(teamStatsMessage(0, this.world.teams[0]), teamStatsMessage(1, this.world.teams[1])); // `send_team_stats`
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
+    out.push(message('flagModes', this.sim.flagModes())); // `send_flag_modes` na entrada
     return out;
   }
 
@@ -437,18 +478,86 @@ export class Room {
     this.clients.delete(pid);
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
     this.broadcast(message('playerLeft', { pid }));
+    this.checkBotsPending = true;
     this.checkTeamChanges();
     this.checkMapExit();
   }
 
-  /** Bot marcado (sem IA até o OG-048): ocupa uma vaga e dá lugar a humanos. */
-  addBot(name: string): JoinResult {
-    return this.join(BOT_CONNECTION, { name, accountId: null }, { bot: true });
+  /** Um bot a mais, como `/bot add 1` (soma em `extra_bots`). */
+  addBot(name?: string): JoinResult {
+    const res = this.spawnBot(name);
+    if (res.ok) this.extraBots++;
+    return res;
+  }
+
+  /** Bot com IA (OG-053): cliente virtual que ocupa uma vaga e dá lugar a humanos; sem nome, um de `bot_name_lang`. */
+  private spawnBot(name?: string): JoinResult {
+    const botName = name ?? createBotName(this.botNameRng, this.settings.server.botNameLang, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
+    const bot = new BotClient(this.botHost(), this.botRng, this.now);
+    const res = this.join(bot, { name: botName, accountId: null }, { bot: true });
+    if (res.ok) bot.attach(res.pid);
+    else bot.close();
+    return res;
+  }
+
+  private botHost(): BotHost {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- o bot guarda a sala
+    const room = this;
+    return {
+      get frame() {
+        return room.world.frame;
+      },
+      botPing: () => room.settings.server.botPing,
+      mapByFile: (file) => room.rotation.find((r) => r.file === file)?.map,
+      deliver: (pid, messages) => room.handle(pid, messages),
+    };
+  }
+
+  /** Espectador ao vivo (OG-092): recebe o replay com `spectating_delay`; false com a sala cheia de espectadores. */
+  addSpectator(conn: Connection): boolean {
+    return this.spectators.add(conn);
+  }
+
+  removeSpectator(conn: Connection): void {
+    this.spectators.remove(conn);
+  }
+
+  get spectatorCount(): number {
+    return this.spectators.count;
+  }
+
+  /** Clientes virtuais dos bots presentes. */
+  botClients(): BotClient[] {
+    return [...this.clients.values()].flatMap((c) => (c.bot && c.conn instanceof BotClient ? [c.conn] : []));
+  }
+
+  /** `init_bots` (RN-BOT-01): tira os bots que sobram ou completa até o necessário. */
+  private checkBots(): void {
+    this.checkBotsPending = false;
+    if (this.mode === 'ranked') return;
+    const s = this.settings.server;
+    const bots = this.bots().length;
+    const needed = neededBots({ humans: this.clients.size - bots, maxPlayers: this.world.maxPlayers, minBots: s.minBots, botsFill: s.botsFill, balanceBot: s.balanceBot, extraBots: this.extraBots, botTest: this.options.botTest ?? false });
+    for (let i = bots; i > needed; i--) this.dropBot(botToRemove(this.slots(), this.world.maxPlayers));
+    for (let i = bots; i < needed; i++) if (!this.spawnBot().ok) break;
+    this.checkBotsPending = false; // as entradas e saídas acima já estão contadas
+  }
+
+  /** Tira um bot, como `/bot remove 1` (desconta de `extra_bots`). */
+  removeBot(pid: number): void {
+    if (!this.clients.get(pid)?.bot) return;
+    this.extraBots--;
+    this.dropBot(pid);
   }
 
   /** `remove_bot` → `disconnectPlayer(kick)`. */
-  removeBot(pid: number): void {
+  private dropBot(pid: number): void {
     if (this.clients.get(pid)?.bot) this.leave(pid);
+  }
+
+  /** Nome de quem está na vaga (vazio se livre). */
+  playerName(pid: number): string {
+    return this.clients.get(pid)?.identity.name ?? '';
   }
 
   /** Bots presentes (pids). */
@@ -677,11 +786,13 @@ export class Room {
   tick(): void {
     const world = this.world;
     this.uptimeFrames++;
+    if (this.checkBotsPending) this.checkBots();
     for (const c of this.clients.values()) c.guard.tick();
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       this.sim.startGame();
       this.broadcast(message('startGame', {}), this.mapTimeMessage());
+      this.startRecording();
     }
     const running = this.gameOverUntil === null;
     if (running) {
@@ -715,8 +826,17 @@ export class Room {
       });
     }
     if (running) this.announceVotes();
+    const flagModes = this.sim.flagModes();
+    const flagModesKey = JSON.stringify(flagModes);
+    if (flagModesKey !== this.sentFlagModes) {
+      // `send_flag_modes(pid_all)` quando a máscara muda (troca de mapa ou /set)
+      if (this.sentFlagModes !== '') this.broadcast(message('flagModes', flagModes));
+      this.sentFlagModes = flagModesKey;
+    }
     this.playerTimers(running);
     this.flush();
+    if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()));
+    this.spectators.tick(world.frame, this.settings.server.spectatingDelay);
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
       const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
@@ -726,6 +846,8 @@ export class Room {
     }
     this.frameSentTime = this.now();
     this.thinkAfterBroadcast();
+    // `bot_loop` de cada bot: recebe o que chegou (com `bot_ping`) e decide para o próximo frame
+    for (const bot of this.botClients()) bot.step();
     world.frame++;
   }
 
@@ -784,7 +906,10 @@ export class Room {
     // smute: só o próprio jogador vê as mensagens dele
     if (c.muted === 2) return this.queueTo(pid, msg);
     if (!team) this.broadcast(msg);
-    else for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
+    else {
+      for (const other of this.viewers((p) => p.team === this.world.teamOf(pid))) this.queueTo(other, msg);
+      this.recorder?.event(msg); // o replay vê o chat dos dois times, como o original
+    }
     if (this.settings.server.logPlayerChat) this.options.log?.(`(chat) ${c.identity.name} [${c.identity.ip ?? '?'}]: ${text}`);
   }
 
@@ -922,19 +1047,98 @@ export class Room {
       resetSettings: () => {
         const fresh = presetSettings(this.preset.id);
         for (const group of ['world', 'powerups', 'physics', 'server'] as const) Object.assign(this.settings[group], fresh[group]);
+        if (this.mode === 'casual' && this.options.botsFill !== undefined) this.settings.server.botsFill = this.options.botsFill;
+        this.checkBotsPending = true;
         this.setLines = [];
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       audit: (entry) => this.options.audit?.(this.id, entry),
+      ...(this.mode === 'ranked' ? {} : { bots: this.botConsole() }),
     };
+  }
+
+  private botConsole(): BotConsole {
+    return {
+      maxPlayers: this.world.maxPlayers,
+      extra: () => this.extraBots,
+      setExtra: (n) => {
+        this.extraBots = n;
+      },
+      playerCount: () => this.clients.size,
+      changed: () => {
+        this.checkBotsPending = true;
+      },
+      rename: (pid, name) => {
+        const c = this.clients.get(pid);
+        if (!c) return;
+        c.identity = { ...c.identity, name };
+        this.broadcast(message('playerName', { pid, name }));
+      },
+    };
+  }
+
+  /** `start_recording`: replay novo a cada início de partida, com o estado inicial de um espectador. */
+  /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
+  private startRecording(): void {
+    const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
+    this.recorder = new ReplayRecorder(
+      { roomId: this.id, mode: this.mode, preset: this.preset.id, map: this.mapFile(this.mapIndex), mapTitle: this.world.map.title, maxPlayers: this.world.maxPlayers, startedAt: new Date(this.wallClock()).toISOString(), startFrame: this.world.frame },
+      init,
+    );
+    this.spectators.begin(this.recorder.replayHeader, this.recorder.initChunk);
+  }
+
+  /**
+   * `stop_recording`: fecha o frame do fim (os eventos do placar ainda estão no outbox) e grava se houver
+   * humanos suficientes (`recording`, mínimo 1 — D-28). Devolve a URL do replay.
+   */
+  private finishRecording(key: string): string | null {
+    const recorder = this.recorder;
+    this.recorder = null;
+    if (!recorder) return null;
+    recorder.event(...this.outbox);
+    this.spectators.frame(recorder.frame(this.replayFrame()));
+    if (!this.options.replays) return null;
+    const humans = [...this.clients.values()].filter((c) => !c.bot).length;
+    if (humans < Math.max(1, this.settings.server.recording)) return null;
+    return this.options.replays.save(key, recorder.finish());
+  }
+
+  /** Frame do replay: todos os jogadores, como `buildFrame` os mostraria a quem está na sala deles. */
+  private replayFrame(): AnyMessage {
+    const world = this.world;
+    const time = world.time;
+    const players = [...this.clients.keys()].map((pid) => {
+      const h = world.players[pid] as PlayerState;
+      const safeAfterSpawn = world.frame < h.startTakeDamageFrame;
+      return {
+        pid,
+        roomX: h.pos.roomX,
+        roomY: h.pos.roomY,
+        x: h.pos.x,
+        y: h.pos.y,
+        vx: h.dead ? 0 : h.vel.x,
+        vy: h.dead ? 0 : h.vel.y,
+        dead: h.dead,
+        deathbringer: h.deathbringer,
+        deathbringerAffected: h.deathbringerEnd > time,
+        shield: h.shield !== 0,
+        turbo: h.turbo,
+        power: h.power,
+        controls: h.dead ? 0 : h.controls,
+        gundir: iround(h.gundir * 256) % 2048,
+        visibility: safeAfterSpawn ? (world.frame & 2 ? 128 : 220) : h.visibility,
+      };
+    });
+    return message('replayFrame', { frame: world.frame, players });
   }
 
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
-    this.report(result);
-    // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar
+    // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar (e no fim do replay)
     this.broadcast(...endOfGameMessages([...this.clients.keys()].map((pid) => this.world.players[pid] as PlayerState), [this.world.teams[0], this.world.teams[1]]));
+    this.report(result);
     this.nextMap(reason);
   }
 
@@ -1023,10 +1227,13 @@ export class Room {
       const d = this.participates(c) ? c.deltas.take() : undefined;
       if (d) deltas.set(pid, d);
     }
+    const serverMatchId = `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`;
+    const replayUrl = this.finishRecording(serverMatchId);
     if (!this.options.reportMatch || ![...this.clients.values()].some((c) => !c.bot)) return;
     this.options.reportMatch(
       matchReport({
-        serverMatchId: `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`,
+        serverMatchId,
+        ...(replayUrl ? { replayUrl } : {}),
         roomId: this.id,
         mode: this.mode,
         ranked: this.mode === 'ranked' && (this.rankingEnabled() || deltas.size > 0),
@@ -1122,6 +1329,7 @@ export class Room {
     for (const team of [...this.dirtyFlags].sort()) this.outbox.push(this.flagUpdate(team));
     this.dirtyFlags.clear();
     if (this.outbox.length === 0) return;
+    this.recorder?.event(...this.outbox);
     const data = encodeFrame(...this.outbox);
     this.outbox = [];
     for (const c of this.clients.values()) c.conn.send(data);
@@ -1186,5 +1394,6 @@ export class Room {
       c.conn.close(1001, 'sala encerrada');
       this.leave(pid);
     }
+    this.spectators.close();
   }
 }

@@ -123,6 +123,8 @@ export const matches = pgTable(
     startedAt: tstz('started_at').notNull(),
     endedAt: tstz('ended_at').notNull(),
     details: jsonb('details').$type<Record<string, unknown>>().notNull().default({}),
+    /** Replay gravado pelo game server (OG-090). */
+    replayUrl: text('replay_url'),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],

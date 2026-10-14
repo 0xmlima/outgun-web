@@ -331,6 +331,31 @@ export class ServerSim {
     }
   }
 
+  /**
+   * Regras de bandeira em vigor, como o servidor as anuncia aos clientes (`flagModeMask`,
+   * src/servnet.cpp:1949-1958); os bots decidem com elas.
+   */
+  flagModes(): {
+    seeMinimapProperties: number;
+    carryOwnTeamFlag: boolean;
+    captureAwayFromBase: boolean;
+    lockTeamFlags: boolean;
+    lockWildFlags: boolean;
+    captureOnTeamFlags: boolean;
+    captureOnWildFlags: boolean;
+  } {
+    const w = this.settings.world;
+    return {
+      seeMinimapProperties: w.seeMinimapPlayerProperties,
+      carryOwnTeamFlag: w.carryOwnTeamFlag,
+      captureAwayFromBase: w.captureAwayFromBase,
+      lockTeamFlags: this.lockTeamFlagsInEffect(),
+      lockWildFlags: this.lockWildFlagsInEffect(),
+      captureOnTeamFlags: this.captureOnTeamFlagsInEffect(),
+      captureOnWildFlags: this.captureOnWildFlagsInEffect(),
+    };
+  }
+
   private lockWildFlagsInEffect(): boolean {
     return this.settings.world.lockWildFlags && this.allKindsOfFlagsExist();
   }

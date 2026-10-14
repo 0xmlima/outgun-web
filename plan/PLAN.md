@@ -562,7 +562,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S7 | Multiplayer completo | OG-064, OG-065, OG-044, OG-045, OG-067 | **M2 — Alpha interno jogável** |
 | S8 | Contas | OG-080, OG-081, OG-082, OG-083, OG-046, OG-047 | |
 | S9 | Ranking e social | OG-049, OG-084, OG-085, OG-086, OG-066, OG-068, OG-069 | **M3 — Contas e ranking** |
-| S10 | Bots, gerador e replays | OG-048, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
+| S10 | Bots, gerador e replays | OG-050, OG-051, OG-052, OG-053, OG-054, OG-011, OG-090, OG-091, OG-092 | **M4 — Paridade de funcionalidades** |
 | S11 | Endurecimento | OG-101, OG-102, OG-103, OG-104, OG-087 | |
 | S12 | Beta e lançamento | OG-105 | **M5 — Lançamento público** |
 
@@ -580,10 +580,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-004](cards/OG-004-constants-and-units.md) | Constantes, unidades e RNG glibc em TS | E0 | 3 | Must | S1 | OG-001 | Concluído |
 | [OG-005](cards/OG-005-license-credits.md) | Licença GPL, créditos e conformidade | E0 | 2 | Must | S0 | — | Concluído |
 | [OG-010](cards/OG-010-map-parser.md) | Parser de mapas e validação de todos os mapas | E1 | 5 | Must | S1 | OG-001 | Concluído |
-| [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Backlog |
+| [OG-011](cards/OG-011-map-generator.md) | Gerador de mapas aleatórios | E1 | 5 | Should | S10 | OG-010 | Em revisão |
 | [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Concluído |
 | [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Concluído |
+| [OG-015](cards/OG-015-random-maps-rotation.md) | Mapas aleatórios na rotação da sala (envio do mapa gerado) | E1 | 3 | Should | — | OG-011 | Backlog |
 | [OG-020](cards/OG-020-geometry-walls.md) | Geometria e paredes (colisão contínua) | E2 | 8 | Must | S2 | OG-004, OG-010 | Concluído |
 | [OG-021](cards/OG-021-player-movement.md) | Movimento do jogador e troca de sala | E2 | 5 | Must | S2 | OG-020 | Concluído |
 | [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Concluído |
@@ -603,7 +604,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-045](cards/OG-045-map-rotation-vote.md) | Rotação e votação de mapas | E3 | 3 | Must | S7 | OG-040 | Concluído |
 | [OG-046](cards/OG-046-chat-moderation.md) | Chat, comandos e moderação | E3 | 5 | Must | S8 | OG-040 | Concluído |
 | [OG-047](cards/OG-047-idle-reconnect.md) | Idle kick, desconexão e reconexão | E3 | 3 | Should | S8 | OG-040 | Concluído |
-| [OG-048](cards/OG-048-bots.md) | Bots | E3 | 13 | Should | S10 | OG-042 | Backlog |
+| [OG-048](cards/OG-048-bots.md) | Bots (quebrado em OG-050 a OG-054) | E3 | ~~13~~ | Should | S10 | OG-042 | Quebrado |
+| [OG-050](cards/OG-050-bot-areamap.md) | Bots: AreaMap e tabelas de distância | E3 | 3 | Should | S10 | OG-042 | Em revisão |
+| [OG-051](cards/OG-051-bot-navigation.md) | Bots: navegação até destinos | E3 | 3 | Should | S10 | OG-050 | Em revisão |
+| [OG-052](cards/OG-052-bot-combat.md) | Bots: mira, tiro e esquiva | E3 | 3 | Should | S10 | OG-042 | Em revisão |
+| [OG-053](cards/OG-053-bot-brain.md) | Bots: decisões de bandeira e power-up e laço principal | E3 | 3 | Should | S10 | OG-051, OG-052 | Em revisão |
+| [OG-054](cards/OG-054-bot-population.md) | Bots: população automática e nomes | E3 | 2 | Should | S10 | OG-042 | Em revisão |
 | [OG-049](cards/OG-049-game-modes.md) | Modos de jogo: Casual e Ranked | E3 | 3 | Must | S9 | OG-030, OG-083, OG-086 | Concluído |
 | [OG-060](cards/OG-060-web-shell.md) | Shell React e menus | E4 | 5 | Must | S6 | OG-001 | Concluído |
 | [OG-061](cards/OG-061-renderer-world.md) | Renderer PixiJS: salas e paredes | E4 | 5 | Must | S6 | OG-010, OG-012 | Concluído |
@@ -624,9 +630,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Concluído |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Concluído |
 | [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Backlog |
-| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Backlog |
-| [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Backlog |
-| [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Backlog |
+| [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Em revisão |
+| [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Em revisão |
+| [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Em revisão |
 | [OG-100](cards/OG-100-parity-ci.md) | Paridade automatizada no CI | E7 | 3 | Must | S2 | OG-003 | Concluído |
 | [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Backlog |
 | [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Backlog |
@@ -634,7 +640,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Backlog |
 | [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento | E7 | 5 | Must | S12 | todos Must | Backlog |
 
-**Total:** 59 cards, 278 pontos.
+**Total:** 65 cards (OG-048 quebrado em OG-050 a OG-054; seus 13 pts saem da soma), 282 pontos.
 
 ---
 
@@ -681,6 +687,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-24 | Registro de salas e matchmaking | Master server do original (lista em HTTP, servidor escolhido pelo jogador) / registro no Redis / registro no PostgreSQL | ✅ **Decidido no OG-086 (divergência intencional, técnica):** os game servers mandam heartbeat a cada 3 s à API, que guarda servidores e salas no **PostgreSQL** (`game_servers`, `rooms`); sala ou servidor sem heartbeat por 10 s sai do lobby. Redis não é necessário nesta escala (dezenas de servidores × 1 escrita/3 s) e continua opcional para contadores. A API não chama os servidores: a sala fora do ar é aberta pelo próprio ticket (claim `spawn`, assinada) no servidor da sala ou no menos carregado (região pedida primeiro). Salas privadas são só Casual, exigem conta e são apagadas após 1 h fora do ar. | Agente |
 | D-25 | Cálculo e aplicação do ranking | Como o original (master soma para sempre; servidor com id/senha de ranking; humanos = IPs distintos) / por temporada na API | ✅ **Decidido no OG-084 (divergência intencional, técnica):** o game server calcula os deltas como o original (`score_frag`/`score_neg`, modificador [1/3, 3], truncamento) só em sala **Ranked** com os mínimos (humanos distintos = **contas** distintas); a força de cada jogador é a da **temporada ativa**, que vem no ticket junto da participação (opt-out em `PUT /account/ranking`, vale na próxima entrada). A API soma os deltas por temporada, idempotente (`/internal/matches` por partida, `/internal/rating-deltas` por envio); leaderboard no PostgreSQL. Nova temporada: `cli.js season start NOME`. Spec `plan/specs/ranking.md`. | Agente |
 | D-26 | Nomes dos jogadores na tela | Como o original (`Show player names` = never no código e no `client.cfg`; Ctrl+F3 alterna) / mostrar na mesma sala | ✅ **Decidido no OG-068 (divergência intencional):** padrão web "in same room", para identificar com quem se joga numa sala pública; a opção tem as três escolhas do original. Demais padrões seguem o `client.cfg` distribuído (D-05), inclusive mensagens de morte ligadas. Spec `plan/specs/opcoes-jogador.md`. | Agente |
+| D-27 | Bots em sala sem humanos | Como o original (`bots_fill`/`min_bots` valem mesmo sem ninguém) / sem humanos, nenhum bot | ✅ **Decidido no OG-054 (divergência intencional):** sem humanos a sala fica sem bots — bots sozinhos gastam CPU e manteriam a sala viva para sempre no registro (OG-086). Também: `CASUAL_BOTS_FILL` no game server (padrão 0, como o `gamemod.txt`) e `/bot` liberado ao dono de sala Casual. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/bots-populacao.md) | Tech Lead |
+| D-28 | Replays | Como o original (só com `recording` > 0, arquivo binário do servidor) / sempre que houver destino, formato web | ✅ **Decidido no OG-090 (divergência intencional):** formato próprio versionado (`OGWR`, protocolo web + gzip), gravação de toda partida com destino configurado (`recording` = mínimo de humanos, ≥ 1), arquivos no game server com retenção de 30 dias e URL guardada na API; object storage no OG-103. Decisão delegada pelo PO ao time técnico em 2026-10-13 (plan/specs/replays.md) | Tech Lead |
+| D-29 | Dados de navegação dos bots | Cópia do AreaMap por bot com distâncias dentro das áreas (original) / AreaMap imutável compartilhado e tabelas de distância por bot | ✅ **Decidido no OG-050 (divergência interna, sem efeito no jogo):** pacote puro `@outgun/bots`; AreaMap montado uma vez por mapa (cache por CRC e título, como `BotSharedDataStorage`) e tabelas `Int32Array` por bot; resultados idênticos ao original (plan/specs/bots-areamap.md). Decisão delegada pelo PO ao time técnico | Tech Lead |
+| D-30 | Limiar de mira dos bots | `static` calculado na primeira mira do processo (original) / constante | ✅ **Decidido no OG-052 (divergência intencional, sem efeito prático):** `1,3 × PLAYER_RADIUS` = 19,5, o valor que o original usa sempre que a primeira mira do processo é com a arma 1 (início de partida); confirmado com o oráculo (plan/specs/bots-ia.md). Decisão delegada pelo PO ao time técnico | Tech Lead |
+| D-31 | Bots no servidor web | Uma thread com todos os bots e o `rand()` global (original) / cliente virtual por bot no laço da sala, sorteio próprio | ✅ **Decidido no OG-053 (divergência interna):** cada bot é um `BotClient` que recebe os mesmos bytes de um humano com o atraso de `bot_ping`, decodifica com o `ClientSession` do netcode e devolve `input`/`fire` à sala no fim do frame; os bots de uma sala sorteiam num `GlibcRand` próprio (no original dividem o `rand()` com o servidor), para não mudar a sequência do mundo. Modo `botTest` (como o `-bottest`) para medir sem humanos. Decisão delegada pelo PO ao time técnico | Tech Lead |
 
 ---
 

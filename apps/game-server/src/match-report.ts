@@ -37,6 +37,8 @@ export interface MatchDetails {
 
 export interface MatchReport {
   serverMatchId: string;
+  /** Replay da partida (OG-090), se gravado. */
+  replayUrl?: string;
   roomId: string;
   mode: GameMode;
   ranked: boolean;
@@ -87,6 +89,7 @@ export function rankingMinimumsMet(players: readonly ReportPlayer[], minHumans: 
 
 export interface ReportInput {
   serverMatchId: string;
+  replayUrl?: string;
   roomId: string;
   mode: GameMode;
   /** Sala Ranked com os mínimos cumpridos. */
@@ -129,6 +132,7 @@ export function matchReport(input: ReportInput): MatchReport {
   const { result } = input;
   return {
     serverMatchId: input.serverMatchId,
+    ...(input.replayUrl ? { replayUrl: input.replayUrl } : {}),
     roomId: input.roomId,
     mode: input.mode,
     ranked: input.ranked,

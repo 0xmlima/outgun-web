@@ -42,7 +42,7 @@ describe.skipIf(!pgAdminUrl)('perfil e histórico (OG-085)', () => {
       baseScore: [0, 0],
     };
     const base = { roomId: 'main', map: 'outgun1', startedAt: '2026-10-13T12:00:00.000Z', details };
-    expect((await send({ ...base, serverMatchId: 'a', mode: 'casual', ranked: false, redScore: 1, blueScore: 0, endedAt: '2026-10-13T12:05:00.000Z', players: [line(0, 'Jogador1', 0, 5), line(8, 'Jogador2', 1, 3)] })).statusCode).toBe(201);
+    expect((await send({ ...base, serverMatchId: 'a', replayUrl: 'http://localhost:7700/replays/a.ogr', mode: 'casual', ranked: false, redScore: 1, blueScore: 0, endedAt: '2026-10-13T12:05:00.000Z', players: [line(0, 'Jogador1', 0, 5), line(8, 'Jogador2', 1, 3)] })).statusCode).toBe(201);
     expect((await send({ ...base, serverMatchId: 'b', roomId: 'ranked', mode: 'ranked', ranked: true, redScore: 0, blueScore: 0, endedAt: '2026-10-13T13:05:00.000Z', players: [line(0, 'Jogador1', 0, 7, 150), line(8, 'Jogador2', 1, 2, 1)] })).statusCode).toBe(201);
   });
   afterAll(async () => {
@@ -81,7 +81,9 @@ describe.skipIf(!pgAdminUrl)('perfil e histórico (OG-085)', () => {
     expect(m.details.captures).toEqual([{ time: 125, team: 0, capturer: 'Jogador1', assistant: null }]);
     expect(m.players.map((p: { username: string }) => p.username)).toEqual(['Jogador1', 'Jogador2']);
     expect(m.players[0].stats).toMatchObject({ assists: 1, accuracy: 0.25 });
-    expect(m.replayUrl).toBeNull();
+    expect(m.replayUrl).toBe('http://localhost:7700/replays/a.ogr');
+    const ranked = (await app.inject('/players/Jogador1/matches?mode=ranked')).json().matches[0].id;
+    expect((await app.inject(`/matches/${ranked}`)).json().replayUrl).toBeNull();
     expect((await app.inject('/matches/00000000-0000-4000-8000-000000000000')).statusCode).toBe(404);
   });
 });

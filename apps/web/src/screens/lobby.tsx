@@ -27,6 +27,8 @@ export interface RoomSummary {
   online: boolean;
   persistent: boolean;
   region: string | null;
+  /** Espectador ao vivo (OG-092); null para sala com senha ou fora do ar. */
+  spectateUrl?: string | null;
 }
 
 /** Intervalo da atualização da lista (critério: ≤ 5 s). */
@@ -213,6 +215,7 @@ export function JoinRoomScreen() {
       : { kind: 'text', label: t('Name'), value: prefs.playerName, onChange: (v) => setPrefs({ playerName: v }), maxLength: 15 },
     ...(room.hasPassword ? [{ kind: 'text', label: t('Password'), value: password, onChange: setPassword, password: true, maxLength: 15, onEnter: play } as MenuItem] : []),
     { kind: 'action', label: t('Join'), onActivate: play },
+    ...(room.spectateUrl ? [{ kind: 'action', label: t('Watch live'), onActivate: () => void navigate(`/spectate?src=${encodeURIComponent(room.spectateUrl!)}`) } as MenuItem] : []),
     { kind: 'action', label: t('Copy invite link'), onActivate: () => void navigator.clipboard?.writeText(`${location.origin}/rooms/${room.id}`) },
   ];
   return <Menu caption={room.name} items={items} onBack={() => void navigate('/rooms')} />;

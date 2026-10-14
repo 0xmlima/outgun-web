@@ -175,8 +175,8 @@ export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
               match: Type.Intersect([MatchSummary, Type.Object({ startedAt: Type.String(), roomId: Type.Union([Type.String(), Type.Null()]), seasonId: Type.Union([Type.Integer(), Type.Null()]) })]),
               details: Type.Record(Type.String(), Type.Unknown()),
               players: Type.Array(PlayerLine),
-              /** Replay da partida, quando houver (OG-091). */
-              replayUrl: Type.Union([Type.String(), Type.Null()]),
+              /** Replay da partida, quando houver (OG-090; o game server apaga após a retenção). */
+              replayUrl: Type.Union([Type.Null(), Type.String()]),
             }),
             404: ErrorSchema,
           },
@@ -198,7 +198,7 @@ export function playerRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
             slot: p.slot, name: p.name, username, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures,
             playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta, stats: p.stats,
           })),
-          replayUrl: null,
+          replayUrl: m.replayUrl,
         };
       },
     );

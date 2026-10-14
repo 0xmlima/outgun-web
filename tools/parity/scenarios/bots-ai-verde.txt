@@ -1,0 +1,12 @@
+# IA dos bots (OG-051..053): bandeiras selvagens, captura fora da base, levar a própria bandeira e
+# ver propriedades no minimapa; 8 bots em verde (3x5, uma selvagem).
+map verde
+bots 8
+start 200
+frames 600
+seed 52
+bottrace
+gamemod capture_on_wild_flag 1
+gamemod capture_away_from_base 1
+gamemod carry_own_team_flag 1
+gamemod see_minimap_player_properties 1

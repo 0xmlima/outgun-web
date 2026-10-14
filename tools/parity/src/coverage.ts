@@ -59,6 +59,11 @@ export const COVERAGE: readonly CoverageEntry[] = [
   { trace: 'flag-locks', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
   { trace: 'flag-carrying-score', select: flagFields, modes: ['resync'], card: 'OG-027', note: 'teletransportes no meio do roteiro: só resync' },
   { trace: 'bots-match', select: flagFields, modes: ['resync', 'free'], card: 'OG-029' },
+  // Cenários da IA dos bots (OG-051..053): as decisões ficam em NOME.bots.jsonl.gz e são conferidas em
+  // @outgun/bots; o trace da sim do mesmo jogo é conferido aqui em resync.
+  ...['bots-ai-outgun1', 'bots-ai-verde', 'bots-ai-freeturn', 'bots-ai-ksii', 'bots-ai-deathbringer'].map(
+    (trace): CoverageEntry => ({ trace, select: flagFields, modes: ['resync'], card: 'OG-051' }),
+  ),
   { trace: 'respawn-order', select: flagFields, modes: ['resync', 'free'], card: 'OG-029' },
   { trace: 'match-time-win', select: flagFields, modes: ['resync'], card: 'OG-029', note: 'reinício do mapa fora do frame (start_game): só resync' },
   { trace: 'match-sudden-death', select: flagFields, modes: ['resync'], card: 'OG-029', note: 'reinício do mapa fora do frame (start_game): só resync' },

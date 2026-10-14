@@ -1,0 +1,16 @@
+# IA dos bots (OG-051..053): só deathbringer como power-up, com deathbringer amigo; fuga de explosões.
+map outgun1
+bots 8
+start 200
+frames 600
+seed 55
+bottrace
+gamemod pup_chance_shield 0
+gamemod pup_chance_turbo 0
+gamemod pup_chance_shadow 0
+gamemod pup_chance_power 0
+gamemod pup_chance_weapon 0
+gamemod pup_chance_megahealth 0
+gamemod pup_chance_deathbringer 100
+gamemod friendly_deathbringer 0.5
+gamemod pups_min 10

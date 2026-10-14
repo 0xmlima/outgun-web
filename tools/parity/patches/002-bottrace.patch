@@ -1,0 +1,314 @@
+diff --color -ruN a/bot_support.h b/bot_support.h
+--- a/bot_support.h	2026-10-13 22:33:16
++++ b/bot_support.h	2026-10-13 22:34:26
+@@ -91,6 +91,10 @@
+     const Area* identifyArea(const WorldCoords& pos) const throw ();
+ 
+     void clearDistanceTable(DistanceTableId num) throw ();
++    // Outgun Web (OG-051): Ìndice de uma ·rea, para o registro das decisıes dos bots no or·culo
++    int areaIndex(const Area* a) const throw () { for (unsigned i = 0; i < areas.size(); ++i) if (&areas[i] == a) return i; return -1; }
++    int areaCount() const throw () { return areas.size(); }
++    const Area& areaAt(int i) const throw () { return areas[i]; }
+ 
+ private:
+     class RoomAreaMap : private NoCopying {
+diff --color -ruN a/robot.cpp b/robot.cpp
+--- a/robot.cpp	2026-10-13 22:33:16
++++ b/robot.cpp	2026-10-13 22:49:25
+@@ -36,6 +36,9 @@
+ #include "network.h"
+ #include "protocol.h"
+ #include "timer.h"
++#include "trace.h"
++#include <cstring>
++#include <sstream>
+ 
+ #include "robot.h"
+ 
+@@ -2101,9 +2104,183 @@
+ 
+     fx.cleanOldDeathbringerExplosions();
+ 
++    const bool oracleTrace = OracleTrace::botTraceActive(fx.frame); // Outgun Web (OG-051)
++    std::string oracleBefore;
++    if (oracleTrace) {
++        oracleBefore = oracleBotState(true);
++        OracleTrace::beginBotDecision();
++    }
+     ClientControls controls = RobotMain();
+     controls.clearModifiersIfIdle();
++    if (oracleTrace) {
++        std::ostringstream after;
++        after << "{\"controls\":" << int(controls.toNetwork(false)) << ",\"state\":" << oracleBotState(false) << "}";
++        OracleTrace::endBotDecision(oracleBefore, after.str());
++    }
+     bot_send_frame(controls);
++}
++
++// Outgun Web (OG-051..053): registro das decisıes dos bots para o harness de paridade. SÛ È usado com
++// a diretiva "bottrace" no roteiro do or·culo; n„o muda o comportamento dos bots.
++namespace {
++
++std::string oNum(double v) {
++    char buf[40];
++    std::sprintf(buf, "%.17g", v);
++    return buf;
++}
++
++double oGun(const GunDirection& g) {
++    double d;
++    std::memcpy(&d, &g, sizeof d);
++    return d;
++}
++
++std::string oCoords(const WorldCoords& c) {
++    return "[" + oNum(c.room.x) + "," + oNum(c.room.y) + "," + oNum(c.x) + "," + oNum(c.y) + "]";
++}
++
++std::string oVec(const Vec& v) {
++    return "[" + oNum(v.x) + "," + oNum(v.y) + "]";
++}
++
++std::string oStr(const std::string& s) {
++    std::string r = "\"";
++    for (std::string::size_type i = 0; i < s.size(); ++i) {
++        const unsigned char c = s[i];
++        char buf[8];
++        if (c == '"' || c == '\\') { r += '\\'; r += c; }
++        else if (c < 0x20 || c >= 0x7F) { std::sprintf(buf, "\\u%04x", c); r += buf; }
++        else r += c;
++    }
++    return r + "\"";
++}
++
++struct DeathbringerExplosionMirror {
++    double frame0;
++    WorldCoords pos;
++    int ownerPid;
++    int ownerTeam;
++    uint32_t playersOutsideMask;
++};
++
++} // namespace
++
++std::string Robot::oracleBotState(bool full) const throw () {
++    std::ostringstream o;
++    const int area0 = -1;
++    #define AREA(a) ((a) ? areaMap.areaIndex(a) : area0)
++    o << "{\"frame\":" << oNum(fx.frame) << ",\"me\":" << me;
++    // estado prÛprio do bot
++    o << ",\"bot\":{\"destinationType\":" << int(destinationType) << ",\"destination\":" << AREA(destination);
++    int immArea = -1, immIndex = -1;
++    if (immediateDestination)
++        for (int a = 0; a < areaMap.areaCount() && immArea == -1; ++a) {
++            const std::vector<Area::Neighbor>& ns = areaMap.areaAt(a).neighbors();
++            for (unsigned n = 0; n < ns.size(); ++n)
++                if (&ns[n] == immediateDestination) { immArea = a; immIndex = n; break; }
++        }
++    o << ",\"immediate\":[" << immArea << "," << immIndex << "]"
++      << ",\"lastSeen\":" << last_seen << ",\"myGundir\":" << myGundir
++      << ",\"freeWalkTarget\":" << oVec(freeWalkTarget) << ",\"enemiesInRoom\":" << enemiesInRoom
++      << ",\"prevFire\":" << botPrevFire << ",\"gunDir\":" << oNum(oGun(gunDir)) << ",\"tables\":[";
++    for (int t = 0; t < Table_Max; ++t)
++        o << (t ? "," : "") << "[" << AREA(distanceTable[t].center) << "," << oNum(distanceTable[t].center ? distanceTable[t].respawnWeight : 0.) << "]";
++    o << "]}";
++    o << ",\"seen\":[";
++    for (int x = 0; x < fx.map.w; ++x)
++        for (int y = 0; y < fx.map.h; ++y)
++            o << (x || y ? "," : "") << oNum(fx.map[RoomCoords(x, y)].enemies_seen_frame);
++    o << "],\"players\":[";
++    for (int i = 0; i < maxplayers; ++i) {
++        const ClientPlayer& p = fx.player[i];
++        o << (i ? "," : "") << "{\"used\":" << p.used;
++        if (p.used) {
++            o << ",\"dead\":" << p.dead << ",\"team\":" << p.team() << ",\"pos\":" << oCoords(p.pos) << ",\"vel\":" << oVec(p.vel)
++              << ",\"posUpdated\":" << oNum(p.posUpdated) << ",\"defending\":" << p.defending << ",\"defendingAfterDeath\":" << p.defendingAfterDeath;
++            if (full)
++                o << ",\"name\":" << oStr(p.name) << ",\"controls\":" << int(p.controls.toNetwork(false))
++                  << ",\"accelerationMode\":" << int(p.accelerationMode) << ",\"gundir\":" << oNum(oGun(p.gundir))
++                  << ",\"deathbringer\":" << p.item_deathbringer << ",\"deathbringerAffected\":" << p.deathbringer_affected
++                  << ",\"turbo\":" << p.item_turbo << ",\"onscreen\":" << p.onscreen << ",\"fromMinimapUpdate\":" << p.fromMinimapUpdate
++                  << ",\"prevMapPosUpdateFrame\":" << oNum(p.prevMapPosUpdateFrame)
++                  << ",\"prevMapUpdateRoom\":[" << p.prevMapUpdateRoom.x << "," << p.prevMapUpdateRoom.y << "]"
++                  << ",\"shadowTime\":" << oNum(p.item_shadow_time) << ",\"weapon\":" << p.weapon;
++        }
++        o << "}";
++    }
++    o << "]";
++    if (full) {
++        o << ",\"maxplayers\":" << maxplayers
++          << ",\"hidden\":" << (!map_ready || gameover_plaque != NEXTMAP_NONE || fx.skipped || me < 0 || me >= maxplayers)
++          << ",\"clFrameSent\":" << int(clFrameSent) << ",\"clFrameWorld\":" << int(clFrameWorld) << ",\"controlHistory\":[";
++        // sÛ a parte usada pela extrapolaÁ„o de RobotMain: clFrameWorld + 1 .. clFrameSent (ou sÛ clFrameSent)
++        const uint8_t firstCtrl = clFrameSent == clFrameWorld ? clFrameSent : uint8_t(clFrameWorld + 1);
++        for (uint8_t i = firstCtrl; ; ++i) {
++            o << (i != firstCtrl ? "," : "") << int(controlHistory[i].toNetwork(false));
++            if (i == clFrameSent)
++                break;
++        }
++        o << "],\"settings\":{\"carryOwnTeamFlag\":" << carry_own_team_flag << ",\"captureAwayFromBase\":" << capture_away_from_base
++          << ",\"lockTeamFlags\":" << lock_team_flags_in_effect << ",\"lockWildFlags\":" << lock_wild_flags_in_effect
++          << ",\"captureOnTeamFlags\":" << capture_on_team_flags_in_effect << ",\"captureOnWildFlags\":" << capture_on_wild_flags_in_effect
++          << ",\"seeMinimapPlayerProperties\":" << see_minimap_player_properties << "}";
++        const PhysicalSettings& ph = fx.physics;
++        o << ",\"physics\":{\"fric\":" << oNum(ph.fric) << ",\"drag\":" << oNum(ph.drag) << ",\"accel\":" << oNum(ph.accel)
++          << ",\"brakeMul\":" << oNum(ph.brake_mul) << ",\"turnMul\":" << oNum(ph.turn_mul) << ",\"runMul\":" << oNum(ph.run_mul)
++          << ",\"turboMul\":" << oNum(ph.turbo_mul) << ",\"flagMul\":" << oNum(ph.flag_mul) << ",\"rocketSpeed\":" << oNum(ph.rocket_speed)
++          << ",\"friendlyFire\":" << oNum(ph.friendly_fire) << ",\"friendlyDb\":" << oNum(ph.friendly_db)
++          << ",\"playerCollisions\":" << int(ph.player_collisions) << ",\"allowFreeTurning\":" << ph.allowFreeTurning
++          << ",\"maxRunSpeed\":" << oNum(ph.max_run_speed) << "}";
++        o << ",\"rockets\":[";
++        bool first = true;
++        for (int i = 0; i < MAX_ROCKETS; ++i) {
++            const Rocket& r = fx.rock[i];
++            if (r.owner == -1)
++                continue;
++            o << (first ? "" : ",") << "{\"id\":" << i << ",\"owner\":" << r.owner << ",\"team\":" << r.team << ",\"power\":" << r.power
++              << ",\"pos\":" << oCoords(r.pos) << ",\"vel\":" << oVec(r.vel) << "}";
++            first = false;
++        }
++        o << "],\"powerups\":[";
++        first = true;
++        for (int i = 0; i < MAX_POWERUPS; ++i) {
++            const Powerup& p = fx.item[i];
++            if (p.kind == Powerup::pup_unused)
++                continue;
++            o << (first ? "" : ",") << "{\"id\":" << i << ",\"kind\":" << int(p.kind) << ",\"pos\":" << oCoords(p.pos) << "}";
++            first = false;
++        }
++        o << "],\"flags\":[";
++        for (int t = 0; t <= 2; ++t) {
++            const std::vector<Flag>& flags = t == 2 ? fx.wild_flags : fx.teams[t].flags();
++            o << (t ? "," : "") << "[";
++            for (unsigned f = 0; f < flags.size(); ++f)
++                o << (f ? "," : "") << "{\"carried\":" << flags[f].carried() << ",\"atBase\":" << flags[f].at_base()
++                  << ",\"carrier\":" << flags[f].carrier() << ",\"pos\":" << oCoords(flags[f].position()) << "}";
++            o << "]";
++        }
++        o << "],\"bases\":[";
++        for (int t = 0; t <= 2; ++t) {
++            const std::vector<WorldCoords>& bases = t == 2 ? fx.map.wild_flags : fx.map.tinfo[t].flags;
++            o << (t ? "," : "") << "[";
++            for (unsigned b = 0; b < bases.size(); ++b)
++                o << (b ? "," : "") << oCoords(bases[b]);
++            o << "]";
++        }
++        o << "],\"explosions\":[";
++        first = true;
++        for (std::list<DeathbringerExplosion>::const_iterator di = fx.deathbringerExplosions().begin(); di != fx.deathbringerExplosions().end(); ++di) {
++            DeathbringerExplosionMirror m;
++            std::memcpy(&m, &*di, sizeof m);
++            o << (first ? "" : ",") << "{\"frame0\":" << oNum(m.frame0) << ",\"pos\":" << oCoords(di->position()) << ",\"team\":" << di->team() << "}";
++            first = false;
++        }
++        o << "]";
++    }
++    #undef AREA
++    o << "}";
++    return o.str();
+ }
+ 
+ void Robot::stop() throw () {
+diff --color -ruN a/robot.h b/robot.h
+--- a/robot.h	2026-10-13 22:33:16
++++ b/robot.h	2026-10-13 22:34:26
+@@ -220,6 +220,9 @@
+ 
+     void pollConnection() throw ();
+ 
++    // Outgun Web (OG-051): registro das decisıes para o harness de paridade
++    std::string oracleBotState(bool full) const throw ();
++
+     std::string getPlayerPassword() const throw () { return std::string(); }
+ 
+ public:
+diff --color -ruN a/trace.cpp b/trace.cpp
+--- a/trace.cpp	2026-10-13 22:33:16
++++ b/trace.cpp	2026-10-13 22:34:26
+@@ -72,6 +72,12 @@
+ std::map<int, std::map<unsigned, Input> > inputs; // pid -> frame -> entrada (vale at√© a pr√≥xima)
+ 
+ volatile bool capturing = false;
++bool botTraceWanted = false;
++std::string outPath;
++FILE* botOut = 0;
++volatile bool botCapturing = false;
++pthread_t botThread;
++std::vector<int> botRand;
+ pthread_t simThread;
+ std::vector<int> randValues;
+ 
+@@ -340,6 +346,7 @@
+         if (cmd == "start") ist >> startFrame;
+         else if (cmd == "frames") ist >> frameCount;
+         else if (cmd == "seed") ist >> seed;
++        else if (cmd == "bottrace") botTraceWanted = true;
+         else if (cmd == "players") { int p; while (ist >> p) scripted.insert(p); }
+         else if (cmd == "at") {
+             unsigned f;
+@@ -478,6 +485,8 @@
+     const int v = __real_rand();
+     if (capturing && pthread_equal(pthread_self(), simThread))
+         randValues.push_back(v);
++    else if (botCapturing && pthread_equal(pthread_self(), botThread))
++        botRand.push_back(v);
+     return v;
+ }
+ 
+@@ -485,6 +494,7 @@
+ 
+ void setOutput(const std::string& outFile) throw () {
+     out = std::fopen(outFile.c_str(), "w");
++    outPath = outFile;
+ }
+ 
+ void setScript(const std::string& scriptFile) throw () {
+@@ -537,6 +547,33 @@
+         return true;
+     }
+     return false;
++}
++
++bool botTraceActive(double frame) throw () {
++    if (!botTraceWanted || !started || !out || frame < startFrame)
++        return false;
++    if (!botOut)
++        botOut = std::fopen((outPath + ".bots").c_str(), "w");
++    return botOut != 0;
++}
++
++void beginBotDecision() throw () {
++    botRand.clear();
++    botThread = pthread_self();
++    botCapturing = true;
++}
++
++void endBotDecision(const std::string& before, const std::string& after) throw () {
++    botCapturing = false;
++    std::string line = "{\"type\":\"bot\",\"before\":" + before + ",\"rand\":[";
++    for (unsigned i = 0; i < botRand.size(); ++i) {
++        char buf[16];
++        std::sprintf(buf, "%s%d", i ? "," : "", botRand[i]);
++        line += buf;
++    }
++    line += "],\"after\":" + after + "}\n";
++    std::fwrite(line.data(), 1, line.size(), botOut);
++    std::fflush(botOut);
+ }
+ 
+ } // namespace OracleTrace
+diff --color -ruN a/trace.h b/trace.h
+--- a/trace.h	2026-10-13 22:33:16
++++ b/trace.h	2026-10-13 22:34:55
+@@ -21,6 +21,11 @@
+     // chamados por Server::simulate_and_broadcast_frame em volta de ServerWorld::simulateFrame
+     void beforeFrame(ServerWorld& world) throw ();
+     bool afterFrame(ServerWorld& world) throw (); // true quando o roteiro terminou (o servidor deve sair)
++    // bots (OG-051..053): com a diretiva "bottrace" no roteiro, cada decis√£o de bot a partir de "start" vai
++    // para ARQUIVO.bots com o estado antes, os rand() da thread dos bots e o resultado
++    bool botTraceActive(double frame) throw ();
++    void beginBotDecision() throw ();
++    void endBotDecision(const std::string& before, const std::string& after) throw ();
+ }
+ 
+ #endif

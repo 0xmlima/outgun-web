@@ -36,11 +36,14 @@ Este repositório tem duas partes:
 | `packages/i18n`     | Traduções                                                                         | OG-014          |
 | `packages/tickets`  | Ticket de entrada no game server (JWT Ed25519: API assina, servidor confere)      | OG-083          |
 | `packages/netcode`  | Cliente de rede do jogo: estado recebido, foguetes locais, predição, suavização   | OG-064          |
+| `packages/bots`     | IA dos bots (port de `src/robot.cpp` e `src/bot_support.cpp`)                     | OG-050 a OG-053 |
 | `apps/game-server`  | Servidor de jogo (10 Hz)                                                          | OG-040          |
 | `apps/api`          | Contas, ranking, salas (Fastify + Drizzle + PostgreSQL; ver `apps/api/README.md`) | OG-080          |
 | `apps/web`          | Cliente web                                                                       | OG-060          |
 
-`packages/sim` e `packages/netcode` têm regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
+`packages/sim`, `packages/netcode` e `packages/bots` têm regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
+
+Bots (OG-053): no servidor de jogo cada bot é um cliente virtual (`apps/game-server/src/bot-client.ts`). Para ver bots jogando localmente, suba o servidor com `CASUAL_BOTS_FILL=8` e entre em `/play`. `node apps/game-server/dist/bot-stats.js --matches 50 [--bots 6] [--minutes 3] [--map outgun1] [--set "linha do gamemod"]` roda partidas só de bots (como o `-bottest` do original) e mostra capturas por partida e o custo dos bots por frame. A paridade da IA com o original é conferida decisão a decisão pelos cenários `tools/parity/scenarios/bots-ai-*.txt` (diretiva `bottrace`).
 
 ## Convenções
 

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Telas de menu do shell (OG-060). Replays ganham conteúdo no OG-091 (aqui, desabilitado); lobby em
+// Telas de menu do shell (OG-060). Replays: abrir arquivo ou ir às partidas (OG-091); lobby em
 // lobby.tsx (OG-069), opções em options.tsx (OG-068) e conta em account.tsx (OG-081).
 import { ORIGINAL_CREDITS } from '@outgun/content';
 import { catalog } from '@outgun/i18n';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
@@ -15,7 +16,6 @@ export function HomeScreen() {
   const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
-  const soon = t('Coming soon');
   const items: MenuItem[] = [
     {
       kind: 'action',
@@ -29,7 +29,7 @@ export function HomeScreen() {
     },
     { kind: 'action', label: t('Rooms'), onActivate: () => void navigate('/rooms') },
     { kind: 'action', label: t('Ranking'), onActivate: () => void navigate('/ranking') },
-    { kind: 'action', label: t('Replays'), onActivate: () => {}, disabled: true, note: soon },
+    { kind: 'action', label: t('Replays'), onActivate: () => void navigate('/replays') },
     { kind: 'action', label: t('Options'), onActivate: () => void navigate('/options') },
     { kind: 'action', label: t('Help'), onActivate: () => void navigate('/help') },
     { kind: 'action', label: t('Credits'), onActivate: () => void navigate('/credits') },
@@ -96,3 +96,35 @@ export function SourceScreen() {
     </TextPage>
   );
 }
+
+/**
+ * Replays (OG-091): abrir um arquivo `.ogr` do computador (como a lista de arquivos do menu do
+ * original) ou ir às partidas do perfil, que têm o link "Assistir".
+ */
+export function ReplaysScreen() {
+  const { t } = usePrefs();
+  const { user } = useAccount();
+  const navigate = useNavigate();
+  const file = useRef<HTMLInputElement>(null);
+  const items: MenuItem[] = [
+    { kind: 'action', label: t('Open replay file'), onActivate: () => file.current?.click() },
+    ...(user ? [{ kind: 'action' as const, label: t('My matches'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) }] : []),
+    { kind: 'action', label: t('Ranking'), onActivate: () => void navigate('/ranking') },
+  ];
+  return (
+    <>
+      <Menu caption={t('Replays')} items={items} />
+      <input
+        ref={file}
+        type="file"
+        accept=".ogr"
+        hidden
+        onChange={(ev) => {
+          const f = ev.target.files?.[0];
+          if (f) void navigate('/replay', { state: { file: f } });
+        }}
+      />
+    </>
+  );
+}
+

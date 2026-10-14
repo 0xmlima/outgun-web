@@ -5,7 +5,7 @@ import { ProtocolError, Reader, Writer } from './codec.js';
 import { MESSAGES, type AnyMessage, type MessageDef, type MessageName } from './messages.js';
 
 /** Versão do protocolo web. Incrementar a cada mudança incompatível. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 4;
 
 const BY_CODE = new Map<number, [MessageName, MessageDef]>();
 for (const [name, def] of Object.entries(MESSAGES) as [MessageName, MessageDef][]) {

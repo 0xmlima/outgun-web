@@ -1,0 +1,49 @@
+; Mapa sintético do OG-050: salas divididas em várias áreas, bolsão sem saída (área cancelada),
+; sala toda parede, áreas em L com caixas sobrepostas, portas múltiplas para o mesmo vizinho e áreas
+; de respawn sobre salas divididas. Usado só pela fixture areamap (não é um mapa jogável).
+V 1
+P title Split Rooms
+P author OG-050
+P width 3
+P height 2
+S 16 12
+
+R 0 0
+W 0 5.5 16 6.5
+W 7.5 0 8.5 12
+W 11 8 15 8.5
+W 11 11 15 11.5
+W 11 8 11.5 11.5
+W 14.5 8 15 11.5
+
+R 1 0
+W 4 0 5 12
+W 5 5 13 6
+W 12 6 13 12
+
+R 2 0
+W 0 0 16 12
+
+R 0 1
+T W 0 10 14 0 16 0
+T W 0 10 16 0 2 12
+T W 0 10 0 12 2 12
+C W 11 8 2
+
+R 1 1
+W 6 0 10 1
+W 0 5 1 7
+
+R 2 1
+W 5 0 6 12
+W 10 0 11 12
+W 0 6 16 7
+
+flag 0 2 1 2.5 3
+flag 1 2 1 13.5 9
+spawn 0 2 1 2.5 9
+spawn 1 2 1 13.5 3
+V respawn 0 0 0 1 1 15 4
+V respawn 1 1 0 2 3 14 8
+V respawn 2 0 1 1 1 15 11
+V respawn 0 2 1 0 0 16 12

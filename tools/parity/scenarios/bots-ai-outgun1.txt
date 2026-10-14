@@ -1,0 +1,8 @@
+# IA dos bots (OG-051..053): 6 bots em outgun1 por 600 frames; cada decisão de bot é gravada em
+# bots-ai-outgun1.bots.jsonl.gz (visão do cliente, estado do bot, rand() e controles).
+map outgun1
+bots 6
+start 200
+frames 600
+seed 51
+bottrace

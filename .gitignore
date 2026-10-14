@@ -9,3 +9,6 @@ coverage/
 tools/parity/out/
 compile_commands.json
 apps/web/public/assets/
+
+# replays gravados pelo game server em desenvolvimento (OG-090)
+var/

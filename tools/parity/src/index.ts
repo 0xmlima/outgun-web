@@ -13,7 +13,8 @@ export const TRACES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 't
 /** Nomes dos traces disponíveis (sem extensão). */
 export function listTraces(): string[] {
   return readdirSync(TRACES_DIR)
-    .filter((name) => name.endsWith('.jsonl.gz'))
+    // `NOME.bots.jsonl.gz` são as decisões dos bots (002-bottrace.patch), conferidas em @outgun/bots
+    .filter((name) => name.endsWith('.jsonl.gz') && !name.endsWith('.bots.jsonl.gz'))
     .map((name) => name.replace(/\.jsonl\.gz$/, ''))
     .sort();
 }

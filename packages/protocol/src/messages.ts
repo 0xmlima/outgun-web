@@ -100,6 +100,29 @@ const framePlayer = struct(
 );
 
 /** Estado exato do próprio jogador para predição e reconciliação (o original manda vida/energia). */
+/** Jogador no frame do replay: o bloco do frame com a sala (o replay vê o mapa inteiro). */
+const replayPlayer = struct(
+  {
+    pid,
+    roomX,
+    roomY,
+    x: f32,
+    y: f32,
+    vx: f32,
+    vy: f32,
+    dead: bool,
+    deathbringer: bool,
+    deathbringerAffected: bool,
+    shield: bool,
+    turbo: bool,
+    power: bool,
+    controls: u8,
+    gundir: u16,
+    visibility: u8,
+  },
+  'jogador no replay',
+);
+
 const frameSelf = struct(
   {
     roomX,
@@ -378,6 +401,33 @@ export const MESSAGES = {
       minimap: list(minimapPlayer, 32),
       /** Ping de um jogador por frame (rodízio), em ms. */
       ping: optional(struct({ pid, ms: u16 }, 'ping')),
+    },
+  ),
+
+  replayFrame: msg(
+    31,
+    's2c',
+    'frame',
+    '`record_message` (bloco do frame do replay)',
+    'Frame do replay (OG-090): todos os jogadores, de todas as salas, para um espectador onisciente.',
+    {
+      frame: u32,
+      players: list(replayPlayer, 32),
+    },
+  ),
+  spectatorStart: msg(
+    32,
+    's2c',
+    'event',
+    'espectador do relay (`spectating_delay`)',
+    'Espectador ao vivo (OG-092): começa uma partida; em seguida vêm o estado inicial e os frames do replay, com o atraso da sala.',
+    {
+      protocol: u16,
+      maxPlayers: u8,
+      /** Atraso em segundos (`spectating_delay`). */
+      delay: u16,
+      map: str(64),
+      mapTitle: str(64),
     },
   ),
 
