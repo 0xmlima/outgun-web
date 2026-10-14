@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S11 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-040](OG-040-game-server-core.md), [OG-080](OG-080-api-db.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

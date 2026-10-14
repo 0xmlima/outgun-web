@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S11 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-086](OG-086-room-registry.md), [OG-046](OG-046-chat-moderation.md) |
 | Regras de negócio | RN-CHT-03, RN-CHT-04, RN-PLT-05 |
 | Skills | `outgun-card-workflow` |

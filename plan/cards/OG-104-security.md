@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S11 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-043](OG-043-client-input.md), [OG-081](OG-081-auth.md) |
 | Regras de negócio | RN-PLT-05 |
 | Skills | `outgun-card-workflow` |

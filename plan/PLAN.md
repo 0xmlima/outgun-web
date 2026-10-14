@@ -629,15 +629,15 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-084](cards/OG-084-ranking.md) | Ranking e temporadas | E5 | 8 | Must | S9 | OG-083, OG-028 | Concluído |
 | [OG-085](cards/OG-085-profile-history.md) | Perfil e histórico de partidas | E5 | 5 | Should | S9 | OG-084 | Concluído |
 | [OG-086](cards/OG-086-room-registry.md) | Registro de salas e matchmaking | E5 | 5 | Must | S9 | OG-080, OG-040 | Concluído |
-| [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Em revisão |
+| [OG-087](cards/OG-087-admin-panel.md) | Painel admin | E5 | 5 | Should | S11 | OG-086, OG-046 | Concluído |
 | [OG-090](cards/OG-090-replay-recording.md) | Gravação de replays | E6 | 3 | Should | S10 | OG-042 | Concluído |
 | [OG-091](cards/OG-091-replay-player.md) | Player de replay | E6 | 5 | Should | S10 | OG-090, OG-065 | Concluído |
 | [OG-092](cards/OG-092-spectator.md) | Espectador ao vivo | E6 | 3 | Could | S10 | OG-090 | Concluído |
 | [OG-100](cards/OG-100-parity-ci.md) | Paridade automatizada no CI | E7 | 3 | Must | S2 | OG-003 | Concluído |
-| [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Em revisão |
-| [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Em revisão |
-| [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Em revisão |
-| [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Em revisão |
+| [OG-101](cards/OG-101-e2e-load.md) | Testes E2E e de carga | E7 | 5 | Must | S11 | OG-064 | Concluído |
+| [OG-102](cards/OG-102-observability.md) | Observabilidade | E7 | 3 | Must | S11 | OG-040, OG-080 | Concluído |
+| [OG-103](cards/OG-103-infra-deploy.md) | Infraestrutura e deploy | E7 | 5 | Must | S11 | OG-040, OG-080 | Concluído |
+| [OG-104](cards/OG-104-security.md) | Segurança e anti-cheat | E7 | 5 | Must | S11 | OG-043, OG-081 | Concluído |
 | [OG-105](cards/OG-105-beta-launch.md) | Beta fechado, balanceamento e lançamento | E7 | 5 | Must | S12 | todos Must | Backlog |
 
 **Total:** 65 cards (OG-048 quebrado em OG-050 a OG-054; seus 13 pts saem da soma), 282 pontos.
