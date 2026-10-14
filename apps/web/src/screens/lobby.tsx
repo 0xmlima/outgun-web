@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Lobby de salas (OG-069; `Menu_serverList` do original com o master server trocado pela API):
 // modo Casual/Ranked, lista atualizada a cada 3 s com jogadores, mapa e ping da região, "Jogar
-// agora" por modo, link de convite e criação de sala privada Casual.
+// agora" por modo, link de convite e criação de sala privada Casual. Visual v2 (OG-203): abas por modo,
+// filtros e tabela de salas; convite e criação de sala em formulários do design system.
 import { PRESETS } from '@outgun/settings';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
@@ -11,8 +12,11 @@ import { deviceId } from '../app/device.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { joinErrorText } from '../game/net/ticket.js';
-import { BitmapText } from '../ui/BitmapText.js';
-import { Menu, type MenuItem } from '../ui/Menu.js';
+import { Badge, Button } from '../ui/Button.js';
+import { ChoiceField, SliderField, TextField, ToggleField } from '../ui/Field.js';
+import { Form, FormMessageLine, Page } from '../ui/Page.js';
+import { Table } from '../ui/Table.js';
+import { Tabs } from '../ui/Tabs.js';
 
 type Mode = 'casual' | 'ranked';
 
@@ -34,12 +38,21 @@ export interface RoomSummary {
 
 /** Intervalo da atualização da lista (critério: ≤ 5 s). */
 export const REFRESH_MS = 3000;
-const MODES: readonly Mode[] = ['casual', 'ranked'];
 const CASUAL_PRESETS = PRESETS.filter((p) => p.mode === 'casual').map((p) => p.id);
+
+/** Filtros do lobby: busca por nome ou mapa e esconder as lotadas. */
+export function filterRooms(rooms: readonly RoomSummary[], search: string, hideFull: boolean): RoomSummary[] {
+  const q = search.trim().toLowerCase();
+  return rooms.filter(
+    (r) => (!hideFull || !isFull(r)) && (!q || r.name.toLowerCase().includes(q) || (r.map ?? '').toLowerCase().includes(q)),
+  );
+}
+
+const isFull = (r: RoomSummary) => r.online && r.players >= r.maxPlayers;
 
 /** Ordem da lista: com gente primeiro (mais cheia antes), depois por nome; lotadas no fim. */
 export function sortRooms(rooms: readonly RoomSummary[]): RoomSummary[] {
-  const full = (r: RoomSummary) => (r.online && r.players >= r.maxPlayers ? 1 : 0);
+  const full = (r: RoomSummary) => (isFull(r) ? 1 : 0);
   return [...rooms].sort((a, b) => full(a) - full(b) || b.players - a.players || a.name.localeCompare(b.name));
 }
 
@@ -91,14 +104,27 @@ export async function quickJoin(mode: Mode, name: string, region?: string): Prom
   return r.roomId;
 }
 
-export function LobbyScreen() {
+/** Nome do jogador: o da conta, ou um campo para o convidado (vai para as preferências). */
+function NameField() {
   const { t, prefs, setPrefs } = usePrefs();
+  const { user } = useAccount();
+  return user ? (
+    <TextField label={t('Name')} value={user.username} onChange={() => {}} disabled />
+  ) : (
+    <TextField label={t('Name')} value={prefs.playerName} onChange={(v) => setPrefs({ playerName: v })} maxLength={15} />
+  );
+}
+
+export function LobbyScreen() {
+  const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
   const pings = usePings();
   const [mode, setMode] = useState<Mode>('casual');
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [hideFull, setHideFull] = useState(false);
   const name = prefs.playerName.trim() || 'Convidado';
 
   useEffect(() => {
@@ -126,72 +152,97 @@ export function LobbyScreen() {
     else setError(t(code === 'no_room' ? 'No room available right now.' : joinErrorText(code)));
   };
   const enter = (room: RoomSummary) => {
+    if (isFull(room)) return;
     if (room.mode === 'ranked' && !user) return void navigate('/login');
     if (room.hasPassword) return void navigate(`/rooms/${room.id}`);
     void navigate(`/play?sala=${encodeURIComponent(room.id)}`);
   };
+  const playNow = () => {
+    if (mode === 'ranked' && !user) return void navigate('/login');
+    void quickJoin(mode, name, bestRegion(pings)).then((id) => void navigate(`/play?sala=${encodeURIComponent(id)}`), fail);
+  };
+  const shown = filterRooms(rooms ?? [], search, hideFull);
 
-  const items: MenuItem[] = [
-    { kind: 'choice', label: t('Mode'), value: mode === 'ranked' ? t('Ranked') : t('Casual'), onChange: (d) => setMode(MODES[(MODES.indexOf(mode) + d + 2) % 2]!) },
-    user
-      ? { kind: 'choice', label: t('Name'), value: user.username, onChange: () => {}, disabled: true }
-      : { kind: 'text', label: t('Name'), value: prefs.playerName, onChange: (v) => setPrefs({ playerName: v }), maxLength: 15 },
-    {
-      kind: 'action',
-      label: t('Play now'),
-      onActivate: () => {
-        if (mode === 'ranked' && !user) return void navigate('/login');
-        void quickJoin(mode, name, bestRegion(pings)).then((id) => void navigate(`/play?sala=${encodeURIComponent(id)}`), fail);
-      },
-    },
-    mode === 'casual'
-      ? { kind: 'action', label: t('Create private room'), onActivate: () => void navigate(user ? '/rooms/new' : '/login'), ...(user ? {} : { note: t('needs an account') }) }
-      : { kind: 'action', label: t('Create private room'), onActivate: () => {}, disabled: true, note: t('Casual only') },
-    ...(rooms ?? []).map(
-      (r): MenuItem => ({
-        kind: 'action',
-        label: `${r.hasPassword ? '* ' : ''}${r.name}`,
-        note: [
-          `${r.players}/${r.maxPlayers}`,
-          r.map ?? '-',
-          r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '',
-        ]
-          .filter(Boolean)
-          .join('  '),
-        disabled: r.online && r.players >= r.maxPlayers,
-        onActivate: () => enter(r),
-      }),
-    ),
-  ];
   return (
-    <Menu caption={t('Rooms')} items={items} onBack={() => void navigate('/')}>
-      <p className="menu-help">
-        <BitmapText
-          text={
-            error ??
-            (mode === 'ranked'
+    <Page title={t('Rooms')} onBack={() => void navigate('/')}>
+      <Tabs
+        label={t('Mode')}
+        value={mode}
+        onChange={setMode}
+        tabs={[
+          { id: 'casual', label: t('Casual') },
+          { id: 'ranked', label: t('Ranked') },
+        ]}
+      >
+        <div className="ui-stack lobby">
+          <p className="ui-muted">
+            {mode === 'ranked'
               ? t('Ranked: no power-ups, account required, counts for the ranking.')
-              : t('Casual: power-ups on, guests welcome, does not count for the ranking.'))
-          }
-        />
-      </p>
-      {rooms !== null && rooms.length === 0 && !error && (
-        <p className="menu-help">
-          <BitmapText text={t('No rooms open. "Play now" opens one.')} />
-        </p>
-      )}
-    </Menu>
+              : t('Casual: power-ups on, guests welcome, does not count for the ranking.')}
+          </p>
+          <div className="lobby-actions">
+            {!user && (
+              <div className="lobby-name">
+                <NameField />
+              </div>
+            )}
+            <Button variant="primary" size="lg" onClick={playNow}>
+              {t('Play now')}
+            </Button>
+            {mode === 'casual' ? (
+              <Button onClick={() => void navigate(user ? '/rooms/new' : '/login')}>
+                {t('Create private room')}
+                {!user && <Badge>{t('needs an account')}</Badge>}
+              </Button>
+            ) : (
+              <Button disabled title={t('Casual only')}>
+                {t('Create private room')}
+              </Button>
+            )}
+          </div>
+          {error && <FormMessageLine message={{ text: error, error: true }} />}
+          <div className="lobby-filters">
+            <TextField label={t('Search rooms')} type="search" value={search} onChange={setSearch} placeholder={t('Room or map')} maxLength={40} />
+            <ToggleField label={t('Hide full rooms')} checked={hideFull} onChange={setHideFull} />
+          </div>
+          <Table
+            caption={t('Rooms')}
+            rows={shown}
+            rowKey={(r) => r.id}
+            onRowActivate={enter}
+            empty={rooms === null ? t('Loading...') : t('No rooms open. "Play now" opens one.')}
+            columns={[
+              {
+                key: 'name',
+                header: t('Room'),
+                cell: (r) => (
+                  <span className="lobby-room">
+                    {r.name}
+                    {r.hasPassword && <Badge>{t('Password')}</Badge>}
+                    {isFull(r) && <Badge tone="warning">{t('Full')}</Badge>}
+                  </span>
+                ),
+              },
+              { key: 'map', header: t('Map'), cell: (r) => r.map ?? '—' },
+              { key: 'players', header: t('Players'), cell: (r) => `${r.players}/${r.maxPlayers}`, align: 'end' },
+              { key: 'ping', header: t('Ping'), cell: (r) => (r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—'), align: 'end' },
+            ]}
+          />
+        </div>
+      </Tabs>
+    </Page>
   );
 }
 
 /** Página do link de convite: mostra a sala e pede a senha, se houver. */
 export function JoinRoomScreen() {
-  const { t, prefs, setPrefs } = usePrefs();
+  const { t } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
   const { id = '' } = useParams();
   const [room, setRoom] = useState<RoomSummary | null | undefined>(undefined);
   const [password, setPassword] = useState('');
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     let alive = true;
     api<{ room: RoomSummary }>(`/rooms/${encodeURIComponent(id)}`).then(
@@ -208,18 +259,34 @@ export function JoinRoomScreen() {
     if (room.mode === 'ranked' && !user) return void navigate('/login');
     void navigate(`/play?sala=${encodeURIComponent(room.id)}`, room.hasPassword ? { state: { password } } : undefined);
   };
-  const items: MenuItem[] = [
-    { kind: 'choice', label: t('Mode'), value: room.mode === 'ranked' ? t('Ranked') : t('Casual'), onChange: () => {}, disabled: true },
-    { kind: 'choice', label: t('Players'), value: `${room.players}/${room.maxPlayers}`, onChange: () => {}, disabled: true },
-    user
-      ? { kind: 'choice', label: t('Name'), value: user.username, onChange: () => {}, disabled: true }
-      : { kind: 'text', label: t('Name'), value: prefs.playerName, onChange: (v) => setPrefs({ playerName: v }), maxLength: 15 },
-    ...(room.hasPassword ? [{ kind: 'text', label: t('Password'), value: password, onChange: setPassword, password: true, maxLength: 15, onEnter: play } as MenuItem] : []),
-    { kind: 'action', label: t('Join'), onActivate: play },
-    ...(room.spectateUrl ? [{ kind: 'action', label: t('Watch live'), onActivate: () => void navigate(`/spectate?src=${encodeURIComponent(room.spectateUrl!)}`) } as MenuItem] : []),
-    { kind: 'action', label: t('Copy invite link'), onActivate: () => void navigator.clipboard?.writeText(`${location.origin}/rooms/${room.id}`) },
-  ];
-  return <Menu caption={room.name} items={items} onBack={() => void navigate('/rooms')} />;
+  const copy = () => void navigator.clipboard?.writeText(`${location.origin}/rooms/${room.id}`).then(() => setCopied(true));
+  return (
+    <Page
+      title={room.name}
+      subtitle={`${room.mode === 'ranked' ? t('Ranked') : t('Casual')} · ${t('Players')} ${room.players}/${room.maxPlayers}${room.map ? ` · ${room.map}` : ''}`}
+      onBack={() => void navigate('/rooms')}
+      width="narrow"
+    >
+      <Form
+        label={t('Join')}
+        onSubmit={play}
+        actions={
+          <>
+            <Button type="submit" variant="primary">
+              {t('Join')}
+            </Button>
+            {room.spectateUrl && <Button onClick={() => void navigate(`/spectate?src=${encodeURIComponent(room.spectateUrl!)}`)}>{t('Watch live')}</Button>}
+            <Button variant="ghost" onClick={copy}>
+              {copied ? t('Link copied') : t('Copy invite link')}
+            </Button>
+          </>
+        }
+      >
+        <NameField />
+        {room.hasPassword && <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={15} autoFocus />}
+      </Form>
+    </Page>
+  );
 }
 
 /** Sala privada Casual (RN-CFG-03): preset, senha, vagas e rotação própria. */
@@ -233,7 +300,6 @@ export function CreateRoomScreen() {
   const [maxPlayers, setMaxPlayers] = useState(16);
   const [maps, setMaps] = useState<readonly string[]>([]);
   const [allMaps, setAllMaps] = useState<readonly string[]>([]);
-  const [pickMaps, setPickMaps] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     void loadManifest().then((m) => m && setAllMaps(Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k)));
@@ -242,23 +308,8 @@ export function CreateRoomScreen() {
   const mapsLabel = useMemo(() => (maps.length === 0 ? t('Official rotation') : maps.length === 1 ? maps[0]! : t('$1 maps', String(maps.length))), [maps, t]);
   if (user === null) return <Navigate to="/login" replace />;
 
-  if (pickMaps) {
-    const items: MenuItem[] = [
-      { kind: 'action', label: t('Done'), onActivate: () => setPickMaps(false) },
-      { kind: 'action', label: t('Official rotation'), note: maps.length === 0 ? '*' : '', onActivate: () => setMaps([]) },
-      ...allMaps.map(
-        (m): MenuItem => ({
-          kind: 'action',
-          label: m,
-          note: maps.includes(m) ? '*' : '',
-          onActivate: () => setMaps((list) => (list.includes(m) ? list.filter((x) => x !== m) : [...list, m])),
-        }),
-      ),
-    ];
-    return <Menu caption={t('Maps')} items={items} onBack={() => setPickMaps(false)} />;
-  }
-
   const create = () => {
+    if (!name.trim()) return;
     setError(null);
     api<{ room: RoomSummary; inviteUrl: string }>('/rooms', {
       body: { name: name.trim(), preset, ...(password ? { password } : {}), ...(duel ? {} : { maxPlayers }), ...(maps.length ? { maps } : {}) },
@@ -267,32 +318,50 @@ export function CreateRoomScreen() {
       (e: unknown) => setError(e instanceof ApiError && e.code === 'rate_limited' ? t('Too many rooms. Try again later.') : t('Could not create the room.')),
     );
   };
-  const items: MenuItem[] = [
-    { kind: 'text', label: t('Room name'), value: name, onChange: setName, maxLength: 40 },
-    {
-      kind: 'choice',
-      label: t('Rules'),
-      // nome curto do preset: o começo da descrição ("Clássico: ...")
-      value: PRESETS.find((p) => p.id === preset)?.description.split(':')[0] ?? preset,
-      onChange: (d) => setPreset(CASUAL_PRESETS[(CASUAL_PRESETS.indexOf(preset) + d + CASUAL_PRESETS.length) % CASUAL_PRESETS.length]!),
-    },
-    { kind: 'text', label: t('Password (optional)'), value: password, onChange: setPassword, password: true, maxLength: 15 },
-    {
-      kind: 'choice',
-      label: t('Players'),
-      value: duel ? '2' : String(maxPlayers),
-      disabled: duel,
-      onChange: (d) => setMaxPlayers((n) => Math.min(32, Math.max(2, n + 2 * d))),
-    },
-    { kind: 'action', label: t('Maps'), note: mapsLabel, onActivate: () => setPickMaps(true) },
-    { kind: 'action', label: t('Create and play'), disabled: !name.trim(), onActivate: create },
-  ];
-  const description = PRESETS.find((p) => p.id === preset)?.description ?? '';
+  const toggleMap = (m: string) => setMaps((list) => (list.includes(m) ? list.filter((x) => x !== m) : [...list, m]));
   return (
-    <Menu caption={t('Create private room')} items={items} onBack={() => void navigate('/rooms')}>
-      <p className="menu-help">
-        <BitmapText text={error ?? description} />
-      </p>
-    </Menu>
+    <Page title={t('Create private room')} onBack={() => void navigate('/rooms')} width="narrow">
+      <Form
+        label={t('Create private room')}
+        onSubmit={create}
+        actions={
+          <Button type="submit" variant="primary" disabled={!name.trim()}>
+            {t('Create and play')}
+          </Button>
+        }
+      >
+        <TextField label={t('Room name')} value={name} onChange={setName} maxLength={40} autoFocus />
+        <ChoiceField
+          label={t('Rules')}
+          value={preset}
+          onChange={setPreset}
+          // nome curto do preset: o começo da descrição ("Clássico: ...")
+          options={CASUAL_PRESETS.map((id) => ({ value: id, label: PRESETS.find((p) => p.id === id)?.description.split(':')[0] ?? id }))}
+          hint={PRESETS.find((p) => p.id === preset)?.description}
+        />
+        <TextField label={t('Password (optional)')} type="password" autoComplete="new-password" value={password} onChange={setPassword} maxLength={15} />
+        <SliderField label={t('Players')} value={duel ? 2 : maxPlayers} min={2} max={32} step={2} disabled={duel} onChange={setMaxPlayers} />
+      </Form>
+      <details className="lobby-maps">
+        <summary>
+          {t('Maps')}: {mapsLabel}
+        </summary>
+        <div className="ui-row">
+          <Button variant="ghost" onClick={() => setMaps([])} disabled={maps.length === 0}>
+            {t('Official rotation')}
+          </Button>
+        </div>
+        <ul>
+          {allMaps.map((m) => (
+            <li key={m}>
+              <label>
+                <input type="checkbox" checked={maps.includes(m)} onChange={() => toggleMap(m)} /> {m}
+              </label>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {error && <FormMessageLine message={{ text: error, error: true }} />}
+    </Page>
   );
 }

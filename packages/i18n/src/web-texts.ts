@@ -497,5 +497,13 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Music volume': 'Volume da música',
     '"Outgun Epic" in the menus; the other tracks shuffled in Casual matches.': '"Outgun Epic" nos menus; as outras faixas em ordem aleatória nas partidas casuais.',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
+    // telas restantes no visual v2 (OG-203)
+    'A .ogr file saved on this computer': 'Um arquivo .ogr salvo neste computador',
+    'Every match has a "Watch" link': 'Cada partida tem o link "Assistir"',
+    'Search rooms': 'Buscar salas',
+    'Room or map': 'Sala ou mapa',
+    'Hide full rooms': 'Esconder salas lotadas',
+    Full: 'Lotada',
+    'Link copied': 'Link copiado',
   },
 };

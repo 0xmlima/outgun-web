@@ -318,6 +318,10 @@ html {
   color: var(--text);
   font: inherit;
 }
+.ui-textarea {
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
 .ui-input::placeholder {
   color: var(--text-muted);
 }
@@ -647,4 +651,45 @@ html {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
+}
+
+/* Texto longo (OG-203): ajuda, créditos, termos */
+.ui-prose {
+  max-width: 44rem;
+  line-height: 1.6;
+  outline: none;
+}
+.ui-prose > * + * {
+  margin-top: var(--space-3);
+}
+.ui-prose :where(h2) {
+  margin-top: var(--space-6);
+  font-size: var(--text-lg);
+}
+.ui-prose :where(ul) {
+  padding-left: var(--space-5);
+}
+.ui-prose :where(.ui-muted) {
+  font-size: var(--text-sm);
+}
+.ui-pairs {
+  display: grid;
+  gap: var(--space-1);
+}
+.ui-pairs > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: var(--space-3);
+}
+.ui-pairs dt {
+  color: var(--text-muted);
+}
+.ui-pairs dd {
+  margin: 0;
+}
+@media (max-width: 30rem) {
+  .ui-pairs > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }

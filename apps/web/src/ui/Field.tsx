@@ -89,6 +89,16 @@ export function TextField({ label, value, onChange, type = 'text', autoComplete 
   );
 }
 
+/** Texto de várias linhas (OG-203): Enter quebra a linha; fora do percurso ↑/↓ do `FieldGroup`. */
+export function TextAreaField({ label, value, onChange, maxLength, rows = 6, hint }: { readonly label: ReactNode; readonly value: string; readonly onChange: (value: string) => void; readonly maxLength?: number; readonly rows?: number; readonly hint?: ReactNode }) {
+  const id = useId();
+  return (
+    <FieldFrame id={id} label={label} hint={hint}>
+      <textarea id={id} className="ui-input ui-textarea" value={value} rows={rows} maxLength={maxLength} aria-describedby={hint ? `${id}-msg` : undefined} onChange={(ev) => onChange(ev.target.value)} />
+    </FieldFrame>
+  );
+}
+
 export interface ChoiceOption<T extends string> {
   readonly value: T;
   readonly label: ReactNode;

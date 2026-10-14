@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Feedback do beta (OG-106): tipo, nota de fidelidade ao Outgun original (o critério do lançamento),
 // nota geral, se jogou o original e texto livre. O contexto (sala, mapa, versão, tela) vai junto.
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
-import { TextPage } from '../ui/TextPage.js';
+import { Button } from '../ui/Button.js';
+import { ChoiceField, TextAreaField, ToggleField } from '../ui/Field.js';
+import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 
 type Kind = 'bug' | 'suggestion' | 'praise' | 'other';
 
@@ -20,12 +22,11 @@ export default function FeedbackScreen() {
   const [overall, setOverall] = useState(0);
   const [veteran, setVeteran] = useState(false);
   const [text, setText] = useState('');
-  const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
+  const [status, setStatus] = useState<FormMessage>(null);
   const [sent, setSent] = useState(false);
   if (user === null) return <Navigate to="/login" replace />;
 
-  const submit = (ev: FormEvent) => {
-    ev.preventDefault();
+  const submit = () => {
     const context: Record<string, string | number> = {
       ...(params.get('sala') ? { room: params.get('sala')! } : {}),
       ...(params.get('mapa') ? { map: params.get('mapa')! } : {}),
@@ -41,47 +42,42 @@ export default function FeedbackScreen() {
     );
   };
 
+  const ratings = [
+    { value: '0', label: '—' },
+    ...['1', '2', '3', '4', '5'].map((n) => ({ value: n, label: n })),
+  ];
   const stars = (value: number, set: (n: number) => void, label: string) => (
-    <fieldset className="feedback-rating">
-      <legend>{label}</legend>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <label key={n}>
-          <input type="radio" name={label} checked={value === n} onChange={() => set(n)} /> {n}
-        </label>
-      ))}
-    </fieldset>
+    <ChoiceField label={label} value={String(value)} options={ratings} onChange={(v) => set(Number(v))} />
   );
 
   return (
-    <TextPage caption={t('Send feedback')} onBack={() => void navigate(-1)}>
-      <form className="admin admin-form feedback" onSubmit={submit}>
-        <label>
-          {t('Type')}{' '}
-          <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
-            <option value="praise">{t('Praise')}</option>
-            <option value="bug">{t('Bug')}</option>
-            <option value="suggestion">{t('Suggestion')}</option>
-            <option value="other">{t('Other')}</option>
-          </select>
-        </label>
+    <Page title={t('Send feedback')} onBack={() => void navigate(-1)} width="narrow">
+      <Form
+        label={t('Send feedback')}
+        onSubmit={submit}
+        actions={
+          <Button type="submit" variant="primary" disabled={sent}>
+            {t('Send')}
+          </Button>
+        }
+      >
+        <ChoiceField
+          label={t('Type')}
+          value={kind}
+          onChange={setKind}
+          options={[
+            { value: 'praise', label: t('Praise') },
+            { value: 'bug', label: t('Bug') },
+            { value: 'suggestion', label: t('Suggestion') },
+            { value: 'other', label: t('Other') },
+          ]}
+        />
         {stars(fidelity, setFidelity, t('Does it feel like the original Outgun? (1 = not at all, 5 = just like it)'))}
         {stars(overall, setOverall, t('Overall rating'))}
-        <label>
-          <input type="checkbox" checked={veteran} onChange={(e) => setVeteran(e.target.checked)} /> {t('I played the original Outgun')}
-        </label>
-        <label className="admin-block">
-          {t('Tell us more (what happened, where, how to reproduce)')}
-          <textarea value={text} rows={8} maxLength={4000} onChange={(e) => setText(e.target.value)} />
-        </label>
-        <button type="submit" disabled={sent}>
-          {t('Send')}
-        </button>
-        {status && (
-          <p className={`stats-note${status.error ? ' error' : ''}`} role={status.error ? 'alert' : 'status'}>
-            {status.text}
-          </p>
-        )}
-      </form>
-    </TextPage>
+        <ToggleField label={t('I played the original Outgun')} checked={veteran} onChange={setVeteran} />
+        <TextAreaField label={t('Tell us more (what happened, where, how to reproduce)')} value={text} rows={8} maxLength={4000} onChange={setText} />
+      </Form>
+      <FormMessageLine message={status} />
+    </Page>
   );
 }

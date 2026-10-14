@@ -65,15 +65,6 @@ body {
   vertical-align: top;
   min-width: 12em;
 }
-.text-link a {
-  color: var(--menu-item);
-  text-decoration: none;
-}
-.text-link a:hover,
-.text-link a:focus-visible {
-  color: var(--menu-active);
-  outline: none;
-}
 
 /* Caixa de menu com borda em relevo, como src/menu.cpp. */
 .menu {
@@ -161,48 +152,25 @@ body {
   color: var(--menu-disabled);
 }
 
-.text-page {
-  width: calc(var(--px) * 624px);
-  height: 100%;
-}
-.text-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: calc(var(--px) * 6px) calc(var(--px) * 8px);
-  color: var(--menu-value);
-  scrollbar-color: var(--scrollbar) var(--scrollbar-bg);
-}
-.text-body:focus-visible {
-  outline: calc(var(--px) * 1px) dotted var(--menu-active);
-}
-.text-gap {
-  height: calc(var(--px) * 8px);
-}
-.text-link {
-  margin: calc(var(--px) * 8px) 0 0;
-}
-
-/* Perfil, partida e ranking (OG-085): tabelas como as do HTML de estatísticas do original. */
+/* Perfil, partida, ranking, termos, admin e feedback: tabelas e formulários simples nos tokens v2 (OG-203). */
 .stats-section h2 {
-  margin: calc(var(--px) * 10px) 0 calc(var(--px) * 4px);
-  padding: 0 calc(var(--px) * 4px);
-  font-size: 1em;
-  color: var(--menu-caption);
-  background: var(--menu-caption-bg);
-}
-.stats-section a {
-  color: var(--menu-active);
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: var(--text-lg);
 }
 .stats-line,
 .stats-note {
-  margin: calc(var(--px) * 4px) 0;
+  margin: var(--space-2) 0;
+}
+.stats-note {
+  color: var(--text-muted);
 }
 .stats-note.error {
-  color: #ff8080;
+  color: var(--text-danger);
 }
 .stats-table {
   border-collapse: collapse;
-  font-size: 0.75em;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .stats-table.wide {
   display: block;
@@ -211,14 +179,14 @@ body {
 }
 .stats-table th,
 .stats-table td {
-  border: 1px solid var(--menu-border-highlight);
-  padding: 0 calc(var(--px) * 4px);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-1) var(--space-3);
   text-align: right;
   white-space: nowrap;
 }
 .stats-table th {
-  color: var(--menu-item);
-  font-weight: normal;
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
   text-align: left;
 }
 .stats-table td.name {
@@ -227,50 +195,46 @@ body {
 .stats-table .team-red th,
 .stats-table th.team-red,
 .stats-table tr.team-red td:first-child {
-  color: #ff8080;
+  color: var(--text-team-red);
 }
 .stats-table .team-blue th,
 .stats-table th.team-blue,
 .stats-table tr.team-blue td:first-child {
-  color: #80a0ff;
+  color: var(--text-team-blue);
 }
 .stats-tabs {
   display: flex;
-  gap: calc(var(--px) * 4px);
-  margin: calc(var(--px) * 4px) 0;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
 }
-.stats-tabs button {
+.stats-tabs button,
+.admin button {
   font: inherit;
-  color: var(--menu-item);
-  background: var(--menu-bg);
-  border: 1px solid var(--menu-border-highlight);
-  padding: 0 calc(var(--px) * 6px);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
   cursor: pointer;
 }
-.stats-tabs button.active,
-.stats-tabs button:focus-visible {
-  color: var(--menu-active);
+.stats-tabs button.active {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
-
-/* Painel admin (OG-087) */
 .admin-form {
-  margin: calc(var(--px) * 4px) 0;
-  font-size: 0.75em;
+  margin: var(--space-2) 0;
 }
 .admin-form input,
 .admin-form select,
-.admin-form textarea,
-.admin button {
+.admin-form textarea {
   font: inherit;
-  color: var(--menu-item);
-  background: var(--menu-bg);
-  border: 1px solid var(--menu-border-highlight);
-}
-.admin button:focus-visible,
-.admin input:focus-visible,
-.admin textarea:focus-visible {
-  color: var(--menu-active);
-  outline: 1px solid var(--menu-active);
+  color: var(--text);
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
 }
 .admin button:disabled {
   opacity: 0.5;
@@ -283,20 +247,8 @@ body {
   width: 100%;
   box-sizing: border-box;
 }
-.feedback-rating {
-  border: none;
-  margin: calc(var(--px) * 6px) 0;
-  padding: 0;
-}
-.feedback-rating label {
-  margin-right: calc(var(--px) * 8px);
-}
-.feedback label {
-  display: block;
-  margin: calc(var(--px) * 6px) 0;
-}
 .admin-room h2 {
-  font-size: 0.85em;
+  font-size: var(--text-md);
 }
 
 .game {
