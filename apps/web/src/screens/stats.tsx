@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Perfil público, histórico, partida e ranking (OG-085). A partida mostra o mesmo que o HTML de
+// Perfil público, histórico e ranking (OG-085); o relatório de partida está em MatchReport.tsx (OG-214). A partida mostra o mesmo que o HTML de
 // estatísticas do original (`WorldBase::save_stats`): regras, times, jogadores e capturas.
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -46,7 +46,7 @@ export interface HistoryEntry extends MatchSummary {
   player: { team: number; frags: number; kills: number; deaths: number; captures: number; scoreDelta: number; negDelta: number };
 }
 
-interface PlayerLine {
+export interface PlayerLine {
   slot: number;
   name: string;
   username: string | null;
@@ -62,7 +62,7 @@ interface PlayerLine {
   stats: Record<string, number>;
 }
 
-interface MatchDetails {
+export interface MatchDetails {
   mapTitle?: string;
   mapTime?: number;
   rules?: { captureLimit: number; winScoreDifference: number; timeLimit: number; extraTime: number; extraTimePeriods: number; suddenDeath: boolean };
@@ -71,7 +71,7 @@ interface MatchDetails {
   baseScore?: [number, number];
 }
 
-interface MatchPage {
+export interface MatchPage {
   match: MatchSummary & { startedAt: string; roomId: string | null };
   details: MatchDetails;
   players: PlayerLine[];
@@ -115,9 +115,9 @@ export function duration(seconds: number): string {
 
 export const percent = (part: number, whole: number) => (whole > 0 ? `${Math.round((100 * part) / whole)}%` : '-');
 
-const date = (iso: string, locale: string) => new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
+export const date = (iso: string, locale: string) => new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 
-function Status({ loading, missing, error }: { loading: boolean; missing: boolean; error: string | null }) {
+export function Status({ loading, missing, error }: { loading: boolean; missing: boolean; error: string | null }) {
   const { t } = usePrefs();
   if (error) return <p className="stats-note error">{t('Could not reach the server.')}</p>;
   if (missing) return <p className="stats-note">{t('Not found.')}</p>;
@@ -134,7 +134,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function PlayerLink({ name, username }: { name: string; username: string | null }) {
+export function PlayerLink({ name, username }: { name: string; username: string | null }) {
   return username ? <Link to={`/players/${encodeURIComponent(username)}`}>{name}</Link> : <>{name}</>;
 }
 
@@ -261,203 +261,6 @@ export function ProfileScreen() {
               </p>
             )}
           </Section>
-        </>
-      )}
-    </TextPage>
-  );
-}
-
-/** Colunas da tabela de jogadores do `save_stats`. */
-const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
-  ['Frags', (p) => p.frags],
-  ['Captures', (p) => p.captures],
-  ['Assists', (p) => p.stats.assists ?? 0],
-  ['Kills', (p) => p.kills],
-  ['Deaths', (p) => p.deaths],
-  ['Suicides', (p) => p.stats.suicides ?? 0],
-  ['Flags taken', (p) => p.stats.flagsTaken ?? 0],
-  ['Flags dropped', (p) => p.stats.flagsDropped ?? 0],
-  ['Flags returned', (p) => p.stats.flagsReturned ?? 0],
-  ['Carriers killed', (p) => p.stats.carriersKilled ?? 0],
-  ['Carry time', (p) => clock(p.stats.flagCarryingTime ?? 0)],
-  ['Cons. kills', (p) => p.stats.consecutiveKills ?? 0],
-  ['Cons. deaths', (p) => p.stats.consecutiveDeaths ?? 0],
-  ['Shots', (p) => p.stats.shots ?? 0],
-  ['Accuracy', (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`],
-  ['Shots taken', (p) => p.stats.shotsTaken ?? 0],
-  ['Movement', (p) => `${Math.round(p.stats.movement ?? 0)} u`],
-];
-
-const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
-  ['Captures', (x) => x.score ?? 0],
-  ['Kills', (x) => x.kills ?? 0],
-  ['Deaths', (x) => x.deaths ?? 0],
-  ['Suicides', (x) => x.suicides ?? 0],
-  ['Flags taken', (x) => x.flagsTaken ?? 0],
-  ['Flags dropped', (x) => x.flagsDropped ?? 0],
-  ['Flags returned', (x) => x.flagsReturned ?? 0],
-  ['Shots', (x) => x.shots ?? 0],
-  ['Hit accuracy', (x) => `${Math.round(100 * (x.accuracy ?? 0))}%`],
-  ['Shots taken', (x) => x.shotsTaken ?? 0],
-  ['Total movement', (x) => `${Math.trunc(x.movement ?? 0)} u`],
-];
-
-export function MatchScreen() {
-  const { t, prefs } = usePrefs();
-  const navigate = useNavigate();
-  const { id = '' } = useParams();
-  const page = useApi<MatchPage>(`/matches/${encodeURIComponent(id)}`);
-  const m = page.data;
-  const d = m?.details ?? {};
-  const rules = d.rules;
-  const minutes = (frames: number) => `${Math.trunc(frames / 600)} min`;
-  let red = d.baseScore?.[0] ?? 0;
-  let blue = d.baseScore?.[1] ?? 0;
-  return (
-    <TextPage caption={m ? `${d.mapTitle ?? m.match.map} ${m.match.redScore}-${m.match.blueScore}` : t('Match')} onBack={() => void navigate(-1)}>
-      <Status loading={m === undefined} missing={m === null} error={page.error} />
-      {m && (
-        <>
-          <Section title={t('Game info')}>
-            <table className="stats-table">
-              <tbody>
-                <tr>
-                  <th>{t('Date')}</th>
-                  <td>{date(m.match.endedAt, prefs.locale)}</td>
-                </tr>
-                <tr>
-                  <th>{t('Mode')}</th>
-                  <td>
-                    {m.match.mode === 'ranked' ? t('Ranked') : t('Casual')}
-                    {m.match.mode === 'ranked' && !m.match.ranked ? ` (${t('did not count for the ranking')})` : ''}
-                  </td>
-                </tr>
-                <tr>
-                  <th>{t('Map')}</th>
-                  <td>
-                    {d.mapTitle ?? m.match.map} ({clock(d.mapTime ?? 0)})
-                  </td>
-                </tr>
-                {rules && (
-                  <>
-                    <tr>
-                      <th>{t('Capture limit')}</th>
-                      <td>{rules.captureLimit === 0 ? t('none') : `${rules.captureLimit}${rules.winScoreDifference > 1 ? ` (${t('difference of $1', String(rules.winScoreDifference))})` : ''}`}</td>
-                    </tr>
-                    <tr>
-                      <th>{t('Time limit')}</th>
-                      <td>{rules.timeLimit === 0 ? t('none') : minutes(rules.timeLimit)}</td>
-                    </tr>
-                    {rules.timeLimit !== 0 && (
-                      <tr>
-                        <th>{t('Extra time')}</th>
-                        <td>
-                          {rules.extraTime === 0 ? t('none') : `${rules.extraTimePeriods > 1 ? `${rules.extraTimePeriods}×` : ''}${minutes(rules.extraTime)}`}
-                          {rules.extraTime !== 0 && rules.suddenDeath ? ` (${t('sudden death')})` : ''}
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                )}
-                {m.replayUrl && (
-                  <tr>
-                    <th>{t('Replay')}</th>
-                    <td>
-                      <Link to={`/replay?src=${encodeURIComponent(m.replayUrl)}`}>{t('Watch')}</Link>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </Section>
-          {d.teams && (
-            <Section title={t('Team stats')}>
-              <table className="stats-table">
-                <thead>
-                  <tr>
-                    <th>{t('Team')}</th>
-                    <th className="team-red">{t('Red')}</th>
-                    <th className="team-blue">{t('Blue')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {TEAM_ROWS.map(([label, value]) => (
-                    <tr key={label}>
-                      <th>{t(label)}</th>
-                      <td>{value(d.teams![0] ?? {})}</td>
-                      <td>{value(d.teams![1] ?? {})}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Section>
-          )}
-          <Section title={t('Player stats')}>
-            <table className="stats-table wide">
-              <thead>
-                <tr>
-                  <th>{t('Player')}</th>
-                  {PLAYER_COLUMNS.map(([label]) => (
-                    <th key={label}>{t(label)}</th>
-                  ))}
-                  {m.match.ranked && <th>{t('Ranking')}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {[0, 1].map((team) => [
-                  <tr key={`h${team}`} className={team === 0 ? 'team-red' : 'team-blue'}>
-                    <th colSpan={PLAYER_COLUMNS.length + (m.match.ranked ? 2 : 1)}>{team === 0 ? t('Red team') : t('Blue team')}</th>
-                  </tr>,
-                  ...m.players
-                    .filter((p) => p.team === team)
-                    .map((p) => (
-                      <tr key={p.slot}>
-                        <td className="name">
-                          <PlayerLink name={p.name} username={p.username} />
-                        </td>
-                        {PLAYER_COLUMNS.map(([label, value]) => (
-                          <td key={label}>{value(p)}</td>
-                        ))}
-                        {m.match.ranked && <td>{p.username ? `${p.scoreDelta >= 0 ? '+' : ''}${p.scoreDelta} / +${p.negDelta}` : '-'}</td>}
-                      </tr>
-                    )),
-                ])}
-              </tbody>
-            </table>
-          </Section>
-          {d.captures && d.captures.length > 0 && (
-            <Section title={t('Captures')}>
-              <table className="stats-table">
-                <thead>
-                  <tr>
-                    <th>{t('Time')}</th>
-                    <th>{t('Team')}</th>
-                    <th>{t('Score')}</th>
-                    <th>{t('Capturer')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.captures.map((c, i) => {
-                    if (c.team === 0) red++;
-                    else blue++;
-                    return (
-                      <tr key={i} className={c.team === 0 ? 'team-red' : 'team-blue'}>
-                        <td>{clock(c.time)}</td>
-                        <td>{c.team === 0 ? t('Red') : t('Blue')}</td>
-                        <td>
-                          {red}–{blue}
-                        </td>
-                        <td>
-                          {c.capturer}
-                          {c.assistant ? ` + ${c.assistant}` : ''}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </Section>
-          )}
         </>
       )}
     </TextPage>

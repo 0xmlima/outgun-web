@@ -408,3 +408,12 @@ body {
 .menu-message.error {
   color: var(--menu-active);
 }
+
+/* "Ver relatório" no fim da partida (OG-214) */
+.game-report {
+  position: absolute;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}

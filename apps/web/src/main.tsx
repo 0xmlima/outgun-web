@@ -20,7 +20,8 @@ import {
   ResetPasswordScreen,
 } from './screens/account.js';
 import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.js';
-import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
+import { LastMatchScreen, MatchScreen } from './screens/MatchReport.js';
+import { LeaderboardScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen } from './screens/options.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
@@ -72,6 +73,7 @@ const router = createBrowserRouter([
           { path: 'rooms/:id', element: <JoinRoomScreen /> },
           { path: 'players/:name', element: <ProfileScreen /> },
           { path: 'matches/:id', element: <MatchScreen /> },
+          { path: 'rooms/:id/report', element: <LastMatchScreen /> },
           { path: 'ranking', element: <LeaderboardScreen /> },
           {
             path: 'feedback',

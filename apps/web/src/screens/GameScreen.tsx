@@ -13,6 +13,7 @@ import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { ACTION_LABELS } from '../game/input/bindings.js';
 import { BitmapText } from '../ui/BitmapText.js';
+import { Button } from '../ui/Button.js';
 import { GAME_FONT } from '../ui/fonts.js';
 import { useMusicMode } from '../app/music/MusicProvider.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
@@ -159,6 +160,8 @@ export default function GameScreen() {
   const auto = useRef({ statsReady: -1, gameOver: false, serverShown: false });
   // placar de fim de partida na tela (também exposto em data-game-over para os testes E2E)
   const [gameOver, setGameOver] = useState(false);
+  // fim da última partida vista nesta sala: "Ver relatório" (OG-214) busca a partida terminada depois disso
+  const [lastGameOverAt, setLastGameOverAt] = useState<number | null>(null);
   useEffect(() => {
     if (onlineKey === null) return;
     const id = setInterval(() => {
@@ -171,6 +174,7 @@ export default function GameScreen() {
         if (prefs.showStats !== 'off') setInfo((cur) => cur ?? { kind: prefs.showStats === 'teams' ? 'teams' : 'players', auto: true });
       }
       if (a.gameOver && !s.gameOver) setInfo((cur) => (cur?.auto ? null : cur));
+      if (!a.gameOver && s.gameOver !== null) setLastGameOverAt(Date.now());
       a.gameOver = s.gameOver !== null;
       setGameOver(a.gameOver);
       if (!a.serverShown && s.me >= 0 && s.world) {
@@ -207,8 +211,12 @@ export default function GameScreen() {
     return () => removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
+  const sala = params.get('sala');
+  // margem de 1 min para o relógio do servidor (ended_at) e o do navegador
+  const openReport = () => lastGameOverAt !== null && sala && void navigate(`/rooms/${encodeURIComponent(sala)}/report?${new URLSearchParams({ after: new Date(lastGameOverAt - 60_000).toISOString() })}`);
   const items: MenuItem[] = [
     { kind: 'action', label: t('Back to game'), onActivate: () => setMenuOpen(false) },
+    ...(lastGameOverAt !== null && sala ? [{ kind: 'action' as const, label: t('View match report'), onActivate: openReport }] : []),
     {
       kind: 'action',
       label: t('Send feedback'),
@@ -227,6 +235,11 @@ export default function GameScreen() {
           </p>
         )}
         {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
+        {gameOver && sala && !menuOpen && (
+          <Button variant="primary" className="game-report" onClick={openReport}>
+            {t('View match report')}
+          </Button>
+        )}
         {menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
         ) : onlineKey !== null && status?.kind === 'ready' ? null : (

@@ -666,7 +666,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Em revisão |
 | [OG-212](cards/OG-212-perfil-social.md) | Página de perfil social | E9 | 5 | Must | S15 | OG-200, OG-211 | Backlog |
 | [OG-213](cards/OG-213-marcos.md) | Marcos (milestones) do jogador | E9 | 3 | Should | S15 | OG-211 | Backlog |
-| [OG-214](cards/OG-214-relatorio-partida.md) | Relatório de partida | E9 | 5 | Must | S14 | OG-200 | Pronto |
+| [OG-214](cards/OG-214-relatorio-partida.md) | Relatório de partida | E9 | 5 | Must | S14 | OG-200 | Em revisão |
 | [OG-215](cards/OG-215-diretorio-jogadores.md) | Diretório e busca de jogadores | E9 | 3 | Should | S15 | OG-200, OG-211 | Backlog |
 | [OG-216](cards/OG-216-cliente-portal-links.md) | Ligações entre o cliente e o portal | E9 | 2 | Won't (v2) | — | OG-212, OG-214 | Cancelado |
 | [OG-220](cards/OG-220-pipeline-trilha.md) | Pipeline da trilha sonora | E10 | 2 | Must | S13 | — | Concluído |

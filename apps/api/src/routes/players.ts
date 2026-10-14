@@ -2,7 +2,7 @@
 // Perfil público, histórico e partida (OG-085, RN-STA-01/03): estatísticas separadas por modo
 // (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, sql } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
 import { matches, matchPlayers, playerProfiles, ratings, users } from '../db/schema.js';
@@ -168,6 +168,30 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
             player: { slot: p.slot, name: p.name, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures, playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta },
           })),
         };
+      },
+    );
+
+    app.get(
+      '/rooms/:id/last-match',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Última partida registrada de uma sala (o "Ver relatório" do fim de partida, OG-214)',
+          params: Type.Object({ id: Type.String({ minLength: 1, maxLength: 64 }) }),
+          querystring: Type.Object({ after: Type.Optional(Type.String({ format: 'date-time' })) }),
+          response: { 200: Type.Object({ id: Type.String() }), 404: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const { after } = request.query;
+        const [m] = await db
+          .select({ id: matches.id })
+          .from(matches)
+          .where(and(eq(matches.roomId, request.params.id), after ? gte(matches.endedAt, new Date(after)) : undefined))
+          .orderBy(desc(matches.endedAt))
+          .limit(1);
+        if (!m) return reply.code(404).send({ error: 'match_not_found', message: 'match not found' });
+        return m;
       },
     );
 
