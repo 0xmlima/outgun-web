@@ -23,11 +23,16 @@ import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.j
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
+import { installErrorReporting } from './app/errors.js';
 import './styles.css';
+
+installErrorReporting();
 
 // O jogo (e, a partir do OG-061, o PixiJS) só é baixado ao entrar na partida.
 const GameScreen = lazy(() => import('./screens/GameScreen.js'));
 const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
+// painel admin (OG-087): só moderadores e admins baixam
+const AdminScreen = lazy(() => import('./screens/AdminScreen.js'));
 const SpectateScreen = lazy(() => import('./screens/ReplayScreen.js').then((m) => ({ default: m.SpectateScreen })));
 
 const router = createBrowserRouter([
@@ -60,6 +65,14 @@ const router = createBrowserRouter([
           { path: 'players/:name', element: <ProfileScreen /> },
           { path: 'matches/:id', element: <MatchScreen /> },
           { path: 'ranking', element: <LeaderboardScreen /> },
+          {
+            path: 'admin',
+            element: (
+              <Suspense fallback={null}>
+                <AdminScreen />
+              </Suspense>
+            ),
+          },
         ],
       },
       {

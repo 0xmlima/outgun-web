@@ -52,7 +52,8 @@ export interface TicketAuthOptions {
 }
 
 /** `spawn`: a API pediu para abrir a sala se ela ainda não existe aqui (OG-086). */
-export type IdentifyResult = { ok: true; identity: Identity; spawn?: RoomSpawn } | { ok: false; reason: string };
+/** `jti`: id do ticket, que a API também registra no log (correlação, OG-102). */
+export type IdentifyResult = { ok: true; identity: Identity; spawn?: RoomSpawn; jti?: string } | { ok: false; reason: string };
 
 export class TicketAuth {
   private readonly replay = new ReplayGuard();
@@ -72,8 +73,9 @@ export class TicketAuth {
     const c = result.claims;
     return {
       ok: true,
-      identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, admin: c.admin, ...(c.owner ? { owner: true } : {}), ...(c.rating ? { rating: c.rating } : {}) },
+      identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, admin: c.admin, ...(c.owner ? { owner: true } : {}), ...(c.rating ? { rating: c.rating } : {}), ...(c.dev ? { device: c.dev } : {}) },
       ...(c.spawn ? { spawn: c.spawn } : {}),
+      jti: c.jti,
     };
   }
 }

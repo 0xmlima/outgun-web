@@ -49,11 +49,11 @@ describe('auditoria para a API (OG-046)', () => {
 describe('heartbeat do registro de salas (OG-086)', () => {
   it('anuncia o servidor e o endereço de cada sala', () => {
     const body = heartbeatBody({ wsBaseUrl: 'wss://gs1.example/', region: 'sa', maxRooms: 20 }, [
-      { id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 3, map: 'Outgun 1' },
+      { id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 3, map: 'Outgun 1', roster: [{ uid: 1, name: 'Ana', team: 0, bot: false, muted: 0 }] },
     ]);
     expect(body).toEqual({
       server: { wsBaseUrl: 'wss://gs1.example', region: 'sa', maxRooms: 20 },
-      rooms: [{ id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 3, map: 'Outgun 1', wsUrl: 'wss://gs1.example/rooms/main' }],
+      rooms: [{ id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 3, map: 'Outgun 1', roster: [{ uid: 1, name: 'Ana', team: 0, bot: false, muted: 0 }], wsUrl: 'wss://gs1.example/rooms/main' }],
     });
   });
 });

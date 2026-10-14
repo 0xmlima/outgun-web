@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Local: os alertas só aparecem na interface (http://localhost:9093). O destino real (e-mail,
+# webhook do chat da equipe) entra na configuração do ambiente no deploy (OG-103).
+route:
+  receiver: interface
+  group_by: [alertname, instance]
+  group_wait: 30s
+  repeat_interval: 4h
+receivers:
+  - name: interface

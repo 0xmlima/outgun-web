@@ -9,6 +9,8 @@ export interface AccountUser {
   readonly email: string;
   readonly clanTag: string | null;
   readonly isAdmin: boolean;
+  /** Moderador do painel (OG-087). */
+  readonly isModerator?: boolean;
 }
 
 interface AccountContextValue {

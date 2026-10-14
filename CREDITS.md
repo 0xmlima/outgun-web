@@ -21,6 +21,10 @@ Sites do projeto original: <http://outgun.mbnet.fi/> e <http://outgun.sf.net/> (
 
 Allegro, HawkNL e Pthreads-win32. O port web não usa essas bibliotecas; elas aparecem apenas no oráculo de testes (`tools/parity/`).
 
+## Dados de terceiros no port
+
+- Lista de senhas comuns recusadas no cadastro (`apps/api/src/auth/common-passwords.ts`, OG-104): derivada de "10k-most-common" do [SecLists](https://github.com/danielmiessler/SecLists), Copyright (c) 2018 Daniel Miessler, licença MIT.
+
 ## Licença
 
 O código original e o port são distribuídos sob a **GNU General Public License, versão 2 ou (a seu critério) qualquer versão posterior** — texto completo em `COPYING`. Arquivos novos do port levam o cabeçalho `SPDX-License-Identifier: GPL-2.0-or-later`, verificado por `pnpm check:licenses`, que também bloqueia dependências de produção com licença incompatível.

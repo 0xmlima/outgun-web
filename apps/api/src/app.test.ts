@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from './app.js';
 import { loadConfig } from './config.js';
 import { migrateUp } from './db/migrate.js';
-import { adminActions, bans, matches, matchPlayers, rooms, seasons, users } from './db/schema.js';
+import { adminActions, bans, matches, matchPlayers, playerReports, rooms, seasons, users } from './db/schema.js';
 import { SEED_USERS, seed } from './db/seed.js';
 import { signInternalRequest } from '@outgun/tickets';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from './test/db.js';
@@ -191,5 +191,27 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
     expect(kick.json().banId).toBeNull();
     expect((await internal('/internal/admin-actions', { roomId: 'main', action: 'ban', actor: { name: 'A' }, reason: 'x' })).statusCode).toBe(422);
     expect((await internal('/internal/admin-actions', { roomId: 'main', action: 'ban', actor: { name: 'A' }, target: { name: 'B' }, reason: 'x', durationSeconds: 8 * 24 * 3600 })).statusCode).toBe(400);
+  });
+
+  it('ban de convidado só pelo dispositivo; denúncia do /report fica aberta para a moderação (OG-104)', async () => {
+    const device = 'ab'.repeat(16);
+    const res = await internal('/internal/admin-actions', { roomId: 'main', action: 'ban', actor: { name: 'Admin' }, target: { name: 'Visita*', device }, reason: 'trapaça', durationSeconds: 3600 });
+    expect(res.statusCode).toBe(201);
+    const [ban] = await t.db.select().from(bans).where(eq(bans.id, res.json().banId));
+    expect(ban).toMatchObject({ userId: null, ip: null, deviceHash: device, roomId: 'main' });
+
+    const [target] = await t.db.select().from(users).where(eq(users.username, 'Jogador2'));
+    const report = await internal('/internal/reports', {
+      roomId: 'main',
+      map: 'outgun1',
+      reporter: { name: 'Visita*' },
+      target: { name: 'Jogador2', accountId: target!.id, ip: '10.9.9.8', device },
+      reason: 'atravessa paredes',
+    });
+    expect(report.statusCode).toBe(201);
+    const [row] = await t.db.select().from(playerReports).where(eq(playerReports.id, report.json().id));
+    expect(row).toMatchObject({ roomId: 'main', serverId: 'gs-1', reporterName: 'Visita*', reporterUserId: null, targetUserId: target!.id, targetIp: '10.9.9.8', targetDeviceHash: device, status: 'open' });
+    expect((await internal('/internal/reports', { roomId: 'main', reporter: { name: 'a' }, target: { name: 'b', device: 'cru' }, reason: 'x' })).statusCode).toBe(400);
+    expect((await internal('/internal/reports', { roomId: 'main', reporter: { name: 'a' }, target: { name: 'b' }, reason: 'x' }, 'segredo-errado-0123456789')).statusCode).toBe(401);
   });
 });

@@ -1,0 +1,575 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Painel admin (OG-087): salas ao vivo com os jogadores (kick, ban, mute, mensagem), denúncias,
+// bans, auditoria e, para admin, presets Casual, rotações e papéis. Quem não é moderador nem admin
+// vê só um aviso (a API recusa as rotas de qualquer jeito).
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useNavigate } from 'react-router';
+import { useAccount } from '../app/account.js';
+import { api, ApiError } from '../app/api.js';
+import { usePrefs } from '../app/prefs.js';
+import { TextPage } from '../ui/TextPage.js';
+
+type Tab = 'rooms' | 'reports' | 'bans' | 'audit' | 'presets' | 'rotations' | 'roles';
+
+interface RosterEntry {
+  uid: number;
+  name: string;
+  team: number;
+  accountId?: string;
+  bot: boolean;
+  muted: number;
+}
+interface LiveRoom {
+  id: string;
+  name: string;
+  mode: string;
+  preset: string;
+  map: string | null;
+  players: number;
+  maxPlayers: number;
+  roster: RosterEntry[];
+}
+interface Report {
+  id: number;
+  roomId: string | null;
+  map: string | null;
+  reporter: string;
+  target: string;
+  reason: string;
+  createdAt: string;
+}
+interface Ban {
+  id: number;
+  username: string | null;
+  ip: string | null;
+  device: string | null;
+  roomId: string | null;
+  reason: string;
+  expiresAt: string | null;
+}
+interface AuditEntry {
+  id: number;
+  actor: string;
+  action: string;
+  target: string | null;
+  roomId: string | null;
+  reason: string;
+  createdAt: string;
+}
+interface PresetRow {
+  id: string;
+  mode: string;
+  description: string;
+  overrides: string;
+  locked: boolean;
+  source: 'code' | 'panel';
+  version: number | null;
+}
+
+const errorText = (e: unknown) => (e instanceof ApiError ? e.message : String(e));
+const when = (iso: string) => new Date(iso).toLocaleString();
+
+/** Carrega `path` e recarrega a cada `everyMs` (0 = só quando `reload` muda). */
+function useLoad<T>(path: string, everyMs = 0): { data: T | undefined; error: string | null; reload: () => void } {
+  const [state, setState] = useState<{ data: T | undefined; error: string | null }>({ data: undefined, error: null });
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      api<T>(path).then(
+        (data) => alive && setState({ data, error: null }),
+        (e: unknown) => alive && setState((s) => ({ data: s.data, error: errorText(e) })),
+      );
+    void load();
+    const id = everyMs > 0 ? setInterval(() => void load(), everyMs) : undefined;
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [path, everyMs, tick]);
+  return { ...state, reload: useCallback(() => setTick((n) => n + 1), []) };
+}
+
+export default function AdminScreen() {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  const { user } = useAccount();
+  const [tab, setTab] = useState<Tab>('rooms');
+  const isAdmin = user?.isAdmin ?? false;
+  const allowed = isAdmin || (user?.isModerator ?? false);
+  const tabs: [Tab, string][] = [
+    ['rooms', t('Live rooms')],
+    ['reports', t('Reports')],
+    ['bans', t('Bans')],
+    ['audit', t('Audit log')],
+    ['presets', t('Presets')],
+    ['rotations', t('Map rotations')],
+    ...(isAdmin ? ([['roles', t('Roles')]] as [Tab, string][]) : []),
+  ];
+  return (
+    <TextPage caption={t('Moderation')} onBack={() => void navigate('/')}>
+      {user === undefined ? null : !allowed ? (
+        <p className="stats-note error">{t('Moderators and admins only.')}</p>
+      ) : (
+        <div className="admin">
+          <p className="stats-tabs" role="tablist">
+            {tabs.map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+                {label}
+              </button>
+            ))}
+          </p>
+          {tab === 'rooms' && <RoomsTab isAdmin={isAdmin} />}
+          {tab === 'reports' && <ReportsTab />}
+          {tab === 'bans' && <BansTab isAdmin={isAdmin} />}
+          {tab === 'audit' && <AuditTab />}
+          {tab === 'presets' && <PresetsTab isAdmin={isAdmin} />}
+          {tab === 'rotations' && <RotationsTab isAdmin={isAdmin} />}
+          {tab === 'roles' && isAdmin && <RolesTab />}
+        </div>
+      )}
+    </TextPage>
+  );
+}
+
+function Status({ text, error }: { text?: string | null | undefined; error?: string | null | undefined }): ReactNode {
+  if (error) return <p className="stats-note error" role="alert">{error}</p>;
+  return text ? <p className="stats-note" role="status">{text}</p> : null;
+}
+
+/** Manda um comando e acompanha até o game server confirmar (≤ ~6 s). */
+async function sendCommand(roomId: string, body: Record<string, unknown>, t: (s: string, ...a: string[]) => string): Promise<string> {
+  const { commandId } = await api<{ commandId: number }>(`/admin/rooms/${encodeURIComponent(roomId)}/commands`, { body });
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    const c = await api<{ status: string; result: { ok: boolean; text?: string } | null }>(`/admin/commands/${commandId}`);
+    if (c.status === 'done') return c.result?.ok ? t('Done.') : t('Not done: $1', c.result?.text ?? '?');
+  }
+  return t('Sent; the game server has not confirmed yet.');
+}
+
+function RoomsTab({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = usePrefs();
+  const rooms = useLoad<{ rooms: LiveRoom[] }>('/admin/rooms', 3000);
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const [reason, setReason] = useState('');
+  const [minutes, setMinutes] = useState('60');
+  const [platform, setPlatform] = useState(false);
+  const [message, setMessage] = useState('');
+  const run = (roomId: string, body: Record<string, unknown>) => {
+    setStatus({ text: t('Sending...') });
+    sendCommand(roomId, body, t).then(
+      (text) => {
+        setStatus({ text });
+        rooms.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  };
+  const broadcast = (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!message.trim()) return;
+    api<{ rooms: number }>('/admin/broadcast', { body: { text: message.trim() } }).then(
+      (r) => setStatus({ text: t('Message sent to $1 rooms.', String(r.rooms)) }),
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  };
+  return (
+    <section className="stats-section">
+      <p className="admin-form">
+        <label>
+          {t('Reason')} <input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
+        </label>{' '}
+        <label>
+          {t('Ban minutes')} <input value={minutes} size={6} inputMode="numeric" onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ''))} />
+        </label>{' '}
+        {isAdmin && (
+          <label>
+            <input type="checkbox" checked={platform} onChange={(e) => setPlatform(e.target.checked)} /> {t('Platform ban')}
+          </label>
+        )}
+      </p>
+      <Status text={status.text} error={status.error ?? rooms.error} />
+      {rooms.data?.rooms.length === 0 && <p className="stats-note">{t('No rooms online.')}</p>}
+      {rooms.data?.rooms.map((r) => (
+        <div key={r.id} className="admin-room">
+          <h2>
+            {r.name} ({r.id}) · {r.mode} · {r.preset} · {r.map ?? '-'} · {r.players}/{r.maxPlayers}
+          </h2>
+          <table className="stats-table wide">
+            <tbody>
+              {r.roster.map((p) => (
+                <tr key={p.uid} className={p.team === 0 ? 'team-red' : 'team-blue'}>
+                  <td className="name">
+                    {p.uid} {p.name}
+                    {p.bot ? ' (bot)' : ''}
+                    {p.muted ? ` (${t('muted')})` : ''}
+                  </td>
+                  <td>
+                    {!p.bot && (
+                      <>
+                        <button type="button" onClick={() => run(r.id, { kind: 'kick', uid: p.uid, reason })}>
+                          {t('Kick')}
+                        </button>{' '}
+                        <button type="button" onClick={() => run(r.id, { kind: 'ban', uid: p.uid, reason, minutes: Number(minutes) || 60, ...(platform ? { platform: true } : {}) })}>
+                          {t('Ban')}
+                        </button>{' '}
+                        <button type="button" onClick={() => run(r.id, { kind: p.muted ? 'unmute' : 'mute', uid: p.uid })}>
+                          {p.muted ? t('Unmute') : t('Mute')}
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="admin-form">
+            <button type="button" disabled={!reason.trim()} onClick={() => run(r.id, { kind: 'message', text: reason.trim() })}>
+              {t('Send the reason text as a message to this room')}
+            </button>
+          </p>
+        </div>
+      ))}
+      {isAdmin && (
+        <form className="admin-form" onSubmit={broadcast}>
+          <label>
+            {t('Message to all rooms')} <input value={message} maxLength={200} onChange={(e) => setMessage(e.target.value)} />
+          </label>{' '}
+          <button type="submit">{t('Send')}</button>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function ReportsTab() {
+  const { t } = usePrefs();
+  const reports = useLoad<{ reports: Report[] }>('/admin/reports', 10_000);
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const close = (id: number, s: 'dismissed' | 'actioned') =>
+    api(`/admin/reports/${id}`, { body: { status: s } }).then(
+      () => {
+        setStatus({ text: t('Done.') });
+        reports.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  return (
+    <section className="stats-section">
+      <Status text={status.text} error={status.error ?? reports.error} />
+      {reports.data?.reports.length === 0 && <p className="stats-note">{t('No open reports.')}</p>}
+      {reports.data && reports.data.reports.length > 0 && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Date')}</th>
+              <th>{t('Room')}</th>
+              <th>{t('Reported player')}</th>
+              <th>{t('Reason')}</th>
+              <th>{t('By')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {reports.data.reports.map((r) => (
+              <tr key={r.id}>
+                <td>{when(r.createdAt)}</td>
+                <td className="name">
+                  {r.roomId ?? '-'} {r.map ? `(${r.map})` : ''}
+                </td>
+                <td className="name">{r.target}</td>
+                <td className="name">{r.reason}</td>
+                <td className="name">{r.reporter}</td>
+                <td>
+                  <button type="button" onClick={() => void close(r.id, 'actioned')}>
+                    {t('Handled')}
+                  </button>{' '}
+                  <button type="button" onClick={() => void close(r.id, 'dismissed')}>
+                    {t('Dismiss')}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function BansTab({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = usePrefs();
+  const list = useLoad<{ bans: Ban[] }>('/admin/bans');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const [form, setForm] = useState({ username: '', ip: '', minutes: '', reason: '' });
+  const revoke = (id: number) =>
+    api(`/admin/bans/${id}`, { method: 'DELETE' }).then(
+      () => {
+        setStatus({ text: t('Ban revoked.') });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  const create = (ev: FormEvent) => {
+    ev.preventDefault();
+    const body = { reason: form.reason, ...(form.username ? { username: form.username } : {}), ...(form.ip ? { ip: form.ip } : {}), ...(form.minutes ? { minutes: Number(form.minutes) } : {}) };
+    api('/admin/bans', { body }).then(
+      () => {
+        setStatus({ text: t('Ban created.') });
+        setForm({ username: '', ip: '', minutes: '', reason: '' });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  };
+  return (
+    <section className="stats-section">
+      <Status text={status.text} error={status.error ?? list.error} />
+      {isAdmin && (
+        <form className="admin-form" onSubmit={create}>
+          <label>
+            {t('Account')} <input value={form.username} maxLength={32} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+          </label>{' '}
+          <label>
+            IP <input value={form.ip} maxLength={45} onChange={(e) => setForm({ ...form, ip: e.target.value })} />
+          </label>{' '}
+          <label>
+            {t('Minutes (empty = no end)')} <input value={form.minutes} size={7} inputMode="numeric" onChange={(e) => setForm({ ...form, minutes: e.target.value.replace(/\D/g, '') })} />
+          </label>{' '}
+          <label>
+            {t('Reason')} <input value={form.reason} maxLength={200} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+          </label>{' '}
+          <button type="submit">{t('Platform ban')}</button>
+        </form>
+      )}
+      {list.data?.bans.length === 0 && <p className="stats-note">{t('No active bans.')}</p>}
+      {list.data && list.data.bans.length > 0 && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Account')}</th>
+              <th>IP</th>
+              <th>{t('Device')}</th>
+              <th>{t('Room')}</th>
+              <th>{t('Reason')}</th>
+              <th>{t('Until')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.bans.map((b) => (
+              <tr key={b.id}>
+                <td className="name">{b.username ?? '-'}</td>
+                <td className="name">{b.ip ?? '-'}</td>
+                <td className="name">{b.device ?? '-'}</td>
+                <td className="name">{b.roomId ?? t('platform')}</td>
+                <td className="name">{b.reason}</td>
+                <td>{b.expiresAt ? when(b.expiresAt) : t('no end')}</td>
+                <td>
+                  {(b.roomId !== null || isAdmin) && (
+                    <button type="button" onClick={() => void revoke(b.id)}>
+                      {t('Revoke')}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function AuditTab() {
+  const { t } = usePrefs();
+  const audit = useLoad<{ entries: AuditEntry[] }>('/admin/audit?limit=100', 10_000);
+  return (
+    <section className="stats-section">
+      <Status error={audit.error} />
+      {audit.data && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Date')}</th>
+              <th>{t('By')}</th>
+              <th>{t('Action')}</th>
+              <th>{t('Target')}</th>
+              <th>{t('Room')}</th>
+              <th>{t('Reason')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {audit.data.entries.map((e) => (
+              <tr key={e.id}>
+                <td>{when(e.createdAt)}</td>
+                <td className="name">{e.actor}</td>
+                <td className="name">{e.action}</td>
+                <td className="name">{e.target ?? '-'}</td>
+                <td className="name">{e.roomId ?? '-'}</td>
+                <td className="name">{e.reason}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = usePrefs();
+  const list = useLoad<{ presets: PresetRow[] }>('/admin/presets');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const [form, setForm] = useState({ id: '', description: '', overrides: '' });
+  const save = (ev: FormEvent) => {
+    ev.preventDefault();
+    api<{ version: number }>(`/admin/presets/${encodeURIComponent(form.id)}`, { method: 'PUT', body: { description: form.description, overrides: form.overrides } }).then(
+      (r) => {
+        setStatus({ text: t('Preset saved (version $1).', String(r.version)) });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  };
+  const remove = (id: string) =>
+    api(`/admin/presets/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(
+      () => {
+        setStatus({ text: t('Preset removed.') });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  return (
+    <section className="stats-section">
+      <p className="stats-line">{t('Built-in presets change only with a new release; the Ranked preset only by decision of the product owner.')}</p>
+      <Status text={status.text} error={status.error ?? list.error} />
+      {list.data && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Preset')}</th>
+              <th>{t('Mode')}</th>
+              <th>{t('Description')}</th>
+              <th>{t('Settings')}</th>
+              <th>{t('Version')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.presets.map((p) => (
+              <tr key={p.id}>
+                <td className="name">{p.id}</td>
+                <td className="name">{p.mode}</td>
+                <td className="name">{p.description}</td>
+                <td className="name">
+                  <code>{p.overrides || '-'}</code>
+                </td>
+                <td>{p.source === 'code' ? t('game') : p.version}</td>
+                <td>
+                  {isAdmin && p.source === 'panel' && (
+                    <>
+                      <button type="button" onClick={() => setForm({ id: p.id, description: p.description, overrides: p.overrides })}>
+                        {t('Edit')}
+                      </button>{' '}
+                      <button type="button" onClick={() => void remove(p.id)}>
+                        {t('Remove')}
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {isAdmin && (
+        <form className="admin-form" onSubmit={save}>
+          <label>
+            {t('Preset')} <input value={form.id} maxLength={32} onChange={(e) => setForm({ ...form, id: e.target.value.toLowerCase() })} />
+          </label>{' '}
+          <label>
+            {t('Description')} <input value={form.description} maxLength={200} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </label>
+          <label className="admin-block">
+            {t('Settings (gamemod lines)')}
+            <textarea value={form.overrides} rows={5} onChange={(e) => setForm({ ...form, overrides: e.target.value })} />
+          </label>
+          <button type="submit" disabled={!form.id || !form.description}>
+            {t('Save Casual preset')}
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = usePrefs();
+  const list = useLoad<{ rotations: { mode: string; maps: string[]; version: number }[] }>('/admin/rotations');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const value = (mode: string) => drafts[mode] ?? list.data?.rotations.find((r) => r.mode === mode)?.maps.join('\n') ?? '';
+  const save = (mode: string) =>
+    api<{ version: number }>(`/admin/rotations/${mode}`, { method: 'PUT', body: { maps: value(mode).split('\n').map((m) => m.trim()).filter(Boolean) } }).then(
+      (r) => {
+        setStatus({ text: t('Rotation saved (version $1). It applies from the next map change.', String(r.version)) });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  return (
+    <section className="stats-section">
+      <Status text={status.text} error={status.error ?? list.error} />
+      {(['casual', 'ranked'] as const).map((mode) => (
+        <div key={mode} className="admin-form">
+          <label className="admin-block">
+            {mode === 'casual' ? t('Casual rotation (one map per line; empty = server default)') : t('Ranked rotation (one map per line; empty = server default)')}
+            <textarea value={value(mode)} rows={6} readOnly={!isAdmin} onChange={(e) => setDrafts({ ...drafts, [mode]: e.target.value })} />
+          </label>
+          {isAdmin && (
+            <button type="button" disabled={!value(mode).trim()} onClick={() => void save(mode)}>
+              {t('Save')}
+            </button>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function RolesTab() {
+  const { t } = usePrefs();
+  const [username, setUsername] = useState('');
+  const [role, setRole] = useState<'player' | 'moderator' | 'admin'>('moderator');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const submit = (ev: FormEvent) => {
+    ev.preventDefault();
+    api<{ username: string; role: string }>(`/admin/users/${encodeURIComponent(username)}/role`, { method: 'PUT', body: { role } }).then(
+      (r) => setStatus({ text: t('$1 is now $2.', r.username, r.role) }),
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  };
+  return (
+    <section className="stats-section">
+      <form className="admin-form" onSubmit={submit}>
+        <label>
+          {t('Account')} <input value={username} maxLength={32} onChange={(e) => setUsername(e.target.value)} />
+        </label>{' '}
+        <label>
+          {t('Role')}{' '}
+          <select value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
+            <option value="player">{t('player')}</option>
+            <option value="moderator">{t('moderator')}</option>
+            <option value="admin">{t('admin')}</option>
+          </select>
+        </label>{' '}
+        <button type="submit" disabled={!username.trim()}>
+          {t('Change role')}
+        </button>
+      </form>
+      <Status text={status.text} error={status.error} />
+    </section>
+  );
+}

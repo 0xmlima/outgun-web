@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+apiVersion: 1
+providers:
+  - name: outgun
+    folder: Outgun
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

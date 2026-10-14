@@ -43,6 +43,10 @@
                         {
                           "type": "string",
                           "enum": ["degraded"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["stopping"]
                         }
                       ]
                     },
@@ -90,6 +94,10 @@
                         {
                           "type": "string",
                           "enum": ["degraded"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["stopping"]
                         }
                       ]
                     },
@@ -644,6 +652,42 @@
                             "type": "string"
                           },
                           "pingUrl": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presets": {
+      "get": {
+        "summary": "Presets Casual para salas privadas: os do jogo e os criados no painel (OG-087)",
+        "tags": ["salas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["presets"],
+                  "properties": {
+                    "presets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "description"],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "description": {
                             "type": "string"
                           }
                         }
@@ -1619,6 +1663,10 @@
                     "type": "string",
                     "pattern": "^[a-z0-9-]{1,32}$"
                   },
+                  "device": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{16,64}$"
+                  },
                   "password": {
                     "type": "string",
                     "maxLength": 64
@@ -1824,6 +1872,10 @@
                   "region": {
                     "type": "string",
                     "pattern": "^[a-z0-9-]{1,32}$"
+                  },
+                  "device": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{16,64}$"
                   },
                   "mode": {
                     "anyOf": [
@@ -2055,7 +2107,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2077,6 +2129,9 @@
                           ]
                         },
                         "isAdmin": {
+                          "type": "boolean"
+                        },
+                        "isModerator": {
                           "type": "boolean"
                         }
                       }
@@ -2183,7 +2238,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2205,6 +2260,9 @@
                           ]
                         },
                         "isAdmin": {
+                          "type": "boolean"
+                        },
+                        "isModerator": {
                           "type": "boolean"
                         }
                       }
@@ -2281,7 +2339,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2303,6 +2361,9 @@
                           ]
                         },
                         "isAdmin": {
+                          "type": "boolean"
+                        },
+                        "isModerator": {
                           "type": "boolean"
                         }
                       }
@@ -2438,7 +2499,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2460,6 +2521,9 @@
                           ]
                         },
                         "isAdmin": {
+                          "type": "boolean"
+                        },
+                        "isModerator": {
                           "type": "boolean"
                         }
                       }
@@ -2520,6 +2584,25 @@
         "responses": {
           "204": {
             "description": "Default Response"
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Default Response",
@@ -2618,7 +2701,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2640,6 +2723,9 @@
                           ]
                         },
                         "isAdmin": {
+                          "type": "boolean"
+                        },
+                        "isModerator": {
                           "type": "boolean"
                         }
                       }
@@ -2786,7 +2872,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin"],
+                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2808,6 +2894,9 @@
                           ]
                         },
                         "isAdmin": {
+                          "type": "boolean"
+                        },
+                        "isModerator": {
                           "type": "boolean"
                         }
                       }
@@ -3318,10 +3407,91 @@
                           "type": "string",
                           "pattern": "^wss?://",
                           "maxLength": 200
+                        },
+                        "roster": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["uid", "name", "team", "bot", "muted"],
+                            "properties": {
+                              "uid": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 32
+                              },
+                              "team": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "accountId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "bot": {
+                                "type": "boolean"
+                              },
+                              "muted": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2
+                              }
+                            }
+                          },
+                          "maxItems": 32
                         }
                       }
                     },
                     "maxItems": 64
+                  },
+                  "acks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["id", "ok"],
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "ok": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "target": {
+                          "type": "object",
+                          "required": ["name"],
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 32
+                            },
+                            "accountId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "ip": {
+                              "type": "string",
+                              "maxLength": 45
+                            },
+                            "device": {
+                              "type": "string",
+                              "pattern": "^[0-9a-f]{32}$"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "maxItems": 100
                   }
                 }
               }
@@ -3340,10 +3510,88 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["updated"],
+                  "required": ["updated", "commands", "config"],
                   "properties": {
                     "updated": {
                       "type": "integer"
+                    },
+                    "commands": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "roomId", "kind", "actor"],
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "roomId": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "uid": {
+                            "type": "integer"
+                          },
+                          "minutes": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "config": {
+                      "type": "object",
+                      "required": ["version", "presets", "rotations"],
+                      "properties": {
+                        "version": {
+                          "type": "string"
+                        },
+                        "presets": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["id", "description", "overrides"],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "overrides": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "rotations": {
+                          "type": "object",
+                          "properties": {
+                            "casual": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "ranked": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -3953,6 +4201,10 @@
                       "ip": {
                         "type": "string",
                         "maxLength": 45
+                      },
+                      "device": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}$"
                       }
                     }
                   },
@@ -4054,6 +4306,727 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/internal/reports": {
+      "post": {
+        "summary": "Denúncia de jogador feita com /report numa sala (OG-104); fica aberta para a moderação",
+        "tags": ["interno"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["roomId", "reporter", "target", "reason"],
+                "properties": {
+                  "roomId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                  },
+                  "map": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "reporter": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "accountId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      }
+                    }
+                  },
+                  "target": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "accountId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      },
+                      "ip": {
+                        "type": "string",
+                        "maxLength": 45
+                      },
+                      "device": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}$"
+                      }
+                    }
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "gameServerHmac": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/me": {
+      "get": {
+        "summary": "Papel de quem está no painel",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["role"],
+                  "properties": {
+                    "role": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["moderator"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["admin"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/rooms": {
+      "get": {
+        "summary": "Salas no ar com os jogadores (do último heartbeat)",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/rooms/{id}/commands": {
+      "post": {
+        "summary": "Kick, ban, mute ou mensagem numa sala (entregue ao game server em até ~3 s)",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["kind"],
+                "properties": {
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["kick"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["ban"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["mute"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["unmute"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["message"]
+                      }
+                    ]
+                  },
+                  "uid": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 525600
+                  },
+                  "platform": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/commands/{id}": {
+      "get": {
+        "summary": "Andamento de um comando do painel",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/broadcast": {
+      "post": {
+        "summary": "Mensagem do servidor em todas as salas no ar",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/reports": {
+      "get": {
+        "summary": "Denúncias do /report",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["open"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["dismissed"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["actioned"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/reports/{id}": {
+      "post": {
+        "summary": "Fecha uma denúncia",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["dismissed"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["actioned"]
+                      }
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/bans": {
+      "get": {
+        "summary": "Bans em vigor (mais recentes primeiro)",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "summary": "Ban de plataforma por conta e/ou IP (só admin)",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
+                  "ip": {
+                    "type": "string",
+                    "maxLength": 45
+                  },
+                  "minutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 525600
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/bans/{id}": {
+      "delete": {
+        "summary": "Revoga um ban (de plataforma, só admin)",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/audit": {
+      "get": {
+        "summary": "Log de auditoria (mais recentes primeiro)",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "before",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/presets": {
+      "get": {
+        "summary": "Presets do jogo (só leitura) e Casual do painel",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/presets/{id}": {
+      "put": {
+        "summary": "Cria ou altera um preset Casual (versionado); presets do jogo não mudam aqui",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["description", "overrides"],
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "overrides": {
+                    "type": "string",
+                    "maxLength": 4000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Desativa um preset Casual do painel",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/presets/{id}/versions": {
+      "get": {
+        "summary": "Histórico de um preset Casual do painel",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/rotations": {
+      "get": {
+        "summary": "Rotações de mapas do painel por modo (sem linha = a do servidor)",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/rotations/{mode}": {
+      "put": {
+        "summary": "Troca a rotação oficial de um modo (vale nas salas da plataforma a partir da próxima troca de mapa)",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["maps"],
+                "properties": {
+                  "maps": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[^/\\\\]{1,64}$"
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["casual"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["ranked"]
+                }
+              ]
+            },
+            "in": "path",
+            "name": "mode",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/role": {
+      "put": {
+        "summary": "Muda o papel de uma conta (jogador, moderador, admin)",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["player"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["moderator"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["admin"]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
           }
         }
       }

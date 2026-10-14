@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
+import { deviceId } from '../app/device.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { joinErrorText } from '../game/net/ticket.js';
@@ -86,7 +87,7 @@ function bestRegion(pings: ReadonlyMap<string, number>): string | undefined {
 
 /** "Jogar agora": a API escolhe a sala do modo; o jogo pede o próprio ticket ao entrar. */
 export async function quickJoin(mode: Mode, name: string, region?: string): Promise<string> {
-  const r = await api<{ roomId: string }>('/rooms/quick-join', { body: { mode, name, ...(region ? { region } : {}) } });
+  const r = await api<{ roomId: string }>('/rooms/quick-join', { body: { mode, name, device: deviceId(), ...(region ? { region } : {}) } });
   return r.roomId;
 }
 

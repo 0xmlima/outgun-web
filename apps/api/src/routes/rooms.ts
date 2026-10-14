@@ -2,7 +2,8 @@
 // Lista pública de salas (substitui a lista do master server do original) e criação de sala
 // privada Casual (OG-086, RN-CFG-03).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { PRESETS, presetSettings } from '@outgun/settings';
+import { PRESETS, settingsOf } from '@outgun/settings';
+import { findPreset, panelPresets } from '../platform-config.js';
 import { asc, eq } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
@@ -117,6 +118,20 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
       },
     );
 
+    app.get(
+      '/presets',
+      {
+        schema: {
+          tags: ['salas'],
+          summary: 'Presets Casual para salas privadas: os do jogo e os criados no painel (OG-087)',
+          response: { 200: Type.Object({ presets: Type.Array(Type.Object({ id: Type.String(), description: Type.String() })) }) },
+        },
+      },
+      async () => ({
+        presets: [...PRESETS.filter((p) => p.mode === 'casual'), ...(await panelPresets(db))].map((p) => ({ id: p.id, description: p.description })),
+      }),
+    );
+
     app.post(
       '/rooms',
       {
@@ -147,7 +162,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
         if (!user) return reply.code(401).send({ error: 'login_required', message: 'sign in to create a room' });
         const body = request.body;
         // Não existe sala privada Ranked (RN-MOD-04): só presets Casual.
-        const preset = PRESETS.find((p) => p.id === body.preset);
+        const preset = await findPreset(db, body.preset);
         if (!preset || preset.mode !== 'casual') return reply.code(422).send({ error: 'invalid_preset', message: 'private rooms take a casual preset' });
         if (!(await rateLimit.allow(`create-room:${user.id}`, config.limits.roomsPerHourPerUser, HOUR))) {
           return reply.code(429).send({ error: 'rate_limited', message: 'too many rooms, try later' });
@@ -157,7 +172,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
         if (!server && !config.devRoomWsUrl) return reply.code(503).send({ error: 'no_server', message: 'no game server available' });
 
         const id = `p-${randomBytes(6).toString('base64url').toLowerCase().replace(/[^a-z0-9]/g, '0')}`;
-        const maxPlayers = presetSettings(preset.id).server.maxPlayers ?? body.maxPlayers ?? 16;
+        const maxPlayers = settingsOf(preset).server.maxPlayers ?? body.maxPlayers ?? 16;
         const [row] = await db
           .insert(rooms)
           .values({

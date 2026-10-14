@@ -5,6 +5,7 @@ import { PassThrough } from 'node:stream';
 import { eq } from 'drizzle-orm';
 import type { LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { COMMON_PASSWORD_COUNT } from '../auth/common-passwords.js';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
@@ -72,6 +73,16 @@ describe.skipIf(!pgAdminUrl)('contas (OG-081)', () => {
     expect((await register('A\tB', 'a3@x.com')).json().error).toBe('invalid_username');
     expect((await register('Nome', 'sem-arroba')).json().error).toBe('invalid_email');
     expect((await register('Nome', 'n@x.com', 'curta')).statusCode).toBe(400);
+  });
+
+  it('senha comum ou igual ao nome/e-mail é recusada (ASVS 2.1.7)', async () => {
+    for (const password of ['password', 'PASSWORD1', 'qwertyuiop', '12345678']) {
+      expect((await register('Fraca', 'fraca@x.com', password)).json().error).toBe('weak_password');
+    }
+    expect((await register('Fraquinha', 'fraca@x.com', 'FRAQUINHA')).json().error).toBe('weak_password');
+    expect((await register('Fraquinha', 'f@x.com.br', 'f@x.com.br')).json().error).toBe('weak_password');
+    expect((await register('Fraquinha', 'fraca@x.com', 'cavalo-bateria-grampo')).statusCode).toBe(201);
+    expect(COMMON_PASSWORD_COUNT).toBeGreaterThan(2000);
   });
 
   it('nome e e-mail são únicos sem diferenciar maiúsculas', async () => {

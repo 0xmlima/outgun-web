@@ -1,0 +1,12 @@
+# Contexto das imagens de produção (deploy/Dockerfile): o código do port e os arquivos do jogo
+# original que o build usa (mapas, gráficos, sons, fontes, idiomas).
+**/node_modules
+**/dist
+**/.turbo
+.git
+apps/web/public/assets
+tools/parity/out
+tools/parity/traces
+var
+deploy/.env*
+*.dll

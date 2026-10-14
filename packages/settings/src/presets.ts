@@ -2,6 +2,7 @@
 // Presets de sala por modo de jogo (decisão D-10, RN-MOD, RN-CFG-01).
 import { CLASSIC_GAMEMOD } from './classic-gamemod.js';
 import { applyGamemod } from './gamemod.js';
+import { SETTINGS_BY_NAME, type Category } from './registry.js';
 import { codeDefaults, type GameSettings } from './types.js';
 
 export type GameMode = 'casual' | 'ranked';
@@ -64,8 +65,13 @@ export function classicSettings(): GameSettings {
 export function presetSettings(id: string): GameSettings {
   const preset = PRESETS.find((p) => p.id === id);
   if (!preset) throw new Error(`preset desconhecido: ${id}`);
+  return settingsOf(preset);
+}
+
+/** Configurações de um preset qualquer: os do código ou os Casual criados no painel (OG-087). */
+export function settingsOf(preset: Pick<Preset, 'id' | 'overrides'>): GameSettings {
   const result = applyGamemod(classicSettings(), preset.overrides);
-  if (result.errors.length > 0) throw new Error(`preset ${id} inválido: ${result.errors[0]?.message}`);
+  if (result.errors.length > 0) throw new Error(`preset ${preset.id} inválido: ${result.errors[0]?.message}`);
   return result.settings;
 }
 
@@ -83,4 +89,26 @@ export function hasNoPowerups(settings: GameSettings): boolean {
     p.startWeapon === 1 &&
     !p.startDeathbringer
   );
+}
+
+/** Grupos de regras que um preset Casual do painel pode mudar (as do servidor ficam com a operação). */
+const CASUAL_PRESET_CATEGORIES: ReadonlySet<Category> = new Set(['game', 'health', 'powerups', 'physics', 'bots']);
+
+/**
+ * Problemas nas linhas de gamemod de um preset Casual do painel (OG-087): configuração
+ * desconhecida, de servidor (nome, porta, rotação...) ou valor inválido. Vazio = pode salvar.
+ */
+export function casualPresetProblems(overrides: string): string[] {
+  const problems: string[] = [];
+  for (const raw of overrides.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith(';')) continue;
+    const name = line.split(/\s+/)[0] as string;
+    const def = SETTINGS_BY_NAME.get(name);
+    if (!def) problems.push(`${name}: configuração desconhecida`);
+    else if (!CASUAL_PRESET_CATEGORIES.has(def.category) && name !== 'max_players') problems.push(`${name}: configuração do servidor, não de preset`);
+  }
+  if (problems.length > 0) return problems;
+  const result = applyGamemod(classicSettings(), overrides);
+  return result.errors.map((e) => e.message);
 }

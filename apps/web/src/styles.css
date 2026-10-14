@@ -269,6 +269,41 @@ body {
   color: var(--menu-active);
 }
 
+/* Painel admin (OG-087) */
+.admin-form {
+  margin: calc(var(--px) * 4px) 0;
+  font-size: 0.75em;
+}
+.admin-form input,
+.admin-form select,
+.admin-form textarea,
+.admin button {
+  font: inherit;
+  color: var(--menu-item);
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border-highlight);
+}
+.admin button:focus-visible,
+.admin input:focus-visible,
+.admin textarea:focus-visible {
+  color: var(--menu-active);
+  outline: 1px solid var(--menu-active);
+}
+.admin button:disabled {
+  opacity: 0.5;
+}
+.admin-block {
+  display: block;
+}
+.admin-block textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+.admin-room h2 {
+  font-size: 0.85em;
+}
+
 .game {
   position: fixed;
   inset: 0;

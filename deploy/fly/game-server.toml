@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Game servers no Fly.io (D-04, OG-103). Uma máquina por vCPU, até ~20 salas cheias cada
+# (plan/reports/OG-101-carga.md); regiões com `fly scale count N --region gru,iad,fra`.
+# O endereço anunciado leva o id da máquina (/m/<id>/rooms/...): pedido entregue à máquina errada
+# volta com fly-replay. PUBLIC_WS_URL, CSP etc. por ambiente no workflow (--env).
+# Segredos: GS_SECRET (o mesmo da entrada "gs" em INTERNAL_SECRETS da API), METRICS_TOKEN, SENTRY_DSN.
+primary_region = "gru"
+kill_signal = "SIGTERM"
+# drenagem: as salas terminam a partida em andamento (DRAIN_TIMEOUT_S) antes de a máquina parar
+kill_timeout = 300
+
+[deploy]
+  strategy = "rolling"
+  max_unavailable = 1
+
+[env]
+  NODE_ENV = "production"
+  PORT = "7700"
+  TRUST_PROXY = "1"
+  GS_ID = "gs.{instance}"
+  DRAIN_TIMEOUT_S = "240"
+  MAX_ROOMS = "20"
+  REPLAY_DIR = "/data/replays"
+  LOG_LEVEL = "info"
+
+[[mounts]]
+  source = "outgun_replays"
+  destination = "/data"
+
+[http_service]
+  internal_port = 7700
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "10s"
+    timeout = "2s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

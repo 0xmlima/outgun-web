@@ -33,6 +33,7 @@ export function HomeScreen() {
     { kind: 'action', label: t('Options'), onActivate: () => void navigate('/options') },
     { kind: 'action', label: t('Help'), onActivate: () => void navigate('/help') },
     { kind: 'action', label: t('Credits'), onActivate: () => void navigate('/credits') },
+    ...(user && (user.isAdmin || user.isModerator) ? [{ kind: 'action' as const, label: t('Moderation'), onActivate: () => void navigate('/admin') }] : []),
     user
       ? { kind: 'action', label: t('Account'), note: user.username, onActivate: () => void navigate('/account') }
       : { kind: 'action', label: t('Sign in'), onActivate: () => void navigate('/login') },

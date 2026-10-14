@@ -58,6 +58,16 @@ describe.skipIf(!pgAdminUrl)('migrations no PostgreSQL', () => {
     expect(await objects()).toEqual(up);
   });
 
+  it('um banco novo já tem a temporada ativa e as salas da plataforma (0008)', async () => {
+    const seasons = await t.sql`SELECT name, active FROM seasons`;
+    expect(seasons.map((r) => [r.name, r.active])).toEqual([['Temporada 1', true]]);
+    const rooms = await t.sql`SELECT id, mode FROM rooms WHERE persistent ORDER BY id`;
+    expect(rooms.map((r) => [r.id, r.mode])).toEqual([
+      ['main', 'casual'],
+      ['ranked', 'ranked'],
+    ]);
+  });
+
   it('o schema do Drizzle descreve as mesmas colunas do SQL', async () => {
     for (const [name, table] of Object.entries(allTables)) {
       const config = getTableConfig(table);

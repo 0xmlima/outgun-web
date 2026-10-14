@@ -3,36 +3,44 @@
 // no ticket (claim `spawn`); aqui ela é conferida e a sala é criada com os mapas da pasta.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { PRESETS } from '@outgun/settings';
 import type { GameMap } from '@outgun/sim';
 import type { RoomSpawn } from '@outgun/tickets';
 import { loadMaps } from './maps.js';
+import { findPreset } from './presets.js';
 import type { Room } from './room.js';
 import type { RoomManager } from './rooms.js';
 
 export interface SpawnerOptions {
   mapsDir: string;
-  /** Rotação oficial de cada modo (a do Ranked é a única que salas Ranked usam, RN-MOD-04). */
+  /**
+   * Rotação oficial de cada modo (a do Ranked é a única que salas Ranked usam, RN-MOD-04). O objeto
+   * é lido a cada sala aberta: o painel admin (OG-087) pode trocá-lo.
+   */
   rotations: Record<RoomSpawn['mode'], readonly string[]>;
   log?: (line: string) => void;
 }
 
-export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id: string, spec: RoomSpawn) => Room | undefined {
+/** Mapas da pasta por nome, com cache (nomes com barra ou inexistentes dão undefined). */
+export function mapLoader(mapsDir: string): (name: string) => GameMap | undefined {
   const cache = new Map<string, GameMap>();
-  const map = (name: string): GameMap | undefined => {
+  return (name) => {
     if (!cache.has(name)) {
-      if (!/^[^/\\]+$/.test(name) || !existsSync(join(options.mapsDir, `${name}.txt`))) return undefined;
+      if (!/^[^/\\]+$/.test(name) || !existsSync(join(mapsDir, `${name}.txt`))) return undefined;
       try {
-        cache.set(name, loadMaps(options.mapsDir, [name])[0]!);
+        cache.set(name, loadMaps(mapsDir, [name])[0]!);
       } catch {
         return undefined;
       }
     }
     return cache.get(name);
   };
+}
+
+export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id: string, spec: RoomSpawn) => Room | undefined {
+  const map = mapLoader(options.mapsDir);
 
   return (id, spec) => {
-    const preset = PRESETS.find((p) => p.id === spec.preset);
+    const preset = findPreset(spec.preset);
     if (!preset || preset.mode !== spec.mode) return undefined;
     if (!manager.hasCapacity) {
       options.log?.(`sala ${id} recusada: limite de ${manager.maxRooms} salas`);

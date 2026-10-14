@@ -16,6 +16,8 @@ export interface SessionUser {
   email: string;
   clanTag: string | null;
   isAdmin: boolean;
+  /** Moderador do painel (OG-087). */
+  isModerator: boolean;
 }
 
 export class SessionStore {
@@ -60,6 +62,7 @@ export class SessionStore {
         email: users.email,
         clanTag: users.clanTag,
         isAdmin: users.isAdmin,
+        isModerator: users.isModerator,
       })
       .from(sessions)
       .innerJoin(users, eq(users.id, sessions.userId))

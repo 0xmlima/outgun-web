@@ -21,7 +21,10 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@outgun/bots": "workspace:*",
     "@outgun/content": "workspace:*",
+    "@outgun/netcode": "workspace:*",
+    "@outgun/observability": "workspace:*",
     "@outgun/protocol": "workspace:*",
     "@outgun/settings": "workspace:*",
     "@outgun/sim": "workspace:*",
@@ -29,8 +32,6 @@
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0"
   },
   "devDependencies": {
-    "@outgun/bots": "workspace:*",
-    "@outgun/netcode": "workspace:*",
     "@types/node": "^22.0.0"
   }
 }

@@ -4,10 +4,11 @@
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { applyGamemod, presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { applyGamemod, settingsOf, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { findPreset } from './presets.js';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
-import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
@@ -61,6 +62,25 @@ export interface Identity {
   rating?: PlayerRating;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
+  /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
+  device?: string;
+}
+
+/** Comando do painel admin para esta sala (resposta do heartbeat, OG-087). */
+export interface RemoteCommand {
+  id: number;
+  kind: 'kick' | 'ban' | 'mute' | 'unmute' | 'message';
+  uid?: number;
+  minutes?: number;
+  reason?: string;
+  text?: string;
+  actor: string;
+}
+
+export interface RemoteResult {
+  ok: boolean;
+  text?: string;
+  target?: { name: string; accountId?: string; ip?: string; device?: string };
 }
 
 export interface RoomOptions {
@@ -80,6 +100,10 @@ export interface RoomOptions {
   chatFilter?: ReadonlySet<string>;
   /** Log do servidor (chat com `log_player_chat`). */
   log?: (line: string) => void;
+  /** Denúncia de jogador pelo `/report` (OG-104), para a fila da moderação na API. */
+  reportPlayer?: (report: PlayerReport) => void;
+  /** Jogador expulso por mensagem inválida ou excesso (métricas e log, OG-102). */
+  onMisbehavior?: (kick: { name: string; ip: string | undefined; reason: string }) => void;
   /** Quanto tempo a vaga de quem caiu fica guardada (s; padrão 15, 0 = sai na hora como o original). */
   reconnectSeconds?: number;
   /** Resultado de cada partida para a API (OG-049). */
@@ -180,6 +204,10 @@ export class Room {
   private readonly announcer: VoteAnnouncer = { votes: 0, needed: 0, nextFrame: 0 };
   /** Placar de fim de partida: até este frame o mundo não é simulado. */
   private gameOverUntil: number | null = null;
+  /** Servidor desligando (OG-103): a sala fecha no fim da partida em andamento. */
+  private draining = false;
+  /** Partida acabou durante a drenagem (ou não há humanos): o gerenciador fecha a sala. */
+  finished = false;
   private outbox: AnyMessage[] = [];
   /** Expulsões por `client_misbehavior` (para log e métricas). */
   readonly kicks: { pid: number; name: string; reason: string }[] = [];
@@ -198,6 +226,8 @@ export class Room {
   private deltaCount = 0;
   private readonly createdAt: number;
   private readonly console: ConsoleHost;
+  /** Limite do `/report` por jogador (OG-104). */
+  private readonly reports = new ReportLimiter();
   private readonly preset: Preset;
   /** Placar já enviado (`scoreUpdate` só quando muda). */
   private readonly sentScores: [number, number] = [0, 0];
@@ -225,14 +255,14 @@ export class Room {
   private readonly spectators: SpectatorStream;
 
   constructor(private readonly options: RoomOptions) {
-    const preset = PRESETS.find((p) => p.id === options.preset);
+    const preset = findPreset(options.preset);
     if (!preset) throw new Error(`preset desconhecido: ${options.preset}`);
     if (options.maps.length === 0) throw new Error('rotação de mapas vazia');
     if (options.maxPlayers % 2 !== 0 || options.maxPlayers < 2 || options.maxPlayers > 32) throw new Error(`max_players inválido: ${options.maxPlayers}`);
     this.id = options.id;
     this.preset = preset;
     this.mode = preset.mode;
-    this.settings = options.gamemod ? applyGamemod(presetSettings(preset.id), options.gamemod).settings : presetSettings(preset.id);
+    this.settings = options.gamemod ? applyGamemod(settingsOf(preset), options.gamemod).settings : settingsOf(preset);
     if (options.gamemod) this.setLines = [options.gamemod];
 
     this.now = options.now ?? (() => performance.now());
@@ -772,6 +802,8 @@ export class Room {
     const c = this.clients.get(pid);
     if (!c) return;
     this.kicks.push({ pid, name: c.identity.name, reason });
+    if (this.kicks.length > 50) this.kicks.shift();
+    this.options.onMisbehavior?.({ name: c.identity.name, ip: c.identity.ip, reason });
     c.conn.send(encodeFrame(message('disconnecting', { reason: 'misbehavior', seconds: 0 })));
     c.conn.close(4003, 'client_misbehavior');
     this.leave(pid);
@@ -788,8 +820,14 @@ export class Room {
     this.uptimeFrames++;
     if (this.checkBotsPending) this.checkBots();
     for (const c of this.clients.values()) c.guard.tick();
+    if (this.draining && ![...this.clients.values()].some((c) => !c.bot)) this.finished = true;
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
+      if (this.draining) {
+        // a partida seguinte não começa: o placar já foi mostrado e o resultado enviado
+        this.finished = true;
+        return;
+      }
       this.sim.startGame();
       this.broadcast(message('startGame', {}), this.mapTimeMessage());
       this.startRecording();
@@ -915,7 +953,7 @@ export class Room {
 
   private isBanned(identity: Identity): boolean {
     const now = Date.now();
-    const keys = [identity.accountId && `acct:${identity.accountId}`, identity.ip && `ip:${identity.ip}`].filter(Boolean) as string[];
+    const keys = [identity.accountId && `acct:${identity.accountId}`, identity.ip && `ip:${identity.ip}`, identity.device && `dev:${identity.device}`].filter(Boolean) as string[];
     return keys.some((k) => (this.bans.get(k) ?? 0) > now);
   }
 
@@ -980,6 +1018,7 @@ export class Room {
       bot: c.bot,
       ranked: this.mode === 'ranked' && c.identity.accountId !== null,
       ...(c.identity.ip ? { ip: c.identity.ip } : {}),
+      ...(c.identity.device ? { device: c.identity.device } : {}),
     };
   }
 
@@ -1027,6 +1066,7 @@ export class Room {
           const until = Date.now() + minutes * 60_000;
           if (c.identity.accountId) this.bans.set(`acct:${c.identity.accountId}`, until);
           if (c.identity.ip) this.bans.set(`ip:${c.identity.ip}`, until);
+          if (c.identity.device) this.bans.set(`dev:${c.identity.device}`, until);
         }
         this.broadcast(message('playerKick', { pid: target, minutes, admin: admin.name }));
         if (reason) this.queueTo(target, message('text', { kind: 'warning', from: 255, text: `Reason: ${reason}` }));
@@ -1045,7 +1085,7 @@ export class Room {
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       resetSettings: () => {
-        const fresh = presetSettings(this.preset.id);
+        const fresh = settingsOf(this.preset);
         for (const group of ['world', 'powerups', 'physics', 'server'] as const) Object.assign(this.settings[group], fresh[group]);
         if (this.mode === 'casual' && this.options.botsFill !== undefined) this.settings.server.botsFill = this.options.botsFill;
         this.checkBotsPending = true;
@@ -1053,6 +1093,11 @@ export class Room {
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       audit: (entry) => this.options.audit?.(this.id, entry),
+      report: (reporter, target, reason) => {
+        if (!this.reports.allow(reporter, target, this.uptimeFrames)) return false;
+        this.options.reportPlayer?.({ roomId: this.id, map: this.world.map.title, reporter, target, reason });
+        return true;
+      },
       ...(this.mode === 'ranked' ? {} : { bots: this.botConsole() }),
     };
   }
@@ -1284,6 +1329,17 @@ export class Room {
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
   private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
     this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
+    if (this.pendingRotation) {
+      // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados
+      this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
+      this.pendingRotation = null;
+      for (const c of this.clients.values()) {
+        c.mapVote = -1;
+        c.negativeVotes.clear();
+      }
+      forced = 0;
+      this.broadcast(this.mapListMessage());
+    }
     const voters = this.voters();
     const votes = mapVotes(voters, this.rotation.length);
     const negative = (map: number) => voters.filter((v) => v.negative.has(map)).length;
@@ -1332,7 +1388,10 @@ export class Room {
     this.recorder?.event(...this.outbox);
     const data = encodeFrame(...this.outbox);
     this.outbox = [];
-    for (const c of this.clients.values()) c.conn.send(data);
+    for (const c of this.clients.values()) {
+      c.bytes += data.length;
+      c.conn.send(data);
+    }
   }
 
   private send(pid: number, messages: AnyMessage[]): void {
@@ -1384,6 +1443,66 @@ export class Room {
       avgBytesPerSecond: rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : 0,
       maxBytesPerSecond: rates.length ? Math.max(...rates) : 0,
     };
+  }
+
+  /**
+   * Drenagem (OG-103): avisa os jogadores; a sala fecha no fim da partida em andamento (o placar e o
+   * resultado saem normalmente), ou na hora se só houver bots.
+   */
+  drain(): void {
+    if (this.draining) return;
+    this.draining = true;
+    this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
+  }
+
+  /** Rotação que entra na próxima troca de mapa (painel admin, OG-087). */
+  private pendingRotation: { map: GameMap; file: string }[] | null = null;
+
+  setRotation(entries: readonly { map: GameMap; file: string }[]): void {
+    if (entries.length === 0) return;
+    const same = entries.length === this.rotation.length && entries.every((e, i) => e.file === this.rotation[i]?.file);
+    this.pendingRotation = same ? null : [...entries];
+  }
+
+  /** Jogadores para o painel admin (heartbeat, OG-087). */
+  roster(): { uid: number; name: string; team: number; accountId?: string; bot: boolean; muted: number }[] {
+    return [...this.clients].map(([pid, c]) => ({
+      uid: c.uid,
+      name: c.identity.name.slice(0, 32),
+      team: this.world.teamOf(pid) === 1 ? 1 : 0,
+      ...(c.identity.accountId ? { accountId: c.identity.accountId } : {}),
+      bot: c.bot,
+      muted: c.muted,
+    }));
+  }
+
+  /**
+   * Comando do painel admin (OG-087), pelas mesmas ações do console (`/kick`, `/ban`, `/mute`):
+   * o autor aparece pelo nome de quem usou o painel. A auditoria já foi feita na API.
+   */
+  remoteCommand(cmd: RemoteCommand): RemoteResult {
+    const actor: ConsolePlayer = { pid: -1, uid: -1, name: cmd.actor, team: -1, account: null, admin: true, muted: 0, bot: false, ranked: false };
+    if (cmd.kind === 'message') {
+      if (!cmd.text) return { ok: false, text: 'no text' };
+      this.console.broadcastText('admin', `${cmd.actor}: ${cmd.text}`);
+      return { ok: true };
+    }
+    const entry = [...this.clients].find(([, c]) => c.uid === cmd.uid && !c.bot);
+    if (!entry) return { ok: false, text: 'player is not in the room any more' };
+    const [pid, c] = entry;
+    const target = { name: c.identity.name.slice(0, 32), ...(c.identity.accountId ? { accountId: c.identity.accountId } : {}), ...(c.identity.ip ? { ip: c.identity.ip } : {}), ...(c.identity.device ? { device: c.identity.device } : {}) };
+    switch (cmd.kind) {
+      case 'kick':
+      case 'ban': {
+        const minutes = cmd.kind === 'ban' ? Math.min(cmd.minutes ?? 60, 7 * 24 * 60) : 0;
+        const ok = this.console.kick(pid, actor, minutes, cmd.reason ?? '');
+        return ok ? { ok, target } : { ok, text: 'already being kicked' };
+      }
+      case 'mute':
+      case 'unmute':
+        this.console.setMuted(pid, cmd.kind === 'mute' ? 1 : 0, actor, true);
+        return { ok: true, target };
+    }
   }
 
   /** Encerra a sala: avisa e fecha todas as conexões. */

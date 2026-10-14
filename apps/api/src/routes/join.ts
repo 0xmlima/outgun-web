@@ -6,7 +6,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { signTicket, toJwks } from '@outgun/tickets';
 import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { checkGuestName } from '../auth/names.js';
 import { verifyPassword } from '../auth/password.js';
@@ -22,6 +22,8 @@ const JoinBody = {
   name: Type.Optional(Type.String({ maxLength: 64 })),
   /** Região preferida, quando a sala precisa ser aberta num servidor. */
   region: Type.Optional(Type.String({ pattern: '^[a-z0-9-]{1,32}$' })),
+  /** Id aleatório do navegador (OG-104): só o hash é usado, no ban por dispositivo e no ticket. */
+  device: Type.Optional(Type.String({ pattern: '^[A-Za-z0-9_-]{16,64}$' })),
 };
 const JoinOk = Type.Object({ ticket: Type.String(), wsUrl: Type.String(), name: Type.String(), guest: Type.Boolean(), roomId: RoomId });
 const joinErrors = { 400: ErrorSchema, 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema, 429: ErrorSchema, 503: ErrorSchema };
@@ -36,8 +38,9 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
   const fail = (code: Failure['code'], error: string, message: string): Admission => ({ ok: false, code, error, message });
 
   /** Confere tudo e emite o ticket (a senha já foi conferida por quem chama, se a sala tiver). */
-  async function admit(request: FastifyRequest, room: RoomRow, body: { name?: string | undefined; region?: string | undefined }): Promise<Admission> {
+  async function admit(request: FastifyRequest, room: RoomRow, body: { name?: string | undefined; region?: string | undefined; device?: string | undefined }): Promise<Admission> {
     const user = await sessions.current(request);
+    const device = body.device ? deviceHash(body.device) : null;
     // Convidado só no Casual (RN-PLT-02, RN-MOD-03).
     if (!user && room.mode === 'ranked') return fail(401, 'account_required', 'ranked rooms require an account');
 
@@ -63,7 +66,11 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           isNull(bans.revokedAt),
           or(isNull(bans.expiresAt), gt(bans.expiresAt, now)),
           or(isNull(bans.roomId), eq(bans.roomId, room.id)),
-          user ? or(eq(bans.userId, user.id), eq(bans.ip, request.ip)) : eq(bans.ip, request.ip),
+          or(
+            ...(user ? [eq(bans.userId, user.id)] : []),
+            eq(bans.ip, request.ip),
+            ...(device ? [eq(bans.deviceHash, device)] : []),
+          ),
         ),
       )
       .limit(1);
@@ -73,6 +80,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const place = await placeRoom(db, room, deps.config.devRoomWsUrl, body.region);
     if (!place.ok) return fail(503, 'room_offline', 'no game server available');
 
+    const jti = randomUUID();
     const ticket = signTicket(
       {
         aud: room.id,
@@ -86,9 +94,14 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         // força no modificador de time e participação nos deltas (OG-084)
         ...(user ? { rating: await playerRating(db, user.id) } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
+        ...(device ? { dev: device } : {}),
       },
       ticketKeys[0]!,
+      Date.now(),
+      jti,
     );
+    // o game server registra o mesmo jti quando o jogador entra (OG-102)
+    request.log.info({ jti, room: room.id, account: user?.id ?? null, server: place.wsUrl }, 'ticket emitido');
     return { ok: true, ticket, wsUrl: place.wsUrl, name, guest: !user, roomId: room.id };
   }
 
@@ -170,4 +183,9 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
       },
     );
   };
+}
+
+/** SHA-256 do id do navegador, 32 hex: o id cru não é guardado nem vai no ticket. */
+export function deviceHash(device: string): string {
+  return createHash('sha256').update(`outgun-device:${device}`).digest('hex').slice(0, 32);
 }

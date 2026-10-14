@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@outgun/content": "workspace:*",
+    "@outgun/observability": "workspace:*",
     "@outgun/i18n": "workspace:*",
     "@outgun/netcode": "workspace:*",
     "@outgun/protocol": "workspace:*",

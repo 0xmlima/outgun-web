@@ -26,6 +26,15 @@ describe('HMAC das rotas internas', () => {
     expect(verifyInternalRequest(headers, 'PUT', '/internal/rooms/heartbeat', body, secrets, 30_000, now).ok).toBe(false);
   });
 
+  it('máquina de um grupo (`base.instancia`, OG-103) usa o segredo da base e mantém o próprio id', () => {
+    const headers = signInternalRequest('gs-1.3d8d9e1c', 'segredo-novo-0123456789', 'POST', '/internal/rooms/heartbeat', body, now);
+    expect(verify({ ...headers })).toEqual({ ok: true, serverId: 'gs-1.3d8d9e1c' });
+    const other = signInternalRequest('gs-2.3d8d9e1c', 'segredo-novo-0123456789', 'POST', '/internal/rooms/heartbeat', body, now);
+    expect(verify({ ...other })).toEqual({ ok: false, reason: 'bad signature' });
+    const weird = signInternalRequest('gs-1.a.b', 'segredo-novo-0123456789', 'POST', '/internal/rooms/heartbeat', body, now);
+    expect(verify({ ...weird })).toEqual({ ok: false, reason: 'unknown server' });
+  });
+
   it('recusa segredo de outro servidor e servidor desconhecido', () => {
     const forged = signInternalRequest('gs-1', 'outro-segredo-0123456789', 'POST', '/internal/rooms/heartbeat', body, now);
     expect(verify({ ...forged }).ok).toBe(false);

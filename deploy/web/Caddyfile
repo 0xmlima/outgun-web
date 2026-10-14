@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Cliente web em produção (OG-103): arquivos estáticos + /api repassado para as instâncias da API.
+# Variáveis: API_UPSTREAMS (ex. "api-1:7800 api-2:7800" ou o endereço Flycast da API),
+# CSP_CONNECT_SRC (origens da API, game servers e serviço de erros). TLS fica no proxy da
+# plataforma (Fly); aqui é HTTP na 8080.
+{
+	admin off
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:8080 {
+	encode zstd gzip
+	import /etc/caddy/security-headers.caddy
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy {$API_UPSTREAMS} {
+			lb_policy round_robin
+			# instância saindo (/health 503) ou caída: os pedidos vão para as outras sem erro
+			lb_try_duration 10s
+			lb_try_interval 100ms
+			health_uri /health
+			health_interval 1s
+			health_timeout 2s
+			fail_duration 5s
+		}
+	}
+
+	handle {
+		root * /srv
+		# arquivos com hash no nome (build do Vite) nunca mudam
+		@hashed path_regexp ^/assets/[^/]+-[A-Za-z0-9_-]{8}\.(js|css|map)$
+		header @hashed cache-control "public, max-age=31536000, immutable"
+		# assets do jogo (sem hash): 5 min; páginas (index.html e rotas do app): sempre revalidar, senão
+		# um index antigo apontaria para bundles que o deploy seguinte apagou
+		@gameAssets {
+			path /assets/*
+			not path_regexp ^/assets/[^/]+-[A-Za-z0-9_-]{8}\.(js|css|map)$
+		}
+		header @gameAssets cache-control "public, max-age=300"
+		@pages not path /assets/*
+		header @pages cache-control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

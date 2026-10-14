@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Integração com WebSocket de verdade (uWS + cliente WebSocket do Node).
 import { fileURLToPath } from 'node:url';
-import { decodeFrame, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage } from '@outgun/protocol';
+import { message, PROTOCOL_VERSION } from '@outgun/protocol';
 import { Position } from '@outgun/sim';
 import { fromJwks, generateSigningKey, signTicket, toJwks, type TicketInput } from '@outgun/tickets';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -10,6 +10,7 @@ import { loadMaps } from './maps.js';
 import { RoomManager } from './rooms.js';
 import { startServer, type RunningServer } from './server.js';
 import { makeSpawner } from './spawn.js';
+import { WsTestClient } from './ws-test-client.js';
 
 const mapsDir = fileURLToPath(new URL('../../../maps', import.meta.url));
 const maps = loadMaps(mapsDir, ['outgun1']);
@@ -26,7 +27,7 @@ beforeAll(async () => {
   manager.create({ id: 'volta', preset: 'classic', maps, maxPlayers: 16, persistent: true, reconnectSeconds: 15 });
   manager.start();
   const spawnRoom = makeSpawner(manager, { mapsDir, rotations: { casual: ['outgun1'], ranked: ['outgun1'] } });
-  server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true, ticketKeys: () => publicKeys, spawnRoom });
+  server = await startServer({ port: 0, host: '127.0.0.1', manager, devTickets: true, ticketKeys: () => publicKeys, spawnRoom, maxConnectionsPerIp: 0 });
 });
 
 afterAll(() => {
@@ -34,51 +35,10 @@ afterAll(() => {
   server.close();
 });
 
-class Client {
-  readonly ws: WebSocket;
-  readonly received: AnyMessage[] = [];
-  closed: { code: number; reason: string } | null = null;
-  private readonly opened: Promise<void>;
-
+/** Cliente de teste conectado a uma sala deste servidor. */
+class Client extends WsTestClient {
   constructor(room: string) {
-    this.ws = new WebSocket(`ws://127.0.0.1:${server.port}/rooms/${room}`);
-    this.ws.binaryType = 'arraybuffer';
-    this.opened = new Promise((resolve, reject) => {
-      this.ws.onopen = () => resolve();
-      this.ws.onerror = () => reject(new Error('falha ao conectar'));
-    });
-    this.ws.onmessage = (e) => {
-      const r = decodeFrame(new Uint8Array(e.data as ArrayBuffer), 's2c');
-      if (!r.ok) throw new Error(r.error);
-      this.received.push(...r.messages);
-      for (const m of r.messages) if (m.type === 'mapChange') this.send(message('clientReady', {}));
-    };
-    this.ws.onclose = (e) => (this.closed = { code: e.code, reason: e.reason });
-  }
-
-  async hello(ticket: string, protocol = PROTOCOL_VERSION, ...extra: AnyMessage[]): Promise<void> {
-    await this.opened;
-    this.send(message('hello', { protocol, ticket, client: 'teste' }), ...extra);
-  }
-
-  send(...m: AnyMessage[]): void {
-    this.ws.send(encodeFrame(...m));
-  }
-
-  of<T extends AnyMessage['type']>(type: T): Extract<AnyMessage, { type: T }>[] {
-    return this.received.filter((m): m is Extract<AnyMessage, { type: T }> => m.type === type);
-  }
-
-  async until(pred: () => boolean, ms = 3000): Promise<void> {
-    const end = Date.now() + ms;
-    while (!pred()) {
-      if (Date.now() > end) throw new Error('tempo esgotado esperando condição');
-      await new Promise((r) => setTimeout(r, 10));
-    }
-  }
-
-  close(): void {
-    this.ws.close();
+    super(`ws://127.0.0.1:${server.port}/rooms/${room}`);
   }
 }
 
@@ -168,8 +128,14 @@ describe('game server', () => {
   it('health, métricas e lista de salas', async () => {
     const health = await (await fetch(`http://127.0.0.1:${server.port}/health`)).json();
     expect(health).toMatchObject({ status: 'ok', rooms: 3 });
-    const metrics = await (await fetch(`http://127.0.0.1:${server.port}/metrics`)).text();
-    expect(metrics).toMatch(/^outgun_tick_lateness_p99_ms /m);
+    const res = await fetch(`http://127.0.0.1:${server.port}/metrics`);
+    expect(res.headers.get('content-type')).toMatch(/^text\/plain; version=0\.0\.4/);
+    const metrics = await res.text();
+    expect(metrics).toMatch(/^outgun_tick_duration_seconds_bucket\{le="0\.02"\} \d+$/m);
+    expect(metrics).toMatch(/^outgun_rooms\{mode="ranked"\} 1$/m);
+    expect(metrics).toMatch(/^outgun_ws_sent_bytes_total \d+$/m);
+    expect(metrics).toMatch(/^outgun_ws_connections_total\{kind="player",result="accepted"\} \d+$/m);
+    expect(metrics).toMatch(/^process_resident_memory_bytes \d+$/m);
     const rooms = (await (await fetch(`http://127.0.0.1:${server.port}/rooms`)).json()) as { id: string }[];
     expect(rooms.map((r) => r.id).sort()).toEqual(['main', 'ranked', 'volta']);
   });

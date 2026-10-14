@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # o deploy (deploy.yml) roda o CI inteiro antes
+  workflow_call:
 
 jobs:
   ci:
@@ -23,6 +25,10 @@ jobs:
       - run: pnpm build
       - run: pnpm check:legacy
       - run: pnpm check:licenses
+      - name: Regras de alerta e painel (OG-102)
+        run: bash tools/observability/check.sh
+      - name: Workflows (actionlint)
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
       - name: Relatório de paridade com o Outgun original
         if: always()
         run: pnpm parity --report tools/parity/out/parity-report.md
@@ -31,3 +37,45 @@ jobs:
         with:
           name: parity-report
           path: tools/parity/out/parity-report.md
+
+  images:
+    # as imagens de produção (OG-103) continuam construindo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: for t in api game-server web; do docker build -f deploy/Dockerfile --target "$t" -t "outgun-$t:ci" .; done
+      - run: docker build -t outgun-backup:ci deploy/backup
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: outgun
+          POSTGRES_PASSWORD: outgun
+          POSTGRES_DB: outgun
+        ports: ['55433:5432']
+        options: --health-cmd "pg_isready -U outgun" --health-interval 2s --health-retries 30
+    env:
+      E2E_DATABASE_URL: postgres://outgun:outgun@localhost:55433/outgun
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @outgun/e2e exec playwright install --with-deps chromium
+      - name: E2E (cadastro → lobby → partida → fim → ranking)
+        run: pnpm --filter @outgun/e2e e2e
+      - name: Carga de fumaça (2 salas × 8 jogadores, rede ruim)
+        run: node tools/load/run.mjs --rooms 2 --players 8 --seconds 20 --warmup 8 --workers 2 --lag 150 --loss 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e
+          path: tools/parity/out/e2e/

@@ -131,6 +131,8 @@ export default function GameScreen() {
   // `netStatsReady`/`netGameStarted`: F3/F4 abrem sozinhas no fim da partida e fecham no começo da
   // próxima; F5 abre ao conectar com `Show server info when connected` (OG-066)
   const auto = useRef({ statsReady: -1, gameOver: false, serverShown: false });
+  // placar de fim de partida na tela (também exposto em data-game-over para os testes E2E)
+  const [gameOver, setGameOver] = useState(false);
   useEffect(() => {
     if (onlineKey === null) return;
     const id = setInterval(() => {
@@ -144,6 +146,7 @@ export default function GameScreen() {
       }
       if (a.gameOver && !s.gameOver) setInfo((cur) => (cur?.auto ? null : cur));
       a.gameOver = s.gameOver !== null;
+      setGameOver(a.gameOver);
       if (!a.serverShown && s.me >= 0 && s.world) {
         a.serverShown = true;
         if (prefs.showServerInfo) setInfo((cur) => cur ?? { kind: 'server', auto: false });
@@ -184,7 +187,7 @@ export default function GameScreen() {
   ];
 
   return (
-    <div className="game" data-status={status?.kind ?? 'loading'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
+    <div className="game" data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
       <div ref={hostRef} className="game-host" />
       <div className="game-overlay">
         {toast && !menuOpen && (

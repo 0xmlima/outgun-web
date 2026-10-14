@@ -3,6 +3,7 @@
 // do game server. Sem a API no ar (desenvolvimento só com o servidor de jogo), usa `dev:Nome`, que
 // o servidor só aceita com DEV_TICKETS.
 import { api, ApiError } from '../../app/api.js';
+import { deviceId } from '../../app/device.js';
 
 export interface JoinTicket {
   readonly ticket: string;
@@ -23,7 +24,7 @@ export class JoinError extends Error {
 export async function requestTicket(room: string, name: string, server: string, explicitServer: boolean, password?: string): Promise<JoinTicket> {
   const fallbackUrl = `${server.replace(/\/$/, '')}/rooms/${encodeURIComponent(room)}`;
   try {
-    const r = await api<{ ticket: string; wsUrl: string }>(`/rooms/${encodeURIComponent(room)}/join`, { body: { name, ...(password ? { password } : {}) } });
+    const r = await api<{ ticket: string; wsUrl: string }>(`/rooms/${encodeURIComponent(room)}/join`, { body: { name, device: deviceId(), ...(password ? { password } : {}) } });
     return { ticket: r.ticket, url: explicitServer ? fallbackUrl : r.wsUrl };
   } catch (error) {
     if (error instanceof ApiError && error.status !== 0 && error.status < 500 && error.code !== 'unknown') throw new JoinError(error.code);

@@ -5,6 +5,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import { checkClanTag, checkRegisteredName } from '@outgun/protocol';
+import { isCommonPassword } from '../auth/common-passwords.js';
 import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/names.js';
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
 import type { SessionUser } from '../auth/sessions.js';
@@ -56,12 +57,15 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
             currentPassword: Type.String({ maxLength: MAX_PASSWORD }),
             newPassword: Type.String({ minLength: MIN_PASSWORD, maxLength: MAX_PASSWORD }),
           }),
-          response: { 204: Type.Null(), 401: ErrorSchema, 403: ErrorSchema, 429: ErrorSchema },
+          response: { 204: Type.Null(), 400: ErrorSchema, 401: ErrorSchema, 403: ErrorSchema, 429: ErrorSchema },
         },
       },
       async (request, reply) => {
         const user = await requireUser(request, reply);
         if (!user || !(await checkPassword(request, reply, user, request.body.currentPassword))) return reply;
+        if (isCommonPassword(request.body.newPassword, user.username)) {
+          return reply.code(400).send({ error: 'weak_password', message: 'this password is too common' });
+        }
         const passwordHash = await hashPassword(request.body.newPassword);
         await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, user.id));
         await sessions.destroyAllFor(user.id, user.sessionId);
