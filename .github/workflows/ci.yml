@@ -69,6 +69,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # mapas, gráficos, sons e fontes convertidos de _legacy/ (o cliente não abre a partida sem eles)
+      - run: pnpm assets
       - run: pnpm --filter @outgun/e2e exec playwright install --with-deps chromium
       - name: E2E (cadastro → lobby → partida → fim → ranking)
         run: pnpm --filter @outgun/e2e e2e
