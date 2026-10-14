@@ -6,6 +6,8 @@
 import type { GameMap } from '@outgun/sim';
 import type { CommandAck, HeartbeatReply, PanelHandlers } from './platform.js';
 import { setPanelPresets } from './presets.js';
+import { isRotationEntry, resolveRotation } from './maps.js';
+import type { GeneratedMaps } from './generated-maps.js';
 import type { RoomManager } from './rooms.js';
 
 export interface PanelOptions {
@@ -13,6 +15,8 @@ export interface PanelOptions {
   /** Rotações usadas pelo spawner (o mesmo objeto: trocar aqui vale para as próximas salas). */
   rotations: Record<'casual' | 'ranked', readonly string[]>;
   map: (file: string) => GameMap | undefined;
+  /** Para as entradas `random_map` (OG-015). */
+  generatedMaps?: GeneratedMaps;
   log?: (line: string, fields?: Record<string, unknown>) => void;
 }
 
@@ -48,14 +52,15 @@ export class AdminPanelLink implements PanelHandlers {
     for (const mode of ['casual', 'ranked'] as const) {
       const wanted = config.rotations[mode];
       if (!wanted) continue;
-      const files = wanted.filter((f) => this.options.map(f));
-      if (files.length === 0) {
+      const slots = resolveRotation(wanted, this.options.map, this.options.generatedMaps);
+      const files = wanted.filter((f) => isRotationEntry(f, this.options.map));
+      if (slots.length === 0) {
         this.options.log?.('rotação do painel sem mapas conhecidos: mantida a atual', { mode, wanted });
         continue;
       }
       this.options.rotations[mode] = files;
       for (const h of this.options.manager.hosted()) {
-        if (h.persistent && h.mode === mode) this.options.manager.get(h.id)?.setRotation(files.map((file) => ({ file, map: this.options.map(file)! })));
+        if (h.persistent && h.mode === mode) this.options.manager.get(h.id)?.setRotation(resolveRotation(files, this.options.map, this.options.generatedMaps));
       }
     }
     this.options.log?.('configuração do painel aplicada', { version: config.version, presets: config.presets.length });

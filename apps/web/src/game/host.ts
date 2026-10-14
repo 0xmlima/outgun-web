@@ -136,11 +136,31 @@ export type GameStatus =
 /** Primeiro mapa da rotação padrão (`maps/`) quando nenhum é pedido. */
 export const DEFAULT_MAP = 'coliseu';
 
-export async function loadMap(name: string): Promise<{ map: GameMap; bytes: Uint8Array }> {
-  const manifest = await loadManifest();
-  const entry = manifest?.maps[name];
-  if (!entry) throw new Error(`mapa não encontrado: ${name}`);
-  const bytes = new Uint8Array(await (await fetch(ASSETS + entry.file)).arrayBuffer());
+/** Mapa gerado na hora pelo servidor (`random_map`, OG-015). */
+export const GENERATED_MAP = /^mapgen_\d+$/;
+
+/** Base HTTP do game server a partir do endereço WebSocket de uma sala (`wss://h/gs/rooms/x` → `https://h/gs`). */
+export function serverHttpBase(roomUrl: string): string {
+  return roomUrl.replace(/^ws/, 'http').replace(/\/rooms\/[^/]+(\/spectate)?$/, '');
+}
+
+/**
+ * Mapa pelo nome: dos assets (`maps/`), ou — gerado na hora (OG-015) — do texto já recebido (replay)
+ * ou baixado do game server em `<base>/maps/<nome>.txt`.
+ */
+export async function loadMap(name: string, source: { text?: string | undefined; base?: string | undefined } = {}): Promise<{ map: GameMap; bytes: Uint8Array }> {
+  let bytes: Uint8Array;
+  if (source.text !== undefined) bytes = new TextEncoder().encode(source.text);
+  else if (GENERATED_MAP.test(name) && source.base) {
+    const res = await fetch(`${source.base}/maps/${name}.txt`);
+    if (!res.ok) throw new Error(`mapa gerado não encontrado: ${name}`);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  } else {
+    const manifest = await loadManifest();
+    const entry = manifest?.maps[name];
+    if (!entry) throw new Error(`mapa não encontrado: ${name}`);
+    bytes = new Uint8Array(await (await fetch(ASSETS + entry.file)).arrayBuffer());
+  }
   const result = parseMapFile(name, bytes);
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return { map: result.map, bytes };
@@ -259,8 +279,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   };
 
   /** Troca o mapa desenhado (início da partida e cada troca de mapa do servidor). */
+  /** Base HTTP do game server da partida (mapas gerados, OG-015). */
+  let serverBase: string | undefined;
   const showMap = async (name: string, theme: RoomTheme): Promise<GameMap | null> => {
-    const { map, bytes } = await loadMap(name);
+    const { map, bytes } = await loadMap(name, { base: serverBase });
     const source = await createRoomSource(map, name, bytes, theme);
     if (destroyed) {
       source.destroy();
@@ -385,6 +407,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       void requestTicket(online.room, online.name, online.url, online.explicitServer ?? false, online.password).then(
         ({ ticket, url }) => {
           if (destroyed || ended) return;
+          serverBase = serverHttpBase(url);
           connection = new GameConnection(
             url,
             ticket,

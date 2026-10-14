@@ -584,7 +584,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-012](cards/OG-012-graphics-sound-pipeline.md) | Pipeline de gráficos e sons | E1 | 5 | Must | S1 | OG-001 | Concluído |
 | [OG-013](cards/OG-013-font-conversion.md) | Conversão das fontes Allegro | E1 | 3 | Should | S2 | OG-002 | Concluído |
 | [OG-014](cards/OG-014-i18n.md) | Internacionalização (en, pt-BR, fi, it) | E1 | 3 | Should | S3 | OG-001 | Concluído |
-| [OG-015](cards/OG-015-random-maps-rotation.md) | Mapas aleatórios na rotação da sala (envio do mapa gerado) | E1 | 3 | Should | — | OG-011 | Backlog |
+| [OG-015](cards/OG-015-random-maps-rotation.md) | Mapas aleatórios na rotação da sala (envio do mapa gerado) | E1 | 3 | Should | — | OG-011 | Em revisão |
 | [OG-020](cards/OG-020-geometry-walls.md) | Geometria e paredes (colisão contínua) | E2 | 8 | Must | S2 | OG-004, OG-010 | Concluído |
 | [OG-021](cards/OG-021-player-movement.md) | Movimento do jogador e troca de sala | E2 | 5 | Must | S2 | OG-020 | Concluído |
 | [OG-022](cards/OG-022-rockets.md) | Foguetes: formações, voo e impacto | E2 | 5 | Must | S3 | OG-021 | Concluído |

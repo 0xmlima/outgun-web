@@ -154,7 +154,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
     const { theme, sprites, font } = await setup;
     if (destroyed) return;
     if (next.header.map !== mapName || !world) {
-      const { map: loaded, bytes } = await loadMap(next.header.map);
+      const { map: loaded, bytes } = await loadMap(next.header.map, { text: next.header.mapText });
       const source = await createRoomSource(loaded, next.header.map, bytes, theme);
       if (destroyed) return source.destroy();
       world?.destroy();

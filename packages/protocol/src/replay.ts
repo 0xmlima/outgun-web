@@ -18,6 +18,8 @@ export interface ReplayHeader {
   preset: string;
   /** Arquivo do mapa (sem `.txt`) e título. */
   map: string;
+  /** Texto do mapa quando ele foi gerado na hora (`random_map`, OG-015): não existe em `maps/`. */
+  mapText?: string;
   mapTitle: string;
   maxPlayers: number;
   /** ISO 8601. */

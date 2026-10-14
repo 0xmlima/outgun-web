@@ -6,6 +6,7 @@
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { applyGamemod, settingsOf, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
 import { findPreset } from './presets.js';
+import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
@@ -83,6 +84,14 @@ export interface RemoteResult {
   target?: { name: string; accountId?: string; ip?: string; device?: string };
 }
 
+/** Entrada da rotação; `random` = `random_map` (o mapa e o arquivo mudam a cada vez que entra). */
+interface RotationEntry {
+  map: GameMap;
+  file: string;
+  lastGame: number;
+  random?: RandomMapParams;
+}
+
 export interface RoomOptions {
   id: string;
   preset: string;
@@ -92,6 +101,12 @@ export interface RoomOptions {
   seed: number;
   /** Nome do arquivo de cada mapa (sem `.txt`), para o cliente baixar; padrão: o título. */
   mapFiles?: readonly string[] | undefined;
+  /**
+   * Entradas `random_map` da rotação (OG-015), alinhadas com `maps`: a sala gera um mapa novo cada
+   * vez que a entrada entra (o de `maps` é o primeiro gerado). Precisa de `generatedMaps`.
+   */
+  randomSlots?: readonly (RandomMapParams | null)[] | undefined;
+  generatedMaps?: GeneratedMaps | undefined;
   /** Relógio em ms para medir quando os inputs chegam dentro do frame (padrão `performance.now`). */
   now?: () => number;
   /** Auditoria das ações de admin (OG-046): o servidor manda para a API. */
@@ -197,7 +212,7 @@ export class Room {
   readonly results: MatchResult[] = [];
   private readonly clients = new Map<number, Client>();
   /** Rotação na ordem do servidor (`maprot`), com o frame do último jogo de cada mapa. */
-  private readonly rotation: { map: GameMap; file: string; lastGame: number }[];
+  private readonly rotation: RotationEntry[];
   private mapIndex = 0;
   /** Votos por mapa já enviados (`mapVotes` só quando mudam). */
   private sentVotes: number[] = [];
@@ -274,7 +289,12 @@ export class Room {
     if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
-    this.rotation = order.map((i) => ({ map: options.maps[i] as GameMap, file: options.mapFiles?.[i] ?? (options.maps[i] as GameMap).title, lastGame: 0 }));
+    this.rotation = order.map((i) => ({
+      map: options.maps[i] as GameMap,
+      file: options.mapFiles?.[i] ?? (options.maps[i] as GameMap).title,
+      lastGame: 0,
+      ...(options.randomSlots?.[i] ? { random: options.randomSlots[i] } : {}),
+    }));
     this.mapIndex = first;
     this.world = new WorldState((this.rotation[first] as { map: GameMap }).map, options.maxPlayers);
     this.sim = new ServerSim(this.world, this.settings, rng, {
@@ -1126,8 +1146,20 @@ export class Room {
   /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
   private startRecording(): void {
     const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
+    const mapText = this.options.generatedMaps?.text(this.mapFile(this.mapIndex));
     this.recorder = new ReplayRecorder(
-      { roomId: this.id, mode: this.mode, preset: this.preset.id, map: this.mapFile(this.mapIndex), mapTitle: this.world.map.title, maxPlayers: this.world.maxPlayers, startedAt: new Date(this.wallClock()).toISOString(), startFrame: this.world.frame },
+      {
+        roomId: this.id,
+        mode: this.mode,
+        preset: this.preset.id,
+        map: this.mapFile(this.mapIndex),
+        mapTitle: this.world.map.title,
+        // mapa gerado (OG-015): o texto vai no replay, porque não existe em maps/
+        ...(mapText !== undefined ? { mapText } : {}),
+        maxPlayers: this.world.maxPlayers,
+        startedAt: new Date(this.wallClock()).toISOString(),
+        startFrame: this.world.frame,
+      },
       init,
     );
     this.spectators.begin(this.recorder.replayHeader, this.recorder.initChunk);
@@ -1322,7 +1354,12 @@ export class Room {
     const votes = mapVotes(this.voters(), this.rotation.length);
     return message('mapList', {
       revision: 0,
-      maps: this.rotation.map((r, i) => ({ file: r.file, title: r.map.title, author: r.map.author, width: r.map.width, height: r.map.height, votes: votes[i] ?? 0 })),
+      // entrada aleatória aparece como `<Random>` com o tamanho pedido (`net_data_quick_map_list`)
+      maps: this.rotation.map((r, i) =>
+        r.random
+          ? { file: 'random', title: '<Random>', author: 'Outgun', width: r.random.width, height: r.random.height, votes: votes[i] ?? 0 }
+          : { file: r.file, title: r.map.title, author: r.map.author, width: r.map.width, height: r.map.height, votes: votes[i] ?? 0 },
+      ),
     });
   }
 
@@ -1349,8 +1386,14 @@ export class Room {
       c.wantMapExit = false;
       if (c.mapVote === this.mapIndex) c.mapVote = -1;
     }
-    const entry = this.rotation[this.mapIndex] as { map: GameMap; lastGame: number };
+    const entry = this.rotation[this.mapIndex] as RotationEntry;
     entry.lastGame = this.world.frame;
+    // `random_map` (OG-015): um mapa novo cada vez que a entrada entra, como o `load_rotation_map`
+    if (entry.random && this.options.generatedMaps) {
+      const generated = this.options.generatedMaps.generate(entry.random);
+      entry.map = generated.map;
+      entry.file = generated.file;
+    }
     this.matchStartedAt = this.wallClock();
     Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
     const map = entry.map;
@@ -1456,9 +1499,9 @@ export class Room {
   }
 
   /** Rotação que entra na próxima troca de mapa (painel admin, OG-087). */
-  private pendingRotation: { map: GameMap; file: string }[] | null = null;
+  private pendingRotation: { map: GameMap; file: string; random?: RandomMapParams }[] | null = null;
 
-  setRotation(entries: readonly { map: GameMap; file: string }[]): void {
+  setRotation(entries: readonly { map: GameMap; file: string; random?: RandomMapParams }[]): void {
     if (entries.length === 0) return;
     const same = entries.length === this.rotation.length && entries.every((e, i) => e.file === this.rotation[i]?.file);
     this.pendingRotation = same ? null : [...entries];

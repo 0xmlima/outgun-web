@@ -3,6 +3,7 @@
 // barra de tempo, a velocidade e um link compartilhável que guarda o ponto atual. Espectador ao vivo
 // (OG-092): `/spectate?src=wss://.../rooms/ID/spectate` (ou `?sala=ID` no servidor padrão) toca o stream
 // da sala com o atraso de `spectating_delay`.
+import { GENERATED_MAP, serverHttpBase } from '../game/host.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
@@ -146,6 +147,7 @@ export function SpectateScreen() {
     /** Partida em curso; `awaitingInit`: o próximo pacote é o estado inicial dela. */
     let replay: Replay | null = null;
     let awaitingInit = false;
+    let mapText: Promise<string | undefined> = Promise.resolve(undefined);
     ws.onmessage = (ev) => {
       const r = decodeFrame(new Uint8Array(ev.data as ArrayBuffer), 's2c');
       if (!r.ok) return;
@@ -162,11 +164,23 @@ export function SpectateScreen() {
           init: [],
           frames: [],
         };
+        // mapa gerado na hora (OG-015): o texto vem do game server antes de começar
+        const current = replay;
+        mapText = GENERATED_MAP.test(start.map)
+          ? fetch(`${serverHttpBase(src)}/maps/${start.map}.txt`).then(
+              (res) => (res.ok ? res.text() : undefined),
+              () => undefined,
+            )
+          : Promise.resolve(undefined);
+        void mapText.then((text) => {
+          if (text !== undefined) current.header.mapText = text;
+        });
         awaitingInit = true;
       } else if (replay && awaitingInit) {
         replay.init = r.messages;
         awaitingInit = false;
-        host.setReplay(replay);
+        const ready = replay;
+        void mapText.then(() => host.setReplay(ready));
       } else replay?.frames.push(r.messages);
     };
     ws.onclose = (ev) => ev.code !== 1000 && setError(`${t('Disconnected')} (${ev.code}${ev.reason ? `: ${ev.reason}` : ''})`);

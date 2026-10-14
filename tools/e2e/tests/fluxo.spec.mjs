@@ -59,6 +59,8 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
   // 3. Partida: entra com o ticket da API e joga com os bots
   const game = page.locator('.game');
   await expect(game).toHaveAttribute('data-status', 'ready', { timeout: 30_000 });
+  // primeiro mapa da rotação do E2E é um random_map 2x2 (OG-015), baixado do game server
+  await expect(game).toHaveAttribute('data-map', '<Random>');
   await page.keyboard.down('ArrowUp');
   await page.keyboard.down('Control');
   await page.waitForTimeout(1500);
