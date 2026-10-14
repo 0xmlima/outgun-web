@@ -9,7 +9,7 @@ import { COMMON_PASSWORD_COUNT } from '../auth/common-passwords.js';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { matches, matchPlayers, passwordResets, sessions, users } from '../db/schema.js';
+import { feedback, matches, matchPlayers, passwordResets, sessions, users } from '../db/schema.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
 
@@ -53,6 +53,15 @@ describe.skipIf(!pgAdminUrl)('contas (OG-081)', () => {
   const register = (username: string, email: string, password = 'senha-boa-123') =>
     post('/auth/register', { username, email, password, language: 'pt-BR' }, { ip: freshIp() });
   const tokenFrom = (text: string) => /#token=([\w-]+)/.exec(text)?.[1];
+
+  it('o cadastro guarda a versão dos termos aceitos (OG-107)', async () => {
+    const res = await post('/auth/register', { username: 'Termos', email: 'termos@x.com', password: 'senha-boa-123', termsVersion: '2026-10-14' }, { ip: freshIp() });
+    expect(res.statusCode).toBe(201);
+    const [row] = await t.db.select().from(users).where(eq(users.username, 'Termos'));
+    expect(row?.termsVersion).toBe('2026-10-14');
+    expect(row?.termsAcceptedAt).toBeInstanceOf(Date);
+    expect((await post('/auth/register', { username: 'Termos2', email: 't2@x.com', password: 'senha-boa-123', termsVersion: 'ontem' }, { ip: freshIp() })).statusCode).toBe(400);
+  });
 
   it('cadastro entra na hora, com cookie httpOnly e SameSite', async () => {
     const res = await register('Ana', 'Ana@Exemplo.com');
@@ -198,6 +207,9 @@ describe.skipIf(!pgAdminUrl)('contas (OG-081)', () => {
       .values({ serverId: 'gs', serverMatchId: 'x1', mode: 'casual', ranked: false, map: 'm', redScore: 1, blueScore: 0, startedAt: new Date(), endedAt: new Date() })
       .returning();
     await t.db.insert(matchPlayers).values({ matchId: match!.id, slot: 0, userId, name: 'Gabi', team: 0 });
+    // feedback do beta (OG-106) também perde o nome (OG-107) e entra na exportação
+    expect((await post('/feedback', { kind: 'praise', fidelity: 5, text: 'gostei' }, { cookie })).statusCode).toBe(201);
+    expect((await get('/account/export', cookie)).json().feedback).toEqual([expect.objectContaining({ kind: 'praise', fidelity: 5, text: 'gostei' })]);
 
     const del = (password: string) =>
       app.inject({ method: 'DELETE', url: '/account', payload: { password }, remoteAddress: freshIp(), headers: { origin: ORIGIN, cookie: cookie! } });
@@ -207,6 +219,7 @@ describe.skipIf(!pgAdminUrl)('contas (OG-081)', () => {
     expect(await t.db.select().from(sessions).where(eq(sessions.userId, userId))).toHaveLength(0);
     const [player] = await t.db.select().from(matchPlayers).where(eq(matchPlayers.matchId, match!.id));
     expect(player).toMatchObject({ userId: null, name: '(anon)' });
+    expect((await t.db.select().from(feedback)).filter((f) => f.text === 'gostei')).toEqual([expect.objectContaining({ userId: null, username: '(anon)' })]);
     expect((await post('/auth/login', { username: 'Gabi', password: 'senha-boa-123' }, { ip: freshIp() })).statusCode).toBe(401);
     expect((await register('Gabi', 'gabi@x.com')).statusCode).toBe(201); // nome e e-mail livres de novo
   });

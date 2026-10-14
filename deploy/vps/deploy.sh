@@ -12,7 +12,8 @@ tag="$(git rev-parse --short HEAD)$(git diff --quiet HEAD -- apps packages deplo
 ssh_() { ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "$host" "$@"; }
 
 echo "== imagens $tag"
-for t in api game-server web; do docker build -q --platform linux/amd64 -f deploy/Dockerfile --target "$t" -t "outgun-$t:$tag" . >/dev/null; done
+# VITE_OPERATOR_CONTACT (opcional): contato do responsável na política de privacidade
+for t in api game-server web; do docker build -q --platform linux/amd64 -f deploy/Dockerfile --target "$t" --build-arg "VITE_RELEASE=$tag" --build-arg "VITE_OPERATOR_CONTACT=${VITE_OPERATOR_CONTACT:-}" -t "outgun-$t:$tag" . >/dev/null; done
 docker build -q --platform linux/amd64 -t "outgun-backup:$tag" deploy/backup >/dev/null
 
 echo "== envio"

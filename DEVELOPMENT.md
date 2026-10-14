@@ -78,6 +78,11 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - Feedback: "Enviar feedback" no menu (logado) e no menu do jogo (Esc), com nota de fidelidade ao original 1–5, nota geral, "joguei o original" e texto; o contexto (sala, mapa, versão, tela, navegador) vai junto. Triagem na aba Feedback do painel (resumo da fidelidade de veteranos — meta do lançamento: 20 com média 4+ —, status, CSV).
 - O E2E roda com `BETA=1` e cria os convites pelo Admin do seed.
 
+## Termos, privacidade e sobre (OG-107)
+
+- `/terms`, `/privacy` e `/about` (links no rodapé). O conteúdo e as versões ficam em `packages/content/src/privacy.ts`: o inventário de dados pessoais é conferido contra o banco por `apps/api/src/privacy.test.ts` — **tabela nova no schema precisa ser classificada lá**, senão o teste falha. Textos em pt-BR e inglês; são rascunho para revisão de quem opera o serviço.
+- O cadastro exige aceitar termos e política e grava `users.terms_version`/`terms_accepted_at`. `VITE_OPERATOR_CONTACT` no build mostra o contato do responsável (no `deploy.sh` da VPS, variável de ambiente).
+
 ## Telemetria de rede (OG-108)
 
 - Na partida online o cliente amostra a rede uma vez por segundo (ping medido pelo servidor, atraso dos controles, correções de predição, frames recebidos, fps) e manda um resumo anônimo (`POST /api/telemetry`, por `sendBeacon`) ao sair, a cada 5 min e ao fechar a aba; só com 30 s ou mais de partida. Desliga em Opções → Jogo ("Enviar estatísticas anônimas da rede"). A API guarda em `net_reports` sem conta, nome nem IP (a região vem do servidor da sala), soma no `/metrics` (`outgun_client_*`) e agrega por região no painel (aba Rede) e no Grafana (linha "Clientes").

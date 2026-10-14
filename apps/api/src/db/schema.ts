@@ -40,6 +40,9 @@ export const users = pgTable(
     isAdmin: boolean('is_admin').notNull().default(false),
     /** Moderador (OG-087): salas, denúncias, bans de sala e auditoria no painel. */
     isModerator: boolean('is_moderator').notNull().default(false),
+    /** Termos e política aceitos no cadastro (OG-107). */
+    termsVersion: text('terms_version'),
+    termsAcceptedAt: tstz('terms_accepted_at'),
     usernameChangedAt: tstz('username_changed_at'),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { useAccount, type AccountUser } from '../app/account.js';
+import { TERMS_VERSION } from '@outgun/content';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { BitmapText } from '../ui/BitmapText.js';
@@ -140,6 +141,8 @@ export function RegisterScreen() {
   // beta fechado (OG-106): convite pelo link (/register?invite=CODIGO) ou digitado
   const [invite, setInvite] = useState(() => new URLSearchParams(location.search).get('invite') ?? '');
   const [beta, setBeta] = useState(false);
+  // termos de uso e política de privacidade (OG-107): aceite obrigatório, versão vai para a conta
+  const [accepted, setAccepted] = useState(false);
   useEffect(() => {
     api<{ beta: boolean }>('/beta').then(
       (r) => setBeta(r.beta),
@@ -161,8 +164,12 @@ export function RegisterScreen() {
         setMessage({ text: t('The passwords do not match.'), error: true });
         return;
       }
+      if (!accepted) {
+        setMessage({ text: t('Accept the terms of use and the privacy policy to create the account.'), error: true });
+        return;
+      }
       const r = await api<{ user: AccountUser }>('/auth/register', {
-        body: { username, email, password, language: prefs.locale, ...(invite.trim() ? { invite: invite.trim() } : {}) },
+        body: { username, email, password, language: prefs.locale, termsVersion: TERMS_VERSION, ...(invite.trim() ? { invite: invite.trim() } : {}) },
       });
       setSignedIn(true);
       setUser(r.user);
@@ -183,6 +190,9 @@ export function RegisterScreen() {
       autoComplete: 'new-password',
       onEnter: () => void submit(),
     },
+    { kind: 'choice', label: t('I accept the terms of use and the privacy policy'), value: accepted ? t('Yes') : t('No'), onChange: () => setAccepted((a) => !a) },
+    { kind: 'action', label: t('Read the terms of use'), onActivate: () => void navigate('/terms') },
+    { kind: 'action', label: t('Read the privacy policy'), onActivate: () => void navigate('/privacy') },
     { kind: 'action', label: t('Create account'), onActivate: () => void submit() },
   ];
   return (

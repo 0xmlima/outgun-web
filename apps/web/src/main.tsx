@@ -23,6 +23,7 @@ import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.j
 import { LeaderboardScreen, MatchScreen, ProfileScreen } from './screens/stats.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen, OptionsSectionScreen } from './screens/options.js';
+import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
 import './styles.css';
 
@@ -51,6 +52,9 @@ const router = createBrowserRouter([
           { path: 'replays', element: <ReplaysScreen /> },
           { path: 'credits', element: <CreditsScreen /> },
           { path: 'source', element: <SourceScreen /> },
+          { path: 'terms', element: <TermsScreen /> },
+          { path: 'privacy', element: <PrivacyScreen /> },
+          { path: 'about', element: <AboutScreen /> },
           { path: 'login', element: <LoginScreen /> },
           { path: 'register', element: <RegisterScreen /> },
           { path: 'forgot-password', element: <ForgotPasswordScreen /> },

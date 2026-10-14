@@ -70,6 +70,8 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
             email: Type.String({ minLength: 3, maxLength: 254 }),
             password: Password,
             language: Language,
+            /** Versão dos termos de uso e da política de privacidade aceita na tela (OG-107). */
+            termsVersion: Type.Optional(Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' })),
             /** Código de convite, obrigatório no beta fechado (OG-106). */
             invite: Type.Optional(Type.String({ maxLength: 32 })),
           }),
@@ -105,7 +107,14 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           if (deps.config.beta && !code) return 'invalid_invite' as const;
           const [user] = await tx
             .insert(users)
-            .values({ username, usernameKey: usernameKey(username), email: email.trim(), emailKey: emailKey(email), passwordHash })
+            .values({
+              username,
+              usernameKey: usernameKey(username),
+              email: email.trim(),
+              emailKey: emailKey(email),
+              passwordHash,
+              ...(request.body.termsVersion ? { termsVersion: request.body.termsVersion, termsAcceptedAt: new Date() } : {}),
+            })
             .onConflictDoNothing()
             .returning();
           if (!user) return 'username_taken' as const; // corrida entre dois cadastros

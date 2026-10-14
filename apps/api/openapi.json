@@ -2091,6 +2091,10 @@
                     "type": "string",
                     "maxLength": 10
                   },
+                  "termsVersion": {
+                    "type": "string",
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                  },
                   "invite": {
                     "type": "string",
                     "maxLength": 32

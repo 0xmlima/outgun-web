@@ -118,13 +118,35 @@ test('beta fechado: cadastro sem convite recusado; "Jogar agora" sem conta vai p
   await page.getByLabel('E-mail').fill('semconvite@outgun.local');
   await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByLabel('Confirmar senha').fill(password);
-  await page.keyboard.press('Enter');
+  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
+  // sem aceitar os termos (OG-107) nem chega à API
+  await expect(page.locator('.menu')).toContainText(
+    'Aceite os termos de uso e a política de privacidade',
+  );
+  await page.locator('button.menu-item', { hasText: 'Aceito os termos de uso' }).click();
+  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
   await expect(page.locator('.menu')).toContainText(
     'O beta fechado precisa de um código de convite.',
   );
   await page.goto('/');
   await menuItem(page, 'Jogar agora').click();
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test('termos, privacidade e sobre no rodapé (OG-107)', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('.shell-footer a', { hasText: 'Privacidade' }).click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.locator('.text-page')).toContainText(
+    'O que guardamos, por quê e por quanto tempo',
+  );
+  await expect(page.locator('.text-page')).toContainText('Identificador aleatório do navegador');
+  await page.screenshot({ path: prints('8-privacidade.png'), fullPage: true });
+  await page.goto('/terms');
+  await expect(page.locator('.text-page')).toContainText('Conduta');
+  await page.goto('/about');
+  await expect(page.locator('.text-page')).toContainText('Fabiana Cecin');
+  await page.screenshot({ path: prints('9-sobre.png'), fullPage: true });
 });
 
 test('convidado não entra no Ranked: vai para o login', async ({ page }) => {

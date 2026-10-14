@@ -41,7 +41,9 @@ export async function registerWithInvite(page, baseURL, name, password) {
   await page.getByLabel('E-mail').fill(`${name.toLowerCase()}@outgun.local`);
   await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByLabel('Confirmar senha').fill(password);
-  await page.keyboard.press('Enter');
+  // termos e privacidade (OG-107): aceite antes de criar a conta
+  await page.locator('button.menu-item', { hasText: 'Aceito os termos de uso' }).click();
+  await page.locator('button.menu-item', { hasText: 'Criar conta' }).click();
   // a sessão vale quando o cadastro termina e o app volta à tela inicial
   await page.waitForURL((url) => url.pathname === '/', { timeout: 15_000 });
 }
