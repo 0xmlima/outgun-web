@@ -44,6 +44,8 @@ export interface Connection {
   close(code: number, reason: string): void;
   /** O jogador mudou de pid (troca de time): o transporte passa a usar o novo. */
   moved?(pid: number): void;
+  /** Ping medido pelo transporte (ms), se já houver medida. */
+  rtt?(): number | undefined;
 }
 
 /** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
@@ -262,6 +264,8 @@ export class Room {
   private readonly botNameRng: GlibcRand;
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
   private frameSentTime = 0;
+  /** Último pid cujo ping foi enviado (rodízio). */
+  private pingCursor = -1;
   /** Sorteio dos bots (no original, o `rand()` global; aqui separado para não mexer na sequência do mundo). */
   private readonly botRng: GlibcRand;
   /** Regras de bandeira já anunciadas (`flagModeMask`). */
@@ -896,8 +900,9 @@ export class Room {
     if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()));
     this.spectators.tick(world.frame, this.settings.server.spectatingDelay);
     const views = minimapViews(world, this.settings);
+    const ping = this.nextPing();
     for (const [pid, c] of this.clients) {
-      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
+      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping });
       const extra = properties.length ? [message('minimapProperties', { players: properties })] : [];
       this.send(pid, [...c.queue, message('frame', frame), ...extra]);
       c.queue = [];
@@ -907,6 +912,17 @@ export class Room {
     // `bot_loop` de cada bot: recebe o que chegou (com `bot_ping`) e decide para o próximo frame
     for (const bot of this.botClients()) bot.step();
     world.frame++;
+  }
+
+  /** Ping de um jogador por frame, em rodízio (bots informam o `botPing` da sala). */
+  private nextPing(): { pid: number; ms: number } | null {
+    const pids = [...this.clients.keys()].sort((a, b) => a - b);
+    if (pids.length === 0) return null;
+    const pid = pids.find((p) => p > this.pingCursor) ?? (pids[0] as number);
+    this.pingCursor = pid;
+    const c = this.clients.get(pid) as Client;
+    const ms = c.bot ? this.settings.server.botPing : c.conn.rtt?.();
+    return ms === undefined ? null : { pid, ms: Math.min(65535, Math.max(0, Math.round(ms))) };
   }
 
   /** Anúncio "x/y votos para trocar de mapa" e o fim do bloqueio de votação. */

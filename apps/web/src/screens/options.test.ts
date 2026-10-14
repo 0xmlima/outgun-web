@@ -17,14 +17,14 @@ describe('opções do jogador (OG-068)', () => {
 
   it('padrões do client.cfg distribuído e da web (D-05, D-26)', () => {
     const d = defaultPrefs(['pt-BR']);
-    expect(d).toMatchObject({ showKillMessages: true, showFlagMessages: true, minimapBandwidth: 80, fpsLimit: 60, showNames: 'sameRoom', visibleRooms: 1, soundVolume: 128 });
+    expect(d).toMatchObject({ showKillMessages: true, showFlagMessages: true, minimapBandwidth: 80, fpsLimit: 0, showNames: 'sameRoom', visibleRooms: 1, soundVolume: 128 });
     expect(d.quickMessages).toHaveLength(10);
   });
 
   it('valores salvos inválidos voltam ao padrão (navegador ou conta)', () => {
     const d = defaultPrefs([]);
-    const p = parsePrefs({ fpsLimit: 0, showNames: 'sempre', minimapBandwidth: 700, quickMessages: ['oi', 3, 'x'.repeat(40)], playerName: 'Nome bem comprido demais' }, d);
-    expect(p.fpsLimit).toBe(60);
+    const p = parsePrefs({ fpsLimit: -1, showNames: 'sempre', minimapBandwidth: 700, quickMessages: ['oi', 3, 'x'.repeat(40)], playerName: 'Nome bem comprido demais' }, d);
+    expect(p.fpsLimit).toBe(0);
     expect(p.showNames).toBe('sameRoom');
     expect(p.minimapBandwidth).toBe(80);
     expect(p.quickMessages.slice(0, 3)).toEqual(['oi', '', 'x'.repeat(30)]);

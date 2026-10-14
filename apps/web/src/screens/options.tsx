@@ -19,7 +19,8 @@ function cycle<T>(list: readonly T[], current: T, delta: number): T {
 
 const check = (on: boolean) => (on ? '[X]' : '[ ]');
 /** Limites de FPS oferecidos (o original aceita 1..10000; 60 é o padrão). */
-const FPS_LIMITS = [30, 50, 60, 75, 100, 120, 144, 200, 240, 10000];
+// 0 = sem limite (o navegador ainda segue a taxa de atualização do monitor)
+const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240];
 
 /** Troca de lugar a cor selecionada com a vizinha (`Colorselect::handleKey` com Ctrl). */
 export function moveColor(colors: readonly number[], selected: number, delta: -1 | 1, carry: boolean): { colors: number[]; selected: number } {
@@ -288,8 +289,8 @@ export function OptionsSectionScreen() {
         {
           kind: 'choice',
           label: t('FPS limit'),
-          value: String(prefs.fpsLimit),
-          onChange: (d) => setPrefs({ fpsLimit: cycle(FPS_LIMITS, FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 60, d) }),
+          value: prefs.fpsLimit === 0 ? t('unlimited') : String(prefs.fpsLimit),
+          onChange: (d) => setPrefs({ fpsLimit: cycle(FPS_LIMITS, FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 0, d) }),
         },
       ];
       break;
