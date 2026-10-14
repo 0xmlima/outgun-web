@@ -656,7 +656,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-107](cards/OG-107-legal-launch-pages.md) | Termos de uso, política de privacidade e página de lançamento | E7 | 2 | Must | S12 | OG-104 | Concluído |
 | [OG-108](cards/OG-108-network-telemetry.md) | Telemetria de rede e predição para ajuste | E7 | 3 | Should | S12 | OG-064, OG-102 | Concluído |
 | [OG-109](cards/OG-109-single-host-deploy.md) | Deploy em máquina única (VPS de qualquer provedor) | E7 | 5 | Must | S12 | OG-103 | Concluído |
-| [OG-200](cards/OG-200-design-system-v2.md) | Design system v2: fonte única, tokens e componentes base | E8 | 5 | Must | S13 | — | Pronto |
+| [OG-200](cards/OG-200-design-system-v2.md) | Design system v2: fonte única, tokens e componentes base | E8 | 5 | Must | S13 | — | Em andamento |
 | [OG-201](cards/OG-201-menu-principal-v2.md) | Novo menu principal e moldura das telas | E8 | 5 | Must | S13 | OG-200 | Pronto |
 | [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Pronto |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Backlog |
