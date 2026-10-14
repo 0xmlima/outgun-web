@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S12 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-103](OG-103-infra-deploy.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
