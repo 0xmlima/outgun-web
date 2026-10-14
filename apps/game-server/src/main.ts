@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ponto de entrada: `node dist/main.js`. Variáveis: PORT (7700; a 7000 é do AirPlay no macOS), MAPS_DIR (maps/ do repositório),
-// ROTATION (outgun1), PRESET (classic), MAX_PLAYERS (16), DEV_TICKETS (1 = aceita dev:Nome),
+// ROTATION (outgun1), PRESET (classic), MAX_PLAYERS (16), DEV_TICKETS (1 = aceita dev:Nome; padrão 1 fora de produção e 0 com NODE_ENV=production),
 // TICKET_JWKS_URL (chaves dos tickets da API; padrão http://localhost:7800/.well-known/jwks.json),
 // API_URL (http://localhost:7800), GS_ID e GS_SECRET (assinatura das rotas internas; padrão dev),
 // CHAT_FILTER (palavras trocadas por * no chat, separadas por vírgula), TRUST_PROXY (1 = X-Forwarded-For),
@@ -11,6 +11,7 @@
 // MAX_SPECTATORS (espectadores ao vivo por sala; 16), GAMEMOD (linhas de gamemod para todas as salas, separadas por |).
 // Observabilidade (OG-102): LOG_LEVEL (info), METRICS_TOKEN (exige Bearer em /metrics), SENTRY_DSN (erros),
 // SENTRY_ENVIRONMENT (padrão NODE_ENV), RELEASE (versão nos logs e erros).
+// MAX_CONNECTIONS_PER_IP (8; 0 = sem limite).
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
 import { loadMaps } from './maps.js';
@@ -76,6 +77,10 @@ const manager = new RoomManager({
       platform.reportMatch(report);
     },
     reportDeltas: (report) => platform.reportDeltas(report),
+    reportPlayer: (report) => {
+      logger.info({ room: report.roomId, reporter: report.reporter.name, target: report.target.name, reason: report.reason }, 'denúncia de jogador');
+      platform.reportPlayer(report);
+    },
     chatFilter: wordSet((env.CHAT_FILTER ?? '').split(',')),
     log: (line) => logger.info(line),
     onMisbehavior: (kick) => {
@@ -115,14 +120,17 @@ const server = await startServer({
   trustProxy: env.TRUST_PROXY === '1',
   port,
   manager,
-  devTickets: env.DEV_TICKETS !== '0',
+  // tickets `dev:` entram sem passar pela API (sem ban, senha nem conferência de nome): nunca em produção por padrão (OG-104)
+  devTickets: env.DEV_TICKETS ? env.DEV_TICKETS === '1' : !production,
   protocolDist: `${repo}packages/protocol/dist`,
   devPage: fileURLToPath(new URL('../dev/index.html', import.meta.url)),
   ...(replays ? { replays } : {}),
   telemetry,
   logger,
   ...(env.METRICS_TOKEN ? { metricsToken: env.METRICS_TOKEN } : {}),
+  ...(env.MAX_CONNECTIONS_PER_IP ? { maxConnectionsPerIp: Number(env.MAX_CONNECTIONS_PER_IP) } : {}),
 });
+if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 if (env.HEARTBEAT !== '0') {
   platform.startHeartbeat(

@@ -8,6 +8,8 @@ import { ClientSession, type LinkConditions, type PredictionOptions } from '@out
 import { message } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
 import { Application, Assets, type BitmapFont } from 'pixi.js';
+// sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
+import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
 import { LocalDemo } from './demo.js';
 import type { Bindings, PressAction } from './input/bindings.js';

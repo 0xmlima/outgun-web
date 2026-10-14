@@ -15,6 +15,28 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+// CSP (OG-104): o cliente roda com os cabeçalhos de produção do `vite preview`; qualquer violação
+// derruba o teste
+let violations = [];
+test.beforeEach(async ({ page }) => {
+  violations = [];
+  page.on('console', (m) => {
+    if (/Content Security Policy|Refused to/.test(m.text())) violations.push(m.text());
+  });
+});
+test.afterEach(() => {
+  expect(violations).toEqual([]);
+});
+
+test('o cliente é servido com CSP e cabeçalhos de segurança', async ({ request }) => {
+  const res = await request.get('/');
+  const csp = res.headers()['content-security-policy'];
+  expect(csp).toContain("script-src 'self'");
+  expect(csp).not.toContain('unsafe-eval');
+  expect(csp).toContain("frame-ancestors 'none'");
+  expect(res.headers()['x-frame-options']).toBe('DENY');
+});
+
 const menuItem = (page, label) => page.locator('button.menu-item', { hasText: label });
 
 test('cadastro, partida até o fim, histórico e ranking', async ({ page }) => {

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import type { LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
+import { deviceHash } from './join.js';
 import { hashPassword } from '../auth/password.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
@@ -97,6 +98,18 @@ describe.skipIf(!pgAdminUrl)('entrada nas salas (OG-083)', () => {
     expect((await join('main', { name: 'Visita' }, { ip: '10.3.9.9' })).json().error).toBe('banned');
     await t.db.insert(bans).values({ ip: '10.3.9.8', expiresAt: new Date(Date.now() - 1000) });
     expect((await join('main', { name: 'Visita' }, { ip: '10.3.9.8' })).statusCode).toBe(200);
+  });
+
+  it('ban por dispositivo (OG-104): só o hash vai ao banco e ao ticket', async () => {
+    const device = 'navegador-de-teste-0001';
+    const ok = await join('main', { name: 'Visita', device });
+    expect(claimsOf(ok, 'main').dev).toBe(deviceHash(device));
+    expect(ok.body).not.toContain(device);
+    await t.db.insert(bans).values({ deviceHash: deviceHash(device), expiresAt: new Date(Date.now() + 60_000) });
+    expect((await join('main', { name: 'Visita', device }, { ip: '10.3.7.1' })).json().error).toBe('banned');
+    expect((await join('main', {}, { cookie, ip: '10.3.7.2' }).then((r) => r.statusCode))).toBe(200);
+    expect((await join('main', { device }, { cookie, ip: '10.3.7.2' })).json().error).toBe('banned');
+    expect((await join('main', { name: 'Visita', device: 'curto' })).statusCode).toBe(400);
   });
 
   it('sala no ar e lotada recusa; endereço vem do heartbeat', async () => {

@@ -73,7 +73,7 @@ export class TicketAuth {
     const c = result.claims;
     return {
       ok: true,
-      identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, admin: c.admin, ...(c.owner ? { owner: true } : {}), ...(c.rating ? { rating: c.rating } : {}) },
+      identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, admin: c.admin, ...(c.owner ? { owner: true } : {}), ...(c.rating ? { rating: c.rating } : {}), ...(c.dev ? { device: c.dev } : {}) },
       ...(c.spawn ? { spawn: c.spawn } : {}),
       jti: c.jti,
     };

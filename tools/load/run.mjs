@@ -57,6 +57,7 @@ if (!server) {
       MAX_PLAYERS: String(perRoom),
       ROOMS: ids.map((id) => `${id}:classic:${perRoom}`).join(','),
       HEARTBEAT: '0',
+      MAX_CONNECTIONS_PER_IP: '0',
       REPLAYS: '0',
       DEV_TICKETS: '1',
       LOG_LEVEL: 'warn',

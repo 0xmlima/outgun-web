@@ -189,6 +189,8 @@ export const bans = pgTable('bans', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   ip: inet('ip'),
+  /** SHA-256 (32 hex) do id do navegador (OG-104). */
+  deviceHash: text('device_hash'),
   roomId: text('room_id').references(() => rooms.id, { onDelete: 'cascade' }),
   reason: text('reason').notNull().default(''),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
@@ -237,6 +239,27 @@ export const reservedNames = pgTable(
   (t) => [index('reserved_names_user_idx').on(t.userId)],
 );
 
+export const reportStatus = pgEnum('report_status', ['open', 'dismissed', 'actioned']);
+
+/** Denúncias do `/report` (OG-104), atendidas no painel admin (OG-087). */
+export const playerReports = pgTable('player_reports', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  roomId: text('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+  serverId: text('server_id').notNull(),
+  map: text('map'),
+  reporterUserId: uuid('reporter_user_id').references(() => users.id, { onDelete: 'set null' }),
+  reporterName: text('reporter_name').notNull(),
+  targetUserId: uuid('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+  targetName: text('target_name').notNull(),
+  targetIp: inet('target_ip'),
+  targetDeviceHash: text('target_device_hash'),
+  reason: text('reason').notNull(),
+  status: reportStatus('status').notNull().default('open'),
+  handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),
+  handledAt: tstz('handled_at'),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+});
+
 export const allTables = {
   users,
   sessions,
@@ -250,6 +273,7 @@ export const allTables = {
   rating_deltas: ratingDeltas,
   bans,
   admin_actions: adminActions,
+  player_reports: playerReports,
   password_resets: passwordResets,
   reserved_names: reservedNames,
 };

@@ -5,7 +5,7 @@ import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
 import { describe, expect, it } from 'vitest';
 import { wordSet } from './chat.js';
 import { loadMaps } from './maps.js';
-import { listLines, type AuditEntry } from './moderation.js';
+import { listLines, ReportLimiter, type AuditEntry, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { Room, type Connection, type Identity } from './room.js';
 
 const maps = loadMaps(fileURLToPath(new URL('../../../maps', import.meta.url)), ['outgun1', '2 versus 2 (duel)']);
@@ -29,7 +29,7 @@ class TestConnection implements Connection {
   }
 }
 
-function setup(preset = 'classic', opts: { chatFilter?: ReadonlySet<string> } = {}) {
+function setup(preset = 'classic', opts: { chatFilter?: ReadonlySet<string>; reportPlayer?: (r: PlayerReport) => void } = {}) {
   const audit: AuditEntry[] = [];
   const r = new Room({ id: 'r', preset, maps, mapFiles: ['outgun1', '2 versus 2 (duel)'], maxPlayers: 16, seed: 7, audit: (_room, e) => audit.push(e), ...opts });
   const join = (name: string, identity: Partial<Identity> = {}) => {
@@ -232,5 +232,56 @@ describe('moderação (RN-CHT-03/04)', () => {
     say(a.pid, '/sayadmin o mapa travou');
     expect(a.conn.texts().at(-1)).toBe('Your message has been logged. Thank you for your feedback!');
     expect(audit.at(-1)).toMatchObject({ action: 'sayadmin', reason: 'o mapa travou', actor: { name: 'Ana' } });
+  });
+});
+
+describe('/report (OG-104)', () => {
+  it('denuncia pelo nome (com espaços), com motivo; vai para a moderação com IP e dispositivo do alvo', () => {
+    const reports: PlayerReport[] = [];
+    const { r, join, say } = setup('classic', { reportPlayer: (x) => reports.push(x) });
+    const a = join('Ana');
+    join('Bia Lima', { ip: '10.0.0.2', device: 'abc123', accountId: '11111111-1111-1111-1111-111111111111' });
+    say(a.pid, '/report bia lima atravessa paredes');
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ roomId: 'r', reason: 'atravessa paredes', reporter: { name: 'Ana' }, target: { name: 'Bia Lima', ip: '10.0.0.2', device: 'abc123' } });
+    expect(a.conn.texts().at(-1)).toBe('Bia Lima has been reported to the moderators. Thank you!');
+    expect(r.playerCount).toBe(2);
+  });
+
+  it('sem motivo, a si mesmo ou a quem não existe: só a ajuda', () => {
+    const reports: PlayerReport[] = [];
+    const { join, say } = setup('classic', { reportPlayer: (x) => reports.push(x) });
+    const a = join('Ana');
+    join('Bia');
+    say(a.pid, '/report Bia');
+    say(a.pid, '/report Ana trapaça');
+    say(a.pid, '/report Zé trapaça');
+    expect(reports).toHaveLength(0);
+    expect(a.conn.texts().filter((t) => t.startsWith('For example to report'))).toHaveLength(3);
+  });
+
+  it('uma denúncia por alvo e no máximo 3 a cada 10 minutos', () => {
+    const reports: PlayerReport[] = [];
+    const { r, join, say } = setup('classic', { reportPlayer: (x) => reports.push(x) });
+    const a = join('Ana');
+    for (const n of ['B1', 'B2', 'B3', 'B4']) join(n);
+    say(a.pid, '/report B1 x');
+    say(a.pid, '/report B1 de novo');
+    say(a.pid, '/report B2 x');
+    say(a.pid, '/report B3 x');
+    say(a.pid, '/report B4 x');
+    expect(reports.map((x) => x.target.name)).toEqual(['B1', 'B2', 'B3']);
+    expect(a.conn.texts().filter((t) => t.startsWith('You have reported too many'))).toHaveLength(2);
+    expect(r.playerCount).toBe(5);
+  });
+
+  it('a janela de 10 minutos libera novas denúncias', () => {
+    const limiter = new ReportLimiter();
+    const p = (uid: number, name: string): ConsolePlayer => ({ pid: uid, uid, name, team: 0, account: null, admin: false, muted: 0, bot: false, ranked: false });
+    const me = p(1, 'Ana');
+    expect([2, 3, 4, 5].map((n) => limiter.allow(me, p(n, `B${n}`), 0))).toEqual([true, true, true, false]);
+    expect(limiter.allow(me, p(5, 'B5'), 5999)).toBe(false);
+    expect(limiter.allow(me, p(5, 'B5'), 6000)).toBe(true);
+    expect(limiter.allow(me, p(2, 'B2'), 6000)).toBe(true);
   });
 });

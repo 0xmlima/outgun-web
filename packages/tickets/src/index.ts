@@ -31,6 +31,8 @@ export interface TicketClaims {
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.
    */
   spawn?: RoomSpawn;
+  /** Hash do id do navegador (OG-104): ban por dispositivo nas salas. Nunca o id cru. */
+  dev?: string;
   iat: number;
   exp: number;
   /** Id único: um ticket abre uma conexão só. */

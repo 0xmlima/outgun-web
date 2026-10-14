@@ -122,9 +122,9 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     }
   });
 
-  // Cabeçalhos básicos de segurança; respostas de conta nunca ficam em cache.
+  // Cabeçalhos de segurança (OG-104); respostas de conta nunca ficam em cache.
   app.addHook('onSend', async (request, reply) => {
-    reply.header('x-content-type-options', 'nosniff');
+    for (const [name, value] of Object.entries(apiSecurityHeaders(request.url, deps.config.cookieSecure))) reply.header(name, value);
     if (request.url.startsWith('/auth/') || request.url.startsWith('/account')) reply.header('cache-control', 'no-store');
   });
 
@@ -181,6 +181,24 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   return app;
 }
 
+/**
+ * Cabeçalhos de segurança de toda resposta (OG-104, ASVS V14.4). A API só devolve JSON: a CSP não
+ * deixa nada carregar nem ser emoldurado; /docs (Swagger UI) fica com a CSP do próprio plugin. HSTS
+ * só com cookies seguros (produção atrás de TLS).
+ */
+export function apiSecurityHeaders(url: string, https: boolean): Record<string, string> {
+  return {
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'no-referrer',
+    'cross-origin-resource-policy': 'same-site',
+    'cross-origin-opener-policy': 'same-origin',
+    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    ...(url.startsWith('/docs') ? {} : { 'content-security-policy': "default-src 'none'; frame-ancestors 'none'" }),
+    ...(https ? { 'strict-transport-security': 'max-age=31536000; includeSubDomains' } : {}),
+  };
+}
+
 /** Métricas HTTP, /metrics, x-request-id na resposta e envio de erros 5xx (OG-102). */
 function observe(app: App, deps: AppDeps): void {
   const registry = new Registry();
@@ -210,6 +228,13 @@ function observe(app: App, deps: AppDeps): void {
   });
   app.addHook('onClose', async () => {
     await reporter.flush();
+  });
+  // ASVS 7.4.1: erro interno não vai para o cliente (só para o log e o serviço de erros)
+  app.setErrorHandler((error: { statusCode?: number }, request, reply) => {
+    const status = error.statusCode ?? 500;
+    if (status < 500) return reply.send(error);
+    request.log.error({ err: error }, 'erro interno');
+    return reply.code(status).send({ error: 'internal', message: 'internal error', reqId: request.id });
   });
 
   app.get('/metrics', { schema: { hide: true } }, async (request, reply) => {

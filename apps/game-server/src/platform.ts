@@ -2,7 +2,7 @@
 // Chamadas do game server às rotas internas da API (HMAC, OG-080): auditoria da moderação (OG-046)
 // e heartbeat do registro de salas (OG-086). Sem API, as ações só vão para o log.
 import { signInternalRequest } from '@outgun/tickets';
-import type { AuditEntry, ConsolePlayer } from './moderation.js';
+import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
 import type { DeltaReport, MatchReport } from './match-report.js';
 
@@ -14,6 +14,7 @@ export function auditBody(roomId: string, e: AuditEntry): Record<string, unknown
     name: p.name.slice(0, 32),
     ...(p.account && UUID.test(p.account) ? { accountId: p.account } : {}),
     ...(withIp && p.ip ? { ip: p.ip } : {}),
+    ...(withIp && p.device ? { device: p.device } : {}),
   });
   return {
     roomId,
@@ -24,6 +25,17 @@ export function auditBody(roomId: string, e: AuditEntry): Record<string, unknown
     ...(e.durationSeconds ? { durationSeconds: e.durationSeconds } : {}),
     ...(e.details ? { details: e.details } : {}),
   };
+}
+
+/** Corpo de POST /internal/reports: quem denunciou só com nome e conta; o alvo com IP e dispositivo. */
+export function reportBody(r: PlayerReport): Record<string, unknown> {
+  const who = (p: ConsolePlayer, full: boolean) => ({
+    name: p.name.slice(0, 32),
+    ...(p.account && UUID.test(p.account) ? { accountId: p.account } : {}),
+    ...(full && p.ip ? { ip: p.ip } : {}),
+    ...(full && p.device ? { device: p.device } : {}),
+  });
+  return { roomId: r.roomId, map: r.map.slice(0, 64), reporter: who(r.reporter, false), target: who(r.target, true), reason: r.reason };
 }
 
 export interface ServerInfo {
@@ -99,6 +111,11 @@ export class PlatformClient {
   /** Deltas do ranking de quem saiu ou na troca de mapa (OG-084); idempotente por `deltaId`. */
   reportDeltas(report: DeltaReport): void {
     this.track(this.post('/internal/rating-deltas', report, 5));
+  }
+
+  /** Denúncia do `/report` (OG-104). */
+  reportPlayer(report: PlayerReport): void {
+    void this.post('/internal/reports', reportBody(report));
   }
 
   audit(roomId: string, entry: AuditEntry): void {

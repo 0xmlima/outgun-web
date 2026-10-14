@@ -23,6 +23,38 @@ export interface ConsolePlayer {
   ranked: boolean;
   /** Para o ban por IP (não aparece no /list). */
   ip?: string;
+  /** Hash do dispositivo, para o ban por dispositivo (OG-104). */
+  device?: string;
+}
+
+/** Denúncia feita pelo `/report` (OG-104): vai para a fila da moderação (POST /internal/reports). */
+export interface PlayerReport {
+  roomId: string;
+  map: string;
+  reporter: ConsolePlayer;
+  target: ConsolePlayer;
+  reason: string;
+}
+
+/**
+ * Limite das denúncias: 3 a cada 10 minutos por jogador e uma por alvo nesse tempo (o `/report`
+ * não pode virar spam na fila da moderação). Tempo em frames da sala (10/s).
+ */
+export class ReportLimiter {
+  private readonly sent = new Map<number, { frame: number; target: string }[]>();
+
+  allow(reporter: ConsolePlayer, target: ConsolePlayer, frame: number): boolean {
+    const window = 10 * 60 * 10;
+    const key = target.account ?? `name:${target.name}`;
+    const recent = (this.sent.get(reporter.uid) ?? []).filter((r) => frame - r.frame < window);
+    if (recent.length >= 3 || recent.some((r) => r.target === key)) {
+      this.sent.set(reporter.uid, recent);
+      return false;
+    }
+    recent.push({ frame, target: key });
+    this.sent.set(reporter.uid, recent);
+    return true;
+  }
 }
 
 /** Ação de admin para a auditoria (POST /internal/admin-actions). */
@@ -52,6 +84,8 @@ export interface ConsoleHost {
   settingsChanged(line: string): void;
   resetSettings(): void;
   audit(entry: AuditEntry): void;
+  /** `/report`: false se passou do limite de denúncias. */
+  report(reporter: ConsolePlayer, target: ConsolePlayer, reason: string): boolean;
   /** `/bot` (OG-054); ausente = sala sem bots (Ranked, D-11). */
   bots?: BotConsole;
 }
@@ -112,6 +146,7 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
     say('server', '/help       this screen');
     if (s.infoMessage.length) say('server', '/info       information about this server');
     say('server', '/time       check server uptime, current map time and time left on the map');
+    say('server', '/report p r report player p to the moderators (reason r)');
     if (s.sayadminEnabled) say('server', `/sayadmin   send a message to the server admin${s.sayadminComment ? ` (${s.sayadminComment})` : ''}`);
     if (admin) {
       say('header', 'Admin commands:');
@@ -136,6 +171,8 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
       host.audit({ action: 'sayadmin', actor: me, reason: args.slice(0, 200) });
       say('server', 'Your message has been logged. Thank you for your feedback!');
     } else say('server', 'For example to send "Hello!", type /sayadmin Hello!');
+  } else if (command === 'report') {
+    reportCommand(host, me, args, say);
   } else if (command === 'time') {
     for (const line of host.timeStatus()) say('server', line);
   } else if (command === 'list' && admin) {
@@ -177,6 +214,29 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
   } else if (command === 'bot' && admin) {
     say('warning', 'Bots are not allowed in Ranked rooms.');
   } else say('warning', `Unknown command ${command}. Type /help for a list.`);
+}
+
+/**
+ * `/report nome motivo` (OG-104, novo na web): o nome é o do jogador como aparece (pode ter
+ * espaços; vale o mais longo que bate com o começo do texto, sem diferenciar maiúsculas).
+ */
+function reportCommand(host: ConsoleHost, me: ConsolePlayer, args: string, say: (k: TextKind, t: string) => void): void {
+  const text = args.trim();
+  const lower = text.toLowerCase();
+  const target = host
+    .players()
+    .filter((p) => !p.bot && p.pid !== me.pid && lower.startsWith(p.name.toLowerCase()) && (lower.length === p.name.length || lower[p.name.length] === ' '))
+    .sort((a, b) => b.name.length - a.name.length)[0];
+  const reason = target ? text.slice(target.name.length).trim().slice(0, 200) : '';
+  if (!target || !reason) {
+    say('server', 'For example to report Bob for cheating, type /report Bob aimbot');
+    return;
+  }
+  if (!host.report(me, target, reason)) {
+    say('warning', 'You have reported too many players recently. Try again later.');
+    return;
+  }
+  say('server', `${target.name} has been reported to the moderators. Thank you!`);
 }
 
 /** Número inteiro no começo do texto, como `istream >> int`; null = não começa com número. */

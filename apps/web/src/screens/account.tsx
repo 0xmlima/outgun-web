@@ -32,6 +32,8 @@ function useErrorText(): (error: unknown) => string {
         return t('Invalid e-mail.');
       case 'invalid_password':
         return t('The password must have at least 8 characters.');
+      case 'weak_password':
+        return t('This password is too common. Choose another.');
       case 'username_cooldown':
         return t('You can change your name again on $1.', new Date((error as ApiError).message).toLocaleDateString());
       case 'invalid_clan_tag':

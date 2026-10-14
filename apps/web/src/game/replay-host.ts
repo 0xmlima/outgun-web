@@ -7,6 +7,8 @@ import { ReplayPlayer } from '@outgun/netcode';
 import { decodeReplayBody, readReplayPrefix, type Replay } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
 import { Application } from 'pixi.js';
+// sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
+import 'pixi.js/unsafe-eval';
 import { loadManifest } from '../assets.js';
 import { loadFont, loadMap } from './host.js';
 import { EntityRenderer } from './render/entity-renderer.js';

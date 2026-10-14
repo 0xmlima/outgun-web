@@ -7,7 +7,7 @@ import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type
 import { applyGamemod, presetSettings, PRESETS, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
 import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
-import { runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer } from './moderation.js';
+import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
@@ -61,6 +61,8 @@ export interface Identity {
   rating?: PlayerRating;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
+  /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
+  device?: string;
 }
 
 export interface RoomOptions {
@@ -80,6 +82,8 @@ export interface RoomOptions {
   chatFilter?: ReadonlySet<string>;
   /** Log do servidor (chat com `log_player_chat`). */
   log?: (line: string) => void;
+  /** Denúncia de jogador pelo `/report` (OG-104), para a fila da moderação na API. */
+  reportPlayer?: (report: PlayerReport) => void;
   /** Jogador expulso por mensagem inválida ou excesso (métricas e log, OG-102). */
   onMisbehavior?: (kick: { name: string; ip: string | undefined; reason: string }) => void;
   /** Quanto tempo a vaga de quem caiu fica guardada (s; padrão 15, 0 = sai na hora como o original). */
@@ -200,6 +204,8 @@ export class Room {
   private deltaCount = 0;
   private readonly createdAt: number;
   private readonly console: ConsoleHost;
+  /** Limite do `/report` por jogador (OG-104). */
+  private readonly reports = new ReportLimiter();
   private readonly preset: Preset;
   /** Placar já enviado (`scoreUpdate` só quando muda). */
   private readonly sentScores: [number, number] = [0, 0];
@@ -919,7 +925,7 @@ export class Room {
 
   private isBanned(identity: Identity): boolean {
     const now = Date.now();
-    const keys = [identity.accountId && `acct:${identity.accountId}`, identity.ip && `ip:${identity.ip}`].filter(Boolean) as string[];
+    const keys = [identity.accountId && `acct:${identity.accountId}`, identity.ip && `ip:${identity.ip}`, identity.device && `dev:${identity.device}`].filter(Boolean) as string[];
     return keys.some((k) => (this.bans.get(k) ?? 0) > now);
   }
 
@@ -984,6 +990,7 @@ export class Room {
       bot: c.bot,
       ranked: this.mode === 'ranked' && c.identity.accountId !== null,
       ...(c.identity.ip ? { ip: c.identity.ip } : {}),
+      ...(c.identity.device ? { device: c.identity.device } : {}),
     };
   }
 
@@ -1031,6 +1038,7 @@ export class Room {
           const until = Date.now() + minutes * 60_000;
           if (c.identity.accountId) this.bans.set(`acct:${c.identity.accountId}`, until);
           if (c.identity.ip) this.bans.set(`ip:${c.identity.ip}`, until);
+          if (c.identity.device) this.bans.set(`dev:${c.identity.device}`, until);
         }
         this.broadcast(message('playerKick', { pid: target, minutes, admin: admin.name }));
         if (reason) this.queueTo(target, message('text', { kind: 'warning', from: 255, text: `Reason: ${reason}` }));
@@ -1057,6 +1065,11 @@ export class Room {
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       audit: (entry) => this.options.audit?.(this.id, entry),
+      report: (reporter, target, reason) => {
+        if (!this.reports.allow(reporter, target, this.uptimeFrames)) return false;
+        this.options.reportPlayer?.({ roomId: this.id, map: this.world.map.title, reporter, target, reason });
+        return true;
+      },
       ...(this.mode === 'ranked' ? {} : { bots: this.botConsole() }),
     };
   }

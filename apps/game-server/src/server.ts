@@ -39,6 +39,8 @@ export interface ServerOptions {
   telemetry?: GameTelemetry;
   /** Exige `Authorization: Bearer <token>` em /metrics. */
   metricsToken?: string;
+  /** Conexões abertas ao mesmo tempo por IP, jogadores e espectadores (OG-104; padrão 8, 0 = sem limite). */
+  maxConnectionsPerIp?: number;
   /** Log estruturado das entradas e recusas (com o `jti` do ticket para correlacionar com a API). */
   logger?: Logger;
 }
@@ -65,6 +67,20 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
   manager.observer ??= telemetry;
   const log = options.logger;
   const app = uWS.App();
+  // conexões por IP (OG-104): um endereço não ocupa as vagas de uma sala nem enche o processo
+  const perIp = new Map<string, number>();
+  const maxPerIp = options.maxConnectionsPerIp ?? 8;
+  const ipFull = (ip: string) => maxPerIp > 0 && (perIp.get(ip) ?? 0) >= maxPerIp;
+  const ipOpened = (ip: string) => perIp.set(ip, (perIp.get(ip) ?? 0) + 1);
+  const ipClosed = (ip: string) => {
+    const n = (perIp.get(ip) ?? 1) - 1;
+    if (n > 0) perIp.set(ip, n);
+    else perIp.delete(ip);
+  };
+  const clientIp = (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
+    const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
+    return forwarded || Buffer.from(res.getRemoteAddressAsText()).toString();
+  };
   const send = (ws: uWS.WebSocket<unknown>, data: Uint8Array) => {
     telemetry.bytesSent.inc(data.length);
     ws.send(data, true);
@@ -86,8 +102,12 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
-      const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
-      const ip = forwarded || Buffer.from(res.getRemoteAddressAsText()).toString();
+      const ip = clientIp(res, req);
+      if (ipFull(ip)) {
+        telemetry.rejected('player', 'tooManyConnections');
+        res.writeStatus('429 Too Many Requests').end('conexões demais deste endereço');
+        return;
+      }
       res.upgrade<SocketData>(
         { roomId, pid: -1, ip, conn: null },
         req.getHeader('sec-websocket-key'),
@@ -95,6 +115,9 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         req.getHeader('sec-websocket-extensions'),
         context,
       );
+    },
+    open: (ws) => {
+      ipOpened(ws.getUserData().ip);
     },
     message: (ws, data, isBinary) => {
       telemetry.bytesReceived.inc(data.byteLength);
@@ -150,6 +173,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     },
     close: (ws) => {
       const user = ws.getUserData();
+      ipClosed(user.ip);
       if (user.pid !== -1 && user.conn) {
         telemetry.closed('player');
         manager.get(user.roomId)?.disconnect(user.pid, user.conn);
@@ -159,7 +183,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
   });
 
   // Espectadores ao vivo (OG-092): sem ticket, só recebem; o atraso é o `spectating_delay` da sala.
-  app.ws<{ roomId: string; conn: Connection | null }>('/rooms/:id/spectate', {
+  app.ws<{ roomId: string; ip: string; conn: Connection | null }>('/rooms/:id/spectate', {
     compression: uWS.DISABLED,
     maxPayloadLength: 1024,
     idleTimeout: 120,
@@ -169,10 +193,17 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
-      res.upgrade({ roomId, conn: null }, req.getHeader('sec-websocket-key'), req.getHeader('sec-websocket-protocol'), req.getHeader('sec-websocket-extensions'), context);
+      const ip = clientIp(res, req);
+      if (ipFull(ip)) {
+        telemetry.rejected('spectator', 'tooManyConnections');
+        res.writeStatus('429 Too Many Requests').end('conexões demais deste endereço');
+        return;
+      }
+      res.upgrade({ roomId, ip, conn: null }, req.getHeader('sec-websocket-key'), req.getHeader('sec-websocket-protocol'), req.getHeader('sec-websocket-extensions'), context);
     },
     open: (ws) => {
       const user = ws.getUserData();
+      ipOpened(user.ip);
       const room = manager.get(user.roomId);
       const conn: Connection = { send: (b) => send(ws, b), close: (code, reason) => ws.end(code, reason) };
       if (!room) return ws.end(1001, 'sala encerrada');
@@ -187,6 +218,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     message: () => {},
     close: (ws) => {
       const user = ws.getUserData();
+      ipClosed(user.ip);
       if (user.conn) {
         telemetry.closed('spectator');
         manager.get(user.roomId)?.removeSpectator(user.conn);

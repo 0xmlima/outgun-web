@@ -27,6 +27,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Too many attempts. Wait $1 seconds and try again.': 'Muitas tentativas. Aguarde $1 segundos e tente de novo.',
     'This username is already taken.': 'Este nome de usuário já está em uso.',
     'The password must have at least 8 characters.': 'A senha precisa ter pelo menos 8 caracteres.',
+    'This password is too common. Choose another.': 'Essa senha é comum demais. Escolha outra.',
     'Ranked matches require an account.': 'Partidas ranqueadas exigem uma conta.',
     Ranking: 'Ranking',
     'Season $1': 'Temporada $1',

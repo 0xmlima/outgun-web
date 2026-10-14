@@ -5,6 +5,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import { checkRegisteredName } from '@outgun/protocol';
+import { isCommonPassword } from '../auth/common-passwords.js';
 import { nameOwner } from '../auth/names.js';
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, validPassword, verifyPassword } from '../auth/password.js';
 import type { SessionUser } from '../auth/sessions.js';
@@ -80,6 +81,7 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         if (!checkRegisteredName(username)) return fail(reply, 400, 'invalid_username', 'invalid username');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return fail(reply, 400, 'invalid_email', 'invalid e-mail');
         if (!validPassword(password)) return fail(reply, 400, 'invalid_password', 'invalid password');
+        if (isCommonPassword(password, username, email)) return fail(reply, 400, 'weak_password', 'this password is too common');
 
         const passwordHash = await hashPassword(password);
         const created = await db.transaction(async (tx) => {
@@ -201,6 +203,7 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
       async (request, reply) => {
         const { token, password } = request.body;
         if (!validPassword(password)) return fail(reply, 400, 'invalid_password', 'invalid password');
+        if (isCommonPassword(password)) return fail(reply, 400, 'weak_password', 'this password is too common');
         const passwordHash = await hashPassword(password);
         const user = await db.transaction(async (tx) => {
           const [reset] = await tx

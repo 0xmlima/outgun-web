@@ -1619,6 +1619,10 @@
                     "type": "string",
                     "pattern": "^[a-z0-9-]{1,32}$"
                   },
+                  "device": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{16,64}$"
+                  },
                   "password": {
                     "type": "string",
                     "maxLength": 64
@@ -1824,6 +1828,10 @@
                   "region": {
                     "type": "string",
                     "pattern": "^[a-z0-9-]{1,32}$"
+                  },
+                  "device": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{16,64}$"
                   },
                   "mode": {
                     "anyOf": [
@@ -2520,6 +2528,25 @@
         "responses": {
           "204": {
             "description": "Default Response"
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Default Response",
@@ -3953,6 +3980,10 @@
                       "ip": {
                         "type": "string",
                         "maxLength": 45
+                      },
+                      "device": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}$"
                       }
                     }
                   },
@@ -4037,6 +4068,118 @@
             }
           },
           "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/reports": {
+      "post": {
+        "summary": "Denúncia de jogador feita com /report numa sala (OG-104); fica aberta para a moderação",
+        "tags": ["interno"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["roomId", "reporter", "target", "reason"],
+                "properties": {
+                  "roomId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                  },
+                  "map": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "reporter": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "accountId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      }
+                    }
+                  },
+                  "target": {
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {
+                      "accountId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32
+                      },
+                      "ip": {
+                        "type": "string",
+                        "maxLength": 45
+                      },
+                      "device": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}$"
+                      }
+                    }
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "gameServerHmac": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {

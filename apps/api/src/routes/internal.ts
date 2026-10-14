@@ -5,7 +5,7 @@ import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type
 import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, gameServers, matches, matchPlayers, ratingDeltas, rooms, seasons, users } from '../db/schema.js';
+import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, seasons, users } from '../db/schema.js';
 import { activeSeason, applyDeltas } from '../ranking.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
@@ -102,6 +102,22 @@ const RatingDelta = Type.Object({
 });
 
 const MAX_BAN_SECONDS = 7 * 24 * 60 * 60; // ban de sala: no máximo 1 semana, como o /ban do original
+/** Hash do dispositivo que o ticket levou ao game server (OG-104). */
+const DeviceHash = Type.String({ pattern: '^[0-9a-f]{32}$' });
+
+const PlayerReportBody = Type.Object({
+  roomId: RoomId,
+  map: Type.Optional(Type.String({ maxLength: 64 })),
+  reporter: Type.Object({ accountId: Type.Optional(Type.String({ format: 'uuid' })), name: Type.String({ minLength: 1, maxLength: 32 }) }),
+  target: Type.Object({
+    accountId: Type.Optional(Type.String({ format: 'uuid' })),
+    name: Type.String({ minLength: 1, maxLength: 32 }),
+    ip: Type.Optional(Type.String({ maxLength: 45 })),
+    device: Type.Optional(DeviceHash),
+  }),
+  reason: Type.String({ minLength: 1, maxLength: 200 }),
+});
+
 const AdminAction = Type.Object({
   roomId: RoomId,
   action: Type.Union(
@@ -113,6 +129,7 @@ const AdminAction = Type.Object({
       accountId: Type.Optional(Type.String({ format: 'uuid' })),
       name: Type.String({ minLength: 1, maxLength: 32 }),
       ip: Type.Optional(Type.String({ maxLength: 45 })),
+      device: Type.Optional(DeviceHash),
     }),
   ),
   reason: Type.String({ maxLength: 200 }),
@@ -361,20 +378,22 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               action: a.action,
               reason: a.reason,
               durationSeconds: a.durationSeconds ?? null,
-              details: { serverId: request.serverId!, room: a.roomId, ...(a.target?.ip ? { ip: a.target.ip } : {}), ...a.details },
+              details: { serverId: request.serverId!, room: a.roomId, ...(a.target?.ip ? { ip: a.target.ip } : {}), ...(a.target?.device ? { device: a.target.device } : {}), ...a.details },
             })
             .returning({ id: adminActions.id });
           let banId: number | null = null;
           const userId = account(a.target?.accountId);
           const ip = inetOrNull(a.target?.ip);
+          const deviceHash = a.target?.device ?? null;
           // Ban de sala precisa da sala cadastrada (sem ela, viraria ban de plataforma).
-          if (a.action === 'ban' && room && (userId || ip)) {
+          if (a.action === 'ban' && room && (userId || ip || deviceHash)) {
             const createdAt = new Date();
             const [ban] = await tx
               .insert(bans)
               .values({
                 userId,
                 ip,
+                deviceHash,
                 roomId: room.id,
                 reason: a.reason,
                 createdBy: account(a.actor.accountId),
@@ -387,6 +406,43 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           return { id: row!.id, banId };
         });
         return reply.code(201).send(result);
+      },
+    );
+
+    app.post(
+      '/reports',
+      {
+        schema: {
+          tags: ['interno'],
+          summary: 'Denúncia de jogador feita com /report numa sala (OG-104); fica aberta para a moderação',
+          security,
+          body: PlayerReportBody,
+          response: { 201: Type.Object({ id: Type.Integer() }), 401: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const r = request.body;
+        const [room] = await database.db.select({ id: rooms.id }).from(rooms).where(eq(rooms.id, r.roomId));
+        const ids = [r.reporter.accountId, r.target.accountId].filter((x): x is string => Boolean(x));
+        const known = new Set(ids.length ? (await database.db.select({ id: users.id }).from(users).where(inArray(users.id, ids))).map((u) => u.id) : []);
+        const account = (id: string | undefined) => (id && known.has(id) ? id : null);
+        const [row] = await database.db
+          .insert(playerReports)
+          .values({
+            roomId: room?.id ?? null,
+            serverId: request.serverId!,
+            map: r.map ?? null,
+            reporterUserId: account(r.reporter.accountId),
+            reporterName: r.reporter.name,
+            targetUserId: account(r.target.accountId),
+            targetName: r.target.name,
+            targetIp: inetOrNull(r.target.ip),
+            targetDeviceHash: r.target.device ?? null,
+            reason: r.reason,
+          })
+          .returning({ id: playerReports.id });
+        request.log.info({ report: row!.id, room: r.roomId, target: r.target.name }, 'denúncia recebida');
+        return reply.code(201).send({ id: row!.id });
       },
     );
   };

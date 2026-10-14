@@ -58,7 +58,32 @@ describe('observabilidade da API', () => {
     expect(metrics).toMatch(/^outgun_api_errors_total\{route="\/boom"\} 1$/m);
     expect(metrics).toMatch(/^outgun_error_reports_total\{result="sent"\} 1$/m);
     expect(sent[0]).toContain('quebrou de propósito');
+    // ASVS 7.4.1: o 5xx não conta o que aconteceu por dentro; o reqId liga ao log
+    const boom = await app.inject({ url: '/boom', headers: { 'x-request-id': 'teste-500-0001' } });
+    expect(boom.statusCode).toBe(500);
+    expect(boom.json()).toEqual({ error: 'internal', message: 'internal error', reqId: 'teste-500-0001' });
+    // 4xx continua com a mensagem (validação)
+    const bad = await app.inject({ method: 'POST', url: '/auth/login', payload: { username: '' } });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().message).toBeTruthy();
     await app.close();
+  });
+
+  it('cabeçalhos de segurança em toda resposta; HSTS só com cookies seguros (OG-104)', async () => {
+    const { app } = await setup();
+    const res = await app.inject({ url: '/health' });
+    expect(res.headers).toMatchObject({
+      'x-content-type-options': 'nosniff',
+      'x-frame-options': 'DENY',
+      'referrer-policy': 'no-referrer',
+      'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    });
+    expect(res.headers['strict-transport-security']).toBeUndefined();
+    expect((await app.inject({ url: '/nada' })).headers['x-frame-options']).toBe('DENY');
+    await app.close();
+    const secure = await setup({ COOKIE_SECURE: '1' });
+    expect((await secure.app.inject({ url: '/health' })).headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
+    await secure.app.close();
   });
 
   it('com METRICS_TOKEN, /metrics exige o token', async () => {

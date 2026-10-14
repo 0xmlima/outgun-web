@@ -13,6 +13,7 @@ if (process.env.MIGRATE !== '0') await migrateUp(database.sql);
 const redis = connectRedis(config.redisUrl);
 const app = await buildApp({ config, database, redis });
 await app.listen({ port: config.port, host: config.host });
+if (process.env.NODE_ENV === 'production' && !config.metricsToken) app.log.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 
 const shutdown = async () => {
   await app.close();
