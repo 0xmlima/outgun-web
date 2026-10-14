@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { readOutgunFont, toBmFont } from './font.js';
-import { MENU_TRACK, mp3Duration, MUSIC_CREDIT, trackId, trackTitle, type MusicTrack } from './music.js';
+import { MENU_TRACK, mp3Duration, MUSIC_CREDIT, MUSIC_LICENSE, trackId, trackTitle, type MusicTrack } from './music.js';
 import { decodePcx } from './pcx.js';
 import { encodePng } from './png.js';
 
@@ -254,6 +254,7 @@ export function buildAssets(gameRoot: string, outDir: string, songsRoot?: string
         file: writeHashed(outDir, 'music', id, 'mp3', bytes),
         duration: Math.round(mp3Duration(bytes) * 10) / 10,
         credit: MUSIC_CREDIT,
+        license: MUSIC_LICENSE,
       });
     }
     manifest.music.sort((a, b) => (a.role === b.role ? 0 : a.role === 'menu' ? -1 : 1));

@@ -42,6 +42,8 @@ export interface MusicTrack {
   /** Segundos. */
   readonly duration: number;
   readonly credit: string;
+  /** SPDX (CC-BY-SA-4.0, D-38). */
+  readonly license: string;
 }
 
 let manifestPromise: Promise<Manifest | null> | undefined;

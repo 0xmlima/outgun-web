@@ -150,7 +150,7 @@ describe('build completo', () => {
     for (const silent of ['wallhit', 'qwallhit', 'colldam', '5_min']) expect(visa.samples[silent]).toBeNull();
     // Trilha (OG-220): 1 faixa de menu e 9 de partida, copiadas como estão, com crédito.
     expect(manifest.music.map((m) => m.role)).toEqual(['menu', ...Array<string>(9).fill('match')]);
-    expect(manifest.music[0]).toMatchObject({ id: 'outgun-epic', title: 'Outgun Epic', credit: 'Thiago Vasconcellos' });
+    expect(manifest.music[0]).toMatchObject({ id: 'outgun-epic', title: 'Outgun Epic', credit: 'Thiago Vasconcellos', license: 'CC-BY-SA-4.0' });
     expect(new Set(manifest.music.map((m) => m.id)).size).toBe(10);
     expect(readFileSync(join(dir, manifest.music[0]!.file))).toEqual(readFileSync(join(repoRoot, 'songs/Outgun epic.mp3')));
     // Arquivos com hash de conteúdo, presentes no disco.

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { MusicTrack } from '../../assets.js';
 import { matchTracks, menuTrack, Playlist, shuffle } from './playlist.js';
 
-const track = (id: string, role: 'menu' | 'match' = 'match'): MusicTrack => ({ id, title: id, role, file: `music/${id}.mp3`, duration: 60, credit: 'x' });
+const track = (id: string, role: 'menu' | 'match' = 'match'): MusicTrack => ({ id, title: id, role, file: `music/${id}.mp3`, duration: 60, credit: 'x', license: 'CC-BY-SA-4.0' });
 const TRACKS = [track('outgun-epic', 'menu'), ...['1', '2', '2-2', '3', '3-2', '4', '4-2', '5', '5-2'].map((n) => track(`outgun-${n}`))];
 
 /** Gerador congruencial simples, para os testes não dependerem de Math.random. */

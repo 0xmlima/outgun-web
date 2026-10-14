@@ -6,6 +6,8 @@
 /** Faixa do menu (RN-MUS-01); as demais tocam nas partidas (RN-MUS-02). */
 export const MENU_TRACK = 'outgun-epic';
 export const MUSIC_CREDIT = 'Thiago Vasconcellos';
+/** Licença das faixas (D-38; songs/LICENSE.txt). */
+export const MUSIC_LICENSE = 'CC-BY-SA-4.0';
 
 export interface MusicTrack {
   /** Do nome do arquivo (`Outgun 2-2.mp3` → `outgun-2-2`): faixas distintas podem ter o mesmo título nos metadados. */
@@ -16,6 +18,8 @@ export interface MusicTrack {
   /** Segundos, com uma casa decimal. */
   duration: number;
   credit: string;
+  /** Identificador SPDX. */
+  license: string;
 }
 
 export function trackId(fileName: string): string {
