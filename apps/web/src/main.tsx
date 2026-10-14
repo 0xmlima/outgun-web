@@ -6,6 +6,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { AccountProvider } from './app/account.js';
 import { PrefsProvider } from './app/prefs.js';
 import { PrefsSync } from './app/prefs-sync.js';
+import { MusicProvider } from './app/music/MusicProvider.js';
 import { Root, Shell } from './app/Shell.js';
 import {
   AccountScreen,
@@ -138,7 +139,9 @@ if (container)
       <PrefsProvider>
         <AccountProvider>
           <PrefsSync />
-          <RouterProvider router={router} />
+          <MusicProvider>
+            <RouterProvider router={router} />
+          </MusicProvider>
         </AccountProvider>
       </PrefsProvider>
     </StrictMode>,

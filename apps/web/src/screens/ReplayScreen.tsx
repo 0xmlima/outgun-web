@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
 import { GAME_FONT } from '../ui/fonts.js';
+import { useMusicMode } from '../app/music/MusicProvider.js';
 import { decodeFrame, PROTOCOL_VERSION, type Replay } from '@outgun/protocol';
 import { defaultServerUrl } from '../game/net/connection.js';
 import { mountReplay, readReplay, type ReplayHost, type ReplayStatus } from '../game/replay-host.js';
@@ -20,6 +21,7 @@ const clock = (frames: number) => {
 const rateText = (rate: number) => (rate >= 1 ? `${rate}×` : `1/${1 / rate}×`);
 
 export default function ReplayScreen() {
+  useMusicMode('off'); // replay sem música (D-37)
   const { t, prefs } = usePrefs();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -121,6 +123,7 @@ export default function ReplayScreen() {
 }
 
 export function SpectateScreen() {
+  useMusicMode('match'); // espectador ao vivo: a playlist do Casual (D-37)
   const { t, prefs } = usePrefs();
   const navigate = useNavigate();
   const [params] = useSearchParams();

@@ -127,6 +127,8 @@ export interface GameOptions {
   readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
   readonly onStatus?: (status: GameStatus) => void;
+  /** Modo da sala, ao ser aceito nela (a trilha toca só no Casual, D-37). */
+  readonly onRoomMode?: (mode: 'casual' | 'ranked') => void;
 }
 
 export type GameStatus =
@@ -398,6 +400,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           else if (m.type === 'resumeToken') resumeToken = m.token;
           else if (m.type === 'welcome') {
             container.dataset.pid = String(m.pid); // para os testes (tools/visual-compare/reconnect.mjs)
+            opts.onRoomMode?.(m.mode);
             // `client_connected`: favoritas (se não for cor aleatória) e banda do minimapa
             sentClient = { colors: '', minimap: -1 };
             sendClientSettings();

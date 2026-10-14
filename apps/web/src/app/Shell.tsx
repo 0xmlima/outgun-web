@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAccount } from './account.js';
+import { useMusicMode } from './music/MusicProvider.js';
 import { usePlayNow } from './play-now.js';
 import { usePrefs } from './prefs.js';
 import { Button } from '../ui/Button.js';
@@ -126,6 +127,7 @@ function Footer() {
 /** Telas fora da partida: barra superior, conteúdo, rodapé e gamepad (OG-200). */
 export function Shell() {
   useGamepadKeys();
+  useMusicMode('menu'); // "Outgun Epic" em loop nas telas fora da partida (RN-MUS-01)
   return (
     <div className="ui-page app-shell">
       <TopBar />
