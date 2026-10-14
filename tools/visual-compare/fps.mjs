@@ -15,6 +15,8 @@ const b = await puppeteer.launch({
   ),
 });
 const p = await b.newPage();
+// sair de /play pede confirmação (beforeunload): aceita para ir à próxima medição
+p.on('dialog', (d) => void d.accept());
 await p.setViewport({ width: 1280, height: 960, deviceScaleFactor: 2 });
 for (const [label, url, keys] of [
   ['1 sala, Ice, troca de sala a cada 250 ms', '/play?map=outgun1&theme=Ice&rooms=1', true],

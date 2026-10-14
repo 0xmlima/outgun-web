@@ -24,7 +24,7 @@ Como jogador, quero ler HUD, chat e placar com a mesma fonte nítida dos menus.
 
 ## Critérios de aceite
 - [x] Nenhum texto da partida usa fonte bitmap; fontes bitmap saem do carregamento.
-- [ ] Medição de FPS antes/depois no card.
+- [x] Medição de FPS antes/depois no card: `tools/visual-compare/fps.mjs` (1280×960, DPR 2), `v2` × `s14`, nos 5 cenários (1 sala trocando, 6×6 salas, sem tema, 32 jogadores com 256 foguetes Metal/sem tema): 60 fps médios e p95 16,7–16,8 ms nos dois, sem regressão (limitado pelo vsync).
 
 ## Notas técnicas
 - Avaliar `BitmapText` do Pixi gerado a partir da fonte web (atlas) para texto que muda todo quadro.

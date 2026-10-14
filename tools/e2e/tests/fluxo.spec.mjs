@@ -90,7 +90,7 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
   await menuItem(page, 'Enviar feedback').click();
   await expect(page).toHaveURL(/\/feedback\?sala=main&mapa=/);
   // nota de fidelidade: a escolha começa em "—"; ← volta para 5
-  await page.getByRole('button', { name: '—' }).first().press('ArrowLeft');
+  await page.getByLabel('A sensação de jogo').press('ArrowLeft');
   await page.getByRole('switch', { name: 'Joguei o Outgun original' }).click();
   await page.getByLabel('Conte mais').fill('A física dos foguetes está igual ao original.');
   await page.getByRole('button', { name: 'Enviar' }).click();
@@ -156,15 +156,15 @@ test('termos, privacidade e sobre no rodapé (OG-107)', async ({ page }) => {
   await page.goto('/');
   await page.locator('.app-footer a', { hasText: 'Privacidade' }).click();
   await expect(page).toHaveURL(/\/privacy$/);
-  await expect(page.locator('.text-page')).toContainText(
+  await expect(page.locator('.ui-prose')).toContainText(
     'O que guardamos, por quê e por quanto tempo',
   );
-  await expect(page.locator('.text-page')).toContainText('Identificador aleatório do navegador');
+  await expect(page.locator('.ui-prose')).toContainText('Identificador aleatório do navegador');
   await page.screenshot({ path: prints('8-privacidade.png'), fullPage: true });
   await page.goto('/terms');
-  await expect(page.locator('.text-page')).toContainText('Conduta');
+  await expect(page.locator('.ui-prose')).toContainText('Conduta');
   await page.goto('/about');
-  await expect(page.locator('.text-page')).toContainText('Fabiana Cecin');
+  await expect(page.locator('.ui-prose')).toContainText('Fabiana Cecin');
   await page.screenshot({ path: prints('9-sobre.png'), fullPage: true });
 });
 
