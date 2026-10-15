@@ -93,7 +93,10 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   let mapName = '';
   let lastStatus = '';
   /** Aberturas em ordem (um mapa carregando de cada vez). */
-  let opening = Promise.resolve();
+  // a fila de aberturas só anda depois do carregamento: segmento ao vivo que chega antes do `app.init`
+  // acabar espera em vez de falhar com "player não iniciado" (OG-281)
+  let loaded: () => void = () => undefined;
+  let opening = new Promise<void>((resolve) => (loaded = resolve));
   let setup: Promise<{ theme: Awaited<ReturnType<typeof loadRoomTheme>>; sprites: Awaited<ReturnType<typeof loadEntitySprites>>; font: Awaited<ReturnType<typeof loadFont>> }> | null = null;
 
   const status = () => {
@@ -190,6 +193,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   const setReplay = (next: Replay) => {
     opening = opening.then(() => open(next)).catch((err: unknown) => opts.onError(err instanceof Error ? err.message : String(err)));
   };
+  if (initial) setReplay(initial); // primeiro na fila, antes de qualquer segmento ao vivo
 
   void (async () => {
     try {
@@ -209,7 +213,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       })();
       await setup;
       app.renderer.on('resize', layout);
-      if (initial) setReplay(initial);
+      loaded();
       const hideWorld = visualCheck();
       app.ticker.add((ticker) => {
         const p = player;
