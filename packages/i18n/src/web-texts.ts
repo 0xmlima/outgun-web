@@ -258,7 +258,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).':
       'Modo foco: tela cheia, atalhos do navegador capturados (F10 ou Esc sai).',
     'Back to game': 'Voltar ao jogo',
-    'Version $1': 'Versão $1',
     'New version available: reload': 'Nova versão disponível: recarregar',
     'Tip: F10 plays in focus mode, which keeps browser shortcuts inside the game.': 'Dica: F10 joga no modo foco, que segura os atalhos do navegador dentro do jogo.',
     '$1 may be taken by the browser or the system. Pick another key or play in focus mode (F10).': '$1 pode ser tomada pelo navegador ou pelo sistema. Escolha outra tecla ou jogue no modo foco (F10).',

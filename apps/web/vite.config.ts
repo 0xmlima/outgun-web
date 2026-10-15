@@ -14,7 +14,9 @@ const proxy = {
 };
 
 // versão do jogo (OG-280): a do package.json, que `tools/dev/version.mjs` sobe a cada sprint
-const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 // Os assets convertidos (`pnpm assets`) ficam em public/assets e são servidos como estão.
 export default defineConfig({
