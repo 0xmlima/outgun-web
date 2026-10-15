@@ -58,6 +58,8 @@ export interface RoomSpawn {
   maps?: string[];
   /** Sala da plataforma: não é encerrada quando fica vazia. */
   persistent: boolean;
+  /** Formato e série da sala Ranked (OG-250); `maxPlayers` = 2 × N. Ausente nas salas antigas. */
+  ranked?: { format: '3x3' | '4x4' | '5x5'; bestOf: 1 | 3 | 5 };
 }
 
 export type TicketInput = Omit<TicketClaims, 'iss' | 'iat' | 'exp' | 'jti'>;

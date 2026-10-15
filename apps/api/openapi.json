@@ -6691,6 +6691,90 @@
                       }
                     }
                   },
+                  "format": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["3x3"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["4x4"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["5x5"]
+                      }
+                    ]
+                  },
+                  "series": {
+                    "type": "object",
+                    "required": [
+                      "serverSeriesId",
+                      "bestOf",
+                      "gameNo",
+                      "redWins",
+                      "blueWins",
+                      "finished",
+                      "winner"
+                    ],
+                    "properties": {
+                      "serverSeriesId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "bestOf": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "enum": [1]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [3]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [5]
+                          }
+                        ]
+                      },
+                      "gameNo": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "redWins": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                      },
+                      "blueWins": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                      },
+                      "finished": {
+                        "type": "boolean"
+                      },
+                      "winner": {
+                        "anyOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "number",
+                            "enum": [0]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [1]
+                          }
+                        ]
+                      }
+                    }
+                  },
                   "players": {
                     "type": "array",
                     "items": {

@@ -3,6 +3,7 @@
 // mandam heartbeat (POST /internal/rooms/heartbeat) e a API decide onde cada sala roda. Uma sala
 // que ainda não está no ar é aberta no servidor menos carregado pelo próprio ticket de entrada
 // (claim `spawn`), sem chamada direta da API ao servidor.
+import { isSeriesBestOf } from '@outgun/settings';
 import type { RoomSpawn } from '@outgun/tickets';
 import { eq, gt } from 'drizzle-orm';
 import type { Db } from './db/client.js';
@@ -45,6 +46,7 @@ export function roomSpawn(room: RoomRow): RoomSpawn {
     maxPlayers: room.maxPlayers,
     persistent: room.persistent,
     ...(room.maps && room.maps.length > 0 ? { maps: room.maps } : {}),
+    ...(room.format && isSeriesBestOf(room.bestOf) ? { ranked: { format: room.format, bestOf: room.bestOf } } : {}),
   };
 }
 

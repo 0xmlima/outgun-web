@@ -27,6 +27,8 @@ const tstz = (name: string) => timestamp(name, { withTimezone: true });
 
 export const gameMode = pgEnum('game_mode', ['casual', 'ranked']);
 export type GameMode = (typeof gameMode.enumValues)[number];
+/** Formato do Ranked (OG-250, RN-RKL-01). */
+export const rankedFormat = pgEnum('ranked_format', ['3x3', '4x4', '5x5']);
 
 export const users = pgTable(
   'users',
@@ -129,8 +131,31 @@ export const rooms = pgTable('rooms', {
   maps: text('maps').array(),
   /** Jogadores na sala, do último heartbeat (painel admin, OG-087). */
   roster: jsonb('roster').$type<RosterEntry[]>().notNull().default([]),
+  /** Formato e série da sala Ranked (OG-250); nulos nas salas sem formato. */
+  format: rankedFormat('format'),
+  bestOf: smallint('best_of'),
   createdAt: tstz('created_at').notNull().defaultNow(),
 }, (t) => [index('rooms_server_idx').on(t.serverId)]);
+
+/** Série md1/md3/md5 de uma sala Ranked (OG-250, RN-RKL-02/03): só agrupa jogos; placar por lado. */
+export const rankedSeries = pgTable(
+  'ranked_series',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    serverId: text('server_id').notNull(),
+    serverSeriesId: text('server_series_id').notNull(),
+    roomId: text('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+    format: rankedFormat('format').notNull(),
+    bestOf: smallint('best_of').notNull(),
+    games: smallint('games').notNull().default(0),
+    redWins: smallint('red_wins').notNull().default(0),
+    blueWins: smallint('blue_wins').notNull().default(0),
+    winner: smallint('winner'),
+    finishedAt: tstz('finished_at'),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('ranked_series_server_idx').on(t.serverId, t.serverSeriesId)],
+);
 
 export const gameServers = pgTable('game_servers', {
   id: text('id').primaryKey(),
@@ -160,6 +185,10 @@ export const matches = pgTable(
     details: jsonb('details').$type<Record<string, unknown>>().notNull().default({}),
     /** Replay gravado pelo game server (OG-090). */
     replayUrl: text('replay_url'),
+    /** Formato e jogo da série (OG-250); nulos nas partidas antigas e Casual. */
+    format: rankedFormat('format'),
+    seriesId: uuid('series_id').references(() => rankedSeries.id, { onDelete: 'set null' }),
+    gameNo: smallint('game_no'),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],

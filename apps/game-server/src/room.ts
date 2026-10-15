@@ -4,7 +4,7 @@
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { applyGamemod, settingsOf, type GameMode, type GameSettings, type Preset } from '@outgun/settings';
+import { applyGamemod, formatPlayers, newSeries, recordSeriesGame, seriesOver, seriesWinner, settingsOf, type GameMode, type GameSettings, type Preset, type RankedRoomFormat, type SeriesScore } from '@outgun/settings';
 import { findPreset } from './presets.js';
 import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
 import { randomUUID } from 'node:crypto';
@@ -137,6 +137,8 @@ export interface RoomOptions {
   gamemod?: string;
   /** Espectadores ao vivo por sala (OG-092; padrão 16). */
   maxSpectators?: number;
+  /** Formato e série da sala Ranked (OG-250); `maxPlayers` tem de ser 2 × N. */
+  ranked?: RankedRoomFormat;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -240,6 +242,8 @@ export class Room {
   /** Início da partida atual (relógio de parede) e quantas partidas a sala já teve. */
   private matchStartedAt: number;
   private matchCount = 0;
+  /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
+  private series: { no: number; score: SeriesScore } | undefined;
   private deltaCount = 0;
   private readonly createdAt: number;
   private readonly console: ConsoleHost;
@@ -279,6 +283,11 @@ export class Room {
     this.id = options.id;
     this.preset = preset;
     this.mode = preset.mode;
+    if (options.ranked) {
+      if (this.mode !== 'ranked') throw new Error('formato e série só em sala Ranked');
+      if (options.maxPlayers !== formatPlayers(options.ranked.format)) throw new Error(`sala ${options.ranked.format} precisa de ${formatPlayers(options.ranked.format)} vagas`);
+      this.series = { no: 1, score: newSeries(options.ranked.bestOf) };
+    }
     this.settings = options.gamemod ? applyGamemod(settingsOf(preset), options.gamemod).settings : settingsOf(preset);
     if (options.gamemod) this.setLines = [options.gamemod];
 
@@ -1312,6 +1321,7 @@ export class Room {
     }
     const serverMatchId = `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`;
     const replayUrl = this.finishRecording(serverMatchId);
+    const series = this.recordSeriesGame(result.winner);
     if (!this.options.reportMatch || ![...this.clients.values()].some((c) => !c.bot)) return;
     this.options.reportMatch(
       matchReport({
@@ -1327,8 +1337,33 @@ export class Room {
         startedAt,
         endedAt,
         who: (pid) => this.reportPlayer(pid),
+        ...(this.options.ranked ? { format: this.options.ranked.format } : {}),
+        ...(series ? { series } : {}),
       }),
     );
+  }
+
+  /** Formato e placar da série em andamento (OG-250); undefined fora das salas com formato. */
+  get rankedSeries(): (RankedRoomFormat & { no: number; score: SeriesScore }) | undefined {
+    return this.options.ranked && this.series ? { ...this.options.ranked, ...this.series } : undefined;
+  }
+
+  /** Soma o jogo à série (abre a próxima se a anterior acabou) e devolve o que vai no relatório. */
+  private recordSeriesGame(winner: 0 | 1 | null): MatchReport['series'] {
+    if (!this.series) return undefined;
+    if (seriesOver(this.series.score)) this.series = { no: this.series.no + 1, score: newSeries(this.series.score.bestOf) };
+    const score = recordSeriesGame(this.series.score, winner);
+    this.series.score = score;
+    const finished = seriesOver(score);
+    return {
+      serverSeriesId: `${this.id}-${this.createdAt.toString(36)}-s${this.series.no}`,
+      bestOf: score.bestOf,
+      gameNo: score.games,
+      redWins: score.wins[0],
+      blueWins: score.wins[1],
+      finished,
+      winner: finished ? seriesWinner(score) : null,
+    };
   }
 
   /** Votantes (RN-VOT). */

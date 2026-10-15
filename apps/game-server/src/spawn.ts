@@ -4,6 +4,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameMap } from '@outgun/sim';
+import { formatPlayers, isRankedFormat, isSeriesBestOf } from '@outgun/settings';
 import type { RoomSpawn } from '@outgun/tickets';
 import { loadMaps, resolveRotation } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
@@ -45,6 +46,9 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
   return (id, spec) => {
     const preset = findPreset(spec.preset);
     if (!preset || preset.mode !== spec.mode) return undefined;
+    // formato e série só no Ranked, e a sala tem exatamente 2 × N vagas (OG-250)
+    const ranked = spec.ranked;
+    if (ranked && (spec.mode !== 'ranked' || !isRankedFormat(ranked.format) || !isSeriesBestOf(ranked.bestOf))) return undefined;
     if (!manager.hasCapacity) {
       options.log?.(`sala ${id} recusada: limite de ${manager.maxRooms} salas`);
       return undefined;
@@ -62,10 +66,11 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       maps: slots.map((s) => s.map),
       mapFiles: files,
       ...(slots.some((s) => s.random) ? { randomSlots: slots.map((s) => s.random ?? null) } : {}),
-      maxPlayers: spec.maxPlayers,
+      maxPlayers: ranked ? formatPlayers(ranked.format) : spec.maxPlayers,
       persistent: spec.persistent,
+      ...(ranked ? { ranked: { format: ranked.format, bestOf: ranked.bestOf } } : {}),
     });
-    options.log?.(`sala ${id} aberta (${spec.mode}, ${preset.id}, ${files.length} mapas)`);
+    options.log?.(`sala ${id} aberta (${spec.mode}, ${preset.id}, ${files.length} mapas${ranked ? `, ${ranked.format} md${ranked.bestOf}` : ''})`);
     return room;
   };
 }

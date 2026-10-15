@@ -3,16 +3,16 @@
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
 import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
 import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
-import { PRESETS } from '@outgun/settings';
+import { PRESETS, seriesOver, seriesWinner, seriesWinsNeeded } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, users } from '../db/schema.js';
+import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
 import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
 import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
-import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
+import { ErrorSchema, GameModeSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 
 const Heartbeat = Type.Object({
   server: Type.Object({
@@ -148,6 +148,20 @@ const MatchResult = Type.Object({
   startedAt: Type.String({ format: 'date-time' }),
   endedAt: Type.String({ format: 'date-time' }),
   details: Type.Optional(MatchDetails),
+  /** Formato da sala Ranked (OG-250); ausente nas salas sem formato. */
+  format: Type.Optional(RankedFormatSchema),
+  /** Série do jogo e placar dela depois deste jogo (OG-250, RN-RKL-03). */
+  series: Type.Optional(
+    Type.Object({
+      serverSeriesId: Type.String({ minLength: 1, maxLength: 80 }),
+      bestOf: SeriesBestOfSchema,
+      gameNo: Type.Integer({ minimum: 1, maximum: 5 }),
+      redWins: Type.Integer({ minimum: 0, maximum: 3 }),
+      blueWins: Type.Integer({ minimum: 0, maximum: 3 }),
+      finished: Type.Boolean(),
+      winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
+    }),
+  ),
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
@@ -327,6 +341,21 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               ? []
               : (await tx.select({ id: users.id }).from(users).where(inArray(users.id, ids))).map((u) => u.id),
           );
+          // série (OG-250): criada no primeiro jogo; cada jogo regrava o placar dela
+          const s = body.series;
+          const [series] = s
+            ? await tx
+                .insert(rankedSeries)
+                .values({ serverId, serverSeriesId: s.serverSeriesId, roomId: room?.id ?? null, format: body.format!, bestOf: s.bestOf })
+                .onConflictDoUpdate({ target: [rankedSeries.serverId, rankedSeries.serverSeriesId], set: { serverSeriesId: s.serverSeriesId } })
+                .returning({ id: rankedSeries.id, games: rankedSeries.games })
+            : [];
+          if (s && series && s.gameNo > series.games) {
+            await tx
+              .update(rankedSeries)
+              .set({ games: s.gameNo, redWins: s.redWins, blueWins: s.blueWins, winner: s.winner, finishedAt: s.finished ? new Date(body.endedAt) : null })
+              .where(eq(rankedSeries.id, series.id));
+          }
           const [match] = await tx
             .insert(matches)
             .values({
@@ -343,6 +372,9 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               endedAt: new Date(body.endedAt),
               details: body.details ?? {},
               replayUrl: body.replayUrl ?? null,
+              format: body.format ?? null,
+              seriesId: series?.id ?? null,
+              gameNo: s?.gameNo ?? null,
             })
             .returning({ id: matches.id });
           if (body.players.length > 0) {
@@ -531,6 +563,15 @@ export function validateMatch(body: MatchResultBody): string | undefined {
   if (body.ranked && body.players.some((p) => p.isBot)) return 'bots are not allowed in ranked matches (D-11)';
   if (!body.ranked && body.players.some((p) => p.scoreDelta !== 0 || p.negDelta !== 0)) return 'ranking deltas only in ranked matches';
   if (Date.parse(body.endedAt) < Date.parse(body.startedAt)) return 'endedAt before startedAt';
+  if (body.format && body.mode !== 'ranked') return 'format only in ranked mode';
+  const s = body.series;
+  if (s) {
+    if (!body.format) return 'series without format';
+    const need = seriesWinsNeeded(s.bestOf);
+    if (s.gameNo > s.bestOf || s.redWins + s.blueWins > s.gameNo || s.redWins > need || s.blueWins > need) return 'invalid series score';
+    const score = { bestOf: s.bestOf, games: s.gameNo, wins: [s.redWins, s.blueWins] as [number, number] };
+    if (s.finished !== seriesOver(score) || s.winner !== seriesWinner(score)) return 'invalid series state';
+  }
   const slots = new Set(body.players.map((p) => p.slot));
   if (slots.size !== body.players.length) return 'duplicate player slot';
   return undefined;

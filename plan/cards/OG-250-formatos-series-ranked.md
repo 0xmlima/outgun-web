@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S17 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-RKL-01, RN-RKL-02, RN-RKL-03, RN-MOD-04 |
 | Skills | `outgun-card-workflow` |
@@ -26,12 +26,15 @@ Como jogador de Ranked, quero escolher partidas 3x3, 4x4 ou 5x5 em melhor de 1, 
 - Resultado gravado por jogo, cada um uma ranqueada normal (D-41); a série só agrupa os jogos e guarda o placar por lado.
 
 ## Critérios de aceite
-- [ ] Testes: série md3 termina em 2-0 e 2-1; md5 em 3-x; md1 = um jogo.
-- [ ] Partidas antigas ficam sem formato (não quebram perfil, relatório nem ranking).
-- [ ] Nenhum setting de jogo pode ser alterado (RN-MOD-04 continua).
+- [x] Testes: série md3 termina em 2-0 e 2-1; md5 em 3-x; md1 = um jogo.
+- [x] Partidas antigas ficam sem formato (não quebram perfil, relatório nem ranking).
+- [x] Nenhum setting de jogo pode ser alterado (RN-MOD-04 continua).
 
 ## Notas técnicas
 - Série = facilitadora (D-41): não muda regra de jogo nem de ranking. Empate num jogo não soma ponto a nenhum lado; a série acaba quando um lado tem a maioria ou após N jogos.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Regras puras em `packages/settings/src/ranked.ts` (formatos, ⌈N/2⌉, fim/vencedor da série), usadas pelo game server e pela validação da API.
+- Sala: `rooms.format`/`best_of` → claim `spawn.ranked` → `Room` com 2 × N vagas (o spawner força o tamanho). A sala numera as séries; terminada uma, o jogo seguinte abre a próxima (volta ao lobby/menu fica para OG-252/254).
+- `ranked_series` (placar por lado, vencedor, `finished_at`) é criada pelo primeiro jogo que chega (`server_series_id` idempotente, como `matches`); reenvio de jogo antigo não volta o placar. `matches.format/series_id/game_no` nulos nas partidas antigas.
+- A sala persistente `ranked` do seed segue sem formato até o lobby (OG-252) substituí-la. Preset intocado (RN-MOD-04).
