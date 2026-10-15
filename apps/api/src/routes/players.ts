@@ -3,10 +3,10 @@
 // (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original. O Ranked pode
 // ser filtrado por formato (OG-258, RN-RKL-13): partidas sem formato só entram em "Todos".
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, desc, eq, gte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, or, sql } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, users } from '../db/schema.js';
+import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
@@ -33,6 +33,8 @@ const MatchSummary = Type.Object({
   ranked: Type.Boolean(),
   /** Formato do Ranked (OG-250); null em Casual e nas partidas anteriores aos formatos. */
   format: Type.Union([RankedFormatSchema, Type.Null()]),
+  /** Partida clã x clã (OG-259, RN-RKL-14). */
+  clanWar: Type.Boolean(),
   map: Type.String(),
   /** Título do mapa (`P title`), que a partida e o relatório mostram; o arquivo (`map`) quando faltar (OG-207). */
   mapTitle: Type.String(),
@@ -53,6 +55,7 @@ const SeriesView = Type.Object({
   startedAt: Type.String(),
   matches: Type.Array(Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String() })),
 });
+const ClanRef = Type.Object({ tag: Type.String(), name: Type.String() });
 const PlayerLine = Type.Object({
   slot: Type.Integer(),
   name: Type.String(),
@@ -256,6 +259,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               format: Type.Union([Type.Null(), RankedFormatSchema]),
               gameNo: Type.Union([Type.Null(), Type.Integer()]),
               series: Type.Union([Type.Null(), SeriesView]),
+              /** Clãs de cada lado numa partida clã x clã (OG-259); null se não for ou se um deles foi apagado. */
+              clans: Type.Union([Type.Null(), Type.Object({ red: ClanRef, blue: ClanRef })]),
             }),
             404: ErrorSchema,
           },
@@ -287,9 +292,18 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           format: m.format,
           gameNo: m.gameNo,
           series: m.seriesId ? await seriesView(m.seriesId) : null,
+          clans: await warClans(m),
         };
       },
     );
+
+    async function warClans(m: typeof matches.$inferSelect) {
+      if (!m.clanWar || !m.redClanId || !m.blueClanId) return null;
+      const list = await db.select({ id: clans.id, tag: clans.tag, name: clans.name }).from(clans).where(inArray(clans.id, [m.redClanId, m.blueClanId]));
+      const red = list.find((c) => c.id === m.redClanId);
+      const blue = list.find((c) => c.id === m.blueClanId);
+      return red && blue ? { red: { tag: red.tag, name: red.name }, blue: { tag: blue.tag, name: blue.name } } : null;
+    }
 
     app.get(
       '/series/:id',
@@ -331,5 +345,5 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
 function summary(m: typeof matches.$inferSelect) {
   const title = m.details['mapTitle'];
   const mapTitle = typeof title === 'string' && title.trim() ? title.trim() : m.map;
-  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, format: m.format, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
+  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, format: m.format, clanWar: m.clanWar, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
 }

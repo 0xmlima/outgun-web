@@ -13,14 +13,33 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 async function histories(tx: Db | Tx, userIds: readonly string[]): Promise<Map<string, MilestoneMatch[]>> {
   const out = new Map<string, MilestoneMatch[]>();
   if (userIds.length === 0) return out;
-  const rows = await tx.execute<{ user_id: string; match_id: string; ended_at: Date | string; res: number; kills: number; captures: number; shots: number; hits: number }>(sql`
+  const rows = await tx.execute<{
+    user_id: string;
+    match_id: string;
+    ended_at: Date | string;
+    res: number;
+    kills: number;
+    captures: number;
+    shots: number;
+    hits: number;
+    opponent: string | null;
+    conceded: number;
+    series_won: boolean;
+    sweep: boolean;
+  }>(sql`
     SELECT mp.user_id, m.id AS match_id, m.ended_at,
       sign(CASE WHEN mp.team = 0 THEN m.red_score - m.blue_score ELSE m.blue_score - m.red_score END)::int AS res,
       mp.kills - coalesce((mp.stats ->> 'botKills')::int, 0) AS kills,
       mp.captures,
       coalesce((mp.stats ->> 'shots')::int, 0) AS shots,
-      coalesce((mp.stats ->> 'hits')::int, 0) AS hits
+      coalesce((mp.stats ->> 'hits')::int, 0) AS hits,
+      -- clã x clã (OG-259): adversário, capturas sofridas e a série md3/md5 fechada neste jogo
+      CASE WHEN m.clan_war THEN coalesce(CASE WHEN mp.team = 0 THEN m.blue_clan_id ELSE m.red_clan_id END::text, m.id::text) END AS opponent,
+      CASE WHEN mp.team = 0 THEN m.blue_score ELSE m.red_score END AS conceded,
+      coalesce(m.clan_war AND rs.best_of >= 3 AND rs.finished_at IS NOT NULL AND m.game_no = rs.games AND rs.winner = mp.team, false) AS series_won,
+      coalesce(least(rs.red_wins, rs.blue_wins) = 0, false) AS sweep
     FROM match_players mp JOIN matches m ON m.id = mp.match_id
+    LEFT JOIN ranked_series rs ON rs.id = m.series_id
     WHERE mp.user_id IN (${sql.join(
       userIds.map((id) => sql`${id}`),
       sql`, `,
@@ -36,6 +55,7 @@ async function histories(tx: Db | Tx, userIds: readonly string[]): Promise<Map<s
       captures: Number(r.captures),
       shots: Number(r.shots),
       hits: Number(r.hits),
+      ...(r.opponent ? { clanWar: { opponent: r.opponent, conceded: Number(r.conceded), seriesWon: r.series_won, sweep: r.series_won && r.sweep } } : {}),
     });
     out.set(r.user_id, list);
   }

@@ -5,7 +5,8 @@ import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TO
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
+import { adminActions, bans, clanMembers, clans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
+import { clanWarSides } from '../clan-war.js';
 import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
 import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
@@ -113,6 +114,8 @@ const MatchPlayer = Type.Object({
   /** Deltas do ranking (só em partida ranqueada; o score pode ser negativo, OG-084). */
   scoreDelta: Type.Integer({ minimum: -1_000_000, maximum: 1_000_000 }),
   negDelta: Count,
+  /** Clã do jogador que o bot substitui (OG-259, D-46); ignorado em quem não é bot (a API usa o cadastro). */
+  clanId: Type.Optional(Type.String({ format: 'uuid' })),
   stats: Type.Record(Type.String({ maxLength: 40 }), Type.Number(), { maxProperties: 64 }),
 });
 const Num = Type.Number({ minimum: -1e9, maximum: 1e9 });
@@ -350,6 +353,15 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               ? []
               : (await tx.select({ id: users.id }).from(users).where(inArray(users.id, ids))).map((u) => u.id),
           );
+          // clã cadastrado de cada jogador ao fim da partida; bot substituto, o do substituído (OG-259)
+          const botClans = [...new Set(body.players.flatMap((p) => (p.isBot && p.clanId ? [p.clanId] : [])))];
+          const clanOf = new Map<string, string>(
+            known.size === 0 ? [] : (await tx.select({ userId: clanMembers.userId, clanId: clanMembers.clanId }).from(clanMembers).where(inArray(clanMembers.userId, [...known]))).map((r) => [r.userId, r.clanId]),
+          );
+          const realClans = new Set(botClans.length === 0 ? [] : (await tx.select({ id: clans.id }).from(clans).where(inArray(clans.id, botClans))).map((c) => c.id));
+          const playerClan = (p: (typeof body.players)[number]) =>
+            p.isBot ? (p.clanId && realClans.has(p.clanId) ? p.clanId : null) : p.userId && known.has(p.userId) ? (clanOf.get(p.userId) ?? null) : null;
+          const war = body.ranked ? clanWarSides(body.format, body.players.map((p) => ({ team: p.team, clanId: playerClan(p) }))) : undefined;
           // série (OG-250): criada no primeiro jogo; cada jogo regrava o placar dela
           const s = body.series;
           const [series] = s
@@ -384,6 +396,9 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               format: body.format ?? null,
               seriesId: series?.id ?? null,
               gameNo: s?.gameNo ?? null,
+              clanWar: war !== undefined,
+              redClanId: war?.[0] ?? null,
+              blueClanId: war?.[1] ?? null,
             })
             .returning({ id: matches.id });
           if (body.players.length > 0) {
@@ -402,6 +417,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
                 playSeconds: p.playSeconds,
                 scoreDelta: p.scoreDelta,
                 negDelta: p.negDelta,
+                clanId: playerClan(p),
                 stats: p.stats,
               })),
             );

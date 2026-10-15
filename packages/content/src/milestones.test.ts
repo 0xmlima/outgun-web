@@ -67,4 +67,23 @@ describe('marcos (OG-213)', () => {
     const order = MILESTONES.map((m) => m.id);
     expect(a.map((x) => x.id)).toEqual(order.filter((id) => a.some((x) => x.id === id)));
   });
+
+  it('clã x clã (OG-259): guerra, conquistas, série, varrida, rivalidade e defensor', () => {
+    const war = (opponent: string, o: Partial<NonNullable<MilestoneMatch['clanWar']>> = {}) => ({ clanWar: { opponent, conceded: 1, seriesWon: false, sweep: false, ...o } });
+    const list = [
+      match(0),
+      match(1, { result: -1, ...war('BC') }),
+      match(2, { result: 1, ...war('BC') }),
+      match(3, { result: 1, ...war('XY', { seriesWon: true }) }),
+      match(4, { result: 1, ...war('BC', { conceded: 0 }) }),
+      match(5, { result: -1, ...war('BC') }),
+      match(6, { result: 1, ...war('BC', { seriesWon: true, sweep: true }) }),
+    ];
+    const g = got(list);
+    expect(g).toMatchObject({ clan_war: 'm1', clan_war_win: 'm2', clan_series_win: 'm3', clan_defender: 'm4', clan_rivalry_5: 'm6', clan_sweep: 'm6' });
+    expect(g.clan_war_10).toBeUndefined();
+    const many = got(series(12, (i) => ({ result: i % 3 === 0 ? -1 : 1, ...war(`c${i % 4}`) })));
+    expect([many.clan_war_10, many.clan_war_wins_10, many.clan_rivalry_5]).toEqual(['m9', undefined, undefined]);
+    expect(got(series(3)).clan_war).toBeUndefined();
+  });
 });

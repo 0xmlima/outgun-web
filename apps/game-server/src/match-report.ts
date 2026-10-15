@@ -11,6 +11,8 @@ export interface ReportPlayer {
   bot: boolean;
   /** Kills em bots na partida (OG-213). */
   botKills?: number;
+  /** Clã cadastrado (ticket, OG-253); no bot substituto, o do jogador substituído (OG-259, D-46). */
+  clanId?: string | null;
 }
 
 /** Regras da partida mostradas no "Game info" do `save_stats` (OG-085). */
@@ -67,6 +69,8 @@ export interface MatchReport {
     playSeconds: number;
     scoreDelta: number;
     negDelta: number;
+    /** Só em bot substituto: o clã do jogador substituído (a API usa o cadastro para quem tem conta). */
+    clanId?: string;
     stats: Record<string, number>;
   }[];
 }
@@ -183,6 +187,7 @@ export function matchReport(input: ReportInput): MatchReport {
           playSeconds: Math.round(p.playtime),
           scoreDelta: input.ranked ? d.score : 0,
           negDelta: input.ranked ? d.neg : 0,
+          ...(who.bot && who.clanId && UUID.test(who.clanId) ? { clanId: who.clanId } : {}),
           stats: { ...stats(p), botKills: who.botKills ?? 0 },
         },
       ];

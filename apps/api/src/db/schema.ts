@@ -22,6 +22,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 
 const tstz = (name: string) => timestamp(name, { withTimezone: true });
@@ -197,6 +198,10 @@ export const matches = pgTable(
     format: rankedFormat('format'),
     seriesId: uuid('series_id').references(() => rankedSeries.id, { onDelete: 'set null' }),
     gameNo: smallint('game_no'),
+    /** Clã x clã (OG-259, RN-RKL-14) e os clãs de cada lado; a marcação fica se um clã for apagado. */
+    clanWar: boolean('clan_war').notNull().default(false),
+    redClanId: uuid('red_clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
+    blueClanId: uuid('blue_clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],
@@ -220,6 +225,8 @@ export const matchPlayers = pgTable(
     playSeconds: integer('play_seconds').notNull().default(0),
     scoreDelta: doublePrecision('score_delta').notNull().default(0),
     negDelta: integer('neg_delta').notNull().default(0),
+    /** Clã cadastrado ao fim da partida (OG-259/273); bot substituto leva o do jogador substituído. */
+    clanId: uuid('clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
     stats: jsonb('stats').$type<Record<string, number>>().notNull().default({}),
   },
   (t) => [primaryKey({ columns: [t.matchId, t.slot] })],

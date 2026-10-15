@@ -2059,6 +2059,7 @@
                               "mode",
                               "ranked",
                               "format",
+                              "clanWar",
                               "map",
                               "mapTitle",
                               "redScore",
@@ -2108,6 +2109,9 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "clanWar": {
+                                "type": "boolean"
                               },
                               "map": {
                                 "type": "string"
@@ -2314,7 +2318,8 @@
                     "milestones",
                     "format",
                     "gameNo",
-                    "series"
+                    "series",
+                    "clans"
                   ],
                   "properties": {
                     "match": {
@@ -2327,6 +2332,7 @@
                             "mode",
                             "ranked",
                             "format",
+                            "clanWar",
                             "map",
                             "mapTitle",
                             "redScore",
@@ -2376,6 +2382,9 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "clanWar": {
+                              "type": "boolean"
                             },
                             "map": {
                               "type": "string"
@@ -2679,6 +2688,43 @@
                                   "endedAt": {
                                     "type": "string"
                                   }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "clans": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["red", "blue"],
+                          "properties": {
+                            "red": {
+                              "type": "object",
+                              "required": ["tag", "name"],
+                              "properties": {
+                                "tag": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "blue": {
+                              "type": "object",
+                              "required": ["tag", "name"],
+                              "properties": {
+                                "tag": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
                                 }
                               }
                             }
@@ -7982,6 +8028,10 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 1000000
+                        },
+                        "clanId": {
+                          "type": "string",
+                          "format": "uuid"
                         },
                         "stats": {
                           "type": "object",

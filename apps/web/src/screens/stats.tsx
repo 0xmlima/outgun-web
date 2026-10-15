@@ -43,6 +43,8 @@ export interface MatchSummary {
   ranked: boolean;
   /** Formato do Ranked (OG-250); null em Casual e nas partidas anteriores aos formatos. */
   format: RankedFormat | null;
+  /** Partida clã x clã (OG-259, RN-RKL-14). */
+  clanWar?: boolean;
   map: string;
   mapTitle: string;
   redScore: number;
@@ -89,6 +91,13 @@ export interface MatchPage {
   format?: string | null;
   gameNo?: number | null;
   series?: SeriesView | null;
+  /** Clãs dos lados numa partida clã x clã (OG-259). */
+  clans?: { red: ClanRef; blue: ClanRef } | null;
+}
+
+export interface ClanRef {
+  tag: string;
+  name: string;
 }
 
 /** Série Ranked (OG-257, `GET /series/:id`). */

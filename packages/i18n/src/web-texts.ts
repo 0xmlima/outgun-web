@@ -414,6 +414,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Admin: 'Admin',
     Member: 'Membro',
     Invite: 'Convidar',
+    // Clã x clã (OG-259)
+    'Clan vs clan': 'Clã x clã',
     // Rating por formato (OG-258)
     'All formats': 'Todos',
     'Matches from before the formats only show under "All".': 'Partidas anteriores aos formatos só aparecem em "Todos".',
