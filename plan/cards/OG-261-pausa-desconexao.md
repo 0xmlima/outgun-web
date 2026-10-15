@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | S18 |
+| Sprint | S20 |
 | Status | Backlog |
 | Dependências | [OG-260](OG-260-pausa-tatica.md) |
 | Regras de negócio | RN-RKL-17 |

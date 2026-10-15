@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 5 pts |
-| Sprint | S16 |
+| Sprint | S17 |
 | Status | Backlog |
 | Dependências | — |
 | Regras de negócio | RN-RKL-01, RN-RKL-02, RN-RKL-03, RN-MOD-04 |

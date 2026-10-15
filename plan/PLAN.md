@@ -405,7 +405,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 ### 6.15 Nomes e identidade (RN-NOM)
 - **RN-NOM-01** — Nome: até 15 caracteres, imprimíveis, não pode ser vazio/só espaços nem começar/terminar com espaço. (`commont.cpp:190`)
 - **RN-NOM-02** — Web: o **nome de usuário é o nick em jogo**: único (comparação `makeComparable` do original com acentos dobrados, `src/auth.cpp:88`) e protegido; convidados recebem o sufixo `*` e não podem usar nick registrado nem reservado (troca de nome a cada 30 dias, nome antigo reservado por 90). Ver D-20 e `plan/specs/names.md`.
-- **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat.
+- **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat. **v2:** a tag é a do clã cadastrado do jogador (RN-CLA-05, D-47), não mais um texto livre.
 
 ### 6.16 Ranking (RN-RNK)
 Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
@@ -559,6 +559,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | E10 | **v2** — Trilha sonora | Música no menu e nas partidas, com opção para desligar |
 | E11 | **v2** — Jogabilidade | Mudanças de física e regras a partir dos achados do beta |
 | E12 | **v2** — Ranked competitivo | Lobby com salas abertas, formatos 3x3/4x4/5x5, séries md1/md3/md5, voto de mapa, prontos, clã x clã, pausas e substituição por bot em quedas |
+| E13 | **v2** — Clãs | Clãs criados e geridos pela comunidade: cadastro, convites e pedidos, estatísticas, ranking de clãs e moderação |
 
 ### 9.2 Roadmap por sprint
 | Sprint | Tema | Cards | Marco |
@@ -579,9 +580,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | S13 | v2: base visual e trilha | OG-200, OG-201, OG-202, OG-220, OG-221, OG-222 | |
 | S14 | v2: telas, dados sociais e relatório | OG-203, OG-205, OG-211, OG-214 | |
 | S15 | v2: perfil social | OG-212, OG-213, OG-215 | **M6 — v2 visual e social** |
-| S16 | v2: lobby Ranked (servidor e API) | OG-250, OG-251, OG-252, OG-253, OG-254 | |
-| S17 | v2: lobby Ranked (cliente), séries e clãs | OG-265, OG-206, OG-255, OG-256, OG-257, OG-258, OG-259 | |
-| S18 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo** |
+| S16 | v2: clãs e temporadas mensais | OG-270, OG-271, OG-272, OG-275, OG-267 | |
+| S17 | v2: lobby Ranked (servidor e API) | OG-250, OG-251, OG-252, OG-253, OG-254 | |
+| S18 | v2: lobby Ranked (cliente), séries e clã no HUD | OG-265, OG-206, OG-255, OG-256, OG-257 | |
+| S19 | v2: rating por formato, clã x clã, ranking de clãs e hall da fama | OG-258, OG-259, OG-273, OG-274, OG-268 | |
+| S20 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo e clãs** |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -665,7 +668,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Concluído |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Concluído |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
-| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S17 | OG-265 | Backlog |
+| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265 | Backlog |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Concluído |
@@ -678,25 +681,33 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Concluído |
 | [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Concluído |
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
-| [OG-250](cards/OG-250-formatos-series-ranked.md) | Formatos 3x3/4x4/5x5 e séries md1/md3/md5 no Ranked | E12 | 5 | Must | S16 | — | Backlog |
-| [OG-251](cards/OG-251-rotacao-ranked-por-formato.md) | Rotação de mapas do Ranked por formato no painel admin | E12 | 3 | Must | S16 | OG-250 | Backlog |
-| [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S16 | OG-250 | Backlog |
-| [OG-253](cards/OG-253-times-lobby-clas.md) | Times no lobby: clãs do mesmo lado e troca de lado | E12 | 3 | Must | S16 | OG-252 | Backlog |
-| [OG-254](cards/OG-254-voto-pronto-contagem.md) | Voto de mapa, "Pronto" e contagem de 5 s | E12 | 5 | Must | S16 | OG-251, OG-252 | Backlog |
-| [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S17 | OG-252 | Backlog |
-| [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S17 | OG-253, OG-254, OG-255 | Backlog |
-| [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S17 | OG-250, OG-256, OG-265 | Backlog |
-| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S17 | OG-250 | Backlog |
-| [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S17 | OG-250 | Backlog |
-| [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S18 | OG-252 | Backlog |
-| [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S18 | OG-260 | Backlog |
-| [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S18 | OG-261 | Backlog |
-| [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S18 | OG-262 | Backlog |
-| [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S18 | OG-265, OG-260, OG-262 | Backlog |
-| [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S17 | — | Backlog |
-| [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S18 | OG-262 | Backlog |
+| [OG-250](cards/OG-250-formatos-series-ranked.md) | Formatos 3x3/4x4/5x5 e séries md1/md3/md5 no Ranked | E12 | 5 | Must | S17 | — | Backlog |
+| [OG-251](cards/OG-251-rotacao-ranked-por-formato.md) | Rotação de mapas do Ranked por formato no painel admin | E12 | 3 | Must | S17 | OG-250 | Backlog |
+| [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S17 | OG-250 | Backlog |
+| [OG-253](cards/OG-253-times-lobby-clas.md) | Times no lobby: clãs do mesmo lado e troca de lado | E12 | 3 | Must | S17 | OG-252 | Backlog |
+| [OG-254](cards/OG-254-voto-pronto-contagem.md) | Voto de mapa, "Pronto" e contagem de 5 s | E12 | 5 | Must | S17 | OG-251, OG-252 | Backlog |
+| [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S18 | OG-252 | Backlog |
+| [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S18 | OG-253, OG-254, OG-255 | Backlog |
+| [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S18 | OG-250, OG-256, OG-265 | Backlog |
+| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S19 | OG-250 | Backlog |
+| [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S19 | OG-250 | Backlog |
+| [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S20 | OG-252 | Backlog |
+| [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S20 | OG-260 | Backlog |
+| [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S20 | OG-261 | Backlog |
+| [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S20 | OG-262 | Backlog |
+| [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S20 | OG-265, OG-260, OG-262 | Backlog |
+| [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S18 | — | Backlog |
+| [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S20 | OG-262 | Backlog |
+| [OG-267](cards/OG-267-temporadas-mensais.md) | Temporadas mensais automáticas e ranking geral de todas as temporadas | E12 | 3 | Must | S16 | — | Backlog |
+| [OG-268](cards/OG-268-hall-da-fama.md) | Hall da fama | E12 | 3 | Should | S19 | OG-267, OG-274 | Backlog |
+| [OG-270](cards/OG-270-clas-cadastro-api.md) | Clãs: cadastro, papéis e API (substitui a clan tag livre) | E13 | 5 | Must | S16 | — | Backlog |
+| [OG-271](cards/OG-271-clas-convites-pedidos.md) | Clãs: convites e pedidos de entrada | E13 | 3 | Must | S16 | OG-270 | Backlog |
+| [OG-272](cards/OG-272-clas-telas.md) | Telas de clã no cliente: criar, página do clã, gerir e buscar | E13 | 5 | Must | S16 | OG-270, OG-271 | Backlog |
+| [OG-273](cards/OG-273-clas-estatisticas.md) | Estatísticas do clã | E13 | 3 | Should | S19 | OG-270, OG-259 | Backlog |
+| [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Backlog |
+| [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Backlog |
 
-**Total:** 104 cards, 422 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 35 cards, 127 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 112 cards, 449 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 43 cards, 154 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -763,6 +774,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-44 | **v2** — Salas Ranked com senha | — | ✅ **Pedido do PO em 2026-10-15:** qualquer conta cria sala Ranked, com senha opcional; o preset continua travado (revisa RN-MOD-04 e RN-CFG-03) | PO |
 | D-45 | **v2** — Pausa tática no Ranked | — | ✅ **Decidido pelo PO em 2026-10-15:** 60 s por time **por jogo** (não por série), em até 3 pedidos; retomada sempre com contagem de **3 s**; só o time que pediu retoma antes — o adversário não controla a pausa | PO |
 | D-46 | **v2** — Queda no Ranked e bot substituto (revisa D-11) | — | ✅ **Decidido pelo PO em 2026-10-15:** queda pausa o jogo; prazo de reconexão de **120 s**; depois, voto só do time desfalcado (maioria, 20 s, empate = bot) entre um a menos e bot; até 2 bots por partida; quem volta retoma a vaga e o bot sai; a partida conta para o ranking, com a marca. O bot se chama **`BOT-<nome do jogador>`** (ex.: `BOT-ozzylords`) e tem o nível calculado pelo histórico Ranked do jogador substituído; sem histórico, nível intermediário (OG-266) | PO |
+| D-47 | **v2** — Clãs da comunidade (substitui a clan tag livre) | — | ✅ **Pedido do PO em 2026-10-15:** criar/entrar/gerir clãs; tag única de até 2 caracteres; ranking de clãs. ⏳ **Em aberto (recomendações):** tags livres atuais apagadas na migração; tag e nome únicos sem diferença de maiúsculas; líder que sai passa a liderança ao admin mais antigo (senão ao membro mais antigo), último que sai dissolve o clã; limite de 30 membros; carência de 7 dias para entrar em outro clã depois de sair; ranking de clãs por pontos em clã x clã na temporada (vitória 3, empate 1, desempate por saldo de capturas, mínimo de 3 partidas) | PO |
+| D-48 | **v2** — Temporadas mensais e hall da fama | — | ✅ **Pedido do PO em 2026-10-15:** temporada reinicia todo mês e existe ranking geral de todas as temporadas. ⏳ **Em aberto (recomendações):** virada no dia 1 às 00:00 de Brasília; hall da fama com os 3 primeiros de cada temporada no geral, por formato e de clãs (não existia hall da fama no jogo) | PO |
 
 ---
 
@@ -826,7 +839,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 - **Skills:** `outgun-re-spec` e `outgun-parity-harness` desativadas; `outgun-card-workflow` revisada; `outgun-asset-pipeline` mantida. O job de paridade do CI continua enquanto a sim não mudar e sai no OG-230.
 - **Branches e tags:** `main` em `v1.0.0` é o port concluído (beta). A v2 é desenvolvida na branch `v2`: branches de card saem dela e voltam para ela; cada sprint aprovada ganha a tag `v2.0.0-sNN` (ex.: `v2.0.0-s13`). Correções do beta da v1 vão na `main` e são trazidas para a `v2`.
 - **Testes:** a suíte (`bash tools/dev/verify.sh`) roda uma vez, no fechamento da sprint, antes da aprovação do PO.
-- **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249, E12 250–259 e 260–269).
+- **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249, E12 250–269, E13 270–279).
 
 ### 15.1 Prioridades (P0)
 1. **Novo menu (E8):** visual limpo, moderno e legível; **uma única fonte**, sem opção de troca.
@@ -857,14 +870,25 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-RKL-05 | Ao escolher "Ranked", o jogador vê primeiro a lista de salas abertas (formato, série, ocupação, fase, senha) e pode filtrar por formato, entrar numa sala ou criar uma. |
 | RN-RKL-06 | Qualquer conta cria uma sala Ranked; ela pode ter senha (até 15 caracteres). Senha não muda regras: o preset continua travado (RN-MOD-04). |
 | RN-RKL-07 | Ninguém entra no mapa enquanto a sala não estiver completa (2 × N jogadores, D-40). Até lá os jogadores ficam no lobby. |
-| RN-RKL-08 | Jogadores do mesmo clã (clan tag, sem diferença de maiúsculas e acentos) entram preferencialmente do mesmo lado; sem clã ou empate, vale RN-TIM-01. |
+| RN-RKL-08 | Jogadores do mesmo clã cadastrado (RN-CLA-01) entram preferencialmente do mesmo lado; sem clã ou empate, vale RN-TIM-01. |
 | RN-RKL-09 | No lobby, o jogador troca de lado se houver vaga; com o outro lado cheio, pede a troca e ela só acontece com o aceite de um jogador de lá. |
 | RN-RKL-10 | Com a sala completa há voto de mapa entre os mapas da rotação do formato. O voto termina quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação. |
 | RN-RKL-11 | Depois do voto, todos precisam marcar "Pronto". Com todos prontos começa uma contagem de **5 s** antes de carregar o mapa. |
 | RN-RKL-21 | Quem não marca "Pronto" em 60 s depois do voto sai da sala e a vaga reabre (D-43). |
+| RN-CLA-01 | **Clã** é um cadastro da comunidade: nome (único), tag de 1 a 2 caracteres (única, sem diferença de maiúsculas e acentos), descrição, data de formação, membros e estatísticas. Substitui a clan tag livre (D-47). |
+| RN-CLA-02 | Qualquer conta sem clã pode criar um e vira o **líder**. Cada jogador está em no máximo um clã. |
+| RN-CLA-03 | Papéis: líder, admins e membros. Líder e admins convidam, aprovam pedidos e expulsam membros; só o líder muda a tag, promove/rebaixa admins, transfere a liderança e dissolve o clã. |
+| RN-CLA-04 | Entrada só por **convite aceito** pelo jogador ou por **pedido aprovado** pelo clã. Convites e pedidos expiram em 7 dias. |
+| RN-CLA-05 | A tag mostrada em jogo (chat, HUD, ticket) é a do clã atual do jogador; sem clã, sem tag. |
+| RN-CLA-06 | Estatísticas do clã contam as partidas clã x clã (RN-RKL-14) e os números dos membros enquanto eram do clã; vale o clã do momento da partida. |
+| RN-CLA-07 | Há ranking de clãs por temporada e geral, baseado nas partidas clã x clã (critério na D-47). |
+| RN-CLA-08 | Nome, tag e descrição de clã passam pelo filtro de nomes; moderadores podem forçar troca ou dissolver, com auditoria. |
+| RN-RKL-22 | Temporadas são **mensais**: viram automaticamente no dia 1 às 00:00 (Brasília) e guardam a classificação final (D-48). |
+| RN-RKL-23 | Há um ranking **geral** de todas as temporadas (soma de score e neg), também por formato. |
+| RN-RKL-24 | **Hall da fama:** os 3 primeiros de cada temporada encerrada no geral, em cada formato e entre os clãs, com selo no perfil e na página do clã. |
 | RN-RKL-12 | Desmarcar "Pronto", trocar de lado, sair ou entrar alguém durante a contagem a cancela; ela recomeça do zero quando todos estiverem prontos de novo. |
 | RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". Cada formato tem rating próprio; o rating geral soma score e neg dos três (D-42). |
-| RN-RKL-14 | Partida **clã x clã**: todos de um lado com a mesma clan tag e todos do outro com outra (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |
+| RN-RKL-14 | Partida **clã x clã**: todos de um lado do mesmo clã cadastrado e todos do outro de outro clã (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |
 | RN-RKL-15 | **Pausa tática:** cada time tem 60 s de pausa por jogo, em até 3 pedidos (ex.: 3 × 20 s). Pausado, o mundo e o tempo da partida não avançam; o chat continua. Só no Ranked. |
 | RN-RKL-16 | O saldo vale por jogo. A pausa termina quando o time que pediu retoma (o adversário não pode) ou quando o saldo acaba, sempre com contagem de retomada de 3 s (D-45). |
 | RN-RKL-17 | No Ranked, a queda de conexão de um jogador pausa o jogo automaticamente, sem gastar o saldo do time, enquanto ele tem 120 s para reconectar ao mesmo lugar (D-46). |

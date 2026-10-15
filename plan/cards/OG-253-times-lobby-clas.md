@@ -6,9 +6,9 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | S16 |
+| Sprint | S17 |
 | Status | Backlog |
-| Dependências | [OG-252](OG-252-salas-lobby-ranked.md) |
+| Dependências | [OG-252](OG-252-salas-lobby-ranked.md), [OG-270](OG-270-clas-cadastro-api.md) |
 | Regras de negócio | RN-RKL-08, RN-RKL-09 |
 | Skills | `outgun-card-workflow` |
 
@@ -16,7 +16,7 @@
 Como jogador de um clã, quero cair no mesmo time dos meus companheiros de clã e poder trocar de lado, para jogar com quem eu combinei.
 
 ## Contexto
-- Clã = clan tag da conta (OG-082). RN-TIM-01/02 regem a entrada e a troca dentro da partida.
+- Clã = clã cadastrado do jogador (OG-270), comparado pelo id do clã, não pelo texto da tag. RN-TIM-01/02 regem a entrada e a troca dentro da partida.
 
 ## Escopo
 - Ao entrar no lobby: vai para o lado onde há mais jogadores do mesmo clã (com vaga); sem clã ou empate, RN-TIM-01.
@@ -28,7 +28,7 @@ Como jogador de um clã, quero cair no mesmo time dos meus companheiros de clã 
 - [ ] Troca com lado cheio só acontece com aceite.
 
 ## Notas técnicas
-- Comparação de clan tag sem diferença de maiúsculas e acentos (como RN-SOC-04).
+- Jogador sem clã não é agrupado com ninguém.
 
 ## Notas de implementação
 (preenchido durante a execução)

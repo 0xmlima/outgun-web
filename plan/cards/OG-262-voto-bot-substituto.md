@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 5 pts |
-| Sprint | S18 |
+| Sprint | S20 |
 | Status | Backlog |
 | Dependências | [OG-261](OG-261-pausa-desconexao.md) |
 | Regras de negócio | RN-RKL-18, RN-RKL-19, RN-MOD-06 |

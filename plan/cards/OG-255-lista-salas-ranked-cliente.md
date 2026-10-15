@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | S17 |
+| Sprint | S18 |
 | Status | Backlog |
 | Dependências | [OG-252](OG-252-salas-lobby-ranked.md) |
 | Regras de negócio | RN-RKL-05, RN-RKL-06, RN-UI-01 |

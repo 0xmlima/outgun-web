@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 5 pts |
-| Sprint | S17 |
+| Sprint | S19 |
 | Status | Backlog |
 | Dependências | [OG-250](OG-250-formatos-series-ranked.md) |
 | Regras de negócio | RN-RKL-13, RN-SOC-02 |

@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 2 pts |
-| Sprint | S18 |
+| Sprint | S20 |
 | Status | Backlog |
 | Dependências | [OG-262](OG-262-voto-bot-substituto.md) |
 | Regras de negócio | RN-RKL-20 |

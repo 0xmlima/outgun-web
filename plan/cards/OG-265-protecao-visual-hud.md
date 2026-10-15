@@ -6,7 +6,7 @@
 | Tipo | Infra |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | S17 |
+| Sprint | S18 |
 | Status | Backlog |
 | Dependências | — |
 | Regras de negócio | RN-UI-05 |
