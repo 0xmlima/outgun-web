@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Diretório de jogadores (OG-215, RN-SOC-04) em /players: busca por nome ou clã (sem diferença de
 // maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Ranking da temporada em
-// /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267).
+// /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267),
+// filtrado por formato (OG-258).
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
@@ -11,7 +12,7 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
-import { duration, PlayerLink, Status, useApi, type Leaderboard } from './stats.js';
+import { duration, FormatTabs, formatQuery, PlayerLink, Status, useApi, useFormatParam, type Leaderboard } from './stats.js';
 
 interface Directory {
   active: { username: string; clanTag: string | null; matches: number; wins: number; playSeconds: number }[];
@@ -148,11 +149,13 @@ export function LeaderboardScreen() {
   const past = (seasons.data?.seasons ?? []).filter((s) => !s.active);
   const [pastId, setPastId] = useState<string>('');
   const chosen = pastId || String(past[0]?.id ?? '');
-  const path =
-    view === 'overall' ? `/leaderboard/overall?limit=${limit}` : view === 'past' ? (chosen ? `/leaderboard?season=${chosen}&limit=${limit}` : '') : `/leaderboard?limit=${limit}`;
+  const [format, setFormat] = useFormatParam();
+  const q = `limit=${limit}${formatQuery(format)}`;
+  const path = view === 'overall' ? `/leaderboard/overall?${q}` : view === 'past' ? (chosen ? `/leaderboard?season=${chosen}&${q}` : '') : `/leaderboard?${q}`;
   const board = useApi<Leaderboard | Overall>(path || '/leaderboard?limit=1');
   const b = path ? board.data : null;
-  const title = b && 'season' in b ? `${t('Ranking')} · ${b.season.name}` : view === 'overall' ? `${t('Ranking')} · ${t('All seasons')}` : t('Ranking');
+  const name = b && 'season' in b ? `${t('Ranking')} · ${b.season.name}` : view === 'overall' ? `${t('Ranking')} · ${t('All seasons')}` : t('Ranking');
+  const title = format === 'all' ? name : `${name} · ${format}`;
   return (
     <Page title={title} subtitle={t('Rating = (score + 1) / (neg + 1); at least 100 points of score to appear. Only Ranked matches count.')} onBack={() => void navigate(-1)}>
       <Tabs
@@ -168,6 +171,13 @@ export function LeaderboardScreen() {
           { id: 'overall', label: t('All seasons') },
         ]}
       >
+        <FormatTabs
+          value={format}
+          onChange={(f) => {
+            setFormat(f);
+            setLimit(50);
+          }}
+        />
         {view === 'past' && past.length > 0 && (
           <ChoiceField label={t('Season')} value={chosen} onChange={setPastId} options={past.map((s) => ({ value: String(s.id), label: s.name }))} />
         )}

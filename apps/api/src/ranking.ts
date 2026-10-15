@@ -4,7 +4,7 @@
 // pontos de score para aparecer e desempate por score.
 import { and, desc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
-import { playerProfiles, ratings, seasons, seasonStandings } from './db/schema.js';
+import { formatRatings, playerProfiles, ratings, seasons, seasonStandings } from './db/schema.js';
 
 /** `minimum_positive_score_for_ranking` do original: abaixo disso, fora do leaderboard. */
 export const MINIMUM_SCORE = 100;
@@ -12,6 +12,10 @@ export const MINIMUM_SCORE = 100;
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 export const ratingExpr = sql<number>`(${ratings.score} + 1) / (${ratings.neg} + 1)`;
+export const formatRatingExpr = sql<number>`(${formatRatings.score} + 1) / (${formatRatings.neg} + 1)`;
+
+/** Formato do Ranked (OG-250); o rating de cada um fica em `format_ratings` (OG-258, D-42). */
+export type RankedFormat = '3x3' | '4x4' | '5x5';
 
 export async function activeSeason(db: Db | Tx): Promise<{ id: number; name: string } | undefined> {
   const [season] = await db.select({ id: seasons.id, name: seasons.name }).from(seasons).where(eq(seasons.active, true));
@@ -26,19 +30,36 @@ export interface Delta {
   match: boolean;
 }
 
-/** Soma os deltas na temporada (uma linha por conta, criada na primeira partida). */
-export async function applyDeltas(tx: Tx, seasonId: number, deltas: readonly Delta[]): Promise<void> {
+/**
+ * Soma os deltas na temporada (uma linha por conta, criada na primeira partida). Com formato, soma
+ * também no rating do formato: o geral é sempre a soma dos formatos mais o acumulado sem formato.
+ */
+export async function applyDeltas(tx: Tx, seasonId: number, deltas: readonly Delta[], format?: RankedFormat | null): Promise<void> {
   for (const d of deltas) {
     if (d.score === 0 && d.neg === 0 && !d.match) continue;
+    const matches = d.match ? 1 : 0;
     await tx
       .insert(ratings)
-      .values({ userId: d.userId, seasonId, score: d.score, neg: d.neg, matches: d.match ? 1 : 0 })
+      .values({ userId: d.userId, seasonId, score: d.score, neg: d.neg, matches })
       .onConflictDoUpdate({
         target: [ratings.userId, ratings.seasonId],
         set: {
           score: sql`${ratings.score} + ${d.score}`,
           neg: sql`${ratings.neg} + ${d.neg}`,
-          matches: sql`${ratings.matches} + ${d.match ? 1 : 0}`,
+          matches: sql`${ratings.matches} + ${matches}`,
+          updatedAt: new Date(),
+        },
+      });
+    if (!format) continue;
+    await tx
+      .insert(formatRatings)
+      .values({ userId: d.userId, seasonId, format, score: d.score, neg: d.neg, matches })
+      .onConflictDoUpdate({
+        target: [formatRatings.userId, formatRatings.seasonId, formatRatings.format],
+        set: {
+          score: sql`${formatRatings.score} + ${d.score}`,
+          neg: sql`${formatRatings.neg} + ${d.neg}`,
+          matches: sql`${formatRatings.matches} + ${matches}`,
           updatedAt: new Date(),
         },
       });
@@ -54,27 +75,31 @@ export interface PlayerRating {
   of: number;
 }
 
-/** Ranking da conta na temporada ativa, para o ticket de entrada. */
-export async function playerRating(db: Db, userId: string): Promise<PlayerRating> {
+/** Ranking da conta na temporada ativa, para o ticket de entrada; com `format`, o rating daquele formato. */
+export async function playerRating(db: Db, userId: string, format?: RankedFormat): Promise<PlayerRating & { matches: number }> {
   const season = await activeSeason(db);
   const [profile] = await db.select({ participate: playerProfiles.rankingParticipation }).from(playerProfiles).where(eq(playerProfiles.userId, userId));
   const participate = profile?.participate ?? true;
-  if (!season) return { score: 0, neg: 0, participate: false, rank: 0, of: 0 };
+  if (!season) return { score: 0, neg: 0, participate: false, rank: 0, of: 0, matches: 0 };
+  const t = format
+    ? { table: formatRatings, score: formatRatings.score, neg: formatRatings.neg, matches: formatRatings.matches, expr: formatRatingExpr, scope: and(eq(formatRatings.seasonId, season.id), eq(formatRatings.format, format)) }
+    : { table: ratings, score: ratings.score, neg: ratings.neg, matches: ratings.matches, expr: ratingExpr, scope: eq(ratings.seasonId, season.id) };
   const [mine] = await db
-    .select({ score: ratings.score, neg: ratings.neg })
-    .from(ratings)
-    .where(and(eq(ratings.userId, userId), eq(ratings.seasonId, season.id)));
+    .select({ score: t.score, neg: t.neg, matches: t.matches })
+    .from(t.table)
+    .where(and(t.scope, eq(t.table.userId, userId)));
   const score = mine?.score ?? 0;
   const neg = mine?.neg ?? 0;
+  const value = (score + 1) / (neg + 1);
   const [counts] = await db
     .select({
       of: sql<number>`count(*)::int`,
-      above: sql<number>`count(*) FILTER (WHERE ${ratingExpr} > ${(score + 1) / (neg + 1)} OR (${ratingExpr} = ${(score + 1) / (neg + 1)} AND ${ratings.score} > ${score}))::int`,
+      above: sql<number>`count(*) FILTER (WHERE ${t.expr} > ${value} OR (${t.expr} = ${value} AND ${t.score} > ${score}))::int`,
     })
-    .from(ratings)
-    .where(and(eq(ratings.seasonId, season.id), sql`${ratings.score} >= ${MINIMUM_SCORE}`));
+    .from(t.table)
+    .where(and(t.scope, sql`${t.score} >= ${MINIMUM_SCORE}`));
   const of = counts?.of ?? 0;
-  return { score, neg, participate, rank: score >= MINIMUM_SCORE ? (counts?.above ?? 0) + 1 : 0, of };
+  return { score, neg, participate, rank: score >= MINIMUM_SCORE ? (counts?.above ?? 0) + 1 : 0, of, matches: mine?.matches ?? 0 };
 }
 
 /** Encerra a temporada ativa (fim = agora) e abre `name` como a nova ativa. */

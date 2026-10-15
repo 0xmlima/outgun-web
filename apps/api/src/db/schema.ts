@@ -242,6 +242,25 @@ export const ratings = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
 );
 
+/** Rating por formato (OG-258, D-42); `ratings` é o geral, que soma os formatos e o acumulado sem formato. */
+export const formatRatings = pgTable(
+  'format_ratings',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id, { onDelete: 'cascade' }),
+    format: rankedFormat('format').notNull(),
+    score: doublePrecision('score').notNull().default(0),
+    neg: integer('neg').notNull().default(0),
+    matches: integer('matches').notNull().default(0),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seasonId, t.format] }), index('format_ratings_board_idx').on(t.seasonId, t.format)],
+);
+
 export const ratingDeltas = pgTable(
   'rating_deltas',
   {
@@ -582,6 +601,7 @@ export const allTables = {
   matches,
   match_players: matchPlayers,
   ratings,
+  format_ratings: formatRatings,
   rating_deltas: ratingDeltas,
   player_pairs: playerPairs,
   player_daily: playerDaily,

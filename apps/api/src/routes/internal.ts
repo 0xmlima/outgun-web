@@ -415,6 +415,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               tx,
               season.id,
               body.players.flatMap((p) => (p.userId && known.has(p.userId) ? [{ userId: p.userId, score: p.scoreDelta, neg: p.negDelta, match: true }] : [])),
+              body.format,
             );
             if (!season.active) await snapshotStandings(tx, season.id);
           }
@@ -441,7 +442,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         const applied = await database.db.transaction(async (tx) => {
           const season = await activeSeason(tx);
           const [user] = await tx.select({ id: users.id }).from(users).where(eq(users.id, d.userId));
-          const [room] = d.roomId ? await tx.select({ id: rooms.id }).from(rooms).where(eq(rooms.id, d.roomId)) : [];
+          const [room] = d.roomId ? await tx.select({ id: rooms.id, format: rooms.format }).from(rooms).where(eq(rooms.id, d.roomId)) : [];
           const [row] = await tx
             .insert(ratingDeltas)
             .values({ serverId, deltaId: d.deltaId, userId: user?.id ?? null, seasonId: season?.id ?? null, roomId: room?.id ?? null, scoreDelta: d.scoreDelta, negDelta: d.negDelta })
@@ -449,7 +450,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             .returning({ id: ratingDeltas.deltaId });
           if (!row) return false; // reenvio
           if (user && season) {
-            await applyDeltas(tx, season.id, [{ userId: user.id, score: d.scoreDelta, neg: d.negDelta, match: false }]);
+            await applyDeltas(tx, season.id, [{ userId: user.id, score: d.scoreDelta, neg: d.negDelta, match: false }], room?.format);
             await recordRatingPoint(tx, user.id, season.id, d.scoreDelta, d.negDelta);
           }
           return true;

@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Tipos e utilitários das páginas de estatísticas (OG-085): perfil em Profile.tsx (OG-212), diretório e
 // ranking em Players.tsx (OG-215), relatório de partida em MatchReport.tsx (OG-214).
+import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
+import { Tabs } from '../ui/Tabs.js';
 
 export type Mode = 'ranked' | 'casual';
 
@@ -39,6 +41,8 @@ export interface MatchSummary {
   endedAt: string;
   mode: Mode;
   ranked: boolean;
+  /** Formato do Ranked (OG-250); null em Casual e nas partidas anteriores aos formatos. */
+  format: RankedFormat | null;
   map: string;
   mapTitle: string;
   redScore: number;
@@ -107,12 +111,12 @@ export interface Leaderboard {
   entries: { position: number; username: string; clanTag: string | null; score: number; neg: number; rating: number; matches: number }[];
 }
 
-/** Carrega `path` da API; `null` = não encontrado. */
-export function useApi<T>(path: string): { data: T | null | undefined; error: string | null } {
+/** Carrega `path` da API; `null` = não encontrado. `keep` mantém os dados anteriores enquanto troca de filtro. */
+export function useApi<T>(path: string, keep = false): { data: T | null | undefined; error: string | null } {
   const [state, setState] = useState<{ data: T | null | undefined; error: string | null }>({ data: undefined, error: null });
   useEffect(() => {
     let alive = true;
-    setState({ data: undefined, error: null });
+    if (!keep) setState({ data: undefined, error: null });
     api<T>(path).then(
       (data) => alive && setState({ data, error: null }),
       (e: unknown) => alive && setState(e instanceof ApiError && e.status === 404 ? { data: null, error: null } : { data: undefined, error: e instanceof ApiError ? e.message : String(e) }),
@@ -120,7 +124,7 @@ export function useApi<T>(path: string): { data: T | null | undefined; error: st
     return () => {
       alive = false;
     };
-  }, [path]);
+  }, [path, keep]);
   return state;
 }
 
@@ -150,4 +154,38 @@ export function Status({ loading, missing, error }: { loading: boolean; missing:
 
 export function PlayerLink({ name, username }: { name: string; username: string | null }) {
   return username ? <Link to={`/players/${encodeURIComponent(username)}`}>{name}</Link> : <>{name}</>;
+}
+
+export type FormatFilter = RankedFormat | 'all';
+
+/** Filtro de formato do Ranked guardado na URL (`?format=3x3`, OG-258); sem ele, "Todos". */
+export function useFormatParam(): [FormatFilter, (f: FormatFilter) => void] {
+  const [params, setParams] = useSearchParams();
+  const raw = params.get('format');
+  const format = RANKED_FORMATS.find((f) => f === raw) ?? 'all';
+  const set = (f: FormatFilter) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (f === 'all') next.delete('format');
+        else next.set('format', f);
+        return next;
+      },
+      { replace: true },
+    );
+  return [format, set];
+}
+
+/** `&format=3x3` para as rotas da API; vazio em "Todos". */
+export const formatQuery = (f: FormatFilter) => (f === 'all' ? '' : `&format=${f}`);
+
+/** Abas "Todos / 3x3 / 4x4 / 5x5" (RN-RKL-13). */
+export function FormatTabs({ value, onChange }: { value: FormatFilter; onChange: (f: FormatFilter) => void }) {
+  const { t } = usePrefs();
+  return (
+    <div className="ui-row format-filter">
+      <Tabs label={t('Format')} value={value} onChange={onChange} tabs={[{ id: 'all', label: t('All formats') }, ...RANKED_FORMATS.map((f) => ({ id: f, label: f }))]} />
+      {value !== 'all' && <span className="ui-muted">{t('Matches from before the formats only show under "All".')}</span>}
+    </div>
+  );
 }

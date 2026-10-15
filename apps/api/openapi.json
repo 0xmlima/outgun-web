@@ -1339,7 +1339,7 @@
     },
     "/leaderboard": {
       "get": {
-        "summary": "Leaderboard da temporada: rating = (score+1)/(neg+1), mínimo de 100 de score, desempate por score",
+        "summary": "Leaderboard da temporada (geral ou de um formato, OG-258): rating = (score+1)/(neg+1), mínimo de 100 de score, desempate por score",
         "tags": ["ranking"],
         "parameters": [
           {
@@ -1349,6 +1349,27 @@
             },
             "in": "query",
             "name": "season",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["5x5"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "format",
             "required": false
           },
           {
@@ -1492,9 +1513,30 @@
     },
     "/leaderboard/overall": {
       "get": {
-        "summary": "Ranking geral de todas as temporadas (OG-267): soma de score e neg, rating = (score+1)/(neg+1), mínimo de 100 de score",
+        "summary": "Ranking geral de todas as temporadas (OG-267), opcionalmente de um formato (OG-258): soma de score e neg, rating = (score+1)/(neg+1), mínimo de 100 de score",
         "tags": ["ranking"],
         "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["5x5"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "format",
+            "required": false
+          },
           {
             "schema": {
               "type": "integer",
@@ -1595,6 +1637,27 @@
         "summary": "Perfil público: nome, clã, posição no ranking e estatísticas por modo",
         "tags": ["perfil"],
         "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["5x5"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "format",
+            "required": false
+          },
           {
             "schema": {
               "type": "string",
@@ -1917,6 +1980,27 @@
           },
           {
             "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["5x5"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "format",
+            "required": false
+          },
+          {
+            "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
@@ -1974,6 +2058,7 @@
                               "endedAt",
                               "mode",
                               "ranked",
+                              "format",
                               "map",
                               "mapTitle",
                               "redScore",
@@ -2000,6 +2085,29 @@
                               },
                               "ranked": {
                                 "type": "boolean"
+                              },
+                              "format": {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": ["3x3"]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": ["4x4"]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": ["5x5"]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "map": {
                                 "type": "string"
@@ -2218,6 +2326,7 @@
                             "endedAt",
                             "mode",
                             "ranked",
+                            "format",
                             "map",
                             "mapTitle",
                             "redScore",
@@ -2244,6 +2353,29 @@
                             },
                             "ranked": {
                               "type": "boolean"
+                            },
+                            "format": {
+                              "anyOf": [
+                                {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": ["3x3"]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": ["4x4"]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": ["5x5"]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             },
                             "map": {
                               "type": "string"

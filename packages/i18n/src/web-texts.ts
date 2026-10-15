@@ -414,6 +414,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Admin: 'Admin',
     Member: 'Membro',
     Invite: 'Convidar',
+    // Rating por formato (OG-258)
+    'All formats': 'Todos',
+    'Matches from before the formats only show under "All".': 'Partidas anteriores aos formatos só aparecem em "Todos".',
     // Temporadas mensais e ranking geral (OG-267)
     'All seasons': 'Geral',
     'Current season': 'Temporada atual',

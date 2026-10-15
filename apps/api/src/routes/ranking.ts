@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Leaderboard e temporadas (OG-084, D-02): consulta indexada no PostgreSQL (D-24). Temporadas
-// encerradas leem a classificação final; o ranking geral soma todas as temporadas (OG-267).
+// encerradas leem a classificação final; o ranking geral soma todas as temporadas (OG-267). Com
+// `format`, o rating daquele formato (OG-258, D-42); sem ele, o geral, que soma os três.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
-import { ratings, seasons, seasonStandings, users } from '../db/schema.js';
-import { activeSeason, MINIMUM_SCORE, ratingExpr } from '../ranking.js';
-import { ErrorSchema } from './schemas.js';
+import { formatRatings, ratings, seasons, seasonStandings, users } from '../db/schema.js';
+import { activeSeason, formatRatingExpr, MINIMUM_SCORE, ratingExpr } from '../ranking.js';
+import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
 const Entry = Type.Object({
@@ -45,9 +46,10 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
       {
         schema: {
           tags: ['ranking'],
-          summary: 'Leaderboard da temporada: rating = (score+1)/(neg+1), mínimo de 100 de score, desempate por score',
+          summary: 'Leaderboard da temporada (geral ou de um formato, OG-258): rating = (score+1)/(neg+1), mínimo de 100 de score, desempate por score',
           querystring: Type.Object({
             season: Type.Optional(Type.Integer({ minimum: 1 })),
+            format: Type.Optional(RankedFormatSchema),
             limit: Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
             offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
           }),
@@ -55,11 +57,24 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         },
       },
       async (request, reply) => {
-        const { limit, offset } = request.query;
+        const { format, limit, offset } = request.query;
         const id = request.query.season ?? (await activeSeason(db))?.id;
         const [season] = id ? await db.select().from(seasons).where(eq(seasons.id, id)) : [];
         if (!season) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
         const out = { id: season.id, name: season.name, startsAt: season.startsAt.toISOString(), endsAt: season.endsAt?.toISOString() ?? null, active: season.active };
+        if (format) {
+          const where = and(eq(formatRatings.seasonId, season.id), eq(formatRatings.format, format), sql`${formatRatings.score} >= ${MINIMUM_SCORE}`);
+          const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(formatRatings).where(where);
+          const rows = await db
+            .select({ userId: formatRatings.userId, username: users.username, clanTag: users.clanTag, score: formatRatings.score, neg: formatRatings.neg, rating: formatRatingExpr, matches: formatRatings.matches })
+            .from(formatRatings)
+            .innerJoin(users, eq(users.id, formatRatings.userId))
+            .where(where)
+            .orderBy(desc(formatRatingExpr), desc(formatRatings.score), users.usernameKey)
+            .limit(limit)
+            .offset(offset);
+          return { season: out, total: count?.n ?? 0, entries: rows.map((r, i) => ({ position: offset + i + 1, ...r, rating: Number(r.rating) })) };
+        }
         // Temporada encerrada: a classificação final guardada na virada (OG-267).
         const [final] = season.active ? [] : await db.select({ n: sql<number>`count(*)::int` }).from(seasonStandings).where(eq(seasonStandings.seasonId, season.id));
         if (final && final.n > 0) {
@@ -95,8 +110,9 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
       {
         schema: {
           tags: ['ranking'],
-          summary: 'Ranking geral de todas as temporadas (OG-267): soma de score e neg, rating = (score+1)/(neg+1), mínimo de 100 de score',
+          summary: 'Ranking geral de todas as temporadas (OG-267), opcionalmente de um formato (OG-258): soma de score e neg, rating = (score+1)/(neg+1), mínimo de 100 de score',
           querystring: Type.Object({
+            format: Type.Optional(RankedFormatSchema),
             limit: Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
             offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
           }),
@@ -104,13 +120,14 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         },
       },
       async (request) => {
-        const { limit, offset } = request.query;
+        const { format, limit, offset } = request.query;
+        const source = format ? sql`(SELECT user_id, score, neg, matches FROM format_ratings WHERE format = ${format})` : sql`ratings`;
         const [counts] = await db.execute<{ seasons: number; total: number }>(sql`
           SELECT (SELECT count(*)::int FROM seasons) AS seasons,
-            (SELECT count(*)::int FROM (SELECT 1 FROM ratings GROUP BY user_id HAVING sum(score) >= ${MINIMUM_SCORE}) t) AS total`);
+            (SELECT count(*)::int FROM (SELECT 1 FROM ${source} r GROUP BY user_id HAVING sum(score) >= ${MINIMUM_SCORE}) t) AS total`);
         const rows = await db.execute<{ user_id: string; username: string; clan_tag: string | null; score: number; neg: number; matches: number }>(sql`
           SELECT r.user_id, u.username, u.clan_tag, sum(r.score)::float8 AS score, sum(r.neg)::int AS neg, sum(r.matches)::int AS matches
-          FROM ratings r JOIN users u ON u.id = r.user_id
+          FROM ${source} r JOIN users u ON u.id = r.user_id
           GROUP BY r.user_id, u.username, u.clan_tag, u.username_key
           HAVING sum(r.score) >= ${MINIMUM_SCORE}
           ORDER BY (sum(r.score) + 1) / (sum(r.neg) + 1) DESC, sum(r.score) DESC, u.username_key
