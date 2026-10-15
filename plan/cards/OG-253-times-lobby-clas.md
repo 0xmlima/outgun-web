@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S17 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-252](OG-252-salas-lobby-ranked.md), [OG-270](OG-270-clas-cadastro-api.md) |
 | Regras de negócio | RN-RKL-08, RN-RKL-09 |
 | Skills | `outgun-card-workflow` |
@@ -24,11 +24,13 @@ Como jogador de um clã, quero cair no mesmo time dos meus companheiros de clã 
 - Durante a contagem (OG-254), qualquer troca cancela a contagem.
 
 ## Critérios de aceite
-- [ ] Testes: 3 jogadores do clã "nn" entrando intercalados com outros terminam do mesmo lado quando há vaga.
-- [ ] Troca com lado cheio só acontece com aceite.
+- [x] Testes: 3 jogadores do clã "nn" entrando intercalados com outros terminam do mesmo lado quando há vaga.
+- [x] Troca com lado cheio só acontece com aceite.
 
 ## Notas técnicas
 - Jogador sem clã não é agrupado com ninguém.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Ticket das salas Ranked leva `clanId` (id do clã cadastrado, de `clan_members`); `lobbyJoinTeam` (teams.ts) escolhe o lado com mais colegas de clã e vaga, senão RN-TIM-01.
+- `lobbySide` sem alvo move para a vaga livre do outro lado; com alvo vira pedido (aparece em `lobbyState.swaps`) que só o alvo aceita (`lobbySwapAnswer`); pedidos mútuos trocam na hora. Troca cancela a contagem (OG-254).
+- Nas salas de lobby o `changeTeam` antigo e o `balance_teams` ficam desligados: lados só mudam no lobby.

@@ -10,7 +10,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { checkGuestName } from '../auth/names.js';
 import { verifyPassword } from '../auth/password.js';
-import { bans, gameServers, rooms } from '../db/schema.js';
+import { bans, clanMembers, gameServers, rooms } from '../db/schema.js';
 import { playerRating } from '../ranking.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
@@ -82,6 +82,9 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const place = await placeRoom(db, room, deps.config.devRoomWsUrl, body.region);
     if (!place.ok) return fail(503, 'room_offline', 'no game server available');
 
+    // clã cadastrado (OG-253): no lobby Ranked o clã entra do mesmo lado
+    const [member] = user && room.mode === 'ranked' ? await db.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id)) : [];
+    const clanId = member?.clanId;
     const jti = randomUUID();
     const ticket = signTicket(
       {
@@ -89,6 +92,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         sub: user ? user.id : `guest:${randomUUID()}`,
         name,
         clan: user?.clanTag ?? null,
+        ...(clanId ? { clanId } : {}),
         acct: user !== undefined,
         admin: user?.isAdmin ?? false,
         ranked: room.mode === 'ranked',

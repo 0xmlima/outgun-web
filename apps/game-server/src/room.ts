@@ -21,7 +21,7 @@ import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
 import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
-import { balanceMoves, botToRebalance, botToRemove, ColorPool, freeSlot, joinTeam, NO_COLOR, shuffleSwaps, teamChangeFor, type Slot } from './teams.js';
+import { balanceMoves, botToRebalance, botToRemove, ColorPool, freeSlot, joinTeam, lobbyJoinTeam, NO_COLOR, shuffleSwaps, teamChangeFor, type Slot } from './teams.js';
 import {
   CarriedFlag,
   clearModifiersIfIdle,
@@ -56,6 +56,8 @@ export interface Identity {
   accountId: string | null;
   /** Clan tag da conta (RN-NOM-03), exibida como "(TAG) nome" no chat. */
   clanTag?: string | null;
+  /** Id do clã cadastrado (OG-253): mesmo clã entra do mesmo lado no lobby Ranked. */
+  clanId?: string | null;
   /** Administrador da plataforma (moderação, OG-046). */
   admin?: boolean;
   /** Dono da sala privada (OG-049): pode mudar as regras se o preset não for travado. */
@@ -404,7 +406,9 @@ export class Room {
       if (bot === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
       this.dropBot(bot);
     }
-    const team = joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam());
+    const team = this.lobby
+      ? lobbyJoinTeam(this.slots(), this.world.maxPlayers, (p) => this.clients.get(p)?.identity.clanId, identity.clanId, () => this.lessScoredTeam())
+      : joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam());
     const pid = freeSlot(this.slots(), this.world.maxPlayers, team);
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
     const color = this.colors.assign(team, NO_COLOR, []);

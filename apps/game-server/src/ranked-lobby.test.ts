@@ -177,4 +177,50 @@ describe('sala Ranked 3x3 com lobby (OG-252)', () => {
     r.disconnect(c.pid, c.conn);
     expect(r.playerCount).toBe(1);
   });
+
+  const joinClan = (r: Room, n: number, clanId: string | null) => {
+    const conn = new TestConnection();
+    const res = r.join(conn, { name: `J${n}`, accountId: `00000000-0000-4000-8000-0000000000${String(n).padStart(2, '0')}`, clanId });
+    if (!res.ok) throw new Error(res.text);
+    return { conn, pid: res.pid };
+  };
+  const team = (r: Room, pid: number) => r.world.teamOf(pid);
+
+  it('clã "nn" entrando intercalado com outros termina do mesmo lado (OG-253)', () => {
+    const r = room();
+    const nn = [joinClan(r, 1, 'nn'), joinClan(r, 2, null), joinClan(r, 3, 'nn'), joinClan(r, 4, 'bc'), joinClan(r, 5, 'nn'), joinClan(r, 6, null)];
+    const nnTeams = [nn[0]!, nn[2]!, nn[4]!].map((p) => team(r, p.pid));
+    expect(new Set(nnTeams).size).toBe(1);
+    expect([nn[1]!, nn[3]!, nn[5]!].every((p) => team(r, p.pid) !== nnTeams[0])).toBe(true);
+  });
+
+  it('troca de lado: vaga livre move; lado cheio só troca com o aceite do outro (OG-253)', () => {
+    const r = room();
+    const a = joinClan(r, 1, null);
+    const b = joinClan(r, 2, null);
+    expect(team(r, a.pid)).not.toBe(team(r, b.pid));
+    r.handle(a.pid, [message('lobbySide', { target: 255 })]);
+    const movedA = [...r.lobby!.members.keys()].find((pid) => pid !== b.pid)!;
+    expect(team(r, movedA)).toBe(team(r, b.pid));
+    // enche a sala: 3 x 3
+    const rest = [3, 4, 5, 6].map((n) => joinClan(r, n, null));
+    run(r, 1);
+    const red = [...r.lobby!.members.keys()].filter((pid) => team(r, pid) === 0);
+    const blue = [...r.lobby!.members.keys()].filter((pid) => team(r, pid) === 1);
+    expect([red.length, blue.length]).toEqual([3, 3]);
+    r.handle(red[0]!, [message('lobbySide', { target: 255 })]); // lado cheio: nada
+    expect(team(r, red[0]!)).toBe(0);
+    r.handle(red[0]!, [message('lobbySide', { target: blue[0]! })]);
+    run(r, 1);
+    const conn = [a, b, ...rest].find((p) => p.conn.received.length > 0)!.conn;
+    expect(conn.last('lobbyState')?.swaps).toEqual([{ from: red[0], to: blue[0] }]);
+    expect(team(r, red[0]!)).toBe(0); // sem aceite, nada muda
+    r.handle(blue[1]!, [message('lobbySwapAnswer', { from: red[0]!, accept: true })]); // não era com ele
+    expect(team(r, red[0]!)).toBe(0);
+    r.handle(blue[0]!, [message('lobbySwapAnswer', { from: red[0]!, accept: true })]);
+    expect(r.lobby!.members.size).toBe(6);
+    run(r, 1);
+    expect(conn.last('lobbyState')?.swaps).toEqual([]);
+    expect(conn.received.some((m) => m.type === 'teamChange' && m.from === red[0] && m.to === blue[0])).toBe(true);
+  });
 });
