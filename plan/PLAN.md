@@ -713,7 +713,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Concluído |
 | [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Concluído |
 | [OG-276](cards/OG-276-filtro-nomes-jogadores.md) | Filtro de nomes proibidos também nos nomes de jogador | E13 | 1 | Should | — | OG-275 | Backlog |
-| [OG-277](cards/OG-277-sublinhado-conta-quem-entra-depois.md) | Quem entra depois não vê o sublinhado de conta dos que já estavam | E8 | 1 | Should | S21 | — | Backlog |
+| [OG-277](cards/OG-277-sublinhado-conta-quem-entra-depois.md) | Quem entra depois não vê o sublinhado de conta dos que já estavam | E8 | 1 | Should | S21 | — | Em revisão |
 | [OG-278](cards/OG-278-erro-pixi-alphamode-resize.md) | Erro do Pixi (`alphaMode`) ao redimensionar a janela na partida | E8 | 2 | Should | S21 | — | Backlog |
 | [OG-279](cards/OG-279-serie-com-vencedor.md) | Conferir série com vencedor (md3 2-1) de ponta a ponta | E12 | 1 | Should | S21 | — | Backlog |
 | [OG-280](cards/OG-280-versao-no-cliente.md) | Mostrar a versão do jogo no cliente | E8 | 1 | Could | — | — | Backlog |

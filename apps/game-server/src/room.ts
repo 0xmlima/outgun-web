@@ -519,6 +519,8 @@ export class Room {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
+      // conta e ranking de quem já estava: o sublinhado de conta também para quem chega depois (OG-277)
+      if (c.identity.rating) out.push(this.playerInfo(other, c));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
       out.push(statsMessage(this.world.players[other] as PlayerState, this.world.time)); // `send_stats`
     }

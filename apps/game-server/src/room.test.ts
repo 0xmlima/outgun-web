@@ -299,6 +299,14 @@ describe('Room: times (OG-044)', () => {
     r.tick();
     expect(a.conn.of('playerInfo').at(-1)).toMatchObject({ pid: a.pid, color: 5 });
   });
+
+  it('quem entra depois recebe a conta de quem já estava (OG-277)', () => {
+    const r = room();
+    const ana = r.join(new TestConnection(), { name: 'Ana', accountId: 'acc-ana', rating: { score: 0, neg: 0, participate: true } });
+    if (!ana.ok) throw new Error(ana.text);
+    const bia = join(r, 'Bia');
+    expect(bia.conn.of('playerInfo').find((m) => m.pid === ana.pid)).toMatchObject({ loggedIn: true });
+  });
 });
 
 describe('Room: rotação e votação de mapas (OG-045)', () => {
