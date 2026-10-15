@@ -668,7 +668,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Concluído |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Concluído |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
-| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265 | Backlog |
+| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Backlog |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Concluído |
