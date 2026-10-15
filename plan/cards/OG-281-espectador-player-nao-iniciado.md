@@ -27,4 +27,3 @@ Como espectador, quero que a partida ao vivo abra sempre, para não cair numa te
 
 ## Notas de implementação
 - A fila de aberturas (`opening`) nasce pendente e só anda depois do `app.init` + carregamento; o replay inicial entra primeiro na fila, antes de qualquer segmento ao vivo. As 5 rodadas do `visual:check` ficam para o PO/fechamento.
-(preenchido durante a execução)
