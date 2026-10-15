@@ -4,7 +4,10 @@
 
 /** maxPlayerNameLength (src/commont.h:53). */
 export const MAX_NAME_LENGTH = 15;
-export const MAX_CLAN_TAG_LENGTH = 6;
+/** Tag do clã cadastrado (OG-270, D-47). */
+export const MAX_CLAN_TAG_LENGTH = 2;
+export const MIN_CLAN_NAME_LENGTH = 3;
+export const MAX_CLAN_NAME_LENGTH = 24;
 /** Marca dos convidados em jogo (RN-NOM-02). */
 export const GUEST_SUFFIX = '*';
 
@@ -16,8 +19,8 @@ function nonPrintable(code: number): boolean {
 const isSpace = (ch: string | undefined) => ch === ' ' || ch === '\u00a0';
 
 /** check_name: até 15 caracteres imprimíveis, não só espaços, sem espaço (ou NBSP) nas pontas. */
-export function checkName(name: string): boolean {
-  if (name.length > MAX_NAME_LENGTH) return false;
+export function checkName(name: string, max = MAX_NAME_LENGTH): boolean {
+  if (name.length > max) return false;
   if ([...name].every((ch) => isSpace(ch))) return false;
   for (let i = 0; i < name.length; i++) if (nonPrintable(name.charCodeAt(i))) return false;
   return !isSpace(name[0]) && !isSpace(name[name.length - 1]);
@@ -57,9 +60,14 @@ export function guestName(base: string): string {
   return base.slice(0, MAX_NAME_LENGTH - GUEST_SUFFIX.length).replace(/[ \u00a0]+$/, '') + GUEST_SUFFIX;
 }
 
-/** Clan tag: 1 a 6 caracteres com as regras do nome, sem parênteses (exibida como "(TAG) nome"). */
+/** Clan tag: 1 a 2 caracteres com as regras do nome, sem parênteses (exibida como "(TAG) nome"). */
 export function checkClanTag(tag: string): boolean {
   return tag.length >= 1 && tag.length <= MAX_CLAN_TAG_LENGTH && checkName(tag) && !/[()]/.test(tag);
+}
+
+/** Nome de clã (OG-270): de 3 a 24 caracteres com as regras do nome. */
+export function checkClanName(name: string): boolean {
+  return name.length >= MIN_CLAN_NAME_LENGTH && checkName(name, MAX_CLAN_NAME_LENGTH);
 }
 
 /** Nome como aparece no chat (src/server.cpp:1513). */

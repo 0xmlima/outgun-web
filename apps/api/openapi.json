@@ -2237,6 +2237,1116 @@
         }
       }
     },
+    "/clans": {
+      "get": {
+        "summary": "Busca de clãs pelo começo do nome ou pela tag (sem diferença de maiúsculas e acentos)",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "in": "query",
+            "name": "busca",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 0
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["total", "clans"],
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "clans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["name", "tag", "members", "createdAt"],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "tag": {
+                            "type": "string"
+                          },
+                          "members": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cria um clã; quem cria vira o líder (só para quem não está em clã)",
+        "tags": ["clãs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "tag"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 24
+                  },
+                  "tag": {
+                    "type": "string",
+                    "maxLength": 2
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clan"],
+                  "properties": {
+                    "clan": {
+                      "type": "object",
+                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["username", "role", "joinedAt"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": ["leader"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["admin"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["member"]
+                                  }
+                                ]
+                              },
+                              "joinedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}": {
+      "get": {
+        "summary": "Página pública do clã: nome, tag, descrição, data de formação e membros com o papel",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clan"],
+                  "properties": {
+                    "clan": {
+                      "type": "object",
+                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["username", "role", "joinedAt"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": ["leader"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["admin"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["member"]
+                                  }
+                                ]
+                              },
+                              "joinedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edita o clã: nome e descrição (líder e admins), tag (só o líder)",
+        "tags": ["clãs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 24
+                  },
+                  "tag": {
+                    "type": "string",
+                    "maxLength": 2
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clan"],
+                  "properties": {
+                    "clan": {
+                      "type": "object",
+                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["username", "role", "joinedAt"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": ["leader"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["admin"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["member"]
+                                  }
+                                ]
+                              },
+                              "joinedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Dissolve o clã (só o líder); os membros ficam sem clã",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/leave": {
+      "post": {
+        "summary": "Sai do clã; o líder passa a liderança ao admin mais antigo (senão ao membro mais antigo) e o último dissolve",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["result"],
+                  "properties": {
+                    "result": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["left"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["dissolved"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/members/{username}": {
+      "delete": {
+        "summary": "Expulsa um membro: o líder expulsa qualquer um; admins só membros comuns",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/members/{username}/role": {
+      "put": {
+        "summary": "Promove a admin ou rebaixa a membro (só o líder)",
+        "tags": ["clãs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["admin"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["member"]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clan"],
+                  "properties": {
+                    "clan": {
+                      "type": "object",
+                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["username", "role", "joinedAt"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": ["leader"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["admin"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["member"]
+                                  }
+                                ]
+                              },
+                              "joinedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/transfer": {
+      "post": {
+        "summary": "Transfere a liderança a outro membro (só o líder, que passa a admin)",
+        "tags": ["clãs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clan"],
+                  "properties": {
+                    "clan": {
+                      "type": "object",
+                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["username", "role", "joinedAt"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": ["leader"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["admin"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["member"]
+                                  }
+                                ]
+                              },
+                              "joinedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/names/check": {
       "get": {
         "summary": "Nome válido? Livre? Como aparece para um convidado?",
@@ -3499,120 +4609,6 @@
             }
           },
           "429": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": ["error", "message"],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/account/clan-tag": {
-      "put": {
-        "summary": "Define ou remove a clan tag, exibida como \"(TAG) nome\" no chat",
-        "tags": ["contas"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["clanTag"],
-                "properties": {
-                  "clanTag": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "maxLength": 6
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": ["user"],
-                  "properties": {
-                    "user": {
-                      "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "username": {
-                          "type": "string"
-                        },
-                        "email": {
-                          "type": "string"
-                        },
-                        "clanTag": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "isAdmin": {
-                          "type": "boolean"
-                        },
-                        "isModerator": {
-                          "type": "boolean"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": ["error", "message"],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {

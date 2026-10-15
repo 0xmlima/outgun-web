@@ -294,13 +294,15 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Change name': 'Trocar nome',
     'New name': 'Novo nome',
     'Clan tag': 'Clan tag',
-    'Remove clan tag': 'Remover clan tag',
     'Saved.': 'Salvo.',
     'Name changed to $1.': 'Nome trocado para $1.',
     'You can change your name again on $1.': 'Você poderá trocar de nome de novo em $1.',
-    'Invalid clan tag: 1 to 6 characters, no parentheses.': 'Clan tag inválida: 1 a 6 caracteres, sem parênteses.',
     'Once every 30 days. Your old name stays reserved for you for 90 days.': 'Uma vez a cada 30 dias. Seu nome antigo fica reservado para você por 90 dias.',
-    'Shown in chat as "(TAG) name".': 'Aparece no chat como "(TAG) nome".',
+    // A clan tag virou clã (OG-270)
+    'The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show a tag as "(TAG) name".':
+      'A clan tag agora é a tag do seu clã: as tags livres foram apagadas. Crie um clã ou entre num para aparecer como "(TAG) nome".',
+    'Your clan tag: $1': 'Sua clan tag: $1',
+    'You are not in a clan.': 'Você não está em nenhum clã.',
     // Entrada na sala (OG-083)
     'This name belongs to an account. Sign in or choose another.': 'Este nome pertence a uma conta. Entre ou escolha outro.',
     'Invalid name.': 'Nome inválido.',

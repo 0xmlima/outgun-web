@@ -37,6 +37,7 @@ export const users = pgTable(
     email: text('email').notNull(),
     emailKey: text('email_key').notNull(),
     passwordHash: text('password_hash').notNull(),
+    /** Cópia da tag do clã atual (OG-270), mantida por gatilho; não gravar direto. */
     clanTag: text('clan_tag'),
     isAdmin: boolean('is_admin').notNull().default(false),
     /** Moderador (OG-087): salas, denúncias, bans de sala e auditoria no painel. */
@@ -238,6 +239,40 @@ export const playerMilestones = pgTable(
     matchId: uuid('match_id').references(() => matches.id, { onDelete: 'set null' }),
   },
   (t) => [primaryKey({ columns: [t.userId, t.milestone] }), index('player_milestones_match_idx').on(t.matchId)],
+);
+
+/** Clãs cadastrados (OG-270, RN-CLA-01, D-47); nome e tag únicos pela forma dobrada (`clanKey`). */
+export const clans = pgTable(
+  'clans',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    nameKey: text('name_key').notNull(),
+    tag: text('tag').notNull(),
+    tagKey: text('tag_key').notNull(),
+    description: text('description').notNull().default(''),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('clans_name_key_idx').on(t.nameKey), uniqueIndex('clans_tag_key_idx').on(t.tagKey)],
+);
+
+export type ClanRole = 'leader' | 'admin' | 'member';
+
+/** Um clã por jogador (RN-CLA-02); um líder por clã. Gatilhos copiam a tag para users.clan_tag. */
+export const clanMembers = pgTable(
+  'clan_members',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    clanId: uuid('clan_id')
+      .notNull()
+      .references(() => clans.id, { onDelete: 'cascade' }),
+    role: text('role').$type<ClanRole>().notNull(),
+    joinedAt: tstz('joined_at').notNull().defaultNow(),
+  },
+  (t) => [index('clan_members_clan_idx').on(t.clanId, t.joinedAt)],
 );
 
 export const ratingPoints = pgTable(
@@ -470,6 +505,8 @@ export const allTables = {
   player_pairs: playerPairs,
   player_daily: playerDaily,
   player_milestones: playerMilestones,
+  clans,
+  clan_members: clanMembers,
   rating_points: ratingPoints,
   bans,
   admin_actions: adminActions,

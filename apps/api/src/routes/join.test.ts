@@ -9,7 +9,7 @@ import { deviceHash } from './join.js';
 import { hashPassword } from '../auth/password.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { bans, rooms, users } from '../db/schema.js';
+import { bans, clanMembers, clans, rooms } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
@@ -34,7 +34,9 @@ describe.skipIf(!pgAdminUrl)('entrada nas salas (OG-083)', () => {
     const login = await app.inject({ method: 'POST', url: '/auth/login', payload: { username: 'Jogador1', password: 'outgun-dev' }, headers: { origin: ORIGIN } });
     cookie = `og_session=${login.cookies.find((c) => c.name === 'og_session')!.value}`;
     userId = login.json().user.id;
-    await t.db.update(users).set({ clanTag: 'XYZ' }).where(eq(users.id, userId));
+    // a tag vem do clã (OG-270): o gatilho copia para users.clan_tag
+    const [clan] = await t.db.insert(clans).values({ name: 'Os XY', nameKey: 'os xy', tag: 'XY', tagKey: 'xy' }).returning();
+    await t.db.insert(clanMembers).values({ userId, clanId: clan!.id, role: 'leader' });
   });
   afterAll(async () => {
     await app?.close();
@@ -72,7 +74,7 @@ describe.skipIf(!pgAdminUrl)('entrada nas salas (OG-083)', () => {
     expect((await join('ranked', { name: 'Visita' })).json().error).toBe('account_required');
     const res = await join('ranked', { name: 'ignorado' }, { cookie });
     expect(res.statusCode).toBe(200);
-    expect(claimsOf(res, 'ranked')).toMatchObject({ sub: userId, name: 'Jogador1', clan: 'XYZ', acct: true, ranked: true });
+    expect(claimsOf(res, 'ranked')).toMatchObject({ sub: userId, name: 'Jogador1', clan: 'XY', acct: true, ranked: true });
   });
 
   it('o ticket vale só para a sala pedida', async () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Nomes de conta (OG-082): comparação normalizada, convidados, troca de nome com carência e
-// reserva, clan tag.
+// reserva.
 import { eq } from 'drizzle-orm';
 import type { LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -99,13 +99,8 @@ describe.skipIf(!pgAdminUrl)('nomes de conta (OG-082)', () => {
     expect((await register('Carol')).statusCode).toBe(201);
   });
 
-  it('clan tag: define, valida e remove', async () => {
+  it('a clan tag livre não existe mais (virou clã, OG-270)', async () => {
     const cookie = cookieOf(await register('Elisa'));
-    const set = await send('PUT', '/account/clan-tag', { clanTag: '[BR]' }, cookie);
-    expect(set.json().user.clanTag).toBe('[BR]');
-    expect((await app.inject({ url: '/auth/me', headers: { cookie } })).json().user.clanTag).toBe('[BR]');
-    expect((await send('PUT', '/account/clan-tag', { clanTag: '(X)' }, cookie)).statusCode).toBe(400);
-    expect((await send('PUT', '/account/clan-tag', { clanTag: ' A' }, cookie)).statusCode).toBe(400);
-    expect((await send('PUT', '/account/clan-tag', { clanTag: null }, cookie)).json().user.clanTag).toBeNull();
+    expect((await send('PUT', '/account/clan-tag', { clanTag: 'BR' }, cookie)).statusCode).toBe(404);
   });
 });

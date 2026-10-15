@@ -36,8 +36,6 @@ export function errorField(code: string): Field | undefined {
     case 'invalid_password':
     case 'weak_password':
       return 'password';
-    case 'invalid_clan_tag':
-      return 'clanTag';
   }
   return undefined;
 }
@@ -69,8 +67,6 @@ function useErrorText(): (error: unknown) => string {
         return t('This password is too common. Choose another.');
       case 'username_cooldown':
         return t('You can change your name again on $1.', new Date((error as ApiError).message).toLocaleDateString());
-      case 'invalid_clan_tag':
-        return t('Invalid clan tag: 1 to 6 characters, no parentheses.');
       case 'invalid_token':
         return t('This link is invalid or has expired. Ask for a new one.');
       case 'rate_limited':
@@ -557,28 +553,18 @@ export function ChangeUsernameScreen() {
 }
 
 /** Clan tag (OG-082): aparece como "(TAG) nome" no chat. */
+/** A clan tag livre virou clã (OG-270, D-47): aviso até as telas de clã do OG-272. */
 export function ClanTagScreen() {
   const { t } = usePrefs();
-  const { user, setUser } = useAccount();
-  const [tag, setTag] = useState(user?.clanTag ?? '');
-  const { setMessage, busy, run, fieldError, general } = useSubmit();
+  const navigate = useNavigate();
+  const { user } = useAccount();
   if (user === null) return <Navigate to="/login" replace />;
-
-  const save = (clanTag: string | null) =>
-    run(async () => {
-      const r = await api<{ user: AccountUser }>('/account/clan-tag', { method: 'PUT', body: { clanTag } });
-      setUser(r.user);
-      setTag(r.user.clanTag ?? '');
-      setMessage({ text: t('Saved.'), error: false });
-    });
   return (
-    <AccountForm title={t('Clan tag')} note={t('Shown in chat as "(TAG) name".')} onSubmit={() => void save(tag || null)} submitLabel={t('Save')} submitDisabled={busy} message={general}>
-      <TextField label={t('Clan tag')} value={tag} onChange={setTag} maxLength={6} error={fieldError('clanTag')} />
-      {user?.clanTag && (
-        <Button variant="ghost" onClick={() => void save(null)}>
-          {t('Remove clan tag')}
-        </Button>
-      )}
-    </AccountForm>
+    <Page title={t('Clan tag')} width="narrow" onBack={() => void navigate('/account')} backLabel={t('Back')}>
+      <Panel>
+        <p>{t('The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show a tag as "(TAG) name".')}</p>
+        <p className="ui-muted">{user?.clanTag ? t('Your clan tag: $1', user.clanTag) : t('You are not in a clan.')}</p>
+      </Panel>
+    </Page>
   );
 }
