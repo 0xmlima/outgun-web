@@ -265,7 +265,7 @@ O original tem um único modo, configurado pelo gamemod do servidor. A versão w
 - **RN-MOD-01** — **Casual**: salas criadas a partir de qualquer preset Casual (padrão: **Clássico** = `config/gamemod.txt`, com power-ups). Aberto a convidados e contas. Não altera o ranking.
 - **RN-MOD-02** — **Ranked**: salas usam somente o preset **Ranked** = Clássico **sem power-ups**: `pups_min 0`, `pups_max 0`, todos os `pup_start_*` desligados (`pup_start_weapon 1`), `pups_drop_at_death 0`. Nenhum power-up aparece, é dado no spawn ou largado; o resto das regras (física, tiro, bandeiras, pontuação) é idêntico ao Clássico.
 - **RN-MOD-03** — Ranked exige **conta logada** (nome de usuário + senha). Convidados não entram em salas Ranked.
-- **RN-MOD-04** — O preset Ranked é **travado**: nem dono de sala nem `/set` alteram settings; mapas vêm da rotação oficial Ranked; não há salas Ranked privadas com regras próprias.
+- **RN-MOD-04** — O preset Ranked é **travado**: nem dono de sala nem `/set` alteram settings; mapas vêm da rotação oficial Ranked; não há salas Ranked privadas com regras próprias. **v2 (D-44):** salas Ranked podem ter senha, mas as regras continuam travadas (RN-RKL-06).
 - **RN-MOD-05** — Só partidas Ranked alimentam o ranking (RN-RNK). Estatísticas de partidas Casual podem aparecer no perfil, separadas.
 - **RN-MOD-06** — Bots são proibidos em salas Ranked (D-11): o servidor não adiciona bots, recusa comandos que os ativem e o preset Ranked trava `min_bots` e `bots_fill` em 0. No Casual os bots continuam como no original.
 
@@ -433,7 +433,7 @@ Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
 ### 6.20 Configuração de sala (RN-CFG)
 - **RN-CFG-01** — Toda sala é criada a partir de um **preset**, que pertence a um modo. **Casual:** **Clássico** = `config/gamemod.txt` distribuído (padrão); sugeridos Duelo, Insta (dano alto), Caos (power-ups em dobro). **Ranked:** um único preset, **Ranked** = Clássico sem power-ups (RN-MOD-02), travado.
 - **RN-CFG-02** — Cada setting tem tipo, faixa válida e default conforme `server_settings.cpp`; valores fora da faixa são rejeitados.
-- **RN-CFG-03** — Salas privadas (só Casual): senha (máx. 15 caracteres no original), dono pode alterar settings permitidos. Salas Ranked usam somente o preset Ranked travado (RN-MOD-04).
+- **RN-CFG-03** — Salas privadas (só Casual): senha (máx. 15 caracteres no original), dono pode alterar settings permitidos. Salas Ranked usam somente o preset Ranked travado (RN-MOD-04); na v2 podem ter senha, sem alterar settings (D-44, RN-RKL-06).
 
 ### 6.21 Plataforma web (RN-PLT) — novas
 - **RN-PLT-01** — **Login simples**: cadastro com **nome de usuário** (regras RN-NOM-01, único), **senha** (mín. 8 caracteres, guardada com argon2id) e **e-mail** (obrigatório, único, usado **apenas** para recuperação de senha). Login com usuário + senha. Sem login social (OAuth fora do v1) e sem confirmação obrigatória de e-mail: o cadastro libera o jogo na hora.
@@ -558,6 +558,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | E9 | **v2** — Perfil social e relatórios | Perfis, companheiros, marcos e relatórios de partida no cliente atual (site público fica para um repositório próprio no futuro) |
 | E10 | **v2** — Trilha sonora | Música no menu e nas partidas, com opção para desligar |
 | E11 | **v2** — Jogabilidade | Mudanças de física e regras a partir dos achados do beta |
+| E12 | **v2** — Ranked competitivo | Lobby com salas abertas, formatos 3x3/4x4/5x5, séries md1/md3/md5, voto de mapa, prontos e clã x clã |
 
 ### 9.2 Roadmap por sprint
 | Sprint | Tema | Cards | Marco |
@@ -578,6 +579,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | S13 | v2: base visual e trilha | OG-200, OG-201, OG-202, OG-220, OG-221, OG-222 | |
 | S14 | v2: telas, dados sociais e relatório | OG-203, OG-205, OG-211, OG-214 | |
 | S15 | v2: perfil social | OG-212, OG-213, OG-215 | **M6 — v2 visual e social** |
+| S16 | v2: lobby Ranked (servidor e API) | OG-250, OG-251, OG-252, OG-253, OG-254 | |
+| S17 | v2: lobby Ranked (cliente), séries e clãs | OG-255, OG-256, OG-257, OG-258, OG-259 | **M7 — Ranked competitivo** |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -673,8 +676,18 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Concluído |
 | [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Concluído |
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
+| [OG-250](cards/OG-250-formatos-series-ranked.md) | Formatos 3x3/4x4/5x5 e séries md1/md3/md5 no Ranked | E12 | 5 | Must | S16 | — | Backlog |
+| [OG-251](cards/OG-251-rotacao-ranked-por-formato.md) | Rotação de mapas do Ranked por formato no painel admin | E12 | 3 | Must | S16 | OG-250 | Backlog |
+| [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S16 | OG-250 | Backlog |
+| [OG-253](cards/OG-253-times-lobby-clas.md) | Times no lobby: clãs do mesmo lado e troca de lado | E12 | 3 | Must | S16 | OG-252 | Backlog |
+| [OG-254](cards/OG-254-voto-pronto-contagem.md) | Voto de mapa, "Pronto" e contagem de 5 s | E12 | 5 | Must | S16 | OG-251, OG-252 | Backlog |
+| [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S17 | OG-252 | Backlog |
+| [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S17 | OG-253, OG-254, OG-255 | Backlog |
+| [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S17 | OG-250, OG-256 | Backlog |
+| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Filtro por formato (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 3 | Should | S17 | OG-250 | Backlog |
+| [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S17 | OG-250 | Backlog |
 
-**Total:** 86 cards, 353 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 17 cards, 58 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 96 cards, 391 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 27 cards, 96 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -734,6 +747,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-37 | **v2** — Música fora do Casual | Só Casual / também Ranked / espectador e replay | ✅ **Decidido pelo PO em 2026-10-14:** Casual e espectador ao vivo com música; Ranked e replay sem | PO |
 | D-38 | **v2** — Autoria e crédito da trilha sonora | — | ✅ **Decidido pelo PO em 2026-10-14:** faixas geradas no Suno pelo próprio PO; crédito "Música: Thiago Vasconcellos"; metadados do Suno removidos dos arquivos. Licença das faixas (PO, 2026-10-14): **CC BY-SA 4.0** | PO |
 | D-39 | **v2** — Visibilidade do perfil social | Público / público com opção de esconder / só com conta | ✅ **Decidido pelo PO em 2026-10-14:** público, com opções na conta para esconder companheiros/rivais e histórico de partidas (OG-211) | PO |
+| D-40 | **v2** — Quando a partida Ranked começa | Mínimo de 6 jogadores em qualquer formato / sala completa do formato (6, 8 ou 10) | ⏳ **Em aberto (PO).** Recomendação: sala completa — um 5x5 que começa com 6 vira 3x3 e distorce o formato e o filtro. O pedido cita "no mínimo 6", que coincide com o 3x3 | PO |
+| D-41 | **v2** — Ranking e mapas numa série md3/md5 | Ranking por jogo / só pelo resultado da série; mapa pode repetir / não repete; lados fixos / trocam a cada jogo | ⏳ **Em aberto (PO).** Recomendação: ranking por jogo (mantém RN-RNK), mapa jogado sai do voto, lados fixos (o time é o mesmo a série toda) | PO |
+| D-42 | **v2** — Ranking por formato | Um rating único com filtro por formato / rating e leaderboard separados por formato | ⏳ **Em aberto (PO).** Recomendação: um rating único; o filtro por formato recalcula o leaderboard só com as partidas daquele formato | PO |
+| D-43 | **v2** — Abandono e inatividade no Ranked | Vaga reaberta entre jogos da série / série encerrada; prazo para marcar "Pronto" | ⏳ **Em aberto (PO).** Recomendação: quem sai no meio de um jogo perde os pontos (deltas na saída, como hoje) e o jogo segue; entre jogos da série a vaga reabre no lobby; quem não marca "Pronto" em 60 s após o voto sai da sala | PO |
+| D-44 | **v2** — Salas Ranked com senha | — | ✅ **Pedido do PO em 2026-10-15:** qualquer conta cria sala Ranked, com senha opcional; o preset continua travado (revisa RN-MOD-04 e RN-CFG-03) | PO |
 
 ---
 
@@ -797,7 +815,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 - **Skills:** `outgun-re-spec` e `outgun-parity-harness` desativadas; `outgun-card-workflow` revisada; `outgun-asset-pipeline` mantida. O job de paridade do CI continua enquanto a sim não mudar e sai no OG-230.
 - **Branches e tags:** `main` em `v1.0.0` é o port concluído (beta). A v2 é desenvolvida na branch `v2`: branches de card saem dela e voltam para ela; cada sprint aprovada ganha a tag `v2.0.0-sNN` (ex.: `v2.0.0-s13`). Correções do beta da v1 vão na `main` e são trazidas para a `v2`.
 - **Testes:** a suíte (`bash tools/dev/verify.sh`) roda uma vez, no fechamento da sprint, antes da aprovação do PO.
-- **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249).
+- **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249, E12 250–259).
 
 ### 15.1 Prioridades (P0)
 1. **Novo menu (E8):** visual limpo, moderno e legível; **uma única fonte**, sem opção de troca.
@@ -821,3 +839,17 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-MUS-03 | Música e efeitos têm volumes separados; a música começa só após um gesto do jogador (política de autoplay). |
 | RN-MUS-04 | Nas Opções, o jogador liga/desliga a trilha sonora e ajusta o volume; a escolha é salva e sincronizada com a conta. |
 | RN-MUS-05 | Música nunca entra no carregamento inicial do jogo; é baixada sob demanda e não é baixada com a trilha desligada. |
+| RN-RKL-01 | **Formatos Ranked:** 3x3, 4x4 e 5x5 — N contra N jogadores com conta, sem bots (3x3 = 6 humanos). O formato é escolhido ao criar a sala e define o tamanho dela (2 × N). |
+| RN-RKL-02 | **Séries:** md1, md3 ou md5, escolhida ao criar a sala. Vence a série o time que ganhar ⌈N/2⌉ jogos; os jogos restantes não são disputados. |
+| RN-RKL-03 | Cada jogo de uma série é uma partida Ranked com relatório próprio, ligado à série (formato, número do jogo, placar da série). Como cada jogo conta para o ranking é a D-41. |
+| RN-RKL-04 | O admin define a rotação Ranked **por formato** (um mapa pode estar no 4x4 e fora do 3x3); nenhum formato fica sem mapas. |
+| RN-RKL-05 | Ao escolher "Ranked", o jogador vê primeiro a lista de salas abertas (formato, série, ocupação, fase, senha) e pode filtrar por formato, entrar numa sala ou criar uma. |
+| RN-RKL-06 | Qualquer conta cria uma sala Ranked; ela pode ter senha (até 15 caracteres). Senha não muda regras: o preset continua travado (RN-MOD-04). |
+| RN-RKL-07 | Ninguém entra no mapa enquanto a sala não estiver completa (2 × N jogadores, D-40). Até lá os jogadores ficam no lobby. |
+| RN-RKL-08 | Jogadores do mesmo clã (clan tag, sem diferença de maiúsculas e acentos) entram preferencialmente do mesmo lado; sem clã ou empate, vale RN-TIM-01. |
+| RN-RKL-09 | No lobby, o jogador troca de lado se houver vaga; com o outro lado cheio, pede a troca e ela só acontece com o aceite de um jogador de lá. |
+| RN-RKL-10 | Com a sala completa há voto de mapa entre os mapas da rotação do formato (em série, sem repetir mapa já jogado). O voto termina quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação. |
+| RN-RKL-11 | Depois do voto, todos precisam marcar "Pronto". Com todos prontos começa uma contagem de **5 s** antes de carregar o mapa. |
+| RN-RKL-12 | Desmarcar "Pronto", trocar de lado, sair ou entrar alguém durante a contagem a cancela; ela recomeça do zero quando todos estiverem prontos de novo. |
+| RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". |
+| RN-RKL-14 | Partida **clã x clã**: todos de um lado com a mesma clan tag e todos do outro com outra (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |
