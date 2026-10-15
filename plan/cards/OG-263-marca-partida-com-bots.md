@@ -18,7 +18,7 @@ Como jogador, quero saber quais partidas Ranked terminaram com bots, para ler os
 ## Escopo
 - Gravar na partida quantos bots substitutos entraram e quando; também quantos jogadores ficaram a menos.
 - Selo "Concluída com bots" (e "Com um a menos") no relatório, nas partidas recentes do perfil e na página da série.
-- Efeito no ranking e nos marcos conforme a D-46 (kills em bots já não contam para marcos, OG-213).
+- A partida **conta para o ranking** normalmente, com a marca (D-46); o bot não ganha pontos (sem conta) e kills em bots não contam para marcos (OG-213).
 
 ## Critérios de aceite
 - [ ] Partida com bot substituto mostra o selo nas três telas; partida normal não mostra.

@@ -580,8 +580,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | S14 | v2: telas, dados sociais e relatório | OG-203, OG-205, OG-211, OG-214 | |
 | S15 | v2: perfil social | OG-212, OG-213, OG-215 | **M6 — v2 visual e social** |
 | S16 | v2: lobby Ranked (servidor e API) | OG-250, OG-251, OG-252, OG-253, OG-254 | |
-| S17 | v2: lobby Ranked (cliente), séries e clãs | OG-265, OG-255, OG-256, OG-257, OG-258, OG-259 | |
-| S18 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-263, OG-264 | **M7 — Ranked competitivo** |
+| S17 | v2: lobby Ranked (cliente), séries e clãs | OG-265, OG-206, OG-255, OG-256, OG-257, OG-258, OG-259 | |
+| S18 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo** |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -665,6 +665,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Concluído |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Concluído |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
+| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S17 | OG-265 | Backlog |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Concluído |
@@ -693,8 +694,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S18 | OG-262 | Backlog |
 | [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S18 | OG-265, OG-260, OG-262 | Backlog |
 | [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S17 | — | Backlog |
+| [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S18 | OG-262 | Backlog |
 
-**Total:** 102 cards, 412 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 33 cards, 117 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 104 cards, 420 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 35 cards, 125 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -759,8 +761,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-42 | **v2** — Ranking por formato | Um rating único com filtro por formato / rating e leaderboard separados por formato | ⏳ **Em aberto (PO).** Recomendação: um rating único; o filtro por formato recalcula o leaderboard só com as partidas daquele formato | PO |
 | D-43 | **v2** — Abandono e inatividade no Ranked | Vaga reaberta entre jogos da série / série encerrada; prazo para marcar "Pronto" | ⏳ **Em aberto (PO).** Recomendação: queda no meio do jogo segue a D-46; entre jogos da série a vaga reabre no lobby (bot substituto não passa para o jogo seguinte); quem não marca "Pronto" em 60 s após o voto sai da sala | PO |
 | D-44 | **v2** — Salas Ranked com senha | — | ✅ **Pedido do PO em 2026-10-15:** qualquer conta cria sala Ranked, com senha opcional; o preset continua travado (revisa RN-MOD-04 e RN-CFG-03) | PO |
-| D-45 | **v2** — Pausa tática no Ranked | — | ✅ **Pedido do PO em 2026-10-15:** 60 s por time, em até 3 pedidos. ⏳ **Em aberto:** saldo por jogo ou por série; contagem de retomada (recomendação: 3 s); se o adversário pode retomar antes (recomendação: não) | PO |
-| D-46 | **v2** — Queda no Ranked e bot substituto (revisa D-11) | — | ✅ **Pedido do PO em 2026-10-15:** queda pausa o jogo; desconexão permanente abre voto entre um a menos e bot; até 2 bots por partida; partida marcada. ⏳ **Em aberto:** prazo de reconexão (recomendação: 120 s); quem vota (recomendação: só o time desfalcado, maioria, empate = bot, 20 s); se o jogador que volta retoma a vaga do bot (recomendação: sim); se a partida com bot conta para o ranking (recomendação: conta, com a marca) e o nível do bot | PO |
+| D-45 | **v2** — Pausa tática no Ranked | — | ✅ **Decidido pelo PO em 2026-10-15:** 60 s por time **por jogo** (não por série), em até 3 pedidos; retomada sempre com contagem de **3 s**; só o time que pediu retoma antes — o adversário não controla a pausa | PO |
+| D-46 | **v2** — Queda no Ranked e bot substituto (revisa D-11) | — | ✅ **Decidido pelo PO em 2026-10-15:** queda pausa o jogo; prazo de reconexão de **120 s**; depois, voto só do time desfalcado (maioria, 20 s, empate = bot) entre um a menos e bot; até 2 bots por partida; quem volta retoma a vaga e o bot sai; a partida conta para o ranking, com a marca. O bot se chama **`BOT-<nome do jogador>`** (ex.: `BOT-ozzylords`) e tem o nível calculado pelo histórico Ranked do jogador substituído; sem histórico, nível intermediário (OG-266) | PO |
 
 ---
 
@@ -863,9 +865,10 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". |
 | RN-RKL-14 | Partida **clã x clã**: todos de um lado com a mesma clan tag e todos do outro com outra (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |
 | RN-RKL-15 | **Pausa tática:** cada time tem 60 s de pausa por jogo, em até 3 pedidos (ex.: 3 × 20 s). Pausado, o mundo e o tempo da partida não avançam; o chat continua. Só no Ranked. |
-| RN-RKL-16 | A pausa termina quando o time que pediu retoma ou quando o saldo acaba, sempre com uma contagem curta de retomada (D-45). |
-| RN-RKL-17 | No Ranked, a queda de conexão de um jogador pausa o jogo automaticamente, sem gastar o saldo do time, enquanto ele tem prazo para reconectar ao mesmo lugar (D-46). |
-| RN-RKL-18 | Sem reconexão no prazo (ou saída voluntária), abre-se um voto: seguir com um a menos ou pôr um bot no lugar (D-46). |
-| RN-RKL-19 | Bot no Ranked **só** como substituto aprovado pelo voto da RN-RKL-18, no máximo **2 por partida** somando os dois times; nenhum outro caminho adiciona bots. |
-| RN-RKL-20 | Partidas Ranked com bot substituto (ou com um a menos) levam a marca "Concluída com bots" (ou "Com um a menos") no relatório, no perfil e na série. |
+| RN-RKL-16 | O saldo vale por jogo. A pausa termina quando o time que pediu retoma (o adversário não pode) ou quando o saldo acaba, sempre com contagem de retomada de 3 s (D-45). |
+| RN-RKL-17 | No Ranked, a queda de conexão de um jogador pausa o jogo automaticamente, sem gastar o saldo do time, enquanto ele tem 120 s para reconectar ao mesmo lugar (D-46). |
+| RN-RKL-18 | Sem reconexão no prazo (ou saída voluntária), o time desfalcado vota em 20 s (maioria; empate = bot): seguir com um a menos ou pôr um bot no lugar. Se o jogador voltar depois, retoma a vaga e o bot sai (D-46). |
+| RN-RKL-19 | Bot no Ranked **só** como substituto aprovado pelo voto da RN-RKL-18, no máximo **2 por partida** somando os dois times; nenhum outro caminho adiciona bots. O bot se chama `BOT-<nome>` do jogador substituído e joga no nível do histórico Ranked dele; sem histórico, nível intermediário (OG-266). |
+| RN-RKL-20 | Partidas Ranked com bot substituto (ou com um a menos) levam a marca "Concluída com bots" (ou "Com um a menos") no relatório, no perfil e na série, e continuam contando para o ranking. |
+| RN-NOM-05 | **v2:** a clan tag aparece no HUD da partida, em todos os modos, como `(TAG) nome` — mesmo formato do chat (RN-NOM-03) — seguindo RN-UI-05. |
 | RN-UI-05 | Mudanças na UI **dentro da partida** não alteram a disposição atual do HUD: elementos novos são sobreposições temporárias numa área declarada; todo card que toca essa UI passa pela comparação de capturas do OG-265 (diferença zero fora da área nova) e é conferido numa partida online de verdade, com capturas para o PO (lição do OG-205). |
