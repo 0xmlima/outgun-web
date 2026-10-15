@@ -40,6 +40,7 @@ export interface MatchSummary {
   mode: Mode;
   ranked: boolean;
   map: string;
+  mapTitle: string;
   redScore: number;
   blueScore: number;
 }
@@ -80,6 +81,24 @@ export interface MatchPage {
   players: PlayerLine[];
   replayUrl: string | null;
   milestones?: { username: string; milestone: string }[];
+  /** Sala com formato (OG-257): formato, número do jogo e a série. */
+  format?: string | null;
+  gameNo?: number | null;
+  series?: SeriesView | null;
+}
+
+/** Série Ranked (OG-257, `GET /series/:id`). */
+export interface SeriesView {
+  id: string;
+  format: string;
+  bestOf: 1 | 3 | 5;
+  games: number;
+  redWins: number;
+  blueWins: number;
+  winner: 0 | 1 | null;
+  finished: boolean;
+  startedAt: string;
+  matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string }[];
 }
 
 export interface Leaderboard {

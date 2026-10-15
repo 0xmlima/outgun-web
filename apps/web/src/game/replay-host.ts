@@ -10,7 +10,7 @@ import { Application } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { loadManifest } from '../assets.js';
-import { loadFont, loadMap } from './host.js';
+import { loadFont, loadMap, visualCheck } from './host.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
@@ -210,6 +210,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       await setup;
       app.renderer.on('resize', layout);
       if (initial) setReplay(initial);
+      const hideWorld = visualCheck();
       app.ticker.add((ticker) => {
         const p = player;
         if (!p || !world?.layout || !entities) return;
@@ -244,6 +245,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
           container.dataset.players = String(frame.players.length);
         }
         world.render(topLeft);
+        if (hideWorld) world.stage.visible = entities.stage.visible = false;
         container.dataset.position = String(p.position);
         container.dataset.frame = String(s.world?.frame ?? -1);
         status();

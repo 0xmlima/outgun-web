@@ -2,10 +2,11 @@
 // Lobby de salas (OG-069; `Menu_serverList` do original com o master server trocado pela API):
 // modo Casual/Ranked, lista atualizada a cada 3 s com jogadores, mapa e ping da região, "Jogar
 // agora" por modo, link de convite e criação de sala privada Casual. Visual v2 (OG-203): abas por modo,
-// filtros e tabela de salas; convite e criação de sala em formulários do design system.
+// filtros e tabela de salas; convite e criação de sala em formulários do design system. A aba Ranked é a
+// lista de salas de lobby (OG-255, `ranked-rooms.tsx`): sem "Jogar agora" no Ranked.
 import { PRESETS } from '@outgun/settings';
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { deviceId } from '../app/device.js';
@@ -17,6 +18,7 @@ import { ChoiceField, SliderField, TextField, ToggleField } from '../ui/Field.js
 import { Form, FormMessageLine, Page } from '../ui/Page.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
+import { RankedRoomsPanel } from './ranked-rooms.js';
 
 type Mode = 'casual' | 'ranked';
 
@@ -120,7 +122,9 @@ export function LobbyScreen() {
   const { user } = useAccount();
   const navigate = useNavigate();
   const pings = usePings();
-  const [mode, setMode] = useState<Mode>('casual');
+  // "Ranked" abre a lista das salas de lobby (OG-255); a volta da criação de sala Ranked cai nela
+  const location = useLocation();
+  const [mode, setMode] = useState<Mode>(() => ((location.state as { mode?: Mode } | null)?.mode === 'ranked' ? 'ranked' : 'casual'));
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -128,9 +132,10 @@ export function LobbyScreen() {
   const name = prefs.playerName.trim() || 'Convidado';
 
   useEffect(() => {
+    if (mode !== 'casual') return;
     let alive = true;
     const load = () =>
-      api<{ rooms: RoomSummary[] }>(`/rooms?mode=${mode}`).then(
+      api<{ rooms: RoomSummary[] }>(`/rooms?mode=casual`).then(
         (r) => {
           if (!alive) return;
           setRooms(sortRooms(r.rooms));
@@ -153,14 +158,10 @@ export function LobbyScreen() {
   };
   const enter = (room: RoomSummary) => {
     if (isFull(room)) return;
-    if (room.mode === 'ranked' && !user) return void navigate('/login');
     if (room.hasPassword) return void navigate(`/rooms/${room.id}`);
     void navigate(`/play?sala=${encodeURIComponent(room.id)}`);
   };
-  const playNow = () => {
-    if (mode === 'ranked' && !user) return void navigate('/login');
-    void quickJoin(mode, name, bestRegion(pings)).then((id) => void navigate(`/play?sala=${encodeURIComponent(id)}`), fail);
-  };
+  const playNow = () => void quickJoin('casual', name, bestRegion(pings)).then((id) => void navigate(`/play?sala=${encodeURIComponent(id)}`), fail);
   const shown = filterRooms(rooms ?? [], search, hideFull);
 
   return (
@@ -174,61 +175,55 @@ export function LobbyScreen() {
           { id: 'ranked', label: t('Ranked') },
         ]}
       >
-        <div className="ui-stack lobby">
-          <p className="ui-muted">
-            {mode === 'ranked'
-              ? t('Ranked: no power-ups, account required, counts for the ranking.')
-              : t('Casual: power-ups on, guests welcome, does not count for the ranking.')}
-          </p>
-          <div className="lobby-actions">
-            {!user && (
-              <div className="lobby-name">
-                <NameField />
-              </div>
-            )}
-            <Button variant="primary" size="lg" onClick={playNow}>
-              {t('Play now')}
-            </Button>
-            {mode === 'casual' ? (
+        {mode === 'ranked' ? (
+          <RankedRoomsPanel pings={pings} />
+        ) : (
+          <div className="ui-stack lobby">
+            <p className="ui-muted">{t('Casual: power-ups on, guests welcome, does not count for the ranking.')}</p>
+            <div className="lobby-actions">
+              {!user && (
+                <div className="lobby-name">
+                  <NameField />
+                </div>
+              )}
+              <Button variant="primary" size="lg" onClick={playNow}>
+                {t('Play now')}
+              </Button>
               <Button onClick={() => void navigate(user ? '/rooms/new' : '/login')}>
                 {t('Create private room')}
                 {!user && <Badge>{t('needs an account')}</Badge>}
               </Button>
-            ) : (
-              <Button disabled title={t('Casual only')}>
-                {t('Create private room')}
-              </Button>
-            )}
+            </div>
+            {error && <FormMessageLine message={{ text: error, error: true }} />}
+            <div className="lobby-filters">
+              <TextField label={t('Search rooms')} type="search" value={search} onChange={setSearch} placeholder={t('Room or map')} maxLength={40} />
+              <ToggleField label={t('Hide full rooms')} checked={hideFull} onChange={setHideFull} />
+            </div>
+            <Table
+              caption={t('Rooms')}
+              rows={shown}
+              rowKey={(r) => r.id}
+              onRowActivate={enter}
+              empty={rooms === null ? t('Loading...') : t('No rooms open. "Play now" opens one.')}
+              columns={[
+                {
+                  key: 'name',
+                  header: t('Room'),
+                  cell: (r) => (
+                    <span className="lobby-room">
+                      {r.name}
+                      {r.hasPassword && <Badge>{t('Password')}</Badge>}
+                      {isFull(r) && <Badge tone="warning">{t('Full')}</Badge>}
+                    </span>
+                  ),
+                },
+                { key: 'map', header: t('Map'), cell: (r) => r.map ?? '—' },
+                { key: 'players', header: t('Players'), cell: (r) => `${r.players}/${r.maxPlayers}`, align: 'end' },
+                { key: 'ping', header: t('Ping'), cell: (r) => (r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—'), align: 'end' },
+              ]}
+            />
           </div>
-          {error && <FormMessageLine message={{ text: error, error: true }} />}
-          <div className="lobby-filters">
-            <TextField label={t('Search rooms')} type="search" value={search} onChange={setSearch} placeholder={t('Room or map')} maxLength={40} />
-            <ToggleField label={t('Hide full rooms')} checked={hideFull} onChange={setHideFull} />
-          </div>
-          <Table
-            caption={t('Rooms')}
-            rows={shown}
-            rowKey={(r) => r.id}
-            onRowActivate={enter}
-            empty={rooms === null ? t('Loading...') : t('No rooms open. "Play now" opens one.')}
-            columns={[
-              {
-                key: 'name',
-                header: t('Room'),
-                cell: (r) => (
-                  <span className="lobby-room">
-                    {r.name}
-                    {r.hasPassword && <Badge>{t('Password')}</Badge>}
-                    {isFull(r) && <Badge tone="warning">{t('Full')}</Badge>}
-                  </span>
-                ),
-              },
-              { key: 'map', header: t('Map'), cell: (r) => r.map ?? '—' },
-              { key: 'players', header: t('Players'), cell: (r) => `${r.players}/${r.maxPlayers}`, align: 'end' },
-              { key: 'ping', header: t('Ping'), cell: (r) => (r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—'), align: 'end' },
-            ]}
-          />
-        </div>
+        )}
       </Tabs>
     </Page>
   );

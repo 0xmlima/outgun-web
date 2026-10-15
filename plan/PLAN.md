@@ -582,9 +582,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | S15 | v2: perfil social | OG-212, OG-213, OG-215 | **M6 — v2 visual e social** |
 | S16 | v2: clãs e temporadas mensais | OG-270, OG-271, OG-272, OG-275, OG-267 | |
 | S17 | v2: lobby Ranked (servidor e API) | OG-250, OG-251, OG-252, OG-253, OG-254 | |
-| S18 | v2: lobby Ranked (cliente), séries, clã no HUD e tela inicial | OG-207, OG-265, OG-206, OG-255, OG-256, OG-257, OG-208 | |
+| S18 | v2: lobby Ranked (cliente), séries, clã no HUD e tela inicial | OG-207, OG-265, OG-206, OG-255, OG-256, OG-257, OG-208, OG-209 | |
 | S19 | v2: rating por formato, clã x clã, ranking de clãs e hall da fama | OG-258, OG-259, OG-273, OG-274, OG-268 | |
 | S20 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo e clãs** |
+| S21 | v2: correções dos achados (depois do fim dos épicos E12/E13) | OG-277, OG-278, OG-279 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -668,10 +669,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Concluído |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Concluído |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
-| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Backlog |
+| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Em revisão |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
-| [OG-207](cards/OG-207-titulo-do-mapa-nas-telas.md) | Título do mapa (e não o nome do arquivo) em todas as telas | E8 | 2 | Must | S18 | — | Backlog |
-| [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Backlog |
+| [OG-207](cards/OG-207-titulo-do-mapa-nas-telas.md) | Título do mapa (e não o nome do arquivo) em todas as telas | E8 | 2 | Must | S18 | — | Em revisão |
+| [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Em revisão |
+| [OG-209](cards/OG-209-aviso-celular.md) | Aviso de que o jogo não está disponível para celular | E8 | 1 | Must | S18 | — | Em revisão |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Concluído |
 | [OG-212](cards/OG-212-perfil-social.md) | Página de perfil social | E9 | 5 | Must | S15 | OG-200, OG-211 | Concluído |
@@ -688,9 +690,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S17 | OG-250 | Concluído |
 | [OG-253](cards/OG-253-times-lobby-clas.md) | Times no lobby: clãs do mesmo lado e troca de lado | E12 | 3 | Must | S17 | OG-252 | Concluído |
 | [OG-254](cards/OG-254-voto-pronto-contagem.md) | Voto de mapa, "Pronto" e contagem de 5 s | E12 | 5 | Must | S17 | OG-251, OG-252 | Concluído |
-| [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S18 | OG-252 | Backlog |
-| [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S18 | OG-253, OG-254, OG-255 | Backlog |
-| [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S18 | OG-250, OG-256, OG-265 | Backlog |
+| [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S18 | OG-252 | Em revisão |
+| [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S18 | OG-253, OG-254, OG-255 | Em revisão |
+| [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S18 | OG-250, OG-256, OG-265 | Em revisão |
 | [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S19 | OG-250 | Backlog |
 | [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S19 | OG-250 | Backlog |
 | [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S20 | OG-252 | Backlog |
@@ -698,7 +700,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S20 | OG-261 | Backlog |
 | [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S20 | OG-262 | Backlog |
 | [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S20 | OG-265, OG-260, OG-262 | Backlog |
-| [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S18 | — | Backlog |
+| [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S18 | — | Em revisão |
 | [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S20 | OG-262 | Backlog |
 | [OG-267](cards/OG-267-temporadas-mensais.md) | Temporadas mensais automáticas e ranking geral de todas as temporadas | E12 | 3 | Must | S16 | — | Concluído |
 | [OG-268](cards/OG-268-hall-da-fama.md) | Hall da fama | E12 | 3 | Should | S19 | OG-267, OG-274 | Backlog |
@@ -709,8 +711,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Backlog |
 | [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Concluído |
 | [OG-276](cards/OG-276-filtro-nomes-jogadores.md) | Filtro de nomes proibidos também nos nomes de jogador | E13 | 1 | Should | — | OG-275 | Backlog |
+| [OG-277](cards/OG-277-sublinhado-conta-quem-entra-depois.md) | Quem entra depois não vê o sublinhado de conta dos que já estavam | E8 | 1 | Should | S21 | — | Backlog |
+| [OG-278](cards/OG-278-erro-pixi-alphamode-resize.md) | Erro do Pixi (`alphaMode`) ao redimensionar a janela na partida | E8 | 2 | Should | S21 | — | Backlog |
+| [OG-279](cards/OG-279-serie-com-vencedor.md) | Conferir série com vencedor (md3 2-1) de ponta a ponta | E12 | 1 | Should | S21 | — | Backlog |
 
-**Total:** 115 cards, 455 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 46 cards, 160 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 119 cards, 460 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 50 cards, 165 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -780,6 +785,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-47 | **v2** — Clãs da comunidade (substitui a clan tag livre) | — | ✅ **Decidido pelo PO em 2026-10-15:** criar/entrar/gerir clãs; tag única de até 2 caracteres; tags livres atuais apagadas na migração; tag e nome únicos sem diferença de maiúsculas e acentos; líder que sai passa a liderança ao admin mais antigo (senão ao membro mais antigo), último que sai dissolve o clã; limite de 30 membros; carência de 7 dias para entrar em outro clã depois de sair; ranking de clãs por pontos em clã x clã na temporada (vitória 3, empate 1, desempate por saldo de capturas, mínimo de 3 partidas) | PO |
 | D-48 | **v2** — Temporadas mensais e hall da fama | — | ✅ **Decidido pelo PO em 2026-10-15:** temporada reinicia todo mês, no dia 1 às 00:00 (Brasília), e existe ranking geral de todas as temporadas; hall da fama com os 3 primeiros de cada temporada no geral, por formato e de clãs | PO |
 | D-49 | **v2** — Carência de clã não vale para criar clã | — | ✅ **Decidido pelo PO em 2026-10-15:** a carência de 7 dias (D-47) só impede **entrar** em outro clã; quem saiu pode **criar** um clã novo na hora. Dissolução continua sem gerar carência | PO |
+| D-50 | **v2** — Celular fora do escopo por ora | — | ✅ **Decidido pelo PO em 2026-10-15:** o celular mostra só "não disponível para celular" (OG-209); telas e jogo não são mais validados em mobile, para não travar features de desktop | PO |
 
 ---
 
@@ -853,7 +859,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 ### 15.2 Regras de negócio da v2
 | RN | Regra |
 |---|---|
-| RN-UI-01 | Toda tela fora da partida usa o design system v2 (tokens e componentes do OG-200) e funciona de 360 px de largura a telas grandes, por teclado, mouse, toque e gamepad. |
+| RN-UI-01 | Toda tela fora da partida usa o design system v2 (tokens e componentes do OG-200) e funciona em telas de computador (de 1280×720 a telas grandes), por teclado, mouse e gamepad. Celular não é alvo por ora: mostra só um aviso (D-50, OG-209). |
 | RN-UI-02 | A interface usa **uma única fonte** (D-35). O jogador não pode trocá-la. |
 | RN-UI-03 | Texto e fundo com contraste mínimo AA (4,5:1). |
 | RN-UI-04 | "Jogar agora" fica a um clique da tela inicial. |

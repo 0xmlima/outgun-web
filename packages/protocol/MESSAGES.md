@@ -97,6 +97,7 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 122 | [`lobbyVote`](#lobbyvote) | cliente → servidor | event | — (web, OG-254) | Voto de mapa no lobby Ranked (índice na rotação; −1 = nenhum). |
 | 123 | [`lobbySide`](#lobbyside) | cliente → servidor | event | — (web, OG-253) | Troca de lado no lobby: sem alvo, vai para a vaga livre do outro lado; com alvo, pede para trocar com ele. |
 | 124 | [`lobbySwapAnswer`](#lobbyswapanswer) | cliente → servidor | event | — (web, OG-253) | Resposta a um pedido de troca de lado. |
+| 125 | [`playerClan`](#playerclan) | servidor → cliente | event | — (web, OG-206) | Tag do clã cadastrado de um jogador (logo depois do `playerJoined`; sem tag, não vem). |
 
 ## Campos
 
@@ -744,6 +745,13 @@ Código 124. Resposta a um pedido de troca de lado.
 
 - `from`: pid (u8, 0..31)
 - `accept`: bool (u8 0/1)
+
+### playerClan
+
+Código 125. Tag do clã cadastrado de um jogador (logo depois do `playerJoined`; sem tag, não vem).
+
+- `pid`: pid (u8, 0..31)
+- `tag`: string (UTF-8, até 8 bytes)
 
 ## Mensagens do original que não existem aqui
 

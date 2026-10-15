@@ -345,7 +345,8 @@ export function str(max: number): FieldType<string> {
       const chars = 'abcXYZ 019çãé€🙂';
       let s = '';
       for (let i = rnd.next() % 12; i > 0; i--) s += [...chars][rnd.next() % [...chars].length];
-      while (utf8Encode(s).length > max) s = s.slice(0, -1);
+      // corta por caractere (code point): cortar no meio de um emoji deixaria UTF-16 inválido
+      while (utf8Encode(s).length > max) s = [...s].slice(0, -1).join('');
       return s;
     },
   };

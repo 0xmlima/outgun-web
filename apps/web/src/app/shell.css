@@ -181,9 +181,28 @@
   align-items: start;
 }
 @media (min-width: 64rem) {
-  .home-grid:has(.ui-panel) {
+  .home-grid {
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   }
+}
+.home-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.home-online {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.home-rank {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  font-weight: var(--weight-medium);
 }
 .ui-menu.home-menu {
   display: grid;
@@ -300,6 +319,10 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+}
+.lobby-lock {
+  flex: none;
+  color: var(--text-muted);
 }
 .lobby-maps summary {
   cursor: pointer;
@@ -514,4 +537,19 @@
   margin: 0;
   white-space: pre-line;
   overflow-wrap: anywhere;
+}
+
+/* Aviso de celular (OG-209, D-50) */
+.phone-notice {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 100dvh;
+  padding: var(--space-5);
+  text-align: center;
+  font-size: var(--text-lg);
+}
+.phone-notice p {
+  margin: 0;
 }

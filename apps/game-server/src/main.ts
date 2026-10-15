@@ -15,6 +15,7 @@
 // INSTANCE_ID (padrão FLY_MACHINE_ID): salas também em /m/<id>/rooms/...; `{instance}` em PUBLIC_WS_URL vira esse id.
 // MAPGEN_DIR (_legacy/mapgen/ do repositório): blocos de paredes dos mapas `random_map` da rotação (OG-015).
 // DRAIN_TIMEOUT_S (240): prazo da drenagem no SIGTERM.
+// SEED: semente fixa das salas (capturas determinísticas do `pnpm visual:check`, OG-265); padrão aleatória.
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
 import { listMaps, resolveRotation, type Rotations } from './maps.js';
@@ -77,6 +78,7 @@ pruneTimer.unref();
 const manager = new RoomManager({
   emptyTimeoutMs: Number(env.EMPTY_TIMEOUT_S ?? 300) * 1000,
   maxRooms: Number(env.MAX_ROOMS ?? 50),
+  ...(env.SEED ? { seed: () => Number(env.SEED) } : {}),
   roomDefaults: {
     audit: (roomId, entry) => {
       logger.info({ room: roomId, action: entry.action, actor: entry.actor.name, target: entry.target?.name, reason: entry.reason }, 'ação de moderação');

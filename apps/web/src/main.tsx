@@ -19,7 +19,8 @@ import {
   ResetPasswordScreen,
 } from './screens/account.js';
 import { CreateRoomScreen, JoinRoomScreen, LobbyScreen } from './screens/lobby.js';
-import { LastMatchScreen, MatchScreen } from './screens/MatchReport.js';
+import { CreateRankedRoomScreen } from './screens/ranked-rooms.js';
+import { LastMatchScreen, MatchScreen, SeriesScreen } from './screens/MatchReport.js';
 import { LeaderboardScreen, PlayersScreen } from './screens/Players.js';
 import { ProfileScreen } from './screens/Profile.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
@@ -75,11 +76,13 @@ const router = createBrowserRouter([
           { path: 'clans/:tag', element: <ClanScreen /> },
           { path: 'rooms', element: <LobbyScreen /> },
           { path: 'rooms/new', element: <CreateRoomScreen /> },
+          { path: 'rooms/ranked/new', element: <CreateRankedRoomScreen /> },
           { path: 'rooms/:id', element: <JoinRoomScreen /> },
           { path: 'players', element: <PlayersScreen /> },
           { path: 'jogadores', element: <Navigate to="/players" replace /> },
           { path: 'players/:name', element: <ProfileScreen /> },
           { path: 'matches/:id', element: <MatchScreen /> },
+          { path: 'series/:id', element: <SeriesScreen /> },
           { path: 'rooms/:id/report', element: <LastMatchScreen /> },
           { path: 'ranking', element: <LeaderboardScreen /> },
           {

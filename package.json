@@ -19,6 +19,8 @@
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:legacy && pnpm check:licenses",
     "oracle": "bash tools/parity/oracle.sh",
     "check:licenses": "node tools/license-check/check.mjs",
+    "visual:check": "node tools/visual-compare/hud-check.mjs",
+    "visual:update": "node tools/visual-compare/hud-check.mjs --update",
     "map:check": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-check/check.mjs",
     "map:preview": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-preview/render.mjs",
     "assets": "turbo run build --filter=@outgun/asset-pipeline --output-logs=errors-only && node tools/asset-pipeline/dist/cli.js",

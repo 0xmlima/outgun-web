@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S18 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | [OG-267](OG-267-temporadas-mensais.md) |
 | Regras de negócio | RN-UI-01, RN-UI-03, RN-UI-04, RN-SOC-01 |
 | Skills | `outgun-card-workflow` |
@@ -31,14 +31,15 @@ Como jogador, quero ver na tela inicial quem está jogando agora e como está o 
 - Destaques do mês (mais capturas, maior sequência): depende do OG-268 (hall da fama).
 
 ## Critérios de aceite
-- [ ] "Jogar agora" continua a um clique e é o primeiro item focado (RN-UI-04); os painéis não empurram o menu para fora da primeira tela em 1280×720.
-- [ ] Funciona de 360 px a telas grandes, por teclado, mouse, toque e gamepad (RN-UI-01); só tokens e componentes do design system.
-- [ ] Sem temporada ativa, sem salas ou com a API fora do ar, cada painel mostra um estado vazio ou de erro próprio e o menu continua usável.
-- [ ] Mapa das salas pelo título (depende do OG-207, se estiver pronto; senão o arquivo).
+- [x] "Jogar agora" continua a um clique e é o primeiro item focado (RN-UI-04); os painéis não empurram o menu para fora da primeira tela em 1280×720.
+- [x] Funciona de 360 px a telas grandes, por teclado, mouse, toque e gamepad (RN-UI-01); só tokens e componentes do design system.
+- [x] Sem temporada ativa, sem salas ou com a API fora do ar, cada painel mostra um estado vazio ou de erro próprio e o menu continua usável.
+- [x] Mapa das salas pelo título (depende do OG-207, se estiver pronto; senão o arquivo).
 
 ## Notas técnicas
 - Só cliente: reaproveitar `useApi` (`apps/web/src/screens/stats.tsx`), `Panel`, `Table` e `Badge`. Nenhum endpoint novo.
 - Pausar o polling com `document.visibilityState` e ao sair da tela.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `screens/home-panels.tsx`: "Agora no Outgun" (`/rooms`) e "Ranking: <temporada>" (`/leaderboard?limit=5` + `/account/ranking`), `usePolled` a cada 30 s e pausado com a aba escondida. A coluna da direita agora existe sempre (convidado também); "Suas partidas recentes" segue só com conta.
+- O título do painel usa o nome da temporada (em produção é o mês, OG-267). Conferido com API real: foco inicial em "Jogar agora", menu na primeira tela em 1280×720.
