@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S19 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-250](OG-250-formatos-series-ranked.md) |
 | Regras de negócio | RN-RKL-13, RN-SOC-02 |
 | Skills | `outgun-card-workflow` |

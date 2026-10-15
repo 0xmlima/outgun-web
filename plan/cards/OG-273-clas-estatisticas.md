@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S19 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-270](OG-270-clas-cadastro-api.md), [OG-259](OG-259-cla-vs-cla-marcos.md) |
 | Regras de negócio | RN-CLA-06 |
 | Skills | `outgun-card-workflow` |

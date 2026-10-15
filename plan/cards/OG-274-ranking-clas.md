@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S19 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-273](OG-273-clas-estatisticas.md), [OG-267](OG-267-temporadas-mensais.md) |
 | Regras de negócio | RN-CLA-07 |
 | Skills | `outgun-card-workflow` |
