@@ -109,6 +109,26 @@ describe('queda e volta (OG-047)', () => {
     other.close();
   });
 
+  it('conta que volta sem o token (outra aba ou navegador) retoma a vaga pela conta (OG-261)', async () => {
+    const room = manager.get('volta')!;
+    const ticket = (): string => signTicket({ aud: 'volta', sub: 'u-volta', name: 'Duda', clan: null, acct: true, admin: false, ranked: false }, apiKey);
+    const a = new Client('volta');
+    await a.hello(ticket());
+    await a.until(() => a.of('welcome').length > 0);
+    const pid = a.of('welcome')[0]!.pid;
+    const before = room.playerCount;
+    a.ws.close(); // queda
+    await a.until(() => a.closed !== null);
+    await new Promise((r) => setTimeout(r, 300));
+    const back = new Client('volta');
+    await back.hello(ticket());
+    await back.until(() => back.of('welcome').length > 0);
+    expect([back.of('welcome')[0]!.pid, room.playerCount]).toEqual([pid, before]);
+    back.close();
+    await new Promise((r) => setTimeout(r, 200));
+    room.leave(pid);
+  });
+
   it('token errado entra como jogador novo', async () => {
     const room = manager.get('volta')!;
     await new Promise((r) => setTimeout(r, 100));

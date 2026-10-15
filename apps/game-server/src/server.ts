@@ -183,10 +183,12 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
             user.pid = pid;
           },
         };
-        // `resume` junto do hello: volta à vaga guardada depois de uma queda (OG-047)
+        // `resume` junto do hello: volta à vaga guardada depois de uma queda (OG-047). Sem o token (outra aba
+        // ou navegador), quem tem conta volta pela conta à vaga dele ou à do bot substituto (OG-261/262)
         const resume = rest.find((m) => m.type === 'resume');
         const others = rest.filter((m) => m.type !== 'resume');
-        const joined = (resume?.type === 'resume' ? room.resume(conn, identity, resume.token) : null) ?? room.join(conn, identity);
+        const token = resume?.type === 'resume' ? resume.token : '';
+        const joined = (token !== '' || identity.accountId !== null ? room.resume(conn, identity, token) : null) ?? room.join(conn, identity);
         if (!joined.ok) return reject(ws, joined.reason, joined.text);
         user.pid = joined.pid;
         user.conn = conn;
