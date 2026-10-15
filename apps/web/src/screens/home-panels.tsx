@@ -39,12 +39,15 @@ export function usePolled<T>(path: string | null): T | null | undefined {
   return data;
 }
 
-/** Jogadores online (soma das salas no ar) e as salas com gente, mais cheias primeiro. */
+/**
+ * Jogadores online (pessoas nas salas no ar, sem os bots: OG-282) e as salas com gente, mais cheias de
+ * pessoas primeiro. A coluna da sala continua contando os bots (sala cheia).
+ */
 export function liveRooms(rooms: readonly RoomSummary[], max = 3): { online: number; busy: RoomSummary[] } {
-  const live = rooms.filter((r) => r.online && r.players > 0);
+  const live = rooms.filter((r) => r.online && r.humans > 0);
   return {
-    online: live.reduce((n, r) => n + r.players, 0),
-    busy: [...live].sort((a, b) => b.players - a.players || a.name.localeCompare(b.name)).slice(0, max),
+    online: live.reduce((n, r) => n + r.humans, 0),
+    busy: [...live].sort((a, b) => b.humans - a.humans || b.players - a.players || a.name.localeCompare(b.name)).slice(0, max),
   };
 }
 

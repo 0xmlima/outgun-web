@@ -20,6 +20,8 @@ const RoomSummary = Type.Object({
   hasPassword: Type.Boolean(),
   maxPlayers: Type.Integer(),
   players: Type.Integer(),
+  /** Pessoas na sala (sem bots), para o "jogadores online" da tela inicial (OG-282). */
+  humans: Type.Integer(),
   map: Type.Union([Type.String(), Type.Null()]),
   online: Type.Boolean(),
   persistent: Type.Boolean(),
@@ -47,6 +49,8 @@ function summary(r: typeof rooms.$inferSelect, region: string | null, now: numbe
     hasPassword: r.passwordHash !== null,
     maxPlayers: r.maxPlayers,
     players: online ? r.players : 0,
+    // o roster do heartbeat marca os bots; sem roster (servidor antigo), conta o total
+    humans: !online ? 0 : r.roster.length > 0 ? r.roster.filter((p) => !p.bot).length : r.players,
     map: online ? r.map : null,
     online,
     persistent: r.persistent,
