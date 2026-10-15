@@ -714,8 +714,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-277](cards/OG-277-sublinhado-conta-quem-entra-depois.md) | Quem entra depois não vê o sublinhado de conta dos que já estavam | E8 | 1 | Should | S21 | — | Backlog |
 | [OG-278](cards/OG-278-erro-pixi-alphamode-resize.md) | Erro do Pixi (`alphaMode`) ao redimensionar a janela na partida | E8 | 2 | Should | S21 | — | Backlog |
 | [OG-279](cards/OG-279-serie-com-vencedor.md) | Conferir série com vencedor (md3 2-1) de ponta a ponta | E12 | 1 | Should | S21 | — | Backlog |
+| [OG-280](cards/OG-280-versao-no-cliente.md) | Mostrar a versão do jogo no cliente | E8 | 1 | Could | — | — | Backlog |
 
-**Total:** 119 cards, 460 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 50 cards, 165 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 120 cards, 461 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 51 cards, 166 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -847,7 +848,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 
 - **Fidelidade ao original deixa de ser requisito.** O Outgun 1.0.3 em `_legacy/` continua como referência histórica e fonte de assets; mudanças de regra e física são decisões novas (D-NN), não divergências a justificar.
 - **Skills:** `outgun-re-spec` e `outgun-parity-harness` desativadas; `outgun-card-workflow` revisada; `outgun-asset-pipeline` mantida. O job de paridade do CI continua enquanto a sim não mudar e sai no OG-230.
-- **Branches e tags:** `main` em `v1.0.0` é o port concluído (beta). A v2 é desenvolvida na branch `v2`: branches de card saem dela e voltam para ela; cada sprint aprovada ganha a tag `v2.0.0-sNN` (ex.: `v2.0.0-s13`). Correções do beta da v1 vão na `main` e são trazidas para a `v2`.
+- **Branches e tags:** `main` em `v1.0.0` é o port concluído (beta). A v2 é desenvolvida na branch `v2`: branches de card saem dela e voltam para ela; cada sprint aprovada sobe a versão do jogo (número do meio = sprint: S19 = `2.19.0`; correção fora de sprint sobe o último) com `node tools/dev/version.mjs X.Y.Z`, que grava a mesma versão em todos os `package.json` (o `pnpm verify` confere), e ganha a tag `vX.Y.Z`. As tags `v2.0.0-s13` a `v2.0.0-s18` são do esquema antigo. Correções do beta da v1 vão na `main` e são trazidas para a `v2`.
 - **Testes:** a suíte (`bash tools/dev/verify.sh`) roda uma vez, no fechamento da sprint, antes da aprovação do PO.
 - **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249, E12 250–269, E13 270–279).
 

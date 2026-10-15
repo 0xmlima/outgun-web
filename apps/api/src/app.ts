@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Monta a API (Fastify). Quem chama fornece o banco e, opcionalmente, o Redis; main.ts liga tudo.
+import { readFileSync } from 'node:fs';
 import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -29,7 +30,8 @@ import { roomRoutes } from './routes/rooms.js';
 import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
 import { DURATION_BUCKETS, ErrorReporter, loggerOptions, metricsAuthorized, PROMETHEUS_CONTENT_TYPE, Registry, registerProcessMetrics, requestId } from '@outgun/observability';
 
-export const API_VERSION = '0.1.0';
+/** Versão do jogo (package.json, igual em todo o monorepo: tools/dev/version.mjs). */
+export const API_VERSION: string = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
 export interface AppDeps {
   config: ApiConfig;

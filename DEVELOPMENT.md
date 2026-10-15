@@ -13,17 +13,18 @@ Este repositório tem duas partes:
 
 ## Comandos
 
-| Comando                             | O que faz                                                     |
-| ----------------------------------- | ------------------------------------------------------------- |
-| `pnpm install`                      | Instala dependências de todos os pacotes                      |
-| `pnpm build`                        | Compila todos os pacotes (Turborepo, em ordem de dependência) |
-| `pnpm test`                         | Testes (Vitest)                                               |
-| `pnpm typecheck`                    | Checagem de tipos                                             |
-| `pnpm lint`                         | ESLint                                                        |
-| `pnpm format` / `pnpm format:check` | Prettier                                                      |
-| `pnpm check:legacy`                 | Confere que os arquivos do Outgun original estão intactos     |
-| `pnpm check:licenses`               | Licenças das dependências de produção e cabeçalhos SPDX       |
-| `pnpm verify`                       | Tudo acima, na ordem do CI                                    |
+| Comando                             | O que faz                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `pnpm install`                      | Instala dependências de todos os pacotes                                                  |
+| `pnpm build`                        | Compila todos os pacotes (Turborepo, em ordem de dependência)                             |
+| `pnpm test`                         | Testes (Vitest)                                                                           |
+| `pnpm typecheck`                    | Checagem de tipos                                                                         |
+| `pnpm lint`                         | ESLint                                                                                    |
+| `pnpm format` / `pnpm format:check` | Prettier                                                                                  |
+| `pnpm check:legacy`                 | Confere que os arquivos do Outgun original estão intactos                                 |
+| `pnpm check:licenses`               | Licenças das dependências de produção e cabeçalhos SPDX                                   |
+| `pnpm check:version`                | Mesma versão do jogo em todos os `package.json` (`node tools/dev/version.mjs X.Y.Z` sobe) |
+| `pnpm verify`                       | Tudo acima, na ordem do CI                                                                |
 
 ## Pacotes
 

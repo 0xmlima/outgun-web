@@ -44,7 +44,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 ## Fechar a sprint
 1. Rode `bash tools/dev/verify.sh` uma vez na ponta da pilha de branches; corrija o que quebrar (commit `OG-NNN: corrige ...` no card culpado ou `Sprint SNN: corrige ...`).
 2. Relatório curto ao PO (por card: 1–2 linhas; achados; provisórios; perguntas só de produto).
-3. Na aprovação: `git merge --no-ff sNN` na `v2` ("Sprint SNN: ... aprovados pelo PO"), status `Concluído` (um commit, todos os IDs), tag `v2.0.0-sNN`, push da `v2` e da tag, apagar a branch `sNN`.
+3. Na aprovação: `git merge --no-ff sNN` na `v2` ("Sprint SNN: ... aprovados pelo PO"); no mesmo commit, status `Concluído` (todos os IDs) e `node tools/dev/version.mjs 2.NN.0` (versão do jogo = sprint, em todos os `package.json`; regerar o `openapi.json` da API); tag `v2.NN.0`, push da `v2` e da tag, apagar a branch `sNN`.
 4. Atualize a memória com **um** handoff curto da sprint (substitui o da sprint anterior, não acumula).
 
 ## Bloqueio
