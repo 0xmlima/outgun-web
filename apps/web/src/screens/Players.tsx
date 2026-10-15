@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Diretório de jogadores (OG-215, RN-SOC-04) em /players: busca por nome ou clã (sem diferença de
 // maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Ranking da temporada em
-// /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267).
+// /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267),
+// filtrado por formato (OG-258).
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
@@ -11,7 +12,7 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
-import { duration, PlayerLink, Status, useApi, type Leaderboard } from './stats.js';
+import { duration, FormatTabs, formatQuery, PlayerLink, Status, useApi, useFormatParam, type Leaderboard } from './stats.js';
 
 interface Directory {
   active: { username: string; clanTag: string | null; matches: number; wins: number; playSeconds: number }[];
@@ -131,7 +132,7 @@ function SearchResults({ term, onOpen }: { term: string; onOpen: (username: stri
   );
 }
 
-type BoardView = 'current' | 'past' | 'overall';
+type BoardView = 'current' | 'past' | 'overall' | 'clans';
 interface SeasonRow {
   id: number;
   name: string;
@@ -148,13 +149,20 @@ export function LeaderboardScreen() {
   const past = (seasons.data?.seasons ?? []).filter((s) => !s.active);
   const [pastId, setPastId] = useState<string>('');
   const chosen = pastId || String(past[0]?.id ?? '');
+  const [format, setFormat] = useFormatParam();
+  const q = `limit=${limit}${formatQuery(format)}`;
   const path =
-    view === 'overall' ? `/leaderboard/overall?limit=${limit}` : view === 'past' ? (chosen ? `/leaderboard?season=${chosen}&limit=${limit}` : '') : `/leaderboard?limit=${limit}`;
+    view === 'clans' ? '' : view === 'overall' ? `/leaderboard/overall?${q}` : view === 'past' ? (chosen ? `/leaderboard?season=${chosen}&${q}` : '') : `/leaderboard?${q}`;
   const board = useApi<Leaderboard | Overall>(path || '/leaderboard?limit=1');
   const b = path ? board.data : null;
-  const title = b && 'season' in b ? `${t('Ranking')} · ${b.season.name}` : view === 'overall' ? `${t('Ranking')} · ${t('All seasons')}` : t('Ranking');
+  const name = b && 'season' in b ? `${t('Ranking')} · ${b.season.name}` : view === 'overall' ? `${t('Ranking')} · ${t('All seasons')}` : t('Ranking');
+  const title = view === 'clans' ? `${t('Ranking')} · ${t('Clans')}` : format === 'all' ? name : `${name} · ${format}`;
+  const subtitle =
+    view === 'clans'
+      ? t('Clan vs clan matches: win 3 points, draw 1; ties broken by capture difference; at least 3 matches to appear.')
+      : t('Rating = (score + 1) / (neg + 1); at least 100 points of score to appear. Only Ranked matches count.');
   return (
-    <Page title={title} subtitle={t('Rating = (score + 1) / (neg + 1); at least 100 points of score to appear. Only Ranked matches count.')} onBack={() => void navigate(-1)}>
+    <Page title={title} subtitle={subtitle} onBack={() => void navigate(-1)}>
       <Tabs
         label={t('Ranking')}
         value={view}
@@ -166,8 +174,20 @@ export function LeaderboardScreen() {
           { id: 'current', label: t('Current season') },
           { id: 'past', label: t('Past seasons') },
           { id: 'overall', label: t('All seasons') },
+          { id: 'clans', label: t('Clans') },
         ]}
       >
+        {view === 'clans' ? (
+          <ClanBoard />
+        ) : (
+          <>
+        <FormatTabs
+          value={format}
+          onChange={(f) => {
+            setFormat(f);
+            setLimit(50);
+          }}
+        />
         {view === 'past' && past.length > 0 && (
           <ChoiceField label={t('Season')} value={chosen} onChange={setPastId} options={past.map((s) => ({ value: String(s.id), label: s.name }))} />
         )}
@@ -199,12 +219,71 @@ export function LeaderboardScreen() {
             )}
           </Panel>
         )}
+          </>
+        )}
       </Tabs>
       <p className="ui-muted">
         <Button variant="ghost" onClick={() => void navigate('/players')}>
           {t('Players')}
         </Button>
+        <Button variant="ghost" onClick={() => void navigate('/hall-da-fama')}>
+          {t('Hall of fame')}
+        </Button>
       </p>
     </Page>
+  );
+}
+
+interface ClanStanding {
+  position: number;
+  tag: string;
+  name: string;
+  matches: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  captureDiff: number;
+}
+
+/** Ranking de clãs (OG-274, D-47): temporada atual ou geral, por pontos em clã x clã. */
+function ClanBoard() {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  const [scope, setScope] = useState<'season' | 'overall'>('season');
+  const board = useApi<{ season: { name: string } | null; total: number; entries: ClanStanding[] }>(`/leaderboard/clans?limit=100${scope === 'overall' ? '&overall=true' : ''}`, true);
+  const b = board.data;
+  return (
+    <>
+      <ChoiceField
+        label={t('Period')}
+        value={scope}
+        onChange={setScope}
+        options={[
+          { value: 'season', label: t('Current season') },
+          { value: 'overall', label: t('All seasons') },
+        ]}
+      />
+      <Status loading={b === undefined} missing={b === null} error={board.error} />
+      {b && (
+        <Panel title={b.season ? `${t('Clans')} · ${b.season.name}` : `${t('Clans')} · ${t('All seasons')}`}>
+          <Table
+            caption={t('Clans')}
+            rows={b.entries}
+            rowKey={(e) => e.tag}
+            onRowActivate={(e) => void navigate(`/clans/${encodeURIComponent(e.tag)}`)}
+            empty={t('Nobody yet.')}
+            columns={[
+              { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
+              { key: 'clan', header: t('Clan'), cell: (e) => <Link to={`/clans/${encodeURIComponent(e.tag)}`}>{`(${e.tag}) ${e.name}`}</Link> },
+              { key: 'points', header: t('Points'), cell: (e) => e.points, align: 'end' },
+              { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
+              { key: 'record', header: `${t('Wins')}/${t('Draws')}/${t('Losses')}`, cell: (e) => `${e.wins}/${e.draws}/${e.losses}`, align: 'end' },
+              { key: 'diff', header: t('Capture difference'), cell: (e) => (e.captureDiff > 0 ? `+${e.captureDiff}` : e.captureDiff), align: 'end' },
+            ]}
+          />
+        </Panel>
+      )}
+    </>
   );
 }

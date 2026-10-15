@@ -14,6 +14,18 @@ export interface MilestoneMatch {
   captures: number;
   shots: number;
   hits: number;
+  /** Partida clã x clã (OG-259, RN-RKL-14) do ponto de vista do clã da conta. */
+  clanWar?: ClanWarMatch;
+}
+
+export interface ClanWarMatch {
+  /** Clã adversário (id). */
+  opponent: string;
+  /** Capturas sofridas (placar do adversário). */
+  conceded: number;
+  /** Este jogo fechou uma série md3/md5 vencida pelo lado da conta; `sweep` = sem perder jogo. */
+  seriesWon: boolean;
+  sweep: boolean;
 }
 
 export interface Milestone {
@@ -47,6 +59,15 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'accuracy_50', name: b('Mira certeira', 'Sharpshooter'), description: b(`Precisão de 50% ou mais numa partida (mínimo de ${ACCURACY_MIN_SHOTS} tiros)`, `50% accuracy or better in a match (at least ${ACCURACY_MIN_SHOTS} shots)`) },
   { id: 'win_streak_10', name: b('Imbatível', 'Unstoppable'), description: b('10 vitórias seguidas', '10 wins in a row') },
   { id: 'beta', name: b('Pioneiro', 'Pioneer'), description: b('Jogou o beta', 'Played the beta') },
+  // clã x clã (OG-259)
+  { id: 'clan_war', name: b('Guerra de clãs', 'Clan war'), description: b('Jogou a primeira partida clã x clã', 'Played the first clan vs clan match') },
+  { id: 'clan_war_win', name: b('Primeira conquista', 'First conquest'), description: b('Venceu a primeira partida clã x clã', 'Won the first clan vs clan match') },
+  { id: 'clan_war_10', name: b('Veterano de guerra', 'War veteran'), description: b('10 partidas clã x clã', '10 clan vs clan matches') },
+  { id: 'clan_war_wins_10', name: b('Senhor da guerra', 'Warlord'), description: b('10 vitórias clã x clã', '10 clan vs clan wins') },
+  { id: 'clan_series_win', name: b('Série conquistada', 'Series conquered'), description: b('Venceu uma série clã x clã (md3 ou md5)', 'Won a clan vs clan series (bo3 or bo5)') },
+  { id: 'clan_sweep', name: b('Varrida', 'Clean sweep'), description: b('Venceu uma série clã x clã sem perder um jogo', 'Won a clan vs clan series without losing a game') },
+  { id: 'clan_rivalry_5', name: b('Rivalidade', 'Rivalry'), description: b('5 partidas clã x clã contra o mesmo clã', '5 clan vs clan matches against the same clan') },
+  { id: 'clan_defender', name: b('Defensor do clã', 'Clan defender'), description: b('Venceu uma partida clã x clã sem sofrer captura', 'Won a clan vs clan match without conceding a capture') },
 ];
 
 const total = (field: 'kills' | 'captures' | 'one', threshold: number) => ({ field, threshold });
@@ -73,6 +94,7 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
   };
   const sums = { one: 0, kills: 0, captures: 0 };
   let streak = 0;
+  const wars = { matches: 0, wins: 0, against: new Map<string, number>() };
   for (const m of matches) {
     sums.one++;
     sums.kills += Math.max(0, m.kills);
@@ -82,6 +104,21 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
     streak = m.result > 0 ? streak + 1 : 0;
     if (streak >= 10) give('win_streak_10', m);
     if (o.beta) give('beta', m);
+    const w = m.clanWar;
+    if (w) {
+      wars.matches++;
+      if (m.result > 0) wars.wins++;
+      const against = (wars.against.get(w.opponent) ?? 0) + 1;
+      wars.against.set(w.opponent, against);
+      give('clan_war', m);
+      if (m.result > 0) give('clan_war_win', m);
+      if (wars.matches >= 10) give('clan_war_10', m);
+      if (wars.wins >= 10) give('clan_war_wins_10', m);
+      if (w.seriesWon) give('clan_series_win', m);
+      if (w.seriesWon && w.sweep) give('clan_sweep', m);
+      if (against >= 5) give('clan_rivalry_5', m);
+      if (m.result > 0 && w.conceded === 0) give('clan_defender', m);
+    }
   }
   const order = new Map(MILESTONES.map((x, i) => [x.id, i]));
   return [...found.values()].sort((x, y) => (order.get(x.id) ?? 0) - (order.get(y.id) ?? 0));

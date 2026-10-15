@@ -1296,7 +1296,7 @@ export class Room {
   /** Quem está no slot (para o resultado e os mínimos do ranking). */
   private reportPlayer(pid: number): ReportPlayer | undefined {
     const c = this.clients.get(pid);
-    return c ? { name: c.identity.name, accountId: c.identity.accountId, bot: c.bot, botKills: c.botKills } : undefined;
+    return c ? { name: c.identity.name, accountId: c.identity.accountId, bot: c.bot, botKills: c.botKills, clanId: c.identity.clanId ?? null } : undefined;
   }
 
   /** Mínimos do ranking cumpridos agora (`rankingEnabled`), só em sala Ranked (RN-MOD-05). */

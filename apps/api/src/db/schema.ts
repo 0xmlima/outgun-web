@@ -22,6 +22,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 
 const tstz = (name: string) => timestamp(name, { withTimezone: true });
@@ -197,6 +198,10 @@ export const matches = pgTable(
     format: rankedFormat('format'),
     seriesId: uuid('series_id').references(() => rankedSeries.id, { onDelete: 'set null' }),
     gameNo: smallint('game_no'),
+    /** Clã x clã (OG-259, RN-RKL-14) e os clãs de cada lado; a marcação fica se um clã for apagado. */
+    clanWar: boolean('clan_war').notNull().default(false),
+    redClanId: uuid('red_clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
+    blueClanId: uuid('blue_clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],
@@ -220,6 +225,8 @@ export const matchPlayers = pgTable(
     playSeconds: integer('play_seconds').notNull().default(0),
     scoreDelta: doublePrecision('score_delta').notNull().default(0),
     negDelta: integer('neg_delta').notNull().default(0),
+    /** Clã cadastrado ao fim da partida (OG-259/273); bot substituto leva o do jogador substituído. */
+    clanId: uuid('clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
     stats: jsonb('stats').$type<Record<string, number>>().notNull().default({}),
   },
   (t) => [primaryKey({ columns: [t.matchId, t.slot] })],
@@ -240,6 +247,45 @@ export const ratings = pgTable(
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.seasonId] })],
+);
+
+/** Rating por formato (OG-258, D-42); `ratings` é o geral, que soma os formatos e o acumulado sem formato. */
+export const formatRatings = pgTable(
+  'format_ratings',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id, { onDelete: 'cascade' }),
+    format: rankedFormat('format').notNull(),
+    score: doublePrecision('score').notNull().default(0),
+    neg: integer('neg').notNull().default(0),
+    matches: integer('matches').notNull().default(0),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seasonId, t.format] }), index('format_ratings_board_idx').on(t.seasonId, t.format)],
+);
+
+/** Hall da fama (OG-268): os 3 primeiros de cada temporada encerrada no geral, por formato e dos clãs. */
+export const CHAMPION_BOARDS = ['overall', '3x3', '4x4', '5x5', 'clans'] as const;
+export type ChampionBoard = (typeof CHAMPION_BOARDS)[number];
+export const seasonChampions = pgTable(
+  'season_champions',
+  {
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id, { onDelete: 'cascade' }),
+    board: text('board').$type<ChampionBoard>().notNull(),
+    position: smallint('position').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    clanId: uuid('clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    clanName: text('clan_name'),
+    value: doublePrecision('value').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.seasonId, t.board, t.position] })],
 );
 
 export const ratingDeltas = pgTable(
@@ -582,6 +628,8 @@ export const allTables = {
   matches,
   match_players: matchPlayers,
   ratings,
+  format_ratings: formatRatings,
+  season_champions: seasonChampions,
   rating_deltas: ratingDeltas,
   player_pairs: playerPairs,
   player_daily: playerDaily,

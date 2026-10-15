@@ -414,6 +414,31 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Admin: 'Admin',
     Member: 'Membro',
     Invite: 'Convidar',
+    // Clã x clã (OG-259)
+    'Clan vs clan': 'Clã x clã',
+    // Hall da fama (OG-268)
+    'Hall of fame': 'Hall da fama',
+    'The top 3 of every finished season: overall, in each format and among clans.': 'Os 3 primeiros de cada temporada encerrada: no geral, em cada formato e entre os clãs.',
+    'Nobody qualified.': 'Ninguém se classificou.',
+    Champion: 'Campeão',
+    '2nd place': '2º lugar',
+    '3rd place': '3º lugar',
+    '$1 points': '$1 pontos',
+    // Ranking de clãs (OG-274)
+    'Clan vs clan matches: win 3 points, draw 1; ties broken by capture difference; at least 3 matches to appear.':
+      'Partidas clã x clã: vitória vale 3 pontos, empate 1; desempate pelo saldo de capturas; mínimo de 3 partidas para aparecer.',
+    'Capture difference': 'Saldo de capturas',
+    Points: 'Pontos',
+    // Estatísticas do clã (OG-273)
+    Period: 'Período',
+    'Series won': 'Séries vencidas',
+    Opponents: 'Adversários',
+    'No clan vs clan match yet.': 'Nenhuma partida clã x clã ainda.',
+    'Members for the clan': 'Membros pelo clã',
+    '$1 matches as a clan · $2 kills · $3 captures': '$1 partidas pelo clã · $2 kills · $3 capturas',
+    // Rating por formato (OG-258)
+    'All formats': 'Todos',
+    'Matches from before the formats only show under "All".': 'Partidas anteriores aos formatos só aparecem em "Todos".',
     // Temporadas mensais e ranking geral (OG-267)
     'All seasons': 'Geral',
     'Current season': 'Temporada atual',

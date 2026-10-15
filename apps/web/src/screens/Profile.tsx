@@ -2,6 +2,7 @@
 // Perfil social (OG-212, RN-SOC-01/02/03): página com rolagem em /players/:nome. Cabeçalho (clã, cor,
 // membro desde, última partida, ranking), números por modo e por período, evolução do rating na
 // temporada, marcos (OG-213), partidas recentes (relatório e replay), companheiros, rivais e clã.
+// O filtro de formato (OG-258, na URL) vale para o ranking, os números do Ranked e as partidas.
 // Tudo vem da API (OG-085, OG-211); o que o jogador escondeu (D-39) aparece como "privado".
 import { MILESTONES } from '@outgun/content';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
@@ -13,8 +14,9 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
+import { TitleBadges } from './HallOfFame.js';
 import { useManifestLists } from './options.js';
-import { date, duration, percent, PlayerLink, Status, useApi, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
+import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
 
 interface Mate {
   username: string;
@@ -62,10 +64,14 @@ export function ProfileScreen() {
   const [mode, setMode] = useState<Mode>('casual');
   const [historyMode, setHistoryMode] = useState<Mode | 'all'>('all');
   const [limit, setLimit] = useState(10);
-  const profile = useApi<Profile>(base);
+  // filtro de formato (OG-258): ranking, números do Ranked e partidas; o Casual não tem formato
+  const [format, setFormat] = useFormatParam();
+  const profile = useApi<Profile>(format === 'all' ? base : `${base}?format=${format}`, true);
   const social = useApi<Social>(`${base}/social`);
   const progress = useApi<Progress>(`${base}/progress`);
-  const history = useApi<{ total: number; hidden: boolean; matches: HistoryEntry[] }>(`${base}/matches?limit=${limit}${historyMode === 'all' ? '' : `&mode=${historyMode}`}`);
+  const history = useApi<{ total: number; hidden: boolean; matches: HistoryEntry[] }>(
+    `${base}/matches?limit=${limit}${historyMode === 'all' ? '' : `&mode=${historyMode}`}${historyMode === 'casual' ? '' : formatQuery(format)}`,
+  );
   const colours = useManifestLists().playerColours;
   const p = profile.data;
   if (!p) {
@@ -118,7 +124,7 @@ export function ProfileScreen() {
       <div className="ui-row profile-head">
         {p.ranking ? (
           p.ranking.rank > 0 ? (
-            <Badge tone="accent">{t('#$1 of $2 in $3', String(p.ranking.rank), String(p.ranking.of), p.ranking.season)}</Badge>
+            <Badge tone="accent">{t('#$1 of $2 in $3', String(p.ranking.rank), String(p.ranking.of), format === 'all' ? p.ranking.season : `${p.ranking.season} · ${format}`)}</Badge>
           ) : (
             <Badge>{t('not ranked yet ($1 points needed)', String(p.ranking.minimumScore))}</Badge>
           )
@@ -128,10 +134,19 @@ export function ProfileScreen() {
             {t('rating')} {p.ranking.rating.toFixed(2)} · {t('score')} {Math.trunc(p.ranking.score)} · {t('neg')} {p.ranking.neg}
           </span>
         )}
+        <TitleBadges titles={p.titles ?? []} />
         <Link to="/ranking">{t('Ranking')}</Link>
         <Link to="/players">{t('Players')}</Link>
         {owner && <Link to="/account">{t('Profile privacy')}</Link>}
       </div>
+      <FormatTabs
+        value={format}
+        onChange={(f) => {
+          setFormat(f);
+          setLimit(10);
+          if (f !== 'all') setMode('ranked');
+        }}
+      />
 
       <div className="report-grid">
         <Panel title={t('Statistics')}>
@@ -235,7 +250,16 @@ export function ProfileScreen() {
                   { key: 'date', header: t('Date'), cell: (m) => <Link to={`/matches/${m.id}`}>{date(m.endedAt, prefs.locale)}</Link> },
                   { key: 'result', header: t('Result'), cell: (m) => <MatchResult m={m} /> },
                   { key: 'map', header: t('Map'), cell: (m) => m.mapTitle },
-                  { key: 'mode', header: t('Mode'), cell: (m) => (m.mode === 'ranked' ? t('Ranked') : t('Casual')) },
+                  {
+                    key: 'mode',
+                    header: t('Mode'),
+                    cell: (m) => (
+                      <>
+                        {m.mode === 'ranked' ? (m.format ? `${t('Ranked')} ${m.format}` : t('Ranked')) : t('Casual')}
+                        {m.clanWar && <Badge tone="accent">{t('Clan vs clan')}</Badge>}
+                      </>
+                    ),
+                  },
                   { key: 'kd', header: `${t('Kills')}/${t('Deaths')}`, cell: (m) => `${m.player.kills}/${m.player.deaths}`, align: 'end' },
                   { key: 'captures', header: t('Captures'), cell: (m) => m.player.captures, align: 'end' },
                   {

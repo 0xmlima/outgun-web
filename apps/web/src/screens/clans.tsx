@@ -12,6 +12,8 @@ import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { useToast } from '../ui/Toast.js';
+import { ClanStatsPanels } from './clan-stats.js';
+import { TitleBadges, type SeasonTitle } from './HallOfFame.js';
 import { PlayerLink, Status, useApi } from './stats.js';
 
 interface ClanRef {
@@ -183,6 +185,8 @@ interface ClanPage {
   readonly description: string;
   readonly createdAt: string;
   readonly members: readonly ClanMember[];
+  /** Pódios no hall da fama (OG-268). */
+  readonly titles?: readonly SeasonTitle[];
 }
 interface ClanListing {
   readonly total: number;
@@ -398,6 +402,11 @@ export function ClanScreen() {
       onBack={() => void navigate('/clans')}
       backLabel={t('Back')}
     >
+      {clan.titles && clan.titles.length > 0 && (
+        <div className="ui-row">
+          <TitleBadges titles={clan.titles} />
+        </div>
+      )}
       {clan.description && (
         <Panel>
           <p className="clan-description">{clan.description}</p>
@@ -436,6 +445,7 @@ export function ClanScreen() {
           ]}
         />
       </Panel>
+      <ClanStatsPanels base={base} />
       {staff && <ManageClan clan={clan} leader={myRole === 'leader'} act={act} tick={tick} />}
       {user && (
         <Panel>

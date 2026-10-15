@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S19 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | [OG-250](OG-250-formatos-series-ranked.md) |
 | Regras de negócio | RN-RKL-13, RN-SOC-02 |
 | Skills | `outgun-card-workflow` |
@@ -21,8 +21,11 @@ Como jogador, quero filtrar estatísticas e partidas Ranked por formato, para co
 - Cliente: filtro "Todos / 3x3 / 4x4 / 5x5" no perfil, na lista de partidas e no ranking; filtro guardado na URL.
 
 ## Critérios de aceite
-- [ ] Partidas sem formato (anteriores ao OG-250) só aparecem em "Todos".
-- [ ] Testes: o geral é igual à soma dos formatos (mais o histórico sem formato); consultas filtradas.
+- [x] Partidas sem formato (anteriores ao OG-250) só aparecem em "Todos".
+- [x] Testes: o geral é igual à soma dos formatos (mais o histórico sem formato); consultas filtradas.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `ratings` continua sendo o geral; `format_ratings` (migration 0023) guarda cada formato e recebe os mesmos deltas quando a partida (ou a sala do delta de saída) tem formato — o geral = formatos + acumulado sem formato por construção. A migration copia o que já foi jogado com formato.
+- Leaderboard por formato lê `format_ratings` ao vivo também em temporadas encerradas (a classificação final guardada na virada é só do geral).
+- Ticket de sala com formato leva o rating daquele formato (modificador de time e deltas usam a força no formato).
+- Cliente: abas "Todos / 3x3 / 4x4 / 5x5" (`?format=` na URL) no ranking e no perfil; no perfil o filtro vale para o ranking, os números do Ranked e as partidas recentes.

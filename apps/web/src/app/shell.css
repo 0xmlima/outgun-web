@@ -538,6 +538,34 @@
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+/* Estatísticas do clã (OG-273) */
+.clan-stats-heading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-md);
+}
+
+/* Hall da fama (OG-268) */
+.hall-boards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-4);
+}
+.hall-board h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+}
+.hall-board ol {
+  margin: 0;
+  padding-left: 1.5em;
+}
+.hall-board li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.hall-first {
+  font-weight: 700;
+}
 
 /* Aviso de celular (OG-209, D-50) */
 .phone-notice {

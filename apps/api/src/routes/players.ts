@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Perfil público, histórico e partida (OG-085, RN-STA-01/03): estatísticas separadas por modo
-// (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original.
+// (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original. O Ranked pode
+// ser filtrado por formato (OG-258, RN-RKL-13): partidas sem formato só entram em "Todos".
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, desc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, ratings, users } from '../db/schema.js';
+import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
@@ -30,6 +31,10 @@ const MatchSummary = Type.Object({
   endedAt: Type.String(),
   mode: GameModeSchema,
   ranked: Type.Boolean(),
+  /** Formato do Ranked (OG-250); null em Casual e nas partidas anteriores aos formatos. */
+  format: Type.Union([RankedFormatSchema, Type.Null()]),
+  /** Partida clã x clã (OG-259, RN-RKL-14). */
+  clanWar: Type.Boolean(),
   map: Type.String(),
   /** Título do mapa (`P title`), que a partida e o relatório mostram; o arquivo (`map`) quando faltar (OG-207). */
   mapTitle: Type.String(),
@@ -50,6 +55,9 @@ const SeriesView = Type.Object({
   startedAt: Type.String(),
   matches: Type.Array(Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String() })),
 });
+/** Pódio no hall da fama (OG-268): temporada, quadro (geral, formato ou clãs) e posição. */
+export const Title = Type.Object({ season: Type.String(), board: Type.String(), position: Type.Integer() });
+const ClanRef = Type.Object({ tag: Type.String(), name: Type.String() });
 const PlayerLine = Type.Object({
   slot: Type.Integer(),
   name: Type.String(),
@@ -71,6 +79,7 @@ const stat = (key: string) => sql<number>`coalesce(sum((${matchPlayers.stats} ->
 
 export function playerRoutes({ database }: AppDeps, { sessions }: Services): FastifyPluginAsyncTypebox {
   const { db } = database;
+  const titles = (where: SQL) => titlesWhere(db, where);
   return async (app) => {
     app.get(
       '/players/:name',
@@ -79,6 +88,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           tags: ['perfil'],
           summary: 'Perfil público: nome, clã, posição no ranking e estatísticas por modo',
           params: Type.Object({ name: Type.String({ minLength: 1, maxLength: 32 }) }),
+          querystring: Type.Object({ format: Type.Optional(RankedFormatSchema) }),
           response: {
             200: Type.Object({
               user: Type.Object({ id: Type.String(), username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), createdAt: Type.String() }),
@@ -92,6 +102,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               lastMatchAt: Type.Union([Type.String(), Type.Null()]),
               /** Marcos conquistados (OG-213); a partida some se o histórico estiver escondido. */
               milestones: Type.Array(Type.Object({ id: Type.String(), achievedAt: Type.String(), matchId: Type.Union([Type.String(), Type.Null()]) })),
+              /** Pódios no hall da fama (OG-268), da temporada mais recente para a mais antiga. */
+              titles: Type.Array(Title),
             }),
             404: ErrorSchema,
           },
@@ -100,12 +112,12 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
       async (request, reply) => {
         const [user] = await db.select().from(users).where(eq(users.usernameKey, usernameKey(request.params.name)));
         if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
+        const { format } = request.query;
         const season = await activeSeason(db);
         let ranking = null;
         if (season) {
-          const r = await playerRating(db, user.id);
-          const [row] = await db.select({ matches: ratings.matches }).from(ratings).where(and(eq(ratings.userId, user.id), eq(ratings.seasonId, season.id)));
-          ranking = { season: season.name, score: r.score, neg: r.neg, rating: (r.score + 1) / (r.neg + 1), rank: r.rank, of: r.of, matches: row?.matches ?? 0, minimumScore: MINIMUM_SCORE };
+          const r = await playerRating(db, user.id, format);
+          ranking = { season: season.name, score: r.score, neg: r.neg, rating: (r.score + 1) / (r.neg + 1), rank: r.rank, of: r.of, matches: r.matches, minimumScore: MINIMUM_SCORE };
         }
         const rows = await db
           .select({
@@ -126,7 +138,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           })
           .from(matchPlayers)
           .innerJoin(matches, eq(matches.id, matchPlayers.matchId))
-          .where(eq(matchPlayers.userId, user.id))
+          .where(and(eq(matchPlayers.userId, user.id), format ? or(eq(matches.mode, 'casual'), eq(matches.format, format)) : undefined))
           .groupBy(matches.mode);
         const empty = { matches: 0, wins: 0, losses: 0, draws: 0, frags: 0, kills: 0, deaths: 0, captures: 0, assists: 0, flagsReturned: 0, carriersKilled: 0, shots: 0, hits: 0, playSeconds: 0 };
         const totals = { ranked: { ...empty }, casual: { ...empty } };
@@ -148,6 +160,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           favoriteColors: profile?.favoriteColors ?? [],
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
           milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
+          titles: await titles(eq(seasonChampions.userId, user.id)),
         };
       },
     );
@@ -161,6 +174,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           params: Type.Object({ name: Type.String({ minLength: 1, maxLength: 32 }) }),
           querystring: Type.Object({
             mode: Type.Optional(GameModeSchema),
+            /** Só partidas Ranked deste formato (OG-258). */
+            format: Type.Optional(RankedFormatSchema),
             limit: Type.Integer({ minimum: 1, maximum: 100, default: 20 }),
             offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
           }),
@@ -183,8 +198,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           .where(eq(users.usernameKey, usernameKey(request.params.name)));
         if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
         if (user.hideHistory && (await sessions.current(request))?.id !== user.id) return { total: 0, hidden: true, matches: [] };
-        const { mode, limit, offset } = request.query;
-        const where = and(eq(matchPlayers.userId, user.id), mode ? eq(matches.mode, mode) : undefined);
+        const { mode, format, limit, offset } = request.query;
+        const where = and(eq(matchPlayers.userId, user.id), mode ? eq(matches.mode, mode) : undefined, format ? eq(matches.format, format) : undefined);
         const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(matchPlayers).innerJoin(matches, eq(matches.id, matchPlayers.matchId)).where(where);
         const rows = await db
           .select({ m: matches, p: matchPlayers })
@@ -250,6 +265,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               format: Type.Union([Type.Null(), RankedFormatSchema]),
               gameNo: Type.Union([Type.Null(), Type.Integer()]),
               series: Type.Union([Type.Null(), SeriesView]),
+              /** Clãs de cada lado numa partida clã x clã (OG-259); null se não for ou se um deles foi apagado. */
+              clans: Type.Union([Type.Null(), Type.Object({ red: ClanRef, blue: ClanRef })]),
             }),
             404: ErrorSchema,
           },
@@ -281,9 +298,18 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           format: m.format,
           gameNo: m.gameNo,
           series: m.seriesId ? await seriesView(m.seriesId) : null,
+          clans: await warClans(m),
         };
       },
     );
+
+    async function warClans(m: typeof matches.$inferSelect) {
+      if (!m.clanWar || !m.redClanId || !m.blueClanId) return null;
+      const list = await db.select({ id: clans.id, tag: clans.tag, name: clans.name }).from(clans).where(inArray(clans.id, [m.redClanId, m.blueClanId]));
+      const red = list.find((c) => c.id === m.redClanId);
+      const blue = list.find((c) => c.id === m.blueClanId);
+      return red && blue ? { red: { tag: red.tag, name: red.name }, blue: { tag: blue.tag, name: blue.name } } : null;
+    }
 
     app.get(
       '/series/:id',
@@ -325,5 +351,15 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
 function summary(m: typeof matches.$inferSelect) {
   const title = m.details['mapTitle'];
   const mapTitle = typeof title === 'string' && title.trim() ? title.trim() : m.map;
-  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
+  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, format: m.format, clanWar: m.clanWar, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
+}
+
+/** Pódios do hall da fama que casam com `where` (conta ou clã), da temporada mais recente para a mais antiga. */
+export async function titlesWhere(db: AppDeps['database']['db'], where: SQL | undefined) {
+  return db
+    .select({ season: seasons.name, board: seasonChampions.board, position: seasonChampions.position })
+    .from(seasonChampions)
+    .innerJoin(seasons, eq(seasons.id, seasonChampions.seasonId))
+    .where(where)
+    .orderBy(desc(seasons.startsAt), asc(seasonChampions.position), asc(seasonChampions.board));
 }

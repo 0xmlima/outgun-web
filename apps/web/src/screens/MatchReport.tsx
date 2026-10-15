@@ -194,6 +194,17 @@ export function MatchScreen() {
         </span>
         <span className="report-team blue">{t('Blue')}</span>
         <Badge tone={redScore === blueScore ? 'neutral' : 'success'}>{winner}</Badge>
+        {m.match.clanWar && (
+          <Badge tone="accent">
+            {t('Clan vs clan')}
+            {m.clans && (
+              <>
+                {' · '}
+                <Link to={`/clans/${encodeURIComponent(m.clans.red.tag)}`}>{m.clans.red.tag}</Link> × <Link to={`/clans/${encodeURIComponent(m.clans.blue.tag)}`}>{m.clans.blue.tag}</Link>
+              </>
+            )}
+          </Badge>
+        )}
       </section>
       <div className="ui-row report-actions">
         {m.replayUrl && (

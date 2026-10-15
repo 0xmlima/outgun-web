@@ -97,8 +97,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         admin: user?.isAdmin ?? false,
         ranked: room.mode === 'ranked',
         ...(user && room.ownerId === user.id ? { owner: true } : {}),
-        // força no modificador de time e participação nos deltas (OG-084)
-        ...(user ? { rating: await playerRating(db, user.id) } : {}),
+        // força no modificador de time e participação nos deltas (OG-084); sala com formato usa o rating dele (OG-258)
+        ...(user ? { rating: ticketRating(await playerRating(db, user.id, room.format ?? undefined)) } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
         ...(device ? { dev: device } : {}),
       },
@@ -199,4 +199,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
 /** SHA-256 do id do navegador, 32 hex: o id cru não é guardado nem vai no ticket. */
 export function deviceHash(device: string): string {
   return createHash('sha256').update(`outgun-device:${device}`).digest('hex').slice(0, 32);
+}
+
+function ticketRating({ matches: _matches, ...rating }: Awaited<ReturnType<typeof playerRating>>) {
+  return rating;
 }
