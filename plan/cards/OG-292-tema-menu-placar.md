@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 3 pts |
 | Sprint | S24 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | [OG-291](OG-291-tema-menu-campo.md) |
 | Regras de negócio | RN-UI-01, RN-UI-02, RN-UI-03 |
 | Skills | `outgun-card-workflow` |

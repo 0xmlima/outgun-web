@@ -295,6 +295,20 @@ export function OptionsScreen() {
               {toggle('preferThemeBackground', 'Prefer main theme background')}
             </FieldGroup>
           </Panel>
+          <Panel title={t('Menus')}>
+            <FieldGroup>
+              <ChoiceField
+                label={t('Menu look')}
+                value={prefs.menuTheme}
+                options={[
+                  { value: 'campo', label: t('Field (green, like the rooms)') },
+                  { value: 'placar', label: t('Scoreboard (black, like the scoreboard)') },
+                ]}
+                onChange={(menuTheme) => setPrefs({ menuTheme })}
+                hint={t('Only the screens outside the game change.')}
+              />
+            </FieldGroup>
+          </Panel>
           <Panel title={t('Graphic options')}>
             <FieldGroup>
               {select<ShowNames>('showNames', 'Show player names', [

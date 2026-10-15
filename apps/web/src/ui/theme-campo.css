@@ -3,7 +3,7 @@
    Superfícies no verde do chão (`ground` #104000) escurecido, verde da parede (`wall` #30C000) nas
    quinas e na ação principal, amarelo do mastro (`flag_pole`) no foco. Vale só dentro da moldura dos
    menus (`Shell`, `data-menu-theme`): a partida, o replay e o espectador não estão sob ela e seguem com
-   os tokens de tokens.css. Mesma convenção de contraste (theme-campo.test.ts). */
+   os tokens de tokens.css. Mesma convenção de contraste (menu-themes.test.ts). */
 
 [data-menu-theme='campo'] {
   /* superfícies, da mais funda à mais alta: o chão da partida escurecido */
@@ -38,6 +38,7 @@
   --flag-pole: #ffe81a;
   --team-red: #ff3b2b;
   --team-blue: #3550ff;
+  --avatar-ring: #30c000;
 
   /* cantos retos, como as paredes */
   --radius-sm: 2px;
@@ -140,7 +141,7 @@
   background: var(--surface-0);
   box-shadow: inset 0 0 0 1px var(--border);
 }
-[data-menu-theme='campo'] .ui-menu-item:is(:hover, .current:focus-visible) .ui-menu-icon {
+[data-menu-theme='campo'] .ui-menu-item:not(.primary):is(:hover, .current:focus-visible) .ui-menu-icon {
   color: var(--flag-pole);
 }
 [data-menu-theme='campo'] .ui-menu-item.primary .ui-menu-icon {

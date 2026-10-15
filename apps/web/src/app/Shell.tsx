@@ -16,9 +16,7 @@ import { PLAYER_COLOURS, PlayerAvatar } from '../ui/icons.js';
 import { ToastProvider } from '../ui/Toast.js';
 import './shell.css';
 import '../ui/theme-campo.css';
-
-/** Tema dos menus (D-53): "campo"; o "placar" fica guardado para um tema futuro (OG-292). */
-const MENU_THEME = 'campo';
+import '../ui/theme-placar.css';
 
 /** Endereço do código-fonte; até existir o repositório público, a página /source explica a GPL. */
 export const SOURCE_URL: string = import.meta.env.VITE_SOURCE_URL ?? '/source';
@@ -150,10 +148,11 @@ function Footer() {
 
 /** Telas fora da partida: barra superior, conteúdo, rodapé e gamepad (OG-200). */
 export function Shell() {
+  const { prefs } = usePrefs();
   useGamepadKeys();
   useMusicMode('menu'); // "Outgun Epic" em loop nas telas fora da partida (RN-MUS-01)
   return (
-    <div className="ui-page app-shell" data-menu-theme={MENU_THEME}>
+    <div className="ui-page app-shell" data-menu-theme={prefs.menuTheme}>
       <TopBar />
       <main className="app-main">
         <Outlet />

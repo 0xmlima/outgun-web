@@ -261,6 +261,11 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'New version available: reload': 'Nova versão disponível: recarregar',
     // OG-289: bots das salas Casual
     'Bots in your Casual rooms': 'Bots das suas salas Casual',
+    Menus: 'Menus',
+    'Menu look': 'Visual dos menus',
+    'Field (green, like the rooms)': 'Campo (verde, como as salas)',
+    'Scoreboard (black, like the scoreboard)': 'Placar (preto, como o placar)',
+    'Only the screens outside the game change.': 'Só as telas fora da partida mudam.',
     'Number of bots': 'Quantidade de bots',
     'Bot level': 'Nível dos bots',
     'variable (each bot different)': 'variável (cada bot com um nível)',

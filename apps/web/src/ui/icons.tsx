@@ -89,7 +89,7 @@ export const PLAYER_COLOURS = [
 ] as const;
 
 /** O jogador como aparece na partida: miolo na cor pessoal, anel (e cano) na cor do time. */
-export function PlayerAvatar({ colour, ring = 'var(--wall, var(--accent))', size = 28 }: { colour: string; ring?: string; size?: number }) {
+export function PlayerAvatar({ colour, ring = 'var(--avatar-ring, var(--accent))', size = 28 }: { colour: string; ring?: string; size?: number }) {
   return (
     <svg className="ui-player-avatar" width={size} height={size} viewBox="0 0 26 26" aria-hidden="true" focusable="false">
       <line x1="13" y1="13" x2="22.6" y2="5" stroke={ring} strokeWidth="2.4" />

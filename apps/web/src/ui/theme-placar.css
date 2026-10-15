@@ -1,0 +1,164 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Tema de menu "Placar" (OG-292, D-53): os menus como o placar e o minimapa da partida. Fundo preto da
+   tela (`screen_background`), cinzas do minimapa e das linhas do placar, vermelho e azul dos times como
+   estrutura (barra superior dividida, faixas de painel como "Time Vermelho / Time Azul") e o amarelo do
+   mastro (`flag_pole`) só na ação principal e no foco. Vale só dentro da moldura dos menus (`Shell`,
+   `data-menu-theme`), como o Campo; mesma convenção de contraste (menu-themes.test.ts). */
+
+[data-menu-theme='placar'] {
+  /* superfícies: o preto da tela e cinzas neutros */
+  --surface-0: #000000;
+  --surface-1: #0c0c0d;
+  --surface-2: #151516;
+  --surface-3: #1f1f21;
+  --border: #2c2c2e;
+  --border-strong: #5a5a5e;
+
+  /* texto */
+  --text: #f2f2f2;
+  --text-muted: #a8a8ad;
+  --text-accent: #ffe81a;
+  --text-danger: #ff8aa0;
+  --text-success: #4ee24e;
+  --text-warning: #ffa000;
+  --text-team-red: #ff7366;
+  --text-team-blue: #8b9cff;
+
+  /* a ação principal é a bandeira; o perigo fica fora do vermelho dos times */
+  --accent: #ffe81a;
+  --accent-hover: #fff04d;
+  --text-on-accent: #141100;
+  --danger: #ff5a7a;
+  --danger-hover: #ff7f97;
+  --text-on-danger: #1d0006;
+  --focus-ring: #ffe81a;
+
+  /* peças do jogo usadas como ornamento (não são cor de texto) */
+  --flag-pole: #ffe81a;
+  --team-red: #ff2a1a;
+  --team-blue: #2a46ff;
+  --team-red-bg: #1f0705;
+  --team-blue-bg: #06081f;
+  --avatar-ring: #ffe81a;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 999px;
+  --panel-pad: var(--space-5);
+}
+
+/* Fundo: o mesmo mapa em versão minimapa, com as bases tingidas, escurecido. */
+.app-shell[data-menu-theme='placar'] {
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 97%) 0 30%, rgb(0 0 0 / 90%) 65%, rgb(0 0 0 / 80%)),
+    url('./placar-map.svg') right center / cover no-repeat,
+    var(--surface-0);
+}
+/* Barra superior com a linha dividida entre os dois times. */
+[data-menu-theme='placar'] .app-topbar {
+  position: relative;
+  background: rgb(0 0 0 / 90%);
+  border-bottom: 0;
+}
+[data-menu-theme='placar'] .app-topbar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--team-red) 0 50%, var(--team-blue) 50% 100%);
+}
+[data-menu-theme='placar'] .app-footer {
+  background: rgb(0 0 0 / 90%);
+}
+
+/* Painel: o título vira a faixa do placar. Painéis de time (relatório) usam o fundo do time. */
+[data-menu-theme='placar'] .ui-panel {
+  padding: var(--panel-pad);
+  box-shadow: none;
+}
+[data-menu-theme='placar'] .ui-panel-header {
+  margin: calc(-1 * var(--panel-pad)) calc(-1 * var(--panel-pad)) 0;
+  padding: var(--space-3) var(--panel-pad);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+[data-menu-theme='placar'] .ui-panel-title {
+  font-size: var(--text-lg);
+}
+[data-menu-theme='placar'] .report-team-panel.red {
+  border-top: 1px solid var(--border);
+}
+[data-menu-theme='placar'] .report-team-panel.red .ui-panel-header {
+  background: var(--team-red-bg);
+  border-bottom-color: var(--team-red);
+}
+[data-menu-theme='placar'] .report-team-panel.blue {
+  border-top: 1px solid var(--border);
+}
+[data-menu-theme='placar'] .report-team-panel.blue .ui-panel-header {
+  background: var(--team-blue-bg);
+  border-bottom-color: var(--team-blue);
+}
+@media (max-width: 30rem) {
+  [data-menu-theme='placar'] {
+    --panel-pad: var(--space-4);
+  }
+}
+
+/* Ação principal: a única peça amarela, com o brilho da bandeira. */
+[data-menu-theme='placar'] :is(.ui-button-primary, .ui-menu-item.primary) {
+  box-shadow: 0 0 1.75rem -0.375rem rgb(255 232 26 / 55%);
+}
+[data-menu-theme='placar'] :is(.ui-button-primary, .ui-menu-item.primary):hover {
+  box-shadow: 0 0 2.25rem -0.25rem rgb(255 232 26 / 70%);
+}
+[data-menu-theme='placar'] .ui-menu-item.primary .ui-menu-label {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Itens do menu: linhas do placar; o item em foco ganha a borda e a seta amarelas. */
+[data-menu-theme='placar'] .ui-menu-item:not(.primary) {
+  background: transparent;
+}
+[data-menu-theme='placar'] .ui-menu-item:not(.primary, [aria-disabled]):is(:hover, .current:focus-visible) {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+[data-menu-theme='placar'] .ui-menu-item:not(.primary):focus-visible {
+  outline: none;
+  border-color: var(--flag-pole);
+}
+[data-menu-theme='placar'] .ui-menu-item:not(.primary).current:focus-visible .ui-menu-label::before {
+  content: '▸ ';
+  color: var(--flag-pole);
+}
+[data-menu-theme='placar'] .ui-menu-icon {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+[data-menu-theme='placar'] .ui-menu-item:not(.primary):is(:hover, .current:focus-visible) .ui-menu-icon {
+  color: var(--flag-pole);
+}
+[data-menu-theme='placar'] .ui-menu-item.primary .ui-menu-icon {
+  box-shadow: none;
+}
+
+/* Abas */
+[data-menu-theme='placar'] .ui-tab[aria-selected='true'] {
+  border-bottom: 3px solid var(--flag-pole);
+}
+
+/* Título da tela inicial: "gun" no amarelo do mastro. */
+[data-menu-theme='placar'] .home-title {
+  background: none;
+  color: var(--text);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+[data-menu-theme='placar'] .home-title-accent {
+  color: var(--flag-pole);
+}
