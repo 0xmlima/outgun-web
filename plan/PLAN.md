@@ -586,7 +586,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S19 | v2: rating por formato, clã x clã, ranking de clãs e hall da fama | OG-258, OG-259, OG-273, OG-274, OG-268 | |
 | S20 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo e clãs** |
 | S21 | v2: correções dos achados (depois do fim dos épicos E12/E13) | OG-277, OG-278, OG-279, OG-281, OG-231, OG-232, OG-282, OG-283, OG-285 | |
-| S22 | v2: correções dos power-ups, bots do Casual e pequenas melhorias | OG-286, OG-287, OG-288 (primeiro), OG-289, OG-280 | |
+| S22 | v2: correções dos power-ups, bots do Casual e pequenas melhorias | OG-286, OG-287, OG-288 (primeiro), OG-289, OG-290, OG-280 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -727,8 +727,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-287](cards/OG-287-explosao-deathbringer.md) | Deathbringer sem explosão (anel e som) para os jogadores | E11 | 1 | Must | S22 | — | Em revisão |
 | [OG-288](cards/OG-288-tempos-powerup-nao-zeram.md) | Tempos de shadow, turbo e power não zeram no cliente ao perder o item | E11 | 1 | Must | S22 | — | Em revisão |
 | [OG-289](cards/OG-289-config-casual-pelo-cliente.md) | Configurar bots da sala Casual pelo cliente (quantidade e nível, inclusive variável) | E11 | 5 | Should | S22 | OG-266 | Em revisão |
+| [OG-290](cards/OG-290-modo-carnificina.md) | Modo Carnificina: power-ups no máximo o tempo todo | E11 | 1 | Should | S22 | — | Em revisão |
 
-**Total:** 131 cards, 484 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 62 cards, 189 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 132 cards, 485 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 63 cards, 190 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -800,6 +801,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-49 | **v2** — Carência de clã não vale para criar clã | — | ✅ **Decidido pelo PO em 2026-10-15:** a carência de 7 dias (D-47) só impede **entrar** em outro clã; quem saiu pode **criar** um clã novo na hora. Dissolução continua sem gerar carência | PO |
 | D-50 | **v2** — Celular fora do escopo por ora | — | ✅ **Decidido pelo PO em 2026-10-15:** o celular mostra só "não disponível para celular" (OG-209); telas e jogo não são mais validados em mobile, para não travar features de desktop | PO |
 | D-51 | **v2** — Bots da sala Casual configurados pelo cliente | — | ✅ **Decidido pelo PO em 2026-10-15:** quantidade de bots e nível (1–5 ou variável, cada bot com um nível) ficam nas opções do cliente; valem ao criar sala privada e, numa sala já rodando, a partir da próxima partida (reinício ou troca de mapa), com opção de reiniciar na hora. Só o dono da sala privada e admins aplicam; salas públicas oficiais seguem o preset do servidor (OG-289) | PO |
+| D-52 | **v2** — Modo Carnificina | — | ✅ **Pedido do PO em 2026-10-15:** preset Casual "Carnificina" com o máximo de power-ups (32, o teto do jogo) reaparecendo na hora, queda de item na morte e duração longa (90 s por item, até 5 min); o teto de 32 continua (OG-290) | PO |
 
 ---
 

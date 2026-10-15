@@ -47,6 +47,15 @@ export const PRESETS: readonly Preset[] = [
     overrides: 'pups_min 40%\npups_max 100%\npups_respawn_time 10',
   },
   {
+    // OG-290 (D-52): o teto do jogo (32 itens) em qualquer mapa, reaparecendo no frame seguinte,
+    // com tempos longos e quem morre deixando cair um item
+    id: 'carnage',
+    mode: 'casual',
+    locked: false,
+    description: 'Carnificina: power-ups no máximo o tempo todo, com duração longa.',
+    overrides: 'pups_min 32\npups_max 32\npups_respawn_time 0\npups_drop_at_death 1\npup_add_time 90\npup_max_time 300',
+  },
+  {
     id: 'ranked',
     mode: 'ranked',
     locked: true,

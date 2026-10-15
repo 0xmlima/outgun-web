@@ -144,6 +144,12 @@ describe('presets por modo (D-10)', () => {
     expect(hasNoPowerups(presetSettings('classic'))).toBe(false);
   });
 
+  it('Carnificina: 32 power-ups sempre, reaparecendo na hora e com duração longa (OG-290)', () => {
+    const p = presetSettings('carnage').powerups;
+    expect([p.pupsMin, p.pupsMinPercentage, p.pupsMax, p.pupsMaxPercentage]).toEqual([32, false, 32, false]);
+    expect([p.pupsRespawnTime, p.pupsDropAtDeath, p.pupAddTime, p.pupMaxTime]).toEqual([0, true, 90, 300]);
+  });
+
   it('Ranked difere do Clássico só nos power-ups e nos bots (D-11)', () => {
     const classic = classicSettings();
     const ranked: GameSettings = presetSettings('ranked');
