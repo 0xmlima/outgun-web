@@ -57,6 +57,13 @@ interface Target {
   hideHistory: boolean;
 }
 
+const ACCENTED = 'áàâãäåéèêëíìîïóòôõöúùûüýÿçñ';
+const PLAIN = 'aaaaaaeeeeiiiiooooouuuuyycn';
+/** Minúsculas sem acento (o mesmo `translate` do SQL da busca por clã). */
+export function fold(text: string): string {
+  return [...text.toLowerCase()].map((c) => PLAIN[ACCENTED.indexOf(c)] ?? c).join('');
+}
+
 /** Escapa `%`, `_` e `\` para um LIKE de prefixo. */
 export function likePrefix(text: string): string {
   return `${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -220,6 +227,43 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
     );
 
     app.get(
+      '/directory',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Diretório (OG-215): jogadores mais ativos nos últimos 7 dias (sem quem esconde o histórico) e clãs',
+          response: {
+            200: Type.Object({
+              active: Type.Array(Type.Object({ username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), matches: Type.Integer(), wins: Type.Integer(), playSeconds: Type.Integer() })),
+              clans: Type.Array(Type.Object({ tag: Type.String(), members: Type.Integer(), activeMembers: Type.Integer(), matches: Type.Integer() })),
+            }),
+          },
+        },
+      },
+      async () =>
+        cached('directory', false, async () => {
+          const active = await db.execute<{ username: string; clan_tag: string | null; matches: number; wins: number; play: number }>(sql`
+            SELECT u.username, u.clan_tag, sum(d.matches)::int AS matches, sum(d.wins)::int AS wins, sum(d.play_seconds)::int AS play
+            FROM player_daily d JOIN users u ON u.id = d.user_id
+            LEFT JOIN player_profiles pr ON pr.user_id = u.id
+            WHERE d.day > current_date - 7 AND NOT coalesce(pr.hide_history, false)
+            GROUP BY u.id ORDER BY matches DESC, play DESC, u.username_key LIMIT 20`);
+          // clãs: membros (contas com a mesma tag, sem diferença de maiúsculas) e atividade na semana
+          const clans = await db.execute<{ tag: string; members: number; active: number; matches: number }>(sql`
+            SELECT min(u.clan_tag) AS tag, count(*)::int AS members,
+              count(w.user_id)::int AS active, coalesce(sum(w.matches), 0)::int AS matches
+            FROM users u
+            LEFT JOIN (SELECT user_id, sum(matches) AS matches FROM player_daily WHERE day > current_date - 7 GROUP BY user_id) w ON w.user_id = u.id
+            WHERE u.clan_tag IS NOT NULL
+            GROUP BY lower(u.clan_tag) ORDER BY active DESC, members DESC, lower(u.clan_tag) LIMIT 30`);
+          return {
+            active: active.map((r) => ({ username: r.username, clanTag: r.clan_tag, matches: r.matches, wins: r.wins, playSeconds: r.play })),
+            clans: clans.map((c) => ({ tag: c.tag, members: c.members, activeMembers: c.active, matches: c.matches })),
+          };
+        }),
+    );
+
+    app.get(
       '/players',
       {
         schema: {
@@ -241,10 +285,12 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
       async (request) => {
         const { busca, limit, offset } = request.query;
         const key = usernameKey(busca);
-        const clan = busca.trim().toLowerCase();
+        // clã sem diferença de maiúsculas e acentos (RN-SOC-04), como o nome
+        const clan = fold(busca.trim());
+        const clanKey = sql`translate(lower(clan_tag), ${ACCENTED}, ${PLAIN})`;
         const where = key
-          ? sql`(username_key LIKE ${likePrefix(key)} OR lower(clan_tag) = ${clan})`
-          : sql`lower(clan_tag) = ${clan}`;
+          ? sql`(username_key LIKE ${likePrefix(key)} OR ${clanKey} = ${clan})`
+          : sql`${clanKey} = ${clan}`;
         const [count] = await db.execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM users WHERE ${where}`);
         const rows = await db.execute<{ username: string; clan_tag: string | null }>(sql`
           SELECT username, clan_tag FROM users WHERE ${where}

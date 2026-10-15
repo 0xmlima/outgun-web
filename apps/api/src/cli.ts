@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Utilitários: node dist/cli.js migrate up|down [N]|status, seed, openapi [arquivo], season start NOME, ticket-key [kid],
-// invite [usos] [observação] (convite do beta), role NOME admin|moderator|player.
+// invite [usos] [observação] (convite do beta), role NOME admin|moderator|player, milestones (marcos retroativos).
 import { writeFileSync } from 'node:fs';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { connect } from './db/client.js';
 import { appliedVersions, loadMigrations, migrateDown, migrateUp } from './db/migrate.js';
 import { seed } from './db/seed.js';
+import { backfillMilestones } from './milestones.js';
 import { startSeason } from './ranking.js';
 import { createInvites } from './beta.js';
 import { usernameKey } from './db/keys.js';
@@ -58,6 +59,10 @@ try {
       await mailerFor(config).send(welcomeMail(user.email, user.username, config.webUrl, mailLocale(profile?.language)));
       console.log(`boas-vindas enviadas para ${user.username}`);
     }
+  } else if (command === 'milestones') {
+    // Marcos retroativos (OG-213): idempotente, pode rodar de novo a qualquer momento.
+    const r = await backfillMilestones(database.db, { beta: config.beta });
+    console.log(`marcos: ${r.added} novos em ${r.users} contas`);
   } else if (command === 'invite') {
     // Convite do beta fechado (OG-106) sem passar pelo painel: o primeiro admin se cadastra com ele.
     const [code] = await createInvites(database.db, { count: 1, maxUses: Number(arg1 ?? 1) || 1, note: arg2 ?? 'cli' });

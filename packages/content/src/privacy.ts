@@ -31,6 +31,7 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   rating_deltas: 'personal',
   player_pairs: 'personal',
   player_daily: 'personal',
+  player_milestones: 'personal',
   rating_points: 'personal',
   bans: 'personal',
   admin_actions: 'personal',
@@ -77,7 +78,7 @@ export const DATA_INVENTORY: readonly DataItem[] = [
   },
   {
     what: b('Partidas: nome em jogo, time, placar e estatísticas; ranking da temporada; replays (nomes e chat da partida)', 'Matches: in-game name, team, score and statistics; season ranking; replays (names and match chat)'),
-    where: ['match_players', 'ratings', 'rating_deltas', 'player_pairs', 'player_daily', 'rating_points', 'rooms', 'arquivos:replays'],
+    where: ['match_players', 'ratings', 'rating_deltas', 'player_pairs', 'player_daily', 'player_milestones', 'rating_points', 'rooms', 'arquivos:replays'],
     why: b('Histórico, perfil público, ranking e replays, como no Outgun original', 'History, public profile, ranking and replays, as in the original Outgun'),
     retention: b('Estatísticas: enquanto o serviço existir (ao excluir a conta o nome vira "(anon)"); replays: 30 dias', 'Statistics: while the service exists (deleting the account replaces the name with "(anon)"); replays: 30 days'),
   },

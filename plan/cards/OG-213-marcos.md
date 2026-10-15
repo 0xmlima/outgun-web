@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S15 |
-| Status | Backlog |
+| Status | Em andamento |
 | Dependências | [OG-211](OG-211-api-social.md) |
 | Regras de negócio | RN-SOC-03 |
 | Skills | `outgun-card-workflow` |

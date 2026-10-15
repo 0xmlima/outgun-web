@@ -167,6 +167,8 @@ interface Client {
   /** O que o HUD do jogador já recebeu: arma e fim de cada power-up com tempo (`data_weapon_change`, `data_pup_timer`). */
   hud: { weapon: number; turboTime: number; shadowTime: number; powerTime: number };
   bot: boolean;
+  /** Kills em bots na partida atual (marcos do OG-213 não contam bots). */
+  botKills: number;
   /** Pediu troca de time (Ctrl+End) e quando pode trocar de novo (s, `team_change_time`). */
   wantChangeTeams: boolean;
   teamChangeTime: number;
@@ -298,8 +300,11 @@ export class Room {
     this.mapIndex = first;
     this.world = new WorldState((this.rotation[first] as { map: GameMap }).map, options.maxPlayers);
     this.sim = new ServerSim(this.world, this.settings, rng, {
-      kill: (attacker, target, cause, carried, carrierDefended, flagDefended) =>
-        this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended })),
+      kill: (attacker, target, cause, carried, carrierDefended, flagDefended) => {
+        const killer = this.clients.get(attacker & 31);
+        if (killer && (attacker & 31) !== target && this.clients.get(target)?.bot) killer.botKills++;
+        this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended }));
+      },
       suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
       flagTaken: (pid, flag) => this.broadcast(message('flagTake', { pid, flag: FLAG_TYPE[flag] })),
       flagDropped: (pid, flag, captureDrop) => this.broadcast(message('flagDrop', { pid, flag: FLAG_TYPE[flag], captureDrop })),
@@ -396,6 +401,7 @@ export class Room {
       lastActivityFrame: this.world.frame,
       hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 },
       bot: opts.bot ?? false,
+      botKills: 0,
       wantChangeTeams: false,
       teamChangeTime: 0,
       favColors: [],
@@ -1226,7 +1232,7 @@ export class Room {
   /** Quem está no slot (para o resultado e os mínimos do ranking). */
   private reportPlayer(pid: number): ReportPlayer | undefined {
     const c = this.clients.get(pid);
-    return c ? { name: c.identity.name, accountId: c.identity.accountId, bot: c.bot } : undefined;
+    return c ? { name: c.identity.name, accountId: c.identity.accountId, bot: c.bot, botKills: c.botKills } : undefined;
   }
 
   /** Mínimos do ranking cumpridos agora (`rankingEnabled`), só em sala Ranked (RN-MOD-05). */
@@ -1395,6 +1401,7 @@ export class Room {
       entry.file = generated.file;
     }
     this.matchStartedAt = this.wallClock();
+    for (const c of this.clients.values()) c.botKills = 0;
     Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
     const map = entry.map;
     this.sim.changeMap(map);
