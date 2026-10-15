@@ -861,7 +861,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-RKL-09 | No lobby, o jogador troca de lado se houver vaga; com o outro lado cheio, pede a troca e ela só acontece com o aceite de um jogador de lá. |
 | RN-RKL-10 | Com a sala completa há voto de mapa entre os mapas da rotação do formato. O voto termina quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação. |
 | RN-RKL-11 | Depois do voto, todos precisam marcar "Pronto". Com todos prontos começa uma contagem de **5 s** antes de carregar o mapa. |
-| RN-RKL-11b | Quem não marca "Pronto" em 60 s depois do voto sai da sala e a vaga reabre (D-43). |
+| RN-RKL-21 | Quem não marca "Pronto" em 60 s depois do voto sai da sala e a vaga reabre (D-43). |
 | RN-RKL-12 | Desmarcar "Pronto", trocar de lado, sair ou entrar alguém durante a contagem a cancela; ela recomeça do zero quando todos estiverem prontos de novo. |
 | RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". Cada formato tem rating próprio; o rating geral soma score e neg dos três (D-42). |
 | RN-RKL-14 | Partida **clã x clã**: todos de um lado com a mesma clan tag e todos do outro com outra (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |

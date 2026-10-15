@@ -26,7 +26,7 @@ Como jogador de Ranked, quero votar no mapa e confirmar que estou pronto, para a
 - [ ] Testes da contagem: cancela com cada evento listado e recomeça do zero.
 
 ## Notas técnicas
-- Quem não marca "Pronto" em 60 s após o voto sai da sala e a vaga reabre (D-43, RN-RKL-11b).
+- Quem não marca "Pronto" em 60 s após o voto sai da sala e a vaga reabre (D-43, RN-RKL-21).
 
 ## Notas de implementação
 (preenchido durante a execução)
