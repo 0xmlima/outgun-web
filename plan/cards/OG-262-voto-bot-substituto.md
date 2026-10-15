@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S20 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-261](OG-261-pausa-desconexao.md) |
 | Regras de negócio | RN-RKL-18, RN-RKL-19, RN-MOD-06 |
 | Skills | `outgun-card-workflow` |
@@ -23,12 +23,15 @@ Como time que perdeu um jogador, quero decidir se seguimos com um a menos ou com
 - Em série, o bot não passa para o próximo jogo: a vaga reabre no lobby (D-43).
 
 ## Critérios de aceite
-- [ ] Testes: voto "bot" adiciona o bot; 3ª desconexão não oferece bot; voto "um a menos" retoma sem bot.
-- [ ] Nenhum outro caminho adiciona bot no Ranked (testes dos comandos recusados continuam passando).
+- [x] Testes: voto "bot" adiciona o bot; 3ª desconexão não oferece bot; voto "um a menos" retoma sem bot.
+- [x] Nenhum outro caminho adiciona bot no Ranked (testes dos comandos recusados continuam passando).
 
 ## Notas técnicas
 - Usa o `BotClient` do OG-053. Até o OG-266, o bot entra no nível atual (único).
 - `BOT-` + nome passa de `MAX_NAME_LENGTH` (15) quando o nome tem mais de 11 caracteres: o nome do bot é gerado pelo servidor e não passa pelo `checkName`; o HUD tem de caber os 19 caracteres (conferir no `pnpm visual:check`, RN-UI-05). O bot também mostra a clan tag do jogador (OG-206).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- O bot **assume o pid** de quem saiu (`Room.substitute`; a sala Ranked cheia não tem vaga sobrando): frags, bandeira e posição continuam, e quem volta (token ou mesma conta) retoma tudo — os frags do bot somam aos dele. `deltas` do ranking são enviados antes da troca; o bot não tem conta. Nome por `playerName`; clã (`clanTag`/`clanId`) do substituído.
+- Voto em `RankedPause` (`depart/cast/decide`, um por vez, fila se houver outro): votam os humanos conectados do time no momento; termina quando todos votam ou em 20 s; `pauseState` ganhou `reason: 'vote'`, `votesBot`/`votesShort`; mensagem `substituteVote` (128).
+- Limite de 2 conta bots já entrados + votos abertos; esgotado, a saída vira "um a menos" sem voto. Fim do jogo (`onGameOver`/`nextMap`) tira os bots substitutos e quem saiu durante o voto.
+- Pendente no OG-263: a API ainda recusa partida Ranked com bot (`validateMatch`, D-11).

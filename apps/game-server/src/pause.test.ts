@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Pausa tática do Ranked (OG-260, RN-RKL-15/16, D-45): saldo, pedidos, retomada só por quem pediu e
-// o mundo parado na sala. Queda no Ranked (OG-261, RN-RKL-17): pausa, reconexão e prazo.
+// o mundo parado na sala. Queda no Ranked (OG-261, RN-RKL-17): pausa, reconexão e prazo. Voto do
+// bot substituto (OG-262, RN-RKL-18/19).
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
 import type { PlayerState } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
-import { PAUSE_BALANCE_FRAMES, RANKED_RECONNECT_FRAMES, RankedPause, RESUME_FRAMES } from './pause.js';
+import { PAUSE_BALANCE_FRAMES, RANKED_RECONNECT_FRAMES, RankedPause, RESUME_FRAMES, VOTE_FRAMES } from './pause.js';
 import { Room, type Connection } from './room.js';
 
 describe('saldo e pedidos de pausa (OG-260)', () => {
@@ -154,7 +155,7 @@ describe('sala pausada (OG-260)', () => {
     expect([r.pause?.active, r.pause?.balance]).toEqual([false, [PAUSE_BALANCE_FRAMES, PAUSE_BALANCE_FRAMES]]);
   });
 
-  it('duas quedas: um congelamento só, cada um com o seu prazo; prazo esgotado tira o jogador (OG-262)', () => {
+  it('duas quedas: um congelamento só, cada um com o seu prazo; prazo esgotado abre o voto (OG-262)', () => {
     const { r, players } = setup('ranked');
     const [a, b, c] = players as { conn: TestConnection; pid: number }[] as [{ conn: TestConnection; pid: number }, { conn: TestConnection; pid: number }, { conn: TestConnection; pid: number }];
     r.disconnect(a.pid, a.conn);
@@ -164,22 +165,72 @@ describe('sala pausada (OG-260)', () => {
     expect([...r.pause!.drops.keys()]).toEqual([a.pid, b.pid]);
     expect(c.conn.last('pauseState')).toMatchObject({ by: a.pid, seconds: 110 });
     run(r, RANKED_RECONNECT_FRAMES - 100);
-    expect(r.playerCount).toBe(3); // `a` esgotou o prazo e saiu; `b` ainda tem 10 s
-    expect(c.conn.last('pauseState')).toMatchObject({ phase: 'paused', by: b.pid, seconds: 10 });
-    run(r, 100);
-    expect(r.playerCount).toBe(2);
-    expect(c.conn.last('pauseState')).toMatchObject({ phase: 'resuming' });
+    // `a` esgotou o prazo: voto do time dele (OG-262); `b` ainda tem 10 s e espera na fila
+    expect(c.conn.last('pauseState')).toMatchObject({ phase: 'paused', reason: 'vote', by: a.pid, seconds: 20 });
+    expect(r.pause!.drops.has(b.pid)).toBe(true);
   });
 
-  it('"Sair" é desconexão permanente na hora, sem pausa; Casual guarda a vaga sem pausar', () => {
+  it('"Sair" é desconexão permanente na hora (vai direto ao voto); Casual guarda a vaga sem pausar', () => {
     const { r, players } = setup('ranked');
     r.disconnect(players[0]!.pid, players[0]!.conn, true);
     run(r, 1);
-    expect([r.playerCount, r.pause?.active]).toEqual([3, false]);
+    expect([r.playerCount, r.pause?.cause?.reason]).toEqual([4, 'vote']);
     const casual = setup('classic');
     casual.r.disconnect(casual.players[0]!.pid, casual.players[0]!.conn);
     const frame = casual.r.world.frame;
     run(casual.r, 5);
     expect([casual.r.playerCount, casual.r.world.frame]).toEqual([4, frame + 5]);
+  });
+
+  type P = { conn: TestConnection; pid: number };
+  const mate = (r: Room, players: P[], of: P) => players.find((p) => p !== of && r.world.teamOf(p.pid) === r.world.teamOf(of.pid))!;
+
+  it('voto "bot": o bot entra na vaga como BOT-<nome>; "um a menos" retoma sem bot (OG-262)', () => {
+    const { r, players } = setup('ranked');
+    const a = players[0]!;
+    r.disconnect(a.pid, a.conn, true);
+    run(r, 1);
+    const m = mate(r, players, a);
+    expect(m.conn.last('pauseState')).toMatchObject({ reason: 'vote', by: a.pid, seconds: 20, votesBot: 0, votesShort: 0 });
+    r.handle(players.find((p) => r.world.teamOf(p.pid) !== r.world.teamOf(a.pid))!.pid, [message('substituteVote', { bot: false })]); // adversário não vota
+    r.handle(m.pid, [message('substituteVote', { bot: true })]);
+    run(r, 1);
+    expect([r.bots(), r.playerName(a.pid)]).toEqual([[a.pid], 'BOT-J1']);
+    expect(m.conn.last('playerName')).toEqual({ type: 'playerName', pid: a.pid, name: 'BOT-J1' });
+    expect(m.conn.last('pauseState')).toMatchObject({ phase: 'resuming' });
+    run(r, RESUME_FRAMES + 50);
+    expect(r.pause?.active).toBe(false);
+
+    const short = setup('ranked');
+    const b = short.players[1]!;
+    short.r.disconnect(b.pid, b.conn, true);
+    short.r.handle(mate(short.r, short.players, b).pid, [message('substituteVote', { bot: false })]);
+    run(short.r, 1);
+    expect([short.r.bots(), short.r.playerCount, short.r.pause?.phase]).toEqual([[], 3, 'resuming']);
+  });
+
+  it('ninguém vota em 20 s = bot; 3ª desconexão não oferece bot; quem volta retoma a vaga e o bot sai', () => {
+    const { r, players } = setup('ranked');
+    const [a, b] = players as [P, P];
+    r.disconnect(a.pid, a.conn, true);
+    run(r, VOTE_FRAMES + 1);
+    expect(r.bots()).toEqual([a.pid]);
+    run(r, RESUME_FRAMES + 1);
+    const other = players.find((p) => r.world.teamOf(p.pid) !== r.world.teamOf(a.pid))!;
+    r.disconnect(other.pid, other.conn, true);
+    r.handle(mate(r, players, other).pid, [message('substituteVote', { bot: true })]);
+    run(r, RESUME_FRAMES + 2);
+    expect(r.bots().sort()).toEqual([a.pid, other.pid].sort());
+    const third = players.find((p) => p !== a && p !== other && p !== b) ?? b;
+    r.disconnect(third.pid, third.conn, true);
+    run(r, 1);
+    expect([r.playerCount, r.pause?.votes.length, r.bots().length]).toEqual([3, 0, 2]); // sem bot: um a menos direto
+
+    const frags = (r.world.players[a.pid] as PlayerState).stats.frags;
+    const back = new TestConnection();
+    expect(r.resume(back, { name: 'J1', accountId: account(1) }, '')).toEqual({ ok: true, pid: a.pid });
+    run(r, 1);
+    expect([r.bots(), r.playerName(a.pid), (r.world.players[a.pid] as PlayerState).stats.frags]).toEqual([[other.pid], 'J1', frags]);
+    expect(r.pause?.phase).toBe('resuming');
   });
 });
