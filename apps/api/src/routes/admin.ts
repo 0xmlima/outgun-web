@@ -16,7 +16,7 @@ import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualP
 import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
-import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
+import { ErrorSchema, RoomId } from './schemas.js';
 
 export type Role = 'moderator' | 'admin';
 

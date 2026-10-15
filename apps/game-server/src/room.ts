@@ -14,7 +14,7 @@ import { BotClient, type BotHost } from './bot-client.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
-import { RankedLobby, type LobbyEvent } from './ranked-lobby.js';
+import { RankedLobby } from './ranked-lobby.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';

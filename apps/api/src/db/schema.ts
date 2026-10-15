@@ -597,6 +597,7 @@ export const allTables = {
   casual_presets: casualPresets,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
+  ranked_series: rankedSeries,
   beta_invites: betaInvites,
   beta_invite_uses: betaInviteUses,
   feedback,
