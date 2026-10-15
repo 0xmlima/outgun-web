@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S15 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-200](OG-200-design-system-v2.md), [OG-211](OG-211-api-social.md) |
 | Regras de negócio | RN-SOC-04 |
 | Skills | `outgun-card-workflow` |
