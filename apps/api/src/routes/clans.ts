@@ -496,7 +496,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
         const ref = (r: (typeof rows)[number]) => ({ name: r.name, tag: r.tag, expiresAt: r.expiresAt.toISOString() });
         const [staff] = await db.execute<{ n: number }>(sql`
           SELECT count(*)::int AS n FROM clan_requests r JOIN clan_members m ON m.clan_id = r.clan_id
-          WHERE m.user_id = ${user.id} AND m.role IN ('leader', 'admin') AND r.kind = 'request' AND r.expires_at > ${now}`);
+          WHERE m.user_id = ${user.id} AND m.role IN ('leader', 'admin') AND r.kind = 'request' AND r.expires_at > now()`);
         const [me] = await db.select({ cooldown: users.clanCooldownUntil }).from(users).where(eq(users.id, user.id));
         const request_ = rows.find((r) => r.kind === 'request');
         return {

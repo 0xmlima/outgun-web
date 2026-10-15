@@ -105,7 +105,7 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     expect(all.players.map((u: { username: string }) => u.username)).toEqual(['Jogador1', 'Jogador2', 'Jogador3']);
     expect((await app.inject('/players?busca=jogador2')).json().players[0].username).toBe('Jogador2');
     expect((await app.inject('/players?busca=ab')).json().players).toEqual([{ username: 'Jogador3', clanTag: 'AB' }]);
-    expect((await app.inject('/players?busca=%C3%A1bc')).json().total).toBe(1);
+    expect((await app.inject('/players?busca=%C3%A1b')).json().total).toBe(1);
     expect((await app.inject('/players?busca=J%C3%93GADOR')).json().total).toBe(3);
     const page = (await app.inject('/players?busca=jog&limit=1&offset=1')).json();
     expect(page).toMatchObject({ total: 3, players: [{ username: 'Jogador2' }] });

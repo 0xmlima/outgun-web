@@ -33,6 +33,10 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   player_daily: 'personal',
   player_milestones: 'personal',
   rating_points: 'personal',
+  season_standings: 'personal',
+  clans: 'none',
+  clan_members: 'personal',
+  clan_requests: 'personal',
   bans: 'personal',
   admin_actions: 'personal',
   admin_commands: 'personal',
@@ -78,9 +82,15 @@ export const DATA_INVENTORY: readonly DataItem[] = [
   },
   {
     what: b('Partidas: nome em jogo, time, placar e estatísticas; ranking da temporada; replays (nomes e chat da partida)', 'Matches: in-game name, team, score and statistics; season ranking; replays (names and match chat)'),
-    where: ['match_players', 'ratings', 'rating_deltas', 'player_pairs', 'player_daily', 'player_milestones', 'rating_points', 'rooms', 'arquivos:replays'],
+    where: ['match_players', 'ratings', 'rating_deltas', 'player_pairs', 'player_daily', 'player_milestones', 'rating_points', 'season_standings', 'rooms', 'arquivos:replays'],
     why: b('Histórico, perfil público, ranking e replays, como no Outgun original', 'History, public profile, ranking and replays, as in the original Outgun'),
     retention: b('Estatísticas: enquanto o serviço existir (ao excluir a conta o nome vira "(anon)"); replays: 30 dias', 'Statistics: while the service exists (deleting the account replaces the name with "(anon)"); replays: 30 days'),
+  },
+  {
+    what: b('Clã: de que clã você é, papel, data de entrada, convites e pedidos de entrada, carência depois de sair', 'Clan: which clan you are in, role, join date, invites and join requests, waiting period after leaving'),
+    where: ['clan_members', 'clan_requests', 'users'],
+    why: b('Mostrar a tag do clã no jogo e na página pública do clã', 'Showing the clan tag in game and on the public clan page'),
+    retention: b('Até você sair do clã (convites e pedidos: 7 dias) ou excluir a conta', 'Until you leave the clan (invites and requests: 7 days) or delete the account'),
   },
   {
     what: b('Identificador aleatório do navegador (só o hash chega ao servidor)', 'Random browser identifier (only its hash reaches the server)'),

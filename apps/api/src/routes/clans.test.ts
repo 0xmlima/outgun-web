@@ -116,13 +116,13 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await call('POST', '/clans/NX/leave', undefined, 'Lider')).json().result).toBe('left');
     expect((await roles('NX')).Adm1).toBe('leader');
     expect((await me('Lider')).clanTag).toBeNull();
-    // sem admins, a liderança vai ao membro mais antigo
+    // sem admins, a liderança vai ao membro mais antigo (Memb1 entrou antes de Adm2)
     await call('PUT', '/clans/NX/members/Adm2/role', { role: 'member' }, 'Adm1');
     await call('PUT', '/clans/NX/members/Memb1/role', { role: 'member' }, 'Adm1');
     expect((await call('POST', '/clans/NX/leave', undefined, 'Adm1')).json().result).toBe('left');
-    expect((await roles('NX')).Adm2).toBe('leader');
-    expect((await call('POST', '/clans/NX/leave', undefined, 'Memb1')).json().result).toBe('left');
-    expect((await call('POST', '/clans/NX/leave', undefined, 'Adm2')).json().result).toBe('dissolved');
+    expect(await roles('NX')).toEqual({ Memb1: 'leader', Adm2: 'member' });
+    expect((await call('POST', '/clans/NX/leave', undefined, 'Adm2')).json().result).toBe('left');
+    expect((await call('POST', '/clans/NX/leave', undefined, 'Memb1')).json().result).toBe('dissolved');
     expect((await call('GET', '/clans/NX')).statusCode).toBe(404);
   });
 
