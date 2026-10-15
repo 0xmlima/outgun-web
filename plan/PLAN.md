@@ -585,7 +585,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S18 | v2: lobby Ranked (cliente), séries, clã no HUD e tela inicial | OG-207, OG-265, OG-206, OG-255, OG-256, OG-257, OG-208, OG-209 | |
 | S19 | v2: rating por formato, clã x clã, ranking de clãs e hall da fama | OG-258, OG-259, OG-273, OG-274, OG-268 | |
 | S20 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo e clãs** |
-| S21 | v2: correções dos achados (depois do fim dos épicos E12/E13) | OG-277, OG-278, OG-279, OG-281 | |
+| S21 | v2: correções dos achados (depois do fim dos épicos E12/E13) | OG-277, OG-278, OG-279, OG-281, OG-231, OG-232 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -685,6 +685,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Concluído |
 | [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Concluído |
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
+| [OG-231](cards/OG-231-cadaver-parado.md) | Corpo do jogador eliminado continua se movendo | E11 | 2 | Must | S21 | — | Backlog |
+| [OG-232](cards/OG-232-atalhos-navegador-so.md) | Atalhos do navegador e do sistema interrompendo a partida | E11 | 3 | Should | S21 | — | Backlog |
 | [OG-250](cards/OG-250-formatos-series-ranked.md) | Formatos 3x3/4x4/5x5 e séries md1/md3/md5 no Ranked | E12 | 5 | Must | S17 | — | Concluído |
 | [OG-251](cards/OG-251-rotacao-ranked-por-formato.md) | Rotação de mapas do Ranked por formato no painel admin | E12 | 3 | Must | S17 | OG-250 | Concluído |
 | [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S17 | OG-250 | Concluído |
@@ -717,7 +719,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-280](cards/OG-280-versao-no-cliente.md) | Mostrar a versão do jogo no cliente | E8 | 1 | Could | — | — | Backlog |
 | [OG-281](cards/OG-281-espectador-player-nao-iniciado.md) | Espectador ao vivo às vezes abre com "player não iniciado" | E8 | 1 | Should | S21 | — | Backlog |
 
-**Total:** 121 cards, 462 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 52 cards, 167 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 123 cards, 467 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 54 cards, 172 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
