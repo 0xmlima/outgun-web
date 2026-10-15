@@ -153,7 +153,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               total: Type.Integer(),
               /** O jogador escondeu o histórico (OG-211, D-39); o dono continua vendo. */
               hidden: Type.Boolean(),
-              matches: Type.Array(Type.Intersect([MatchSummary, Type.Object({ player: Type.Omit(PlayerLine, ['username', 'stats']) })])),
+              matches: Type.Array(Type.Intersect([MatchSummary, Type.Object({ replayUrl: Type.Union([Type.Null(), Type.String()]), player: Type.Omit(PlayerLine, ['username', 'stats']) })])),
             }),
             404: ErrorSchema,
           },
@@ -183,6 +183,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           hidden: false,
           matches: rows.map(({ m, p }) => ({
             ...summary(m),
+            replayUrl: m.replayUrl,
             player: { slot: p.slot, name: p.name, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures, playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta },
           })),
         };

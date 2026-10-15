@@ -72,6 +72,8 @@ export function HomeScreen() {
       onActivate: go(user ? '/rooms/new' : '/login'),
     },
     { label: t('Ranking'), description: t('Season leaderboard'), onActivate: go('/ranking') },
+    { label: t('Players'), description: t('Find players and clans'), onActivate: go('/players') },
+    ...(user ? [{ label: t('My profile'), description: t('Statistics, milestones and matches'), onActivate: go(`/players/${encodeURIComponent(user.username)}`) }] : []),
     { label: t('Replays'), description: t('Watch recorded matches'), onActivate: go('/replays') },
     { label: t('Options'), onActivate: go('/options') },
     { label: t('Help'), onActivate: go('/help') },

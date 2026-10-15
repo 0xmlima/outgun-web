@@ -10,6 +10,8 @@ export type Tone = 'text' | 'highlight' | 'selected' | 'dimmed' | 'red' | 'blue'
 export interface Row {
   readonly cells: readonly string[];
   readonly tone: Tone;
+  /** Conta do jogador da linha (o nome em jogo de quem entrou com conta é o da conta): abre o perfil (OG-212). */
+  readonly profile?: string;
 }
 export interface Table {
   readonly caption?: string;
@@ -130,7 +132,7 @@ export function playerScreen(s: ClientSession, page: number, t: T): InfoScreen {
           values = [st.playtime > 2 * 60 * 60 ? `${Math.trunc(minutes / 60)} h` : `${minutes} min`, clock(avg)];
           if (info?.loggedIn) values.push(String(info.rank), ((info.score + 1) / (info.negScore + 1)).toFixed(2), String(info.score - info.negScore));
         }
-        return { cells: [flags, name.slice(0, 17), ...values], tone: team === 0 ? 'red' : 'blue' };
+        return { cells: [flags, name.slice(0, 17), ...values], tone: team === 0 ? 'red' : 'blue', ...(info?.loggedIn && name ? { profile: name } : {}) };
       }),
     };
   });

@@ -29,7 +29,7 @@ export function moveColor(colors: readonly number[], selected: number, delta: -1
   return { colors: out, selected: next };
 }
 
-function useManifestLists() {
+export function useManifestLists() {
   const [lists, setLists] = useState<{ themes: string[]; colourThemes: string[]; backgrounds: string[]; soundThemes: string[]; playerColours: string[] }>({
     themes: [],
     backgrounds: [],

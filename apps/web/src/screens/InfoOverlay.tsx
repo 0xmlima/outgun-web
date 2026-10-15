@@ -159,7 +159,16 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
             {visibleRows(i, table.rows).map((row, r) => (
               <tr key={r} className={`tone-${row.tone}`}>
                 {row.cells.map((c, j) => (
-                  <td key={j}>{c && <BitmapText text={c} />}</td>
+                  <td key={j}>
+                    {c && j === 1 && row.profile ? (
+                      // perfil numa aba nova: a partida continua (OG-212)
+                      <a href={`/players/${encodeURIComponent(row.profile)}`} target="_blank" rel="noopener" className="info-profile">
+                        <BitmapText text={c} />
+                      </a>
+                    ) : (
+                      c && <BitmapText text={c} />
+                    )}
+                  </td>
                 ))}
               </tr>
             ))}
