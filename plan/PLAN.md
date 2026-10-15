@@ -693,8 +693,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S18 | OG-252 | Concluído |
 | [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S18 | OG-253, OG-254, OG-255 | Concluído |
 | [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S18 | OG-250, OG-256, OG-265 | Concluído |
-| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S19 | OG-250 | Backlog |
-| [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S19 | OG-250 | Backlog |
+| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S19 | OG-250 | Pronto |
+| [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S19 | OG-250 | Pronto |
 | [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S20 | OG-252 | Backlog |
 | [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S20 | OG-260 | Backlog |
 | [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S20 | OG-261 | Backlog |
@@ -703,12 +703,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S18 | — | Concluído |
 | [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S20 | OG-262 | Backlog |
 | [OG-267](cards/OG-267-temporadas-mensais.md) | Temporadas mensais automáticas e ranking geral de todas as temporadas | E12 | 3 | Must | S16 | — | Concluído |
-| [OG-268](cards/OG-268-hall-da-fama.md) | Hall da fama | E12 | 3 | Should | S19 | OG-267, OG-274 | Backlog |
+| [OG-268](cards/OG-268-hall-da-fama.md) | Hall da fama | E12 | 3 | Should | S19 | OG-267, OG-274 | Pronto |
 | [OG-270](cards/OG-270-clas-cadastro-api.md) | Clãs: cadastro, papéis e API (substitui a clan tag livre) | E13 | 5 | Must | S16 | — | Concluído |
 | [OG-271](cards/OG-271-clas-convites-pedidos.md) | Clãs: convites e pedidos de entrada | E13 | 3 | Must | S16 | OG-270 | Concluído |
 | [OG-272](cards/OG-272-clas-telas.md) | Telas de clã no cliente: criar, página do clã, gerir e buscar | E13 | 5 | Must | S16 | OG-270, OG-271 | Concluído |
-| [OG-273](cards/OG-273-clas-estatisticas.md) | Estatísticas do clã | E13 | 3 | Should | S19 | OG-270, OG-259 | Backlog |
-| [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Backlog |
+| [OG-273](cards/OG-273-clas-estatisticas.md) | Estatísticas do clã | E13 | 3 | Should | S19 | OG-270, OG-259 | Pronto |
+| [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Pronto |
 | [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Concluído |
 | [OG-276](cards/OG-276-filtro-nomes-jogadores.md) | Filtro de nomes proibidos também nos nomes de jogador | E13 | 1 | Should | — | OG-275 | Backlog |
 | [OG-277](cards/OG-277-sublinhado-conta-quem-entra-depois.md) | Quem entra depois não vê o sublinhado de conta dos que já estavam | E8 | 1 | Should | S21 | — | Backlog |

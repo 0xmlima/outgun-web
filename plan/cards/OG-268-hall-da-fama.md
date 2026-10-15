@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S19 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-267](OG-267-temporadas-mensais.md), [OG-274](OG-274-ranking-clas.md) |
 | Regras de negócio | RN-RKL-24 |
 | Skills | `outgun-card-workflow` |
