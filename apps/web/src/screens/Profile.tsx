@@ -234,7 +234,7 @@ export function ProfileScreen() {
                 columns={[
                   { key: 'date', header: t('Date'), cell: (m) => <Link to={`/matches/${m.id}`}>{date(m.endedAt, prefs.locale)}</Link> },
                   { key: 'result', header: t('Result'), cell: (m) => <MatchResult m={m} /> },
-                  { key: 'map', header: t('Map'), cell: (m) => m.map },
+                  { key: 'map', header: t('Map'), cell: (m) => m.mapTitle },
                   { key: 'mode', header: t('Mode'), cell: (m) => (m.mode === 'ranked' ? t('Ranked') : t('Casual')) },
                   { key: 'kd', header: `${t('Kills')}/${t('Deaths')}`, cell: (m) => `${m.player.kills}/${m.player.deaths}`, align: 'end' },
                   { key: 'captures', header: t('Captures'), cell: (m) => m.player.captures, align: 'end' },

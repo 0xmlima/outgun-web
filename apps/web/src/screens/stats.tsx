@@ -40,6 +40,7 @@ export interface MatchSummary {
   mode: Mode;
   ranked: boolean;
   map: string;
+  mapTitle: string;
   redScore: number;
   blueScore: number;
 }

@@ -38,7 +38,7 @@ function RecentMatches({ username }: { readonly username: string }) {
           empty={t('No matches yet. "Play now" starts one.')}
           columns={[
             { key: 'date', header: t('Date'), cell: (m) => new Date(m.endedAt).toLocaleDateString(prefs.locale, { day: '2-digit', month: '2-digit' }) },
-            { key: 'map', header: t('Map'), cell: (m) => m.map },
+            { key: 'map', header: t('Map'), cell: (m) => m.mapTitle },
             {
               key: 'result',
               header: t('Result'),

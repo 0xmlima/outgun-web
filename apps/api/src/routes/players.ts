@@ -31,6 +31,8 @@ const MatchSummary = Type.Object({
   mode: GameModeSchema,
   ranked: Type.Boolean(),
   map: Type.String(),
+  /** Título do mapa (`P title`), que a partida e o relatório mostram; o arquivo (`map`) quando faltar (OG-207). */
+  mapTitle: Type.String(),
   redScore: Type.Integer(),
   blueScore: Type.Integer(),
 });
@@ -265,5 +267,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
 }
 
 function summary(m: typeof matches.$inferSelect) {
-  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, map: m.map, redScore: m.redScore, blueScore: m.blueScore };
+  const title = m.details['mapTitle'];
+  const mapTitle = typeof title === 'string' && title.trim() ? title.trim() : m.map;
+  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
 }
