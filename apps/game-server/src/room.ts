@@ -1531,6 +1531,7 @@ export class Room {
   private checkMapExit(): void {
     this.sendVotes();
     if (this.gameOverUntil !== null) return; // já trocando
+    if (this.lobby) return; // no lobby Ranked o mapa é votado no lobby (OG-254), não no meio do jogo
     const s = this.settings.server;
     if (shouldExit(this.voters(), s.requireSpecificMapVote, this.world.mapTime(), s.voteBlockTime)) this.nextMap('vote');
   }

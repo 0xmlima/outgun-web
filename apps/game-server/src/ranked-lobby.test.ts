@@ -223,4 +223,46 @@ describe('sala Ranked 3x3 com lobby (OG-252)', () => {
     expect(conn.last('lobbyState')?.swaps).toEqual([]);
     expect(conn.received.some((m) => m.type === 'teamChange' && m.from === red[0] && m.to === blue[0])).toBe(true);
   });
+
+  /** Sala completa (6 contas) já no voto. */
+  const fullRoom = () => {
+    const r = room();
+    const players = [1, 2, 3, 4, 5, 6].map((n) => join(r, n));
+    run(r, 1);
+    return { r, players };
+  };
+  const play = (r: Room, players: { pid: number }[]) => {
+    for (const p of players) r.handle(p.pid, [message('lobbyVote', { map: 0 })]);
+    for (const p of players) r.handle(p.pid, [message('lobbyReady', { ready: true })]);
+    run(r, COUNTDOWN_FRAMES + 2);
+    expect(r.lobby?.phase).toBe('game');
+  };
+  const endGame = (r: Room, winner: 0 | 1) => (r as unknown as { onGameOver(reason: string, result: object): void }).onGameOver('captureLimit', { reason: 'captureLimit', winner, players: [], teams: [] });
+
+  it('quem não marca "Pronto" em 60 s depois do voto sai e a vaga reabre (OG-254)', () => {
+    const { r, players } = fullRoom();
+    run(r, VOTE_FRAMES + 1);
+    expect(r.lobby?.phase).toBe('ready');
+    for (const p of players.slice(0, 5)) r.handle(p.pid, [message('lobbyReady', { ready: true })]);
+    run(r, READY_FRAMES);
+    expect(players[5]!.conn.closed).toEqual([4000, 'notReady']);
+    expect([r.playerCount, r.lobby?.phase, r.lobby?.acceptsJoins]).toEqual([5, 'lobby', true]);
+  });
+
+  it('série md3: fim de jogo volta todos ao voto com o placar da série; 2-0 encerra e a sala fecha (D-41)', () => {
+    const { r, players } = fullRoom();
+    play(r, players);
+    endGame(r, 0);
+    run(r, 1);
+    expect(players[0]!.conn.last('lobbyState')).toMatchObject({ phase: 'vote', gameNo: 2, seriesRed: 1, seriesBlue: 0 });
+    run(r, 200);
+    expect([r.finished, alive(r)]).toEqual([false, 0]);
+    play(r, players);
+    endGame(r, 0);
+    run(r, 1);
+    expect(players[0]!.conn.last('lobbyState')).toMatchObject({ phase: 'finished', gameNo: 2, seriesRed: 2 });
+    run(r, 200);
+    expect(r.finished).toBe(true);
+  });
 });
+
