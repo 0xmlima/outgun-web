@@ -695,13 +695,13 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S18 | OG-250, OG-256, OG-265 | Concluído |
 | [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S19 | OG-250 | Concluído |
 | [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S19 | OG-250 | Concluído |
-| [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S20 | OG-252 | Backlog |
-| [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S20 | OG-260 | Backlog |
-| [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S20 | OG-261 | Backlog |
-| [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S20 | OG-262 | Backlog |
-| [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S20 | OG-265, OG-260, OG-262 | Backlog |
+| [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S20 | OG-252 | Pronto |
+| [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S20 | OG-260 | Pronto |
+| [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S20 | OG-261 | Pronto |
+| [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S20 | OG-262 | Pronto |
+| [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S20 | OG-265, OG-260, OG-262 | Pronto |
 | [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S18 | — | Concluído |
-| [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S20 | OG-262 | Backlog |
+| [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S20 | OG-262 | Pronto |
 | [OG-267](cards/OG-267-temporadas-mensais.md) | Temporadas mensais automáticas e ranking geral de todas as temporadas | E12 | 3 | Must | S16 | — | Concluído |
 | [OG-268](cards/OG-268-hall-da-fama.md) | Hall da fama | E12 | 3 | Should | S19 | OG-267, OG-274 | Concluído |
 | [OG-270](cards/OG-270-clas-cadastro-api.md) | Clãs: cadastro, papéis e API (substitui a clan tag livre) | E13 | 5 | Must | S16 | — | Concluído |

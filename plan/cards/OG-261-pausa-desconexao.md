@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S20 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-260](OG-260-pausa-tatica.md) |
 | Regras de negócio | RN-RKL-17 |
 | Skills | `outgun-card-workflow` |

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S20 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-261](OG-261-pausa-desconexao.md) |
 | Regras de negócio | RN-RKL-18, RN-RKL-19, RN-MOD-06 |
 | Skills | `outgun-card-workflow` |

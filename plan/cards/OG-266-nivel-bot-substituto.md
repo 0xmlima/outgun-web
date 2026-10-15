@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S20 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-262](OG-262-voto-bot-substituto.md) |
 | Regras de negócio | RN-RKL-19 |
 | Skills | `outgun-card-workflow` |
