@@ -6184,6 +6184,15 @@
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 1000
+                      },
+                      "maps": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "maxItems": 500
                       }
                     }
                   },
@@ -6427,6 +6436,24 @@
                               }
                             },
                             "ranked": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "ranked:3x3": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "ranked:4x4": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "ranked:5x5": {
                               "type": "array",
                               "items": {
                                 "type": "string"
@@ -7846,7 +7873,7 @@
     },
     "/admin/rotations": {
       "get": {
-        "summary": "Rotações de mapas do painel por modo (sem linha = a do servidor)",
+        "summary": "Rotações de mapas do painel (sem linha = a do servidor) e os mapas que os servidores têm",
         "tags": ["admin"],
         "responses": {
           "200": {
@@ -7855,9 +7882,9 @@
         }
       }
     },
-    "/admin/rotations/{mode}": {
+    "/admin/rotations/{key}": {
       "put": {
-        "summary": "Troca a rotação oficial de um modo (vale nas salas da plataforma a partir da próxima troca de mapa)",
+        "summary": "Troca uma rotação oficial (casual, ranked ou ranked:NxN); vale nas salas a partir da próxima troca de mapa",
         "tags": ["admin"],
         "requestBody": {
           "required": true,
@@ -7892,11 +7919,23 @@
                 {
                   "type": "string",
                   "enum": ["ranked"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["ranked:3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["ranked:4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["ranked:5x5"]
                 }
               ]
             },
             "in": "path",
-            "name": "mode",
+            "name": "key",
             "required": true
           }
         ],

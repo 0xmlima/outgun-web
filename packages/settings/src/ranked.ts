@@ -67,3 +67,19 @@ export function recordSeriesGame(s: SeriesScore, winner: 0 | 1 | null): SeriesSc
   if (winner !== null) wins[winner]++;
   return { bestOf: s.bestOf, games: s.games + 1, wins };
 }
+
+/**
+ * Rotação oficial de mapas (OG-251, RN-RKL-04): uma do Casual, uma por formato do Ranked e a
+ * `ranked` das salas Ranked sem formato (anteriores ao lobby).
+ */
+export const ROTATION_KEYS = ['casual', 'ranked', 'ranked:3x3', 'ranked:4x4', 'ranked:5x5'] as const;
+export type RotationKey = (typeof ROTATION_KEYS)[number];
+
+export function isRotationKey(value: unknown): value is RotationKey {
+  return typeof value === 'string' && (ROTATION_KEYS as readonly string[]).includes(value);
+}
+
+/** Qual rotação oficial a sala usa. */
+export function rotationKey(mode: 'casual' | 'ranked', format?: RankedFormat): RotationKey {
+  return mode === 'ranked' && format ? `ranked:${format}` : mode;
+}

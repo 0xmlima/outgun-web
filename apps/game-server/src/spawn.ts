@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { GameMap } from '@outgun/sim';
 import { formatPlayers, isRankedFormat, isSeriesBestOf } from '@outgun/settings';
 import type { RoomSpawn } from '@outgun/tickets';
-import { loadMaps, resolveRotation } from './maps.js';
+import { loadMaps, resolveRotation, rotationFor, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
 import { findPreset } from './presets.js';
 import type { Room } from './room.js';
@@ -18,7 +18,7 @@ export interface SpawnerOptions {
    * Rotação oficial de cada modo (a do Ranked é a única que salas Ranked usam, RN-MOD-04). O objeto
    * é lido a cada sala aberta: o painel admin (OG-087) pode trocá-lo.
    */
-  rotations: Record<RoomSpawn['mode'], readonly string[]>;
+  rotations: Rotations;
   log?: (line: string) => void;
   /** Mapas gerados para as entradas `random_map` (OG-015). */
   generatedMaps?: GeneratedMaps;
@@ -56,7 +56,7 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
     // Ranked sempre com a rotação oficial; Casual pode trazer a sua (mapas desconhecidos saem);
     // as duas aceitam `random_map L A ...` (OG-015)
     const wanted = spec.mode === 'casual' && spec.maps ? resolveRotation(spec.maps, map, options.generatedMaps) : [];
-    const slots = wanted.length > 0 ? wanted : resolveRotation(options.rotations[spec.mode], map, options.generatedMaps);
+    const slots = wanted.length > 0 ? wanted : resolveRotation(rotationFor(options.rotations, spec.mode, ranked?.format), map, options.generatedMaps);
     if (slots.length === 0) return undefined;
     const files = slots.map((s) => s.file);
     const room = manager.create({

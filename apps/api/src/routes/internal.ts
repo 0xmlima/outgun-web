@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Rotas dos game servers (PLAN 5.4): heartbeat das salas e resultado das partidas. Toda chamada é
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
-import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
+import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TOptional, type TString } from '@fastify/type-provider-typebox';
 import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
-import { PRESETS, seriesOver, seriesWinner, seriesWinsNeeded } from '@outgun/settings';
+import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
 import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
@@ -21,6 +21,8 @@ const Heartbeat = Type.Object({
     region: Type.String({ pattern: '^[a-z0-9-]{1,32}$' }),
     /** Quantas salas o servidor aceita hospedar (as abertas sob demanda contam). */
     maxRooms: Type.Integer({ minimum: 0, maximum: 1000 }),
+    /** Mapas da pasta do servidor, para o painel conferir as rotações (OG-251). */
+    maps: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 64 }), { maxItems: 500 })),
   }),
   rooms: Type.Array(
     Type.Object({
@@ -90,7 +92,7 @@ const HeartbeatReply = Type.Object({
   config: Type.Object({
     version: Type.String(),
     presets: Type.Array(Type.Object({ id: Type.String(), description: Type.String(), overrides: Type.String() })),
-    rotations: Type.Object({ casual: Type.Optional(Type.Array(Type.String())), ranked: Type.Optional(Type.Array(Type.String())) }),
+    rotations: Type.Object(Object.fromEntries(ROTATION_KEYS.map((k) => [k, Type.Optional(Type.Array(Type.String()))])) as Record<RotationKey, TOptional<TArray<TString>>>),
   }),
 });
 
@@ -256,7 +258,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         const { server, rooms: hosted } = request.body;
         await database.db.transaction(async (tx) => {
           const players = hosted.reduce((n, r) => n + r.players, 0);
-          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now };
+          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now, ...(server.maps ? { maps: server.maps } : {}) };
           await tx.insert(gameServers).values({ id: serverId, ...status }).onConflictDoUpdate({ target: gameServers.id, set: status });
           for (const r of hosted) {
             // Salas novas (as persistentes do próprio servidor) são criadas; nas existentes, só o

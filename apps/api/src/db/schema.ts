@@ -2,6 +2,7 @@
 // Tabelas para o Drizzle. A fonte de verdade é o SQL de migrations/; schema.test.ts confere que as
 // duas descrições têm as mesmas colunas.
 import { sql } from 'drizzle-orm';
+import type { RotationKey } from '@outgun/settings';
 import {
   bigserial,
   boolean,
@@ -165,6 +166,8 @@ export const gameServers = pgTable('game_servers', {
   rooms: smallint('rooms').notNull().default(0),
   players: smallint('players').notNull().default(0),
   lastHeartbeatAt: tstz('last_heartbeat_at').notNull(),
+  /** Mapas que o servidor tem (rotação do painel é conferida contra eles, OG-251). */
+  maps: text('maps').array().notNull().default(sql`'{}'::text[]`),
 });
 
 export const matches = pgTable(
@@ -465,7 +468,8 @@ export const casualPresetVersions = pgTable(
 );
 
 export const mapRotations = pgTable('map_rotations', {
-  mode: gameMode('mode').primaryKey(),
+  /** casual | ranked | ranked:3x3 | ranked:4x4 | ranked:5x5 (OG-251, `RotationKey`). */
+  key: text('key').$type<RotationKey>().primaryKey(),
   maps: text('maps').array().notNull(),
   version: integer('version').notNull().default(1),
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),

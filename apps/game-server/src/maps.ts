@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Carrega mapas da rotação a partir de uma pasta (`maps/` do jogo).
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseMapFile } from '@outgun/content';
 import type { GameMap } from '@outgun/sim';
+import { rotationKey, type RankedFormat, type RotationKey } from '@outgun/settings';
 import { parseRandomMapToken, type GeneratedMaps, type RandomMapParams } from './generated-maps.js';
 
 export function loadMaps(dir: string, names: readonly string[]): GameMap[] {
@@ -45,4 +46,26 @@ export function resolveRotation(entries: readonly string[], map: (file: string) 
 /** É uma entrada de rotação válida (mapa existente ou `random_map` bem formado)? */
 export function isRotationEntry(entry: string, map: (file: string) => GameMap | undefined): boolean {
   return parseRandomMapToken(entry) !== null || map(entry) !== undefined;
+}
+
+/** Rotações oficiais: Casual e Ranked sempre; as dos formatos (OG-251) caem na `ranked` se faltarem. */
+export type Rotations = Record<'casual' | 'ranked', readonly string[]> & Partial<Record<RotationKey, readonly string[]>>;
+
+/** Rotação que uma sala nova usa (a do formato, se houver). */
+export function rotationFor(rotations: Rotations, mode: 'casual' | 'ranked', format?: RankedFormat): readonly string[] {
+  return rotations[rotationKey(mode, format)] ?? rotations[mode];
+}
+
+/** Mapas da pasta (nomes sem `.txt`), informados à API no heartbeat (OG-251). */
+export function listMaps(dir: string): string[] {
+  try {
+    return readdirSync(dir)
+      .filter((f) => f.endsWith('.txt'))
+      .map((f) => f.slice(0, -4))
+      .filter((n) => n.length > 0 && n.length <= 64)
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 500);
+  } catch {
+    return [];
+  }
 }

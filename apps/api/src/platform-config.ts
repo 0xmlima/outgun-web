@@ -3,7 +3,7 @@
 // resposta do heartbeat: presets Casual criados no painel e rotações de mapas por modo. Os presets
 // do código (Clássico, Ranked etc.) só mudam com uma versão nova do jogo — o Ranked, travado, só por
 // decisão do PO (RN-MOD-04).
-import { PRESETS, type Preset } from '@outgun/settings';
+import { PRESETS, type Preset, type RotationKey } from '@outgun/settings';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import type { Db } from './db/client.js';
@@ -13,7 +13,7 @@ export interface PlatformConfig {
   /** Muda quando qualquer preset ou rotação muda (o game server só reaplica se mudar). */
   version: string;
   presets: { id: string; description: string; overrides: string }[];
-  rotations: { casual?: string[]; ranked?: string[] };
+  rotations: Partial<Record<RotationKey, string[]>>;
 }
 
 /** Presets Casual do painel ainda ativos. */
@@ -30,7 +30,7 @@ export async function findPreset(db: Db, id: string): Promise<Preset | undefined
 export async function platformConfig(db: Db): Promise<PlatformConfig> {
   const presets = (await panelPresets(db)).map(({ id, description, overrides }) => ({ id, description, overrides }));
   const rotations: PlatformConfig['rotations'] = {};
-  for (const r of await db.select().from(mapRotations)) rotations[r.mode] = r.maps;
+  for (const r of await db.select().from(mapRotations)) rotations[r.key] = r.maps;
   const version = createHash('sha256').update(JSON.stringify({ presets, rotations })).digest('hex').slice(0, 16);
   return { version, presets, rotations };
 }

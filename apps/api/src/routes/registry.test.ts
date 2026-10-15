@@ -18,7 +18,7 @@ const SECRET = 'segredo-de-teste-0123456789';
 
 describe('escolha do servidor', () => {
   const s = (id: string, players: number, rooms = 1, region = 'eu', maxRooms = 10): ServerRow => ({
-    id, wsBaseUrl: `ws://${id}`, region, maxRooms, rooms, players, lastHeartbeatAt: new Date(),
+    id, wsBaseUrl: `ws://${id}`, region, maxRooms, rooms, players, lastHeartbeatAt: new Date(), maps: [],
   });
 
   it('menos jogadores primeiro; servidor lotado de salas fica fora', () => {
