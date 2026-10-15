@@ -45,7 +45,7 @@ Este repositório tem duas partes:
 
 `packages/sim`, `packages/netcode` e `packages/bots` têm regras de lint próprias: sem `Math.random`, `Date.now`, globais de Node/DOM ou imports `node:*`. Aleatoriedade vem de um `Rng` injetado (OG-004).
 
-Bots (OG-053): no servidor de jogo cada bot é um cliente virtual (`apps/game-server/src/bot-client.ts`). Para ver bots jogando localmente, suba o servidor com `CASUAL_BOTS_FILL=8` e entre em `/play`. `node apps/game-server/dist/bot-stats.js --matches 50 [--bots 6] [--minutes 3] [--map outgun1] [--set "linha do gamemod"]` roda partidas só de bots (como o `-bottest` do original) e mostra capturas por partida e o custo dos bots por frame. A paridade da IA com o original é conferida decisão a decisão pelos cenários `tools/parity/scenarios/bots-ai-*.txt` (diretiva `bottrace`).
+Bots (OG-053): no servidor de jogo cada bot é um cliente virtual (`apps/game-server/src/bot-client.ts`). Para ver bots jogando localmente, suba o servidor com `CASUAL_BOTS_FILL=8` e entre em `/play`. `node apps/game-server/dist/bot-stats.js --matches 50 [--bots 6] [--minutes 3] [--map outgun1] [--set "linha do gamemod"]` roda partidas só de bots (como o `-bottest` do original) e mostra capturas por partida e o custo dos bots por frame. Com `--red-level 1 --blue-level 5` cada time joga num nível de dificuldade (OG-266, `packages/bots/src/skill.ts`; 3 = referência) e a saída traz vitórias e K/D de cada time. A paridade da IA com o original é conferida decisão a decisão pelos cenários `tools/parity/scenarios/bots-ai-*.txt` (diretiva `bottrace`).
 
 ## Convenções
 

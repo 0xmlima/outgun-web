@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
+import { botSkill } from '@outgun/bots';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
@@ -69,6 +70,8 @@ export interface Identity {
   rating?: PlayerRating;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
+  /** Nível do bot substituto desta conta (OG-266, do ticket Ranked); ausente = intermediário. */
+  botLevel?: number;
   /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
   device?: string;
 }
@@ -1080,8 +1083,8 @@ export class Room {
     const c = this.clients.get(pid);
     if (!c?.departing) return;
     this.flushDeltas(pid); // o que a pessoa fez até aqui é dela; o bot não pontua (sem conta)
-    const bot = new BotClient(this.botHost(), this.botRng, this.now);
     const { identity } = c;
+    const bot = new BotClient(this.botHost(), this.botRng, this.now, botSkill(identity.botLevel)); // nível pelo histórico (OG-266)
     Object.assign(c, {
       conn: bot,
       bot: true,
