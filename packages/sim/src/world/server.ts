@@ -877,6 +877,16 @@ export class ServerSim {
     }
   }
 
+  /**
+   * Regras de power-up mudaram no meio da partida (`/set pups_*`, `/carnage`, OG-290; sem equivalente
+   * no original): agenda os que faltam e quem já espera não espera mais do que o tempo novo.
+   */
+  powerupSettingsChanged(): void {
+    this.checkPowerupCreation(false);
+    const limit = this.time + this.settings.powerups.pupsRespawnTime;
+    for (const it of this.world.items) if (it.kind === PowerupKind.respawning && it.respawnTime > limit) it.respawnTime = limit;
+  }
+
   /** `respawn_powerup`: sala sem jogadores e sem power-ups (com relaxamento) e posição longe de paredes. */
   respawnPowerup(index: number): void {
     const world = this.world;

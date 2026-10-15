@@ -285,3 +285,32 @@ describe('/report (OG-104)', () => {
     expect(limiter.allow(me, p(2, 'B2'), 6000)).toBe(true);
   });
 });
+
+describe('/carnage (OG-290, D-52)', () => {
+  it('dono liga e desliga; jogador comum não pode; desligar volta aos valores de antes', () => {
+    const { r, join, say } = setup();
+    const a = join('Ana');
+    const dono = join('Dono', { owner: true, accountId: 'u-2' });
+    r.tick();
+    const before = { ...r.settings.powerups };
+    const real = () => r.world.items.filter((it) => it.isReal()).length;
+    const itemsBefore = real();
+    say(a.pid, '/carnage on');
+    expect(a.conn.texts().at(-1)).toBe('Unknown command carnage. Type /help for a list.');
+
+    say(dono.pid, '/carnage on');
+    expect(dono.conn.texts().at(-1)).toBe('Dono turned carnage mode on: power-ups everywhere, long duration.');
+    const p = r.settings.powerups;
+    expect([p.pupsMin, p.pupsMinPercentage, p.pupsMax, p.pupsRespawnTime, p.pupsDropAtDeath, p.pupAddTime, p.pupMaxTime]).toEqual([32, false, 32, 0, true, 90, 300]);
+    r.tick();
+    expect(real()).toBeGreaterThan(itemsBefore); // os que faltavam entram já, sem esperar uma coleta
+    say(dono.pid, '/carnage on');
+    expect(dono.conn.texts().at(-1)).toBe('Carnage mode is already on.');
+
+    say(dono.pid, '/carnage off');
+    expect(a.conn.texts().at(-1)).toBe('Dono turned carnage mode off.');
+    expect(r.settings.powerups).toEqual(before);
+    say(dono.pid, '/carnage');
+    expect(dono.conn.texts().at(-1)).toBe('Carnage mode is off. Use /carnage on or /carnage off.');
+  });
+});

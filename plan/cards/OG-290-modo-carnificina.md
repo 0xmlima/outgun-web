@@ -5,7 +5,7 @@
 | Épico | E11 |
 | Tipo | Feature |
 | Prioridade | Should |
-| Estimativa | 1 pt |
+| Estimativa | 2 pts |
 | Sprint | S22 |
 | Status | Em revisão |
 | Dependências | — |
@@ -22,10 +22,13 @@ Como jogador do Casual, quero uma sala em que os power-ups caem o tempo todo e d
 ## Escopo
 - Preset Casual `carnage` ("Carnificina"): `pups_min 32`, `pups_max 32` (o teto em qualquer mapa), `pups_respawn_time 0` (item pego reaparece no frame seguinte), `pups_drop_at_death 1`, `pup_add_time 90`, `pup_max_time 300`.
 - Aparece na criação de sala privada (lista de presets Casual) e pode ser usado numa sala pública pelo painel.
+- Comando `/carnage on|off` para o dono da sala privada e admins: liga os mesmos valores na hora (os itens que faltam entram no frame seguinte) e o `off` devolve os valores de antes; a sala é avisada no chat.
 
 ## Critérios de aceite
 - [x] Teste do preset (valores) e da lista de presets da API.
+- [x] Teste do `/carnage` (permissão, liga, desliga voltando aos valores de antes).
 - [ ] (PO) Criar sala privada "Carnificina": o mapa cheio de itens, que voltam assim que alguém pega; turbo/shadow/power somando 90 s até 5 min.
 
 ## Notas de implementação
+- `/carnage` usa as mesmas linhas do preset (`CARNAGE_OVERRIDES`) pelo `/set`; o `/set reset` esquece o estado. Qualquer `/set pups_*` com a partida rodando chama `ServerSim.powerupSettingsChanged`: agenda os que faltam e encurta a espera dos agendados (estavam a 25 s, do Clássico). Registrado na D-52.
 - Só um preset novo (`packages/settings/src/presets.ts`); sem mudança na simulação. Em mapa pequeno os 32 itens dividem salas (o sorteio aceita sala com item depois de 200 tentativas).

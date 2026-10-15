@@ -1451,6 +1451,8 @@ export class Room {
       timeStatus: () => this.timeStatus(),
       settingsChanged: (line) => {
         this.setLines.push(line);
+        // mais power-ups (`/set pups_*`, `/carnage on`, OG-290): os que faltam já entram na fila
+        if (this.inGame && /^pups_/.test(line)) this.sim.powerupSettingsChanged();
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       resetSettings: () => {

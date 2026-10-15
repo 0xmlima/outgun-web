@@ -3,7 +3,7 @@
 // textos são os do original (em inglês: o console do servidor não é traduzido). Diferenças da web
 // em plan/specs/chat-moderacao.md.
 import { checkName } from '@outgun/protocol';
-import { executeSetLine, listSettings, type GameSettings, type SettingDef } from '@outgun/settings';
+import { CARNAGE_OVERRIDES, carnageUndoLines, executeSetLine, listSettings, type GameSettings, type SettingDef } from '@outgun/settings';
 
 export type TextKind = 'normal' | 'team' | 'info' | 'header' | 'warning' | 'server' | 'admin';
 
@@ -102,6 +102,9 @@ export interface BotConsole {
   rename(pid: number, name: string): void;
 }
 
+/** Valores de power-up da sala antes do `/carnage on` (OG-290), que o `/carnage off` devolve. */
+const beforeCarnage = new WeakMap<GameSettings, string[]>();
+
 /** Admin da plataforma pode mudar as regras de jogo, mas não as do servidor (nome, rotação etc.). */
 export function settingAllowed(def: SettingDef): boolean {
   return def.web !== 'ignored' && ['game', 'health', 'powerups', 'physics'].includes(def.category);
@@ -164,6 +167,7 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
       say('server', '/set        manage room settings');
       if (host.bots) say('server', '/bot        manage bots');
     }
+    if (canSet) say('server', '/carnage    on: lots of power-ups with long duration; off: back to the room rules');
   } else if (command === 'info' && s.infoMessage.length) {
     s.infoMessage.forEach((line, i) => say(i === 0 ? 'header' : 'server', line));
   } else if (command === 'sayadmin' && s.sayadminEnabled) {
@@ -185,6 +189,7 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
     host.audit({ action: 'forcemap', actor: me, reason: change ? 'forced a map change' : 'forced a restart' });
   } else if (command === 'set' && canSet) {
     if (args === 'reset') {
+      beforeCarnage.delete(host.settings);
       host.resetSettings();
       host.audit({ action: 'set', actor: me, reason: 'reset', details: { line: 'reset' } });
       say('server', 'Server settings reset.');
@@ -209,11 +214,27 @@ export function runCommand(host: ConsoleHost, pid: number, message: string): voi
       say('server', '/set s v    change the value of setting s to v');
       say('server', '/set reset  reload all settings from gamemod');
     }
+  } else if (command === 'carnage' && canSet) {
+    carnageCommand(host, me, args.trim(), say);
   } else if (command === 'bot' && (admin || canSet) && host.bots) {
     botCommand(host, host.bots, args, say);
   } else if (command === 'bot' && admin) {
     say('warning', 'Bots are not allowed in Ranked rooms.');
   } else say('warning', `Unknown command ${command}. Type /help for a list.`);
+}
+
+/** `/carnage on|off` (OG-290, D-52): liga os valores do preset Carnificina na hora, ou os desfaz. */
+function carnageCommand(host: ConsoleHost, me: ConsolePlayer, arg: string, say: (k: TextKind, t: string) => void): void {
+  const on = beforeCarnage.has(host.settings);
+  if (arg !== 'on' && arg !== 'off') return say('server', `Carnage mode is ${on ? 'on' : 'off'}. Use /carnage on or /carnage off.`);
+  if ((arg === 'on') === on) return say('server', `Carnage mode is already ${arg}.`);
+  const undo = carnageUndoLines(host.settings.powerups);
+  const lines = arg === 'on' ? CARNAGE_OVERRIDES.split('\n') : (beforeCarnage.get(host.settings) as string[]);
+  for (const line of lines) if (executeSetLine(host.settings, line, settingAllowed).changed) host.settingsChanged(line);
+  if (arg === 'on') beforeCarnage.set(host.settings, undo);
+  else beforeCarnage.delete(host.settings);
+  host.broadcastText('server', arg === 'on' ? `${me.name} turned carnage mode on: power-ups everywhere, long duration.` : `${me.name} turned carnage mode off.`);
+  host.audit({ action: 'set', actor: me, reason: `carnage ${arg}`, details: { line: `carnage ${arg}` } });
 }
 
 /**
