@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: string; body?: unknown; keepalive?: boolean } = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
@@ -24,6 +24,8 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
       credentials: 'include',
       headers: init.body === undefined ? {} : { 'content-type': 'application/json' },
       body: init.body === undefined ? null : JSON.stringify(init.body),
+      // envio que precisa sair mesmo com a página fechando
+      ...(init.keepalive ? { keepalive: true } : {}),
     });
   } catch {
     throw new ApiError(0, 'network', 'network error');

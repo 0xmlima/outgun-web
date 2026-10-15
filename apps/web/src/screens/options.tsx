@@ -10,6 +10,7 @@ import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
 import { type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
+import { useSaveStatus } from '../app/prefs-sync.js';
 import { ChoiceField, FieldGroup, SliderField, TextField, ToggleField } from '../ui/Field.js';
 import { MenuList } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
@@ -28,6 +29,13 @@ export function moveColor(colors: readonly number[], selected: number, delta: -1
   const out = [...colors];
   if (carry) [out[selected], out[next]] = [out[next]!, out[selected]!];
   return { colors: out, selected: next };
+}
+
+/** A cor `index` vira a primeira favorita; as outras seguem na ordem (OG-285). */
+export function preferColor(colors: readonly number[], index: number): number[] {
+  const chosen = colors[index];
+  if (chosen === undefined || index === 0) return [...colors];
+  return [chosen, ...colors.filter((_, i) => i !== index)];
 }
 
 export function useManifestLists() {
@@ -74,12 +82,16 @@ export function optionsTab(section: string | undefined): OptionsTab {
 }
 
 /** Cores favoritas (`Colorselect`): ←/→ escolhem a cor; Ctrl+←/→ (ou +/−) levam a cor junto. */
-function FavoriteColors({ label, colors, order, disabled, onChange }: { label: string; colors: readonly string[]; order: readonly number[]; disabled: boolean; onChange: (order: number[]) => void }) {
+function FavoriteColors({ label, hint, colors, order, disabled, onChange }: { label: string; hint: string; colors: readonly string[]; order: readonly number[]; disabled: boolean; onChange: (order: number[]) => void }) {
   const [selected, setSelected] = useState(0);
   const move = (delta: -1 | 1, carry: boolean) => {
     const r = moveColor(order, selected, delta, carry);
     setSelected(r.selected);
     if (carry) onChange(r.colors);
+  };
+  const prefer = (i: number) => {
+    onChange(preferColor(order, i));
+    setSelected(0);
   };
   return (
     <div className="ui-field">
@@ -96,6 +108,10 @@ function FavoriteColors({ label, colors, order, disabled, onChange }: { label: s
         data-ui-control=""
         onKeyDown={(ev) => {
           if (disabled) return;
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            return prefer(selected);
+          }
           const left = ev.key === 'ArrowLeft' || ev.key === '+';
           const right = ev.key === 'ArrowRight' || ev.key === '-';
           if (!left && !right) return;
@@ -112,11 +128,32 @@ function FavoriteColors({ label, colors, order, disabled, onChange }: { label: s
             aria-label={String(i + 1)}
             className={i === selected ? 'swatch selected' : 'swatch'}
             style={{ background: colors[c] ?? '#888888' }}
-            onClick={() => !disabled && setSelected(i)}
+            onClick={() => !disabled && prefer(i)}
           />
         ))}
       </div>
+      <p className="ui-field-hint">{hint}</p>
     </div>
+  );
+}
+
+/** Onde as opções ficam salvas e se o envio para a conta deu certo (OG-285). */
+function SaveStatusLine({ account }: { account: boolean }) {
+  const { t } = usePrefs();
+  const status = useSaveStatus();
+  const text = !account
+    ? 'Changes are saved automatically on this browser.'
+    : status === 'saving'
+      ? 'Saving to your account...'
+      : status === 'saved'
+        ? 'Saved to your account.'
+        : status === 'error'
+          ? 'Could not save to your account; changes are kept on this browser.'
+          : 'Changes are saved automatically to your account.';
+  return (
+    <span role="status" className={status === 'error' && account ? 'options-save error' : 'options-save'}>
+      {t(text)}
+    </span>
   );
 }
 
@@ -178,7 +215,7 @@ export function OptionsScreen() {
               ) : (
                 <TextField label={t('Name')} value={prefs.playerName} onChange={(v) => setPrefs({ playerName: v })} maxLength={15} hint={t('guest')} />
               )}
-              <FavoriteColors label={t('Favorite colors')} colors={lists.playerColours} order={prefs.favoriteColors} disabled={prefs.randomColor} onChange={(favoriteColors) => setPrefs({ favoriteColors })} />
+              <FavoriteColors label={t('Favorite colors')} hint={t('Click a colour to make it your first choice; Ctrl+arrows reorder.')} colors={lists.playerColours} order={prefs.favoriteColors} disabled={prefs.randomColor} onChange={(favoriteColors) => setPrefs({ favoriteColors })} />
               {toggle('randomColor', 'Use random color')}
               <ToggleField
                 label={t('Take part in the ranking')}
@@ -333,7 +370,7 @@ export function OptionsScreen() {
   }
 
   return (
-    <Page title={t('Options')} onBack={() => void navigate('/')} backLabel={t('Back')}>
+    <Page title={t('Options')} subtitle={<SaveStatusLine account={!!user} />} onBack={() => void navigate('/')} backLabel={t('Back')}>
       <Tabs
         label={t('Options')}
         value={tab}

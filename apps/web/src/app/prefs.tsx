@@ -2,7 +2,7 @@
 // Preferências do jogador (o menu Options do original, OG-068, spec plan/specs/opcoes-jogador.md),
 // guardadas no navegador e, com conta, também na API.
 import { detectLocale, LOCALES, translate, type Locale } from '@outgun/i18n';
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
 
 export type ShowNames = 'never' | 'sameRoom' | 'always';
@@ -239,6 +239,19 @@ const PrefsContext = createContext<PrefsContextValue | null>(null);
 export function PrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setState] = useState(load);
   const [revision, setRevision] = useState(0);
+  // outra aba mudou as opções: esta passa a usar as mesmas, para não gravar na conta as antigas (OG-285)
+  useEffect(() => {
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key !== STORAGE_KEY || ev.newValue === null) return;
+      try {
+        setState((old) => parsePrefs(JSON.parse(ev.newValue as string) as Record<string, unknown>, old));
+      } catch {
+        // valor ilegível: fica o desta aba
+      }
+    };
+    addEventListener('storage', onStorage);
+    return () => removeEventListener('storage', onStorage);
+  }, []);
   const value = useMemo<PrefsContextValue>(() => {
     const store = (next: Prefs) => {
       try {

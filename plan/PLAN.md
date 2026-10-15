@@ -721,7 +721,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-282](cards/OG-282-online-sem-bots.md) | "Agora no Outgun" conta bots como jogadores online | E8 | 1 | Should | S21 | — | Backlog |
 | [OG-283](cards/OG-283-atualizacao-automatica.md) | Telas do portal paradas: atualização automática mais frequente | E8 | 1 | Should | S21 | — | Backlog |
 | [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | — | OG-283 | Backlog |
-| [OG-285](cards/OG-285-opcoes-nao-salvam.md) | Opções não ficam salvas (cor favorita, mensagens rápidas) | E8 | 2 | Must | S21 | — | Backlog |
+| [OG-285](cards/OG-285-opcoes-nao-salvam.md) | Opções não ficam salvas (cor favorita, mensagens rápidas) | E8 | 2 | Must | S21 | — | Em revisão |
 
 **Total:** 127 cards, 476 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 58 cards, 181 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 

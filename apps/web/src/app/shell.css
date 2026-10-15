@@ -222,6 +222,10 @@
 }
 
 /* Opções (OG-202) */
+.options-save.error {
+  color: var(--danger);
+}
+
 .options-colors {
   display: flex;
   flex-wrap: wrap;

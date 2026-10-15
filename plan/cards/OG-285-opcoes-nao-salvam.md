@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -32,7 +32,9 @@ Como jogador, quero que o que eu mudo nas opções continue lá quando volto à 
 ## Critérios de aceite
 - [ ] (PO) Escolher a cor favorita, sair e voltar às Opções (e recarregar a página): a escolha continua.
 - [ ] (PO) Criar mensagens rápidas, sair e voltar (e recarregar; e entrar em outro navegador com a mesma conta): continuam.
-- [ ] Testes de `FavoriteColors`/`moveColor` e do `PrefsSync` (envio no desmontar, aba antiga não sobrescreve).
+- [x] Testes de `preferColor`/`moveColor` e da ida e volta das opções (o `PrefsSync` não tem teste de componente: sem ambiente de DOM nos testes do web).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Cor: clique/Enter/espaço chamam `preferColor` (vira a primeira); dica sob o campo. Ctrl+setas seguem.
+- Mensagens: causa não reproduzida (o PO confere). Fechadas as três brechas: evento `storage` sincroniza abas; envio pendente sai no `pagehide` com `keepalive`; falha da conta aparece em vermelho no aviso sob o título.
+- Aviso de salvamento (`useSaveStatus` em `prefs-sync.tsx`) no subtítulo das Opções, sem botão (aprovado pelo PO).

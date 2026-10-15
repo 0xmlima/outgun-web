@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { completeColors, defaultPrefs, parsePrefs } from '../app/prefs.js';
-import { moveColor, optionsTab } from './options.js';
+import { moveColor, optionsTab, preferColor } from './options.js';
 
 describe('opções do jogador (OG-068)', () => {
   it('favoritas: as 16 cores, sem repetir, as salvas primeiro', () => {
@@ -13,6 +13,20 @@ describe('opções do jogador (OG-068)', () => {
     expect(moveColor([0, 1, 2], 0, 1, false)).toEqual({ colors: [0, 1, 2], selected: 1 });
     expect(moveColor([0, 1, 2], 0, 1, true)).toEqual({ colors: [1, 0, 2], selected: 1 });
     expect(moveColor([0, 1, 2], 0, -1, true)).toEqual({ colors: [0, 1, 2], selected: 0 });
+  });
+
+  it('clicar numa cor a torna a primeira favorita, sem perder as outras (OG-285)', () => {
+    expect(preferColor([0, 1, 2, 3], 2)).toEqual([2, 0, 1, 3]);
+    expect(preferColor([0, 1, 2], 0)).toEqual([0, 1, 2]);
+    expect(preferColor([0, 1, 2], 9)).toEqual([0, 1, 2]);
+  });
+
+  it('cores e mensagens rápidas sobrevivem ao salvar e carregar de novo (OG-285)', () => {
+    const d = defaultPrefs([]);
+    const changed = { ...d, favoriteColors: preferColor(d.favoriteColors, 5), quickMessages: d.quickMessages.map((m, i) => (i === 0 ? 'gg' : m)) };
+    const back = parsePrefs(JSON.parse(JSON.stringify(changed)) as Record<string, unknown>, d);
+    expect(back.favoriteColors[0]).toBe(d.favoriteColors[5]);
+    expect(back.quickMessages[0]).toBe('gg');
   });
 
   it('padrões do client.cfg distribuído e da web (D-05, D-26)', () => {
