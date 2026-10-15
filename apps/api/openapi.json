@@ -1975,6 +1975,7 @@
                               "mode",
                               "ranked",
                               "map",
+                              "mapTitle",
                               "redScore",
                               "blueScore"
                             ],
@@ -2001,6 +2002,9 @@
                                 "type": "boolean"
                               },
                               "map": {
+                                "type": "string"
+                              },
+                              "mapTitle": {
                                 "type": "string"
                               },
                               "redScore": {
@@ -2194,7 +2198,16 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["match", "details", "players", "replayUrl", "milestones"],
+                  "required": [
+                    "match",
+                    "details",
+                    "players",
+                    "replayUrl",
+                    "milestones",
+                    "format",
+                    "gameNo",
+                    "series"
+                  ],
                   "properties": {
                     "match": {
                       "allOf": [
@@ -2206,6 +2219,7 @@
                             "mode",
                             "ranked",
                             "map",
+                            "mapTitle",
                             "redScore",
                             "blueScore"
                           ],
@@ -2232,6 +2246,9 @@
                               "type": "boolean"
                             },
                             "map": {
+                              "type": "string"
+                            },
+                            "mapTitle": {
                               "type": "string"
                             },
                             "redScore": {
@@ -2370,6 +2387,343 @@
                           },
                           "milestone": {
                             "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "format": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["3x3"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["4x4"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["5x5"]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "gameNo": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "series": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "format",
+                            "bestOf",
+                            "games",
+                            "redWins",
+                            "blueWins",
+                            "winner",
+                            "finished",
+                            "startedAt",
+                            "matches"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "format": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": ["3x3"]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": ["4x4"]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": ["5x5"]
+                                }
+                              ]
+                            },
+                            "bestOf": {
+                              "anyOf": [
+                                {
+                                  "type": "number",
+                                  "enum": [1]
+                                },
+                                {
+                                  "type": "number",
+                                  "enum": [3]
+                                },
+                                {
+                                  "type": "number",
+                                  "enum": [5]
+                                }
+                              ]
+                            },
+                            "games": {
+                              "type": "integer"
+                            },
+                            "redWins": {
+                              "type": "integer"
+                            },
+                            "blueWins": {
+                              "type": "integer"
+                            },
+                            "winner": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "number",
+                                  "enum": [0]
+                                },
+                                {
+                                  "type": "number",
+                                  "enum": [1]
+                                }
+                              ]
+                            },
+                            "finished": {
+                              "type": "boolean"
+                            },
+                            "startedAt": {
+                              "type": "string"
+                            },
+                            "matches": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "gameNo",
+                                  "mapTitle",
+                                  "redScore",
+                                  "blueScore",
+                                  "endedAt"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "gameNo": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "integer"
+                                      }
+                                    ]
+                                  },
+                                  "mapTitle": {
+                                    "type": "string"
+                                  },
+                                  "redScore": {
+                                    "type": "integer"
+                                  },
+                                  "blueScore": {
+                                    "type": "integer"
+                                  },
+                                  "endedAt": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/series/{id}": {
+      "get": {
+        "summary": "Série Ranked: formato, placar, vencedor e os relatórios de cada jogo (OG-257)",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["series"],
+                  "properties": {
+                    "series": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "format",
+                        "bestOf",
+                        "games",
+                        "redWins",
+                        "blueWins",
+                        "winner",
+                        "finished",
+                        "startedAt",
+                        "matches"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "format": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["3x3"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["4x4"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["5x5"]
+                            }
+                          ]
+                        },
+                        "bestOf": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "enum": [1]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [3]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [5]
+                            }
+                          ]
+                        },
+                        "games": {
+                          "type": "integer"
+                        },
+                        "redWins": {
+                          "type": "integer"
+                        },
+                        "blueWins": {
+                          "type": "integer"
+                        },
+                        "winner": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "number",
+                              "enum": [0]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [1]
+                            }
+                          ]
+                        },
+                        "finished": {
+                          "type": "boolean"
+                        },
+                        "startedAt": {
+                          "type": "string"
+                        },
+                        "matches": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "gameNo",
+                              "mapTitle",
+                              "redScore",
+                              "blueScore",
+                              "endedAt"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "gameNo": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "mapTitle": {
+                                "type": "string"
+                              },
+                              "redScore": {
+                                "type": "integer"
+                              },
+                              "blueScore": {
+                                "type": "integer"
+                              },
+                              "endedAt": {
+                                "type": "string"
+                              }
+                            }
                           }
                         }
                       }
