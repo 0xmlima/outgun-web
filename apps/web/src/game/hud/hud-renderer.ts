@@ -109,6 +109,26 @@ export interface HudState {
   readonly changeTeams: boolean;
   /** Votou para sair do mapa (F8): "EXIT MAP" piscando, ou cinza se o voto ainda não vale. */
   readonly mapExit: 'on' | 'delayed' | null;
+  /**
+   * Overlay da pausa do Ranked (OG-264, RN-UI-05): caixa única no centro da área de jogo, só com o
+   * jogo pausado; fora da pausa nada muda. `options` = voto do bot substituto (clicável).
+   */
+  readonly pause?: {
+    title: string;
+    detail: string;
+    options: { label: string; chosen: boolean; bot: boolean }[] | null;
+    footer: string;
+    hint: string | null;
+  } | null;
+}
+
+/** Área clicável de uma opção do voto, em pixels da tela do HUD. */
+export interface VoteTarget {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  bot: boolean;
 }
 
 const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
@@ -123,6 +143,8 @@ export class HudRenderer {
   private readonly list: DrawList;
   private readonly minimapSprite = new Sprite();
   private minimapKey = '';
+  /** Opções do voto desenhadas no último `render` (para o clique). */
+  voteTargets: VoteTarget[] = [];
   private minimapTexture: Texture | null = null;
 
   constructor(
@@ -252,6 +274,7 @@ export class HudRenderer {
     }
 
     this.drawChat(s);
+    this.drawPause(s);
 
     if (s.notResponding) {
       // `m_notResponding`: caixa no meio da tela
@@ -265,6 +288,39 @@ export class HudRenderer {
       lines.forEach((l, i) => this.text(l, x + 10, y + 4 + i * (fh + 4) + (i ? 6 : 0), this.c(i ? 'menu_value' : 'menu_caption')));
     }
     this.list.end();
+  }
+
+  /** Overlay da pausa (OG-264): mesma caixa e cores do "Server not responding", no centro da área de jogo. */
+  private drawPause(s: HudState): void {
+    this.voteTargets = [];
+    const p = s.pause;
+    if (!p) return;
+    const L = s.screen;
+    const fh = this.font.height;
+    const lineH = fh + 4;
+    const body = [p.detail, ...(p.options?.map((o) => o.label) ?? []), p.hint ?? '', p.footer].filter((l) => l !== '');
+    const w = Math.max(this.font.width(p.title), ...body.map((l) => this.font.width(l))) + 20;
+    const h = (body.length + 1) * lineH + 12;
+    const cx = L.playfield.x + Math.trunc(scaleBy(L.mul, ROOM_WIDTH) / 2);
+    const cy = L.playfield.y + Math.trunc(scaleBy(L.mul, ROOM_HEIGHT) / 2);
+    const x = cx - Math.trunc(w / 2);
+    const y = cy - Math.trunc(h / 2);
+    this.rect(x, y, x + w, y + h, this.c('menu_background'));
+    this.rect(x, y, x + w, y + fh + 6, this.c('menu_caption_bg'));
+    this.text(p.title, cx, y + 4, this.c('menu_caption'), { centre: true });
+    let ly = y + 4 + lineH + 6;
+    const line = (text: string, col: string) => {
+      this.text(text, x + 10, ly, col);
+      ly += lineH;
+    };
+    if (p.detail) line(p.detail, this.c('menu_value'));
+    for (const o of p.options ?? []) {
+      if (o.chosen) this.rect(x + 6, ly - 2, x + w - 6, ly + fh + 1, this.c('menu_caption_bg'));
+      this.voteTargets.push({ x0: x + 6, y0: ly - 2, x1: x + w - 6, y1: ly + fh + 1, bot: o.bot });
+      line(o.label, this.c(o.chosen ? 'menu_caption' : 'menu_value'));
+    }
+    if (p.hint) line(p.hint, this.c('menu_caption'));
+    line(p.footer, this.c('menu_value'));
   }
 
   /** `draw_bar`: legenda, valor e a barra em três faixas de 100. */

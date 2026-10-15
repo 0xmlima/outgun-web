@@ -521,6 +521,7 @@ export class Room {
     out.push(teamStatsMessage(0, this.world.teams[0]), teamStatsMessage(1, this.world.teams[1])); // `send_team_stats`
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
     out.push(message('flagModes', this.sim.flagModes())); // `send_flag_modes` na entrada
+    if (this.pause) out.push(this.pauseStateMessage()); // quem entra ou volta vê a pausa e o saldo (OG-264)
     return out;
   }
 
@@ -1134,8 +1135,16 @@ export class Room {
 
   /** `pauseState` para todos quando algo visível muda (fase, segundos, saldo). */
   private sendPauseState(): void {
-    const pause = this.pause;
-    if (!pause) return;
+    if (!this.pause) return;
+    const msg = this.pauseStateMessage();
+    const key = JSON.stringify(msg);
+    if (key === this.sentPause) return;
+    this.sentPause = key;
+    this.broadcast(msg);
+  }
+
+  private pauseStateMessage(): AnyMessage {
+    const pause = this.pause!;
     const cause = pause.cause;
     const state = {
       phase: pause.phase,
@@ -1150,10 +1159,7 @@ export class Room {
       votesBot: pause.tally()[0],
       votesShort: pause.tally()[1],
     } as const;
-    const key = JSON.stringify(state);
-    if (key === this.sentPause) return;
-    this.sentPause = key;
-    this.broadcast(message('pauseState', state));
+    return message('pauseState', state);
   }
 
   /** Anúncio "x/y votos para trocar de mapa" e o fim do bloqueio de votação. */

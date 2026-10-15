@@ -33,6 +33,8 @@ export class OnlineHud {
   mapExitDelayed = false;
   /** Voto num mapa da lista F2 (−1 = nenhum, `map_vote`). */
   mapVote = -1;
+  /** Meu voto do bot substituto (OG-264) e de quem é a vaga votada (o voto vale para um voto só). */
+  private subVote: { pid: number; bot: boolean } | null = null;
   /** Onde cada bandeira carregada foi vista por último (portador na tela). */
   private readonly flagSeen = new Map<string, WorldCoords>();
   private deadAfterHighlighted = true;
@@ -57,6 +59,49 @@ export class OnlineHud {
       captureLimit: w.captureLimit,
       timeLimit: Math.trunc(w.timeLimit / 600),
       mapCount: s.mapList.length,
+    };
+  }
+
+  /** Posso votar no voto do bot substituto aberto agora (sou do time desfalcado). */
+  canVote(): boolean {
+    const p = this.session.pause;
+    return p !== null && p.phase === 'paused' && p.reason === 'vote' && this.context().teamOf(this.session.me) === p.team;
+  }
+
+  /** Voto do bot substituto (OG-264): manda e lembra para destacar a opção; null se não há voto para mim. */
+  vote(bot: boolean): ReturnType<typeof message<'substituteVote'>> | null {
+    const p = this.session.pause;
+    if (!p || !this.canVote()) return null;
+    this.subVote = { pid: p.by, bot };
+    return message('substituteVote', { bot });
+  }
+
+  /** Overlay da pausa do Ranked (OG-264, RN-UI-05): textos prontos; null sem pausa. */
+  private pauseOverlay(): NonNullable<HudState['pause']> | null {
+    const p = this.session.pause;
+    if (!p || p.phase === 'none') return null;
+    const t = this.t;
+    const ctx = this.context();
+    const team = (n: number) => t(n === 0 ? 'Red' : 'Blue');
+    const name = p.by >= 0 ? ctx.name(p.by) : '';
+    const footer = t('Pause left - Red: $1 s ($2) Blue: $3 s ($4)', String(p.redSeconds), String(p.redRequests), String(p.blueSeconds), String(p.blueRequests));
+    if (p.phase === 'resuming') return { title: t('Resuming in $1', String(p.seconds)), detail: '', options: null, footer, hint: null };
+    if (p.reason === 'team') {
+      const mine = ctx.teamOf(this.session.me) === p.team;
+      return { title: t('PAUSED'), detail: t('Pause requested by $1 ($2) - $3 s left', name, team(p.team), String(p.seconds)), options: null, footer, hint: mine ? t('P resumes') : null };
+    }
+    if (p.reason === 'drop') return { title: t('$1 lost connection', name), detail: t('Waiting for reconnection: $1 s', String(p.seconds)), options: null, footer, hint: null };
+    if (!this.canVote()) return { title: t('$1 left the game', name), detail: t('$1 team is voting: $2 s', team(p.team), String(p.seconds)), options: null, footer, hint: null };
+    const mine = this.subVote?.pid === p.by ? this.subVote.bot : null;
+    return {
+      title: t('$1 left the game', name),
+      detail: t('Team vote: $1 s', String(p.seconds)),
+      options: [
+        { label: t('[1] Bot in place ($1)', String(p.votesBot)), chosen: mine === true, bot: true },
+        { label: t('[2] Play one short ($1)', String(p.votesShort)), chosen: mine === false, bot: false },
+      ],
+      footer,
+      hint: null,
     };
   }
 
@@ -269,6 +314,7 @@ export class OnlineHud {
       highlightRooms: (opts.rooms.visibleX > 1 || opts.rooms.visibleY > 1 || this.graphics.scroll) && this.graphics.boxVisibleArea,
       changeTeams: this.wantChangeTeams,
       mapExit: this.wantMapExit ? (this.mapExitDelayed ? 'delayed' : 'on') : null,
+      pause: this.pauseOverlay(),
     };
   }
 }

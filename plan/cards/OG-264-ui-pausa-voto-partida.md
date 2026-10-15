@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S20 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-265](OG-265-protecao-visual-hud.md), [OG-260](OG-260-pausa-tatica.md), [OG-262](OG-262-voto-bot-substituto.md) |
 | Regras de negócio | RN-UI-05, RN-RKL-15 a RN-RKL-19 |
 | Skills | `outgun-card-workflow` |
