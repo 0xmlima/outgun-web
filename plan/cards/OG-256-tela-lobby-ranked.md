@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S18 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-253](OG-253-times-lobby-clas.md), [OG-254](OG-254-voto-pronto-contagem.md), [OG-255](OG-255-lista-salas-ranked-cliente.md) |
 | Regras de negócio | RN-RKL-07 a RN-RKL-12, RN-UI-01 |
 | Skills | `outgun-card-workflow` |
