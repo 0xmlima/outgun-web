@@ -4,7 +4,8 @@
 // pontos de score para aparecer e desempate por score.
 import { and, desc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
-import { formatRatings, playerProfiles, ratings, seasons, seasonStandings } from './db/schema.js';
+import { clanLeaderboard } from './clan-stats.js';
+import { formatRatings, playerProfiles, ratings, seasonChampions, seasons, seasonStandings } from './db/schema.js';
 
 /** `minimum_positive_score_for_ranking` do original: abaixo disso, fora do leaderboard. */
 export const MINIMUM_SCORE = 100;
@@ -139,6 +140,34 @@ export async function snapshotStandings(tx: Tx, seasonId: number): Promise<void>
       r.score, r.neg, r.matches
     FROM ratings r JOIN users u ON u.id = r.user_id
     WHERE r.season_id = ${seasonId} AND r.score >= ${MINIMUM_SCORE}`);
+  await snapshotChampions(tx, seasonId);
+}
+
+/**
+ * Hall da fama (OG-268, RN-RKL-24): os 3 primeiros da classificação final, de cada formato (mesma
+ * ordem e mínimo do leaderboard) e dos clãs, com os nomes de agora. Regravado com a classificação.
+ */
+async function snapshotChampions(tx: Tx, seasonId: number): Promise<void> {
+  await tx.delete(seasonChampions).where(eq(seasonChampions.seasonId, seasonId));
+  await tx.execute(sql`
+    INSERT INTO season_champions (season_id, board, position, user_id, name, value)
+    SELECT s.season_id, 'overall', s.position, s.user_id, u.username, (s.score + 1) / (s.neg + 1)
+    FROM season_standings s JOIN users u ON u.id = s.user_id
+    WHERE s.season_id = ${seasonId} AND s.position <= 3`);
+  await tx.execute(sql`
+    INSERT INTO season_champions (season_id, board, position, user_id, name, value)
+    SELECT season_id, format::text, position, user_id, username, rating FROM (
+      SELECT f.season_id, f.format, f.user_id, u.username, (f.score + 1) / (f.neg + 1) AS rating,
+        row_number() OVER (PARTITION BY f.format ORDER BY (f.score + 1) / (f.neg + 1) DESC, f.score DESC, u.username_key) AS position
+      FROM format_ratings f JOIN users u ON u.id = f.user_id
+      WHERE f.season_id = ${seasonId} AND f.score >= ${MINIMUM_SCORE}
+    ) t WHERE position <= 3`);
+  const clans = await clanLeaderboard(tx, seasonId, 3, 0);
+  if (clans.entries.length > 0) {
+    await tx.insert(seasonChampions).values(
+      clans.entries.map((c) => ({ seasonId, board: 'clans' as const, position: c.position, clanId: c.clanId, name: c.tag, clanName: c.name, value: c.points })),
+    );
+  }
 }
 
 /**

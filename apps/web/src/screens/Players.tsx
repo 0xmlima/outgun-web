@@ -226,6 +226,9 @@ export function LeaderboardScreen() {
         <Button variant="ghost" onClick={() => void navigate('/players')}>
           {t('Players')}
         </Button>
+        <Button variant="ghost" onClick={() => void navigate('/hall-da-fama')}>
+          {t('Hall of fame')}
+        </Button>
       </p>
     </Page>
   );

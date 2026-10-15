@@ -5,6 +5,8 @@
 import { sql, type SQL } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+
 export interface Period {
   /** Partidas que terminaram em [from, to); sem limites = todas. */
   from?: Date;
@@ -116,6 +118,7 @@ export const CLAN_MINIMUM_MATCHES = 3;
 
 export type ClanStanding = {
   position: number;
+  clanId: string;
   tag: string;
   name: string;
   matches: number;
@@ -131,7 +134,7 @@ export type ClanStanding = {
  * Ranking de clãs na temporada `seasonId` (pela temporada da partida) ou no geral (todas): vitória 3,
  * empate 1, desempate por saldo de capturas e depois pela tag; mínimo de 3 partidas.
  */
-export async function clanLeaderboard(db: Db, seasonId: number | null, limit: number, offset: number): Promise<{ total: number; entries: ClanStanding[] }> {
+export async function clanLeaderboard(db: Db | Tx, seasonId: number | null, limit: number, offset: number): Promise<{ total: number; entries: ClanStanding[] }> {
   const scope = seasonId === null ? sql`true` : sql`m.season_id = ${seasonId}`;
   const board = sql`
     WITH sides AS (
@@ -139,7 +142,7 @@ export async function clanLeaderboard(db: Db, seasonId: number | null, limit: nu
       UNION ALL
       SELECT m.blue_clan_id, m.blue_score, m.red_score FROM matches m WHERE m.clan_war AND ${scope}
     )
-    SELECT c.tag, c.name, c.tag_key, count(*)::int AS matches,
+    SELECT c.id AS "clanId", c.tag, c.name, c.tag_key, count(*)::int AS matches,
       count(*) FILTER (WHERE gf > ga)::int AS wins,
       count(*) FILTER (WHERE gf = ga)::int AS draws,
       count(*) FILTER (WHERE gf < ga)::int AS losses,

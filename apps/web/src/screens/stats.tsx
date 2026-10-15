@@ -34,6 +34,8 @@ export interface Profile {
   favoriteColors: number[];
   lastMatchAt: string | null;
   milestones: { id: string; achievedAt: string; matchId: string | null }[];
+  /** Pódios no hall da fama (OG-268). */
+  titles?: { season: string; board: string; position: number }[];
 }
 
 export interface MatchSummary {

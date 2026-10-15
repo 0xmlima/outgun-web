@@ -2,10 +2,10 @@
 // Leaderboard e temporadas (OG-084, D-02): consulta indexada no PostgreSQL (D-24). Temporadas
 // encerradas leem a classificação final; o ranking geral soma todas as temporadas (OG-267). Com
 // `format`, o rating daquele formato (OG-258, D-42); sem ele, o geral, que soma os três.
-import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
-import { formatRatings, ratings, seasons, seasonStandings, users } from '../db/schema.js';
+import { clans, formatRatings, ratings, seasonChampions, seasons, seasonStandings, users, type ChampionBoard } from '../db/schema.js';
 import { activeSeason, formatRatingExpr, MINIMUM_SCORE, ratingExpr } from '../ranking.js';
 import { CLAN_MINIMUM_MATCHES, clanLeaderboard } from '../clan-stats.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
@@ -22,6 +22,17 @@ const ClanEntry = Type.Object({
   points: Type.Integer(),
   captureDiff: Type.Integer(),
 });
+const Champion = Type.Object({
+  position: Type.Integer(),
+  /** Nome do jogador ou tag do clã, como era no fim da temporada. */
+  name: Type.String(),
+  clanName: Type.Union([Type.String(), Type.Null()]),
+  /** Tag atual do clã (link); null se o clã foi apagado ou é um jogador. */
+  clanTag: Type.Union([Type.String(), Type.Null()]),
+  /** Rating (jogadores) ou pontos (clãs). */
+  value: Type.Number(),
+});
+const Champions = Type.Array(Champion);
 const Entry = Type.Object({
   position: Type.Integer(),
   userId: Type.String(),
@@ -190,6 +201,45 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         }
         const board = await clanLeaderboard(db, out?.id ?? null, limit, offset);
         return { season: out, minimumMatches: CLAN_MINIMUM_MATCHES, ...board };
+      },
+    );
+
+    app.get(
+      '/hall-of-fame',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: 'Hall da fama (OG-268, RN-RKL-24): os 3 primeiros de cada temporada encerrada no geral, em cada formato e entre os clãs',
+          response: {
+            200: Type.Object({
+              seasons: Type.Array(
+                Type.Object({
+                  id: Type.Integer(),
+                  name: Type.String(),
+                  endsAt: Type.Union([Type.String(), Type.Null()]),
+                  boards: Type.Object({ overall: Champions, '3x3': Champions, '4x4': Champions, '5x5': Champions, clans: Champions }),
+                }),
+              ),
+            }),
+          },
+        },
+      },
+      async () => {
+        const closed = await db.select().from(seasons).where(eq(seasons.active, false)).orderBy(desc(seasons.startsAt));
+        const rows = await db
+          .select({ c: seasonChampions, tag: clans.tag })
+          .from(seasonChampions)
+          .leftJoin(clans, eq(clans.id, seasonChampions.clanId))
+          .orderBy(asc(seasonChampions.board), asc(seasonChampions.position));
+        return {
+          seasons: closed.map((season) => {
+            const boards: Record<ChampionBoard, Static<typeof Champions>> = { overall: [], '3x3': [], '4x4': [], '5x5': [], clans: [] };
+            for (const { c, tag } of rows) {
+              if (c.seasonId === season.id) boards[c.board].push({ position: c.position, name: c.name, clanName: c.clanName, clanTag: tag, value: c.value });
+            }
+            return { id: season.id, name: season.name, endsAt: season.endsAt?.toISOString() ?? null, boards };
+          }),
+        };
       },
     );
   };

@@ -10,7 +10,8 @@ import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { clanMembers, clanRequests, clans, playerReports, seasons, users, type ClanRole } from '../db/schema.js';
+import { clanMembers, clanRequests, clans, playerReports, seasonChampions, seasons, users, type ClanRole } from '../db/schema.js';
+import { Title, titlesWhere } from './players.js';
 import { clanMembersStats, clanOpponents, clanWarTotals } from '../clan-stats.js';
 import { nameBlocked } from '../name-filter.js';
 import { likePrefix } from './social.js';
@@ -32,6 +33,8 @@ const ClanSchema = Type.Object({
   description: Type.String(),
   createdAt: Type.String(),
   members: Type.Array(Type.Object({ username: Type.String(), role: RoleSchema, joinedAt: Type.String() })),
+  /** Pódios no hall da fama (OG-268). */
+  titles: Type.Array(Title),
 });
 const WarSchema = Type.Object({
   matches: Type.Integer(),
@@ -222,6 +225,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       description: clan.description,
       createdAt: clan.createdAt.toISOString(),
       members: members.map((m) => ({ username: m.username, role: m.role, joinedAt: m.joinedAt.toISOString() })),
+      titles: await titlesWhere(db, eq(seasonChampions.clanId, clan.id)),
     };
   }
 

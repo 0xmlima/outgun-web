@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S19 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-267](OG-267-temporadas-mensais.md), [OG-274](OG-274-ranking-clas.md) |
 | Regras de negócio | RN-RKL-24 |
 | Skills | `outgun-card-workflow` |
@@ -21,8 +21,10 @@ Como jogador, quero ver os campeões de cada temporada, para que quem se destaco
 - Gerado a partir da classificação final guardada pelo OG-267 (não recalcula).
 
 ## Critérios de aceite
-- [ ] Temporada com menos de 3 classificados mostra só os que houver.
-- [ ] Design system v2, URL estável.
+- [x] Temporada com menos de 3 classificados mostra só os que houver.
+- [x] Design system v2, URL estável.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Migration 0025 `season_champions`: gravada por `snapshotStandings` na virada (e regravada se chegar partida atrasada), com os nomes da época; conta apagada sai do hall, clã apagado fica sem link. Temporadas encerradas antes desta migration não têm hall (no beta não há nenhuma).
+- `GET /hall-of-fame`; `titles` em `/players/:name` e `/clans/:tag`. Página `/hall-da-fama` com link no fim de `/ranking` (não pus no topo para não mexer na barra).
+- Selos: "Campeão/2º lugar/3º lugar <quadro> · <temporada>"; usei "·" no lugar de "—" (os textos são só Latin-1).

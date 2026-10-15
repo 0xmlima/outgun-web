@@ -14,6 +14,7 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
+import { TitleBadges } from './HallOfFame.js';
 import { useManifestLists } from './options.js';
 import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
 
@@ -133,6 +134,7 @@ export function ProfileScreen() {
             {t('rating')} {p.ranking.rating.toFixed(2)} · {t('score')} {Math.trunc(p.ranking.score)} · {t('neg')} {p.ranking.neg}
           </span>
         )}
+        <TitleBadges titles={p.titles ?? []} />
         <Link to="/ranking">{t('Ranking')}</Link>
         <Link to="/players">{t('Players')}</Link>
         {owner && <Link to="/account">{t('Profile privacy')}</Link>}

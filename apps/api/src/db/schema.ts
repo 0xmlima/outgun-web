@@ -268,6 +268,26 @@ export const formatRatings = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.seasonId, t.format] }), index('format_ratings_board_idx').on(t.seasonId, t.format)],
 );
 
+/** Hall da fama (OG-268): os 3 primeiros de cada temporada encerrada no geral, por formato e dos clãs. */
+export const CHAMPION_BOARDS = ['overall', '3x3', '4x4', '5x5', 'clans'] as const;
+export type ChampionBoard = (typeof CHAMPION_BOARDS)[number];
+export const seasonChampions = pgTable(
+  'season_champions',
+  {
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id, { onDelete: 'cascade' }),
+    board: text('board').$type<ChampionBoard>().notNull(),
+    position: smallint('position').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    clanId: uuid('clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    clanName: text('clan_name'),
+    value: doublePrecision('value').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.seasonId, t.board, t.position] })],
+);
+
 export const ratingDeltas = pgTable(
   'rating_deltas',
   {
@@ -609,6 +629,7 @@ export const allTables = {
   match_players: matchPlayers,
   ratings,
   format_ratings: formatRatings,
+  season_champions: seasonChampions,
   rating_deltas: ratingDeltas,
   player_pairs: playerPairs,
   player_daily: playerDaily,

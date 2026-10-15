@@ -3,10 +3,10 @@
 // (Ranked e Casual, RN-MOD-05) e a partida com o conteúdo do `save_stats` do original. O Ranked pode
 // ser filtrado por formato (OG-258, RN-RKL-13): partidas sem formato só entram em "Todos".
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, desc, eq, gte, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, users } from '../db/schema.js';
+import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
@@ -55,6 +55,8 @@ const SeriesView = Type.Object({
   startedAt: Type.String(),
   matches: Type.Array(Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String() })),
 });
+/** Pódio no hall da fama (OG-268): temporada, quadro (geral, formato ou clãs) e posição. */
+export const Title = Type.Object({ season: Type.String(), board: Type.String(), position: Type.Integer() });
 const ClanRef = Type.Object({ tag: Type.String(), name: Type.String() });
 const PlayerLine = Type.Object({
   slot: Type.Integer(),
@@ -77,6 +79,7 @@ const stat = (key: string) => sql<number>`coalesce(sum((${matchPlayers.stats} ->
 
 export function playerRoutes({ database }: AppDeps, { sessions }: Services): FastifyPluginAsyncTypebox {
   const { db } = database;
+  const titles = (where: SQL) => titlesWhere(db, where);
   return async (app) => {
     app.get(
       '/players/:name',
@@ -99,6 +102,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               lastMatchAt: Type.Union([Type.String(), Type.Null()]),
               /** Marcos conquistados (OG-213); a partida some se o histórico estiver escondido. */
               milestones: Type.Array(Type.Object({ id: Type.String(), achievedAt: Type.String(), matchId: Type.Union([Type.String(), Type.Null()]) })),
+              /** Pódios no hall da fama (OG-268), da temporada mais recente para a mais antiga. */
+              titles: Type.Array(Title),
             }),
             404: ErrorSchema,
           },
@@ -155,6 +160,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           favoriteColors: profile?.favoriteColors ?? [],
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
           milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
+          titles: await titles(eq(seasonChampions.userId, user.id)),
         };
       },
     );
@@ -346,4 +352,14 @@ function summary(m: typeof matches.$inferSelect) {
   const title = m.details['mapTitle'];
   const mapTitle = typeof title === 'string' && title.trim() ? title.trim() : m.map;
   return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, format: m.format, clanWar: m.clanWar, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
+}
+
+/** Pódios do hall da fama que casam com `where` (conta ou clã), da temporada mais recente para a mais antiga. */
+export async function titlesWhere(db: AppDeps['database']['db'], where: SQL | undefined) {
+  return db
+    .select({ season: seasons.name, board: seasonChampions.board, position: seasonChampions.position })
+    .from(seasonChampions)
+    .innerJoin(seasons, eq(seasons.id, seasonChampions.seasonId))
+    .where(where)
+    .orderBy(desc(seasons.startsAt), asc(seasonChampions.position), asc(seasonChampions.board));
 }

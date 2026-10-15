@@ -1801,6 +1801,248 @@
         }
       }
     },
+    "/hall-of-fame": {
+      "get": {
+        "summary": "Hall da fama (OG-268, RN-RKL-24): os 3 primeiros de cada temporada encerrada no geral, em cada formato e entre os clãs",
+        "tags": ["ranking"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["seasons"],
+                  "properties": {
+                    "seasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "name", "endsAt", "boards"],
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "endsAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "boards": {
+                            "type": "object",
+                            "required": ["overall", "3x3", "4x4", "5x5", "clans"],
+                            "properties": {
+                              "overall": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": ["position", "name", "clanName", "clanTag", "value"],
+                                  "properties": {
+                                    "position": {
+                                      "type": "integer"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "clanName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "clanTag": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  }
+                                }
+                              },
+                              "3x3": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": ["position", "name", "clanName", "clanTag", "value"],
+                                  "properties": {
+                                    "position": {
+                                      "type": "integer"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "clanName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "clanTag": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  }
+                                }
+                              },
+                              "4x4": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": ["position", "name", "clanName", "clanTag", "value"],
+                                  "properties": {
+                                    "position": {
+                                      "type": "integer"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "clanName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "clanTag": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  }
+                                }
+                              },
+                              "5x5": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": ["position", "name", "clanName", "clanTag", "value"],
+                                  "properties": {
+                                    "position": {
+                                      "type": "integer"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "clanName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "clanTag": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  }
+                                }
+                              },
+                              "clans": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": ["position", "name", "clanName", "clanTag", "value"],
+                                  "properties": {
+                                    "position": {
+                                      "type": "integer"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "clanName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "clanTag": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/players/{name}": {
       "get": {
         "summary": "Perfil público: nome, clã, posição no ranking e estatísticas por modo",
@@ -1851,7 +2093,8 @@
                     "totals",
                     "favoriteColors",
                     "lastMatchAt",
-                    "milestones"
+                    "milestones",
+                    "titles"
                   ],
                   "properties": {
                     "user": {
@@ -2094,6 +2337,24 @@
                                 "type": "null"
                               }
                             ]
+                          }
+                        }
+                      }
+                    },
+                    "titles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["season", "board", "position"],
+                        "properties": {
+                          "season": {
+                            "type": "string"
+                          },
+                          "board": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "integer"
                           }
                         }
                       }
@@ -3738,7 +3999,7 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
                       "properties": {
                         "name": {
                           "type": "string"
@@ -3779,6 +4040,24 @@
                               },
                               "joinedAt": {
                                 "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["season", "board", "position"],
+                            "properties": {
+                              "season": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
                               }
                             }
                           }
@@ -3877,7 +4156,7 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
                       "properties": {
                         "name": {
                           "type": "string"
@@ -3918,6 +4197,24 @@
                               },
                               "joinedAt": {
                                 "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["season", "board", "position"],
+                            "properties": {
+                              "season": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
                               }
                             }
                           }
@@ -4000,7 +4297,7 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
                       "properties": {
                         "name": {
                           "type": "string"
@@ -4041,6 +4338,24 @@
                               },
                               "joinedAt": {
                                 "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["season", "board", "position"],
+                            "properties": {
+                              "season": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
                               }
                             }
                           }
@@ -4661,7 +4976,7 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
                       "properties": {
                         "name": {
                           "type": "string"
@@ -4702,6 +5017,24 @@
                               },
                               "joinedAt": {
                                 "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["season", "board", "position"],
+                            "properties": {
+                              "season": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
                               }
                             }
                           }
@@ -4818,7 +5151,7 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members"],
+                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
                       "properties": {
                         "name": {
                           "type": "string"
@@ -4859,6 +5192,24 @@
                               },
                               "joinedAt": {
                                 "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["season", "board", "position"],
+                            "properties": {
+                              "season": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
                               }
                             }
                           }
