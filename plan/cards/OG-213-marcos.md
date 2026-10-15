@@ -33,4 +33,4 @@ Como jogador, quero ganhar marcos ao atingir feitos, para ter objetivos e mostra
 ## Notas de implementação
 - Catálogo e cálculo puros em `packages/content/src/milestones.ts` (12 marcos, ids estáveis); a API grava em `player_milestones` (migration 0015) na transação da partida e `node dist/cli.js milestones` faz o retroativo (ON CONFLICT DO NOTHING). Marcos também no relatório da partida.
 - Kills em bots: o game server passa a mandar `stats.botKills`; partidas antigas não têm o campo (contam todas as kills). Precisão exige ≥ 20 tiros; "Pioneiro" = partida jogada com `BETA=1`.
-- **Lista inicial a validar com o PO.** Rodar o retroativo no beta depois do deploy (`BETA=1`).
+- Lista inicial validada pelo PO em 2026-10-15 (pode crescer depois). A v2 não vai para o servidor do beta (v1).
