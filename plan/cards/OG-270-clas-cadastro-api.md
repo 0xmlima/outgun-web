@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S16 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-CLA-01 a RN-CLA-05, RN-NOM-03 |
 | Skills | `outgun-card-workflow` |

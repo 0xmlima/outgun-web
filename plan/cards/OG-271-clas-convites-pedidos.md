@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S16 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-270](OG-270-clas-cadastro-api.md) |
 | Regras de negócio | RN-CLA-03, RN-CLA-04 |
 | Skills | `outgun-card-workflow` |
@@ -29,4 +29,4 @@ Como admin de um clã, quero convidar jogadores; como jogador, quero pedir para 
 - Tabela `clan_requests` (um registro por clã e jogador, `kind` convite/pedido, `expires_at`) e `users.clan_cooldown_until` (migração 0017). Vencidos ficam invisíveis e são apagados quando o jogador abre outro.
 - Convite a quem já pediu (e vice-versa) é recusado com `request_pending`/`invite_pending`: basta aprovar/aceitar o que existe.
 - Cliente: item "Convites de clã" com contador no menu inicial (só quando há algo a responder) e a tela `/clans/inbox`; a gestão completa fica no OG-272.
-- Pergunta ao PO: a carência vale também para **criar** um clã? Hoje não vale.
+- Carência não vale para criar clã (D-49, decidido pelo PO).
