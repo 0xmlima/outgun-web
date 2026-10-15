@@ -3,7 +3,7 @@
 // maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Ranking da temporada em
 // /ranking no visual v2 (substitui a tela do OG-085).
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
 import { Button } from '../ui/Button.js';
 import { TextField } from '../ui/Field.js';
@@ -66,16 +66,16 @@ export function PlayersScreen() {
             <Status loading={dir.data === undefined} missing={false} error={dir.error} />
           )}
         </Panel>
-        <Panel title={t('Clans')}>
+        <Panel title={t('Clans')} actions={<Link to="/clans">{t('All clans')}</Link>}>
           {dir.data && (
             <Table
               caption={t('Clans')}
               rows={dir.data.clans}
               rowKey={(r) => r.tag}
-              onRowActivate={(r) => setQuery(r.tag)}
+              onRowActivate={(r) => void navigate(`/clans/${encodeURIComponent(r.tag)}`)}
               empty={t('Nobody yet.')}
               columns={[
-                { key: 'tag', header: t('Clan'), cell: (r) => r.tag },
+                { key: 'tag', header: t('Clan'), cell: (r) => <Link to={`/clans/${encodeURIComponent(r.tag)}`}>{r.tag}</Link> },
                 { key: 'members', header: t('Members'), cell: (r) => r.members, align: 'end' },
                 { key: 'active', header: t('Active this week'), cell: (r) => r.activeMembers, align: 'end' },
                 { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },

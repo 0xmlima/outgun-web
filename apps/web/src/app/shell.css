@@ -508,3 +508,10 @@
   white-space: nowrap;
   pointer-events: none;
 }
+
+/* Clãs (OG-272): a descrição guarda as quebras de linha que o líder digitou. */
+.clan-description {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

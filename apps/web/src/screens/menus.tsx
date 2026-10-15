@@ -77,7 +77,12 @@ export function HomeScreen() {
     { label: t('Ranking'), description: t('Season leaderboard'), onActivate: go('/ranking') },
     { label: t('Players'), description: t('Find players and clans'), onActivate: go('/players') },
     ...(user ? [{ label: t('My profile'), description: t('Statistics, milestones and matches'), onActivate: go(`/players/${encodeURIComponent(user.username)}`) }] : []),
-    ...(pending > 0 ? [{ label: t('Clan invites'), aside: <Badge tone="accent">{pending}</Badge>, onActivate: go('/clans/inbox') }] : []),
+    {
+      label: t('Clans'),
+      description: user?.clanTag ? t('Your clan and the clan directory') : t('Create or join a clan'),
+      aside: pending > 0 ? <Badge tone="accent">{pending}</Badge> : undefined,
+      onActivate: go(pending > 0 ? '/clans/inbox' : user?.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans'),
+    },
     { label: t('Replays'), description: t('Watch recorded matches'), onActivate: go('/replays') },
     { label: t('Options'), onActivate: go('/options') },
     { label: t('Help'), onActivate: go('/help') },

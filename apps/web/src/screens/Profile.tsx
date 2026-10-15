@@ -274,7 +274,7 @@ export function ProfileScreen() {
         <Panel title={t('Teammates')}>{s?.hidden ? privateNote : <MateTable caption={t('Teammates')} rows={s?.companions ?? []} />}</Panel>
         <Panel title={t('Rivals')}>{s?.hidden ? privateNote : <MateTable caption={t('Rivals')} rows={s?.rivals ?? []} />}</Panel>
         {s?.clan && (
-          <Panel title={`${t('Clan')} · ${s.clan.tag}`}>
+          <Panel title={`${t('Clan')} · ${s.clan.tag}`} actions={<Link to={`/clans/${encodeURIComponent(s.clan.tag)}`}>{t('Clan page')}</Link>}>
             <ul className="profile-clan">
               {s.clan.members.map((m) => (
                 <li key={m}>

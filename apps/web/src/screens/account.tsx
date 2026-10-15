@@ -17,7 +17,7 @@ import { Panel } from '../ui/Panel.js';
 const MIN_PASSWORD = 8;
 
 /** Campo ao qual a mensagem se refere (fica junto dele); sem campo, vai no pé do formulário. */
-type Field = 'invite' | 'username' | 'email' | 'password' | 'confirm' | 'current' | 'clanTag';
+type Field = 'invite' | 'username' | 'email' | 'password' | 'confirm' | 'current';
 type Message = { readonly text: string; readonly error: boolean; readonly field?: Field } | null;
 
 /** Campo de cada erro da API. */
@@ -340,7 +340,7 @@ export function AccountScreen() {
   const items: MenuListItem[] = [
     { label: t('My profile'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) },
     { label: t('Change name'), aside: user.username, onActivate: () => void navigate('/account/username') },
-    { label: t('Clan tag'), aside: user.clanTag ?? '—', onActivate: () => void navigate('/account/clan-tag') },
+    { label: t('Clan'), aside: user.clanTag ?? '—', onActivate: () => void navigate(user.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans') },
     { label: t('Change password'), onActivate: () => void navigate('/account/password') },
     { label: t('Export my data'), onActivate: () => void run(downloadExport) },
     {
@@ -549,22 +549,5 @@ export function ChangeUsernameScreen() {
       <TextField label={t('New name')} value={username} onChange={setUsername} maxLength={15} autoComplete="off" error={fieldError('username')} />
       <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" error={fieldError('password')} />
     </AccountForm>
-  );
-}
-
-/** Clan tag (OG-082): aparece como "(TAG) nome" no chat. */
-/** A clan tag livre virou clã (OG-270, D-47): aviso até as telas de clã do OG-272. */
-export function ClanTagScreen() {
-  const { t } = usePrefs();
-  const navigate = useNavigate();
-  const { user } = useAccount();
-  if (user === null) return <Navigate to="/login" replace />;
-  return (
-    <Page title={t('Clan tag')} width="narrow" onBack={() => void navigate('/account')} backLabel={t('Back')}>
-      <Panel>
-        <p>{t('The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show a tag as "(TAG) name".')}</p>
-        <p className="ui-muted">{user?.clanTag ? t('Your clan tag: $1', user.clanTag) : t('You are not in a clan.')}</p>
-      </Panel>
-    </Page>
   );
 }

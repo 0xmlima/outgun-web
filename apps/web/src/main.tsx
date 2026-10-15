@@ -12,7 +12,6 @@ import {
   AccountScreen,
   ChangePasswordScreen,
   ChangeUsernameScreen,
-  ClanTagScreen,
   DeleteAccountScreen,
   ForgotPasswordScreen,
   LoginScreen,
@@ -25,7 +24,7 @@ import { LeaderboardScreen, PlayersScreen } from './screens/Players.js';
 import { ProfileScreen } from './screens/Profile.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen } from './screens/options.js';
-import { ClanInboxScreen } from './screens/clans.js';
+import { ClanInboxScreen, ClanScreen, ClansScreen, CreateClanScreen } from './screens/clans.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
 import './ui/tokens.css';
@@ -69,8 +68,11 @@ const router = createBrowserRouter([
           { path: 'account/password', element: <ChangePasswordScreen /> },
           { path: 'account/delete', element: <DeleteAccountScreen /> },
           { path: 'account/username', element: <ChangeUsernameScreen /> },
-          { path: 'account/clan-tag', element: <ClanTagScreen /> },
+          { path: 'account/clan-tag', element: <Navigate to="/clans" replace /> },
+          { path: 'clans', element: <ClansScreen /> },
+          { path: 'clans/new', element: <CreateClanScreen /> },
           { path: 'clans/inbox', element: <ClanInboxScreen /> },
+          { path: 'clans/:tag', element: <ClanScreen /> },
           { path: 'rooms', element: <LobbyScreen /> },
           { path: 'rooms/new', element: <CreateRoomScreen /> },
           { path: 'rooms/:id', element: <JoinRoomScreen /> },
