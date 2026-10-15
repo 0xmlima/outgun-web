@@ -8,8 +8,8 @@
 | Estimativa | 3 pts |
 | Sprint | S17 |
 | Status | Backlog |
-| Dependências | [OG-250](OG-250-formatos-series-ranked.md), [OG-256](OG-256-tela-lobby-ranked.md) |
-| Regras de negócio | RN-RKL-03 |
+| Dependências | [OG-250](OG-250-formatos-series-ranked.md), [OG-256](OG-256-tela-lobby-ranked.md), [OG-265](OG-265-protecao-visual-hud.md) |
+| Regras de negócio | RN-RKL-03, RN-UI-05 |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -21,6 +21,7 @@ Como jogador de uma md3/md5, quero ver o placar da série durante e depois dos j
 
 ## Critérios de aceite
 - [ ] md3 2-1: os três relatórios ligam entre si e mostram o vencedor da série.
+- [ ] `pnpm visual:check` (OG-265) sem diferença fora da área nova do placar da série; conferido numa partida online de verdade, com capturas para o PO.
 
 ## Notas de implementação
 (preenchido durante a execução)
