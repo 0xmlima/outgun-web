@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S17 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-251](OG-251-rotacao-ranked-por-formato.md), [OG-252](OG-252-salas-lobby-ranked.md) |
 | Regras de negócio | RN-RKL-10, RN-RKL-11, RN-RKL-12 |
 | Skills | `outgun-card-workflow` |
