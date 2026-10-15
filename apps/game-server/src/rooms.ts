@@ -6,6 +6,7 @@ import { FixedRateLoop, percentile, realClock, type Clock } from './loop.js';
 import { Room, type RoomOptions } from './room.js';
 import type { RandomMapParams } from './generated-maps.js';
 import type { RankedRoomFormat } from '@outgun/settings';
+import type { LobbyPhase } from './ranked-lobby.js';
 
 export interface RoomSpec {
   id: string;
@@ -69,6 +70,8 @@ export interface HostedRoom {
   map: string;
   /** Jogadores, para o painel admin (OG-087). */
   roster: ReturnType<Room['roster']>;
+  /** Fase do lobby Ranked (OG-252). */
+  phase?: LobbyPhase;
 }
 
 export class RoomManager {
@@ -146,6 +149,7 @@ export class RoomManager {
       players: room.playerCount,
       map: room.world.map.title,
       roster: room.roster(),
+      ...(room.lobby ? { phase: room.lobby.phase } : {}),
     }));
   }
 

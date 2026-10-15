@@ -92,6 +92,11 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 113 | [`playerMute`](#playermute) | servidor → cliente | event | `data_player_mute` | Jogador silenciado/liberado por um admin. |
 | 114 | [`playerKick`](#playerkick) | servidor → cliente | event | `data_player_kick` | Jogador expulso por um admin. |
 | 115 | [`rankingUpdateFailed`](#rankingupdatefailed) | servidor → cliente | event | `data_ranking_update_failed` | Falha ao registrar o resultado no ranking. |
+| 120 | [`lobbyState`](#lobbystate) | servidor → cliente | event | — (web, OG-252) | Estado do lobby da sala Ranked: fase, série, prazo, voto/"Pronto" de cada um e pedidos de troca de lado. |
+| 121 | [`lobbyReady`](#lobbyready) | cliente → servidor | event | — (web, OG-254) | Marca ou desmarca "Pronto" no lobby Ranked. |
+| 122 | [`lobbyVote`](#lobbyvote) | cliente → servidor | event | — (web, OG-254) | Voto de mapa no lobby Ranked (índice na rotação; −1 = nenhum). |
+| 123 | [`lobbySide`](#lobbyside) | cliente → servidor | event | — (web, OG-253) | Troca de lado no lobby: sem alvo, vai para a vaga livre do outro lado; com alvo, pede para trocar com ele. |
+| 124 | [`lobbySwapAnswer`](#lobbyswapanswer) | cliente → servidor | event | — (web, OG-253) | Resposta a um pedido de troca de lado. |
 
 ## Campos
 
@@ -699,6 +704,46 @@ Código 114. Jogador expulso por um admin.
 Código 115. Falha ao registrar o resultado no ranking.
 
 Sem campos.
+
+### lobbyState
+
+Código 120. Estado do lobby da sala Ranked: fase, série, prazo, voto/"Pronto" de cada um e pedidos de troca de lado.
+
+- `phase`: u8 enum: 0 = lobby, 1 = vote, 2 = ready, 3 = countdown, 4 = game, 5 = finished
+- `teamSize`: u8
+- `bestOf`: u8
+- `gameNo`: u8
+- `seriesRed`: u8
+- `seriesBlue`: u8
+- `seconds`: u16
+- `chosenMap`: i16
+- `members`: lista (até 32) de membro do lobby
+- `swaps`: lista (até 32) de pedido de troca de lado
+
+### lobbyReady
+
+Código 121. Marca ou desmarca "Pronto" no lobby Ranked.
+
+- `ready`: bool (u8 0/1)
+
+### lobbyVote
+
+Código 122. Voto de mapa no lobby Ranked (índice na rotação; −1 = nenhum).
+
+- `map`: i16
+
+### lobbySide
+
+Código 123. Troca de lado no lobby: sem alvo, vai para a vaga livre do outro lado; com alvo, pede para trocar com ele.
+
+- `target`: pid (u8, 255 = nenhum)
+
+### lobbySwapAnswer
+
+Código 124. Resposta a um pedido de troca de lado.
+
+- `from`: pid (u8, 0..31)
+- `accept`: bool (u8 0/1)
 
 ## Mensagens do original que não existem aqui
 

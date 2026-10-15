@@ -28,6 +28,9 @@ const tstz = (name: string) => timestamp(name, { withTimezone: true });
 
 export const gameMode = pgEnum('game_mode', ['casual', 'ranked']);
 export type GameMode = (typeof gameMode.enumValues)[number];
+/** Fases do lobby das salas Ranked com formato (OG-252). */
+export const LOBBY_PHASES = ['lobby', 'vote', 'ready', 'countdown', 'game', 'finished'] as const;
+export type LobbyPhase = (typeof LOBBY_PHASES)[number];
 /** Formato do Ranked (OG-250, RN-RKL-01). */
 export const rankedFormat = pgEnum('ranked_format', ['3x3', '4x4', '5x5']);
 
@@ -135,6 +138,8 @@ export const rooms = pgTable('rooms', {
   /** Formato e série da sala Ranked (OG-250); nulos nas salas sem formato. */
   format: rankedFormat('format'),
   bestOf: smallint('best_of'),
+  /** Fase do lobby Ranked, do último heartbeat (OG-252); nula nas outras salas. */
+  phase: text('phase').$type<LobbyPhase>(),
   createdAt: tstz('created_at').notNull().defaultNow(),
 }, (t) => [index('rooms_server_idx').on(t.serverId)]);
 

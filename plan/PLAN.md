@@ -683,7 +683,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
 | [OG-250](cards/OG-250-formatos-series-ranked.md) | Formatos 3x3/4x4/5x5 e séries md1/md3/md5 no Ranked | E12 | 5 | Must | S17 | — | Em revisão |
 | [OG-251](cards/OG-251-rotacao-ranked-por-formato.md) | Rotação de mapas do Ranked por formato no painel admin | E12 | 3 | Must | S17 | OG-250 | Em revisão |
-| [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S17 | OG-250 | Pronto |
+| [OG-252](cards/OG-252-salas-lobby-ranked.md) | Salas de lobby Ranked: criar, listar e entrar (com senha opcional) | E12 | 5 | Must | S17 | OG-250 | Em revisão |
 | [OG-253](cards/OG-253-times-lobby-clas.md) | Times no lobby: clãs do mesmo lado e troca de lado | E12 | 3 | Must | S17 | OG-252 | Pronto |
 | [OG-254](cards/OG-254-voto-pronto-contagem.md) | Voto de mapa, "Pronto" e contagem de 5 s | E12 | 5 | Must | S17 | OG-251, OG-252 | Pronto |
 | [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S18 | OG-252 | Backlog |

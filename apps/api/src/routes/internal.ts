@@ -2,7 +2,7 @@
 // Rotas dos game servers (PLAN 5.4): heartbeat das salas e resultado das partidas. Toda chamada é
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
 import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TOptional, type TString } from '@fastify/type-provider-typebox';
-import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
@@ -12,7 +12,7 @@ import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
-import { ErrorSchema, GameModeSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
+import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 
 const Heartbeat = Type.Object({
   server: Type.Object({
@@ -35,6 +35,8 @@ const Heartbeat = Type.Object({
       players: Type.Integer({ minimum: 0, maximum: 32 }),
       map: Type.String({ maxLength: 64 }),
       wsUrl: Type.String({ pattern: '^wss?://', maxLength: 200 }),
+      /** Fase do lobby das salas Ranked com formato (OG-252). */
+      phase: Type.Optional(LobbyPhaseSchema),
       /** Jogadores na sala (painel admin, OG-087). */
       roster: Type.Optional(
         Type.Array(
@@ -278,10 +280,11 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
                 map: r.map,
                 lastHeartbeatAt: now,
                 roster: r.roster ?? [],
+                phase: r.phase ?? null,
               })
               .onConflictDoUpdate({
                 target: rooms.id,
-                set: { serverId, wsUrl: r.wsUrl, players: r.players, map: r.map, lastHeartbeatAt: now, roster: r.roster ?? [] },
+                set: { serverId, wsUrl: r.wsUrl, players: r.players, map: r.map, lastHeartbeatAt: now, roster: r.roster ?? [], phase: r.phase ?? null },
               });
           }
           // Salas que este servidor encerrou saem do ar na hora (o último heartbeat recua para fora
@@ -297,6 +300,10 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           await tx
             .delete(rooms)
             .where(and(eq(rooms.persistent, false), or(lt(rooms.lastHeartbeatAt, old), and(isNull(rooms.lastHeartbeatAt), lt(rooms.createdAt, old)))));
+          // Sala de lobby Ranked que o servidor fechou (série acabada ou lobby vazio) não reabre (OG-252)
+          await tx
+            .delete(rooms)
+            .where(and(eq(rooms.serverId, serverId), eq(rooms.persistent, false), isNotNull(rooms.format), lt(rooms.lastHeartbeatAt, new Date(now.getTime() - ONLINE_MS + 1))));
         });
         await applyAcks(database.db, serverId, request.body.acks ?? [], now);
         const commands = await takeCommands(database.db, serverId, now);

@@ -134,6 +134,11 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
       async (request, reply) => {
         const [room] = await db.select().from(rooms).where(eq(rooms.id, request.params.id));
         if (!room) return reply.code(404).send({ error: 'room_not_found', message: 'room not found' });
+        // lobby Ranked (OG-252): conta antes da senha; com o jogo em andamento ou a série no fim, ninguém entra (D-43)
+        if (room.mode === 'ranked' && !(await sessions.current(request))) return reply.code(401).send({ error: 'account_required', message: 'ranked rooms require an account' });
+        if (room.format && roomOnline(room) && (room.phase === 'game' || room.phase === 'finished')) {
+          return reply.code(409).send({ error: 'room_in_game', message: 'the match is in progress' });
+        }
         if (room.passwordHash) {
           if (!(await rateLimit.allow(`join:${request.ip}:${room.id}`, deps.config.limits.joinPasswordPerMinute, MINUTE))) {
             return reply.code(429).send({ error: 'rate_limited', message: 'too many attempts, try later' });
@@ -166,7 +171,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           .select({ room: rooms, region: gameServers.region })
           .from(rooms)
           .leftJoin(gameServers, eq(gameServers.id, rooms.serverId))
-          .where(and(eq(rooms.mode, mode), isNull(rooms.passwordHash)))
+          .where(and(eq(rooms.mode, mode), isNull(rooms.passwordHash), isNull(rooms.format))) // salas de lobby Ranked: pela lista (RN-RKL-05)
           .orderBy(desc(rooms.players), rooms.id);
         const now = Date.now();
         const canSpawn = deps.config.devRoomWsUrl !== undefined || (await onlineServers(db, now)).length > 0;

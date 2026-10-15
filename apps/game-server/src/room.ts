@@ -14,6 +14,7 @@ import { BotClient, type BotHost } from './bot-client.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
+import { RankedLobby, type LobbyEvent } from './ranked-lobby.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
@@ -242,6 +243,11 @@ export class Room {
   /** Início da partida atual (relógio de parede) e quantas partidas a sala já teve. */
   private matchStartedAt: number;
   private matchCount = 0;
+  /** Lobby das salas Ranked com formato (OG-252): fora do jogo o mundo fica parado. */
+  readonly lobby: RankedLobby | undefined;
+  private lobbyDirty = false;
+  /** Pedidos de troca de lado no lobby (OG-253): quem pediu → com quem. */
+  private readonly swapRequests = new Map<number, number>();
   /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
   private series: { no: number; score: SeriesScore } | undefined;
   private deltaCount = 0;
@@ -307,6 +313,10 @@ export class Room {
       ...(options.randomSlots?.[i] ? { random: options.randomSlots[i] } : {}),
     }));
     this.mapIndex = first;
+    if (options.ranked) {
+      const lobbyRng = new GlibcRand(options.seed + 3);
+      this.lobby = new RankedLobby(options.maxPlayers, this.rotation.length, (n) => lobbyRng.rand() % n);
+    }
     this.world = new WorldState((this.rotation[first] as { map: GameMap }).map, options.maxPlayers);
     this.sim = new ServerSim(this.world, this.settings, rng, {
       kill: (attacker, target, cause, carried, carrierDefended, flagDefended) => {
@@ -385,6 +395,10 @@ export class Room {
     if (this.mode === 'ranked' && identity.accountId === null) return { ok: false, reason: 'rankedNeedsAccount', text: 'Salas Ranked exigem login.' };
     if (!opts.bot && this.isBanned(identity)) return { ok: false, reason: 'banned', text: 'Banido desta sala.' };
     if (opts.bot && this.mode === 'ranked') return { ok: false, reason: 'roomClosed', text: 'Bots são proibidos no Ranked (D-11).' };
+    // lobby Ranked (OG-252, D-43): em jogo ou com a série acabada ninguém entra; entre jogos, se houver vaga
+    if (this.lobby && !this.lobby.acceptsJoins) {
+      return this.lobby.members.size >= this.lobby.capacity ? { ok: false, reason: 'serverFull', text: 'Sala cheia.' } : { ok: false, reason: 'roomClosed', text: 'Partida em andamento.' };
+    }
     if (this.clients.size >= this.world.maxPlayers) {
       const bot = opts.bot ? -1 : botToRemove(this.slots(), this.world.maxPlayers);
       if (bot === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
@@ -433,6 +447,11 @@ export class Room {
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
     if (identity.rating) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
+    if (this.lobby) {
+      this.lobby.join(pid, this.world.frame);
+      this.lobbyDirty = true;
+      return { ok: true, pid };
+    }
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
     if (this.clients.size === 2) {
       this.sim.returnAllFlags();
@@ -492,6 +511,8 @@ export class Room {
     const c = this.clients.get(pid);
     if (!c || c.conn !== conn) return;
     if (c.bot || this.reconnectFrames === 0 || c.kickTimer > 0) return this.leave(pid);
+    // no lobby Ranked a vaga não fica guardada: quem cai fora do jogo libera a vaga (OG-252)
+    if (this.lobby && !this.lobby.playing) return this.leave(pid);
     c.conn = OFFLINE;
     c.disconnectedFrame = this.world.frame;
     const pl = this.world.players[pid] as PlayerState;
@@ -542,6 +563,11 @@ export class Room {
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
+    if (this.lobby) {
+      this.lobby.leave(pid, this.world.frame);
+      this.dropSwapRequests(pid);
+      this.lobbyDirty = true;
+    }
     this.broadcast(message('playerLeft', { pid }));
     this.checkBotsPending = true;
     this.checkTeamChanges();
@@ -690,6 +716,7 @@ export class Room {
     for (const viewers of this.rocketViewers)
       if (viewers?.delete(from)) viewers.add(to);
     this.settle(to);
+    this.lobbyMoved([[from, to]]);
     this.broadcast(message('teamChange', { from, to, color: c.color, swappedColor: 255 }));
   }
 
@@ -711,6 +738,7 @@ export class Room {
     }
     this.settle(a);
     this.settle(b);
+    this.lobbyMoved([[a, b], [b, a]]);
     this.broadcast(message('teamChange', { from: a, to: b, color: ca.color, swappedColor: cb.color }));
   }
 
@@ -728,7 +756,7 @@ export class Room {
   /** `balance_teams` e `shuffle_teams` a cada mapa (RN-TIM-03). */
   private balanceTeams(): void {
     const mode = this.settings.world.balanceTeams;
-    if (mode === 'no') return;
+    if (mode === 'no' || this.lobby) return; // no lobby Ranked os lados são escolhidos no lobby (OG-253)
     for (const { from, to } of balanceMoves(this.slots(), this.world.maxPlayers, this.sim.rng)) this.movePlayer(from, to);
     if (mode === 'shuffle') for (const [a, b] of shuffleSwaps(this.slots(), this.world.maxPlayers, this.sim.rng)) this.swapPlayers(a, b);
   }
@@ -785,7 +813,20 @@ export class Room {
           if (m.text.length > MAX_CHAT_LENGTH || [...m.text].some((ch) => ch < ' ' || ch === '\x7f')) return this.kick(pid, 'chat inválido');
           this.chat(pid, m.text);
           break;
+        case 'lobbyReady':
+          if (this.lobby?.setReady(pid, m.ready, this.world.frame)) this.lobbyDirty = true;
+          break;
+        case 'lobbyVote':
+          if (this.lobby?.vote(pid, m.map, this.world.frame)) this.lobbyDirty = true;
+          break;
+        case 'lobbySide':
+          this.lobbySide(pid, m.target);
+          break;
+        case 'lobbySwapAnswer':
+          this.lobbySwapAnswer(pid, m.from, m.accept);
+          break;
         case 'changeTeam':
+          if (this.lobby) break; // no lobby Ranked a troca de lado é pelo `lobbySide` (OG-253)
           if (!m.on) client.wantChangeTeams = false;
           else if (!client.wantChangeTeams) {
             client.wantChangeTeams = true;
@@ -863,11 +904,17 @@ export class Room {
         this.finished = true;
         return;
       }
-      this.sim.startGame();
-      this.broadcast(message('startGame', {}), this.mapTimeMessage());
-      this.startRecording();
+      if (this.lobby && !this.lobby.playing) {
+        // fim de um jogo da série: o placar já foi mostrado; a sala volta ao lobby ou fecha (D-41)
+        if (this.lobby.phase === 'finished') this.finished = true;
+      } else {
+        this.sim.startGame();
+        this.broadcast(message('startGame', {}), this.mapTimeMessage());
+        this.startRecording();
+      }
     }
-    const running = this.gameOverUntil === null;
+    if (this.lobby) this.lobbyTick();
+    const running = this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
       for (const c of this.clients.values()) c.talk.cool(); // `simulatePlayerPrePhysics`
@@ -1231,6 +1278,7 @@ export class Room {
     // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar (e no fim do replay)
     this.broadcast(...endOfGameMessages([...this.clients.keys()].map((pid) => this.world.players[pid] as PlayerState), [this.world.teams[0], this.world.teams[1]]));
     this.report(result);
+    if (this.lobby) return this.lobbyGameOver(reason);
     this.nextMap(reason);
   }
 
@@ -1343,6 +1391,110 @@ export class Room {
     );
   }
 
+  // --- lobby Ranked (OG-252..254) ---
+
+  /** Eventos do lobby e o estado para os jogadores quando algo mudou. */
+  private lobbyTick(): void {
+    const lobby = this.lobby!;
+    for (const e of lobby.tick(this.world.frame)) {
+      this.lobbyDirty = true;
+      if (e.type === 'phase' && e.phase === 'vote') this.applyLobbyRotation();
+      else if (e.type === 'start') this.startLobbyGame(e.map);
+      else if (e.type === 'kick') {
+        // não marcou "Pronto" a tempo: sai e a vaga reabre (RN-RKL-21)
+        for (const pid of e.pids) {
+          const c = this.clients.get(pid);
+          if (!c) continue;
+          c.conn.send(encodeFrame(message('text', { kind: 'server', from: 255, text: 'Você não marcou "Pronto" a tempo e saiu da sala.' }), message('disconnecting', { reason: 'kick', seconds: 0 })));
+          c.conn.close(4000, 'notReady');
+          this.leave(pid);
+        }
+      }
+    }
+    if (this.lobbyDirty) {
+      this.lobbyDirty = false;
+      this.broadcast(this.lobbyStateMessage());
+    }
+  }
+
+  private lobbyStateMessage(): AnyMessage {
+    const lobby = this.lobby!;
+    const score = this.series?.score;
+    return message('lobbyState', {
+      phase: lobby.phase,
+      teamSize: lobby.capacity / 2,
+      bestOf: score?.bestOf ?? 1,
+      gameNo: score ? Math.min(score.bestOf, score.games + (lobby.phase === 'finished' ? 0 : 1)) : 1,
+      seriesRed: score?.wins[0] ?? 0,
+      seriesBlue: score?.wins[1] ?? 0,
+      seconds: lobby.secondsLeft(this.world.frame),
+      chosenMap: lobby.chosenMap,
+      members: [...lobby.members].map(([pid, m]) => ({ pid, ready: m.ready, vote: m.vote })),
+      swaps: [...this.swapRequests].map(([from, to]) => ({ from, to })),
+    });
+  }
+
+  /** Rotação nova do painel entra no começo do voto (os votos são índices nela, OG-251). */
+  private applyLobbyRotation(): void {
+    if (!this.pendingRotation) return;
+    this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
+    this.pendingRotation = null;
+    this.lobby!.setMapCount(this.rotation.length);
+    this.broadcast(this.mapListMessage());
+  }
+
+  /** Fim da contagem: o mapa votado carrega e o jogo começa para todos juntos (RN-RKL-11). */
+  private startLobbyGame(map: number): void {
+    this.swapRequests.clear();
+    this.nextMap('vote', map);
+    this.gameOverUntil = this.world.frame + 1;
+  }
+
+  /** Fim de um jogo da série: placar na tela e volta ao lobby (ou fim da série, D-41). */
+  private lobbyGameOver(reason: GameOverReason): void {
+    this.flushDeltas();
+    this.lobby!.gameEnded(this.series ? seriesOver(this.series.score) : true, this.world.frame);
+    this.gameOverUntil = this.world.frame + Math.round(this.settings.server.gameEndDelay * 10);
+    this.broadcast(message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }));
+    this.lobbyDirty = true;
+  }
+
+  /** Lado trocado: o lobby segue o jogador e os pedidos de troca envolvidos caem. */
+  private lobbyMoved(moves: [number, number][]): void {
+    if (!this.lobby) return;
+    for (const [from] of moves) this.dropSwapRequests(from);
+    this.lobby.moved(moves, this.world.frame);
+    this.lobbyDirty = true;
+  }
+
+  private dropSwapRequests(pid: number): void {
+    for (const [from, to] of [...this.swapRequests]) if (from === pid || to === pid) this.swapRequests.delete(from);
+  }
+
+  /** Trocar de lado no lobby (RN-RKL-09): vaga livre do outro lado ou pedido a um jogador de lá. */
+  private lobbySide(pid: number, target: number): void {
+    const lobby = this.lobby;
+    if (!lobby || lobby.playing || lobby.phase === 'finished') return;
+    const other = 1 - this.world.teamOf(pid);
+    if (target === 255) {
+      const slot = freeSlot(this.slots(), this.world.maxPlayers, other);
+      if (slot !== -1) this.movePlayer(pid, slot);
+      return;
+    }
+    if (!this.clients.has(target) || this.world.teamOf(target) !== other) return;
+    // os dois pediram: troca na hora
+    if (this.swapRequests.get(target) === pid) return this.swapPlayers(pid, target);
+    this.swapRequests.set(pid, target);
+    this.lobbyDirty = true;
+  }
+
+  private lobbySwapAnswer(pid: number, from: number, accept: boolean): void {
+    if (!this.lobby || this.swapRequests.get(from) !== pid) return;
+    this.swapRequests.delete(from);
+    this.lobbyDirty = true;
+    if (accept && !this.lobby.playing && this.world.teamOf(from) !== this.world.teamOf(pid)) this.swapPlayers(from, pid);
+  }
+
   /** Formato e placar da série em andamento (OG-250); undefined fora das salas com formato. */
   get rankedSeries(): (RankedRoomFormat & { no: number; score: SeriesScore }) | undefined {
     return this.options.ranked && this.series ? { ...this.options.ranked, ...this.series } : undefined;
@@ -1407,7 +1559,7 @@ export class Room {
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
   private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
     this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
-    if (this.pendingRotation) {
+    if (this.pendingRotation && !this.lobby) {
       // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados
       this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
       this.pendingRotation = null;
