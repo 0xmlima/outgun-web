@@ -38,8 +38,6 @@ const only = process.argv.includes('--only')
 const RESOLUTIONS = [
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1920x1080', width: 1920, height: 1080 },
-  // só o tamanho: ligar toque no meio recarrega a página (e o jogador sairia da partida)
-  { name: '360x640', width: 360, height: 640 },
 ];
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -69,6 +67,15 @@ function start(cmd, args, env, name) {
   return child;
 }
 
+// porta ocupada (ex.: processo de uma rodada interrompida) faria o teste falar com o servidor antigo
+for (const port of [GS_PORT, WEB_PORT]) {
+  const busy = await fetch(`http://localhost:${port}/`).then(
+    () => true,
+    () => false,
+  );
+  if (busy)
+    throw new Error(`porta ${port} ocupada: encerre o processo que ficou de uma rodada anterior`);
+}
 for (const f of ['apps/game-server/dist/main.js', 'apps/web/dist/index.html']) {
   if (!existsSync(repo + f)) throw new Error(`falta ${f}: rode \`pnpm build\``);
 }
@@ -104,13 +111,12 @@ const children = [
     'game-server',
   ),
   start(
-    'pnpm',
+    // o vite direto (sem pnpm no meio): o SIGKILL do fim não deixa processo órfão
+    process.execPath,
     [
-      '--filter',
-      '@outgun/web',
-      'exec',
-      'vite',
+      'apps/web/node_modules/vite/bin/vite.js',
       'preview',
+      'apps/web',
       '--port',
       String(WEB_PORT),
       '--strictPort',
@@ -121,7 +127,8 @@ const children = [
     'web',
   ),
 ];
-const stop = () => children.forEach((c) => c.exitCode === null && c.kill());
+// SIGKILL: no SIGTERM o game server drena por até DRAIN_TIMEOUT_S e segura a porta
+const stop = () => children.forEach((c) => c.exitCode === null && c.kill('SIGKILL'));
 process.on('exit', stop);
 process.on('SIGINT', () => process.exit(130));
 
@@ -173,24 +180,29 @@ try {
   }
 
   const ready = (page) => page.waitForSelector('.game[data-status=ready]', { timeout: 30_000 });
-  // o time de quem entra sozinho é sorteado pelo RNG da sala, que já andou alguns frames: a Ana entra
-  // de novo (página nova, sem rastro no chat) até cair no vermelho, antes de a Bia chegar
-  let ana;
-  for (let tries = 0; ; tries++) {
-    ana = await open('Ana', `/play?server=${encodeURIComponent(SERVER)}&name=Ana`);
-    await ready(ana);
-    await ana.waitForFunction(() => document.querySelector('[data-me]')?.dataset.me, {
-      timeout: 15_000,
-    });
-    if (
-      (await ana.evaluate(() => document.querySelector('[data-me]').dataset.me.split(',')[6])) ===
-      '0'
-    )
-      break;
-    if (tries === 10) throw new Error('a Ana não caiu no time vermelho em 10 tentativas');
-    await browsers.pop().close();
-    await wait(1500);
-  }
+  // o time de quem entra sozinho é sorteado pelo RNG da sala, que já andou alguns frames: se a Ana
+  // cair no azul, troca de time (Ctrl+End) enquanto está sozinha. Onde ela renasce também é sorteado:
+  // por isso o interior do minimapa é máscara (tools/visual/areas.json).
+  const team = () =>
+    ana.evaluate(() => document.querySelector('[data-me]')?.dataset.me?.split(',')[6]);
+  const ana = await open('Ana', `/play?server=${encodeURIComponent(SERVER)}&name=Ana`);
+  await ready(ana);
+  await ana.waitForFunction(() => document.querySelector('[data-me]')?.dataset.me, {
+    timeout: 15_000,
+  });
+  await wait(1500);
+  // sempre termina com uma troca para o vermelho: a última linha do chat fica igual em toda rodada
+  const switchTo = async (want) => {
+    for (let tries = 0; (await team()) !== want; tries++) {
+      if (tries === 5) throw new Error(`a Ana não conseguiu trocar para o time ${want}`);
+      await ana.keyboard.down('Control');
+      await ana.keyboard.press('End');
+      await ana.keyboard.up('Control');
+      await wait(3000);
+    }
+  };
+  if ((await team()) === '0') await switchTo('1');
+  await switchTo('0');
   await wait(3000); // renasceu
   const bia = await open('Bia', `/play?server=${encodeURIComponent(SERVER)}&name=Bia`);
   await ready(bia);

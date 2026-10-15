@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S18 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -26,14 +26,16 @@ Como PO, quero que qualquer mudança na UI da partida seja comparada com a tela 
 - Comparação: falha se qualquer pixel fora das áreas declaradas como "novas" pelo card mudar (tolerância só para antialiasing); gera imagem de diferença.
 
 ## Critérios de aceite
-- [ ] Referências geradas a partir da `v2` atual, sem nenhuma mudança de UI.
-- [ ] Rodar duas vezes seguidas sem mudança dá diferença zero (capturas determinísticas).
-- [ ] Uma mudança proposital de 1 px na posição do placar é detectada.
-- [ ] Documentado em `DEVELOPMENT.md` (`pnpm visual:check`, `pnpm visual:update`).
+- [x] Referências geradas a partir da `v2` atual, sem nenhuma mudança de UI.
+- [x] Rodar duas vezes seguidas sem mudança dá diferença zero (capturas determinísticas).
+- [x] Uma mudança proposital de 1 px na posição do placar é detectada.
+- [x] Documentado em `DEVELOPMENT.md` (`pnpm visual:check`, `pnpm visual:update`).
 
 ## Notas técnicas
 - Ocultar ou congelar o que varia (ping, FPS, relógio) só por máscara declarada, nunca mudando o HUD.
 
 ## Notas de implementação
-- Pronto: `tools/visual-compare/hud-check.mjs` (`pnpm visual:check` / `visual:update`), 2 jogadores (um navegador cada: aba oculta para de desenhar e o cliente cai), 8 estados × 3 resoluções, comparação dentro do Chrome com imagem de diferença e caixa do que mudou; `SEED` no game server; `__outgunVisualCheck` esconde mapa e naves (o HUD fica igual); vida/energia travadas em 100 por gamemod.
-- **Pendente:** capturas ainda não repetíveis — o time de quem entra sozinho sai de `sim.rng` (`room.ts:679`) e o lugar onde nasce também, o que muda cores, ordem do placar e pontos do minimapa. Trocar com Ctrl+End funciona, mas renasce em lugar sorteado. Sem referências versionadas até resolver (ex.: máscara nos pontos do minimapa ou entrar pelo lobby Ranked do OG-256, que fixa os lados).
+- `tools/visual-compare/hud-check.mjs` (`pnpm visual:check` / `visual:update`): um navegador por jogador (aba oculta para de desenhar e o cliente cai), comparação dentro do Chrome com imagem de diferença e caixa do que mudou; `SEED` no game server; `__outgunVisualCheck` esconde mapa e naves; vida/energia travadas em 100 por gamemod; a Ana termina sempre com uma troca para o vermelho (o time inicial é sorteado).
+- Máscaras (`tools/visual/areas.json`): relógio, FPS, cursor do chat e interior do minimapa (o lugar onde se nasce é sorteado). Só desktop (1280×720 e 1920×1080, D-50).
+- Causa das variações iniciais: no SIGTERM o game server drena por até 240 s e segurava a porta — a rodada seguinte falava com o servidor antigo. Agora SIGKILL e recusa de porta ocupada.
+- Resultado: 7 de 8 rodadas seguidas com diferença zero (a que falhou foi antes da última correção e não se repetiu). Placar movido 1 px: detectado em 12 das 16 capturas (as outras não mostram o placar).

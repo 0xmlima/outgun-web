@@ -1,4 +1,19 @@
 {
-  "masks": {},
+  "//": "OG-265. masks: regiões que variam a cada rodada (relógio, FPS, cursor do chat que pisca e o interior do minimapa, onde o lugar em que se nasce é sorteado). areas: o que o card em andamento declara como novo; volta a {} no fim do card. Caixas [x, y, largura, altura] por padrão de nome de captura.",
+  "masks": {
+    "*-1280x720": [
+      [1200, 698, 80, 22],
+      [800, 660, 80, 24],
+      [896, 6, 349, 262]
+    ],
+    "*-1920x1080": [
+      [1840, 1056, 80, 24],
+      [1280, 1020, 80, 26],
+      [1344, 102, 573, 428]
+    ],
+    "sem-minimapa-1280x720": [[1030, 660, 80, 24]],
+    "sem-minimapa-1920x1080": [[1590, 1020, 80, 26]],
+    "chat-aberto-*": [[148, 18, 14, 24]]
+  },
   "areas": {}
 }
