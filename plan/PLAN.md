@@ -671,7 +671,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Pronto |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
 | [OG-207](cards/OG-207-titulo-do-mapa-nas-telas.md) | Título do mapa (e não o nome do arquivo) em todas as telas | E8 | 2 | Must | S18 | — | Em revisão |
-| [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Pronto |
+| [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Em revisão |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Concluído |
 | [OG-212](cards/OG-212-perfil-social.md) | Página de perfil social | E9 | 5 | Must | S15 | OG-200, OG-211 | Concluído |

@@ -22,7 +22,8 @@ const repo = fileURLToPath(new URL('../..', import.meta.url));
 const BASELINE = `${repo}tools/visual/baseline/`;
 const AREAS = `${repo}tools/visual/areas.json`;
 const OUT = `${repo}tools/parity/out/visual/`;
-const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME =
+  process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const GS_PORT = 17750;
 const WEB_PORT = 14273;
 const SERVER = `ws://localhost:${GS_PORT}`;
@@ -31,7 +32,9 @@ const WEB = `http://localhost:${WEB_PORT}`;
 const TOLERANCE = 24;
 
 const update = process.argv.includes('--update');
-const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : '';
+const only = process.argv.includes('--only')
+  ? process.argv[process.argv.indexOf('--only') + 1]
+  : '';
 const RESOLUTIONS = [
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1920x1080', width: 1920, height: 1080 },
@@ -57,7 +60,11 @@ async function up(url, child, name) {
 }
 
 function start(cmd, args, env, name) {
-  const child = spawn(cmd, args, { cwd: repo, env: { ...process.env, ...env }, stdio: ['ignore', 'ignore', 'pipe'] });
+  const child = spawn(cmd, args, {
+    cwd: repo,
+    env: { ...process.env, ...env },
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
   child.stderr.on('data', (d) => process.env.VERBOSE && process.stderr.write(`[${name}] ${d}`));
   return child;
 }
@@ -66,26 +73,53 @@ for (const f of ['apps/game-server/dist/main.js', 'apps/web/dist/index.html']) {
   if (!existsSync(repo + f)) throw new Error(`falta ${f}: rode \`pnpm build\``);
 }
 const children = [
-  start(process.execPath, ['apps/game-server/dist/main.js'], {
-    PORT: String(GS_PORT),
-    HEARTBEAT: '0',
-    DEV_TICKETS: '1',
-    ROTATION: 'outgun1',
-    SEED: '1',
-    REPLAYS: '0',
-    CASUAL_BOTS_FILL: '0',
-    MAX_CONNECTIONS_PER_IP: '0',
-    LOG_LEVEL: 'warn',
-    // 2 minutos de partida e fim de partida longo; sem power-ups (nascem em lugares aleatórios); vida e
-    // energia param em 100 (a regeneração acima disso mudaria os números a cada captura)
-    GAMEMOD: [
-      'pups_min 0', 'pups_max 0', 'time_limit 2', 'extra_time 0', 'capture_limit 0', 'game_end_delay 600',
-      'spectating_delay 0', 'idlekick_time 0', 'health_regeneration_100_to_200 0', 'energy_regeneration_100_to_200 0',
-    ].join('|'),
-  }, 'game-server'),
-  start('pnpm', ['--filter', '@outgun/web', 'exec', 'vite', 'preview', '--port', String(WEB_PORT), '--strictPort'], {
-    CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}`,
-  }, 'web'),
+  start(
+    process.execPath,
+    ['apps/game-server/dist/main.js'],
+    {
+      PORT: String(GS_PORT),
+      HEARTBEAT: '0',
+      DEV_TICKETS: '1',
+      ROTATION: 'outgun1',
+      SEED: '1',
+      REPLAYS: '0',
+      CASUAL_BOTS_FILL: '0',
+      MAX_CONNECTIONS_PER_IP: '0',
+      LOG_LEVEL: 'warn',
+      // 2 minutos de partida e fim de partida longo; sem power-ups (nascem em lugares aleatórios); vida e
+      // energia param em 100 (a regeneração acima disso mudaria os números a cada captura)
+      GAMEMOD: [
+        'pups_min 0',
+        'pups_max 0',
+        'time_limit 2',
+        'extra_time 0',
+        'capture_limit 0',
+        'game_end_delay 600',
+        'spectating_delay 0',
+        'idlekick_time 0',
+        'health_regeneration_100_to_200 0',
+        'energy_regeneration_100_to_200 0',
+      ].join('|'),
+    },
+    'game-server',
+  ),
+  start(
+    'pnpm',
+    [
+      '--filter',
+      '@outgun/web',
+      'exec',
+      'vite',
+      'preview',
+      '--port',
+      String(WEB_PORT),
+      '--strictPort',
+    ],
+    {
+      CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}`,
+    },
+    'web',
+  ),
 ];
 const stop = () => children.forEach((c) => c.exitCode === null && c.kill());
 process.on('exit', stop);
@@ -104,7 +138,12 @@ try {
       executablePath: CHROME,
       headless: true,
       // render por software: o mesmo resultado em qualquer máquina
-      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--font-render-hinting=none', '--force-color-profile=srgb'],
+      args: [
+        '--use-angle=swiftshader',
+        '--enable-unsafe-swiftshader',
+        '--font-render-hinting=none',
+        '--force-color-profile=srgb',
+      ],
     });
     browsers.push(browser);
     const [page] = await browser.pages();
@@ -140,8 +179,14 @@ try {
   for (let tries = 0; ; tries++) {
     ana = await open('Ana', `/play?server=${encodeURIComponent(SERVER)}&name=Ana`);
     await ready(ana);
-    await ana.waitForFunction(() => document.querySelector('[data-me]')?.dataset.me, { timeout: 15_000 });
-    if ((await ana.evaluate(() => document.querySelector('[data-me]').dataset.me.split(',')[6])) === '0') break;
+    await ana.waitForFunction(() => document.querySelector('[data-me]')?.dataset.me, {
+      timeout: 15_000,
+    });
+    if (
+      (await ana.evaluate(() => document.querySelector('[data-me]').dataset.me.split(',')[6])) ===
+      '0'
+    )
+      break;
     if (tries === 10) throw new Error('a Ana não caiu no time vermelho em 10 tentativas');
     await browsers.pop().close();
     await wait(1500);
@@ -179,7 +224,10 @@ try {
     await resize(ana, res);
     await shot(ana, 'chat-mensagens', res);
   }
-  const spectator = await open('Espectador', `/spectate?src=${encodeURIComponent(`${SERVER}/rooms/main/spectate`)}`);
+  const spectator = await open(
+    'Espectador',
+    `/spectate?src=${encodeURIComponent(`${SERVER}/rooms/main/spectate`)}`,
+  );
   await spectator.waitForSelector('[data-status=ready]', { timeout: 30_000 });
   await wait(1500);
   for (const res of RESOLUTIONS) {
@@ -204,7 +252,11 @@ try {
 const areas = JSON.parse(readFileSync(AREAS, 'utf8'));
 const regionsFor = (name, key) =>
   Object.entries(areas[key] ?? {})
-    .filter(([pattern]) => new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`).test(name))
+    .filter(([pattern]) =>
+      new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`).test(
+        name,
+      ),
+    )
     .flatMap(([, boxes]) => boxes);
 
 if (update) {
@@ -216,7 +268,12 @@ if (update) {
 
 const cmp = await puppeteer.launch({ executablePath: CHROME, headless: true });
 const page = await cmp.newPage();
-const lines = ['# Comparação visual da UI da partida (OG-265)', '', '| Captura | Pixels diferentes | Resultado |', '|---|---:|---|'];
+const lines = [
+  '# Comparação visual da UI da partida (OG-265)',
+  '',
+  '| Captura | Pixels diferentes | Resultado |',
+  '|---|---:|---|',
+];
 // a coluna "Pixels diferentes" traz a caixa [x, y, largura, altura] do que mudou (para declarar máscaras)
 let failed = 0;
 for (const s of shots) {
@@ -239,18 +296,29 @@ for (const s of shots) {
         c.height = img.height;
         const g = c.getContext('2d', { willReadFrequently: true });
         g.drawImage(img, 0, 0);
-        return { w: img.width, h: img.height, data: g.getImageData(0, 0, img.width, img.height).data, canvas: c, g };
+        return {
+          w: img.width,
+          h: img.height,
+          data: g.getImageData(0, 0, img.width, img.height).data,
+          canvas: c,
+          g,
+        };
       };
       const [x, y] = await Promise.all([load(a), load(b)]);
       if (x.w !== y.w || x.h !== y.h) return { changed: -1, diff: null };
-      const ignored = (px, py) => ignore.some(([ix, iy, iw, ih]) => px >= ix && px < ix + iw && py >= iy && py < iy + ih);
+      const ignored = (px, py) =>
+        ignore.some(([ix, iy, iw, ih]) => px >= ix && px < ix + iw && py >= iy && py < iy + ih);
       const out = x.g.createImageData(x.w, x.h);
       let changed = 0;
       const box = [Infinity, Infinity, -1, -1];
       for (let i = 0; i < x.data.length; i += 4) {
         const px = (i / 4) % x.w;
         const py = Math.floor(i / 4 / x.w);
-        const d = Math.max(Math.abs(x.data[i] - y.data[i]), Math.abs(x.data[i + 1] - y.data[i + 1]), Math.abs(x.data[i + 2] - y.data[i + 2]));
+        const d = Math.max(
+          Math.abs(x.data[i] - y.data[i]),
+          Math.abs(x.data[i + 1] - y.data[i + 1]),
+          Math.abs(x.data[i + 2] - y.data[i + 2]),
+        );
         const skip = ignored(px, py);
         const gray = (x.data[i] + x.data[i + 1] + x.data[i + 2]) / 12;
         if (d > tolerance && !skip) {
@@ -264,7 +332,11 @@ for (const s of shots) {
       }
       x.g.putImageData(out, 0, 0);
       const where = changed ? [box[0], box[1], box[2] - box[0] + 1, box[3] - box[1] + 1] : null;
-      return { changed, where, diff: changed ? x.canvas.toDataURL('image/png').split(',')[1] : null };
+      return {
+        changed,
+        where,
+        diff: changed ? x.canvas.toDataURL('image/png').split(',')[1] : null,
+      };
     },
     readFileSync(ref).toString('base64'),
     s.png.toString('base64'),
@@ -274,12 +346,19 @@ for (const s of shots) {
   if (result.diff) writeFileSync(`${OUT}${s.name}.diff.png`, Buffer.from(result.diff, 'base64'));
   const ok = result.changed === 0;
   if (!ok) failed++;
-  const count = result.changed === -1 ? 'tamanho diferente' : `${result.changed}${result.where ? ` em [${result.where.join(', ')}]` : ''}`;
+  const count =
+    result.changed === -1
+      ? 'tamanho diferente'
+      : `${result.changed}${result.where ? ` em [${result.where.join(', ')}]` : ''}`;
   lines.push(`| ${s.name} | ${count} | ${ok ? 'igual' : 'MUDOU'} |`);
 }
 await cmp.close();
 if (errors.length) lines.push('', `Erros na página: ${errors.join(' | ')}`);
 writeFileSync(`${OUT}relatorio.md`, `${lines.join('\n')}\n`);
 console.log(lines.slice(2).join('\n'));
-console.log(failed ? `\n${failed} captura(s) mudaram: veja tools/parity/out/visual/*.diff.png` : `\n${shots.length} capturas iguais às referências`);
+console.log(
+  failed
+    ? `\n${failed} captura(s) mudaram: veja tools/parity/out/visual/*.diff.png`
+    : `\n${shots.length} capturas iguais às referências`,
+);
 process.exit(failed || errors.length ? 1 : 0);

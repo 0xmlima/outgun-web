@@ -16,6 +16,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { type HistoryEntry, useApi } from './stats.js';
 import { inboxCount, useClanInbox } from './clans.js';
+import { MonthRanking, NowPlaying } from './home-panels.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
 /** Até 5 partidas recentes de quem tem conta, na tela inicial. */
@@ -99,7 +100,11 @@ export function HomeScreen() {
       </section>
       <div className="home-grid">
         <MenuList label={t('Main menu')} items={items} autoFocus className="home-menu" />
-        {user && <RecentMatches username={user.username} />}
+        <div className="home-side">
+          <NowPlaying />
+          <MonthRanking />
+          {user && <RecentMatches username={user.username} />}
+        </div>
       </div>
     </div>
   );
