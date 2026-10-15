@@ -685,7 +685,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-221](cards/OG-221-player-trilha.md) | Trilha sonora no menu e nas partidas | E10 | 3 | Must | S13 | OG-220 | Concluído |
 | [OG-222](cards/OG-222-opcao-trilha.md) | Opção para desligar a trilha sonora | E10 | 2 | Must | S13 | OG-221 | Concluído |
 | [OG-230](cards/OG-230-paridade-referencia.md) | Paridade vira referência: golden traces deixam de bloquear o CI | E11 | 2 | Should | — | — | Backlog |
-| [OG-231](cards/OG-231-cadaver-parado.md) | Corpo do jogador eliminado continua se movendo | E11 | 2 | Must | S21 | — | Backlog |
+| [OG-231](cards/OG-231-cadaver-parado.md) | Corpo do jogador eliminado continua se movendo | E11 | 2 | Must | S21 | — | Em revisão |
 | [OG-232](cards/OG-232-atalhos-navegador-so.md) | Atalhos do navegador e do sistema interrompendo a partida | E11 | 3 | Should | S21 | — | Backlog |
 | [OG-250](cards/OG-250-formatos-series-ranked.md) | Formatos 3x3/4x4/5x5 e séries md1/md3/md5 no Ranked | E12 | 5 | Must | S17 | — | Concluído |
 | [OG-251](cards/OG-251-rotacao-ranked-por-formato.md) | Rotação de mapas do Ranked por formato no painel admin | E12 | 3 | Must | S17 | OG-250 | Concluído |

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -29,8 +29,10 @@ Como jogador, quero que o corpo de quem morreu fique parado onde caiu, para a te
 
 ## Critérios de aceite
 - [ ] (PO) Morte com o jogador em alta velocidade (correndo, empurrado, quicando): o corpo não se move depois da morte, nos três pontos de vista (próprio, adversário, espectador).
-- [ ] Teste automatizado cobrindo o caso (sim ou netcode, conforme a causa).
+- [x] Teste automatizado cobrindo o caso (sim ou netcode, conforme a causa).
 - [ ] `pnpm visual:check` sem diferença.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Causa: a suavização das correções da extrapolação (`session.ts`, `extrapolate`) seguia somando o desvio que sobrava ao jogador já morto; o corpo deslizava até ela acabar. Agora o desvio é descartado quando o jogador está morto, e a velocidade de quem chega morto (frame ao vivo e replay/espectador) é zerada.
+- `packages/sim` não mudou (servidor e extrapolação já não aplicam física a mortos): sem D-NN.
+- `visual:check` não rodado (o PO testa); a mudança não toca no desenho.
