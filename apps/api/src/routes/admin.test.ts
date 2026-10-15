@@ -137,7 +137,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       [2, 'rocket_damage 250'],
     ]);
     expect((await heartbeat()).json().config.presets).toContainEqual({ id: 'sniper', description: 'Sniper: dano alto', overrides: 'rocket_damage 250' });
-    expect((await app.inject('/presets')).json().presets.map((p: { id: string }) => p.id)).toEqual(['classic', 'duel', 'insta', 'chaos', 'festa', 'sniper']);
+    expect((await app.inject('/presets')).json().presets.map((p: { id: string }) => p.id)).toEqual(['classic', 'duel', 'insta', 'chaos', 'carnage', 'festa', 'sniper']);
 
     // sala privada com o preset do painel
     const room = await call('POST', '/rooms', 'player', { name: 'Tiro', preset: 'sniper' });

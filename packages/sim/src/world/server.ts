@@ -66,6 +66,8 @@ export interface ServerHooks {
   powerupAppeared?(index: number): void;
   /** Power-up pego, na sala `pos` (não chamado para o aliado que pega junto). */
   powerupPicked?(index: number, pos: Position): void;
+  /** Portador de deathbringer morreu e explodiu (`sendDeathbringer`, para todos). */
+  deathbringerExploded?(team: number, pos: Position, frame: number): void;
   /** Jogador mudou de sala ou renasceu (`game_player_screen_change`). */
   playerScreenChange?(pid: number): void;
   /** Som para quem está na sala do jogador (`broadcast_screen_sample`). */
@@ -241,7 +243,10 @@ export class ServerSim {
     const t = this.player(target);
     this.scoreNeg(target, 1);
     if (this.dropFlagIfAny(target)) this.scoreNeg(target, 1);
-    if (t.deathbringer) this.world.explosions.push(new DeathbringerExplosion(this.frame, t.pos.clone(), target, t.team));
+    if (t.deathbringer) {
+      this.world.explosions.push(new DeathbringerExplosion(this.frame, t.pos.clone(), target, t.team));
+      this.hooks.deathbringerExploded?.(t.team, t.pos.clone(), this.frame);
+    }
     if (this.settings.powerups.pupsDropAtDeath) this.dropPowerup(t);
     this.resetPlayer(target, t.deathbringer || timePenalty ? this.settings.world.waitingTimeDeathbringer : 0);
   }
@@ -870,6 +875,16 @@ export class ServerSim {
       else it.respawnTime = this.time + this.settings.powerups.pupsRespawnTime;
       if (++count >= realMin) break;
     }
+  }
+
+  /**
+   * Regras de power-up mudaram no meio da partida (`/set pups_*`, `/carnage`, OG-290; sem equivalente
+   * no original): agenda os que faltam e quem já espera não espera mais do que o tempo novo.
+   */
+  powerupSettingsChanged(): void {
+    this.checkPowerupCreation(false);
+    const limit = this.time + this.settings.powerups.pupsRespawnTime;
+    for (const it of this.world.items) if (it.kind === PowerupKind.respawning && it.respawnTime > limit) it.respawnTime = limit;
   }
 
   /** `respawn_powerup`: sala sem jogadores e sem power-ups (com relaxamento) e posição longe de paredes. */

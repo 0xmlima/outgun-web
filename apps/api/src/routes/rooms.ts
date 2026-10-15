@@ -158,6 +158,8 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             maxPlayers: Type.Optional(Type.Integer({ minimum: 2, maximum: 32, multipleOf: 2 })),
             /** Rotação própria (nomes dos mapas); vazia = rotação oficial. */
             maps: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 64, pattern: '^[^/\\\\]+$' }), { maxItems: 32 })),
+            /** Bots da sala (OG-289): quantidade fixa e nível 1–5 (0 = variável); ausente = o do preset. */
+            bots: Type.Optional(Type.Object({ count: Type.Integer({ minimum: 0, maximum: 31 }), level: Type.Integer({ minimum: 0, maximum: 5 }) })),
             region: Type.Optional(Type.String({ pattern: '^[a-z0-9-]{1,32}$' })),
           }),
           response: {
@@ -197,6 +199,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             maxPlayers,
             persistent: false,
             maps: body.maps && body.maps.length > 0 ? body.maps : null,
+            ...(body.bots ? { bots: Math.min(body.bots.count, maxPlayers - 1), botLevel: body.bots.level } : {}),
             ...(server ? { serverId: server.id, wsUrl: `${server.wsBaseUrl.replace(/\/$/, '')}/rooms/${id}` } : {}),
           })
           .returning();

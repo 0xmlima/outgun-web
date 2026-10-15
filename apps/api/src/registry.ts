@@ -47,6 +47,7 @@ export function roomSpawn(room: RoomRow): RoomSpawn {
     persistent: room.persistent,
     ...(room.maps && room.maps.length > 0 ? { maps: room.maps } : {}),
     ...(room.format && isSeriesBestOf(room.bestOf) ? { ranked: { format: room.format, bestOf: room.bestOf } } : {}),
+    ...(room.mode === 'casual' && room.bots !== null && room.botLevel !== null ? { casualBots: { bots: room.bots, level: room.botLevel } } : {}),
   };
 }
 

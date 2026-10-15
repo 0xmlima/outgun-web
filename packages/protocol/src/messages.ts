@@ -895,6 +895,23 @@ export const MESSAGES = {
   substituteVote: msg(128, 'c2s', 'event', '— (web, OG-262)', 'Voto do time desfalcado: bot no lugar (bot) ou seguir com um a menos.', {
     bot: bool,
   }),
+  // --- bots da sala Casual pelo cliente (OG-289, D-51): sem equivalente no original ---
+  casualBots: msg(
+    129,
+    'c2s',
+    'event',
+    '— (web, OG-289)',
+    'Dono da sala privada ou admin: quantidade de bots e nível (1–5; 0 = variável) para a próxima partida; com `restart`, reinicia já.',
+    { bots: u8, level: u8, restart: bool },
+  ),
+  casualConfig: msg(
+    130,
+    's2c',
+    'event',
+    '— (web, OG-289)',
+    'Só para o dono e admins numa sala Casual (a chegada habilita a configuração no cliente): bots e nível em vigor e se há mudança pendente para a próxima partida.',
+    { bots: u8, level: u8, pending: bool },
+  ),
 } as const;
 
 export type MessageName = keyof typeof MESSAGES;

@@ -308,3 +308,31 @@ describe('ficar morto no menu (OG-070)', () => {
     expect(sent.filter((m) => m.type === 'clientReady')).toHaveLength(2);
   });
 });
+
+describe('power-ups do próprio jogador', () => {
+  const inRoom = (n: number, roomX: number, p: FramePlayer) => {
+    const f = frame(n, [p]);
+    f.self = { ...f.self!, roomX };
+    return f;
+  };
+  const visible = (id: number, roomX: number) => message('powerupVisible', { id, kind: 'turbo', roomX, roomY: 0, x: 100, y: 100 });
+
+  it('ao trocar de sala, guarda os itens da sala nova que chegaram antes do frame (OG-286)', () => {
+    const { s } = session();
+    s.handle([visible(0, 0), inRoom(10, 0, player(0, 100, 100))], 1000);
+    expect(s.world!.items[0]!.isReal()).toBe(true);
+    s.handle([visible(1, 1), inRoom(11, 1, player(0, 5, 100))], 1100);
+    expect(s.world!.items[0]!.isReal()).toBe(false); // sala antiga: esquecido
+    expect(s.world!.items[1]!.isReal()).toBe(true);
+  });
+
+  it('perder o item zera o tempo do HUD e a visão do shadow (OG-288)', () => {
+    const { s } = session();
+    const timers = ['turbo', 'power', 'shadow'] as const;
+    s.handle([frame(10, [player(0, 100, 100)])], 1000);
+    s.handle([...timers.map((kind) => message('powerupTimer', { kind, seconds: 40 })), frame(11, [{ ...player(0, 100, 100), turbo: true, power: true, visibility: 7 }])], 1100);
+    expect(s.powerupEnd).toEqual({ turbo: 41, power: 41, shadow: 41 });
+    s.handle([frame(12, [{ ...player(0, 100, 100), dead: true }])], 1200);
+    expect(s.powerupEnd).toEqual({ turbo: 0, power: 0, shadow: 0 });
+  });
+});

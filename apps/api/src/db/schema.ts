@@ -141,6 +141,9 @@ export const rooms = pgTable('rooms', {
   bestOf: smallint('best_of'),
   /** Fase do lobby Ranked, do último heartbeat (OG-252); nula nas outras salas. */
   phase: text('phase').$type<LobbyPhase>(),
+  /** Bots escolhidos pelo dono da sala privada Casual (OG-289): quantidade e nível (0 = variável). */
+  bots: smallint('bots'),
+  botLevel: smallint('bot_level'),
   createdAt: tstz('created_at').notNull().defaultNow(),
 }, (t) => [index('rooms_server_idx').on(t.serverId)]);
 

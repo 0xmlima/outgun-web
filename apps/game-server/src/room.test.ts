@@ -229,6 +229,22 @@ describe('Room: sons da sala (OG-067)', () => {
     expect(code(a.conn)).toEqual([SAMPLES.indexOf('shieldd')]);
     expect(code(b.conn)).toEqual([SAMPLES.indexOf('shieldd')]);
   });
+
+  it('portador de deathbringer morre: explosão para todos, em qualquer sala (OG-287)', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    r.tick();
+    r.tick();
+    const ana = r.world.players[a.pid]!;
+    ana.deathbringer = true;
+    r.sim.killPlayer(a.pid, false);
+    r.tick();
+    for (const conn of [a.conn, b.conn]) {
+      const [db] = conn.of('deathbringer');
+      expect(db).toMatchObject({ team: ana.team === 0 ? 'red' : 'blue', roomX: ana.pos.roomX, roomY: ana.pos.roomY, x: Math.trunc(ana.pos.x), y: Math.trunc(ana.pos.y) });
+    }
+  });
 });
 
 describe('Room: times (OG-044)', () => {

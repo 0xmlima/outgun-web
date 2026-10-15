@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { LOCAL_CONNECT, securityHeaders } from './security-headers.js';
 
@@ -12,9 +13,15 @@ const proxy = {
   },
 };
 
+// versão do jogo (OG-280): a do package.json, que `tools/dev/version.mjs` sobe a cada sprint
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string };
+
 // Os assets convertidos (`pnpm assets`) ficam em public/assets e são servidos como estão.
 export default defineConfig({
   plugins: [react()],
+  define: { __APP_VERSION__: JSON.stringify(version) },
   server: { proxy },
   // o preview serve o build com os cabeçalhos de produção (CSP etc., OG-104); CSP_CONNECT_SRC
   // (separado por espaços) troca as origens locais pelas do ambiente

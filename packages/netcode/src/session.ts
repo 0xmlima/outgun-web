@@ -129,6 +129,8 @@ export class ClientSession {
   weapon = 1;
   /** Fim de cada power-up com tempo do próprio jogador, em s do jogo (`powerupTimer`). */
   readonly powerupEnd = { power: 0, turbo: 0, shadow: 0 };
+  /** Bots da sala Casual em vigor; só chega para o dono e admins, que podem mudá-los (OG-289). */
+  casualConfig: MessageOf<'casualConfig'> | null = null;
   /** Início e fim do mapa em s do jogo (`mapTime`); fim null = sem limite de tempo. */
   mapStart = 0;
   mapEnd: number | null = null;
@@ -349,6 +351,9 @@ export class ClientSession {
         break;
       case 'weaponChange':
         this.weapon = m.level;
+        break;
+      case 'casualConfig':
+        this.casualConfig = m;
         break;
       case 'powerupTimer':
         if (m.kind === 'power' || m.kind === 'turbo' || m.kind === 'shadow') this.powerupEnd[m.kind] = this.gameTime() + m.seconds;
@@ -631,8 +636,10 @@ export class ClientSession {
     const self = m.self;
     const me = this.ensurePlayer(this.me);
     if (self && me) {
-      // `oldRoom`: ao trocar de sala, o servidor manda de novo os power-ups visíveis
-      if (me.pos.roomX !== self.roomX || me.pos.roomY !== self.roomY) for (const it of world.items) it.kind = PowerupKind.unused;
+      // `oldRoom`: ao trocar de sala, esquece os power-ups das outras salas. Os da sala nova chegam
+      // no mesmo pacote, antes do frame (OG-286), e ficam.
+      if (me.pos.roomX !== self.roomX || me.pos.roomY !== self.roomY)
+        for (const it of world.items) if (it.pos.roomX !== self.roomX || it.pos.roomY !== self.roomY) it.kind = PowerupKind.unused;
       me.pos = new Position(self.roomX, self.roomY, self.x, self.y);
       me.vel = new Vec(self.vx, self.vy);
       me.health = self.health;
@@ -658,6 +665,12 @@ export class ClientSession {
       p.controls = fp.controls;
       p.gundir = dirFromNet(fp.gundir);
       p.visibility = fp.visibility;
+      if (fp.pid === this.me) {
+        // perdeu o item (morte, descarte do pior): o tempo do HUD e a visão do shadow acabam (OG-288)
+        if (!fp.turbo) this.powerupEnd.turbo = 0;
+        if (!fp.power) this.powerupEnd.power = 0;
+        if (fp.visibility === 255) this.powerupEnd.shadow = 0;
+      }
       this.posUpdated.set(fp.pid, m.frame);
     }
     if (me) this.posUpdated.set(this.me, m.frame);

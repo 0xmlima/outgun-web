@@ -1,6 +1,6 @@
 {
   "name": "@outgun/visual-compare",
-  "version": "2.21.0",
+  "version": "2.22.0",
   "private": true,
   "description": "Comparação visual do cliente web com o cliente original (oráculo) e medição de quadros (OG-061).",
   "license": "GPL-2.0-or-later",

@@ -130,3 +130,63 @@ describe('/bot (src/server.cpp:1328-1456)', () => {
     expect(dono.conn.texts().at(-1)).toBe('1 bots will be added.');
   });
 });
+
+describe('OG-289: bots do Casual escolhidos pelo cliente (D-51)', () => {
+  const levels = (r: Room) =>
+    r
+      .botClients()
+      .map((b) => b.skill.level)
+      .sort();
+
+  it('sala privada criada com bots: quantidade fixa e nível; no modo variável cada bot sorteia o seu', () => {
+    const fixed = new Room({ id: 'p1', preset: 'classic', maps, mapFiles: ['outgun1'], maxPlayers: 16, seed: 11, botsFill: 8, casualBots: { bots: 6, level: 2 } });
+    fixed.join(new TestConnection(), { name: 'Ana', accountId: null });
+    fixed.tick();
+    expect(levels(fixed)).toEqual([2, 2, 2, 2, 2, 2]);
+    const varied = new Room({ id: 'p2', preset: 'classic', maps, mapFiles: ['outgun1'], maxPlayers: 16, seed: 11, casualBots: { bots: 10, level: 0 } });
+    varied.join(new TestConnection(), { name: 'Ana', accountId: null });
+    varied.tick();
+    const got = levels(varied);
+    expect(got).toHaveLength(10);
+    expect(got.every((l) => l >= 1 && l <= 5)).toBe(true);
+    expect(new Set(got).size).toBeGreaterThan(1);
+  });
+
+  it('só o dono ou admin muda; vale na próxima partida, ou já com reinício', () => {
+    const { r, join } = setup('classic', { maxPlayers: 16 });
+    const dono = join('Dono', { owner: true });
+    const joe = join('Joe');
+    expect(dono.conn.received.some((m) => m.type === 'casualConfig')).toBe(true);
+    expect(joe.conn.received.some((m) => m.type === 'casualConfig')).toBe(false);
+
+    r.handle(joe.pid, [message('casualBots', { bots: 4, level: 5, restart: true })]);
+    r.tick();
+    expect(r.bots()).toHaveLength(0);
+    expect(joe.conn.texts().at(-1)).toBe('Only the room owner can change the bots.');
+
+    r.handle(dono.pid, [message('casualBots', { bots: 4, level: 5, restart: false })]);
+    r.tick();
+    r.tick();
+    expect(r.bots()).toHaveLength(0); // pendente até a próxima partida
+    expect(dono.conn.received.filter((m) => m.type === 'casualConfig').at(-1)).toMatchObject({ pending: true });
+
+    r.handle(dono.pid, [message('casualBots', { bots: 4, level: 5, restart: true })]);
+    r.tick();
+    r.tick();
+    expect(levels(r)).toEqual([5, 5, 5, 5]);
+    expect(dono.conn.received.filter((m) => m.type === 'casualConfig').at(-1)).toMatchObject({ bots: 4, level: 5, pending: false });
+  });
+
+  it('/bot level: dono vê e muda o nível dos próximos bots', () => {
+    const { r, join, say } = setup('classic', { maxPlayers: 16 });
+    const dono = join('Dono', { owner: true });
+    say(dono.pid, '/bot level');
+    expect(dono.conn.texts().at(-1)).toBe('Current bot level is 4.');
+    say(dono.pid, '/bot level 1');
+    expect(dono.conn.texts().at(-1)).toBe('Bot level is now 1. New bots will use it.');
+    say(dono.pid, '/bot add');
+    expect(levels(r)).toEqual([1]);
+    say(dono.pid, '/bot level 9');
+    expect(dono.conn.texts().at(-1)).toBe('Syntax error. Valid level range is 0 - 5 (0 = variable).');
+  });
+});

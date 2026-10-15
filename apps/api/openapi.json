@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.21.0",
+    "version": "2.22.0",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -409,6 +409,22 @@
                       "pattern": "^[^/\\\\]+$"
                     },
                     "maxItems": 32
+                  },
+                  "bots": {
+                    "type": "object",
+                    "required": ["count", "level"],
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 31
+                      },
+                      "level": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      }
+                    }
                   },
                   "region": {
                     "type": "string",

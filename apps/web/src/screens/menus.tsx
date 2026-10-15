@@ -9,7 +9,8 @@ import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
 import { usePrefs } from '../app/prefs.js';
 import { usePlayNow } from '../app/play-now.js';
-import { Badge } from '../ui/Button.js';
+import { APP_VERSION, isOutdated, useServerVersion } from '../app/version.js';
+import { Badge, Button } from '../ui/Button.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
@@ -97,6 +98,7 @@ export function HomeScreen() {
       <section className="home-hero">
         <h1 className="home-title">Outgun</h1>
         <p className="home-tagline">{t('Capture the flag with friends, right in the browser.')}</p>
+        <GameVersion />
       </section>
       <div className="home-grid">
         <MenuList label={t('Main menu')} items={items} autoFocus className="home-menu" />
@@ -107,6 +109,22 @@ export function HomeScreen() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Versão do jogo (OG-280), só no menu principal; depois de um deploy, oferece recarregar a página. */
+function GameVersion() {
+  const { t } = usePrefs();
+  const outdated = isOutdated(APP_VERSION, useServerVersion());
+  return (
+    <p className="home-version">
+      {t('Version $1', APP_VERSION)}
+      {outdated && (
+        <Button variant="ghost" onClick={() => location.reload()}>
+          {t('New version available: reload')}
+        </Button>
+      )}
+    </p>
   );
 }
 

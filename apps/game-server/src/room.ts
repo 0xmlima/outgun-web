@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
-import { botSkill } from '@outgun/bots';
+import { BOT_LEVELS, botSkill, type BotSkill } from '@outgun/bots';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
@@ -103,6 +103,12 @@ interface RotationEntry {
   random?: RandomMapParams;
 }
 
+/** Bots da sala Casual configurados pelo cliente (OG-289, D-51): quantidade fixa e nível (0 = variável). */
+export interface CasualBots {
+  bots: number;
+  level: number;
+}
+
 export interface RoomOptions {
   id: string;
   preset: string;
@@ -142,6 +148,8 @@ export interface RoomOptions {
   replays?: { save(key: string, data: Uint8Array): string };
   /** `bots_fill` das salas Casual (OG-054; o preset Clássico tem 0). Ignorado no Ranked (D-11). */
   botsFill?: number;
+  /** Bots escolhidos pelo dono ao criar a sala privada Casual (OG-289); por cima do `botsFill`. */
+  casualBots?: CasualBots;
   /** Teste de bots (`-bottest` do original): bots jogam sem humanos (testes e medições; nunca em produção). */
   botTest?: boolean;
   /** Linhas de gamemod por cima do preset desde a criação (como um /set inicial). */
@@ -309,6 +317,10 @@ export class Room {
   private pingCursor = -1;
   /** Sorteio dos bots (no original, o `rand()` global; aqui separado para não mexer na sequência do mundo). */
   private readonly botRng: GlibcRand;
+  /** Sorteio do nível de cada bot no modo variável (OG-289), separado para não mexer nos outros. */
+  private readonly botLevelRng: GlibcRand;
+  /** Bots pedidos pelo dono para a próxima partida (OG-289). */
+  private pendingCasualBots: CasualBots | null = null;
   /** Regras de bandeira já anunciadas (`flagModeMask`). */
   private sentFlagModes = '';
   /** Espectadores ao vivo com atraso (OG-092). */
@@ -335,8 +347,10 @@ export class Room {
     const rng = new GlibcRand(options.seed);
     this.botNameRng = new GlibcRand(options.seed + 1);
     this.botRng = new GlibcRand(options.seed + 2);
+    this.botLevelRng = new GlibcRand(options.seed + 3);
     this.spectators = new SpectatorStream(options.maxSpectators ?? 16);
     if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
+    if (this.mode === 'casual' && options.casualBots) this.applyCasualBots(options.casualBots);
     // `random_maprot`: em ordem, embaralhada ou com o primeiro sorteado (RN-VOT-04)
     const { order, first } = initialRotation(options.maps.length, this.settings.server.randomMaprot, rng);
     this.rotation = order.map((i) => ({
@@ -393,6 +407,8 @@ export class Room {
         for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
         this.recorder?.event(message('powerupPicked', { id: index }));
       },
+      deathbringerExploded: (team, pos, frame) =>
+        this.broadcast(message('deathbringer', { team: team === 0 ? 'red' : 'blue', frame, roomX: pos.roomX, roomY: pos.roomY, x: Math.trunc(pos.x), y: Math.trunc(pos.y) })),
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
       screenSample: (pid, sample) => {
@@ -485,6 +501,7 @@ export class Room {
     // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
     if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
     if (identity.rating) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
+    this.sendCasualConfig(pid);
     if (this.lobby) {
       this.lobby.join(pid, this.world.frame);
       this.lobbyDirty = true;
@@ -652,11 +669,61 @@ export class Room {
   /** Bot com IA (OG-053): cliente virtual que ocupa uma vaga e dá lugar a humanos; sem nome, um de `bot_name_lang`. */
   private spawnBot(name?: string): JoinResult {
     const botName = name ?? createBotName(this.botNameRng, this.settings.server.botNameLang, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
-    const bot = new BotClient(this.botHost(), this.botRng, this.now);
+    const bot = new BotClient(this.botHost(), this.botRng, this.now, this.newBotSkill());
     const res = this.join(bot, { name: botName, accountId: null }, { bot: true });
     if (res.ok) bot.attach(res.pid);
     else bot.close();
     return res;
+  }
+
+  /** Nível de um bot que entra: o de `bot_level`, ou um sorteado de 1 a 5 no modo variável (OG-289). */
+  private newBotSkill(): BotSkill {
+    const level = this.settings.server.botLevel;
+    return botSkill(level === 0 ? 1 + (this.botLevelRng.rand() % BOT_LEVELS.length) : level);
+  }
+
+  /** Quantidade fixa de bots (`min_bots`, sem `bots_fill` nem os extras do /bot) e nível. */
+  private applyCasualBots(c: CasualBots): void {
+    const s = this.settings.server;
+    s.minBots = Math.min(c.bots, this.options.maxPlayers - 1);
+    s.botsFill = 0;
+    s.botLevel = Math.min(BOT_LEVELS.length, c.level);
+    this.extraBots = 0;
+  }
+
+  /** `casualBots` (OG-289, D-51): só o dono da sala privada ou admin, no Casual; vale na próxima partida. */
+  private casualBots(pid: number, m: MessageOf<'casualBots'>): void {
+    const c = this.clients.get(pid);
+    if (!c || !this.canConfigureBots(c)) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: 'Only the room owner can change the bots.' }));
+    this.pendingCasualBots = { bots: Math.min(m.bots, this.options.maxPlayers - 1), level: Math.min(BOT_LEVELS.length, m.level) };
+    const level = m.level === 0 ? 'variable level' : `level ${this.pendingCasualBots.level}`;
+    this.broadcast(message('text', { kind: 'server', from: 255, text: `${c.identity.name} set ${this.pendingCasualBots.bots} bots (${level}) for the next game.` }));
+    if (m.restart) {
+      this.broadcast(message('text', { kind: 'server', from: 255, text: `${c.identity.name} decided it's time for a restart.` }));
+      this.nextMap('vote', this.mapIndex);
+    }
+    this.sendCasualConfig();
+  }
+
+  private canConfigureBots(c: Client): boolean {
+    return this.mode === 'casual' && !c.bot && (c.identity.owner === true || c.identity.admin === true);
+  }
+
+  /** Configuração de bots em vigor, para quem pode mudá-la (habilita a opção no cliente). */
+  private sendCasualConfig(only?: number): void {
+    const s = this.settings.server;
+    const msg = message('casualConfig', { bots: s.minBots, level: s.botLevel, pending: this.pendingCasualBots !== null });
+    for (const [pid, c] of this.clients) if ((only === undefined || pid === only) && this.canConfigureBots(c)) this.queueTo(pid, msg);
+  }
+
+  /** Começo da partida seguinte: entra a configuração pendente; os bots presentes trocam de nível. */
+  private applyPendingCasualBots(): void {
+    if (!this.pendingCasualBots) return;
+    this.applyCasualBots(this.pendingCasualBots);
+    this.pendingCasualBots = null;
+    for (const bot of this.botClients()) bot.skill = this.newBotSkill();
+    this.checkBotsPending = true;
+    this.sendCasualConfig();
   }
 
   private botHost(): BotHost {
@@ -902,6 +969,9 @@ export class Room {
           break;
         case 'substituteVote':
           this.pause?.cast(pid, m.bot);
+          break;
+        case 'casualBots':
+          this.casualBots(pid, m);
           break;
         case 'changeTeam':
           if (this.lobby) break; // no lobby Ranked a troca de lado é pelo `lobbySide` (OG-253)
@@ -1381,6 +1451,8 @@ export class Room {
       timeStatus: () => this.timeStatus(),
       settingsChanged: (line) => {
         this.setLines.push(line);
+        // mais power-ups (`/set pups_*`, `/carnage on`, OG-290): os que faltam já entram na fila
+        if (this.inGame && /^pups_/.test(line)) this.sim.powerupSettingsChanged();
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       resetSettings: () => {
@@ -1390,6 +1462,7 @@ export class Room {
         this.checkBotsPending = true;
         this.setLines = [];
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
+        this.sendCasualConfig();
       },
       audit: (entry) => this.options.audit?.(this.id, entry),
       report: (reporter, target, reason) => {
@@ -1780,6 +1853,7 @@ export class Room {
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
   private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
     this.pause?.reset();
+    this.applyPendingCasualBots();
     this.dropSubstitutes();
     this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
     if (this.pendingRotation && !this.lobby) {

@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
-import { type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
+import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
 import { ChoiceField, FieldGroup, SliderField, TextField, ToggleField } from '../ui/Field.js';
@@ -251,6 +251,18 @@ export function OptionsScreen() {
                 ['dimmed', 'dimmed'],
                 ['highlighted', 'all but highlighted'],
               ])}
+            </FieldGroup>
+          </Panel>
+          <Panel title={t('Bots in your Casual rooms')}>
+            <FieldGroup>
+              <SliderField label={t('Number of bots')} value={prefs.casualBots} min={0} max={CASUAL_MAX_BOTS} onChange={(v) => setPrefs({ casualBots: v })} />
+              <ChoiceField
+                label={t('Bot level')}
+                value={String(prefs.casualBotLevel)}
+                options={BOT_LEVEL_CHOICES.map(([value, text]) => ({ value: String(value), label: t(text) }))}
+                onChange={(v) => setPrefs({ casualBotLevel: Number(v) })}
+                hint={t('Used when you create a private room and, as the room owner, from the next game on (game menu).')}
+              />
             </FieldGroup>
           </Panel>
           <Panel title={t('Quick messages')}>

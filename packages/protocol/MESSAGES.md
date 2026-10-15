@@ -101,6 +101,8 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 126 | [`pauseState`](#pausestate) | servidor → cliente | event | — (web, OG-260) | Pausa do jogo Ranked: fase (sem pausa, pausado ou contagem de retomada), motivo (pedido do time, queda ou voto do bot substituto), time e quem pediu/caiu/saiu, segundos restantes (saldo do time, prazo de reconexão, voto ou contagem), o saldo de pausa de cada time e, no voto, os votos de cada opção. |
 | 127 | [`pauseRequest`](#pauserequest) | cliente → servidor | event | — (web, OG-260) | Pede a pausa tática do time (on) ou a retomada (off); só no Ranked. |
 | 128 | [`substituteVote`](#substitutevote) | cliente → servidor | event | — (web, OG-262) | Voto do time desfalcado: bot no lugar (bot) ou seguir com um a menos. |
+| 129 | [`casualBots`](#casualbots) | cliente → servidor | event | — (web, OG-289) | Dono da sala privada ou admin: quantidade de bots e nível (1–5; 0 = variável) para a próxima partida; com `restart`, reinicia já. |
+| 130 | [`casualConfig`](#casualconfig) | servidor → cliente | event | — (web, OG-289) | Só para o dono e admins numa sala Casual (a chegada habilita a configuração no cliente): bots e nível em vigor e se há mudança pendente para a próxima partida. |
 
 ## Campos
 
@@ -783,6 +785,22 @@ Código 127. Pede a pausa tática do time (on) ou a retomada (off); só no Ranke
 Código 128. Voto do time desfalcado: bot no lugar (bot) ou seguir com um a menos.
 
 - `bot`: bool (u8 0/1)
+
+### casualBots
+
+Código 129. Dono da sala privada ou admin: quantidade de bots e nível (1–5; 0 = variável) para a próxima partida; com `restart`, reinicia já.
+
+- `bots`: u8
+- `level`: u8
+- `restart`: bool (u8 0/1)
+
+### casualConfig
+
+Código 130. Só para o dono e admins numa sala Casual (a chegada habilita a configuração no cliente): bots e nível em vigor e se há mudança pendente para a próxima partida.
+
+- `bots`: u8
+- `level`: u8
+- `pending`: bool (u8 0/1)
 
 ## Mensagens do original que não existem aqui
 

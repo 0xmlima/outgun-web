@@ -17,6 +17,24 @@ export interface Preset {
   overrides: string;
 }
 
+/**
+ * Carnificina (OG-290, D-52): o teto do jogo (32 itens) em qualquer mapa, reaparecendo no frame
+ * seguinte, com tempos longos e quem morre deixando cair um item. Preset e `/carnage on`.
+ */
+export const CARNAGE_OVERRIDES = 'pups_min 32\npups_max 32\npups_respawn_time 0\npups_drop_at_death 1\npup_add_time 90\npup_max_time 300';
+
+/** Linhas de gamemod com os valores atuais das settings que a Carnificina muda (para desfazê-la). */
+export function carnageUndoLines(p: GameSettings['powerups']): string[] {
+  return [
+    `pups_min ${p.pupsMin}${p.pupsMinPercentage ? '%' : ''}`,
+    `pups_max ${p.pupsMax}${p.pupsMaxPercentage ? '%' : ''}`,
+    `pups_respawn_time ${p.pupsRespawnTime}`,
+    `pups_drop_at_death ${p.pupsDropAtDeath ? 1 : 0}`,
+    `pup_add_time ${p.pupAddTime}`,
+    `pup_max_time ${p.pupMaxTime}`,
+  ];
+}
+
 export const PRESETS: readonly Preset[] = [
   {
     id: 'classic',
@@ -45,6 +63,13 @@ export const PRESETS: readonly Preset[] = [
     locked: false,
     description: 'Caos: muitos power-ups, reaparecendo rápido.',
     overrides: 'pups_min 40%\npups_max 100%\npups_respawn_time 10',
+  },
+  {
+    id: 'carnage',
+    mode: 'casual',
+    locked: false,
+    description: 'Carnificina: power-ups no máximo o tempo todo, com duração longa.',
+    overrides: CARNAGE_OVERRIDES,
   },
   {
     id: 'ranked',
