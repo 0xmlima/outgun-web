@@ -285,6 +285,9 @@
   font: inherit;
   font-size: var(--text-sm);
 }
+.controls-keys kbd.reserved {
+  border-color: var(--danger);
+}
 .controls-buttons {
   display: flex;
   gap: var(--space-1);

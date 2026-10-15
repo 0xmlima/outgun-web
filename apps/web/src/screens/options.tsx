@@ -11,6 +11,7 @@ import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
 import { type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
+import { IS_MAC } from '../game/input/shortcuts.js';
 import { ChoiceField, FieldGroup, SliderField, TextField, ToggleField } from '../ui/Field.js';
 import { MenuList } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
@@ -259,7 +260,7 @@ export function OptionsScreen() {
               {prefs.quickMessages.map((text, i) => (
                 <TextField
                   key={i}
-                  label={t('Alt+$1', String((i + 1) % 10))}
+                  label={t(IS_MAC ? 'Option+$1' : 'Alt+$1', String((i + 1) % 10))}
                   value={text}
                   maxLength={QUICK_MESSAGE_LENGTH}
                   onChange={(v) => setPrefs({ quickMessages: prefs.quickMessages.map((m, j) => (j === i ? v : m)) })}

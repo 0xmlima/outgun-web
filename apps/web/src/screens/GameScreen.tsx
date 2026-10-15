@@ -61,6 +61,9 @@ interface SeriesBar {
   blue: number;
 }
 
+/** Dica do modo foco já mostrada neste navegador (OG-232). */
+const FOCUS_HINT_KEY = 'outgun.focusHint';
+
 export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
   const navigate = useNavigate();
@@ -144,6 +147,23 @@ export default function GameScreen() {
     host.current = game;
     return () => game.destroy();
   }, [map, theme, rooms, room, demo, params, prefs.continuousTextures, prefs.colourTheme, prefs.preferThemeColours]);
+
+  // OG-232: na partida online, fechar a aba (Ctrl/Cmd+W ou Q sem querer) pede confirmação, e a dica do
+  // modo foco aparece uma vez por navegador
+  useEffect(() => {
+    if (onlineKey === null) return;
+    const confirmLeave = (ev: BeforeUnloadEvent) => ev.preventDefault();
+    addEventListener('beforeunload', confirmLeave);
+    try {
+      if (!localStorage.getItem(FOCUS_HINT_KEY)) {
+        localStorage.setItem(FOCUS_HINT_KEY, '1');
+        setToast(tRef.current('Tip: F10 plays in focus mode, which keeps browser shortcuts inside the game.'));
+      }
+    } catch {
+      // sem armazenamento: sem dica
+    }
+    return () => removeEventListener('beforeunload', confirmLeave);
+  }, [onlineKey]);
 
   // opções que mudam sem recarregar a partida
   const client = clientOptions(prefs);

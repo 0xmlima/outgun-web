@@ -10,6 +10,7 @@ import { chatPrompt, MessageFeed, type FeedContext, type FeedFacts, type Transla
 import type { HudFlag, HudPlayer, HudState } from './hud-renderer.js';
 import { chatLines, type ScreenLayout } from './screen-layout.js';
 import { DEFAULT_GRAPHICS, minimapFade, showNeighborMarkers, type GraphicsOptions } from '../graphics-options.js';
+import { IS_MAC } from '../input/shortcuts.js';
 
 const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
 
@@ -141,11 +142,14 @@ export class OnlineHud {
 
   /** Tecla durante o jogo; devolve true se foi usada pelo chat. */
   onKey(ev: KeyboardEvent, boundCodes: ReadonlySet<string>): boolean {
-    // mensagem rápida: Alt+1..9 e Alt+0 (10ª), só com a linha de chat vazia
+    // mensagem rápida: Alt+1..9 e Alt+0 (10ª), só com a linha de chat vazia. No Mac também Cmd+número,
+    // que o Chrome só deixa chegar ao jogo no modo foco (OG-232)
     const digit = /^Digit(\d)$/.exec(ev.code);
-    if (ev.altKey && !ev.ctrlKey && !ev.metaKey && digit && this.quick.enabled && !this.chat) {
+    const quickKey = (ev.altKey && !ev.metaKey) || (IS_MAC && ev.metaKey && !ev.altKey);
+    if (quickKey && !ev.ctrlKey && digit && this.quick.enabled && !this.chat) {
       const text = this.quick.messages[(Number(digit[1]) + 9) % 10] ?? '';
-      if (!text) return false;
+      // vazia também é do jogo: Alt+número não troca de aba (Firefox) nem digita símbolo (Option no Mac)
+      if (!text) return true;
       this.chat = text;
       if (this.quick.immediate) this.sendChat();
       return true;
