@@ -6,7 +6,7 @@
 //   [--set "linha do gamemod"]...
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { botSkill } from '@outgun/bots';
+import { botSkill, REFERENCE_BOT_LEVEL } from '@outgun/bots';
 import { loadMaps } from './maps.js';
 import { Room } from './room.js';
 
@@ -31,7 +31,7 @@ export function runBotMatches(opts: { matches: number; bots: number; minutes: nu
   for (let i = 0; i < opts.bots; i++) room.addBot();
   const setLevels = () => {
     if (!opts.levels) return;
-    for (const b of room.botClients()) b.skill = botSkill(opts.levels[room.world.teamOf(b.playerId)] ?? 3);
+    for (const b of room.botClients()) b.skill = botSkill(opts.levels[room.world.teamOf(b.playerId)] ?? REFERENCE_BOT_LEVEL);
   };
   setLevels();
   let ticks = 0;
@@ -84,7 +84,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     map: values.map,
     seed: Number(values.seed),
     gamemod: values.set,
-    ...(values['red-level'] || values['blue-level'] ? { levels: [Number(values['red-level'] ?? 3), Number(values['blue-level'] ?? 3)] as [number, number] } : {}),
+    ...(values['red-level'] || values['blue-level'] ? { levels: [Number(values['red-level'] ?? REFERENCE_BOT_LEVEL), Number(values['blue-level'] ?? REFERENCE_BOT_LEVEL)] as [number, number] } : {}),
   });
   console.log(JSON.stringify(stats, null, 1));
 }

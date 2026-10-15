@@ -6,7 +6,7 @@ import { BOT_LEVELS, botSkill, REFERENCE_BOT_LEVEL } from './skill.js';
 describe('níveis dos bots (OG-266)', () => {
   it('o padrão (Casual) é o de referência, sem mudança nenhuma', () => {
     expect(botSkill()).toEqual({ level: REFERENCE_BOT_LEVEL, aimSpread: 1, aimMiss: 0, reactionFrames: 0, decideEvery: 1 });
-    expect([botSkill(0).level, botSkill(9).level, botSkill(Number.NaN).level, botSkill(2.4).level]).toEqual([1, 5, 3, 2]);
+    expect([botSkill(0).level, botSkill(9).level, botSkill(Number.NaN).level, botSkill(2.4).level]).toEqual([1, 5, REFERENCE_BOT_LEVEL, 2]);
   });
 
   it('do 1 ao 5 a mira, a reação e a frequência de decisão só melhoram', () => {

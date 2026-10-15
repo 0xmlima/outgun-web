@@ -9,7 +9,7 @@ import type { Db } from './db/client.js';
 export const BOT_LEVEL_MIN_MATCHES = 5;
 /** Quantas partidas Ranked recentes entram na conta de K/D e precisão. */
 export const BOT_LEVEL_RECENT = 20;
-/** Nível sem histórico (intermediário = bot de referência). */
+/** Nível sem histórico (intermediário: um pouco abaixo do bot de referência, que é o 4). */
 export const DEFAULT_BOT_LEVEL = 3;
 
 export interface BotLevelInput {

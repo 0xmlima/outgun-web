@@ -26,13 +26,13 @@ Como time que recebeu um bot substituto, quero que ele jogue mais ou menos como 
 
 ## Critérios de aceite
 - [x] Testes do cálculo do nível (com e sem histórico, extremos).
-- [ ] Medição uma vez, no fechamento (script reaproveitável, `botTest`): o nível 5 vence o nível 1 com folga e os níveis são monótonos em K/D.
+- [x] Medição uma vez, no fechamento (script reaproveitável, `botTest`): o nível 5 vence o nível 1 com folga e os níveis são monótonos em K/D.
 - [x] Casual sem diferença de comportamento dos bots.
 
 ## Notas técnicas
 - `packages/bots` usa só o `Rng` injetado; os parâmetros entram por configuração, sem `Math.random`.
 
 ## Notas de implementação
-- `packages/bots/src/skill.ts`: `aimSpread` (erro de giro livre), `aimMiss` (tiro 1/8 de volta para o lado no giro tradicional), `reactionFrames` (soma ao `bot_ping`) e `decideEvery`. Nível 3 = o bot atual, sem nenhum sorteio a mais (Casual e cenários de paridade iguais); 4 e 5 só encurtam a reação e o erro de mira.
+- `packages/bots/src/skill.ts`: `aimSpread` (erro de giro livre), `aimMiss` (tiro 1/8 de volta para o lado no giro tradicional), `reactionFrames` (soma ao `bot_ping`) e `decideEvery`. **Nível 4 = o bot atual** (referência, Casual e paridade iguais, sem sorteio a mais): com `bot_ping 100` e giro tradicional (Ranked) só dá para ficar mais forte tirando o frame de atraso (nível 5). Sem histórico = 3, um pouco abaixo do bot atual.
 - API (`apps/api/src/bot-level.ts`): metade pelo percentil no leaderboard do formato (fora dele = 0,25), ¼ K/D (2,0 = máximo), ¼ precisão (50% = máximo) nas últimas 20 Ranked; menos de 5 Ranked = 3. Vai no ticket (`botLevel`) e o game server guarda na `Identity`; o `substitute` usa.
-- Medição: `bot-stats.js --red-level 1 --blue-level 5` (vitórias e K/D por time) — fica para o fechamento da sprint.
+- Medição no fechamento (`bot-stats.js --red-level A --blue-level B --set "pups_min 0" --set "pups_max 0"`, 3x3, 20 partidas por lado): 5 × 1 = 20–0 dos dois lados; K/D contra o nível 4: 1 → 0,13 · 2 → 0,29 · 3 → 0,74 · 4 → 1,00 · 5 → 1,65.
