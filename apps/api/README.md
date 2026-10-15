@@ -29,6 +29,7 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 | `LOG_LEVEL`           | `info`                                            | Nível do pino                                                            |
 | `DEV_ROOM_WS_URL`     | `ws://localhost:7700/rooms/{id}` fora de produção | Servidor usado quando nenhum game server mandou heartbeat                |
 | `ROOMS_PER_HOUR`      | `10`                                              | Salas privadas criadas por conta por hora                                |
+| `NAME_FILTER`         | vazio                                             | Palavras proibidas em nome, tag e descrição de clã (vírgulas; OG-275)    |
 | `METRICS_TOKEN`       | vazio (aberto)                                    | Exige `Authorization: Bearer <token>` em `/metrics`                      |
 | `SENTRY_DSN`          | vazio (desligado)                                 | Erros 5xx e exceções para um serviço compatível com Sentry (OG-102)      |
 | `SENTRY_ENVIRONMENT`  | `NODE_ENV`                                        | Ambiente nos logs e nos erros                                            |

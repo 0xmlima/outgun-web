@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Painel admin (OG-087, RN-CHT-03/04, RN-PLT-05). Moderador: salas ao vivo (kick, ban de sala,
 // mute), denúncias, bans de sala e auditoria. Admin: tudo isso, mais mensagem a todas as salas,
-// bans de plataforma, presets Casual, rotações e papéis. Toda ação grava em admin_actions; os
+// bans de plataforma, presets Casual, rotações e papéis. Clãs (OG-275): moderador força troca de
+// nome/tag/descrição ou dissolve. Toda ação grava em admin_actions; os
 // comandos para as salas vão aos game servers na resposta do heartbeat.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { casualPresetProblems, PRESETS } from '@outgun/settings';
@@ -10,8 +11,10 @@ import { createInvites } from '../beta.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
-import { usernameKey } from '../db/keys.js';
-import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, feedback, mapRotations, playerReports, rooms, users } from '../db/schema.js';
+import { clanKey, usernameKey } from '../db/keys.js';
+import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, mapRotations, playerReports, rooms, users } from '../db/schema.js';
+import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
+import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 
@@ -544,6 +547,94 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         await db.update(users).set({ isAdmin: role === 'admin', isModerator: role === 'moderator', updatedAt: new Date() }).where(eq(users.id, target.id));
         await audit(user, 'role', { targetUserId: target.id, targetName: target.username, reason: role, details: { from: target.isAdmin ? 'admin' : target.isModerator ? 'moderator' : 'player', to: role } });
         return { username: target.username, role };
+      },
+    );
+    // --- clãs (OG-275, RN-CLA-08) ---
+    app.get(
+      '/clans',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Clãs com líder, membros e denúncias abertas (os denunciados primeiro)',
+          querystring: Type.Object({ busca: Type.Optional(Type.String({ maxLength: 32 })) }),
+        },
+      },
+      async (request, reply) => {
+        if (!(await guard(request, reply, 'moderator'))) return reply;
+        const key = clanKey(request.query.busca ?? '');
+        const rows = await db.execute<{ name: string; tag: string; description: string; created_at: Date | string; leader: string | null; members: number; reports: number }>(sql`
+          SELECT c.name, c.tag, c.description, c.created_at,
+            (SELECT u.username FROM clan_members m JOIN users u ON u.id = m.user_id WHERE m.clan_id = c.id AND m.role = 'leader') AS leader,
+            (SELECT count(*)::int FROM clan_members m WHERE m.clan_id = c.id) AS members,
+            (SELECT count(*)::int FROM player_reports r WHERE r.clan_id = c.id AND r.status = 'open') AS reports
+          FROM clans c
+          WHERE ${key ? sql`(c.name_key LIKE ${likePrefix(key)} OR c.tag_key = ${key})` : sql`true`}
+          ORDER BY reports DESC, c.created_at DESC LIMIT 200`);
+        return {
+          clans: rows.map((r) => ({ name: r.name, tag: r.tag, description: r.description, createdAt: new Date(r.created_at).toISOString(), leader: r.leader, members: r.members, reports: r.reports })),
+        };
+      },
+    );
+
+    app.patch(
+      '/clans/:tag',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Força a troca de nome, tag ou descrição de um clã (com motivo na auditoria)',
+          params: Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) }),
+          body: Type.Object({
+            name: Type.Optional(Type.String({ maxLength: 24 })),
+            tag: Type.Optional(Type.String({ maxLength: 2 })),
+            description: Type.Optional(Type.String({ maxLength: 500 })),
+            reason: Reason,
+          }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const { reason, ...changes } = request.body;
+        try {
+          const before = await db.transaction(async (tx) => {
+            const [clan] = await tx.select().from(clans).where(eq(clans.tagKey, clanKey(request.params.tag))).for('update');
+            if (!clan) throw new ClanError(404, 'clan_not_found');
+            await checkClanFields(tx, changes, [], clan.id); // o filtro não trava a moderação
+            await updateClan(tx, clan.id, changes);
+            return clan;
+          });
+          const after = { name: changes.name ?? before.name, tag: changes.tag ?? before.tag };
+          await audit(user, 'clan-edit', {
+            targetName: `(${after.tag}) ${after.name}`,
+            reason,
+            details: { clan: before.id, from: { name: before.name, tag: before.tag, description: before.description }, to: changes },
+          });
+          return { name: after.name, tag: after.tag };
+        } catch (e) {
+          const err = e instanceof ClanError ? e : uniqueError(e);
+          if (!err) throw e;
+          return reply.code(err.status).send({ error: err.code, message: err.code.replace(/_/g, ' ') });
+        }
+      },
+    );
+
+    app.delete(
+      '/clans/:tag',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Dissolve um clã (com motivo na auditoria); os membros ficam sem clã e sem carência',
+          params: Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) }),
+          body: Type.Object({ reason: Reason }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const [clan] = await db.delete(clans).where(eq(clans.tagKey, clanKey(request.params.tag))).returning();
+        if (!clan) return reply.code(404).send({ error: 'clan_not_found', message: 'clan not found' });
+        await audit(user, 'clan-dissolve', { targetName: `(${clan.tag}) ${clan.name}`, reason: request.body.reason, details: { clan: clan.id, description: clan.description } });
+        return reply.code(204).send(null);
       },
     );
   };

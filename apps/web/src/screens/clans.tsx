@@ -220,6 +220,8 @@ function useClanErrorText(): (e: unknown) => string {
         return t('This clan already invited you: accept the invite.');
       case 'clan_forbidden':
         return t('Your role in the clan does not allow this.');
+      case 'name_not_allowed':
+        return t('This name is not allowed.');
       default:
         return t('Something went wrong. Try again.');
     }
@@ -451,6 +453,7 @@ export function ClanScreen() {
                 </Button>
               )
             )}
+            {!myRole && <ReportClan base={base} />}
             {myRole === 'leader' && (
               <ConfirmButton label={t('Dissolve clan')} confirmLabel={t('Dissolve the clan for good? Every member loses the tag.')} onConfirm={() => void act(base, { method: 'DELETE' }, () => void navigate('/clans'))} />
             )}
@@ -458,6 +461,48 @@ export function ClanScreen() {
         </Panel>
       )}
     </Page>
+  );
+}
+
+/** Denúncia do clã (OG-275): vai para as denúncias do painel de moderação. */
+function ReportClan({ base }: { readonly base: string }) {
+  const { t } = usePrefs();
+  const toast = useToast();
+  const errorText = useClanErrorText();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  if (!open)
+    return (
+      <Button variant="ghost" onClick={() => setOpen(true)}>
+        {t('Report clan')}
+      </Button>
+    );
+  const send = () =>
+    api(`${base}/report`, { method: 'POST', body: { reason: reason.trim() } }).then(
+      () => {
+        toast(t('Report sent. Thanks.'), 'success');
+        setOpen(false);
+        setReason('');
+      },
+      (e: unknown) => toast(e instanceof ApiError && e.code === 'already_reported' ? t('You already reported this clan.') : errorText(e), 'danger'),
+    );
+  return (
+    <Form
+      label={t('Report clan')}
+      onSubmit={() => void send()}
+      actions={
+        <span className="ui-row">
+          <Button type="submit" variant="danger" disabled={!reason.trim()}>
+            {t('Send report')}
+          </Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            {t('Cancel')}
+          </Button>
+        </span>
+      }
+    >
+      <TextField label={t('What is wrong with this clan?')} value={reason} onChange={setReason} maxLength={200} autoFocus />
+    </Form>
   );
 }
 

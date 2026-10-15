@@ -10,7 +10,8 @@ import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { clanMembers, clanRequests, clans, users, type ClanRole } from '../db/schema.js';
+import { clanMembers, clanRequests, clans, playerReports, users, type ClanRole } from '../db/schema.js';
+import { nameBlocked } from '../name-filter.js';
 import { likePrefix } from './social.js';
 import { ErrorSchema } from './schemas.js';
 
@@ -34,7 +35,7 @@ const ClanSchema = Type.Object({
 const TagParams = Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) });
 const MemberParams = Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }), username: Type.String({ minLength: 1, maxLength: 32 }) });
 
-class ClanError extends Error {
+export class ClanError extends Error {
   constructor(
     readonly status: 400 | 403 | 404 | 409,
     readonly code: string,
@@ -44,7 +45,7 @@ class ClanError extends Error {
 }
 
 type PgError = { code?: string; constraint_name?: string };
-function uniqueError(e: unknown): ClanError | undefined {
+export function uniqueError(e: unknown): ClanError | undefined {
   const err = ((e as { cause?: PgError })?.cause ?? e) as PgError;
   if (err?.code !== '23505') return undefined;
   const name = err.constraint_name ?? '';
@@ -71,6 +72,43 @@ async function memberByName(tx: Tx, clanId: string, username: string) {
     .where(and(eq(clanMembers.clanId, clanId), eq(users.usernameKey, usernameKey(username))));
   if (!m) throw new ClanError(404, 'member_not_found');
   return m;
+}
+
+export interface ClanFields {
+  readonly name?: string | undefined;
+  readonly tag?: string | undefined;
+  readonly description?: string | undefined;
+}
+
+/**
+ * Valida e grava nome, tag e descrição (criação passa `clanId` undefined): regras de nome e tag,
+ * filtro de nomes proibidos (RN-CLA-08) e unicidade sem maiúsculas e acentos (D-47). Também usado
+ * pela moderação (OG-275).
+ */
+export async function checkClanFields(tx: Tx, f: ClanFields, filter: readonly string[], clanId?: string) {
+  if (f.name !== undefined && !checkClanName(f.name)) throw new ClanError(400, 'invalid_clan_name');
+  if (f.tag !== undefined && !checkClanTag(f.tag)) throw new ClanError(400, 'invalid_clan_tag');
+  for (const text of [f.name, f.tag, f.description]) if (text !== undefined && nameBlocked(text, filter)) throw new ClanError(400, 'name_not_allowed');
+  if (f.name !== undefined) {
+    const [row] = await tx.select({ id: clans.id }).from(clans).where(eq(clans.nameKey, clanKey(f.name)));
+    if (row && row.id !== clanId) throw new ClanError(409, 'clan_name_taken');
+  }
+  if (f.tag !== undefined) {
+    const [row] = await tx.select({ id: clans.id }).from(clans).where(eq(clans.tagKey, clanKey(f.tag)));
+    if (row && row.id !== clanId) throw new ClanError(409, 'clan_tag_taken');
+  }
+}
+
+export async function updateClan(tx: Tx, clanId: string, f: ClanFields) {
+  await tx
+    .update(clans)
+    .set({
+      ...(f.name !== undefined ? { name: f.name, nameKey: clanKey(f.name) } : {}),
+      ...(f.tag !== undefined ? { tag: f.tag, tagKey: clanKey(f.tag) } : {}),
+      ...(f.description !== undefined ? { description: f.description } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(clans.id, clanId));
 }
 
 /**
@@ -132,7 +170,7 @@ async function dropExpired(tx: Tx, userId: string) {
   await tx.delete(clanRequests).where(and(eq(clanRequests.userId, userId), lte(clanRequests.expiresAt, new Date())));
 }
 
-export function clanRoutes({ database }: AppDeps, { sessions }: Services): FastifyPluginAsyncTypebox {
+export function clanRoutes({ database, config }: AppDeps, { sessions }: Services): FastifyPluginAsyncTypebox {
   const { db } = database;
 
   async function requireUser(request: FastifyRequest, reply: FastifyReply): Promise<SessionUser | undefined> {
@@ -173,23 +211,6 @@ export function clanRoutes({ database }: AppDeps, { sessions }: Services): Fasti
       members: members.map((m) => ({ username: m.username, role: m.role, joinedAt: m.joinedAt.toISOString() })),
     };
   }
-
-  const validName = (name: string) => {
-    if (!checkClanName(name)) throw new ClanError(400, 'invalid_clan_name');
-  };
-  const validTag = (tag: string) => {
-    if (!checkClanTag(tag)) throw new ClanError(400, 'invalid_clan_tag');
-  };
-  const free = async (tx: Tx, name: string | undefined, tag: string | undefined, self?: string) => {
-    if (name !== undefined) {
-      const [row] = await tx.select({ id: clans.id }).from(clans).where(eq(clans.nameKey, clanKey(name)));
-      if (row && row.id !== self) throw new ClanError(409, 'clan_name_taken');
-    }
-    if (tag !== undefined) {
-      const [row] = await tx.select({ id: clans.id }).from(clans).where(eq(clans.tagKey, clanKey(tag)));
-      if (row && row.id !== self) throw new ClanError(409, 'clan_tag_taken');
-    }
-  };
 
   return async (app) => {
     app.get(
@@ -264,12 +285,10 @@ export function clanRoutes({ database }: AppDeps, { sessions }: Services): Fasti
         if (!user) return reply;
         const { name, tag, description = '' } = request.body;
         const done = await run(reply, async (tx) => {
-          validName(name);
-          validTag(tag);
+          await checkClanFields(tx, { name, tag, description }, config.nameFilter);
           await tx.select({ id: users.id }).from(users).where(eq(users.id, user.id)).for('update');
           const [mine] = await tx.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id));
           if (mine) throw new ClanError(409, 'already_in_clan');
-          await free(tx, name, tag);
           const [clan] = await tx.insert(clans).values({ name, nameKey: clanKey(name), tag, tagKey: clanKey(tag), description }).returning();
           await tx.insert(clanMembers).values({ userId: user.id, clanId: clan!.id, role: 'leader' });
           return true;
@@ -303,18 +322,8 @@ export function clanRoutes({ database }: AppDeps, { sessions }: Services): Fasti
           const role = await roleIn(tx, clan.id, user.id);
           if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
           if (tag !== undefined && tag !== clan.tag && role !== 'leader') throw new ClanError(403, 'clan_forbidden');
-          if (name !== undefined) validName(name);
-          if (tag !== undefined) validTag(tag);
-          await free(tx, name, tag, clan.id);
-          await tx
-            .update(clans)
-            .set({
-              ...(name !== undefined ? { name, nameKey: clanKey(name) } : {}),
-              ...(tag !== undefined ? { tag, tagKey: clanKey(tag) } : {}),
-              ...(description !== undefined ? { description } : {}),
-              updatedAt: new Date(),
-            })
-            .where(eq(clans.id, clan.id));
+          await checkClanFields(tx, { name, tag, description }, config.nameFilter, clan.id);
+          await updateClan(tx, clan.id, { name, tag, description });
           return tag ?? clan.tag;
         });
         if (!done) return reply;
@@ -678,5 +687,40 @@ export function clanRoutes({ database }: AppDeps, { sessions }: Services): Fasti
         },
       );
     }
+    app.post(
+      '/clans/:tag/report',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Denuncia o clã (nome, tag ou descrição); vai para as denúncias do painel (OG-275)',
+          params: TagParams,
+          body: Type.Object({ reason: Type.String({ minLength: 1, maxLength: 200 }) }),
+          response: { 204: Type.Null(), 401: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const done = await run(reply, async (tx) => {
+          const clan = await lockClan(tx, request.params.tag);
+          const open = await tx
+            .select({ id: playerReports.id })
+            .from(playerReports)
+            .where(and(eq(playerReports.clanId, clan.id), eq(playerReports.reporterUserId, user.id), eq(playerReports.status, 'open')));
+          if (open.length > 0) throw new ClanError(409, 'already_reported');
+          await tx.insert(playerReports).values({
+            serverId: 'web',
+            reporterUserId: user.id,
+            reporterName: user.username,
+            targetName: `(${clan.tag}) ${clan.name}`,
+            clanId: clan.id,
+            reason: request.body.reason.trim(),
+          });
+          return true;
+        });
+        if (!done) return reply;
+        return reply.code(204).send(null);
+      },
+    );
   };
 }

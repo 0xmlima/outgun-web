@@ -348,6 +348,16 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Admin: 'Admin',
     Member: 'Membro',
     Invite: 'Convidar',
+    // Moderação de clãs (OG-275)
+    'Confirm dissolution of $1': 'Confirmar dissolução de $1',
+    'Force change': 'Forçar troca',
+    Moderate: 'Moderar',
+    'Report clan': 'Denunciar clã',
+    'Report sent. Thanks.': 'Denúncia enviada. Obrigado.',
+    'Send report': 'Enviar denúncia',
+    'This name is not allowed.': 'Este nome não é permitido.',
+    'What is wrong with this clan?': 'O que há de errado com este clã?',
+    'You already reported this clan.': 'Você já denunciou este clã.',
     // Convites e pedidos de clã (OG-271)
     'Clan invites': 'Convites de clã',
     'Invites received': 'Convites recebidos',

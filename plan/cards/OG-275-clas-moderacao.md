@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S16 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-270](OG-270-clas-cadastro-api.md) |
 | Regras de negócio | RN-CLA-08 |
 | Skills | `outgun-card-workflow` |
@@ -20,7 +20,9 @@ Como moderador, quero agir sobre clãs com nome, tag ou descrição ofensivos, p
 - Nome e tag passam pelo mesmo filtro de nomes proibidos dos jogadores.
 
 ## Critérios de aceite
-- [ ] Ações registradas na auditoria; só moderador/admin acessa.
+- [x] Ações registradas na auditoria; só moderador/admin acessa.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Denúncia: `POST /clans/:tag/report` grava em `player_reports` (`server_id` 'web', `clan_id`, alvo "(TAG) nome"); uma aberta por pessoa e clã. Aparece na aba Denúncias do painel.
+- Painel: aba "Clãs" (denunciados primeiro), forçar troca e dissolver com motivo; auditoria `clan-edit`/`clan-dissolve` com o antes e o depois. Dissolver pelo painel não gera carência.
+- O "filtro de nomes proibidos dos jogadores" não existia: criei `NAME_FILTER` (só clãs por ora) e o card **OG-276** (Backlog) para estendê-lo aos nomes de jogador. A moderação não passa pelo filtro.

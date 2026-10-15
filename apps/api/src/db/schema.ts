@@ -437,6 +437,8 @@ export const playerReports = pgTable('player_reports', {
   targetName: text('target_name').notNull(),
   targetIp: inet('target_ip'),
   targetDeviceHash: text('target_device_hash'),
+  /** Denúncia de clã (OG-275), feita na página do clã. */
+  clanId: uuid('clan_id').references(() => clans.id, { onDelete: 'set null' }),
   reason: text('reason').notNull(),
   status: reportStatus('status').notNull().default('open'),
   handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),
