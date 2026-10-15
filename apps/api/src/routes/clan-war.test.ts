@@ -91,9 +91,9 @@ describe.skipIf(!pgAdminUrl)('clã x clã na API (OG-259)', () => {
     expect(report.clans).toEqual({ red: { tag: 'nn', name: 'Clã nn' }, blue: { tag: 'BC', name: 'Clã BC' } });
   });
 
-  it('bot substituto conta pelo clã do substituído; sem ele, lado incompleto não é clã x clã', async () => {
-    const withBot = [...lineup().slice(0, 5), { ...player(5, 'BOT-BC3', 1, { isBot: true, clanId: clan.BC }), userId: undefined }];
-    const a = await internal('/internal/matches', game('w2', 1, 1, withBot));
+  it('lado incompleto não é clã x clã', async () => {
+    // bot substituto (D-46) só entra no Ranked na S20; a API já guarda o clã que ele trouxer
+    const a = await internal('/internal/matches', game('w2', 1, 1, lineup()));
     expect((await t.db.select({ w: matches.clanWar }).from(matches).where(eq(matches.id, a.json().id)))[0]!.w).toBe(true);
     const b = await internal('/internal/matches', game('w3', 1, 1, lineup().slice(0, 5)));
     expect((await t.db.select({ w: matches.clanWar }).from(matches).where(eq(matches.id, b.json().id)))[0]!.w).toBe(false);
