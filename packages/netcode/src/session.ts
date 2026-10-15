@@ -129,6 +129,8 @@ export class ClientSession {
   weapon = 1;
   /** Fim de cada power-up com tempo do próprio jogador, em s do jogo (`powerupTimer`). */
   readonly powerupEnd = { power: 0, turbo: 0, shadow: 0 };
+  /** Bots da sala Casual em vigor; só chega para o dono e admins, que podem mudá-los (OG-289). */
+  casualConfig: MessageOf<'casualConfig'> | null = null;
   /** Início e fim do mapa em s do jogo (`mapTime`); fim null = sem limite de tempo. */
   mapStart = 0;
   mapEnd: number | null = null;
@@ -349,6 +351,9 @@ export class ClientSession {
         break;
       case 'weaponChange':
         this.weapon = m.level;
+        break;
+      case 'casualConfig':
+        this.casualConfig = m;
         break;
       case 'powerupTimer':
         if (m.kind === 'power' || m.kind === 'turbo' || m.kind === 'shadow') this.powerupEnd[m.kind] = this.gameTime() + m.seconds;

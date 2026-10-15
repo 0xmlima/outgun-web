@@ -11,7 +11,7 @@ import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { deviceId } from '../app/device.js';
 import { api, ApiError } from '../app/api.js';
-import { usePrefs } from '../app/prefs.js';
+import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
 import { joinErrorText } from '../game/net/ticket.js';
 import { Badge, Button } from '../ui/Button.js';
 import { ChoiceField, SliderField, TextField, ToggleField } from '../ui/Field.js';
@@ -288,7 +288,7 @@ export function JoinRoomScreen() {
 
 /** Sala privada Casual (RN-CFG-03): preset, senha, vagas e rotação própria. */
 export function CreateRoomScreen() {
-  const { t } = usePrefs();
+  const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
   const [name, setName] = useState(() => (user ? `${user.username}` : ''));
@@ -296,12 +296,17 @@ export function CreateRoomScreen() {
   const [password, setPassword] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(16);
   const [maps, setMaps] = useState<readonly string[]>([]);
+  // bots da sala (OG-289): começam com os das opções; desligado, valem os do preset
+  const [customBots, setCustomBots] = useState(true);
+  const [bots, setBots] = useState(prefs.casualBots);
+  const [botLevel, setBotLevel] = useState(prefs.casualBotLevel);
   const [allMaps, setAllMaps] = useState<readonly string[]>([]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     void loadManifest().then((m) => m && setAllMaps(Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k)));
   }, []);
   const duel = preset === 'duel';
+  const slots = duel ? 2 : maxPlayers;
   const mapsLabel = useMemo(() => (maps.length === 0 ? t('Official rotation') : maps.length === 1 ? maps[0]! : t('$1 maps', String(maps.length))), [maps, t]);
   if (user === null) return <Navigate to="/login" replace />;
 
@@ -309,7 +314,7 @@ export function CreateRoomScreen() {
     if (!name.trim()) return;
     setError(null);
     api<{ room: RoomSummary; inviteUrl: string }>('/rooms', {
-      body: { name: name.trim(), preset, ...(password ? { password } : {}), ...(duel ? {} : { maxPlayers }), ...(maps.length ? { maps } : {}) },
+      body: { name: name.trim(), preset, ...(password ? { password } : {}), ...(duel ? {} : { maxPlayers }), ...(maps.length ? { maps } : {}), ...(customBots ? { bots: { count: Math.min(bots, slots - 1), level: botLevel } } : {}) },
     }).then(
       ({ room }) => void navigate(`/play?sala=${encodeURIComponent(room.id)}`, password ? { state: { password } } : undefined),
       (e: unknown) => setError(e instanceof ApiError && e.code === 'rate_limited' ? t('Too many rooms. Try again later.') : t('Could not create the room.')),
@@ -338,6 +343,15 @@ export function CreateRoomScreen() {
         />
         <TextField label={t('Password (optional)')} type="password" autoComplete="new-password" value={password} onChange={setPassword} maxLength={15} />
         <SliderField label={t('Players')} value={duel ? 2 : maxPlayers} min={2} max={32} step={2} disabled={duel} onChange={setMaxPlayers} />
+        <ToggleField label={t('Choose the bots')} checked={customBots} onChange={setCustomBots} hint={customBots ? undefined : t('The rules decide the bots.')} />
+        <SliderField label={t('Number of bots')} value={Math.min(bots, slots - 1)} min={0} max={slots - 1} disabled={!customBots} onChange={setBots} />
+        <ChoiceField
+          label={t('Bot level')}
+          value={String(botLevel)}
+          disabled={!customBots}
+          options={BOT_LEVEL_CHOICES.map(([value, text]) => ({ value: String(value), label: t(text) }))}
+          onChange={(v) => setBotLevel(Number(v))}
+        />
       </Form>
       <details className="lobby-maps">
         <summary>

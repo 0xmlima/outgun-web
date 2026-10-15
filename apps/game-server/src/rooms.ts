@@ -3,7 +3,7 @@
 // mas várias por processo) e encerra as vazias depois de um tempo.
 import type { GameMap } from '@outgun/sim';
 import { FixedRateLoop, percentile, realClock, type Clock } from './loop.js';
-import { Room, type RoomOptions } from './room.js';
+import { Room, type CasualBots, type RoomOptions } from './room.js';
 import type { RandomMapParams } from './generated-maps.js';
 import type { RankedRoomFormat } from '@outgun/settings';
 import type { LobbyPhase } from './ranked-lobby.js';
@@ -25,6 +25,8 @@ export interface RoomSpec {
   randomSlots?: readonly (RandomMapParams | null)[];
   /** Formato e série da sala Ranked (OG-250). */
   ranked?: RankedRoomFormat;
+  /** Bots da sala privada Casual escolhidos pelo dono (OG-289). */
+  casualBots?: CasualBots;
 }
 
 interface Entry {
@@ -101,7 +103,7 @@ export class RoomManager {
   create(spec: RoomSpec): Room {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
-    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, ...(spec.ranked ? { ranked: spec.ranked } : {}), seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
+    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, ...(spec.ranked ? { ranked: spec.ranked } : {}), ...(spec.casualBots ? { casualBots: spec.casualBots } : {}), seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
     this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null });
     return room;
   }

@@ -7,7 +7,8 @@
 // ?demo=JOGADORES (partida local) e ?map=NOME&theme=TEMA&rooms=N&room=X,Y (visualizador de mapa).
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { usePrefs } from '../app/prefs.js';
+import { message } from '@outgun/protocol';
+import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
 import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
 import type { Prefs } from '../app/prefs.js';
 import { defaultServerUrl } from '../game/net/connection.js';
@@ -279,6 +280,20 @@ export default function GameScreen() {
   const sala = params.get('sala');
   // margem de 1 min para o relógio do servidor (ended_at) e o do navegador
   const openReport = () => lastGameOverAt !== null && sala && void navigate(`/rooms/${encodeURIComponent(sala)}/report?${new URLSearchParams({ after: new Date(lastGameOverAt - 60_000).toISOString() })}`);
+  /** Dono da sala privada ou admin no Casual (OG-289): os bots das opções valem na próxima partida ou já. */
+  function botItems(): MenuItem[] {
+    const s = host.current?.session();
+    if (!s?.casualConfig) return [];
+    const level = t(BOT_LEVEL_CHOICES.find(([v]) => v === prefs.casualBotLevel)?.[1] ?? '');
+    const apply = (restart: boolean) => {
+      s.send(message('casualBots', { bots: prefs.casualBots, level: prefs.casualBotLevel, restart }));
+      setMenuOpen(false);
+    };
+    return [
+      { kind: 'action', label: t('Bots from my options at the next game: $1, level $2', String(prefs.casualBots), level), onActivate: () => apply(false) },
+      { kind: 'action', label: t('Bots from my options and restart now'), onActivate: () => apply(true) },
+    ];
+  }
   const items: MenuItem[] = [
     { kind: 'action', label: t('Back to game'), onActivate: () => setMenuOpen(false) },
     ...(lastGameOverAt !== null && sala ? [{ kind: 'action' as const, label: t('View match report'), onActivate: openReport }] : []),
@@ -287,6 +302,7 @@ export default function GameScreen() {
       label: t('Send feedback'),
       onActivate: () => void navigate(`/feedback?${new URLSearchParams({ sala: params.get('sala') ?? 'main', ...(status?.kind === 'ready' ? { mapa: status.map.title } : {}) })}`),
     },
+    ...botItems(),
     { kind: 'action', label: t('Leave game'), onActivate: () => void navigate('/') },
   ];
 

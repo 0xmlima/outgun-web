@@ -58,6 +58,9 @@ export interface Prefs {
   readonly preferThemeBackground: boolean;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
+  /** Bots das salas Casual do jogador (OG-289): quantidade fixa e nível 1–5 (0 = variável). */
+  readonly casualBots: number;
+  readonly casualBotLevel: number;
   /** Predição do próprio jogador (`Lag prediction`; ligada por padrão na web, D-18). */
   readonly lagPrediction: boolean;
   /** 0..10: quanto do atraso a predição compensa (`Lag prediction amount`). */
@@ -100,6 +103,19 @@ export function completeColors(saved: unknown): number[] {
   return out;
 }
 
+/** Mais bots do que isso não cabe numa sala de 32 com o dono. */
+export const CASUAL_MAX_BOTS = 31;
+
+/** Níveis dos bots nas opções e na criação de sala (OG-289): 0 = variável. */
+export const BOT_LEVEL_CHOICES: readonly [number, string][] = [
+  [0, 'variable (each bot different)'],
+  [1, '1 (weak)'],
+  [2, '2'],
+  [3, '3'],
+  [4, '4 (standard)'],
+  [5, '5 (strong)'],
+];
+
 export function defaultPrefs(languages: readonly string[] = []): Prefs {
   return {
     locale: detectLocale(languages),
@@ -132,6 +148,8 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     backgroundTheme: '',
     preferThemeBackground: true,
     bindings: CLASSIC_BINDINGS,
+    casualBots: 6,
+    casualBotLevel: 4, // o bot de referência (o do original)
     lagPrediction: true,
     lagPredictionAmount: 10,
     shareNetStats: true,
@@ -194,6 +212,8 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     backgroundTheme: str(saved.backgroundTheme, fallback.backgroundTheme),
     preferThemeBackground: bool(saved.preferThemeBackground, fallback.preferThemeBackground),
     bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
+    casualBots: int(saved.casualBots, 0, CASUAL_MAX_BOTS, fallback.casualBots),
+    casualBotLevel: int(saved.casualBotLevel, 0, 5, fallback.casualBotLevel),
     lagPrediction: bool(saved.lagPrediction, fallback.lagPrediction),
     lagPredictionAmount: int(saved.lagPredictionAmount, 0, 10, fallback.lagPredictionAmount),
     shareNetStats: bool(saved.shareNetStats, fallback.shareNetStats),

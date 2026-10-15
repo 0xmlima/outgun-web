@@ -259,6 +259,20 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
       'Modo foco: tela cheia, atalhos do navegador capturados (F10 ou Esc sai).',
     'Back to game': 'Voltar ao jogo',
     'New version available: reload': 'Nova versão disponível: recarregar',
+    // OG-289: bots das salas Casual
+    'Bots in your Casual rooms': 'Bots das suas salas Casual',
+    'Number of bots': 'Quantidade de bots',
+    'Bot level': 'Nível dos bots',
+    'variable (each bot different)': 'variável (cada bot com um nível)',
+    '1 (weak)': '1 (fraco)',
+    '4 (standard)': '4 (padrão)',
+    '5 (strong)': '5 (forte)',
+    'Used when you create a private room and, as the room owner, from the next game on (game menu).':
+      'Valem ao criar uma sala privada e, como dono da sala, a partir da próxima partida (menu do jogo).',
+    'Choose the bots': 'Escolher os bots',
+    'The rules decide the bots.': 'Os bots seguem as regras escolhidas.',
+    'Bots from my options at the next game: $1, level $2': 'Bots das minhas opções na próxima partida: $1, nível $2',
+    'Bots from my options and restart now': 'Bots das minhas opções e reiniciar agora',
     'Tip: F10 plays in focus mode, which keeps browser shortcuts inside the game.': 'Dica: F10 joga no modo foco, que segura os atalhos do navegador dentro do jogo.',
     '$1 may be taken by the browser or the system. Pick another key or play in focus mode (F10).': '$1 pode ser tomada pelo navegador ou pelo sistema. Escolha outra tecla ou jogue no modo foco (F10).',
     'Focus mode (F10) plays in full screen and, in Chrome and Edge, keeps browser shortcuts such as Ctrl+W or Cmd+1 inside the game. System shortcuts (Alt+Tab, Cmd+Tab) always leave the game.':

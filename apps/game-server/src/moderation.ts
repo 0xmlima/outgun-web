@@ -260,6 +260,7 @@ function botCommand(host: ConsoleHost, bots: BotConsole, args: string, say: (k: 
     say('server', '/bot fill n      set bots_fill to n');
     say('server', '/bot balance s   set balance_bot on or off');
     say('server', '/bot ping p      show or set the bot ping');
+    say('server', '/bot level l     show or set the bot level (1-5, or 0 for variable)');
     say('server', '/bot rename n s  set the name of bot with ID n to s');
     say('server', `Currently there are ${botPlayers.length} bots.`);
     say('server', `min_bots ${s.minBots}, bots_fill ${s.botsFill}, extra_bots ${bots.extra()}, balance_bot ${s.balanceBot ? 'on' : 'off'}`);
@@ -303,6 +304,14 @@ function botCommand(host: ConsoleHost, bots: BotConsole, args: string, say: (k: 
       say('server', `Balance bot is now ${s.balanceBot ? 'on' : 'off'}.`);
       bots.changed();
     } else say('warning', "Syntax error. Valid settings are 'on' and 'off'.");
+  } else if (option === 'level') {
+    // OG-289: nível dos bots que entram (0 = cada um sorteia o seu); sem equivalente no original
+    const level = leadingInt(tokens[1]);
+    if (tokens[1] === undefined) say('server', `Current bot level is ${s.botLevel === 0 ? 'variable' : s.botLevel}.`);
+    else if (level !== null && String(level) === tokens[1] && tokens.length === 2 && level >= 0 && level <= 5) {
+      s.botLevel = level;
+      say('server', `Bot level is now ${level === 0 ? 'variable' : level}. New bots will use it.`);
+    } else say('warning', 'Syntax error. Valid level range is 0 - 5 (0 = variable).');
   } else if (option === 'ping') {
     const ping = leadingInt(tokens[1]);
     if (tokens[1] === undefined) say('server', `Current bot ping is ${s.botPing}.`);
@@ -321,7 +330,7 @@ function botCommand(host: ConsoleHost, bots: BotConsole, args: string, say: (k: 
       else if (!target.bot) say('warning', `Player ${uid} is not a bot.`);
       else bots.rename(target.pid, name);
     }
-  } else say('warning', 'Syntax error. Expecting add, remove, fill, balance, or ping.');
+  } else say('warning', 'Syntax error. Expecting add, remove, fill, balance, ping, or level.');
 }
 
 /** /kick, /ban, /mute, /smute, /unmute ("ID [minutos] [motivo]"). */

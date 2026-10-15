@@ -64,6 +64,8 @@ export interface RoomSpawn {
   persistent: boolean;
   /** Formato e série da sala Ranked (OG-250); `maxPlayers` = 2 × N. Ausente nas salas antigas. */
   ranked?: { format: '3x3' | '4x4' | '5x5'; bestOf: 1 | 3 | 5 };
+  /** Bots escolhidos pelo dono ao criar a sala privada Casual (OG-289): quantidade e nível (0 = variável). */
+  casualBots?: { bots: number; level: number };
 }
 
 export type TicketInput = Omit<TicketClaims, 'iss' | 'iat' | 'exp' | 'jti'>;

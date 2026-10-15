@@ -160,6 +160,8 @@ export interface ServerSettings {
   botsFill: number;
   balanceBot: boolean;
   botPing: number; // ms
+  /** Nível dos bots do Casual (OG-289): 1–5, ou 0 = variável (cada bot sorteia o seu). */
+  botLevel: number;
   botNameLang: string;
   randomMaprot: 0 | 1 | 2;
   voteBlockTime: number; // frames
@@ -306,6 +308,7 @@ export function codeDefaults(): GameSettings {
       botsFill: 0,
       balanceBot: false,
       botPing: 300,
+      botLevel: 4, // `REFERENCE_BOT_LEVEL` de @outgun/bots: o bot do original
       botNameLang: '',
       randomMaprot: 0,
       voteBlockTime: 0,

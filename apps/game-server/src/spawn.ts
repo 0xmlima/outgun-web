@@ -69,6 +69,7 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       maxPlayers: ranked ? formatPlayers(ranked.format) : spec.maxPlayers,
       persistent: spec.persistent,
       ...(ranked ? { ranked: { format: ranked.format, bestOf: ranked.bestOf } } : {}),
+      ...(spec.mode === 'casual' && spec.casualBots ? { casualBots: { bots: spec.casualBots.bots, level: spec.casualBots.level } } : {}),
     });
     options.log?.(`sala ${id} aberta (${spec.mode}, ${preset.id}, ${files.length} mapas${ranked ? `, ${ranked.format} md${ranked.bestOf}` : ''})`);
     return room;
