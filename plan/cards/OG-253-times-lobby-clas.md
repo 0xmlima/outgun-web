@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S17 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-252](OG-252-salas-lobby-ranked.md), [OG-270](OG-270-clas-cadastro-api.md) |
 | Regras de negócio | RN-RKL-08, RN-RKL-09 |
 | Skills | `outgun-card-workflow` |
