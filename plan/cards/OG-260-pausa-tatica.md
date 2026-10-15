@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S20 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-252](OG-252-salas-lobby-ranked.md) |
 | Regras de negócio | RN-RKL-15, RN-RKL-16 |
 | Skills | `outgun-card-workflow` |
@@ -22,13 +22,16 @@ Como time numa partida Ranked, quero pedir pausas que somem até 60 s, para reso
 - Mensagens novas em `packages/protocol` (pausado/retomando, quem pediu, saldo e pedidos restantes de cada time).
 
 ## Critérios de aceite
-- [ ] Testes: saldo descontado pelo tempo real de pausa; 4º pedido e pedido sem saldo recusados; o tempo da partida não corre pausado.
-- [ ] Nenhum avanço do mundo durante a pausa (frame igual antes e depois).
-- [ ] Pedido de retomada do time adversário é recusado.
-- [ ] Casual não tem pausa.
+- [x] Testes: saldo descontado pelo tempo real de pausa; 4º pedido e pedido sem saldo recusados; o tempo da partida não corre pausado.
+- [x] Nenhum avanço do mundo durante a pausa (frame igual antes e depois).
+- [x] Pedido de retomada do time adversário é recusado.
+- [x] Casual não tem pausa.
 
 ## Notas técnicas
 - `packages/sim` não muda: a sala só deixa de chamar o passo do mundo. Conferir predição e interpolação do cliente com o mundo parado (sem "pulo" na retomada).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `apps/game-server/src/pause.ts` (`RankedPause`, só em sala `mode: 'ranked'`); tempos no relógio da sala (`uptimeFrames`). Pausado, a sala **não incrementa `world.frame`**: mundo, timers de respawn/power-up, bandeiras e tempo da partida param juntos sem tocar no `packages/sim`; os frames continuam indo com o mesmo número.
+- Pausado, inputs/tiro/largar bandeira/suicídio são ignorados e as teclas de todos são soltas; o prazo de reconexão passou a contar pelo `uptimeFrames` (anda pausado — base do OG-261).
+- Protocolo: `pauseState` (126) e `pauseRequest` (127); comandos `/pause` e `/resume` no chat. A tecla e o overlay ficam no OG-264.
+- Cliente (`session.ts`): `pause` + `paused`; pausado não extrapola nem prediz e o relógio segue o frame do servidor (sem pulo na retomada). Na entrada da pausa o próprio jogador pode voltar a posição de alguns frames de predição (o servidor manda a posição confirmada).

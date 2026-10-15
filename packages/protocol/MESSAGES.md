@@ -98,6 +98,8 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 123 | [`lobbySide`](#lobbyside) | cliente → servidor | event | — (web, OG-253) | Troca de lado no lobby: sem alvo, vai para a vaga livre do outro lado; com alvo, pede para trocar com ele. |
 | 124 | [`lobbySwapAnswer`](#lobbyswapanswer) | cliente → servidor | event | — (web, OG-253) | Resposta a um pedido de troca de lado. |
 | 125 | [`playerClan`](#playerclan) | servidor → cliente | event | — (web, OG-206) | Tag do clã cadastrado de um jogador (logo depois do `playerJoined`; sem tag, não vem). |
+| 126 | [`pauseState`](#pausestate) | servidor → cliente | event | — (web, OG-260) | Pausa do jogo Ranked: fase (sem pausa, pausado ou contagem de retomada), motivo, time e quem pediu, segundos restantes (saldo do time ou contagem) e o saldo de pausa de cada time. |
+| 127 | [`pauseRequest`](#pauserequest) | cliente → servidor | event | — (web, OG-260) | Pede a pausa tática do time (on) ou a retomada (off); só no Ranked. |
 
 ## Campos
 
@@ -752,6 +754,26 @@ Código 125. Tag do clã cadastrado de um jogador (logo depois do `playerJoined`
 
 - `pid`: pid (u8, 0..31)
 - `tag`: string (UTF-8, até 8 bytes)
+
+### pauseState
+
+Código 126. Pausa do jogo Ranked: fase (sem pausa, pausado ou contagem de retomada), motivo, time e quem pediu, segundos restantes (saldo do time ou contagem) e o saldo de pausa de cada time.
+
+- `phase`: u8 enum: 0 = none, 1 = paused, 2 = resuming
+- `reason`: u8 enum: 0 = team, 1 = drop
+- `team`: u8
+- `by`: pid (u8, 255 = nenhum)
+- `seconds`: u16
+- `redSeconds`: u8
+- `redRequests`: u8
+- `blueSeconds`: u8
+- `blueRequests`: u8
+
+### pauseRequest
+
+Código 127. Pede a pausa tática do time (on) ou a retomada (off); só no Ranked.
+
+- `on`: bool (u8 0/1)
 
 ## Mensagens do original que não existem aqui
 

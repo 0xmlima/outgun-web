@@ -868,6 +868,28 @@ export const MESSAGES = {
     pid,
     tag: str(8),
   }),
+  // --- pausa no Ranked (OG-260..262, D-45/D-46): sem equivalente no original ---
+  pauseState: msg(
+    126,
+    's2c',
+    'event',
+    '— (web, OG-260)',
+    'Pausa do jogo Ranked: fase (sem pausa, pausado ou contagem de retomada), motivo, time e quem pediu, segundos restantes (saldo do time ou contagem) e o saldo de pausa de cada time.',
+    {
+      phase: enumOf('none', 'paused', 'resuming'),
+      reason: enumOf('team', 'drop'),
+      team: u8,
+      by: pidOrNone,
+      seconds: u16,
+      redSeconds: u8,
+      redRequests: u8,
+      blueSeconds: u8,
+      blueRequests: u8,
+    },
+  ),
+  pauseRequest: msg(127, 'c2s', 'event', '— (web, OG-260)', 'Pede a pausa tática do time (on) ou a retomada (off); só no Ranked.', {
+    on: bool,
+  }),
 } as const;
 
 export type MessageName = keyof typeof MESSAGES;

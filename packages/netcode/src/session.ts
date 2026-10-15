@@ -140,6 +140,8 @@ export class ClientSession {
   mapList: MessageOf<'mapList'>['maps'] = [];
   /** Lobby da sala Ranked com formato (OG-252..256): último `lobbyState`; null nas outras salas. */
   lobby: MessageOf<'lobbyState'> | null = null;
+  /** Pausa do jogo Ranked (OG-260): último `pauseState`; null antes do primeiro (salas sem pausa). */
+  pause: MessageOf<'pauseState'> | null = null;
   mapVoteCounts: number[] = [];
   currentMapIndex = -1;
   /** Preset da sala (`serverSettings`). */
@@ -396,6 +398,9 @@ export class ClientSession {
       case 'lobbyState':
         this.lobby = m;
         break;
+      case 'pauseState':
+        this.pause = m;
+        break;
       case 'currentMap':
         this.currentMapIndex = m.mapIndex;
         break;
@@ -594,7 +599,8 @@ export class ClientSession {
 
     // relógio do servidor: frame m.frame acabou de chegar; o "agora" do servidor é pelo menos isso
     const sample = m.frame - now / 100;
-    if (!this.hasFrame || sample > this.clockOffset || this.clockOffset - sample > MAX_EXTRAPOLATION) this.clockOffset = sample;
+    // pausado (OG-260) o frame não anda: o relógio segue o servidor para não pular na retomada
+    if (!this.hasFrame || this.paused || sample > this.clockOffset || this.clockOffset - sample > MAX_EXTRAPOLATION) this.clockOffset = sample;
     else this.clockOffset -= 0.002; // cede 0,2 ms por frame: acompanha um aumento de latência
     this.hasFrame = true;
 
@@ -797,6 +803,7 @@ export class ClientSession {
   /** Frames a extrapolar a partir de `fx` (`timeDelta` do original, antes de consumir o histórico). */
   private timeDelta(now: number): number | null {
     if (!this.world || this.skipped || !this.hasFrame) return null;
+    if (this.paused) return 0; // mundo parado: desenha o último frame como veio
     const elapsed = this.serverFrameNow(now) - this.world.frame;
     if (!this.prediction.enabled) return elapsed;
     const lagWanted = 2 * (1 - Math.min(10, Math.max(0, this.prediction.amount)) / 10);
@@ -862,7 +869,7 @@ export class ClientSession {
     let first = this.clFrameWorld;
     let last = this.clFrameWorld;
     let td = timeDelta;
-    if (this.prediction.enabled && me) {
+    if (this.prediction.enabled && me && !this.paused) {
       if (this.clFrameSent !== this.clFrameWorld) {
         first = last = u8(this.clFrameWorld + 1);
         while (last !== this.clFrameSent && td > 1) {
@@ -903,6 +910,11 @@ export class ClientSession {
     fd.frame += td;
     fd.time = fd.frame / 10;
     return fd;
+  }
+
+  /** Jogo Ranked pausado ou contando para retomar (OG-260): o servidor não anda o mundo. */
+  get paused(): boolean {
+    return this.pause !== null && this.pause.phase !== 'none';
   }
 
   /** Frames extrapolados no último `extrapolate` (para o tempo das animações). */
