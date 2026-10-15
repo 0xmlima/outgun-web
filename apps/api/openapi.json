@@ -906,6 +906,106 @@
         }
       }
     },
+    "/leaderboard/overall": {
+      "get": {
+        "summary": "Ranking geral de todas as temporadas (OG-267): soma de score e neg, rating = (score+1)/(neg+1), mínimo de 100 de score",
+        "tags": ["ranking"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["seasons", "total", "entries"],
+                  "properties": {
+                    "seasons": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "position",
+                          "userId",
+                          "username",
+                          "clanTag",
+                          "score",
+                          "neg",
+                          "rating",
+                          "matches"
+                        ],
+                        "properties": {
+                          "position": {
+                            "type": "integer"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "score": {
+                            "type": "number"
+                          },
+                          "neg": {
+                            "type": "integer"
+                          },
+                          "rating": {
+                            "type": "number"
+                          },
+                          "matches": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/players/{name}": {
       "get": {
         "summary": "Perfil público: nome, clã, posição no ranking e estatísticas por modo",

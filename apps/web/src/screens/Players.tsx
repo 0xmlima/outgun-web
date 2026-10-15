@@ -1,20 +1,27 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Diretório de jogadores (OG-215, RN-SOC-04) em /players: busca por nome ou clã (sem diferença de
 // maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Ranking da temporada em
-// /ranking no visual v2 (substitui a tela do OG-085).
+// /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267).
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
 import { Button } from '../ui/Button.js';
-import { TextField } from '../ui/Field.js';
+import { ChoiceField, TextField } from '../ui/Field.js';
 import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
+import { Tabs } from '../ui/Tabs.js';
 import { duration, PlayerLink, Status, useApi, type Leaderboard } from './stats.js';
 
 interface Directory {
   active: { username: string; clanTag: string | null; matches: number; wins: number; playSeconds: number }[];
   clans: { tag: string; members: number; activeMembers: number; matches: number }[];
+}
+/** Ranking geral (OG-267): soma de todas as temporadas. */
+interface Overall {
+  seasons: number;
+  total: number;
+  entries: Leaderboard['entries'];
 }
 interface Found {
   total: number;
@@ -124,45 +131,75 @@ function SearchResults({ term, onOpen }: { term: string; onOpen: (username: stri
   );
 }
 
+type BoardView = 'current' | 'past' | 'overall';
+interface SeasonRow {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+/** Ranking (OG-084) com a temporada atual, as anteriores (classificação final) e o geral (OG-267). */
 export function LeaderboardScreen() {
   const { t } = usePrefs();
   const navigate = useNavigate();
   const [limit, setLimit] = useState(50);
-  const board = useApi<Leaderboard>(`/leaderboard?limit=${limit}`);
-  const b = board.data;
+  const [view, setView] = useState<BoardView>('current');
+  const seasons = useApi<{ seasons: SeasonRow[] }>('/seasons');
+  const past = (seasons.data?.seasons ?? []).filter((s) => !s.active);
+  const [pastId, setPastId] = useState<string>('');
+  const chosen = pastId || String(past[0]?.id ?? '');
+  const path =
+    view === 'overall' ? `/leaderboard/overall?limit=${limit}` : view === 'past' ? (chosen ? `/leaderboard?season=${chosen}&limit=${limit}` : '') : `/leaderboard?limit=${limit}`;
+  const board = useApi<Leaderboard | Overall>(path || '/leaderboard?limit=1');
+  const b = path ? board.data : null;
+  const title = b && 'season' in b ? `${t('Ranking')} · ${b.season.name}` : view === 'overall' ? `${t('Ranking')} · ${t('All seasons')}` : t('Ranking');
   return (
-    <Page
-      title={b ? `${t('Ranking')} · ${b.season.name}` : t('Ranking')}
-      subtitle={t('Rating = (score + 1) / (neg + 1); at least 100 points of score to appear. Only Ranked matches count.')}
-      onBack={() => void navigate(-1)}
-    >
-      <Status loading={b === undefined} missing={b === null} error={board.error} />
-      {b && (
-        <Panel title={t('Ranked players: $1', String(b.total))}>
-          <Table
-            caption={t('Ranking')}
-            rows={b.entries}
-            rowKey={(e) => e.username}
-            onRowActivate={(e) => void navigate(`/players/${encodeURIComponent(e.username)}`)}
-            empty={t('Nobody yet.')}
-            columns={[
-              { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
-              { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={withClan(e.username, e.clanTag)} username={e.username} /> },
-              { key: 'rating', header: t('rating'), cell: (e) => e.rating.toFixed(2), align: 'end' },
-              { key: 'score', header: t('score'), cell: (e) => Math.trunc(e.score), align: 'end' },
-              { key: 'neg', header: t('neg'), cell: (e) => e.neg, align: 'end' },
-              { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
-            ]}
-          />
-          {b.total > b.entries.length && limit < 100 && (
-            <div className="ui-row">
-              <Button variant="ghost" onClick={() => setLimit(100)}>
-                {t('More')}
-              </Button>
-            </div>
-          )}
-        </Panel>
-      )}
+    <Page title={title} subtitle={t('Rating = (score + 1) / (neg + 1); at least 100 points of score to appear. Only Ranked matches count.')} onBack={() => void navigate(-1)}>
+      <Tabs
+        label={t('Ranking')}
+        value={view}
+        onChange={(v) => {
+          setView(v);
+          setLimit(50);
+        }}
+        tabs={[
+          { id: 'current', label: t('Current season') },
+          { id: 'past', label: t('Past seasons') },
+          { id: 'overall', label: t('All seasons') },
+        ]}
+      >
+        {view === 'past' && past.length > 0 && (
+          <ChoiceField label={t('Season')} value={chosen} onChange={setPastId} options={past.map((s) => ({ value: String(s.id), label: s.name }))} />
+        )}
+        {view === 'past' && seasons.data && past.length === 0 && <p className="ui-muted">{t('No finished season yet.')}</p>}
+        {path && <Status loading={b === undefined} missing={b === null} error={board.error} />}
+        {b && (
+          <Panel title={b && 'seasons' in b ? t('Ranked players in $1 seasons: $2', String(b.seasons), String(b.total)) : t('Ranked players: $1', String(b.total))}>
+            <Table
+              caption={t('Ranking')}
+              rows={b.entries}
+              rowKey={(e) => e.username}
+              onRowActivate={(e) => void navigate(`/players/${encodeURIComponent(e.username)}`)}
+              empty={t('Nobody yet.')}
+              columns={[
+                { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
+                { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={withClan(e.username, e.clanTag)} username={e.username} /> },
+                { key: 'rating', header: t('rating'), cell: (e) => e.rating.toFixed(2), align: 'end' },
+                { key: 'score', header: t('score'), cell: (e) => Math.trunc(e.score), align: 'end' },
+                { key: 'neg', header: t('neg'), cell: (e) => e.neg, align: 'end' },
+                { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
+              ]}
+            />
+            {b.total > b.entries.length && limit < 100 && (
+              <div className="ui-row">
+                <Button variant="ghost" onClick={() => setLimit(100)}>
+                  {t('More')}
+                </Button>
+              </div>
+            )}
+          </Panel>
+        )}
+      </Tabs>
       <p className="ui-muted">
         <Button variant="ghost" onClick={() => void navigate('/players')}>
           {t('Players')}

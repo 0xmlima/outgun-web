@@ -348,6 +348,13 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Admin: 'Admin',
     Member: 'Membro',
     Invite: 'Convidar',
+    // Temporadas mensais e ranking geral (OG-267)
+    'All seasons': 'Geral',
+    'Current season': 'Temporada atual',
+    'No finished season yet.': 'Nenhuma temporada encerrada ainda.',
+    'Past seasons': 'Temporadas anteriores',
+    'Ranked players in $1 seasons: $2': 'Jogadores no ranking de $1 temporadas: $2',
+    Season: 'Temporada',
     // Moderação de clãs (OG-275)
     'Confirm dissolution of $1': 'Confirmar dissolução de $1',
     'Force change': 'Forçar troca',

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S16 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-RKL-22, RN-RKL-23 |
 | Skills | `outgun-card-workflow` |
@@ -25,7 +25,10 @@ Como jogador, quero que o ranking recomece todo mês e que exista um ranking de 
 - Virada idempotente (dois processos ou reinício no meio não criam duas temporadas); partida que termina na virada conta na temporada em que começou.
 
 ## Critérios de aceite
-- [ ] Testes: virada no fim do mês, virada repetida, partida na virada, geral = soma das temporadas.
+- [x] Testes: virada no fim do mês, virada repetida, partida na virada, geral = soma das temporadas.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `rollSeason` (advisory lock + `seasons.month` único) roda ao subir a API e a cada minuto (main.ts); a temporada ativa antiga, sem mês, vira a do mês corrente na primeira verificação — a primeira virada real é no próximo dia 1.
+- Brasília fixo em UTC-3 (sem horário de verão desde 2019). `season_standings` guarda a final; partida que começou antes da virada vai para a temporada anterior e regrava a final dela. Deltas de quem saiu (`/rating-deltas`) continuam indo para a ativa.
+- `/leaderboard` de temporada encerrada lê a final; `/leaderboard/overall` soma tudo. Por formato fica com o OG-258.
+- `/ranking`: abas Temporada atual / Temporadas anteriores (seletor) / Geral.

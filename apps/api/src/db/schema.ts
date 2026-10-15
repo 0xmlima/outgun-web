@@ -90,7 +90,27 @@ export const seasons = pgTable('seasons', {
   startsAt: tstz('starts_at').notNull(),
   endsAt: tstz('ends_at'),
   active: boolean('active').notNull().default(false),
+  /** Mês da temporada mensal (AAAA-MM, Brasília; OG-267); nulo nas antigas. */
+  month: text('month'),
 });
+
+/** Classificação final de uma temporada encerrada (OG-267, RN-RKL-22). */
+export const seasonStandings = pgTable(
+  'season_standings',
+  {
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    score: doublePrecision('score').notNull(),
+    neg: integer('neg').notNull(),
+    matches: integer('matches').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.seasonId, t.userId] }), index('season_standings_position_idx').on(t.seasonId, t.position)],
+);
 
 export const rooms = pgTable('rooms', {
   id: text('id').primaryKey(),
@@ -518,6 +538,7 @@ export const allTables = {
   sessions,
   player_profiles: playerProfiles,
   seasons,
+  season_standings: seasonStandings,
   rooms,
   game_servers: gameServers,
   matches,

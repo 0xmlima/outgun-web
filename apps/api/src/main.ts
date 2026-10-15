@@ -5,6 +5,7 @@ import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { connect } from './db/client.js';
 import { migrateUp } from './db/migrate.js';
+import { rollSeason } from './ranking.js';
 import { connectRedis } from './redis.js';
 
 const config = loadConfig();
@@ -12,8 +13,17 @@ const database = connect(config.databaseUrl);
 if (process.env.MIGRATE !== '0') await migrateUp(database.sql);
 const redis = connectRedis(config.redisUrl);
 const lifecycle = { stopping: false };
+
+/** Temporadas mensais (OG-267): confere a virada ao subir e a cada minuto (idempotente). */
+const checkSeason = () =>
+  rollSeason(database.db).then(
+    (season) => season && app.log.info({ season }, 'temporada nova aberta'),
+    (err: unknown) => app.log.error({ err }, 'falha na virada da temporada'),
+  );
 const app = await buildApp({ config, database, redis, lifecycle });
 await app.listen({ port: config.port, host: config.host });
+await checkSeason();
+const seasonTimer = setInterval(() => void checkSeason(), 60_000);
 if (process.env.NODE_ENV === 'production' && !config.metricsToken) app.log.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 
 /**
@@ -25,6 +35,7 @@ const shutdown = async (graceS: number) => {
   if (stopping) return;
   stopping = true;
   lifecycle.stopping = true;
+  clearInterval(seasonTimer);
   if (graceS > 0) await new Promise((r) => setTimeout(r, graceS * 1000));
   await app.close();
   redis?.disconnect();
