@@ -96,12 +96,17 @@ export class WorldRenderer {
         sprite.texture = texture;
         sprite.position.set(p.x, p.y);
       } else {
+        sprite.texture = Texture.EMPTY;
         this.placeholders.rect(p.x, p.y, layout.roomW, layout.roomH);
         missing++;
       }
       if (fogged(p.rx, p.ry)) this.fog.rect(p.x, p.y, layout.roomW, layout.roomH);
     });
-    for (let i = placements.length; i < this.sprites.length; i++) this.sprites[i]!.visible = false;
+    for (let i = placements.length; i < this.sprites.length; i++) {
+      const sprite = this.sprites[i]!;
+      sprite.visible = false;
+      sprite.texture = Texture.EMPTY; // a textura pode sair do cache (`evict`)
+    }
     this.placeholders.fill(colour(this.theme, 'ground'));
     this.fog.fill({ color: colour(this.theme, 'playfield_fog'), alpha: FOG_ALPHA });
 
@@ -167,6 +172,11 @@ export class WorldRenderer {
   invalidate(): void {
     this.generation++;
     this.source.cancelPending();
+    // nenhum sprite fica com textura destruída até o próximo `render` (o Pixi quebra em `alphaMode`, OG-278)
+    for (const sprite of this.sprites) {
+      sprite.texture = Texture.EMPTY;
+      sprite.visible = false;
+    }
     for (const entry of this.cache.values()) entry.texture?.destroy(true);
     this.cache.clear();
   }
