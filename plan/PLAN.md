@@ -696,7 +696,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S19 | OG-250 | Concluído |
 | [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S19 | OG-250 | Concluído |
 | [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S20 | OG-252 | Em revisão |
-| [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S20 | OG-260 | Pronto |
+| [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S20 | OG-260 | Em revisão |
 | [OG-262](cards/OG-262-voto-bot-substituto.md) | Desconexão permanente: voto entre jogar com um a menos ou bot substituto | E12 | 5 | Must | S20 | OG-261 | Pronto |
 | [OG-263](cards/OG-263-marca-partida-com-bots.md) | Marca "concluída com bots" em partidas Ranked | E12 | 2 | Must | S20 | OG-262 | Pronto |
 | [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S20 | OG-265, OG-260, OG-262 | Pronto |

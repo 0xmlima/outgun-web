@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Pausa tática do Ranked (OG-260, RN-RKL-15/16, D-45): saldo, pedidos, retomada só por quem pediu e
-// o mundo parado na sala.
+// o mundo parado na sala. Queda no Ranked (OG-261, RN-RKL-17): pausa, reconexão e prazo.
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
 import type { PlayerState } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
-import { PAUSE_BALANCE_FRAMES, RankedPause, RESUME_FRAMES } from './pause.js';
+import { PAUSE_BALANCE_FRAMES, RANKED_RECONNECT_FRAMES, RankedPause, RESUME_FRAMES } from './pause.js';
 import { Room, type Connection } from './room.js';
 
 describe('saldo e pedidos de pausa (OG-260)', () => {
@@ -132,5 +132,54 @@ describe('sala pausada (OG-260)', () => {
     run(r, 3);
     expect([r.pause, r.world.frame, a.conn.last('pauseState')]).toEqual([undefined, frame + 3, undefined]);
     expect(a.conn.texts().at(-1)).toBe('Pausa só no Ranked, com o jogo em andamento.');
+  });
+
+  const account = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
+
+  it('queda pausa sem gastar saldo; reconexão retoma com a contagem (OG-261)', () => {
+    const { r, players } = setup('ranked');
+    const [a, b] = players as [{ conn: TestConnection; pid: number }, { conn: TestConnection; pid: number }];
+    r.disconnect(a.pid, a.conn);
+    run(r, 1);
+    const before = snapshot(r);
+    expect(b.conn.last('pauseState')).toMatchObject({ phase: 'paused', reason: 'drop', by: a.pid, seconds: 120, redSeconds: 60, blueSeconds: 60 });
+    run(r, 300);
+    expect(snapshot(r)).toBe(before);
+    expect(b.conn.last('pauseState')).toMatchObject({ phase: 'paused', reason: 'drop', seconds: 90 });
+    const back = new TestConnection();
+    expect(r.resume(back, { name: 'J1', accountId: account(1) }, '')).toEqual({ ok: true, pid: a.pid });
+    run(r, 1);
+    expect(b.conn.last('pauseState')).toMatchObject({ phase: 'resuming', seconds: 3 });
+    run(r, RESUME_FRAMES);
+    expect([r.pause?.active, r.pause?.balance]).toEqual([false, [PAUSE_BALANCE_FRAMES, PAUSE_BALANCE_FRAMES]]);
+  });
+
+  it('duas quedas: um congelamento só, cada um com o seu prazo; prazo esgotado tira o jogador (OG-262)', () => {
+    const { r, players } = setup('ranked');
+    const [a, b, c] = players as { conn: TestConnection; pid: number }[] as [{ conn: TestConnection; pid: number }, { conn: TestConnection; pid: number }, { conn: TestConnection; pid: number }];
+    r.disconnect(a.pid, a.conn);
+    run(r, 100);
+    r.disconnect(b.pid, b.conn);
+    run(r, 1);
+    expect([...r.pause!.drops.keys()]).toEqual([a.pid, b.pid]);
+    expect(c.conn.last('pauseState')).toMatchObject({ by: a.pid, seconds: 110 });
+    run(r, RANKED_RECONNECT_FRAMES - 100);
+    expect(r.playerCount).toBe(3); // `a` esgotou o prazo e saiu; `b` ainda tem 10 s
+    expect(c.conn.last('pauseState')).toMatchObject({ phase: 'paused', by: b.pid, seconds: 10 });
+    run(r, 100);
+    expect(r.playerCount).toBe(2);
+    expect(c.conn.last('pauseState')).toMatchObject({ phase: 'resuming' });
+  });
+
+  it('"Sair" é desconexão permanente na hora, sem pausa; Casual guarda a vaga sem pausar', () => {
+    const { r, players } = setup('ranked');
+    r.disconnect(players[0]!.pid, players[0]!.conn, true);
+    run(r, 1);
+    expect([r.playerCount, r.pause?.active]).toEqual([3, false]);
+    const casual = setup('classic');
+    casual.r.disconnect(casual.players[0]!.pid, casual.players[0]!.conn);
+    const frame = casual.r.world.frame;
+    run(casual.r, 5);
+    expect([casual.r.playerCount, casual.r.world.frame]).toEqual([4, frame + 5]);
   });
 });

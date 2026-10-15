@@ -15,7 +15,7 @@ import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
 import { RankedLobby } from './ranked-lobby.js';
-import { PAUSE_REQUESTS, RankedPause, type PauseRefusal } from './pause.js';
+import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
 import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
@@ -529,14 +529,21 @@ export class Room {
    * A conexão caiu (OG-047): a vaga, o time e as estatísticas ficam guardados por
    * `reconnectSeconds`; o jogador fica parado no mundo. Só vale para a conexão atual do jogador.
    */
-  disconnect(pid: number, conn: Connection): void {
+  disconnect(pid: number, conn: Connection, voluntary = false): void {
     const c = this.clients.get(pid);
     if (!c || c.conn !== conn) return;
     if (c.bot || this.reconnectFrames === 0 || c.kickTimer > 0) return this.leave(pid);
     // no lobby Ranked a vaga não fica guardada: quem cai fora do jogo libera a vaga (OG-252)
     if (this.lobby && !this.lobby.playing) return this.leave(pid);
+    // jogo Ranked: "Sair" é desconexão permanente na hora; a queda pausa o jogo (OG-261, RN-RKL-17/18)
+    const rankedGame = this.pause !== undefined && this.inGame;
+    if (rankedGame && voluntary) return this.leave(pid);
     c.conn = OFFLINE;
     c.disconnectedFrame = this.uptimeFrames; // relógio da sala: anda também com o jogo pausado
+    if (rankedGame) {
+      this.pause!.drop(pid, this.world.teamOf(pid) as 0 | 1, this.uptimeFrames + this.reconnectFrames);
+      this.releaseKeys();
+    }
     const pl = this.world.players[pid] as PlayerState;
     pl.controls = 0;
     pl.attack = false;
@@ -568,12 +575,19 @@ export class Room {
       disconnectedFrame: null,
     });
     (this.world.players[pid] as PlayerState).awaitingClientReadies++; // precisa carregar o mapa de novo
+    this.pause?.undrop(pid, this.uptimeFrames); // voltou: sem mais ninguém caído, retomada em 3 s (OG-261)
     this.send(pid, [...this.welcomeMessages(pid), message('resumeToken', { token: c.resumeToken })]);
     return { ok: true, pid };
   }
 
   private get reconnectFrames(): number {
+    if (this.mode === 'ranked' && this.options.reconnectSeconds !== 0) return RANKED_RECONNECT_FRAMES; // D-46; 0 = sem reconexão
     return Math.round((this.options.reconnectSeconds ?? 15) * 10);
+  }
+
+  /** Jogo em andamento (fora do placar de fim e do lobby Ranked). */
+  private get inGame(): boolean {
+    return this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
   }
 
   /** Saída (`client_disconnected` → `removePlayer`); os deltas do ranking vão antes. */
@@ -584,6 +598,7 @@ export class Room {
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
+    this.pause?.undrop(pid, this.uptimeFrames); // prazo esgotado, saída ou expulsão: não espera mais por ele
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
     if (this.lobby) {
       this.lobby.leave(pid, this.world.frame);
@@ -943,7 +958,7 @@ export class Room {
       }
     }
     if (this.lobby) this.lobbyTick();
-    const inGame = this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
+    const inGame = this.inGame;
     if (this.pause?.tick(this.uptimeFrames)) this.broadcast(this.mapTimeMessage()); // retomou: relógio do cliente no lugar
     const paused = inGame && (this.pause?.active ?? false);
     const running = inGame && !paused;
@@ -1009,18 +1024,20 @@ export class Room {
   /** Pedido de pausa (on) ou de retomada (off) do time do jogador (OG-260, RN-RKL-15/16). */
   private pauseRequest(pid: number, on: boolean): void {
     const pause = this.pause;
-    const inGame = this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
-    if (!pause || !inGame) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: PAUSE_TEXT.unavailable }));
+    if (!pause || !this.inGame) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: PAUSE_TEXT.unavailable }));
     const team = this.world.teamOf(pid) as 0 | 1;
     const refusal = on ? pause.request(team, pid) : pause.resume(team, this.uptimeFrames);
     if (refusal) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: PAUSE_TEXT[refusal] }));
-    if (on) {
-      // ninguém fica com tecla presa durante a pausa
-      for (const p of this.world.players) if (p) {
-        p.controls = 0;
-        p.attack = false;
-        p.attackOnce = false;
-      }
+    if (on) this.releaseKeys();
+  }
+
+  /** Ninguém fica com tecla presa durante a pausa. */
+  private releaseKeys(): void {
+    for (const p of this.world.players) {
+      if (!p) continue;
+      p.controls = 0;
+      p.attack = false;
+      p.attackOnce = false;
     }
   }
 
