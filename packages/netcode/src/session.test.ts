@@ -329,9 +329,10 @@ describe('power-ups do próprio jogador', () => {
   it('perder o item zera o tempo do HUD e a visão do shadow (OG-288)', () => {
     const { s } = session();
     const timers = ['turbo', 'power', 'shadow'] as const;
-    s.handle([...timers.map((kind) => message('powerupTimer', { kind, seconds: 40 })), frame(10, [{ ...player(0, 100, 100), turbo: true, power: true, visibility: 7 }])], 1000);
+    s.handle([frame(10, [player(0, 100, 100)])], 1000);
+    s.handle([...timers.map((kind) => message('powerupTimer', { kind, seconds: 40 })), frame(11, [{ ...player(0, 100, 100), turbo: true, power: true, visibility: 7 }])], 1100);
     expect(s.powerupEnd).toEqual({ turbo: 41, power: 41, shadow: 41 });
-    s.handle([frame(11, [{ ...player(0, 100, 100), dead: true }])], 1100);
+    s.handle([frame(12, [{ ...player(0, 100, 100), dead: true }])], 1200);
     expect(s.powerupEnd).toEqual({ turbo: 0, power: 0, shadow: 0 });
   });
 });
