@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Lista pública de salas (substitui a lista do master server do original) e criação de sala
-// privada Casual (OG-086, RN-CFG-03).
+// Lista pública de salas (substitui a lista do master server do original), criação de sala
+// privada Casual (OG-086, RN-CFG-03) e de sala de lobby Ranked (OG-252, RN-RKL-05/06, D-44).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { PRESETS, settingsOf } from '@outgun/settings';
+import { formatPlayers, isSeriesBestOf, PRESETS, settingsOf } from '@outgun/settings';
 import { findPreset, panelPresets } from '../platform-config.js';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { hashPassword } from '../auth/password.js';
 import { gameServers, rooms } from '../db/schema.js';
 import { onlineServers, pickServer, roomListed, roomOnline } from '../registry.js';
-import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
+import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 
 const RoomSummary = Type.Object({
   id: RoomId,
@@ -27,6 +27,10 @@ const RoomSummary = Type.Object({
   region: Type.Union([Type.String(), Type.Null()]),
   /** Espectador ao vivo (OG-092): WebSocket do game server; null para sala com senha ou fora do ar. */
   spectateUrl: Type.Union([Type.Null(), Type.String()]),
+  /** Sala de lobby Ranked (OG-252): formato, série e fase; null nas outras. */
+  format: Type.Union([Type.Null(), RankedFormatSchema]),
+  bestOf: Type.Union([Type.Null(), SeriesBestOfSchema]),
+  phase: Type.Union([Type.Null(), LobbyPhaseSchema]),
 });
 
 const HOUR = 60 * 60_000;
@@ -48,6 +52,10 @@ function summary(r: typeof rooms.$inferSelect, region: string | null, now: numbe
     persistent: r.persistent,
     region: region ?? null,
     spectateUrl: online && r.wsUrl && r.passwordHash === null ? `${r.wsUrl}/spectate` : null,
+    format: r.format,
+    bestOf: isSeriesBestOf(r.bestOf) ? r.bestOf : null,
+    // fora do ar a sala de lobby ainda não abriu: está no lobby
+    phase: r.format ? (online ? (r.phase ?? 'lobby') : 'lobby') : null,
   };
 }
 
@@ -60,7 +68,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
         schema: {
           tags: ['salas'],
           summary: 'Salas no ar (e as da plataforma que abrem sob demanda), com jogadores e mapa',
-          querystring: Type.Object({ mode: Type.Optional(GameModeSchema) }),
+          querystring: Type.Object({ mode: Type.Optional(GameModeSchema), format: Type.Optional(RankedFormatSchema) }),
           response: { 200: Type.Object({ rooms: Type.Array(RoomSummary) }) },
         },
       },
@@ -70,7 +78,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
           .select({ room: rooms, region: gameServers.region })
           .from(rooms)
           .leftJoin(gameServers, eq(gameServers.id, rooms.serverId))
-          .where(request.query.mode ? eq(rooms.mode, request.query.mode) : undefined)
+          .where(and(request.query.mode ? eq(rooms.mode, request.query.mode) : undefined, request.query.format ? eq(rooms.format, request.query.format) : undefined))
           .orderBy(asc(rooms.mode), asc(rooms.id));
         const canSpawn = config.devRoomWsUrl !== undefined || (await onlineServers(db, now)).length > 0;
         return {
@@ -188,24 +196,62 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             ...(server ? { serverId: server.id, wsUrl: `${server.wsBaseUrl.replace(/\/$/, '')}/rooms/${id}` } : {}),
           })
           .returning();
-        const r = row!;
         return reply.code(201).send({
-          room: {
-            id: r.id,
-            name: r.name,
-            mode: r.mode,
-            preset: r.preset,
-            hasPassword: r.passwordHash !== null,
-            maxPlayers: r.maxPlayers,
-            players: 0,
-            map: null,
-            online: false,
-            persistent: false,
-            region: server?.region ?? null,
-            spectateUrl: null,
-          },
-          inviteUrl: `${config.webUrl}/rooms/${r.id}`,
+          room: summary(row!, server?.region ?? null, Date.now()),
+          inviteUrl: `${config.webUrl}/rooms/${row!.id}`,
         });
+      },
+    );
+
+    app.post(
+      '/rooms/ranked',
+      {
+        schema: {
+          tags: ['salas'],
+          summary: 'Cria uma sala de lobby Ranked (só com conta): formato, série e senha opcional; regras travadas',
+          body: Type.Object({
+            name: RoomName,
+            format: RankedFormatSchema,
+            bestOf: SeriesBestOfSchema,
+            /** Senha (até 15 caracteres, D-44): não muda regras, o preset continua travado. */
+            password: Type.Optional(Type.String({ minLength: 1, maxLength: 15 })),
+            region: Type.Optional(Type.String({ pattern: '^[a-z0-9-]{1,32}$' })),
+          }),
+          response: {
+            201: Type.Object({ room: RoomSummary, inviteUrl: Type.String() }),
+            401: ErrorSchema,
+            429: ErrorSchema,
+            503: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const user = await sessions.current(request);
+        if (!user) return reply.code(401).send({ error: 'login_required', message: 'sign in to create a room' });
+        const body = request.body;
+        if (!(await rateLimit.allow(`create-room:${user.id}`, config.limits.roomsPerHourPerUser, HOUR))) {
+          return reply.code(429).send({ error: 'rate_limited', message: 'too many rooms, try later' });
+        }
+        const server = pickServer(await onlineServers(db), body.region);
+        if (!server && !config.devRoomWsUrl) return reply.code(503).send({ error: 'no_server', message: 'no game server available' });
+        const id = `r-${randomBytes(6).toString('base64url').toLowerCase().replace(/[^a-z0-9]/g, '0')}`;
+        const [row] = await db
+          .insert(rooms)
+          .values({
+            id,
+            name: body.name,
+            mode: 'ranked',
+            preset: 'ranked',
+            passwordHash: body.password ? await hashPassword(body.password) : null,
+            ownerId: user.id,
+            maxPlayers: formatPlayers(body.format),
+            persistent: false,
+            format: body.format,
+            bestOf: body.bestOf,
+            ...(server ? { serverId: server.id, wsUrl: `${server.wsBaseUrl.replace(/\/$/, '')}/rooms/${id}` } : {}),
+          })
+          .returning();
+        return reply.code(201).send({ room: summary(row!, server?.region ?? null, Date.now()), inviteUrl: `${config.webUrl}/rooms/${row!.id}` });
       },
     );
   };

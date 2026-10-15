@@ -17,6 +17,8 @@ export interface TicketClaims {
   /** Nome em jogo (convidado já com o sufixo `*`). */
   name: string;
   clan: string | null;
+  /** Id do clã cadastrado (OG-253; só nas salas Ranked): agrupa o clã do mesmo lado no lobby. */
+  clanId?: string;
   /** Tem conta (requisito do Ranked, RN-MOD-03). */
   acct: boolean;
   admin: boolean;
@@ -58,6 +60,8 @@ export interface RoomSpawn {
   maps?: string[];
   /** Sala da plataforma: não é encerrada quando fica vazia. */
   persistent: boolean;
+  /** Formato e série da sala Ranked (OG-250); `maxPlayers` = 2 × N. Ausente nas salas antigas. */
+  ranked?: { format: '3x3' | '4x4' | '5x5'; bestOf: 1 | 3 | 5 };
 }
 
 export type TicketInput = Omit<TicketClaims, 'iss' | 'iat' | 'exp' | 'jti'>;

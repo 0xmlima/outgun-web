@@ -18,7 +18,7 @@ const SECRET = 'segredo-de-teste-0123456789';
 
 describe('escolha do servidor', () => {
   const s = (id: string, players: number, rooms = 1, region = 'eu', maxRooms = 10): ServerRow => ({
-    id, wsBaseUrl: `ws://${id}`, region, maxRooms, rooms, players, lastHeartbeatAt: new Date(),
+    id, wsBaseUrl: `ws://${id}`, region, maxRooms, rooms, players, lastHeartbeatAt: new Date(), maps: [],
   });
 
   it('menos jogadores primeiro; servidor lotado de salas fica fora', () => {
@@ -63,7 +63,7 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     await t.db.update(rooms).set({ serverId: null, wsUrl: null, players: 0, map: null, lastHeartbeatAt: null });
   });
 
-  const heartbeat = (server: string, hosted: { id: string; players: number; mode?: string; preset?: string; persistent?: boolean }[], region = 'eu', maxRooms = 10) => {
+  const heartbeat = (server: string, hosted: { id: string; players: number; mode?: string; preset?: string; persistent?: boolean; maxPlayers?: number; phase?: string }[], region = 'eu', maxRooms = 10) => {
     const base = `ws://${server}.test`;
     const body = JSON.stringify({
       server: { wsBaseUrl: base, region, maxRooms },
@@ -72,11 +72,12 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
         name: r.id,
         mode: r.mode ?? 'casual',
         preset: r.preset ?? 'classic',
-        maxPlayers: 16,
+        maxPlayers: r.maxPlayers ?? 16,
         persistent: r.persistent ?? true,
         players: r.players,
         map: 'outgun1',
         wsUrl: `${base}/rooms/${r.id}`,
+        ...(r.phase ? { phase: r.phase } : {}),
       })),
     });
     const url = '/internal/rooms/heartbeat';
@@ -204,5 +205,30 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     const ids = (await t.db.select({ id: rooms.id }).from(rooms)).map((r) => r.id);
     expect(ids).not.toContain('p-velha');
     expect(ids).toContain('ranked');
+  });
+
+  it('sala de lobby Ranked (OG-252): formato e série, fase na lista, conta antes da senha, em jogo recusa, fechada some', async () => {
+    await heartbeat('gs-1', []);
+    expect((await post('/rooms/ranked', { name: 'x', format: '3x3', bestOf: 3 })).statusCode).toBe(401);
+    expect((await post('/rooms/ranked', { name: 'x', format: '6x6', bestOf: 3 }, true)).statusCode).toBe(400);
+    const created = await post('/rooms/ranked', { name: 'Treino nn', format: '3x3', bestOf: 3, password: 'segredo' }, true);
+    expect(created.statusCode).toBe(201);
+    const room = created.json().room;
+    expect(room).toMatchObject({ mode: 'ranked', preset: 'ranked', maxPlayers: 6, format: '3x3', bestOf: 3, phase: 'lobby', hasPassword: true });
+    // convidado é recusado antes da senha; senha errada não diz nada da sala
+    expect((await post(`/rooms/${room.id}/join`, { name: 'Ana' })).json().error).toBe('account_required');
+    expect((await post(`/rooms/${room.id}/join`, { password: 'errada' }, true)).json()).toEqual({ error: 'wrong_password', message: 'wrong room password' });
+    const ok = await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true);
+    expect(ok.statusCode).toBe(200);
+    expect(claims(ok.json().ticket, room.id).spawn).toMatchObject({ mode: 'ranked', preset: 'ranked', maxPlayers: 6, ranked: { format: '3x3', bestOf: 3 } });
+    await heartbeat('gs-1', [{ id: room.id, players: 6, mode: 'ranked', preset: 'ranked', persistent: false, maxPlayers: 6, phase: 'game' }]);
+    expect((await list('?mode=ranked&format=3x3')).find((r) => r.id === room.id)).toMatchObject({ online: true, players: 6, phase: 'game' });
+    expect((await list('?format=5x5')).some((r) => r.id === room.id)).toBe(false);
+    expect((await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true)).json().error).toBe('room_in_game');
+    // "Jogar agora" do Ranked não cai em sala de lobby (RN-RKL-05: entra-se pela lista)
+    expect((await post('/rooms/quick-join', { mode: 'ranked' }, true)).json().roomId).not.toBe(room.id);
+    // o servidor fechou a sala (série acabada ou lobby vazio): ela não reabre
+    await heartbeat('gs-1', []);
+    expect(await t.db.select().from(rooms).where(eq(rooms.id, room.id))).toEqual([]);
   });
 });

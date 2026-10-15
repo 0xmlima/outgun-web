@@ -2,6 +2,7 @@
 // Chamadas do game server às rotas internas da API (HMAC, OG-080): auditoria da moderação (OG-046)
 // e heartbeat do registro de salas (OG-086). Sem API, as ações só vão para o log.
 import { signInternalRequest } from '@outgun/tickets';
+import type { RotationKey } from '@outgun/settings';
 import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
 import type { RemoteCommand } from './room.js';
@@ -44,6 +45,8 @@ export interface ServerInfo {
   wsBaseUrl: string;
   region: string;
   maxRooms: number;
+  /** Mapas da pasta, para o painel conferir as rotações (OG-251). */
+  maps?: string[];
 }
 
 /** Corpo de POST /internal/rooms/heartbeat. */
@@ -58,7 +61,7 @@ export type PanelCommand = RemoteCommand & { roomId: string };
 export interface PanelConfig {
   version: string;
   presets: { id: string; description: string; overrides: string }[];
-  rotations: { casual?: string[]; ranked?: string[] };
+  rotations: Partial<Record<RotationKey, string[]>>;
 }
 
 export interface HeartbeatReply {

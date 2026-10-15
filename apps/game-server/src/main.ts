@@ -17,7 +17,7 @@
 // DRAIN_TIMEOUT_S (240): prazo da drenagem no SIGTERM.
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
 import { fileURLToPath } from 'node:url';
-import { resolveRotation } from './maps.js';
+import { listMaps, resolveRotation, type Rotations } from './maps.js';
 import { GeneratedMaps } from './generated-maps.js';
 import { RoomManager } from './rooms.js';
 import { startServer } from './server.js';
@@ -107,7 +107,8 @@ const manager = new RoomManager({
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
 // rotação oficial de cada modo; o painel admin (OG-087) pode trocá-la pela resposta do heartbeat
-const rotations: Record<'casual' | 'ranked', readonly string[]> = { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation };
+// (os formatos do Ranked usam a `ranked` até o painel mandar a deles, OG-251)
+const rotations: Rotations = { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation };
 const mapsDir = env.MAPS_DIR ?? `${repo}_legacy/maps`;
 // `random_map L A ...` na rotação (OG-015): mapas gerados com os blocos de mapgen/
 const mapFile = mapLoader(mapsDir);
@@ -164,7 +165,7 @@ const server = await startServer({
 if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 // o heartbeat lê este objeto a cada envio: na drenagem, maxRooms 0 tira o servidor da escolha da API
-const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms };
+const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms, maps: listMaps(mapsDir) };
 const panel = new AdminPanelLink({ manager, rotations, map: mapFile, generatedMaps, log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
 if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted(), 3000, panel);
 

@@ -2,7 +2,7 @@
 // Resultado da partida para a API (POST /internal/matches, OG-049): toda partida manda as
 // estatísticas; só a de sala Ranked que cumpre os mínimos (RN-RNK-01) vai marcada como ranqueada.
 import type { MatchResult, PlayerResult, TeamResult } from '@outgun/sim';
-import type { GameMode } from '@outgun/settings';
+import type { GameMode, RankedFormat, SeriesBestOf } from '@outgun/settings';
 
 export interface ReportPlayer {
   name: string;
@@ -50,6 +50,10 @@ export interface MatchReport {
   startedAt: string;
   endedAt: string;
   details: MatchDetails;
+  /** Formato da sala Ranked (OG-250); ausente nas salas sem formato. */
+  format?: RankedFormat;
+  /** Série a que o jogo pertence e o placar dela depois deste jogo (OG-250, RN-RKL-03). */
+  series?: MatchSeries;
   players: {
     slot: number;
     userId?: string;
@@ -65,6 +69,19 @@ export interface MatchReport {
     negDelta: number;
     stats: Record<string, number>;
   }[];
+}
+
+export interface MatchSeries {
+  /** Id da série no game server (único por sala e criação). */
+  serverSeriesId: string;
+  bestOf: SeriesBestOf;
+  /** Número deste jogo na série (1..bestOf). */
+  gameNo: number;
+  redWins: number;
+  blueWins: number;
+  finished: boolean;
+  /** Lado vencedor da série encerrada (null = em andamento ou empatada). */
+  winner: 0 | 1 | null;
 }
 
 /** Deltas do ranking enviados fora do fim da partida (POST /internal/rating-deltas, OG-084). */
@@ -105,6 +122,8 @@ export interface ReportInput {
   rules: MatchRules;
   /** Deltas do ranking por slot (OG-084); padrão 0. */
   deltas?: (pid: number) => { score: number; neg: number };
+  format?: RankedFormat;
+  series?: MatchSeries;
 }
 
 function stats(p: PlayerResult): Record<string, number> {
@@ -144,6 +163,8 @@ export function matchReport(input: ReportInput): MatchReport {
     startedAt: new Date(input.startedAt).toISOString(),
     endedAt: new Date(Math.max(input.endedAt, input.startedAt)).toISOString(),
     details: details(input),
+    ...(input.format ? { format: input.format } : {}),
+    ...(input.series ? { series: input.series } : {}),
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);
       if (!who) return [];

@@ -5,6 +5,8 @@ import type { GameMap } from '@outgun/sim';
 import { FixedRateLoop, percentile, realClock, type Clock } from './loop.js';
 import { Room, type RoomOptions } from './room.js';
 import type { RandomMapParams } from './generated-maps.js';
+import type { RankedRoomFormat } from '@outgun/settings';
+import type { LobbyPhase } from './ranked-lobby.js';
 
 export interface RoomSpec {
   id: string;
@@ -21,6 +23,8 @@ export interface RoomSpec {
   reconnectSeconds?: number;
   /** Entradas `random_map` alinhadas com `maps` (OG-015). */
   randomSlots?: readonly (RandomMapParams | null)[];
+  /** Formato e série da sala Ranked (OG-250). */
+  ranked?: RankedRoomFormat;
 }
 
 interface Entry {
@@ -66,6 +70,8 @@ export interface HostedRoom {
   map: string;
   /** Jogadores, para o painel admin (OG-087). */
   roster: ReturnType<Room['roster']>;
+  /** Fase do lobby Ranked (OG-252). */
+  phase?: LobbyPhase;
 }
 
 export class RoomManager {
@@ -95,7 +101,7 @@ export class RoomManager {
   create(spec: RoomSpec): Room {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
-    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
+    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, ...(spec.ranked ? { ranked: spec.ranked } : {}), seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
     this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null });
     return room;
   }
@@ -143,6 +149,7 @@ export class RoomManager {
       players: room.playerCount,
       map: room.world.map.title,
       roster: room.roster(),
+      ...(room.lobby ? { phase: room.lobby.phase } : {}),
     }));
   }
 

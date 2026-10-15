@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Rotas dos game servers (PLAN 5.4): heartbeat das salas e resultado das partidas. Toda chamada é
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
-import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
-import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
-import { PRESETS } from '@outgun/settings';
+import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TOptional, type TString } from '@fastify/type-provider-typebox';
+import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
+import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, users } from '../db/schema.js';
+import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
 import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
 import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
-import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
+import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 
 const Heartbeat = Type.Object({
   server: Type.Object({
@@ -21,6 +21,8 @@ const Heartbeat = Type.Object({
     region: Type.String({ pattern: '^[a-z0-9-]{1,32}$' }),
     /** Quantas salas o servidor aceita hospedar (as abertas sob demanda contam). */
     maxRooms: Type.Integer({ minimum: 0, maximum: 1000 }),
+    /** Mapas da pasta do servidor, para o painel conferir as rotações (OG-251). */
+    maps: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 64 }), { maxItems: 500 })),
   }),
   rooms: Type.Array(
     Type.Object({
@@ -33,6 +35,8 @@ const Heartbeat = Type.Object({
       players: Type.Integer({ minimum: 0, maximum: 32 }),
       map: Type.String({ maxLength: 64 }),
       wsUrl: Type.String({ pattern: '^wss?://', maxLength: 200 }),
+      /** Fase do lobby das salas Ranked com formato (OG-252). */
+      phase: Type.Optional(LobbyPhaseSchema),
       /** Jogadores na sala (painel admin, OG-087). */
       roster: Type.Optional(
         Type.Array(
@@ -90,7 +94,7 @@ const HeartbeatReply = Type.Object({
   config: Type.Object({
     version: Type.String(),
     presets: Type.Array(Type.Object({ id: Type.String(), description: Type.String(), overrides: Type.String() })),
-    rotations: Type.Object({ casual: Type.Optional(Type.Array(Type.String())), ranked: Type.Optional(Type.Array(Type.String())) }),
+    rotations: Type.Object(Object.fromEntries(ROTATION_KEYS.map((k) => [k, Type.Optional(Type.Array(Type.String()))])) as Record<RotationKey, TOptional<TArray<TString>>>),
   }),
 });
 
@@ -148,6 +152,20 @@ const MatchResult = Type.Object({
   startedAt: Type.String({ format: 'date-time' }),
   endedAt: Type.String({ format: 'date-time' }),
   details: Type.Optional(MatchDetails),
+  /** Formato da sala Ranked (OG-250); ausente nas salas sem formato. */
+  format: Type.Optional(RankedFormatSchema),
+  /** Série do jogo e placar dela depois deste jogo (OG-250, RN-RKL-03). */
+  series: Type.Optional(
+    Type.Object({
+      serverSeriesId: Type.String({ minLength: 1, maxLength: 80 }),
+      bestOf: SeriesBestOfSchema,
+      gameNo: Type.Integer({ minimum: 1, maximum: 5 }),
+      redWins: Type.Integer({ minimum: 0, maximum: 3 }),
+      blueWins: Type.Integer({ minimum: 0, maximum: 3 }),
+      finished: Type.Boolean(),
+      winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
+    }),
+  ),
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
@@ -242,7 +260,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         const { server, rooms: hosted } = request.body;
         await database.db.transaction(async (tx) => {
           const players = hosted.reduce((n, r) => n + r.players, 0);
-          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now };
+          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now, ...(server.maps ? { maps: server.maps } : {}) };
           await tx.insert(gameServers).values({ id: serverId, ...status }).onConflictDoUpdate({ target: gameServers.id, set: status });
           for (const r of hosted) {
             // Salas novas (as persistentes do próprio servidor) são criadas; nas existentes, só o
@@ -262,10 +280,11 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
                 map: r.map,
                 lastHeartbeatAt: now,
                 roster: r.roster ?? [],
+                phase: r.phase ?? null,
               })
               .onConflictDoUpdate({
                 target: rooms.id,
-                set: { serverId, wsUrl: r.wsUrl, players: r.players, map: r.map, lastHeartbeatAt: now, roster: r.roster ?? [] },
+                set: { serverId, wsUrl: r.wsUrl, players: r.players, map: r.map, lastHeartbeatAt: now, roster: r.roster ?? [], phase: r.phase ?? null },
               });
           }
           // Salas que este servidor encerrou saem do ar na hora (o último heartbeat recua para fora
@@ -281,6 +300,10 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           await tx
             .delete(rooms)
             .where(and(eq(rooms.persistent, false), or(lt(rooms.lastHeartbeatAt, old), and(isNull(rooms.lastHeartbeatAt), lt(rooms.createdAt, old)))));
+          // Sala de lobby Ranked que o servidor fechou (série acabada ou lobby vazio) não reabre (OG-252)
+          await tx
+            .delete(rooms)
+            .where(and(eq(rooms.serverId, serverId), eq(rooms.persistent, false), isNotNull(rooms.format), lt(rooms.lastHeartbeatAt, new Date(now.getTime() - ONLINE_MS + 1))));
         });
         await applyAcks(database.db, serverId, request.body.acks ?? [], now);
         const commands = await takeCommands(database.db, serverId, now);
@@ -327,6 +350,21 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               ? []
               : (await tx.select({ id: users.id }).from(users).where(inArray(users.id, ids))).map((u) => u.id),
           );
+          // série (OG-250): criada no primeiro jogo; cada jogo regrava o placar dela
+          const s = body.series;
+          const [series] = s
+            ? await tx
+                .insert(rankedSeries)
+                .values({ serverId, serverSeriesId: s.serverSeriesId, roomId: room?.id ?? null, format: body.format!, bestOf: s.bestOf })
+                .onConflictDoUpdate({ target: [rankedSeries.serverId, rankedSeries.serverSeriesId], set: { serverSeriesId: s.serverSeriesId } })
+                .returning({ id: rankedSeries.id, games: rankedSeries.games })
+            : [];
+          if (s && series && s.gameNo > series.games) {
+            await tx
+              .update(rankedSeries)
+              .set({ games: s.gameNo, redWins: s.redWins, blueWins: s.blueWins, winner: s.winner, finishedAt: s.finished ? new Date(body.endedAt) : null })
+              .where(eq(rankedSeries.id, series.id));
+          }
           const [match] = await tx
             .insert(matches)
             .values({
@@ -343,6 +381,9 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               endedAt: new Date(body.endedAt),
               details: body.details ?? {},
               replayUrl: body.replayUrl ?? null,
+              format: body.format ?? null,
+              seriesId: series?.id ?? null,
+              gameNo: s?.gameNo ?? null,
             })
             .returning({ id: matches.id });
           if (body.players.length > 0) {
@@ -531,6 +572,15 @@ export function validateMatch(body: MatchResultBody): string | undefined {
   if (body.ranked && body.players.some((p) => p.isBot)) return 'bots are not allowed in ranked matches (D-11)';
   if (!body.ranked && body.players.some((p) => p.scoreDelta !== 0 || p.negDelta !== 0)) return 'ranking deltas only in ranked matches';
   if (Date.parse(body.endedAt) < Date.parse(body.startedAt)) return 'endedAt before startedAt';
+  if (body.format && body.mode !== 'ranked') return 'format only in ranked mode';
+  const s = body.series;
+  if (s) {
+    if (!body.format) return 'series without format';
+    const need = seriesWinsNeeded(s.bestOf);
+    if (s.gameNo > s.bestOf || s.redWins + s.blueWins > s.gameNo || s.redWins > need || s.blueWins > need) return 'invalid series score';
+    const score = { bestOf: s.bestOf, games: s.gameNo, wins: [s.redWins, s.blueWins] as [number, number] };
+    if (s.finished !== seriesOver(score) || s.winner !== seriesWinner(score)) return 'invalid series state';
+  }
   const slots = new Set(body.players.map((p) => p.slot));
   if (slots.size !== body.players.length) return 'duplicate player slot';
   return undefined;

@@ -6,14 +6,15 @@
 import type { GameMap } from '@outgun/sim';
 import type { CommandAck, HeartbeatReply, PanelHandlers } from './platform.js';
 import { setPanelPresets } from './presets.js';
-import { isRotationEntry, resolveRotation } from './maps.js';
+import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
+import { isRotationEntry, resolveRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
 import type { RoomManager } from './rooms.js';
 
 export interface PanelOptions {
   manager: RoomManager;
   /** Rotações usadas pelo spawner (o mesmo objeto: trocar aqui vale para as próximas salas). */
-  rotations: Record<'casual' | 'ranked', readonly string[]>;
+  rotations: Rotations;
   map: (file: string) => GameMap | undefined;
   /** Para as entradas `random_map` (OG-015). */
   generatedMaps?: GeneratedMaps;
@@ -49,18 +50,21 @@ export class AdminPanelLink implements PanelHandlers {
   private applyConfig(config: HeartbeatReply['config']): void {
     this.configVersion = config.version;
     setPanelPresets(config.presets);
-    for (const mode of ['casual', 'ranked'] as const) {
-      const wanted = config.rotations[mode];
+    for (const key of ROTATION_KEYS) {
+      const wanted = config.rotations[key];
       if (!wanted) continue;
       const slots = resolveRotation(wanted, this.options.map, this.options.generatedMaps);
       const files = wanted.filter((f) => isRotationEntry(f, this.options.map));
       if (slots.length === 0) {
-        this.options.log?.('rotação do painel sem mapas conhecidos: mantida a atual', { mode, wanted });
+        this.options.log?.('rotação do painel sem mapas conhecidos: mantida a atual', { key, wanted });
         continue;
       }
-      this.options.rotations[mode] = files;
+      this.options.rotations[key] = files;
+      // salas da plataforma e todas as Ranked (sempre com a rotação oficial do formato, RN-MOD-04)
       for (const h of this.options.manager.hosted()) {
-        if (h.persistent && h.mode === mode) this.options.manager.get(h.id)?.setRotation(resolveRotation(files, this.options.map, this.options.generatedMaps));
+        const room = this.options.manager.get(h.id);
+        if (!room || (!h.persistent && h.mode !== 'ranked') || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue;
+        room.setRotation(resolveRotation(files, this.options.map, this.options.generatedMaps));
       }
     }
     this.options.log?.('configuração do painel aplicada', { version: config.version, presets: config.presets.length });

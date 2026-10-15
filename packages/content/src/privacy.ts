@@ -47,6 +47,7 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   net_reports: 'none',
   seasons: 'none',
   rooms: 'personal',
+  ranked_series: 'none',
   game_servers: 'none',
   casual_presets: 'none',
   casual_preset_versions: 'none',

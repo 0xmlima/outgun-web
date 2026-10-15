@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { adminActions, adminCommands, bans, casualPresetVersions, users } from '../db/schema.js';
+import { adminActions, adminCommands, bans, gameServers, casualPresetVersions, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
@@ -149,9 +149,28 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('GET', '/admin/presets/sniper/versions', 'mod')).json().versions[0]).toMatchObject({ version: 3, deleted: true, changedBy: 'Admin' });
   });
 
+  it('rotação Ranked por formato (OG-251): formato vazio e mapa inexistente recusados, mudança auditada e no heartbeat', async () => {
+    await t.db.update(gameServers).set({ maps: ['outgun1', 'gun dance', 'The Blunt'] }).where(eq(gameServers.id, 'gs-1'));
+    expect((await call('GET', '/admin/rotations', 'mod')).json().catalog).toEqual(['gun dance', 'outgun1', 'The Blunt']);
+    expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: [] })).statusCode).toBe(400);
+    expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['  '] })).json()).toMatchObject({ error: 'empty_rotation' });
+    expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['outgun1', 'nao existe'] })).json()).toMatchObject({ error: 'unknown_map', message: 'unknown maps: nao existe' });
+    expect((await call('PUT', '/admin/rotations/ranked:6x6', 'admin', { maps: ['outgun1'] })).statusCode).toBe(400);
+    expect((await call('PUT', '/admin/rotations/ranked:4x4', 'mod', { maps: ['The Blunt'] })).statusCode).toBe(403);
+    const before = await auditCount();
+    expect((await call('PUT', '/admin/rotations/ranked:4x4', 'admin', { maps: ['The Blunt', 'outgun1', 'random_map 3 3'] })).json()).toMatchObject({ key: 'ranked:4x4', version: 1 });
+    expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['outgun1'] })).json()).toMatchObject({ key: 'ranked:3x3', version: 1 });
+    expect(await auditCount()).toBe(before + 2);
+    expect(await lastAudit()).toMatchObject({ action: 'rotation', reason: 'ranked:3x3' });
+    const rotations = (await heartbeat()).json().config.rotations;
+    expect(rotations['ranked:4x4']).toEqual(['The Blunt', 'outgun1', 'random_map 3 3']);
+    expect(rotations['ranked:3x3']).toEqual(['outgun1']);
+    await t.db.update(gameServers).set({ maps: [] }).where(eq(gameServers.id, 'gs-1'));
+  });
+
   it('rotação, mensagem a todas as salas, ban de plataforma e papel: auditados', async () => {
     const before = await auditCount();
-    expect((await call('PUT', '/admin/rotations/ranked', 'admin', { maps: ['outgun1', 'gun dance'] })).json()).toMatchObject({ mode: 'ranked', version: 1 });
+    expect((await call('PUT', '/admin/rotations/ranked', 'admin', { maps: ['outgun1', 'gun dance'] })).json()).toMatchObject({ key: 'ranked', version: 1 });
     expect((await heartbeat()).json().config.rotations.ranked).toEqual(['outgun1', 'gun dance']);
     await heartbeat();
     expect((await call('POST', '/admin/broadcast', 'admin', { text: 'Manutenção às 22h' })).json()).toEqual({ rooms: 1 });

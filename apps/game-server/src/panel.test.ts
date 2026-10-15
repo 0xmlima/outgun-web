@@ -112,4 +112,19 @@ describe('painel admin no game server (OG-087)', () => {
     panel.onReply(reply([], { rotations: { casual: ['outgun1'] } }));
     expect(rotations.casual).toEqual(['2 versus 2 (duel)']);
   });
+
+  it('rotação Ranked por formato (OG-251): sala nova usa a do formato; mudança chega às salas daquele formato', () => {
+    const { manager, rotations, panel } = setup();
+    const spawn = makeSpawner(manager, { mapsDir, rotations });
+    const ranked = (id: string, format: '3x3' | '4x4') => spawn(id, { name: id, mode: 'ranked', preset: 'ranked', maxPlayers: 16, persistent: false, ranked: { format, bestOf: 3 } });
+    // sem rotação do formato vale a `ranked`; a sala tem 2 × N vagas
+    const r3 = ranked('r-3x3', '3x3')!;
+    expect([r3.world.maxPlayers, r3.world.map.title]).toEqual([6, map('outgun1')!.title]);
+    panel.onReply(reply([], { rotations: { 'ranked:3x3': ['2 versus 2 (duel)'], 'ranked:4x4': ['outgun1'] } }));
+    const pending = (room: object) => (room as { pendingRotation: { file: string }[] | null }).pendingRotation?.map((e) => e.file) ?? null;
+    expect(pending(r3)).toEqual(['2 versus 2 (duel)']);
+    expect(ranked('r-3x3-b', '3x3')!.world.map.title).toBe(map('2 versus 2 (duel)')!.title);
+    expect(ranked('r-4x4', '4x4')!.world.maxPlayers).toBe(8);
+    expect(rotations.ranked).toEqual(['outgun1']);
+  });
 });

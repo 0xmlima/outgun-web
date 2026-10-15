@@ -825,6 +825,44 @@ export const MESSAGES = {
     'Falha ao registrar o resultado no ranking.',
     {},
   ),
+  // --- lobby Ranked (OG-252..254, web): sem equivalente no original ---
+  lobbyState: msg(
+    120,
+    's2c',
+    'event',
+    '— (web, OG-252)',
+    'Estado do lobby da sala Ranked: fase, série, prazo, voto/"Pronto" de cada um e pedidos de troca de lado.',
+    {
+      phase: enumOf('lobby', 'vote', 'ready', 'countdown', 'game', 'finished'),
+      teamSize: u8,
+      bestOf: u8,
+      gameNo: u8,
+      seriesRed: u8,
+      seriesBlue: u8,
+      seconds: u16,
+      chosenMap: i16,
+      members: list(struct({ pid, ready: bool, vote: i16 }, 'membro do lobby'), 32),
+      swaps: list(struct({ from: pid, to: pid }, 'pedido de troca de lado'), 32),
+    },
+  ),
+  lobbyReady: msg(121, 'c2s', 'event', '— (web, OG-254)', 'Marca ou desmarca "Pronto" no lobby Ranked.', {
+    ready: bool,
+  }),
+  lobbyVote: msg(122, 'c2s', 'event', '— (web, OG-254)', 'Voto de mapa no lobby Ranked (índice na rotação; −1 = nenhum).', {
+    map: i16,
+  }),
+  lobbySide: msg(
+    123,
+    'c2s',
+    'event',
+    '— (web, OG-253)',
+    'Troca de lado no lobby: sem alvo, vai para a vaga livre do outro lado; com alvo, pede para trocar com ele.',
+    { target: pidOrNone },
+  ),
+  lobbySwapAnswer: msg(124, 'c2s', 'event', '— (web, OG-253)', 'Resposta a um pedido de troca de lado.', {
+    from: pid,
+    accept: bool,
+  }),
 } as const;
 
 export type MessageName = keyof typeof MESSAGES;

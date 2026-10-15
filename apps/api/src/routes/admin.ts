@@ -5,18 +5,18 @@
 // nome/tag/descrição ou dissolve. Toda ação grava em admin_actions; os
 // comandos para as salas vão aos game servers na resposta do heartbeat.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { casualPresetProblems, PRESETS } from '@outgun/settings';
+import { casualPresetProblems, PRESETS, ROTATION_KEYS } from '@outgun/settings';
 import { and, count, desc, eq, gt, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { createInvites } from '../beta.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, mapRotations, playerReports, rooms, users } from '../db/schema.js';
+import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, gameServers, mapRotations, playerReports, rooms, users } from '../db/schema.js';
 import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
-import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
+import { ErrorSchema, RoomId } from './schemas.js';
 
 export type Role = 'moderator' | 'admin';
 
@@ -346,35 +346,43 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       return { versions: rows.map(({ v, by }) => ({ version: v.version, description: v.description, overrides: v.overrides, deleted: v.deleted, changedBy: by, changedAt: v.changedAt.toISOString() })) };
     });
 
-    // --- rotações ---
-    app.get('/rotations', { schema: { tags: ['admin'], summary: 'Rotações de mapas do painel por modo (sem linha = a do servidor)' } }, async (request, reply) => {
+    // --- rotações (uma do Casual e uma por formato do Ranked, OG-251) ---
+    /** Mapas que os game servers informaram (vazio = nenhum servidor informou ainda). */
+    const mapCatalog = async () => [...new Set((await db.select({ maps: gameServers.maps }).from(gameServers)).flatMap((s) => s.maps))].sort((a, b) => a.localeCompare(b));
+
+    app.get('/rotations', { schema: { tags: ['admin'], summary: 'Rotações de mapas do painel (sem linha = a do servidor) e os mapas que os servidores têm' } }, async (request, reply) => {
       if (!(await guard(request, reply, 'moderator'))) return reply;
       const rows = await db.select().from(mapRotations);
-      return { rotations: rows.map((r) => ({ mode: r.mode, maps: r.maps, version: r.version, updatedAt: r.updatedAt.toISOString() })) };
+      return { rotations: rows.map((r) => ({ key: r.key, maps: r.maps, version: r.version, updatedAt: r.updatedAt.toISOString() })), catalog: await mapCatalog() };
     });
 
     app.put(
-      '/rotations/:mode',
+      '/rotations/:key',
       {
         schema: {
           tags: ['admin'],
-          summary: 'Troca a rotação oficial de um modo (vale nas salas da plataforma a partir da próxima troca de mapa)',
-          params: Type.Object({ mode: GameModeSchema }),
+          summary: 'Troca uma rotação oficial (casual, ranked ou ranked:NxN); vale nas salas a partir da próxima troca de mapa',
+          params: Type.Object({ key: Type.Union(ROTATION_KEYS.map((k) => Type.Literal(k))) }),
           body: Type.Object({ maps: Type.Array(Type.String({ pattern: '^[^/\\\\]{1,64}$' }), { minItems: 1, maxItems: 64 }) }),
         },
       },
       async (request, reply) => {
         const user = await guard(request, reply, 'admin');
         if (!user) return reply;
-        const { mode } = request.params;
-        const maps = request.body.maps.map((m) => m.trim()).filter(Boolean);
+        const { key } = request.params;
+        const maps = [...new Set(request.body.maps.map((m) => m.trim()).filter(Boolean))];
+        // nenhum formato fica sem mapas (RN-RKL-04); mapa que nenhum servidor tem é recusado
+        if (maps.length === 0) return reply.code(422).send({ error: 'empty_rotation', message: 'a rotation needs at least one map' });
+        const catalog = new Set(await mapCatalog());
+        const unknown = catalog.size === 0 ? [] : maps.filter((m) => !catalog.has(m) && !m.startsWith('random_map '));
+        if (unknown.length > 0) return reply.code(422).send({ error: 'unknown_map', message: `unknown maps: ${unknown.join(', ')}` });
         const [row] = await db
           .insert(mapRotations)
-          .values({ mode, maps, updatedBy: user.id })
-          .onConflictDoUpdate({ target: mapRotations.mode, set: { maps, version: sql`${mapRotations.version} + 1`, updatedBy: user.id, updatedAt: new Date() } })
+          .values({ key, maps, updatedBy: user.id })
+          .onConflictDoUpdate({ target: mapRotations.key, set: { maps, version: sql`${mapRotations.version} + 1`, updatedBy: user.id, updatedAt: new Date() } })
           .returning();
-        await audit(user, 'rotation', { reason: mode, details: { mode, maps, version: row!.version } });
-        return { mode, maps, version: row!.version };
+        await audit(user, 'rotation', { reason: key, details: { key, maps, version: row!.version } });
+        return { key, maps, version: row!.version };
       },
     );
 

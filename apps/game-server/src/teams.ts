@@ -56,6 +56,23 @@ export function joinTeam(slots: Slots, maxPlayers: number, lessScoredTeam: () =>
   return lessScoredTeam();
 }
 
+/**
+ * Entrada no lobby Ranked (OG-253, RN-RKL-08): o lado com mais jogadores do mesmo clã cadastrado
+ * (comparado pelo id), se tiver vaga; sem clã ou empate, a regra de sempre (RN-TIM-01).
+ */
+export function lobbyJoinTeam(slots: Slots, maxPlayers: number, clanOf: (pid: number) => string | null | undefined, clan: string | null | undefined, lessScoredTeam: () => 0 | 1): 0 | 1 {
+  const fallback = joinTeam(slots, maxPlayers, lessScoredTeam);
+  if (!clan) return fallback;
+  const size = maxPlayers / 2;
+  const mates: [number, number] = [0, 0];
+  slots.forEach((s, pid) => {
+    if (s && clanOf(pid) === clan) mates[pid < size ? 0 : 1]++;
+  });
+  if (mates[0] === mates[1]) return fallback;
+  const best = mates[0] > mates[1] ? 0 : 1;
+  return freeSlot(slots, maxPlayers, best) !== -1 ? best : fallback;
+}
+
 /** Bot preferido de uma lista: morto, depois sem bandeira, depois qualquer (ordem de pid). */
 function pickBot(slots: Slots, test: (pid: number) => boolean): number {
   let noCarrier = -1;

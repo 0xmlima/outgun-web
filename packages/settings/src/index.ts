@@ -5,3 +5,4 @@ export * from './presets.js';
 export * from './registry.js';
 export * from './types.js';
 export * from './console.js';
+export * from './ranked.js';
