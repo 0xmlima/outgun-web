@@ -393,6 +393,8 @@ export class Room {
         for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
         this.recorder?.event(message('powerupPicked', { id: index }));
       },
+      deathbringerExploded: (team, pos, frame) =>
+        this.broadcast(message('deathbringer', { team: team === 0 ? 'red' : 'blue', frame, roomX: pos.roomX, roomY: pos.roomY, x: Math.trunc(pos.x), y: Math.trunc(pos.y) })),
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
       screenSample: (pid, sample) => {

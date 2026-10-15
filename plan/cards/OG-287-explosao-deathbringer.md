@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S22 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-PUP-01..09 |
 | Skills | `outgun-card-workflow` |
@@ -26,7 +26,8 @@ Como jogador, quero ver a onda de choque e ouvir a explosão quando um portador 
 - Teste do game server: matar um portador de deathbringer gera o evento para todos os clientes.
 
 ## Critérios de aceite
-- [ ] Teste do evento no game server.
+- [x] Teste do evento no game server.
 - [ ] (PO) Morte de quem tem deathbringer: anel crescendo, som da explosão, também no replay e no espectador.
 
 ## Notas de implementação
+- Gancho `deathbringerExploded` no `ServerSim.killPlayer`; o `room.ts` faz `broadcast` (vai para todos e para o replay pelo `flush`, como no original). Cliente sem mudança.
