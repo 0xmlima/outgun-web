@@ -27,7 +27,7 @@ Como jogador, quero que o que eu mudo nas opções continue lá quando volto à 
 ## Escopo
 - Cor favorita: clicar (ou Enter/espaço) numa cor a torna a primeira favorita; Ctrl+setas continua reordenando; a ordem salva aparece ao reabrir. Texto de ajuda curto sob o campo.
 - Mensagens rápidas: achar a causa pelo código e corrigir; abas sincronizadas pelo evento `storage`; envio pendente para a conta não se perde ao sair da tela (grava no desmontar/`pagehide`).
-- Indicador discreto "Salvo" / "Salvando..." / "Não foi possível salvar na conta" nas Opções (tokens do design system), em vez de botão Salvar.
+- Indicador discreto "Salvo" / "Salvando..." / "Não foi possível salvar na conta" nas Opções (tokens do design system), em vez de botão Salvar (aprovado pelo PO em 2026-10-15).
 
 ## Critérios de aceite
 - [ ] (PO) Escolher a cor favorita, sair e voltar às Opções (e recarregar a página): a escolha continua.
