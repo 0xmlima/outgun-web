@@ -113,6 +113,11 @@ export interface HudState {
 
 const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
 
+/** Nome no placar: a coluna tem 15 caracteres; com a tag do clã (OG-206) o que passar vira "...". */
+export function scoreboardName(name: string): string {
+  return name.length > 15 ? `${name.slice(0, 12)}...` : name;
+}
+
 export class HudRenderer {
   readonly stage = new Container();
   private readonly list: DrawList;
@@ -344,8 +349,9 @@ export class HudRenderer {
       const textCol = `#${[16, 8, 0].map((sh) => light((pc >> sh) & 255).toString(16).padStart(2, '0')).join('')}`;
       const y = (teamY[p.team] as number) + (line[p.team] as number) * lineH;
       // `draw_scoreboard_name`: sublinha quem tem conta (opção, ligada no client.cfg distribuído)
-      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.font.height, sbx + 8 + font.width(p.name.slice(0, 15)) - 2, textCol);
-      this.text(p.name.slice(0, 15), sbx + 8, y, textCol);
+      const shown = scoreboardName(p.name);
+      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.font.height, sbx + 8 + font.width(shown) - 2, textCol);
+      this.text(shown, sbx + 8, y, textCol);
       const pts = String(s.showPings ? p.ping : p.frags);
       this.text(pts, sbx + 20 * charW - font.width(pts), y, this.teamLight(p.team));
       if (p.flagTeam >= 0) {

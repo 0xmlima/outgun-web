@@ -668,7 +668,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-202](cards/OG-202-opcoes-conta-v2.md) | Opções, controles e conta no novo visual | E8 | 5 | Must | S13 | OG-200 | Concluído |
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Concluído |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
-| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Pronto |
+| [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Em revisão |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
 | [OG-207](cards/OG-207-titulo-do-mapa-nas-telas.md) | Título do mapa (e não o nome do arquivo) em todas as telas | E8 | 2 | Must | S18 | — | Em revisão |
 | [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Em revisão |

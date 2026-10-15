@@ -4,7 +4,7 @@
 // com o frame do servidor e extrapola o mundo para o desenho (`ClientWorld::extrapolate`), com a
 // predição do próprio jogador. Não sabe nada de relógio nem de transporte: quem usa passa o tempo
 // (ms) e entrega/recebe as mensagens. Spec: plan/specs/predicao-interpolacao.md.
-import { message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { chatName, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { applyGamemod, PRESETS, presetSettings, type GameSettings } from '@outgun/settings';
 import {
   applyPhysics,
@@ -113,7 +113,11 @@ export class ClientSession {
   skipped = true;
   /** Jogadores que vieram no último frame (`onscreen`). */
   readonly onscreen = new Set<number>();
+  /** Nome mostrado: `(TAG) nome` para quem tem clã (OG-206, RN-NOM-04), como no chat. */
   readonly names = new Map<number, string>();
+  /** Nome sem a tag e tag do clã de cada jogador (`playerJoined`/`playerName`, `playerClan`). */
+  private readonly plainNames = new Map<number, string>();
+  readonly clanTags = new Map<number, string>();
   /** Pids ocupados (vale também antes de o mapa carregar). */
   readonly present = new Set<number>();
   readonly frags = new Map<number, number>();
@@ -279,6 +283,11 @@ export class ClientSession {
     this.options.send([message('clientReady', {})]);
   }
 
+  private setName(pid: number, name: string): void {
+    this.plainNames.set(pid, name);
+    this.names.set(pid, chatName(name, this.clanTags.get(pid)));
+  }
+
   private ensurePlayer(pid: number): PlayerState | undefined {
     if (pid >= this.maxPlayers) return undefined;
     this.present.add(pid);
@@ -404,12 +413,17 @@ export class ClientSession {
         for (const pid of m.pids) this.ensurePlayer(pid);
         break;
       case 'playerJoined':
-        this.names.set(m.pid, m.name);
+        this.clanTags.delete(m.pid);
+        this.setName(m.pid, m.name);
         this.colors.set(m.pid, m.color);
         this.ensurePlayer(m.pid);
         break;
       case 'playerName':
-        this.names.set(m.pid, m.name);
+        this.setName(m.pid, m.name);
+        break;
+      case 'playerClan':
+        this.clanTags.set(m.pid, m.tag);
+        this.setName(m.pid, this.plainNames.get(m.pid) ?? '');
         break;
       case 'playerLeft':
         if (this.names.has(m.pid)) this.pastNames.set(m.pid, this.names.get(m.pid)!);
@@ -417,6 +431,8 @@ export class ClientSession {
         this.movementShots.delete(m.pid);
         this.playerInfo.delete(m.pid);
         this.names.delete(m.pid);
+        this.plainNames.delete(m.pid);
+        this.clanTags.delete(m.pid);
         this.present.delete(m.pid);
         this.posUpdated.delete(m.pid);
         this.pings.delete(m.pid);
@@ -491,7 +507,7 @@ export class ClientSession {
     const { from, to } = m;
     const swap = m.swappedColor !== 255;
     const world = this.world;
-    const maps: Map<number, unknown>[] = [this.names, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil];
+    const maps: Map<number, unknown>[] = [this.names, this.plainNames, this.clanTags, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil];
     for (const map of maps) {
       const a = map.get(from);
       const b = map.get(to);

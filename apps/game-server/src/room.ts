@@ -450,6 +450,8 @@ export class Room {
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
+    // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
+    if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
     if (identity.rating) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
     if (this.lobby) {
       this.lobby.join(pid, this.world.frame);
@@ -484,6 +486,7 @@ export class Room {
     for (const [other, c] of this.clients) {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
+      if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
       out.push(statsMessage(this.world.players[other] as PlayerState, this.world.time)); // `send_stats`
     }
