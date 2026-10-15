@@ -9,7 +9,7 @@
 | Sprint | S17 |
 | Status | Backlog |
 | Dependências | [OG-265](OG-265-protecao-visual-hud.md) |
-| Regras de negócio | RN-NOM-05, RN-UI-05 |
+| Regras de negócio | RN-NOM-04, RN-UI-05 |
 | Skills | `outgun-card-workflow` |
 
 ## História
