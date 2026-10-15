@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S22 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-PUP-01..09, RN-VIS-01 |
 | Skills | `outgun-card-workflow` |
@@ -26,7 +26,8 @@ Como jogador, quero que a barra de tempo e a visão do minimapa do shadow acabem
 - Testes em `session.test.ts`.
 
 ## Critérios de aceite
-- [ ] Testes: morrer com shadow, turbo ou power zera o tempo correspondente.
+- [x] Testes: morrer com shadow, turbo ou power zera o tempo correspondente.
 - [ ] (PO) Morrer com shadow: a barra some e a névoa do minimapa volta; com shadow ativo, o portador da bandeira inimiga aparece no minimapa.
 
 ## Notas de implementação
+- Igual ao original: zera pelo próprio jogador no frame (sem turbo/power, visibilidade 255). Durante o pisca do spawn protegido (128/220) o shadow não zera até a proteção acabar, como no original.

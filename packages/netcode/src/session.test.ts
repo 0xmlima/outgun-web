@@ -325,4 +325,13 @@ describe('power-ups do próprio jogador', () => {
     expect(s.world!.items[0]!.isReal()).toBe(false); // sala antiga: esquecido
     expect(s.world!.items[1]!.isReal()).toBe(true);
   });
+
+  it('perder o item zera o tempo do HUD e a visão do shadow (OG-288)', () => {
+    const { s } = session();
+    const timers = ['turbo', 'power', 'shadow'] as const;
+    s.handle([...timers.map((kind) => message('powerupTimer', { kind, seconds: 40 })), frame(10, [{ ...player(0, 100, 100), turbo: true, power: true, visibility: 7 }])], 1000);
+    expect(s.powerupEnd).toEqual({ turbo: 41, power: 41, shadow: 41 });
+    s.handle([frame(11, [{ ...player(0, 100, 100), dead: true }])], 1100);
+    expect(s.powerupEnd).toEqual({ turbo: 0, power: 0, shadow: 0 });
+  });
 });

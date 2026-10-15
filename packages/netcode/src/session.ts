@@ -660,6 +660,12 @@ export class ClientSession {
       p.controls = fp.controls;
       p.gundir = dirFromNet(fp.gundir);
       p.visibility = fp.visibility;
+      if (fp.pid === this.me) {
+        // perdeu o item (morte, descarte do pior): o tempo do HUD e a visão do shadow acabam (OG-288)
+        if (!fp.turbo) this.powerupEnd.turbo = 0;
+        if (!fp.power) this.powerupEnd.power = 0;
+        if (fp.visibility === 255) this.powerupEnd.shadow = 0;
+      }
       this.posUpdated.set(fp.pid, m.frame);
     }
     if (me) this.posUpdated.set(this.me, m.frame);
