@@ -4059,6 +4059,204 @@
         }
       }
     },
+    "/clans/{tag}/stats": {
+      "get": {
+        "summary": "Estatísticas do clã (OG-273): partidas e séries clã x clã, adversários e números dos membros pelo clã; na temporada `season` ou no geral",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "season",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["season", "war", "opponents", "totals", "members"],
+                  "properties": {
+                    "season": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["id", "name"],
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "war": {
+                      "type": "object",
+                      "required": [
+                        "matches",
+                        "wins",
+                        "losses",
+                        "draws",
+                        "capturesFor",
+                        "capturesAgainst",
+                        "series",
+                        "seriesWon"
+                      ],
+                      "properties": {
+                        "matches": {
+                          "type": "integer"
+                        },
+                        "wins": {
+                          "type": "integer"
+                        },
+                        "losses": {
+                          "type": "integer"
+                        },
+                        "draws": {
+                          "type": "integer"
+                        },
+                        "capturesFor": {
+                          "type": "integer"
+                        },
+                        "capturesAgainst": {
+                          "type": "integer"
+                        },
+                        "series": {
+                          "type": "integer"
+                        },
+                        "seriesWon": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "opponents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["tag", "name", "matches", "wins", "losses", "draws"],
+                        "properties": {
+                          "tag": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "matches": {
+                            "type": "integer"
+                          },
+                          "wins": {
+                            "type": "integer"
+                          },
+                          "losses": {
+                            "type": "integer"
+                          },
+                          "draws": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "totals": {
+                      "type": "object",
+                      "required": ["matches", "kills", "captures", "playSeconds"],
+                      "properties": {
+                        "matches": {
+                          "type": "integer"
+                        },
+                        "kills": {
+                          "type": "integer"
+                        },
+                        "captures": {
+                          "type": "integer"
+                        },
+                        "playSeconds": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": ["username"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["matches", "kills", "captures", "playSeconds"],
+                            "properties": {
+                              "matches": {
+                                "type": "integer"
+                              },
+                              "kills": {
+                                "type": "integer"
+                              },
+                              "captures": {
+                                "type": "integer"
+                              },
+                              "playSeconds": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clans/{tag}/leave": {
       "post": {
         "summary": "Sai do clã; o líder passa a liderança ao admin mais antigo (senão ao membro mais antigo) e o último dissolve",

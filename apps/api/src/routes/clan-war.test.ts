@@ -104,4 +104,22 @@ describe.skipIf(!pgAdminUrl)('clã x clã na API (OG-259)', () => {
     await backfillMilestones(t.db, { beta: false });
     expect(await milestones('nn1')).toEqual(expect.arrayContaining(['clan_war', 'clan_war_win', 'clan_defender']));
   });
+
+  it('estatísticas do clã (OG-273): membro que sai não leva nem apaga os números antigos', async () => {
+    const stats = async (tag: string) => (await app.inject(`/clans/${tag}/stats`)).json();
+    const before = await stats('nn');
+    // w1 2x0 (vitória), w2 1x1 e w3 1x1 (w3 não é clã x clã: lado incompleto)
+    expect(before.war).toMatchObject({ matches: 2, wins: 1, draws: 1, losses: 0, capturesFor: 3, capturesAgainst: 1 });
+    expect(before.opponents).toEqual([{ tag: 'BC', name: 'Clã BC', matches: 2, wins: 1, losses: 0, draws: 1 }]);
+    expect((await stats('BC')).war).toMatchObject({ matches: 2, wins: 0, losses: 1, draws: 1 });
+    const nn2 = before.members.find((m: { username: string }) => m.username === 'nn2');
+    expect(nn2).toMatchObject({ matches: 3 });
+
+    await t.db.delete(clanMembers).where(eq(clanMembers.userId, ids.nn2!));
+    await internal('/internal/matches', game('w4', 0, 1, lineup()));
+    const after = await stats('nn');
+    expect(after.members.find((m: { username: string }) => m.username === 'nn2')).toEqual(nn2);
+    expect(after.war.matches).toBe(2); // sem o nn2, o lado não é mais todo do clã
+    expect(after.totals.matches).toBe(4);
+  });
 });

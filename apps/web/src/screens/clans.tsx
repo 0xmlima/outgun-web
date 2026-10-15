@@ -12,6 +12,7 @@ import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { useToast } from '../ui/Toast.js';
+import { ClanStatsPanels } from './clan-stats.js';
 import { PlayerLink, Status, useApi } from './stats.js';
 
 interface ClanRef {
@@ -436,6 +437,7 @@ export function ClanScreen() {
           ]}
         />
       </Panel>
+      <ClanStatsPanels base={base} />
       {staff && <ManageClan clan={clan} leader={myRole === 'leader'} act={act} tick={tick} />}
       {user && (
         <Panel>

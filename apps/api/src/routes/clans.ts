@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Clãs (OG-270, RN-CLA-01..05, D-47): criar, editar, sair, expulsar, papéis, transferir a liderança,
 // dissolver, página pública e busca. A tag de users.clan_tag (ticket, chat) vem dos gatilhos da
-// migração 0016. Convites, pedidos e carência: OG-271.
+// migração 0016. Convites, pedidos e carência: OG-271. Estatísticas: OG-273 (src/clan-stats.ts).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -10,7 +10,8 @@ import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { clanMembers, clanRequests, clans, playerReports, users, type ClanRole } from '../db/schema.js';
+import { clanMembers, clanRequests, clans, playerReports, seasons, users, type ClanRole } from '../db/schema.js';
+import { clanMembersStats, clanOpponents, clanWarTotals } from '../clan-stats.js';
 import { nameBlocked } from '../name-filter.js';
 import { likePrefix } from './social.js';
 import { ErrorSchema } from './schemas.js';
@@ -32,6 +33,18 @@ const ClanSchema = Type.Object({
   createdAt: Type.String(),
   members: Type.Array(Type.Object({ username: Type.String(), role: RoleSchema, joinedAt: Type.String() })),
 });
+const WarSchema = Type.Object({
+  matches: Type.Integer(),
+  wins: Type.Integer(),
+  losses: Type.Integer(),
+  draws: Type.Integer(),
+  capturesFor: Type.Integer(),
+  capturesAgainst: Type.Integer(),
+  series: Type.Integer(),
+  seriesWon: Type.Integer(),
+});
+const OpponentSchema = Type.Object({ tag: Type.String(), name: Type.String(), matches: Type.Integer(), wins: Type.Integer(), losses: Type.Integer(), draws: Type.Integer() });
+const MemberTotals = Type.Object({ matches: Type.Integer(), kills: Type.Integer(), captures: Type.Integer(), playSeconds: Type.Integer() });
 const TagParams = Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) });
 const MemberParams = Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }), username: Type.String({ minLength: 1, maxLength: 32 }) });
 
@@ -263,6 +276,38 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
         const clan = await page(request.params.tag);
         if (!clan) return reply.code(404).send({ error: 'clan_not_found', message: 'clan not found' });
         return { clan };
+      },
+    );
+
+    app.get(
+      '/clans/:tag/stats',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Estatísticas do clã (OG-273): partidas e séries clã x clã, adversários e números dos membros pelo clã; na temporada `season` ou no geral',
+          params: TagParams,
+          querystring: Type.Object({ season: Type.Optional(Type.Integer({ minimum: 1 })) }),
+          response: {
+            200: Type.Object({
+              season: Type.Union([Type.Null(), Type.Object({ id: Type.Integer(), name: Type.String() })]),
+              war: WarSchema,
+              opponents: Type.Array(OpponentSchema),
+              totals: MemberTotals,
+              members: Type.Array(Type.Intersect([Type.Object({ username: Type.String() }), MemberTotals])),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [clan] = await db.select({ id: clans.id }).from(clans).where(eq(clans.tagKey, clanKey(request.params.tag)));
+        if (!clan) return reply.code(404).send({ error: 'clan_not_found', message: 'clan not found' });
+        const id = request.query.season;
+        const [season] = id ? await db.select().from(seasons).where(eq(seasons.id, id)) : [];
+        if (id && !season) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+        const period = season ? { from: season.startsAt, to: season.endsAt } : {};
+        const [war, opponents, members] = await Promise.all([clanWarTotals(db, clan.id, period), clanOpponents(db, clan.id, period), clanMembersStats(db, clan.id, period)]);
+        return { season: season ? { id: season.id, name: season.name } : null, war, opponents, ...members };
       },
     );
 

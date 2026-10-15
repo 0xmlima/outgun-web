@@ -416,6 +416,13 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Invite: 'Convidar',
     // Clã x clã (OG-259)
     'Clan vs clan': 'Clã x clã',
+    // Estatísticas do clã (OG-273)
+    Period: 'Período',
+    'Series won': 'Séries vencidas',
+    Opponents: 'Adversários',
+    'No clan vs clan match yet.': 'Nenhuma partida clã x clã ainda.',
+    'Members for the clan': 'Membros pelo clã',
+    '$1 matches as a clan · $2 kills · $3 captures': '$1 partidas pelo clã · $2 kills · $3 capturas',
     // Rating por formato (OG-258)
     'All formats': 'Todos',
     'Matches from before the formats only show under "All".': 'Partidas anteriores aos formatos só aparecem em "Todos".',

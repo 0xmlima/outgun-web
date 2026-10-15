@@ -538,6 +538,11 @@
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+/* Estatísticas do clã (OG-273) */
+.clan-stats-heading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-md);
+}
 
 /* Aviso de celular (OG-209, D-50) */
 .phone-notice {
