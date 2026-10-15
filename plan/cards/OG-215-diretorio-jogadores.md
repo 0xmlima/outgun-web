@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S15 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | [OG-200](OG-200-design-system-v2.md), [OG-211](OG-211-api-social.md) |
 | Regras de negócio | RN-SOC-04 |
 | Skills | `outgun-card-workflow` |
@@ -23,10 +23,10 @@ Como jogador, quero buscar outros jogadores por nome ou clã e ver quem está ma
 - Ranking da temporada no novo visual (substitui a `LeaderboardScreen`).
 
 ## Critérios de aceite
-- [ ] Busca indiferente a acentos/maiúsculas; prints.
+- [x] Busca indiferente a acentos/maiúsculas; prints.
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `/players` (`screens/Players.tsx`; `/jogadores` redireciona): busca enquanto digita (nome por `usernameKey`, clã com `translate` sem acentos), mais ativos em 7 dias e clãs via `GET /directory` (cache de 30 s; quem esconde o histórico fica fora). `/ranking` no visual v2 no mesmo arquivo.

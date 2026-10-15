@@ -4,7 +4,7 @@
 // temporada, marcos (OG-213), partidas recentes (relatório e replay), companheiros, rivais e clã.
 // Tudo vem da API (OG-085, OG-211); o que o jogador escondeu (D-39) aparece como "privado".
 import { MILESTONES } from '@outgun/content';
-import { useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { usePrefs } from '../app/prefs.js';
@@ -233,9 +233,9 @@ export function ProfileScreen() {
                 empty={t('No matches yet.')}
                 columns={[
                   { key: 'date', header: t('Date'), cell: (m) => <Link to={`/matches/${m.id}`}>{date(m.endedAt, prefs.locale)}</Link> },
+                  { key: 'result', header: t('Result'), cell: (m) => <MatchResult m={m} /> },
                   { key: 'map', header: t('Map'), cell: (m) => m.map },
                   { key: 'mode', header: t('Mode'), cell: (m) => (m.mode === 'ranked' ? t('Ranked') : t('Casual')) },
-                  { key: 'result', header: t('Result'), cell: (m) => <MatchResult m={m} /> },
                   { key: 'kd', header: `${t('Kills')}/${t('Deaths')}`, cell: (m) => `${m.player.kills}/${m.player.deaths}`, align: 'end' },
                   { key: 'captures', header: t('Captures'), cell: (m) => m.player.captures, align: 'end' },
                   {
@@ -321,7 +321,6 @@ function MateTable({ caption, rows }: { caption: string; rows: Mate[] }) {
   );
 }
 
-const W = 640;
 const H = 200;
 const PAD = { left: 44, right: 12, top: 12, bottom: 24 };
 
@@ -329,6 +328,16 @@ const PAD = { left: 44, right: 12, top: 12, bottom: 24 };
 export function RatingChart({ series, locale }: { series: { at: string; rating: number }[]; locale: string }) {
   const { t } = usePrefs();
   const [hover, setHover] = useState<number | null>(null);
+  // o SVG tem a largura real do painel: textos em px de verdade (no celular não encolhem)
+  const box = useRef<HTMLElement>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => e && setW(Math.max(240, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const times = series.map((p) => Date.parse(p.at));
   const values = series.map((p) => p.rating);
   const [t0, t1] = [times[0]!, times[times.length - 1]!];
@@ -349,7 +358,7 @@ export function RatingChart({ series, locale }: { series: { at: string; rating: 
   const h = hover === null ? null : { cx: x(times[hover]!), cy: y(values[hover]!), p: series[hover]! };
   const last = values[values.length - 1]!;
   return (
-    <figure className="rating-chart">
+    <figure className="rating-chart" ref={box}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"

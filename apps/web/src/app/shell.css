@@ -419,6 +419,7 @@
 }
 .profile-milestones li {
   display: grid;
+  align-content: start;
   gap: var(--space-1);
   padding: var(--space-3);
   border: 1px solid var(--border);
@@ -436,6 +437,21 @@
 }
 .profile-milestone-date {
   font-size: var(--text-sm);
+}
+@media (max-width: 40rem) {
+  .profile-milestones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+  .profile-milestones li {
+    padding: var(--space-2);
+  }
+}
+.report-milestones li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
 }
 .profile-clan,
 .report-milestones {
@@ -462,7 +478,7 @@
 }
 .rating-chart .tick {
   fill: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .rating-chart .line {

@@ -193,9 +193,14 @@ export function MatchScreen() {
       {m.milestones && m.milestones.length > 0 && (
         <Panel title={t('Milestones')}>
           <ul className="report-milestones">
-            {m.milestones.map((x) => (
-              <li key={`${x.username}-${x.milestone}`}>
-                <PlayerLink name={x.username} username={x.username} /> <Badge tone="accent">{milestoneText(x.milestone, prefs.locale).name}</Badge>
+            {[...new Set(m.milestones.map((x) => x.username))].map((username) => (
+              <li key={username}>
+                <PlayerLink name={username} username={username} />{' '}
+                {m.milestones!.filter((x) => x.username === username).map((x) => (
+                  <Badge key={x.milestone} tone="accent">
+                    {milestoneText(x.milestone, prefs.locale).name}
+                  </Badge>
+                ))}
               </li>
             ))}
           </ul>

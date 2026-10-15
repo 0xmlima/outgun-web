@@ -86,6 +86,7 @@ function TopBar() {
   const links = [
     ['/rooms', t('Rooms')],
     ['/ranking', t('Ranking')],
+    ['/players', t('Players')],
     ['/replays', t('Replays')],
   ] as const;
   return (
