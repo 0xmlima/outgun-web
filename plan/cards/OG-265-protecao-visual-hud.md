@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S18 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -35,4 +35,5 @@ Como PO, quero que qualquer mudança na UI da partida seja comparada com a tela 
 - Ocultar ou congelar o que varia (ping, FPS, relógio) só por máscara declarada, nunca mudando o HUD.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Pronto: `tools/visual-compare/hud-check.mjs` (`pnpm visual:check` / `visual:update`), 2 jogadores (um navegador cada: aba oculta para de desenhar e o cliente cai), 8 estados × 3 resoluções, comparação dentro do Chrome com imagem de diferença e caixa do que mudou; `SEED` no game server; `__outgunVisualCheck` esconde mapa e naves (o HUD fica igual); vida/energia travadas em 100 por gamemod.
+- **Pendente:** capturas ainda não repetíveis — o time de quem entra sozinho sai de `sim.rng` (`room.ts:679`) e o lugar onde nasce também, o que muda cores, ordem do placar e pontos do minimapa. Trocar com Ctrl+End funciona, mas renasce em lugar sorteado. Sem referências versionadas até resolver (ex.: máscara nos pontos do minimapa ou entrar pelo lobby Ranked do OG-256, que fixa os lados).

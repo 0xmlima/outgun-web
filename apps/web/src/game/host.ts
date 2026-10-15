@@ -196,6 +196,14 @@ export async function loadFont(name: string | undefined): Promise<GameFont | nul
 
 const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
 
+/**
+ * Só para o `pnpm visual:check` (OG-265): a página do teste liga `__outgunVisualCheck` antes de carregar
+ * e o mapa e as naves deixam de ser desenhados (variam a cada execução); o HUD e as telas não mudam.
+ */
+export function visualCheck(): boolean {
+  return (globalThis as { __outgunVisualCheck?: boolean }).__outgunVisualCheck === true;
+}
+
 export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   const app = new Application();
   let destroyed = false;
@@ -216,6 +224,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   let wraps = { x: false, y: false };
   /** Fundo da tela em mosaico (fica sempre atrás das salas). */
   let backTiles: TilingSprite | null = null;
+  const hideWorld = visualCheck();
   /** Favoritas e banda do minimapa já enviadas nesta conexão (`sendFavoriteColors`, `sendMinimapBandwidth`). */
   let sentClient: { colors: string; minimap: number } | null = null;
   const sendClientSettings = () => {
@@ -598,6 +607,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           }
         }
         const missing = world?.render(topLeft) ?? 1;
+        if (hideWorld) {
+          if (world) world.stage.visible = false;
+          if (entities) entities.stage.visible = false;
+        }
         // "pronto" quando todas as salas da primeira vista já foram pintadas
         if (!announced && missing === 0 && worldMap) {
           announced = true;
