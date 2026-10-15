@@ -7,14 +7,19 @@ import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { usernameKey } from '../db/keys.js';
 import { migrateUp } from '../db/migrate.js';
-import { playerProfiles, users } from '../db/schema.js';
+import { playerMilestones, playerProfiles, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
+import { backfillMilestones } from '../milestones.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
-import { likePrefix } from './social.js';
+import { fold, likePrefix } from './social.js';
 
 const SECRET = 'segredo-de-teste-0123456789';
 const DAY = 86_400_000;
+
+it('fold tira acentos e maiúsculas (busca por clã)', () => {
+  expect(fold('ÁÇãoÑ')).toBe('acaon');
+});
 
 it('likePrefix escapa os curingas do LIKE', () => {
   expect(likePrefix('a%b_c\\')).toBe('a\\%b\\_c\\\\%');
@@ -100,9 +105,35 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     expect(all.players.map((u: { username: string }) => u.username)).toEqual(['Jogador1', 'Jogador2', 'Jogador3']);
     expect((await app.inject('/players?busca=jogador2')).json().players[0].username).toBe('Jogador2');
     expect((await app.inject('/players?busca=abc')).json().players).toEqual([{ username: 'Jogador3', clanTag: 'ABC' }]);
+    expect((await app.inject('/players?busca=%C3%A1bc')).json().total).toBe(1);
+    expect((await app.inject('/players?busca=J%C3%93GADOR')).json().total).toBe(3);
     const page = (await app.inject('/players?busca=jog&limit=1&offset=1')).json();
     expect(page).toMatchObject({ total: 3, players: [{ username: 'Jogador2' }] });
     expect((await app.inject('/players?busca=%25')).json().total).toBe(0);
+  });
+
+  it('marcos (OG-213): concedidos ao gravar a partida, no perfil e na partida; retroativo idempotente', async () => {
+    const j1 = (await app.inject('/players/Jogador1')).json();
+    const first = (await app.inject('/players/Jogador1/matches?limit=100')).json().matches.at(-1).id;
+    expect(j1.milestones).toEqual([{ id: 'first_match', achievedAt: expect.any(String), matchId: first }]);
+    expect(j1.lastMatchAt).toEqual(expect.any(String));
+    const m = (await app.inject(`/matches/${first}`)).json();
+    expect(m.milestones).toEqual([
+      { username: 'Jogador1', milestone: 'first_match' },
+      { username: 'Jogador2', milestone: 'first_match' },
+      { username: 'Jogador3', milestone: 'first_match' },
+    ]);
+    await t.db.delete(playerMilestones);
+    expect(await backfillMilestones(t.db, { beta: true })).toEqual({ users: 3, added: 6 });
+    expect(await backfillMilestones(t.db, { beta: true })).toEqual({ users: 3, added: 0 });
+    expect((await app.inject('/players/Jogador3')).json().milestones.map((x: { id: string }) => x.id).sort()).toEqual(['beta', 'first_match']);
+  });
+
+  it('diretório: mais ativos em 7 dias e clãs', async () => {
+    const d = (await app.inject('/directory')).json();
+    expect(d.active.map((a: { username: string }) => a.username).sort()).toEqual(['Jogador1', 'Jogador2', 'Jogador3']);
+    expect(d.active.find((a: { username: string }) => a.username === 'Jogador3')).toMatchObject({ matches: 1, wins: 1, playSeconds: 300 });
+    expect(d.clans).toEqual([{ tag: 'ABC', members: 1, activeMembers: 1, matches: 1 }]);
   });
 
   it('privacidade: escondido não devolve os dados nem aparece como companheiro/rival de outros', async () => {

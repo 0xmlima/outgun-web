@@ -5,7 +5,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, asc, desc, eq, gte, sql } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { matches, matchPlayers, playerProfiles, ratings, users } from '../db/schema.js';
+import { matches, matchPlayers, playerMilestones, playerProfiles, ratings, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
 import { ErrorSchema, GameModeSchema } from './schemas.js';
 
@@ -71,6 +71,11 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
                 Type.Null(),
               ]),
               totals: Type.Object({ ranked: Totals, casual: Totals }),
+              /** Cores favoritas (índices da paleta) e data da última partida (null se escondeu o histórico). */
+              favoriteColors: Type.Array(Type.Integer()),
+              lastMatchAt: Type.Union([Type.String(), Type.Null()]),
+              /** Marcos conquistados (OG-213); a partida some se o histórico estiver escondido. */
+              milestones: Type.Array(Type.Object({ id: Type.String(), achievedAt: Type.String(), matchId: Type.Union([Type.String(), Type.Null()]) })),
             }),
             404: ErrorSchema,
           },
@@ -110,10 +115,23 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
         const empty = { matches: 0, wins: 0, losses: 0, draws: 0, frags: 0, kills: 0, deaths: 0, captures: 0, assists: 0, flagsReturned: 0, carriersKilled: 0, shots: 0, hits: 0, playSeconds: 0 };
         const totals = { ranked: { ...empty }, casual: { ...empty } };
         for (const { mode, ...t } of rows) totals[mode] = { ...t, losses: t.matches - t.wins - t.draws };
+        const [profile] = await db.select({ favoriteColors: playerProfiles.favoriteColors, hideHistory: playerProfiles.hideHistory }).from(playerProfiles).where(eq(playerProfiles.userId, user.id));
+        const showHistory = !profile?.hideHistory || (await sessions.current(request))?.id === user.id;
+        const [last] = showHistory
+          ? await db.select({ at: sql<Date>`max(${matches.endedAt})` }).from(matchPlayers).innerJoin(matches, eq(matches.id, matchPlayers.matchId)).where(eq(matchPlayers.userId, user.id))
+          : [];
+        const milestones = await db
+          .select({ id: playerMilestones.milestone, achievedAt: playerMilestones.achievedAt, matchId: playerMilestones.matchId })
+          .from(playerMilestones)
+          .where(eq(playerMilestones.userId, user.id))
+          .orderBy(asc(playerMilestones.achievedAt));
         return {
           user: { id: user.id, username: user.username, clanTag: user.clanTag, createdAt: user.createdAt.toISOString() },
           ranking,
           totals,
+          favoriteColors: profile?.favoriteColors ?? [],
+          lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
+          milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
         };
       },
     );
@@ -135,7 +153,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               total: Type.Integer(),
               /** O jogador escondeu o histórico (OG-211, D-39); o dono continua vendo. */
               hidden: Type.Boolean(),
-              matches: Type.Array(Type.Intersect([MatchSummary, Type.Object({ player: Type.Omit(PlayerLine, ['username', 'stats']) })])),
+              matches: Type.Array(Type.Intersect([MatchSummary, Type.Object({ replayUrl: Type.Union([Type.Null(), Type.String()]), player: Type.Omit(PlayerLine, ['username', 'stats']) })])),
             }),
             404: ErrorSchema,
           },
@@ -165,6 +183,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           hidden: false,
           matches: rows.map(({ m, p }) => ({
             ...summary(m),
+            replayUrl: m.replayUrl,
             player: { slot: p.slot, name: p.name, team: p.team, isBot: p.isBot, frags: p.frags, kills: p.kills, deaths: p.deaths, captures: p.captures, playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta },
           })),
         };
@@ -209,6 +228,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               players: Type.Array(PlayerLine),
               /** Replay da partida, quando houver (OG-090; o game server apaga após a retenção). */
               replayUrl: Type.Union([Type.Null(), Type.String()]),
+              /** Marcos conquistados nesta partida (OG-213). */
+              milestones: Type.Array(Type.Object({ username: Type.String(), milestone: Type.String() })),
             }),
             404: ErrorSchema,
           },
@@ -231,6 +252,12 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
             playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta, stats: p.stats,
           })),
           replayUrl: m.replayUrl,
+          milestones: await db
+            .select({ username: users.username, milestone: playerMilestones.milestone })
+            .from(playerMilestones)
+            .innerJoin(users, eq(users.id, playerMilestones.userId))
+            .where(eq(playerMilestones.matchId, m.id))
+            .orderBy(asc(users.usernameKey)),
         };
       },
     );

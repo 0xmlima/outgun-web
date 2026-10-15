@@ -929,7 +929,14 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user", "ranking", "totals"],
+                  "required": [
+                    "user",
+                    "ranking",
+                    "totals",
+                    "favoriteColors",
+                    "lastMatchAt",
+                    "milestones"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
@@ -1133,6 +1140,47 @@
                           }
                         }
                       }
+                    },
+                    "favoriteColors": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "lastMatchAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "milestones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "achievedAt", "matchId"],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "achievedAt": {
+                            "type": "string"
+                          },
+                          "matchId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -1281,8 +1329,18 @@
                           },
                           {
                             "type": "object",
-                            "required": ["player"],
+                            "required": ["replayUrl", "player"],
                             "properties": {
+                              "replayUrl": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
                               "player": {
                                 "type": "object",
                                 "required": [
@@ -1452,7 +1510,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["match", "details", "players", "replayUrl"],
+                  "required": ["match", "details", "players", "replayUrl", "milestones"],
                   "properties": {
                     "match": {
                       "allOf": [
@@ -1616,6 +1674,21 @@
                           "type": "string"
                         }
                       ]
+                    },
+                    "milestones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["username", "milestone"],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "milestone": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -2002,6 +2075,79 @@
                     },
                     "message": {
                       "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/directory": {
+      "get": {
+        "summary": "Diretório (OG-215): jogadores mais ativos nos últimos 7 dias (sem quem esconde o histórico) e clãs",
+        "tags": ["perfil"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["active", "clans"],
+                  "properties": {
+                    "active": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["username", "clanTag", "matches", "wins", "playSeconds"],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "matches": {
+                            "type": "integer"
+                          },
+                          "wins": {
+                            "type": "integer"
+                          },
+                          "playSeconds": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "clans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["tag", "members", "activeMembers", "matches"],
+                        "properties": {
+                          "tag": {
+                            "type": "string"
+                          },
+                          "members": {
+                            "type": "integer"
+                          },
+                          "activeMembers": {
+                            "type": "integer"
+                          },
+                          "matches": {
+                            "type": "integer"
+                          }
+                        }
+                      }
                     }
                   }
                 }

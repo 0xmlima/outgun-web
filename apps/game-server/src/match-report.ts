@@ -9,6 +9,8 @@ export interface ReportPlayer {
   /** Conta da API; null = convidado ou bot. */
   accountId: string | null;
   bot: boolean;
+  /** Kills em bots na partida (OG-213). */
+  botKills?: number;
 }
 
 /** Regras da partida mostradas no "Game info" do `save_stats` (OG-085). */
@@ -160,7 +162,7 @@ export function matchReport(input: ReportInput): MatchReport {
           playSeconds: Math.round(p.playtime),
           scoreDelta: input.ranked ? d.score : 0,
           negDelta: input.ranked ? d.neg : 0,
-          stats: stats(p),
+          stats: { ...stats(p), botKills: who.botKills ?? 0 },
         },
       ];
     }),

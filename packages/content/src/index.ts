@@ -7,3 +7,4 @@ export { hawkCrc16 } from './map/crc16.js';
 export { decodeMapFile, parseMap, parseMapFile, type MapParseResult } from './map/parser.js';
 export { generateRandomMap, MapGenerator, type MapgenBlock, type RandomMapParams, type Symmetry } from './map/mapgen.js';
 export { DATA_INVENTORY, PRIVACY_SECTIONS, PRIVACY_VERSION, TABLES, TERMS_SECTIONS, TERMS_VERSION, type Bilingual, type DataItem, type LegalLocale, type LegalSection } from './privacy.js';
+export { ACCURACY_MIN_SHOTS, MILESTONES, milestonesFrom, type Achieved, type Milestone, type MilestoneMatch } from './milestones.js';

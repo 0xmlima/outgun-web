@@ -7,6 +7,7 @@ import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, seasons, users } from '../db/schema.js';
 import { activeSeason, applyDeltas } from '../ranking.js';
+import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
@@ -364,6 +365,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             );
           }
           await recordMatchSocial(tx, match!.id);
+          await awardMilestones(tx, [...known], { beta: config.beta });
           // Ranking (OG-084): só partida ranqueada e com temporada ativa; o servidor já calculou os deltas.
           if (body.ranked && season) {
             await applyDeltas(

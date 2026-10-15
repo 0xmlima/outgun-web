@@ -289,6 +289,14 @@ body {
   font-size: 1em;
   background: #007700;
 }
+.info-screen a.info-profile {
+  color: inherit;
+  text-decoration: none;
+}
+.info-screen a.info-profile:hover,
+.info-screen a.info-profile:focus-visible {
+  text-decoration: underline;
+}
 .info-screen table {
   border-collapse: collapse;
   margin: 0 auto calc(var(--px) * 6px);

@@ -384,3 +384,127 @@
   cursor: pointer;
   font-weight: var(--weight-medium);
 }
+
+/* Perfil social (OG-212) */
+.profile-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.profile-colour {
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 2px var(--surface-0), 0 0 0 3px var(--border-strong);
+}
+.profile-head {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.profile-numbers {
+  margin-top: var(--space-3);
+}
+.profile-numbers dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+}
+.profile-milestones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.profile-milestones li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.profile-milestones li.won {
+  border-color: var(--accent);
+}
+.profile-milestones li.locked {
+  opacity: 0.6;
+}
+.profile-milestones .ui-muted {
+  font-size: var(--text-sm);
+}
+.profile-milestone-date {
+  font-size: var(--text-sm);
+}
+@media (max-width: 40rem) {
+  .profile-milestones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+  .profile-milestones li {
+    padding: var(--space-2);
+  }
+}
+.report-milestones li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+.profile-clan,
+.report-milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rating-chart {
+  position: relative;
+  margin: 0;
+}
+.rating-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+.rating-chart .grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.rating-chart .tick {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.rating-chart .line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.rating-chart .dot {
+  fill: var(--accent);
+  stroke: var(--surface-1);
+  stroke-width: 2;
+}
+.rating-chart .cross {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+.rating-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}

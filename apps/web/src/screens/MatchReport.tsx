@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Relatório de partida (OG-214, RN-SOC-01/05), num link compartilhável: placar e vencedor, mapa,
 // regras, tabela por time com destaque do melhor jogador, linha do tempo das capturas, replay e
-// links para os perfis. As estatísticas completas (as mesmas da F4 e do `save_stats` do original)
+// links para os perfis e os marcos conquistados na partida (OG-213). As estatísticas completas (as mesmas da F4 e do `save_stats` do original)
 // ficam em "Estatísticas detalhadas".
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -12,6 +12,7 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { MapPreview } from './MapPreview.js';
+import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, Status, useApi, type MatchPage, type PlayerLine } from './stats.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
@@ -189,6 +190,22 @@ export function MatchScreen() {
           )}
         </Panel>
       </div>
+      {m.milestones && m.milestones.length > 0 && (
+        <Panel title={t('Milestones')}>
+          <ul className="report-milestones">
+            {[...new Set(m.milestones.map((x) => x.username))].map((username) => (
+              <li key={username}>
+                <PlayerLink name={username} username={username} />{' '}
+                {m.milestones!.filter((x) => x.username === username).map((x) => (
+                  <Badge key={x.milestone} tone="accent">
+                    {milestoneText(x.milestone, prefs.locale).name}
+                  </Badge>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
       <Panel title={`${t('Red team')} · ${redScore}`} className="report-team-panel red">
         {teamTable(0)}
       </Panel>

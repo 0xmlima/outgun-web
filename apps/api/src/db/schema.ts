@@ -228,6 +228,18 @@ export const playerDaily = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
 );
 
+/** Marcos conquistados (OG-213, catálogo em src/milestones.ts). */
+export const playerMilestones = pgTable(
+  'player_milestones',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    milestone: text('milestone').notNull(),
+    achievedAt: tstz('achieved_at').notNull(),
+    matchId: uuid('match_id').references(() => matches.id, { onDelete: 'set null' }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.milestone] }), index('player_milestones_match_idx').on(t.matchId)],
+);
+
 export const ratingPoints = pgTable(
   'rating_points',
   {
@@ -457,6 +469,7 @@ export const allTables = {
   rating_deltas: ratingDeltas,
   player_pairs: playerPairs,
   player_daily: playerDaily,
+  player_milestones: playerMilestones,
   rating_points: ratingPoints,
   bans,
   admin_actions: adminActions,

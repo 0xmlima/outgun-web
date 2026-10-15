@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S14 |
-| Status | Pronto |
+| Status | Backlog |
 | Dependências | [OG-200](OG-200-design-system-v2.md) |
 | Regras de negócio | RN-UI-02 |
 | Skills | `outgun-card-workflow` |
