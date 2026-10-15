@@ -1243,7 +1243,8 @@ export class Room {
     const humans = [...this.clients.values()].filter((c) => !c.bot).length;
     for (const [pid, c] of [...this.clients]) {
       if (c.disconnectedFrame !== null) {
-        if (c.departing || this.uptimeFrames - c.disconnectedFrame < this.reconnectFrames) continue;
+        // `<=`: o relógio da sala anda no início do tick; sai no tick em que se completam os frames da queda
+        if (c.departing || this.uptimeFrames - c.disconnectedFrame <= this.reconnectFrames) continue;
         // queda no jogo Ranked sem volta no prazo: desconexão permanente e voto do bot (OG-262)
         if (this.pause?.drops.has(pid)) this.depart(pid);
         else this.leave(pid);
