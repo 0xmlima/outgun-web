@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -27,7 +27,8 @@ Como jogador, quero ver a vida do jogo acontecendo (jogadores online, salas, ran
 ## Critérios de aceite
 - [ ] (PO) Com a tela inicial aberta, alguém entra numa sala: o total de online muda em até ~5 s, sem recarregar.
 - [ ] (PO) Ranking/perfil se atualizam ao voltar para a aba, sem piscar.
-- [ ] Teste do `usePolled` (intervalo por tela e pausa com a aba escondida).
+- [x] Teste dos intervalos (`LIVE_POLL_MS`, `POLL_MS`, `API_REFRESH_MS`); a pausa com a aba escondida fica sem teste (sem DOM nos testes do web).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `usePolled` ganhou o intervalo por uso: `/rooms` a cada 4 s, ranking da tela inicial a cada 60 s.
+- `useApi` (perfil, jogadores, ranking, clãs, hall da fama, relatório) relê a cada 60 s e ao voltar para a aba, em segundo plano: troca o dado sem "Carregando..." e erro passageiro não apaga a tela.

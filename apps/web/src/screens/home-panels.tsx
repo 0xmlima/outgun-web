@@ -12,10 +12,12 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import type { RoomSummary } from './lobby.js';
 
-const POLL_MS = 30_000;
+/** "Agora no Outgun" acompanha o lobby (heartbeat de 3 s); o resto do portal relê a cada minuto (OG-283). */
+export const LIVE_POLL_MS = 4000;
+export const POLL_MS = 60_000;
 
 /** GET periódico que pausa com a aba escondida; `undefined` = carregando, `null` = erro/ausente. */
-export function usePolled<T>(path: string | null): T | null | undefined {
+export function usePolled<T>(path: string | null, everyMs = POLL_MS): T | null | undefined {
   const [data, setData] = useState<T | null | undefined>(undefined);
   useEffect(() => {
     if (!path) return setData(null);
@@ -28,14 +30,14 @@ export function usePolled<T>(path: string | null): T | null | undefined {
       );
     };
     load();
-    const id = setInterval(load, POLL_MS);
+    const id = setInterval(load, everyMs);
     addEventListener('visibilitychange', load);
     return () => {
       alive = false;
       clearInterval(id);
       removeEventListener('visibilitychange', load);
     };
-  }, [path]);
+  }, [path, everyMs]);
   return data;
 }
 
@@ -54,7 +56,7 @@ export function liveRooms(rooms: readonly RoomSummary[], max = 3): { online: num
 export function NowPlaying() {
   const { t } = usePrefs();
   const navigate = useNavigate();
-  const data = usePolled<{ rooms: RoomSummary[] }>('/rooms');
+  const data = usePolled<{ rooms: RoomSummary[] }>('/rooms', LIVE_POLL_MS);
   const { online, busy } = liveRooms(data?.rooms ?? []);
   return (
     <Panel title={t('Now on Outgun')} actions={<Link to="/rooms">{t('Rooms')}</Link>}>

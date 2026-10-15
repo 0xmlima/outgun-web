@@ -719,7 +719,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-280](cards/OG-280-versao-no-cliente.md) | Mostrar a versão do jogo no cliente | E8 | 1 | Could | — | — | Backlog |
 | [OG-281](cards/OG-281-espectador-player-nao-iniciado.md) | Espectador ao vivo às vezes abre com "player não iniciado" | E8 | 1 | Should | S21 | — | Backlog |
 | [OG-282](cards/OG-282-online-sem-bots.md) | "Agora no Outgun" conta bots como jogadores online | E8 | 1 | Should | S21 | — | Em revisão |
-| [OG-283](cards/OG-283-atualizacao-automatica.md) | Telas do portal paradas: atualização automática mais frequente | E8 | 1 | Should | S21 | — | Backlog |
+| [OG-283](cards/OG-283-atualizacao-automatica.md) | Telas do portal paradas: atualização automática mais frequente | E8 | 1 | Should | S21 | — | Em revisão |
 | [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | — | OG-283 | Backlog |
 | [OG-285](cards/OG-285-opcoes-nao-salvam.md) | Opções não ficam salvas (cor favorita, mensagens rápidas) | E8 | 2 | Must | S21 | — | Em revisão |
 
