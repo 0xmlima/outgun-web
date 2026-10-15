@@ -25,6 +25,7 @@ import { LeaderboardScreen, PlayersScreen } from './screens/Players.js';
 import { ProfileScreen } from './screens/Profile.js';
 import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } from './screens/menus.js';
 import { OptionsScreen } from './screens/options.js';
+import { ClanInboxScreen } from './screens/clans.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
 import './ui/tokens.css';
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
           { path: 'account/delete', element: <DeleteAccountScreen /> },
           { path: 'account/username', element: <ChangeUsernameScreen /> },
           { path: 'account/clan-tag', element: <ClanTagScreen /> },
+          { path: 'clans/inbox', element: <ClanInboxScreen /> },
           { path: 'rooms', element: <LobbyScreen /> },
           { path: 'rooms/new', element: <CreateRoomScreen /> },
           { path: 'rooms/:id', element: <JoinRoomScreen /> },

@@ -39,6 +39,8 @@ export const users = pgTable(
     passwordHash: text('password_hash').notNull(),
     /** Cópia da tag do clã atual (OG-270), mantida por gatilho; não gravar direto. */
     clanTag: text('clan_tag'),
+    /** Carência para entrar em outro clã depois de sair ou ser expulso (OG-271, D-47). */
+    clanCooldownUntil: tstz('clan_cooldown_until'),
     isAdmin: boolean('is_admin').notNull().default(false),
     /** Moderador (OG-087): salas, denúncias, bans de sala e auditoria no painel. */
     isModerator: boolean('is_moderator').notNull().default(false),
@@ -275,6 +277,24 @@ export const clanMembers = pgTable(
   (t) => [index('clan_members_clan_idx').on(t.clanId, t.joinedAt)],
 );
 
+/** Convites e pedidos de entrada em clã (OG-271, RN-CLA-04); um por clã e jogador. */
+export const clanRequests = pgTable(
+  'clan_requests',
+  {
+    clanId: uuid('clan_id')
+      .notNull()
+      .references(() => clans.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'invite' | 'request'>().notNull(),
+    invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    expiresAt: tstz('expires_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.clanId, t.userId] }), index('clan_requests_user_idx').on(t.userId)],
+);
+
 export const ratingPoints = pgTable(
   'rating_points',
   {
@@ -507,6 +527,7 @@ export const allTables = {
   player_milestones: playerMilestones,
   clans,
   clan_members: clanMembers,
+  clan_requests: clanRequests,
   rating_points: ratingPoints,
   bans,
   admin_actions: adminActions,

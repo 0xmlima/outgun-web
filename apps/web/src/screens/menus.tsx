@@ -15,6 +15,7 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { type HistoryEntry, useApi } from './stats.js';
+import { inboxCount, useClanInbox } from './clans.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
 /** Até 5 partidas recentes de quem tem conta, na tela inicial. */
@@ -61,6 +62,8 @@ export function HomeScreen() {
   const { user } = useAccount();
   const navigate = useNavigate();
   const playNow = usePlayNow();
+  const { inbox } = useClanInbox();
+  const pending = inboxCount(inbox);
   const go = (to: string) => () => void navigate(to);
   const items: MenuListItem[] = [
     { label: t('Play now'), description: t('Casual: power-ups on, guests welcome, does not count for the ranking.'), primary: true, onActivate: playNow },
@@ -74,6 +77,7 @@ export function HomeScreen() {
     { label: t('Ranking'), description: t('Season leaderboard'), onActivate: go('/ranking') },
     { label: t('Players'), description: t('Find players and clans'), onActivate: go('/players') },
     ...(user ? [{ label: t('My profile'), description: t('Statistics, milestones and matches'), onActivate: go(`/players/${encodeURIComponent(user.username)}`) }] : []),
+    ...(pending > 0 ? [{ label: t('Clan invites'), aside: <Badge tone="accent">{pending}</Badge>, onActivate: go('/clans/inbox') }] : []),
     { label: t('Replays'), description: t('Watch recorded matches'), onActivate: go('/replays') },
     { label: t('Options'), onActivate: go('/options') },
     { label: t('Help'), onActivate: go('/help') },

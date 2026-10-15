@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Clãs (OG-270, RN-CLA-01..05, D-47): criar, editar, sair, expulsar, papéis, transferir a liderança,
 // dissolver, página pública e busca. A tag de users.clan_tag (ticket, chat) vem dos gatilhos da
-// migração 0016. Convites e pedidos de entrada ficam no OG-271.
+// migração 0016. Convites, pedidos e carência: OG-271.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { checkClanName, checkClanTag, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { clanMembers, clans, users, type ClanRole } from '../db/schema.js';
+import { clanMembers, clanRequests, clans, users, type ClanRole } from '../db/schema.js';
 import { likePrefix } from './social.js';
 import { ErrorSchema } from './schemas.js';
 
 /** Limite de membros (D-47); vale para convites e pedidos (OG-271). */
 export const MAX_CLAN_MEMBERS = 30;
 export const MAX_CLAN_DESCRIPTION = 500;
+/** Convites e pedidos expiram em 7 dias (RN-CLA-04); carência de 7 dias depois de sair (D-47). */
+export const CLAN_REQUEST_TTL_MS = 7 * 24 * 3600_000;
+export const CLAN_COOLDOWN_MS = 7 * 24 * 3600_000;
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
@@ -90,7 +93,43 @@ export async function leaveClan(tx: Tx, userId: string): Promise<'left' | 'disso
     return 'dissolved';
   }
   if (me.role === 'leader') await tx.update(clanMembers).set({ role: 'leader' }).where(eq(clanMembers.userId, heir.userId));
+  await startCooldown(tx, userId);
   return 'left';
+}
+
+/** Saída ou expulsão abre a carência para entrar em outro clã; dissolução não (D-47). */
+async function startCooldown(tx: Tx, userId: string) {
+  await tx.update(users).set({ clanCooldownUntil: new Date(Date.now() + CLAN_COOLDOWN_MS) }).where(eq(users.id, userId));
+}
+
+/**
+ * Entrada no clã por convite aceito ou pedido aprovado (RN-CLA-04): o jogador não pode estar em
+ * clã nem na carência, e o clã não pode estar cheio. Os outros convites e pedidos dele caem.
+ */
+async function admit(tx: Tx, clanId: string, userId: string, kind: 'invite' | 'request') {
+  const [entry] = await tx
+    .select({ expiresAt: clanRequests.expiresAt })
+    .from(clanRequests)
+    .where(and(eq(clanRequests.clanId, clanId), eq(clanRequests.userId, userId), eq(clanRequests.kind, kind), gt(clanRequests.expiresAt, new Date())));
+  if (!entry) throw new ClanError(404, kind === 'invite' ? 'invite_not_found' : 'request_not_found');
+  const [player] = await tx.select({ cooldown: users.clanCooldownUntil }).from(users).where(eq(users.id, userId)).for('update');
+  if (await tx.select({ id: clanMembers.userId }).from(clanMembers).where(eq(clanMembers.userId, userId)).then((r) => r.length > 0)) {
+    throw new ClanError(409, 'already_in_clan');
+  }
+  if (player?.cooldown && player.cooldown > new Date()) throw new ClanError(409, 'clan_cooldown');
+  await checkRoom(tx, clanId);
+  await tx.insert(clanMembers).values({ userId, clanId, role: 'member' });
+  await tx.delete(clanRequests).where(eq(clanRequests.userId, userId));
+}
+
+async function checkRoom(tx: Tx, clanId: string) {
+  const [count] = await tx.select({ n: sql<number>`count(*)::int` }).from(clanMembers).where(eq(clanMembers.clanId, clanId));
+  if ((count?.n ?? 0) >= MAX_CLAN_MEMBERS) throw new ClanError(409, 'clan_full');
+}
+
+/** Apaga convites e pedidos vencidos de um jogador (antes de abrir um novo). */
+async function dropExpired(tx: Tx, userId: string) {
+  await tx.delete(clanRequests).where(and(eq(clanRequests.userId, userId), lte(clanRequests.expiresAt, new Date())));
 }
 
 export function clanRoutes({ database }: AppDeps, { sessions }: Services): FastifyPluginAsyncTypebox {
@@ -350,6 +389,7 @@ export function clanRoutes({ database }: AppDeps, { sessions }: Services): Fasti
           const allowed = target.userId !== user.id && (role === 'leader' || (role === 'admin' && target.role === 'member'));
           if (!allowed) throw new ClanError(403, 'clan_forbidden');
           await tx.delete(clanMembers).where(eq(clanMembers.userId, target.userId));
+          await startCooldown(tx, target.userId);
           return true;
         });
         if (!done) return reply;
@@ -411,5 +451,232 @@ export function clanRoutes({ database }: AppDeps, { sessions }: Services): Fasti
         return { clan: (await page(done.value))! };
       },
     );
+    const Pending = Type.Object({ username: Type.String(), createdAt: Type.String(), expiresAt: Type.String() });
+    const ClanRef = Type.Object({ name: Type.String(), tag: Type.String(), expiresAt: Type.String() });
+
+    /** Líder ou admin do clã travado; senão 403. */
+    const requireStaff = async (tx: Tx, tag: string, userId: string) => {
+      const clan = await lockClan(tx, tag);
+      const role = await roleIn(tx, clan.id, userId);
+      if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
+      return clan;
+    };
+
+    app.get(
+      '/clans/inbox',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Convites recebidos, o pedido aberto do jogador e, para líder/admin, os pedidos ao clã (contador do menu)',
+          response: {
+            200: Type.Object({ invites: Type.Array(ClanRef), request: Type.Union([ClanRef, Type.Null()]), clanRequests: Type.Integer(), cooldownUntil: Type.Union([Type.String(), Type.Null()]) }),
+            401: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const now = new Date();
+        const rows = await db
+          .select({ name: clans.name, tag: clans.tag, kind: clanRequests.kind, expiresAt: clanRequests.expiresAt })
+          .from(clanRequests)
+          .innerJoin(clans, eq(clans.id, clanRequests.clanId))
+          .where(and(eq(clanRequests.userId, user.id), gt(clanRequests.expiresAt, now)))
+          .orderBy(asc(clanRequests.createdAt));
+        const ref = (r: (typeof rows)[number]) => ({ name: r.name, tag: r.tag, expiresAt: r.expiresAt.toISOString() });
+        const [staff] = await db.execute<{ n: number }>(sql`
+          SELECT count(*)::int AS n FROM clan_requests r JOIN clan_members m ON m.clan_id = r.clan_id
+          WHERE m.user_id = ${user.id} AND m.role IN ('leader', 'admin') AND r.kind = 'request' AND r.expires_at > ${now}`);
+        const [me] = await db.select({ cooldown: users.clanCooldownUntil }).from(users).where(eq(users.id, user.id));
+        const request_ = rows.find((r) => r.kind === 'request');
+        return {
+          invites: rows.filter((r) => r.kind === 'invite').map(ref),
+          request: request_ ? ref(request_) : null,
+          clanRequests: staff?.n ?? 0,
+          cooldownUntil: me?.cooldown && me.cooldown > now ? me.cooldown.toISOString() : null,
+        };
+      },
+    );
+
+    app.get(
+      '/clans/:tag/pending',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Convites enviados e pedidos recebidos ainda válidos (líder e admins)',
+          params: TagParams,
+          response: { 200: Type.Object({ invites: Type.Array(Pending), requests: Type.Array(Pending) }), 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const done = await run(reply, async (tx) => {
+          const clan = await requireStaff(tx, request.params.tag, user.id);
+          return tx
+            .select({ username: users.username, kind: clanRequests.kind, createdAt: clanRequests.createdAt, expiresAt: clanRequests.expiresAt })
+            .from(clanRequests)
+            .innerJoin(users, eq(users.id, clanRequests.userId))
+            .where(and(eq(clanRequests.clanId, clan.id), gt(clanRequests.expiresAt, new Date())))
+            .orderBy(asc(clanRequests.createdAt));
+        });
+        if (!done) return reply;
+        const out = (kind: 'invite' | 'request') =>
+          done.value.filter((r) => r.kind === kind).map((r) => ({ username: r.username, createdAt: r.createdAt.toISOString(), expiresAt: r.expiresAt.toISOString() }));
+        return { invites: out('invite'), requests: out('request') };
+      },
+    );
+
+    app.post(
+      '/clans/:tag/invites',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Convida uma conta (líder e admins); vale 7 dias',
+          params: TagParams,
+          body: Type.Object({ username: Type.String({ minLength: 1, maxLength: 32 }) }),
+          response: { 204: Type.Null(), 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const done = await run(reply, async (tx) => {
+          const clan = await requireStaff(tx, request.params.tag, user.id);
+          const [target] = await tx.select({ id: users.id }).from(users).where(eq(users.usernameKey, usernameKey(request.body.username)));
+          if (!target) throw new ClanError(404, 'player_not_found');
+          if (await roleIn(tx, clan.id, target.id)) throw new ClanError(409, 'already_member');
+          await checkRoom(tx, clan.id);
+          await dropExpired(tx, target.id);
+          const [open] = await tx.select({ kind: clanRequests.kind }).from(clanRequests).where(and(eq(clanRequests.clanId, clan.id), eq(clanRequests.userId, target.id)));
+          if (open?.kind === 'request') throw new ClanError(409, 'request_pending'); // basta aprovar o pedido
+          const expiresAt = new Date(Date.now() + CLAN_REQUEST_TTL_MS);
+          await tx
+            .insert(clanRequests)
+            .values({ clanId: clan.id, userId: target.id, kind: 'invite', invitedBy: user.id, expiresAt })
+            .onConflictDoUpdate({ target: [clanRequests.clanId, clanRequests.userId], set: { invitedBy: user.id, createdAt: new Date(), expiresAt } });
+          return true;
+        });
+        if (!done) return reply;
+        return reply.code(204).send(null);
+      },
+    );
+
+    for (const answer of ['accept', 'decline'] as const) {
+      app.post(
+        `/clans/:tag/invites/${answer}`,
+        {
+          schema: {
+            tags: ['clãs'],
+            summary: answer === 'accept' ? 'Aceita o convite (sem clã e fora da carência; o clã não pode estar cheio)' : 'Recusa o convite',
+            params: TagParams,
+            response: { 204: Type.Null(), 401: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
+          },
+        },
+        async (request, reply) => {
+          const user = await requireUser(request, reply);
+          if (!user) return reply;
+          const done = await run(reply, async (tx) => {
+            const clan = await lockClan(tx, request.params.tag);
+            if (answer === 'accept') return admit(tx, clan.id, user.id, 'invite');
+            const gone = await tx
+              .delete(clanRequests)
+              .where(and(eq(clanRequests.clanId, clan.id), eq(clanRequests.userId, user.id), eq(clanRequests.kind, 'invite')))
+              .returning();
+            if (gone.length === 0) throw new ClanError(404, 'invite_not_found');
+          });
+          if (!done) return reply;
+          return reply.code(204).send(null);
+        },
+      );
+    }
+
+    app.post(
+      '/clans/:tag/requests',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Pede para entrar no clã (um pedido aberto por vez; vale 7 dias)',
+          params: TagParams,
+          response: { 204: Type.Null(), 401: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const done = await run(reply, async (tx) => {
+          const clan = await lockClan(tx, request.params.tag);
+          const [me] = await tx.select({ cooldown: users.clanCooldownUntil }).from(users).where(eq(users.id, user.id)).for('update');
+          if ((await tx.select().from(clanMembers).where(eq(clanMembers.userId, user.id))).length > 0) throw new ClanError(409, 'already_in_clan');
+          if (me?.cooldown && me.cooldown > new Date()) throw new ClanError(409, 'clan_cooldown');
+          await dropExpired(tx, user.id);
+          const mine = await tx.select({ clanId: clanRequests.clanId, kind: clanRequests.kind }).from(clanRequests).where(eq(clanRequests.userId, user.id));
+          if (mine.some((r) => r.kind === 'request')) throw new ClanError(409, 'request_open');
+          if (mine.some((r) => r.clanId === clan.id)) throw new ClanError(409, 'invite_pending'); // basta aceitar o convite
+          await tx.insert(clanRequests).values({ clanId: clan.id, userId: user.id, kind: 'request', expiresAt: new Date(Date.now() + CLAN_REQUEST_TTL_MS) });
+          return true;
+        });
+        if (!done) return reply;
+        return reply.code(204).send(null);
+      },
+    );
+
+    app.delete(
+      '/clans/:tag/requests',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Retira o próprio pedido de entrada',
+          params: TagParams,
+          response: { 204: Type.Null(), 401: ErrorSchema, 404: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const done = await run(reply, async (tx) => {
+          const clan = await lockClan(tx, request.params.tag);
+          const gone = await tx
+            .delete(clanRequests)
+            .where(and(eq(clanRequests.clanId, clan.id), eq(clanRequests.userId, user.id), eq(clanRequests.kind, 'request')))
+            .returning();
+          if (gone.length === 0) throw new ClanError(404, 'request_not_found');
+        });
+        if (!done) return reply;
+        return reply.code(204).send(null);
+      },
+    );
+
+    for (const answer of ['approve', 'decline'] as const) {
+      app.post(
+        `/clans/:tag/requests/:username/${answer}`,
+        {
+          schema: {
+            tags: ['clãs'],
+            summary: answer === 'approve' ? 'Aprova o pedido (líder e admins; o clã não pode estar cheio)' : 'Recusa o pedido (líder e admins)',
+            params: MemberParams,
+            response: { 204: Type.Null(), 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
+          },
+        },
+        async (request, reply) => {
+          const user = await requireUser(request, reply);
+          if (!user) return reply;
+          const done = await run(reply, async (tx) => {
+            const clan = await requireStaff(tx, request.params.tag, user.id);
+            const [target] = await tx.select({ id: users.id }).from(users).where(eq(users.usernameKey, usernameKey(request.params.username)));
+            if (!target) throw new ClanError(404, 'request_not_found');
+            if (answer === 'approve') return admit(tx, clan.id, target.id, 'request');
+            const gone = await tx
+              .delete(clanRequests)
+              .where(and(eq(clanRequests.clanId, clan.id), eq(clanRequests.userId, target.id), eq(clanRequests.kind, 'request')))
+              .returning();
+            if (gone.length === 0) throw new ClanError(404, 'request_not_found');
+          });
+          if (!done) return reply;
+          return reply.code(204).send(null);
+        },
+      );
+    }
   };
 }
