@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Could |
 | Estimativa | 1 pt |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S22 |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,7 +23,8 @@ Como jogador, quero ver em que versão do Outgun estou, para saber se estou atua
 - Opcional: avisar quando a versão do cliente for diferente da API (página antiga em cache).
 
 ## Critérios de aceite
-- [ ] A versão aparece no lugar escolhido pelo PO e muda sozinha quando `version.mjs` sobe o número.
+- [x] A versão aparece no lugar escolhido pelo PO e muda sozinha quando `version.mjs` sobe o número.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Lugar escolhido pelo PO: só no menu principal (abaixo do subtítulo), "Versão 2.21.0".
+- `__APP_VERSION__` vem do `apps/web/package.json` no build (`vite.config.ts`, `app/version.ts`). O opcional entrou: o menu relê `/health` a cada 5 min e ao voltar para a aba; se a API estiver numa versão mais nova, aparece "Nova versão disponível: recarregar".

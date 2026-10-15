@@ -15,3 +15,6 @@ interface ImportMetaEnv {
   /** Versão do build, enviada junto dos erros. */
   readonly VITE_RELEASE?: string;
 }
+
+/** Versão do jogo, do package.json no build (OG-280). */
+declare const __APP_VERSION__: string;
