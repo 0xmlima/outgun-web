@@ -258,6 +258,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).':
       'Modo foco: tela cheia, atalhos do navegador capturados (F10 ou Esc sai).',
     'Back to game': 'Voltar ao jogo',
+    'Tip: F10 plays in focus mode, which keeps browser shortcuts inside the game.': 'Dica: F10 joga no modo foco, que segura os atalhos do navegador dentro do jogo.',
+    '$1 may be taken by the browser or the system. Pick another key or play in focus mode (F10).': '$1 pode ser tomada pelo navegador ou pelo sistema. Escolha outra tecla ou jogue no modo foco (F10).',
+    'Focus mode (F10) plays in full screen and, in Chrome and Edge, keeps browser shortcuts such as Ctrl+W or Cmd+1 inside the game. System shortcuts (Alt+Tab, Cmd+Tab) always leave the game.':
+      'O modo foco (F10) joga em tela cheia e, no Chrome e no Edge, segura dentro do jogo atalhos do navegador como Ctrl+W ou Cmd+1. Atalhos do sistema (Alt+Tab, Cmd+Tab) sempre saem do jogo.',
+    'May be taken by the browser or the system': 'Pode ser tomada pelo navegador ou pelo sistema',
+    'Option+$1': 'Option+$1',
     'Leave game': 'Sair da partida',
     'Press Esc for the menu': 'Pressione Esc para o menu',
     'Connecting to the game server...': 'Conectando ao servidor de jogo...',
@@ -616,6 +622,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Graphic options': 'Opções gráficas',
     'Sound options': 'Opções de som',
     'Favorite colors': 'Cores favoritas',
+    'Click a colour to make it your first choice; Ctrl+arrows reorder.': 'Clique numa cor para torná-la a primeira escolha; Ctrl+setas reordenam.',
+    'Changes are saved automatically on this browser.': 'As mudanças são salvas automaticamente neste navegador.',
+    'Changes are saved automatically to your account.': 'As mudanças são salvas automaticamente na sua conta.',
+    'Saving to your account...': 'Salvando na conta...',
+    'Saved to your account.': 'Salvo na conta.',
+    'Could not save to your account; changes are kept on this browser.': 'Não foi possível salvar na conta; as mudanças ficam neste navegador.',
     'Use random color': 'Usar cor aleatória',
     'Registration status': 'Situação do registro',
     'logged in as $1': 'conectado como $1',
@@ -641,6 +653,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'in same room': 'na mesma sala',
     'always': 'sempre',
     'FPS limit': 'Limite de FPS',
+    'unlimited': 'sem limite',
     'Theme': 'Tema',
     // palavras curtas que faltavam (OG-068/069/085)
     'guest': 'convidado',

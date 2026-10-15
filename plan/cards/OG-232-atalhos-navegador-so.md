@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -32,10 +32,12 @@ Como jogador no navegador (Mac, Windows, Linux), quero usar Ctrl, Shift, Alt/Opt
 - Fora do escopo: suporte a Cmd nas associações (novo card se o PO quiser).
 
 ## Critérios de aceite
-- [ ] Causa do "Alt+1 troca de aba no Mac" identificada e anotada; corrigida se estiver ao alcance da página.
-- [ ] Com o modo foco no Chrome (Mac e Windows), Cmd/Ctrl+1..9, W, T e N não saem do jogo.
-- [ ] Dica do modo foco e aviso de acorde reservado em pt-BR e inglês, dentro do design system v2.
-- [ ] Fechar a aba durante a partida pede confirmação; fora da partida, não.
+- [x] Causa do "Alt+1 troca de aba no Mac" identificada e anotada; corrigida se estiver ao alcance da página.
+- [ ] (PO) Com o modo foco no Chrome (Mac e Windows), Cmd/Ctrl+1..9, W, T e N não saem do jogo.
+- [x] Dica do modo foco e aviso de acorde reservado em pt-BR e inglês, dentro do design system v2.
+- [ ] (PO) Fechar a aba durante a partida pede confirmação; fora da partida, não.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Alt+1: no Chrome do Mac, Option+1 não troca de aba; Cmd+1 troca (a tecla ao lado do espaço). Provável causa: Cmd apertado como "Alt" (PO confirma). Agora o Mac mostra "Option" (controles e mensagens rápidas), Cmd+número também dispara a mensagem rápida (só chega ao jogo no modo foco) e Alt/Option+número é sempre consumido, mesmo com a mensagem vazia (Firefox troca de aba com Alt+número).
+- Acordes reservados (`shortcuts.ts`) ficam com borda vermelha na tela de controles e geram aviso ao associar; texto do modo foco na tela de controles; dica do F10 uma vez por navegador na primeira partida online.
+- Partida online: `beforeunload` pede confirmação ao fechar/recarregar.

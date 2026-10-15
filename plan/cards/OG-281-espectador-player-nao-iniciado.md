@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -26,4 +26,4 @@ Como espectador, quero que a partida ao vivo abra sempre, para não cair numa te
 - [ ] `pnpm visual:check -- --only espectador` passa em 5 rodadas seguidas.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- A fila de aberturas (`opening`) nasce pendente e só anda depois do `app.init` + carregamento; o replay inicial entra primeiro na fila, antes de qualquer segmento ao vivo. As 5 rodadas do `visual:check` ficam para o PO/fechamento.

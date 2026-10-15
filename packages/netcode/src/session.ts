@@ -649,6 +649,7 @@ export class ClientSession {
         p.vel = new Vec(fp.vx, fp.vy);
       }
       p.dead = fp.dead;
+      if (p.dead) p.vel = new Vec(0, 0); // morto não anda (OG-231)
       p.deathbringer = fp.deathbringer;
       p.deathbringerEnd = fp.deathbringerAffected ? Infinity : -Infinity;
       p.shield = fp.shield ? 1 : 0;
@@ -719,6 +720,7 @@ export class ClientSession {
       p.pos = new Position(rp.roomX, rp.roomY, rp.x, rp.y);
       p.vel = new Vec(rp.vx, rp.vy);
       p.dead = rp.dead;
+      if (p.dead) p.vel = new Vec(0, 0);
       p.deathbringer = rp.deathbringer;
       p.deathbringerEnd = rp.deathbringerAffected ? Infinity : -Infinity;
       p.shield = rp.shield ? 1 : 0;
@@ -827,7 +829,8 @@ export class ClientSession {
       off.x *= decay;
       off.y *= decay;
       const p = fd.players[pid];
-      if (Math.abs(off.x) < 0.05 && Math.abs(off.y) < 0.05) this.smoothing.delete(pid);
+      // o corpo fica onde o jogador morreu: a correção que sobrava não o arrasta (OG-231)
+      if (p?.dead || (Math.abs(off.x) < 0.05 && Math.abs(off.y) < 0.05)) this.smoothing.delete(pid);
       else if (p) p.pos = offsetPosition(p.pos, off.x, off.y, fd.map);
     }
     return fd;

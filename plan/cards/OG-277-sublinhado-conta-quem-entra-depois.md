@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -22,8 +22,8 @@ Como jogador que entra numa partida em andamento, quero ver quem tem conta (nome
 - Incluir o `playerInfo` de cada jogador já presente em `welcomeMessages` (também vale para espectador e replay).
 
 ## Critérios de aceite
-- [ ] Quem entra depois vê o sublinhado de conta de todos, igual a quem já estava.
-- [ ] `pnpm visual:check` sem diferença.
+- [ ] (PO) Quem entra depois vê o sublinhado de conta de todos, igual a quem já estava.
+- [ ] `pnpm visual:check` sem diferença (no fechamento; a mudança é só de rede).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `welcomeMessages` inclui o `playerInfo` de cada jogador com rating; como o replay e o espectador começam pelo mesmo `welcomeMessages(-1)`, eles também recebem. Teste em `room.test.ts`.

@@ -13,6 +13,7 @@ const maps = loadMaps(MAPS, ['outgun1']);
 class TestConnection implements Connection {
   received: AnyMessage[] = [];
   closed: [number, string] | null = null;
+  rtt?: () => number | undefined;
   send(data: Uint8Array): void {
     const r = decodeFrame(data, 's2c');
     if (!r.ok) throw new Error(r.error);
@@ -63,6 +64,19 @@ describe('Room', () => {
     expect(a.conn.of('spawn').map((m) => m.pid)).toContain(0);
     const red = maps[0]!.teams[0].spawn.map((s) => `${s.room.x},${s.room.y}`);
     expect(red).toContain(`${f?.self?.roomX},${f?.self?.roomY}`);
+  });
+
+  it('ping medido pelo transporte vai nos frames, um jogador por frame em rodízio', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    const b = join(r, 'Bia');
+    a.conn.rtt = () => 42.4;
+    b.conn.rtt = () => 117;
+    for (let i = 0; i < 4; i++) r.tick();
+    const pings = a.conn.of('frame').map((f) => f.ping).filter((p) => p !== null);
+    expect(pings).toContainEqual({ pid: a.pid, ms: 42 });
+    expect(pings).toContainEqual({ pid: b.pid, ms: 117 });
+    expect(b.conn.of('frame').map((f) => f.ping).filter((p) => p !== null)).toEqual(pings);
   });
 
   it('duas conexões veem o mesmo estado da sala', () => {
@@ -284,6 +298,14 @@ describe('Room: times (OG-044)', () => {
     r.handle(a.pid, [message('favoriteColors', { colors: [5, 6] })]);
     r.tick();
     expect(a.conn.of('playerInfo').at(-1)).toMatchObject({ pid: a.pid, color: 5 });
+  });
+
+  it('quem entra depois recebe a conta de quem já estava (OG-277)', () => {
+    const r = room();
+    const ana = r.join(new TestConnection(), { name: 'Ana', accountId: 'acc-ana', rating: { score: 0, neg: 0, participate: true } });
+    if (!ana.ok) throw new Error(ana.text);
+    const bia = join(r, 'Bia');
+    expect(bia.conn.of('playerInfo').find((m) => m.pid === ana.pid)).toMatchObject({ loggedIn: true });
   });
 });
 

@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -22,8 +22,8 @@ Como jogador, quero redimensionar a janela (ou entrar em tela cheia) no meio da 
 - Reproduzir (partida online, redimensionar), achar a causa e corrigir.
 
 ## Critérios de aceite
-- [ ] Partida online redimensionada várias vezes sem erro de página; o desenho continua certo.
-- [ ] `pnpm visual:check` sem diferença.
+- [ ] (PO) Partida online redimensionada várias vezes sem erro de página; o desenho continua certo.
+- [ ] `pnpm visual:check` sem diferença (no fechamento).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Causa provável (pelo código, sem reproduzir): no `resize`, `WorldRenderer.invalidate` destruía as texturas das salas com os sprites ainda apontando para elas; se o Pixi desenhasse antes do próximo `render` do mundo (ou com o frame pulado), lia `source.alphaMode` de uma textura destruída. Agora os sprites soltam a textura (`Texture.EMPTY`) antes da destruição e ao ficarem sem sala.

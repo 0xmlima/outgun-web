@@ -208,6 +208,20 @@ describe('ClientSession', () => {
     const x2 = s.extrapolate(1500)!.players[2]!.pos.x;
     expect(x2).toBeCloseTo(205, 0);
   });
+
+  it('o corpo de quem morre fica parado: a suavização que sobrava não o arrasta (OG-231)', () => {
+    const { s } = session();
+    s.prediction = { enabled: false, amount: 10 };
+    s.handle([frame(10, [player(0, 100, 100), player(2, 200, 100, 10, 0, CONTROL.right)])], 1000);
+    s.extrapolate(1090);
+    s.handle([frame(11, [player(0, 100, 100), player(2, 205, 100, 0, 0, 0)])], 1100);
+    s.extrapolate(1100); // correção em andamento
+    s.handle([frame(12, [player(0, 100, 100), { ...player(2, 205, 100, 10, 0), dead: true }])], 1200);
+    const x1 = s.extrapolate(1200)!.players[2]!.pos.x;
+    const x2 = s.extrapolate(1700)!.players[2]!.pos.x;
+    expect(x1).toBe(205);
+    expect(x2).toBe(205);
+  });
 });
 
 describe('dados do HUD', () => {

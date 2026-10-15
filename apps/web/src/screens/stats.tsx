@@ -138,6 +138,9 @@ export function SubstitutionBadges({ withBots, shortHanded }: { withBots?: boole
   );
 }
 
+/** Releitura das telas do portal (OG-283): a cada minuto e ao voltar para a aba, trocando o dado no lugar. */
+export const API_REFRESH_MS = 60_000;
+
 export function useApi<T>(path: string, keep = false): { data: T | null | undefined; error: string | null } {
   const [state, setState] = useState<{ data: T | null | undefined; error: string | null }>({ data: undefined, error: null });
   useEffect(() => {
@@ -147,8 +150,20 @@ export function useApi<T>(path: string, keep = false): { data: T | null | undefi
       (data) => alive && setState({ data, error: null }),
       (e: unknown) => alive && setState(e instanceof ApiError && e.status === 404 ? { data: null, error: null } : { data: undefined, error: e instanceof ApiError ? e.message : String(e) }),
     );
+    // releitura em segundo plano: erro passageiro não apaga o que está na tela
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return;
+      api<T>(path).then(
+        (data) => alive && setState({ data, error: null }),
+        () => undefined,
+      );
+    };
+    const id = setInterval(refresh, API_REFRESH_MS);
+    addEventListener('visibilitychange', refresh);
     return () => {
       alive = false;
+      clearInterval(id);
+      removeEventListener('visibilitychange', refresh);
     };
   }, [path, keep]);
   return state;

@@ -82,7 +82,7 @@ export const DEFAULT_CLIENT: ClientOptions = {
   showFlagMessages: true,
   showKillMessages: true,
   showNames: 'sameRoom',
-  fpsLimit: 60,
+  fpsLimit: 0,
   soundTheme: 'Visa',
   quickMessages: { enabled: false, immediate: false, messages: [] },
 };

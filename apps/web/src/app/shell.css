@@ -222,6 +222,10 @@
 }
 
 /* Opções (OG-202) */
+.options-save.error {
+  color: var(--danger);
+}
+
 .options-colors {
   display: flex;
   flex-wrap: wrap;
@@ -280,6 +284,9 @@
   background: var(--surface-2);
   font: inherit;
   font-size: var(--text-sm);
+}
+.controls-keys kbd.reserved {
+  border-color: var(--danger);
 }
 .controls-buttons {
   display: flex;

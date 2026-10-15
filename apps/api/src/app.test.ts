@@ -112,6 +112,7 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
       hasPassword: false,
       maxPlayers: 16,
       players: 3,
+      humans: 3, // sem roster no heartbeat: conta o total (OG-282)
       map: 'outgun1',
       online: true,
       persistent: true,

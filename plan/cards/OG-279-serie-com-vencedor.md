@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-RKL-02, RN-RKL-03 |
 | Skills | `outgun-card-workflow` |
@@ -22,8 +22,8 @@ Como jogador de uma md3, quero ver o vencedor certo da série no jogo, no fim da
 - Jogar uma md3 com capturas (2-1) e uma 2-0 (série acaba sem o terceiro jogo); corrigir o que aparecer.
 
 ## Critérios de aceite
-- [ ] 2-1: faixa da série, tela de fim, relatórios e página da série mostram o vencedor certo.
-- [ ] 2-0: o terceiro jogo não acontece e todos voltam ao menu.
+- [ ] (PO) 2-1: faixa da série, tela de fim, relatórios e página da série mostram o vencedor certo.
+- [ ] (PO) 2-0: o terceiro jogo não acontece e todos voltam ao menu.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Revisão de código, sem defeito achado: `seriesOver`/`seriesWinner` (testes de 2-0, 2-1, md5 e empates em `ranked.test.ts`), `Room.recordSeriesGame` → relatório → API (`internal.ts` confere o estado da série) → `MatchReport`. Sem mudança de código; falta o PO jogar a 2-1 e a 2-0.

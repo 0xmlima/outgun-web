@@ -30,6 +30,8 @@ export interface RoomSummary {
   hasPassword: boolean;
   maxPlayers: number;
   players: number;
+  /** Sem os bots (OG-282). */
+  humans: number;
   map: string | null;
   online: boolean;
   persistent: boolean;

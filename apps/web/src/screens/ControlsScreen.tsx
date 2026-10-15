@@ -16,6 +16,7 @@ import {
   type Action,
   type Scheme,
 } from '../game/input/bindings.js';
+import { altName, reservedChord } from '../game/input/shortcuts.js';
 import { Button } from '../ui/Button.js';
 import { ChoiceField, FieldGroup } from '../ui/Field.js';
 import { Panel } from '../ui/Panel.js';
@@ -25,6 +26,8 @@ const SCHEME_LABELS: Record<Scheme, string> = { classic: 'Classic', browser: 'Br
 export function ControlsPanel() {
   const { t, prefs, setPrefs } = usePrefs();
   const [capturing, setCapturing] = useState<Action | null>(null);
+  /** Último acorde associado que o navegador ou o sistema tomam (OG-232). */
+  const [reserved, setReserved] = useState<string | null>(null);
   const bindings = prefs.bindings;
 
   // Captura a próxima tecla (com modificadores) para a ação escolhida.
@@ -36,7 +39,9 @@ export function ControlsPanel() {
       if (ev.key !== 'Escape') {
         // modificadores sozinhos só valem ao serem soltos sem outra tecla: espera o keyup
         if (/^(Control|Alt|Shift|Meta)/.test(ev.code)) return;
-        setPrefs({ bindings: rebind(bindings, capturing, chordOf(ev)) });
+        const chord = chordOf(ev);
+        setPrefs({ bindings: rebind(bindings, capturing, chord) });
+        setReserved(reservedChord(chord) ? chordLabel(chord, altName()) : null);
       }
       setCapturing(null);
     };
@@ -44,6 +49,7 @@ export function ControlsPanel() {
       if (!/^(Control|Alt|Shift)/.test(ev.code)) return;
       ev.preventDefault();
       setPrefs({ bindings: rebind(bindings, capturing, { code: ev.code }) });
+      setReserved(null);
       setCapturing(null);
     };
     addEventListener('keydown', onKey, true);
@@ -64,6 +70,12 @@ export function ControlsPanel() {
       <p className="ui-muted" role="status">
         {capturing ? t('Press a key for $1 (Esc cancels)', t(ACTION_LABELS[capturing])) : t('Enter adds a key, Delete restores the default.')}
       </p>
+      {reserved && !capturing && (
+        <p className="ui-form-message error" role="alert">
+          {t('$1 may be taken by the browser or the system. Pick another key or play in focus mode (F10).', reserved)}
+        </p>
+      )}
+      <p className="ui-muted">{t('Focus mode (F10) plays in full screen and, in Chrome and Edge, keeps browser shortcuts such as Ctrl+W or Cmd+1 inside the game. System shortcuts (Alt+Tab, Cmd+Tab) always leave the game.')}</p>
       <FieldGroup>
         <ChoiceField
           label={t('Control scheme')}
@@ -76,7 +88,11 @@ export function ControlsPanel() {
             <li key={action} className={capturing === action ? 'controls-row capturing' : 'controls-row'}>
               <span className="controls-action">{t(ACTION_LABELS[action])}</span>
               <span className="controls-keys">
-                {bindings[action].length === 0 ? <span className="ui-muted">—</span> : bindings[action].map((chord, i) => <kbd key={i}>{chordLabel(chord)}</kbd>)}
+                {bindings[action].length === 0 ? <span className="ui-muted">—</span> : bindings[action].map((chord, i) => (
+                      <kbd key={i} className={reservedChord(chord) ? 'reserved' : undefined} title={reservedChord(chord) ? t('May be taken by the browser or the system') : undefined}>
+                        {chordLabel(chord, altName())}
+                      </kbd>
+                    ))}
               </span>
               <span className="controls-buttons">
                 <Button

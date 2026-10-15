@@ -49,6 +49,8 @@ export interface Connection {
   close(code: number, reason: string): void;
   /** O jogador mudou de pid (troca de time): o transporte passa a usar o novo. */
   moved?(pid: number): void;
+  /** Ping medido pelo transporte (ms), se já houver medida. */
+  rtt?(): number | undefined;
 }
 
 /** Conexão de quem caiu e ainda pode voltar (OG-047): nada é enviado. */
@@ -303,6 +305,8 @@ export class Room {
   private readonly botNameRng: GlibcRand;
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
   private frameSentTime = 0;
+  /** Último pid cujo ping foi enviado (rodízio). */
+  private pingCursor = -1;
   /** Sorteio dos bots (no original, o `rand()` global; aqui separado para não mexer na sequência do mundo). */
   private readonly botRng: GlibcRand;
   /** Regras de bandeira já anunciadas (`flagModeMask`). */
@@ -515,6 +519,8 @@ export class Room {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
+      // conta e ranking de quem já estava: o sublinhado de conta também para quem chega depois (OG-277)
+      if (c.identity.rating) out.push(this.playerInfo(other, c));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
       out.push(statsMessage(this.world.players[other] as PlayerState, this.world.time)); // `send_stats`
     }
@@ -1038,9 +1044,10 @@ export class Room {
     if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()));
     this.spectators.tick(world.frame, this.settings.server.spectatingDelay);
     const views = minimapViews(world, this.settings);
+    const ping = this.nextPing();
     for (const [pid, c] of this.clients) {
       // pausado o frame continua indo (o mesmo número): o cliente mostra o mundo parado
-      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running: inGame, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
+      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running: inGame, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping });
       const extra = properties.length ? [message('minimapProperties', { players: properties })] : [];
       this.send(pid, [...c.queue, message('frame', frame), ...extra]);
       c.queue = [];
@@ -1161,6 +1168,17 @@ export class Room {
       votesShort: pause.tally()[1],
     } as const;
     return message('pauseState', state);
+  }
+
+  /** Ping de um jogador por frame, em rodízio (bots informam o `botPing` da sala). */
+  private nextPing(): { pid: number; ms: number } | null {
+    const pids = [...this.clients.keys()].sort((a, b) => a - b);
+    if (pids.length === 0) return null;
+    const pid = pids.find((p) => p > this.pingCursor) ?? (pids[0] as number);
+    this.pingCursor = pid;
+    const c = this.clients.get(pid) as Client;
+    const ms = c.bot ? this.settings.server.botPing : c.conn.rtt?.();
+    return ms === undefined ? null : { pid, ms: Math.min(65535, Math.max(0, Math.round(ms))) };
   }
 
   /** Anúncio "x/y votos para trocar de mapa" e o fim do bloqueio de votação. */

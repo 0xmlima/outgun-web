@@ -63,7 +63,7 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     await t.db.update(rooms).set({ serverId: null, wsUrl: null, players: 0, map: null, lastHeartbeatAt: null });
   });
 
-  const heartbeat = (server: string, hosted: { id: string; players: number; mode?: string; preset?: string; persistent?: boolean; maxPlayers?: number; phase?: string }[], region = 'eu', maxRooms = 10) => {
+  const heartbeat = (server: string, hosted: { id: string; players: number; mode?: string; preset?: string; persistent?: boolean; maxPlayers?: number; phase?: string; roster?: { uid: number; name: string; team: number; bot: boolean; muted: number }[] }[], region = 'eu', maxRooms = 10) => {
     const base = `ws://${server}.test`;
     const body = JSON.stringify({
       server: { wsBaseUrl: base, region, maxRooms },
@@ -78,6 +78,7 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
         map: 'outgun1',
         wsUrl: `${base}/rooms/${r.id}`,
         ...(r.phase ? { phase: r.phase } : {}),
+        ...(r.roster ? { roster: r.roster } : {}),
       })),
     });
     const url = '/internal/rooms/heartbeat';
@@ -95,6 +96,12 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
   it('sem nenhum game server, o lobby fica vazio e a entrada responde 503', async () => {
     expect(await list()).toEqual([]);
     expect((await post('/rooms/main/join', { name: 'Ana' })).json().error).toBe('room_offline');
+  });
+
+  it('a sala informa quantas pessoas tem, sem os bots (OG-282)', async () => {
+    const roster = [0, 1, 2].map((uid) => ({ uid, name: `p${uid}`, team: 0, bot: uid > 0, muted: 0 }));
+    await heartbeat('gs-1', [{ id: 'main', players: 3, roster }]);
+    expect((await list()).find((r) => r.id === 'main')).toMatchObject({ players: 3, humans: 1 });
   });
 
   it('heartbeat registra o servidor; a sala some do lobby quando o heartbeat para (≤ 10 s)', async () => {

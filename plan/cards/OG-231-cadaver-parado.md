@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S21 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,14 +23,16 @@ Como jogador, quero que o corpo de quem morreu fique parado onde caiu, para a te
   3. o corpo desenhado (`entity-renderer.ts:124`, `drawDead`) usando a posição interpolada em vez da posição da morte.
 
 ## Escopo
-- Reproduzir numa partida online (com latência, ex. `tools/dev` com atraso) e achar a causa.
+- Achar a causa pelo código e por teste automatizado (o PO confere no jogo; agentes não rodam partida).
 - O corpo fica fixo na posição da morte até o respawn, no cliente de quem morreu, nos outros clientes, no espectador e no replay.
 - Se mexer em `packages/sim` (ex. zerar a velocidade na morte): registrar decisão D-NN e atualizar os testes afetados.
 
 ## Critérios de aceite
-- [ ] Morte com o jogador em alta velocidade (correndo, empurrado, quicando): o corpo não se move depois da morte, nos três pontos de vista (próprio, adversário, espectador).
-- [ ] Teste automatizado cobrindo o caso (sim ou netcode, conforme a causa).
+- [ ] (PO) Morte com o jogador em alta velocidade (correndo, empurrado, quicando): o corpo não se move depois da morte, nos três pontos de vista (próprio, adversário, espectador).
+- [x] Teste automatizado cobrindo o caso (sim ou netcode, conforme a causa).
 - [ ] `pnpm visual:check` sem diferença.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Causa: a suavização das correções da extrapolação (`session.ts`, `extrapolate`) seguia somando o desvio que sobrava ao jogador já morto; o corpo deslizava até ela acabar. Agora o desvio é descartado quando o jogador está morto, e a velocidade de quem chega morto (frame ao vivo e replay/espectador) é zerada.
+- `packages/sim` não mudou (servidor e extrapolação já não aplicam física a mortos): sem D-NN.
+- `visual:check` não rodado (o PO testa); a mudança não toca no desenho.

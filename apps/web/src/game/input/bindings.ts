@@ -213,14 +213,14 @@ export function parseBindings(text: string | null, fallback: Bindings = CLASSIC_
 }
 
 /** Nome legível de um acorde. */
-export function chordLabel(chord: Chord): string {
+export function chordLabel(chord: Chord, alt = 'Alt'): string {
   const names: Record<string, string> = {
     ControlLeft: 'Left Ctrl',
     ControlRight: 'Right Ctrl',
     ShiftLeft: 'Left Shift',
     ShiftRight: 'Right Shift',
-    AltLeft: 'Alt',
-    AltRight: 'Alt Gr',
+    AltLeft: alt,
+    AltRight: alt === 'Alt' ? 'Alt Gr' : `Right ${alt}`,
     ArrowUp: 'Up',
     ArrowDown: 'Down',
     ArrowLeft: 'Left',
@@ -233,5 +233,5 @@ export function chordLabel(chord: Chord): string {
   if (/^Key[A-Z]$/.test(chord.code)) key = chord.code.slice(3);
   else if (/^Digit\d$/.test(chord.code)) key = chord.code.slice(5);
   else if (/^Numpad/.test(chord.code)) key = `Pad ${chord.code.slice(6)}`;
-  return [chord.ctrl && 'Ctrl', chord.alt && 'Alt', chord.shift && 'Shift', key].filter(Boolean).join('+');
+  return [chord.ctrl && 'Ctrl', chord.alt && alt, chord.shift && 'Shift', key].filter(Boolean).join('+');
 }
