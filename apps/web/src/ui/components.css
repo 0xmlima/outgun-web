@@ -234,6 +234,10 @@ html {
   font-size: var(--text-xl);
   font-weight: var(--weight-bold);
 }
+.ui-menu-item.primary .ui-menu-icon {
+  background: transparent;
+  color: var(--text-on-accent);
+}
 .ui-menu-item.primary .ui-menu-description,
 .ui-menu-item.primary .ui-menu-shortcut {
   color: var(--text-on-accent);
@@ -242,6 +246,19 @@ html {
 .ui-menu-item[aria-disabled] {
   cursor: default;
   color: var(--text-muted);
+}
+.ui-menu-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.ui-menu-item[aria-disabled] .ui-menu-icon {
+  opacity: 0.5;
 }
 .ui-menu-text {
   display: flex;

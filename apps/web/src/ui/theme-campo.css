@@ -1,0 +1,169 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Tema de menu "Campo" (OG-291, D-53): os menus como uma sala do tema padrão da partida, vista de cima.
+   Superfícies no verde do chão (`ground` #104000) escurecido, verde da parede (`wall` #30C000) nas
+   quinas e na ação principal, amarelo do mastro (`flag_pole`) no foco. Vale só dentro da moldura dos
+   menus (`Shell`, `data-menu-theme`): a partida, o replay e o espectador não estão sob ela e seguem com
+   os tokens de tokens.css. Mesma convenção de contraste (theme-campo.test.ts). */
+
+[data-menu-theme='campo'] {
+  /* superfícies, da mais funda à mais alta: o chão da partida escurecido */
+  --surface-0: #040a02;
+  --surface-1: #0a1606;
+  --surface-2: #10220a;
+  --surface-3: #18310f;
+  --border: #23421a;
+  --border-strong: #3c6a2c;
+
+  /* texto */
+  --text: #eef7e8;
+  --text-muted: #a3bd97;
+  --text-accent: #8be36a;
+  --text-danger: #ff8aa0;
+  --text-success: #7ee860;
+  --text-warning: #ffb238;
+  --text-team-red: #ff7a6b;
+  --text-team-blue: #8fa0ff;
+
+  /* a ação principal é a parede; o perigo fica fora do vermelho dos times */
+  --accent: #30c000;
+  --accent-hover: #45d61a;
+  --text-on-accent: #041200;
+  --danger: #ff5a7a;
+  --danger-hover: #ff7f97;
+  --text-on-danger: #1d0006;
+  --focus-ring: #ffe81a;
+
+  /* peças do jogo usadas como ornamento (não são cor de texto) */
+  --wall: #30c000;
+  --flag-pole: #ffe81a;
+  --team-red: #ff3b2b;
+  --team-blue: #3550ff;
+
+  /* cantos retos, como as paredes */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-pill: 2px;
+}
+
+/* Fundo: o mapa Mooca com as cores da partida, escurecido para não competir com o texto. */
+.app-shell[data-menu-theme='campo'] {
+  background:
+    linear-gradient(90deg, rgb(4 10 2 / 97%) 0 30%, rgb(4 10 2 / 90%) 65%, rgb(4 10 2 / 84%)),
+    url('./campo-map.svg') right center / cover no-repeat,
+    var(--surface-0);
+}
+[data-menu-theme='campo'] .app-topbar {
+  background: rgb(4 10 2 / 90%);
+  border-bottom: 3px solid var(--wall);
+}
+[data-menu-theme='campo'] .app-nav-link.active {
+  background: transparent;
+  box-shadow: inset 0 -3px 0 var(--flag-pole);
+}
+[data-menu-theme='campo'] .app-footer {
+  background: rgb(4 10 2 / 90%);
+}
+
+/* Painel: quinas em L na cor da parede, como as quinas das salas. */
+[data-menu-theme='campo'] .ui-panel {
+  position: relative;
+  box-shadow: none;
+}
+[data-menu-theme='campo'] .ui-panel::before {
+  --c: var(--wall);
+  --l: 0.875rem;
+  --t: 3px;
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c), var(--c)) left top / var(--l) var(--t),
+    linear-gradient(var(--c), var(--c)) left top / var(--t) var(--l),
+    linear-gradient(var(--c), var(--c)) right top / var(--l) var(--t),
+    linear-gradient(var(--c), var(--c)) right top / var(--t) var(--l),
+    linear-gradient(var(--c), var(--c)) left bottom / var(--l) var(--t),
+    linear-gradient(var(--c), var(--c)) left bottom / var(--t) var(--l),
+    linear-gradient(var(--c), var(--c)) right bottom / var(--l) var(--t),
+    linear-gradient(var(--c), var(--c)) right bottom / var(--t) var(--l);
+  background-repeat: no-repeat;
+}
+
+/* Ação principal com quinas cortadas; o recorte esconde o contorno, então o foco vira borda interna. */
+[data-menu-theme='campo'] :is(.ui-button-primary, .ui-menu-item.primary) {
+  clip-path: polygon(0 0, calc(100% - 0.625rem) 0, 100% 0.625rem, 100% 100%, 0.625rem 100%, 0 calc(100% - 0.625rem));
+}
+[data-menu-theme='campo'] .ui-button-primary {
+  font-weight: var(--weight-bold);
+}
+[data-menu-theme='campo'] :is(.ui-button-primary, .ui-menu-item.primary):focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--flag-pole);
+}
+[data-menu-theme='campo'] .ui-menu-item.primary .ui-menu-label {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Item em foco vira bandeira: mastro amarelo à esquerda e o quadrado do time no alto. */
+[data-menu-theme='campo'] .ui-menu-item {
+  position: relative;
+}
+[data-menu-theme='campo'] .ui-menu-item:not(.primary, [aria-disabled]):is(:hover, .current:focus-visible) {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+[data-menu-theme='campo'] .ui-menu-item:not(.primary):focus-visible {
+  outline: none;
+  border-color: var(--flag-pole);
+}
+[data-menu-theme='campo'] .ui-menu-item:not(.primary, [aria-disabled]):is(:hover, .current:focus-visible)::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: -1px;
+  width: 4px;
+  background: var(--flag-pole);
+}
+[data-menu-theme='campo'] .ui-menu-item:not(.primary, [aria-disabled]):is(:hover, .current:focus-visible)::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 3px;
+  width: 0.5625rem;
+  height: 0.5625rem;
+  background: var(--team-blue);
+}
+[data-menu-theme='campo'] .ui-menu-icon {
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+[data-menu-theme='campo'] .ui-menu-item:is(:hover, .current:focus-visible) .ui-menu-icon {
+  color: var(--flag-pole);
+}
+[data-menu-theme='campo'] .ui-menu-item.primary .ui-menu-icon {
+  background: rgb(4 18 0 / 18%);
+  box-shadow: none;
+  color: var(--text-on-accent);
+}
+
+/* Abas e interruptor */
+[data-menu-theme='campo'] .ui-tab[aria-selected='true'] {
+  border-bottom: 3px solid var(--flag-pole);
+}
+[data-menu-theme='campo'] .ui-switch-thumb {
+  border-radius: 1px;
+}
+
+/* Título da tela inicial: "Out" no texto, "gun" na cor da parede. */
+[data-menu-theme='campo'] .home-title {
+  background: none;
+  color: var(--text);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+}
+[data-menu-theme='campo'] .home-title-accent {
+  color: var(--wall);
+}

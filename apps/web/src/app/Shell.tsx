@@ -12,8 +12,13 @@ import { usePrefs } from './prefs.js';
 import { Button } from '../ui/Button.js';
 import { FontProvider, GAME_FONT } from '../ui/fonts.js';
 import { useGamepadKeys } from '../ui/gamepad.js';
+import { PLAYER_COLOURS, PlayerAvatar } from '../ui/icons.js';
 import { ToastProvider } from '../ui/Toast.js';
 import './shell.css';
+import '../ui/theme-campo.css';
+
+/** Tema dos menus (D-53): "campo"; o "placar" fica guardado para um tema futuro (OG-292). */
+const MENU_THEME = 'campo';
 
 /** Endereço do código-fonte; até existir o repositório público, a página /source explica a GPL. */
 export const SOURCE_URL: string = import.meta.env.VITE_SOURCE_URL ?? '/source';
@@ -78,7 +83,7 @@ export function Root() {
 
 /** Conta na barra: "Entrar" para o convidado; nome e clã para quem entrou. */
 function AccountChip() {
-  const { t } = usePrefs();
+  const { prefs, t } = usePrefs();
   const { user } = useAccount();
   if (user === undefined) return null;
   if (!user)
@@ -89,9 +94,7 @@ function AccountChip() {
     );
   return (
     <Link className="app-account app-account-user" to="/account" aria-label={`${t('Account')}: ${user.username}`}>
-      <span className="app-avatar" aria-hidden="true">
-        {user.username.slice(0, 1).toUpperCase()}
-      </span>
+      <PlayerAvatar colour={PLAYER_COLOURS[prefs.favoriteColors[0] ?? 0] ?? PLAYER_COLOURS[0]} />
       <span className="app-account-name">
         {user.clanTag && <span className="app-clan">{user.clanTag}</span>}
         {user.username}
@@ -150,7 +153,7 @@ export function Shell() {
   useGamepadKeys();
   useMusicMode('menu'); // "Outgun Epic" em loop nas telas fora da partida (RN-MUS-01)
   return (
-    <div className="ui-page app-shell">
+    <div className="ui-page app-shell" data-menu-theme={MENU_THEME}>
       <TopBar />
       <main className="app-main">
         <Outlet />

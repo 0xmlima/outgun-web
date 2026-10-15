@@ -729,7 +729,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-288](cards/OG-288-tempos-powerup-nao-zeram.md) | Tempos de shadow, turbo e power não zeram no cliente ao perder o item | E11 | 1 | Must | S22 | — | Concluído |
 | [OG-289](cards/OG-289-config-casual-pelo-cliente.md) | Configurar bots da sala Casual pelo cliente (quantidade e nível, inclusive variável) | E11 | 5 | Should | S22 | OG-266 | Concluído |
 | [OG-290](cards/OG-290-modo-carnificina.md) | Modo Carnificina: power-ups no máximo o tempo todo (preset e `/carnage`) | E11 | 2 | Should | S22 | — | Concluído |
-| [OG-291](cards/OG-291-tema-menu-campo.md) | Tema de menu "Campo": os menus com a cara do tema padrão da partida | E8 | 5 | Must | S23 | OG-200, OG-201 | Em andamento |
+| [OG-291](cards/OG-291-tema-menu-campo.md) | Tema de menu "Campo": os menus com a cara do tema padrão da partida | E8 | 5 | Must | S23 | OG-200, OG-201 | Em revisão |
 | [OG-292](cards/OG-292-tema-menu-placar.md) | Tema de menu "Placar" (guardado para um tema futuro) | E8 | 3 | Could | — | OG-291 | Backlog |
 
 **Total:** 134 cards, 494 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 65 cards, 199 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
