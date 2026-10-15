@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Painel admin (OG-087): salas ao vivo com os jogadores (kick, ban, mute, mensagem), denúncias,
-// bans, auditoria e, para admin, presets Casual, rotações e papéis. Quem não é moderador nem admin
+// clãs (OG-275), bans, auditoria e, para admin, presets Casual, rotações e papéis. Quem não é moderador nem admin
 // vê só um aviso (a API recusa as rotas de qualquer jeito).
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
 
-type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
 
 interface RosterEntry {
   uid: number;
@@ -102,6 +102,7 @@ export default function AdminScreen() {
     ['feedback', t('Feedback')],
     ['network', t('Network')],
     ['reports', t('Reports')],
+    ['clans', t('Clans')],
     ['bans', t('Bans')],
     ['audit', t('Audit log')],
     ['presets', t('Presets')],
@@ -126,6 +127,7 @@ export default function AdminScreen() {
           {tab === 'network' && <NetworkTab />}
           {tab === 'invites' && isAdmin && <InvitesTab />}
           {tab === 'reports' && <ReportsTab />}
+          {tab === 'clans' && <ClansTab />}
           {tab === 'bans' && <BansTab isAdmin={isAdmin} />}
           {tab === 'audit' && <AuditTab />}
           {tab === 'presets' && <PresetsTab isAdmin={isAdmin} />}
@@ -298,6 +300,122 @@ function ReportsTab() {
             ))}
           </tbody>
         </table>
+      )}
+    </section>
+  );
+}
+
+interface AdminClan {
+  name: string;
+  tag: string;
+  description: string;
+  createdAt: string;
+  leader: string | null;
+  members: number;
+  reports: number;
+}
+
+/** Clãs (OG-275): denunciados primeiro; forçar troca de nome/tag/descrição ou dissolver, com motivo. */
+function ClansTab() {
+  const { t } = usePrefs();
+  const [busca, setBusca] = useState('');
+  const list = useLoad<{ clans: AdminClan[] }>(`/admin/clans?${new URLSearchParams({ busca })}`);
+  const [edit, setEdit] = useState<{ tag: string; name: string; newTag: string; description: string; reason: string; dissolving: boolean } | null>(null);
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const done = () => {
+    setStatus({ text: t('Done.') });
+    setEdit(null);
+    list.reload();
+  };
+  const save = (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!edit) return;
+    api(`/admin/clans/${encodeURIComponent(edit.tag)}`, { method: 'PATCH', body: { name: edit.name, tag: edit.newTag, description: edit.description, reason: edit.reason } }).then(done, (e: unknown) =>
+      setStatus({ error: errorText(e) }),
+    );
+  };
+  const dissolve = () => {
+    if (!edit) return;
+    api(`/admin/clans/${encodeURIComponent(edit.tag)}`, { method: 'DELETE', body: { reason: edit.reason } }).then(done, (e: unknown) => setStatus({ error: errorText(e) }));
+  };
+  return (
+    <section className="stats-section">
+      <form className="admin-form" onSubmit={(ev) => ev.preventDefault()}>
+        <label>
+          {t('Search by clan name or tag')} <input value={busca} maxLength={32} onChange={(e) => setBusca(e.target.value)} />
+        </label>
+      </form>
+      <Status text={status.text} error={status.error ?? list.error} />
+      {list.data?.clans.length === 0 && <p className="stats-note">{t('No clans yet.')}</p>}
+      {list.data && list.data.clans.length > 0 && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Clan')}</th>
+              <th>{t('Leader')}</th>
+              <th>{t('Members')}</th>
+              <th>{t('Reports')}</th>
+              <th>{t('Description')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.clans.map((c) => (
+              <tr key={c.tag}>
+                <td className="name">
+                  <Link to={`/clans/${encodeURIComponent(c.tag)}`}>
+                    ({c.tag}) {c.name}
+                  </Link>
+                </td>
+                <td className="name">{c.leader ?? '-'}</td>
+                <td>{c.members}</td>
+                <td>{c.reports}</td>
+                <td className="name">{c.description}</td>
+                <td>
+                  <button type="button" onClick={() => setEdit({ tag: c.tag, name: c.name, newTag: c.tag, description: c.description, reason: '', dissolving: false })}>
+                    {t('Moderate')}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {edit && (
+        <form className="admin-form" onSubmit={save}>
+          <label>
+            {t('Clan name')} <input value={edit.name} maxLength={24} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+          </label>{' '}
+          <label>
+            {t('Tag')} <input value={edit.newTag} maxLength={2} size={3} onChange={(e) => setEdit({ ...edit, newTag: e.target.value })} />
+          </label>{' '}
+          <label>
+            {t('Description')} <input value={edit.description} maxLength={500} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
+          </label>{' '}
+          <label>
+            {t('Reason')} <input value={edit.reason} maxLength={200} onChange={(e) => setEdit({ ...edit, reason: e.target.value })} />
+          </label>{' '}
+          <button type="submit" disabled={!edit.reason.trim()}>
+            {t('Force change')}
+          </button>{' '}
+          {edit.dissolving ? (
+            <>
+              <button type="button" disabled={!edit.reason.trim()} onClick={dissolve}>
+                {t('Confirm dissolution of $1', `(${edit.tag})`)}
+              </button>{' '}
+              <button type="button" onClick={() => setEdit({ ...edit, dissolving: false })}>
+                {t('No')}
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setEdit({ ...edit, dissolving: true })}>
+              {t('Dissolve clan')}
+            </button>
+          )}{' '}
+          <button type="button" onClick={() => setEdit(null)}>
+            {t('Close')}
+          </button>
+        </form>
       )}
     </section>
   );

@@ -7,7 +7,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { eq, sql, type SQL } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
-import { usernameKey } from '../db/keys.js';
+import { ACCENTED, fold, PLAIN, usernameKey } from '../db/keys.js';
 import { playerProfiles, users } from '../db/schema.js';
 import { activeSeason } from '../ranking.js';
 import { ErrorSchema } from './schemas.js';
@@ -57,12 +57,7 @@ interface Target {
   hideHistory: boolean;
 }
 
-const ACCENTED = 'áàâãäåéèêëíìîïóòôõöúùûüýÿçñ';
-const PLAIN = 'aaaaaaeeeeiiiiooooouuuuyycn';
-/** Minúsculas sem acento (o mesmo `translate` do SQL da busca por clã). */
-export function fold(text: string): string {
-  return [...text.toLowerCase()].map((c) => PLAIN[ACCENTED.indexOf(c)] ?? c).join('');
-}
+export { fold };
 
 /** Escapa `%`, `_` e `\` para um LIKE de prefixo. */
 export function likePrefix(text: string): string {

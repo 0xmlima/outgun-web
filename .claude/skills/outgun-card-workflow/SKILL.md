@@ -21,6 +21,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 2. **Uma branch por sprint** (`sNN`, saindo da `v2`); cada card é uma sequência de commits `OG-NNN: ...` nela (sem branch por card nem pilha). A `main` é a v1 (tag `v1.0.0`, beta): só correções do beta vão nela.
 3. Leia só as RNs listadas no card (`grep -n "RN-XXX-NN" plan/PLAN.md`), nunca o PLAN inteiro.
 4. Cards de **interface** (épico E8 em diante): siga o design system v2 (`apps/web/src/ui/`, tokens e fonte única do OG-200). Nada de fontes bitmap nem de estilo novo fora dos tokens.
+   - **UI dentro da partida** (HUD, placar, overlays): RN-UI-05 — não mover nada do que existe; rode `pnpm visual:check` (OG-265) antes de pôr em revisão, confira numa partida online de verdade e entregue capturas ao PO (exceção à regra de "sem prints").
 5. Cards de **conteúdo/assets** (temas, mapas, música): siga a skill `outgun-asset-pipeline`.
 6. Card que **muda a simulação** (`packages/sim`): registre a mudança como decisão D-NN (PLAN seção 12) com o porquê (ex.: achado do beta) e atualize/regrave os testes que dependiam do comportamento antigo. Comparar com o original é opcional.
 

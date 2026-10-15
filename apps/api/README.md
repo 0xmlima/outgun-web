@@ -29,6 +29,7 @@ O seed cria a temporada 1, as salas `main` (Casual, Clássico) e `ranked`, e as 
 | `LOG_LEVEL`           | `info`                                            | Nível do pino                                                            |
 | `DEV_ROOM_WS_URL`     | `ws://localhost:7700/rooms/{id}` fora de produção | Servidor usado quando nenhum game server mandou heartbeat                |
 | `ROOMS_PER_HOUR`      | `10`                                              | Salas privadas criadas por conta por hora                                |
+| `NAME_FILTER`         | vazio                                             | Palavras proibidas em nome, tag e descrição de clã (vírgulas; OG-275)    |
 | `METRICS_TOKEN`       | vazio (aberto)                                    | Exige `Authorization: Bearer <token>` em `/metrics`                      |
 | `SENTRY_DSN`          | vazio (desligado)                                 | Erros 5xx e exceções para um serviço compatível com Sentry (OG-102)      |
 | `SENTRY_ENVIRONMENT`  | `NODE_ENV`                                        | Ambiente nos logs e nos erros                                            |
@@ -52,8 +53,11 @@ por método, rota e status, `outgun_api_errors_total`, CPU, memória e atraso do
 
 ## Nomes e entrada nas salas (OG-082, OG-083)
 
-- `POST /account/username` (a cada 30 dias; nome antigo reservado por 90), `PUT /account/clan-tag`,
-  `GET /names/check?name=`.
+- `POST /account/username` (a cada 30 dias; nome antigo reservado por 90), `GET /names/check?name=`.
+- Clãs (OG-270): `POST /clans`, `GET /clans?busca=`, `GET|PATCH|DELETE /clans/:tag`,
+  `POST /clans/:tag/leave`, `POST /clans/:tag/transfer`, `DELETE /clans/:tag/members/:username`,
+  `PUT /clans/:tag/members/:username/role`. A clan tag do ticket e do chat é a do clã
+  (`users.clan_tag`, copiada por gatilho da migração 0016).
 - `POST /rooms/:id/join` `{ name?, password? }` → `{ ticket, wsUrl, name, guest }`: confere sessão
   (Ranked exige conta), nome de convidado (sufixo `*`, nunca nome de conta), ban, senha da sala e
   lotação. O ticket é um JWT Ed25519 de 60 s para aquela sala; o game server confere com

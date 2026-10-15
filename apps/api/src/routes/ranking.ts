@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Leaderboard e temporadas (OG-084, D-02): consulta indexada no PostgreSQL (D-24).
+// Leaderboard e temporadas (OG-084, D-02): consulta indexada no PostgreSQL (D-24). Temporadas
+// encerradas leem a classificação final; o ranking geral soma todas as temporadas (OG-267).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
-import { ratings, seasons, users } from '../db/schema.js';
+import { ratings, seasons, seasonStandings, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, ratingExpr } from '../ranking.js';
 import { ErrorSchema } from './schemas.js';
 
@@ -58,6 +59,20 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         const id = request.query.season ?? (await activeSeason(db))?.id;
         const [season] = id ? await db.select().from(seasons).where(eq(seasons.id, id)) : [];
         if (!season) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+        const out = { id: season.id, name: season.name, startsAt: season.startsAt.toISOString(), endsAt: season.endsAt?.toISOString() ?? null, active: season.active };
+        // Temporada encerrada: a classificação final guardada na virada (OG-267).
+        const [final] = season.active ? [] : await db.select({ n: sql<number>`count(*)::int` }).from(seasonStandings).where(eq(seasonStandings.seasonId, season.id));
+        if (final && final.n > 0) {
+          const rows = await db
+            .select({ position: seasonStandings.position, userId: seasonStandings.userId, username: users.username, clanTag: users.clanTag, score: seasonStandings.score, neg: seasonStandings.neg, matches: seasonStandings.matches })
+            .from(seasonStandings)
+            .innerJoin(users, eq(users.id, seasonStandings.userId))
+            .where(eq(seasonStandings.seasonId, season.id))
+            .orderBy(seasonStandings.position)
+            .limit(limit)
+            .offset(offset);
+          return { season: out, total: final.n, entries: rows.map((r) => ({ ...r, rating: (r.score + 1) / (r.neg + 1) })) };
+        }
         const where = and(eq(ratings.seasonId, season.id), sql`${ratings.score} >= ${MINIMUM_SCORE}`);
         const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(ratings).where(where);
         const rows = await db
@@ -69,9 +84,50 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
           .limit(limit)
           .offset(offset);
         return {
-          season: { id: season.id, name: season.name, startsAt: season.startsAt.toISOString(), endsAt: season.endsAt?.toISOString() ?? null, active: season.active },
+          season: out,
           total: count?.n ?? 0,
           entries: rows.map((r, i) => ({ position: offset + i + 1, ...r, rating: Number(r.rating) })),
+        };
+      },
+    );
+    app.get(
+      '/leaderboard/overall',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: 'Ranking geral de todas as temporadas (OG-267): soma de score e neg, rating = (score+1)/(neg+1), mínimo de 100 de score',
+          querystring: Type.Object({
+            limit: Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
+            offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
+          }),
+          response: { 200: Type.Object({ seasons: Type.Integer(), total: Type.Integer(), entries: Type.Array(Entry) }) },
+        },
+      },
+      async (request) => {
+        const { limit, offset } = request.query;
+        const [counts] = await db.execute<{ seasons: number; total: number }>(sql`
+          SELECT (SELECT count(*)::int FROM seasons) AS seasons,
+            (SELECT count(*)::int FROM (SELECT 1 FROM ratings GROUP BY user_id HAVING sum(score) >= ${MINIMUM_SCORE}) t) AS total`);
+        const rows = await db.execute<{ user_id: string; username: string; clan_tag: string | null; score: number; neg: number; matches: number }>(sql`
+          SELECT r.user_id, u.username, u.clan_tag, sum(r.score)::float8 AS score, sum(r.neg)::int AS neg, sum(r.matches)::int AS matches
+          FROM ratings r JOIN users u ON u.id = r.user_id
+          GROUP BY r.user_id, u.username, u.clan_tag, u.username_key
+          HAVING sum(r.score) >= ${MINIMUM_SCORE}
+          ORDER BY (sum(r.score) + 1) / (sum(r.neg) + 1) DESC, sum(r.score) DESC, u.username_key
+          LIMIT ${limit} OFFSET ${offset}`);
+        return {
+          seasons: counts?.seasons ?? 0,
+          total: counts?.total ?? 0,
+          entries: rows.map((r, i) => ({
+            position: offset + i + 1,
+            userId: r.user_id,
+            username: r.username,
+            clanTag: r.clan_tag,
+            score: Number(r.score),
+            neg: r.neg,
+            rating: (Number(r.score) + 1) / (r.neg + 1),
+            matches: r.matches,
+          })),
         };
       },
     );

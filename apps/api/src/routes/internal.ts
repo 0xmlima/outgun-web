@@ -5,8 +5,8 @@ import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type
 import { and, eq, gt, inArray, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, seasons, users } from '../db/schema.js';
-import { activeSeason, applyDeltas } from '../ranking.js';
+import { adminActions, bans, gameServers, matches, matchPlayers, playerReports, ratingDeltas, rooms, users } from '../db/schema.js';
+import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
 import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
@@ -318,7 +318,8 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           if (existing) return { id: existing.id, duplicate: true as const };
 
           const [room] = body.roomId ? await tx.select({ id: rooms.id }).from(rooms).where(eq(rooms.id, body.roomId)) : [];
-          const [season] = await tx.select({ id: seasons.id }).from(seasons).where(eq(seasons.active, true));
+          // temporada em que a partida começou, mesmo que tenha terminado depois da virada (OG-267)
+          const season = await seasonAt(tx, new Date(body.startedAt));
           // Conta excluída entre o fim da partida e o envio: o jogador entra como anônimo.
           const ids = body.players.flatMap((p) => (p.userId ? [p.userId] : []));
           const known = new Set(
@@ -366,13 +367,15 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           }
           await recordMatchSocial(tx, match!.id);
           await awardMilestones(tx, [...known], { beta: config.beta });
-          // Ranking (OG-084): só partida ranqueada e com temporada ativa; o servidor já calculou os deltas.
+          // Ranking (OG-084): só partida ranqueada; o servidor já calculou os deltas. Temporada já encerrada
+          // (partida na virada) tem a classificação final regravada.
           if (body.ranked && season) {
             await applyDeltas(
               tx,
               season.id,
               body.players.flatMap((p) => (p.userId && known.has(p.userId) ? [{ userId: p.userId, score: p.scoreDelta, neg: p.negDelta, match: true }] : [])),
             );
+            if (!season.active) await snapshotStandings(tx, season.id);
           }
           return { id: match!.id, duplicate: false as const };
         });

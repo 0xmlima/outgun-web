@@ -4,7 +4,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
-import { checkClanTag, checkRegisteredName } from '@outgun/protocol';
+import { checkRegisteredName } from '@outgun/protocol';
 import { isCommonPassword } from '../auth/common-passwords.js';
 import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/names.js';
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
@@ -13,6 +13,7 @@ import { usernameKey } from '../db/keys.js';
 import { feedback, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
 import { playerRating } from '../ranking.js';
+import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
 
 /** Nome que substitui o do jogador nas partidas de uma conta excluída. */
@@ -116,26 +117,6 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         });
         if (!result) return reply.code(409).send({ error: 'username_taken', message: 'username already in use' });
         return { user: toPublic(result) };
-      },
-    );
-
-    app.put(
-      '/clan-tag',
-      {
-        schema: {
-          tags: ['contas'],
-          summary: 'Define ou remove a clan tag, exibida como "(TAG) nome" no chat',
-          body: Type.Object({ clanTag: Type.Union([Type.String({ maxLength: 6 }), Type.Null()]) }),
-          response: { 200: Type.Object({ user: PublicUser }), 400: ErrorSchema, 401: ErrorSchema },
-        },
-      },
-      async (request, reply) => {
-        const user = await requireUser(request, reply);
-        if (!user) return reply;
-        const tag = request.body.clanTag === '' ? null : request.body.clanTag;
-        if (tag !== null && !checkClanTag(tag)) return reply.code(400).send({ error: 'invalid_clan_tag', message: 'invalid clan tag' });
-        const [updated] = await db.update(users).set({ clanTag: tag, updatedAt: new Date() }).where(eq(users.id, user.id)).returning();
-        return { user: toPublic(updated!) };
       },
     );
 
@@ -327,10 +308,12 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         const user = await requireUser(request, reply);
         if (!user || !(await checkPassword(request, reply, user, request.body.password))) return reply;
         // Partidas jogadas ficam, mas anônimas (RN-PLT-04): sem vínculo e sem o nome; o feedback do beta
-        // também perde o nome (OG-107). Sessões, perfil, ranking e links de senha caem em cascata.
+        // também perde o nome (OG-107). Sessões, perfil, ranking e links de senha caem em cascata;
+        // o clã segue a regra de saída do líder.
         await db.transaction(async (tx) => {
           await tx.update(matchPlayers).set({ name: ANONYMOUS_NAME }).where(eq(matchPlayers.userId, user.id));
           await tx.update(feedback).set({ username: ANONYMOUS_NAME }).where(eq(feedback.userId, user.id));
+          await leaveClan(tx, user.id); // passa a liderança antes de a conta sumir (D-47)
           await tx.delete(users).where(eq(users.id, user.id));
         });
         sessions.clearCookie(reply);

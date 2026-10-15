@@ -17,7 +17,7 @@ import { Panel } from '../ui/Panel.js';
 const MIN_PASSWORD = 8;
 
 /** Campo ao qual a mensagem se refere (fica junto dele); sem campo, vai no pé do formulário. */
-type Field = 'invite' | 'username' | 'email' | 'password' | 'confirm' | 'current' | 'clanTag';
+type Field = 'invite' | 'username' | 'email' | 'password' | 'confirm' | 'current';
 type Message = { readonly text: string; readonly error: boolean; readonly field?: Field } | null;
 
 /** Campo de cada erro da API. */
@@ -36,8 +36,6 @@ export function errorField(code: string): Field | undefined {
     case 'invalid_password':
     case 'weak_password':
       return 'password';
-    case 'invalid_clan_tag':
-      return 'clanTag';
   }
   return undefined;
 }
@@ -69,8 +67,6 @@ function useErrorText(): (error: unknown) => string {
         return t('This password is too common. Choose another.');
       case 'username_cooldown':
         return t('You can change your name again on $1.', new Date((error as ApiError).message).toLocaleDateString());
-      case 'invalid_clan_tag':
-        return t('Invalid clan tag: 1 to 6 characters, no parentheses.');
       case 'invalid_token':
         return t('This link is invalid or has expired. Ask for a new one.');
       case 'rate_limited':
@@ -344,7 +340,7 @@ export function AccountScreen() {
   const items: MenuListItem[] = [
     { label: t('My profile'), onActivate: () => void navigate(`/players/${encodeURIComponent(user.username)}`) },
     { label: t('Change name'), aside: user.username, onActivate: () => void navigate('/account/username') },
-    { label: t('Clan tag'), aside: user.clanTag ?? '—', onActivate: () => void navigate('/account/clan-tag') },
+    { label: t('Clan'), aside: user.clanTag ?? '—', onActivate: () => void navigate(user.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans') },
     { label: t('Change password'), onActivate: () => void navigate('/account/password') },
     { label: t('Export my data'), onActivate: () => void run(downloadExport) },
     {
@@ -552,33 +548,6 @@ export function ChangeUsernameScreen() {
     >
       <TextField label={t('New name')} value={username} onChange={setUsername} maxLength={15} autoComplete="off" error={fieldError('username')} />
       <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" error={fieldError('password')} />
-    </AccountForm>
-  );
-}
-
-/** Clan tag (OG-082): aparece como "(TAG) nome" no chat. */
-export function ClanTagScreen() {
-  const { t } = usePrefs();
-  const { user, setUser } = useAccount();
-  const [tag, setTag] = useState(user?.clanTag ?? '');
-  const { setMessage, busy, run, fieldError, general } = useSubmit();
-  if (user === null) return <Navigate to="/login" replace />;
-
-  const save = (clanTag: string | null) =>
-    run(async () => {
-      const r = await api<{ user: AccountUser }>('/account/clan-tag', { method: 'PUT', body: { clanTag } });
-      setUser(r.user);
-      setTag(r.user.clanTag ?? '');
-      setMessage({ text: t('Saved.'), error: false });
-    });
-  return (
-    <AccountForm title={t('Clan tag')} note={t('Shown in chat as "(TAG) name".')} onSubmit={() => void save(tag || null)} submitLabel={t('Save')} submitDisabled={busy} message={general}>
-      <TextField label={t('Clan tag')} value={tag} onChange={setTag} maxLength={6} error={fieldError('clanTag')} />
-      {user?.clanTag && (
-        <Button variant="ghost" onClick={() => void save(null)}>
-          {t('Remove clan tag')}
-        </Button>
-      )}
     </AccountForm>
   );
 }

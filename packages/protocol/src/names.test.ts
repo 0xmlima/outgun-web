@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Vetores da spec plan/specs/names.md.
 import { describe, expect, it } from 'vitest';
-import { chatName, checkClanTag, checkName, checkRegisteredName, comparableName, guestName, makeComparable } from './names.js';
+import { chatName, checkClanName, checkClanTag, checkName, checkRegisteredName, comparableName, guestName, makeComparable } from './names.js';
 
 describe('checkName (check_name)', () => {
   it.each([
@@ -65,14 +65,21 @@ describe('convidados e clan tag', () => {
     expect(comparableName(guestName('Ana'))).toBe(comparableName('Ana'));
   });
   it.each([
-    ['ABC', true],
-    ['[XY]', true],
+    ['AB', true],
+    ['X', true],
     ['ÄÖ', true],
     ['', false],
-    ['1234567', false],
+    ['ABC', false],
     ['(A)', false],
     [' A', false],
   ])('tag %j → %s', (tag, ok) => expect(checkClanTag(tag)).toBe(ok));
+  it.each([
+    ['Os Bons', true],
+    ['ab', false],
+    ['x'.repeat(24), true],
+    ['x'.repeat(25), false],
+    [' Clã', false],
+  ])('nome de clã %j → %s', (name, ok) => expect(checkClanName(name)).toBe(ok));
   it('chat mostra "(TAG) nome"', () => {
     expect(chatName('Ana', 'XYZ')).toBe('(XYZ) Ana');
     expect(chatName('Ana', null)).toBe('Ana');

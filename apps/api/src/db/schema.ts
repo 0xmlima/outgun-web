@@ -37,7 +37,10 @@ export const users = pgTable(
     email: text('email').notNull(),
     emailKey: text('email_key').notNull(),
     passwordHash: text('password_hash').notNull(),
+    /** Cópia da tag do clã atual (OG-270), mantida por gatilho; não gravar direto. */
     clanTag: text('clan_tag'),
+    /** Carência para entrar em outro clã depois de sair ou ser expulso (OG-271, D-47). */
+    clanCooldownUntil: tstz('clan_cooldown_until'),
     isAdmin: boolean('is_admin').notNull().default(false),
     /** Moderador (OG-087): salas, denúncias, bans de sala e auditoria no painel. */
     isModerator: boolean('is_moderator').notNull().default(false),
@@ -87,7 +90,27 @@ export const seasons = pgTable('seasons', {
   startsAt: tstz('starts_at').notNull(),
   endsAt: tstz('ends_at'),
   active: boolean('active').notNull().default(false),
+  /** Mês da temporada mensal (AAAA-MM, Brasília; OG-267); nulo nas antigas. */
+  month: text('month'),
 });
+
+/** Classificação final de uma temporada encerrada (OG-267, RN-RKL-22). */
+export const seasonStandings = pgTable(
+  'season_standings',
+  {
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    score: doublePrecision('score').notNull(),
+    neg: integer('neg').notNull(),
+    matches: integer('matches').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.seasonId, t.userId] }), index('season_standings_position_idx').on(t.seasonId, t.position)],
+);
 
 export const rooms = pgTable('rooms', {
   id: text('id').primaryKey(),
@@ -240,6 +263,58 @@ export const playerMilestones = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.milestone] }), index('player_milestones_match_idx').on(t.matchId)],
 );
 
+/** Clãs cadastrados (OG-270, RN-CLA-01, D-47); nome e tag únicos pela forma dobrada (`clanKey`). */
+export const clans = pgTable(
+  'clans',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    nameKey: text('name_key').notNull(),
+    tag: text('tag').notNull(),
+    tagKey: text('tag_key').notNull(),
+    description: text('description').notNull().default(''),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('clans_name_key_idx').on(t.nameKey), uniqueIndex('clans_tag_key_idx').on(t.tagKey)],
+);
+
+export type ClanRole = 'leader' | 'admin' | 'member';
+
+/** Um clã por jogador (RN-CLA-02); um líder por clã. Gatilhos copiam a tag para users.clan_tag. */
+export const clanMembers = pgTable(
+  'clan_members',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    clanId: uuid('clan_id')
+      .notNull()
+      .references(() => clans.id, { onDelete: 'cascade' }),
+    role: text('role').$type<ClanRole>().notNull(),
+    joinedAt: tstz('joined_at').notNull().defaultNow(),
+  },
+  (t) => [index('clan_members_clan_idx').on(t.clanId, t.joinedAt)],
+);
+
+/** Convites e pedidos de entrada em clã (OG-271, RN-CLA-04); um por clã e jogador. */
+export const clanRequests = pgTable(
+  'clan_requests',
+  {
+    clanId: uuid('clan_id')
+      .notNull()
+      .references(() => clans.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'invite' | 'request'>().notNull(),
+    invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    expiresAt: tstz('expires_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.clanId, t.userId] }), index('clan_requests_user_idx').on(t.userId)],
+);
+
 export const ratingPoints = pgTable(
   'rating_points',
   {
@@ -382,6 +457,8 @@ export const playerReports = pgTable('player_reports', {
   targetName: text('target_name').notNull(),
   targetIp: inet('target_ip'),
   targetDeviceHash: text('target_device_hash'),
+  /** Denúncia de clã (OG-275), feita na página do clã. */
+  clanId: uuid('clan_id').references(() => clans.id, { onDelete: 'set null' }),
   reason: text('reason').notNull(),
   status: reportStatus('status').notNull().default('open'),
   handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),
@@ -461,6 +538,7 @@ export const allTables = {
   sessions,
   player_profiles: playerProfiles,
   seasons,
+  season_standings: seasonStandings,
   rooms,
   game_servers: gameServers,
   matches,
@@ -470,6 +548,9 @@ export const allTables = {
   player_pairs: playerPairs,
   player_daily: playerDaily,
   player_milestones: playerMilestones,
+  clans,
+  clan_members: clanMembers,
+  clan_requests: clanRequests,
   rating_points: ratingPoints,
   bans,
   admin_actions: adminActions,

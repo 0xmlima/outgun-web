@@ -36,7 +36,7 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     await seed(t.db);
     const [j3] = await t.db
       .insert(users)
-      .values({ username: 'Jogador3', usernameKey: usernameKey('Jogador3'), email: 'j3@outgun.local', emailKey: 'j3@outgun.local', passwordHash: 'x', clanTag: 'ABC' })
+      .values({ username: 'Jogador3', usernameKey: usernameKey('Jogador3'), email: 'j3@outgun.local', emailKey: 'j3@outgun.local', passwordHash: 'x', clanTag: 'AB' })
       .returning({ id: users.id });
     await t.db.insert(playerProfiles).values({ userId: j3!.id });
     const config = { ...loadConfig({ INTERNAL_SECRETS: `gs-1:${SECRET}` }), databaseUrl: t.url };
@@ -80,10 +80,10 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     expect(res.statusCode).toBe(200);
     const s = res.json();
     expect(s.hidden).toBe(false);
-    expect(s.companions).toEqual([{ username: 'Jogador3', clanTag: 'ABC', matches: 2, wins: 2, losses: 0 }]);
+    expect(s.companions).toEqual([{ username: 'Jogador3', clanTag: 'AB', matches: 2, wins: 2, losses: 0 }]);
     expect(s.rivals).toEqual([{ username: 'Jogador2', clanTag: null, matches: 3, wins: 2, losses: 0, draws: 1, balance: 2 }]);
     expect(s.clan).toBeNull();
-    expect((await app.inject('/players/Jogador3/social')).json().clan).toEqual({ tag: 'ABC', members: ['Jogador3'] });
+    expect((await app.inject('/players/Jogador3/social')).json().clan).toEqual({ tag: 'AB', members: ['Jogador3'] });
     expect((await app.inject('/players/ninguem/social')).statusCode).toBe(404);
   });
 
@@ -104,8 +104,8 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     expect(all.total).toBe(3);
     expect(all.players.map((u: { username: string }) => u.username)).toEqual(['Jogador1', 'Jogador2', 'Jogador3']);
     expect((await app.inject('/players?busca=jogador2')).json().players[0].username).toBe('Jogador2');
-    expect((await app.inject('/players?busca=abc')).json().players).toEqual([{ username: 'Jogador3', clanTag: 'ABC' }]);
-    expect((await app.inject('/players?busca=%C3%A1bc')).json().total).toBe(1);
+    expect((await app.inject('/players?busca=ab')).json().players).toEqual([{ username: 'Jogador3', clanTag: 'AB' }]);
+    expect((await app.inject('/players?busca=%C3%A1b')).json().total).toBe(1);
     expect((await app.inject('/players?busca=J%C3%93GADOR')).json().total).toBe(3);
     const page = (await app.inject('/players?busca=jog&limit=1&offset=1')).json();
     expect(page).toMatchObject({ total: 3, players: [{ username: 'Jogador2' }] });
@@ -133,7 +133,7 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     const d = (await app.inject('/directory')).json();
     expect(d.active.map((a: { username: string }) => a.username).sort()).toEqual(['Jogador1', 'Jogador2', 'Jogador3']);
     expect(d.active.find((a: { username: string }) => a.username === 'Jogador3')).toMatchObject({ matches: 1, wins: 1, playSeconds: 300 });
-    expect(d.clans).toEqual([{ tag: 'ABC', members: 1, activeMembers: 1, matches: 1 }]);
+    expect(d.clans).toEqual([{ tag: 'AB', members: 1, activeMembers: 1, matches: 1 }]);
   });
 
   it('privacidade: escondido não devolve os dados nem aparece como companheiro/rival de outros', async () => {

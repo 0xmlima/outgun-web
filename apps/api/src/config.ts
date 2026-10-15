@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Configuração por variáveis de ambiente (ver apps/api/README.md).
 import { parseSecrets } from '@outgun/tickets';
+import { parseNameFilter } from './name-filter.js';
 
 export { parseSecrets };
 
@@ -42,6 +43,8 @@ export interface ApiConfig {
   ticketSigningKeys: string;
   /** Endereço do game server quando a sala ainda não mandou heartbeat ({id} = sala). Nunca em produção. */
   devRoomWsUrl: string | undefined;
+  /** Palavras proibidas em nomes de clã (OG-275), já normalizadas; NAME_FILTER=a,b,c. */
+  nameFilter: string[];
   limits: {
     /** Falhas de senha por nome de usuário antes da espera (RN-PLT-06). */
     loginFailuresPerUser: number;
@@ -90,6 +93,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     devRoutes: !production && env.DEV_ROUTES === '1',
     ticketSigningKeys: env.TICKET_SIGNING_KEYS ?? '',
     devRoomWsUrl: production ? undefined : (env.DEV_ROOM_WS_URL ?? 'ws://localhost:7700/rooms/{id}'),
+    nameFilter: parseNameFilter(env.NAME_FILTER),
     limits: {
       loginFailuresPerUser: 5,
       loginFailuresPerIp: Number(env.LOGIN_FAILURES_PER_IP ?? 10),
