@@ -554,9 +554,10 @@ export class Room {
     c.conn = OFFLINE;
     c.disconnectedFrame = this.uptimeFrames; // relógio da sala: anda também com o jogo pausado
     if (rankedGame) {
-      if (voluntary) this.depart(pid);
-      else this.pause!.drop(pid, this.world.teamOf(pid) as 0 | 1, this.uptimeFrames + this.reconnectFrames);
       this.releaseKeys();
+      // "Sair" sem bot disponível vira um a menos na hora e o jogador já sai da sala aqui
+      if (voluntary) return this.depart(pid);
+      this.pause!.drop(pid, this.world.teamOf(pid) as 0 | 1, this.uptimeFrames + this.reconnectFrames);
     }
     const pl = this.world.players[pid] as PlayerState;
     pl.controls = 0;
@@ -1150,7 +1151,7 @@ export class Room {
       phase: pause.phase,
       reason: cause?.reason ?? 'team',
       team: cause?.team ?? 0,
-      by: cause?.by ?? -1,
+      by: cause?.by ?? 255, // 255 = ninguém (`pidOrNone`)
       seconds: pause.seconds(this.uptimeFrames),
       redSeconds: Math.ceil(pause.balance[0] / 10),
       redRequests: PAUSE_REQUESTS - pause.requests[0],
