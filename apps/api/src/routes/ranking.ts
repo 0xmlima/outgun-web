@@ -7,9 +7,21 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
 import { formatRatings, ratings, seasons, seasonStandings, users } from '../db/schema.js';
 import { activeSeason, formatRatingExpr, MINIMUM_SCORE, ratingExpr } from '../ranking.js';
+import { CLAN_MINIMUM_MATCHES, clanLeaderboard } from '../clan-stats.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
+const ClanEntry = Type.Object({
+  position: Type.Integer(),
+  tag: Type.String(),
+  name: Type.String(),
+  matches: Type.Integer(),
+  wins: Type.Integer(),
+  draws: Type.Integer(),
+  losses: Type.Integer(),
+  points: Type.Integer(),
+  captureDiff: Type.Integer(),
+});
 const Entry = Type.Object({
   position: Type.Integer(),
   userId: Type.String(),
@@ -146,6 +158,38 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
             matches: r.matches,
           })),
         };
+      },
+    );
+
+    app.get(
+      '/leaderboard/clans',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: `Ranking de clãs (OG-274, D-47): partidas clã x clã da temporada (padrão: a ativa) ou de todas (overall=true); vitória 3, empate 1, desempate por saldo de capturas, mínimo de ${CLAN_MINIMUM_MATCHES} partidas`,
+          querystring: Type.Object({
+            season: Type.Optional(Type.Integer({ minimum: 1 })),
+            overall: Type.Boolean({ default: false }),
+            limit: Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
+            offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
+          }),
+          response: {
+            200: Type.Object({ season: Type.Union([Type.Null(), Season]), minimumMatches: Type.Integer(), total: Type.Integer(), entries: Type.Array(ClanEntry) }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const { overall, limit, offset } = request.query;
+        let out = null;
+        if (!overall) {
+          const id = request.query.season ?? (await activeSeason(db))?.id;
+          const [season] = id ? await db.select().from(seasons).where(eq(seasons.id, id)) : [];
+          if (!season) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+          out = { id: season.id, name: season.name, startsAt: season.startsAt.toISOString(), endsAt: season.endsAt?.toISOString() ?? null, active: season.active };
+        }
+        const board = await clanLeaderboard(db, out?.id ?? null, limit, offset);
+        return { season: out, minimumMatches: CLAN_MINIMUM_MATCHES, ...board };
       },
     );
   };

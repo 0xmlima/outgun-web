@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S19 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-273](OG-273-clas-estatisticas.md), [OG-267](OG-267-temporadas-mensais.md) |
 | Regras de negócio | RN-CLA-07 |
 | Skills | `outgun-card-workflow` |
@@ -20,7 +20,8 @@ Como clã, quero aparecer num ranking contra os outros clãs, para ter uma dispu
 - Aba "Clãs" em `/ranking`, com link para a página de cada clã.
 
 ## Critérios de aceite
-- [ ] Testes do critério e do desempate; clã abaixo do mínimo de partidas não aparece.
+- [x] Testes do critério e do desempate; clã abaixo do mínimo de partidas não aparece.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `GET /leaderboard/clans?season=&overall=` (cálculo em `apps/api/src/clan-stats.ts`): temporada pela `season_id` da partida (a de início, OG-267); o geral também exige 3 partidas no total. Desempate final pela tag.
+- Aba "Clãs" em `/ranking` com Temporada atual/Geral; linha leva à página do clã. Temporadas anteriores ficam acessíveis só pela API (`?season=`), sem seletor na aba.

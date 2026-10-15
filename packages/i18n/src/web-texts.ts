@@ -416,6 +416,11 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Invite: 'Convidar',
     // Clã x clã (OG-259)
     'Clan vs clan': 'Clã x clã',
+    // Ranking de clãs (OG-274)
+    'Clan vs clan matches: win 3 points, draw 1; ties broken by capture difference; at least 3 matches to appear.':
+      'Partidas clã x clã: vitória vale 3 pontos, empate 1; desempate pelo saldo de capturas; mínimo de 3 partidas para aparecer.',
+    'Capture difference': 'Saldo de capturas',
+    Points: 'Pontos',
     // Estatísticas do clã (OG-273)
     Period: 'Período',
     'Series won': 'Séries vencidas',
