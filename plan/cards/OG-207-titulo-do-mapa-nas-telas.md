@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S18 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-UI-01 |
 | Skills | `outgun-card-workflow` |

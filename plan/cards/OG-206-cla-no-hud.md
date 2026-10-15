@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S18 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-265](OG-265-protecao-visual-hud.md), [OG-270](OG-270-clas-cadastro-api.md) |
 | Regras de negócio | RN-NOM-04, RN-UI-05 |
 | Skills | `outgun-card-workflow` |

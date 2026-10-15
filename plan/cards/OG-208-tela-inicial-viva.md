@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S18 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | [OG-267](OG-267-temporadas-mensais.md) |
 | Regras de negócio | RN-UI-01, RN-UI-03, RN-UI-04, RN-SOC-01 |
 | Skills | `outgun-card-workflow` |
