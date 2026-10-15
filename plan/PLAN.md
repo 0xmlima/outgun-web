@@ -698,14 +698,14 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-264](cards/OG-264-ui-pausa-voto-partida.md) | UI da pausa, da queda e do voto dentro da partida (sem mudar o HUD atual) | E12 | 3 | Must | S20 | OG-265, OG-260, OG-262 | Backlog |
 | [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S18 | — | Backlog |
 | [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S20 | OG-262 | Backlog |
-| [OG-267](cards/OG-267-temporadas-mensais.md) | Temporadas mensais automáticas e ranking geral de todas as temporadas | E12 | 3 | Must | S16 | — | Backlog |
+| [OG-267](cards/OG-267-temporadas-mensais.md) | Temporadas mensais automáticas e ranking geral de todas as temporadas | E12 | 3 | Must | S16 | — | Pronto |
 | [OG-268](cards/OG-268-hall-da-fama.md) | Hall da fama | E12 | 3 | Should | S19 | OG-267, OG-274 | Backlog |
-| [OG-270](cards/OG-270-clas-cadastro-api.md) | Clãs: cadastro, papéis e API (substitui a clan tag livre) | E13 | 5 | Must | S16 | — | Backlog |
-| [OG-271](cards/OG-271-clas-convites-pedidos.md) | Clãs: convites e pedidos de entrada | E13 | 3 | Must | S16 | OG-270 | Backlog |
-| [OG-272](cards/OG-272-clas-telas.md) | Telas de clã no cliente: criar, página do clã, gerir e buscar | E13 | 5 | Must | S16 | OG-270, OG-271 | Backlog |
+| [OG-270](cards/OG-270-clas-cadastro-api.md) | Clãs: cadastro, papéis e API (substitui a clan tag livre) | E13 | 5 | Must | S16 | — | Pronto |
+| [OG-271](cards/OG-271-clas-convites-pedidos.md) | Clãs: convites e pedidos de entrada | E13 | 3 | Must | S16 | OG-270 | Pronto |
+| [OG-272](cards/OG-272-clas-telas.md) | Telas de clã no cliente: criar, página do clã, gerir e buscar | E13 | 5 | Must | S16 | OG-270, OG-271 | Pronto |
 | [OG-273](cards/OG-273-clas-estatisticas.md) | Estatísticas do clã | E13 | 3 | Should | S19 | OG-270, OG-259 | Backlog |
 | [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Backlog |
-| [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Backlog |
+| [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Pronto |
 
 **Total:** 112 cards, 449 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 43 cards, 154 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
@@ -774,7 +774,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-44 | **v2** — Salas Ranked com senha | — | ✅ **Pedido do PO em 2026-10-15:** qualquer conta cria sala Ranked, com senha opcional; o preset continua travado (revisa RN-MOD-04 e RN-CFG-03) | PO |
 | D-45 | **v2** — Pausa tática no Ranked | — | ✅ **Decidido pelo PO em 2026-10-15:** 60 s por time **por jogo** (não por série), em até 3 pedidos; retomada sempre com contagem de **3 s**; só o time que pediu retoma antes — o adversário não controla a pausa | PO |
 | D-46 | **v2** — Queda no Ranked e bot substituto (revisa D-11) | — | ✅ **Decidido pelo PO em 2026-10-15:** queda pausa o jogo; prazo de reconexão de **120 s**; depois, voto só do time desfalcado (maioria, 20 s, empate = bot) entre um a menos e bot; até 2 bots por partida; quem volta retoma a vaga e o bot sai; a partida conta para o ranking, com a marca. O bot se chama **`BOT-<nome do jogador>`** (ex.: `BOT-ozzylords`) e tem o nível calculado pelo histórico Ranked do jogador substituído; sem histórico, nível intermediário (OG-266) | PO |
-| D-47 | **v2** — Clãs da comunidade (substitui a clan tag livre) | — | ✅ **Pedido do PO em 2026-10-15:** criar/entrar/gerir clãs; tag única de até 2 caracteres; ranking de clãs. ⏳ **Em aberto (recomendações):** tags livres atuais apagadas na migração; tag e nome únicos sem diferença de maiúsculas; líder que sai passa a liderança ao admin mais antigo (senão ao membro mais antigo), último que sai dissolve o clã; limite de 30 membros; carência de 7 dias para entrar em outro clã depois de sair; ranking de clãs por pontos em clã x clã na temporada (vitória 3, empate 1, desempate por saldo de capturas, mínimo de 3 partidas) | PO |
+| D-47 | **v2** — Clãs da comunidade (substitui a clan tag livre) | — | ✅ **Decidido pelo PO em 2026-10-15:** criar/entrar/gerir clãs; tag única de até 2 caracteres; tags livres atuais apagadas na migração; tag e nome únicos sem diferença de maiúsculas e acentos; líder que sai passa a liderança ao admin mais antigo (senão ao membro mais antigo), último que sai dissolve o clã; limite de 30 membros; carência de 7 dias para entrar em outro clã depois de sair; ranking de clãs por pontos em clã x clã na temporada (vitória 3, empate 1, desempate por saldo de capturas, mínimo de 3 partidas) | PO |
 | D-48 | **v2** — Temporadas mensais e hall da fama | — | ✅ **Decidido pelo PO em 2026-10-15:** temporada reinicia todo mês, no dia 1 às 00:00 (Brasília), e existe ranking geral de todas as temporadas; hall da fama com os 3 primeiros de cada temporada no geral, por formato e de clãs | PO |
 
 ---

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S16 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | — |
 | Regras de negócio | RN-RKL-22, RN-RKL-23 |
 | Skills | `outgun-card-workflow` |

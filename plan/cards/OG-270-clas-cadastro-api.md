@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S16 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | — |
 | Regras de negócio | RN-CLA-01 a RN-CLA-05, RN-NOM-03 |
 | Skills | `outgun-card-workflow` |
@@ -20,10 +20,10 @@ Como jogador, quero criar um clã de verdade, com nome, tag e membros, para que 
 
 ## Escopo
 - Tabelas `clans` (nome, tag, descrição, data de formação, líder) e `clan_members` (papel: líder/admin/membro, data de entrada); um clã por jogador.
-- Tag: 1 a 2 caracteres, única sem diferença de maiúsculas e acentos; nome único (D-47).
+- Tag: 1 a 2 caracteres, única sem diferença de maiúsculas e acentos; nome único do mesmo jeito (D-47). Máximo de 30 membros.
 - API: criar, editar (nome/descrição — líder e admins; tag — só o líder), sair, expulsar, promover/rebaixar admin, transferir liderança, dissolver; página pública do clã (`GET /clans/:tag`) e busca.
-- Liderança e saídas conforme D-47 (líder sai → passa adiante; último membro sai → clã dissolvido).
-- A tag exibida em jogo (ticket, chat, HUD) passa a vir do clã do jogador; `POST /account/clan-tag` é removida e as tags livres antigas são apagadas na migração (D-47).
+- Líder que sai passa a liderança ao admin mais antigo (senão ao membro mais antigo); último membro que sai dissolve o clã (D-47).
+- A tag exibida em jogo (ticket, chat, HUD) passa a vir do clã do jogador; `POST /account/clan-tag` é removida e as tags livres antigas são apagadas na migração (D-47) — avisar na tela de novidades/Opções que a tag virou clã.
 
 ## Critérios de aceite
 - [ ] Testes: tag duplicada (inclusive `nn` × `NN`) recusada; jogador não entra em dois clãs; regras de papéis e de saída do líder.

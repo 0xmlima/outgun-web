@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S16 |
-| Status | Backlog |
+| Status | Pronto |
 | Dependências | [OG-270](OG-270-clas-cadastro-api.md), [OG-271](OG-271-clas-convites-pedidos.md) |
 | Regras de negócio | RN-CLA-01 a RN-CLA-05, RN-SOC-01, RN-UI-01 |
 | Skills | `outgun-card-workflow` |

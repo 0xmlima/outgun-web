@@ -16,7 +16,7 @@
 Como clã, quero aparecer num ranking contra os outros clãs, para ter uma disputa entre clãs ao longo das temporadas.
 
 ## Escopo
-- Ranking de clãs por temporada e geral (todas as temporadas), pelo critério da D-47 (com base nas partidas clã x clã).
+- Ranking de clãs por temporada e geral (todas as temporadas), por pontos em partidas clã x clã: vitória 3, empate 1; desempate por saldo de capturas; mínimo de 3 partidas na temporada para aparecer (D-47). O geral soma as temporadas.
 - Aba "Clãs" em `/ranking`, com link para a página de cada clã.
 
 ## Critérios de aceite
