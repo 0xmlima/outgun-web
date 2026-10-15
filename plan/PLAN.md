@@ -686,7 +686,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-255](cards/OG-255-lista-salas-ranked-cliente.md) | Tela de salas Ranked no cliente (lista, criar, entrar) | E12 | 3 | Must | S17 | OG-252 | Backlog |
 | [OG-256](cards/OG-256-tela-lobby-ranked.md) | Tela do lobby Ranked: times, voto, "Pronto" e contagem | E12 | 5 | Must | S17 | OG-253, OG-254, OG-255 | Backlog |
 | [OG-257](cards/OG-257-serie-placar-relatorio.md) | Série no jogo e no relatório: placar, próximo jogo e fim | E12 | 3 | Should | S17 | OG-250, OG-256, OG-265 | Backlog |
-| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Filtro por formato (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 3 | Should | S17 | OG-250 | Backlog |
+| [OG-258](cards/OG-258-filtro-formato-estatisticas.md) | Rating por formato e filtro (3x3/4x4/5x5) no ranking, perfil e partidas | E12 | 5 | Should | S17 | OG-250 | Backlog |
 | [OG-259](cards/OG-259-cla-vs-cla-marcos.md) | Clã x clã: detecção e marcos | E12 | 3 | Should | S17 | OG-250 | Backlog |
 | [OG-260](cards/OG-260-pausa-tatica.md) | Pausa tática por time no Ranked (servidor) | E12 | 5 | Must | S18 | OG-252 | Backlog |
 | [OG-261](cards/OG-261-pausa-desconexao.md) | Pausa automática quando um jogador cai no Ranked | E12 | 3 | Must | S18 | OG-260 | Backlog |
@@ -696,7 +696,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-265](cards/OG-265-protecao-visual-hud.md) | Proteção visual da UI da partida: capturas de referência e comparação | E12 | 3 | Must | S17 | — | Backlog |
 | [OG-266](cards/OG-266-nivel-bot-substituto.md) | Níveis de dificuldade dos bots e nível do bot substituto pelo histórico | E12 | 5 | Must | S18 | OG-262 | Backlog |
 
-**Total:** 104 cards, 420 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 35 cards, 125 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 104 cards, 422 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 35 cards, 127 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -756,10 +756,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-37 | **v2** — Música fora do Casual | Só Casual / também Ranked / espectador e replay | ✅ **Decidido pelo PO em 2026-10-14:** Casual e espectador ao vivo com música; Ranked e replay sem | PO |
 | D-38 | **v2** — Autoria e crédito da trilha sonora | — | ✅ **Decidido pelo PO em 2026-10-14:** faixas geradas no Suno pelo próprio PO; crédito "Música: Thiago Vasconcellos"; metadados do Suno removidos dos arquivos. Licença das faixas (PO, 2026-10-14): **CC BY-SA 4.0** | PO |
 | D-39 | **v2** — Visibilidade do perfil social | Público / público com opção de esconder / só com conta | ✅ **Decidido pelo PO em 2026-10-14:** público, com opções na conta para esconder companheiros/rivais e histórico de partidas (OG-211) | PO |
-| D-40 | **v2** — Quando a partida Ranked começa | Mínimo de 6 jogadores em qualquer formato / sala completa do formato (6, 8 ou 10) | ⏳ **Em aberto (PO).** Recomendação: sala completa — um 5x5 que começa com 6 vira 3x3 e distorce o formato e o filtro. O pedido cita "no mínimo 6", que coincide com o 3x3 | PO |
-| D-41 | **v2** — Ranking e mapas numa série md3/md5 | Ranking por jogo / só pelo resultado da série; mapa pode repetir / não repete; lados fixos / trocam a cada jogo | ⏳ **Em aberto (PO).** Recomendação: ranking por jogo (mantém RN-RNK), mapa jogado sai do voto, lados fixos (o time é o mesmo a série toda) | PO |
-| D-42 | **v2** — Ranking por formato | Um rating único com filtro por formato / rating e leaderboard separados por formato | ⏳ **Em aberto (PO).** Recomendação: um rating único; o filtro por formato recalcula o leaderboard só com as partidas daquele formato | PO |
-| D-43 | **v2** — Abandono e inatividade no Ranked | Vaga reaberta entre jogos da série / série encerrada; prazo para marcar "Pronto" | ⏳ **Em aberto (PO).** Recomendação: queda no meio do jogo segue a D-46; entre jogos da série a vaga reabre no lobby (bot substituto não passa para o jogo seguinte); quem não marca "Pronto" em 60 s após o voto sai da sala | PO |
+| D-40 | **v2** — Quando a partida Ranked começa | Mínimo de 6 jogadores em qualquer formato / sala completa do formato (6, 8 ou 10) | ✅ **Decidido pelo PO em 2026-10-15:** só com a sala completa do formato — um 3x3 não começa sem os 6 jogadores | PO |
+| D-41 | **v2** — Séries md3/md5 | — | ✅ **Decidido pelo PO em 2026-10-15:** séries são só facilitadoras — cada jogo é uma ranqueada normal (ranking por jogo, voto de mapa normal, lados podem mudar no lobby). Fim de md1 → todos voltam ao menu inicial; fim de um jogo de md3/md5 que não encerra a série → todos voltam direto ao lobby da sala; fim da série → menu inicial | PO |
+| D-42 | **v2** — Ranking por formato | — | ✅ **Decidido pelo PO em 2026-10-15:** rating separado por formato (3x3, 4x4, 5x5), e o rating geral é calculado a partir deles: score e neg gerais = soma dos três formatos, `rating = (score+1)/(neg+1)` (RN-RNK) | PO |
+| D-43 | **v2** — Abandono e inatividade no Ranked | — | ✅ **Decidido pelo PO em 2026-10-15:** queda no meio do jogo segue a D-46; entre jogos da série a vaga reabre no lobby (bot substituto não passa para o jogo seguinte); quem não marca "Pronto" em 60 s após o voto sai da sala | PO |
 | D-44 | **v2** — Salas Ranked com senha | — | ✅ **Pedido do PO em 2026-10-15:** qualquer conta cria sala Ranked, com senha opcional; o preset continua travado (revisa RN-MOD-04 e RN-CFG-03) | PO |
 | D-45 | **v2** — Pausa tática no Ranked | — | ✅ **Decidido pelo PO em 2026-10-15:** 60 s por time **por jogo** (não por série), em até 3 pedidos; retomada sempre com contagem de **3 s**; só o time que pediu retoma antes — o adversário não controla a pausa | PO |
 | D-46 | **v2** — Queda no Ranked e bot substituto (revisa D-11) | — | ✅ **Decidido pelo PO em 2026-10-15:** queda pausa o jogo; prazo de reconexão de **120 s**; depois, voto só do time desfalcado (maioria, 20 s, empate = bot) entre um a menos e bot; até 2 bots por partida; quem volta retoma a vaga e o bot sai; a partida conta para o ranking, com a marca. O bot se chama **`BOT-<nome do jogador>`** (ex.: `BOT-ozzylords`) e tem o nível calculado pelo histórico Ranked do jogador substituído; sem histórico, nível intermediário (OG-266) | PO |
@@ -851,18 +851,19 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-MUS-04 | Nas Opções, o jogador liga/desliga a trilha sonora e ajusta o volume; a escolha é salva e sincronizada com a conta. |
 | RN-MUS-05 | Música nunca entra no carregamento inicial do jogo; é baixada sob demanda e não é baixada com a trilha desligada. |
 | RN-RKL-01 | **Formatos Ranked:** 3x3, 4x4 e 5x5 — N contra N jogadores com conta, sem bots salvo RN-RKL-19 (3x3 = 6 humanos). O formato é escolhido ao criar a sala e define o tamanho dela (2 × N). |
-| RN-RKL-02 | **Séries:** md1, md3 ou md5, escolhida ao criar a sala. Vence a série o time que ganhar ⌈N/2⌉ jogos; os jogos restantes não são disputados. |
-| RN-RKL-03 | Cada jogo de uma série é uma partida Ranked com relatório próprio, ligado à série (formato, número do jogo, placar da série). Como cada jogo conta para o ranking é a D-41. |
+| RN-RKL-02 | **Séries:** md1, md3 ou md5, escolhida ao criar a sala. Vence a série o time que ganhar ⌈N/2⌉ jogos; os jogos restantes não são disputados. Séries são só facilitadoras (D-41): ao fim de um jogo que não encerra a série, todos voltam direto ao lobby da sala; ao fim da série (ou de uma md1), ao menu inicial. |
+| RN-RKL-03 | Cada jogo de uma série é uma partida Ranked com relatório próprio, ligado à série (formato, número do jogo, placar da série). Cada jogo conta para o ranking como uma ranqueada normal (D-41). |
 | RN-RKL-04 | O admin define a rotação Ranked **por formato** (um mapa pode estar no 4x4 e fora do 3x3); nenhum formato fica sem mapas. |
 | RN-RKL-05 | Ao escolher "Ranked", o jogador vê primeiro a lista de salas abertas (formato, série, ocupação, fase, senha) e pode filtrar por formato, entrar numa sala ou criar uma. |
 | RN-RKL-06 | Qualquer conta cria uma sala Ranked; ela pode ter senha (até 15 caracteres). Senha não muda regras: o preset continua travado (RN-MOD-04). |
 | RN-RKL-07 | Ninguém entra no mapa enquanto a sala não estiver completa (2 × N jogadores, D-40). Até lá os jogadores ficam no lobby. |
 | RN-RKL-08 | Jogadores do mesmo clã (clan tag, sem diferença de maiúsculas e acentos) entram preferencialmente do mesmo lado; sem clã ou empate, vale RN-TIM-01. |
 | RN-RKL-09 | No lobby, o jogador troca de lado se houver vaga; com o outro lado cheio, pede a troca e ela só acontece com o aceite de um jogador de lá. |
-| RN-RKL-10 | Com a sala completa há voto de mapa entre os mapas da rotação do formato (em série, sem repetir mapa já jogado). O voto termina quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação. |
+| RN-RKL-10 | Com a sala completa há voto de mapa entre os mapas da rotação do formato. O voto termina quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação. |
 | RN-RKL-11 | Depois do voto, todos precisam marcar "Pronto". Com todos prontos começa uma contagem de **5 s** antes de carregar o mapa. |
+| RN-RKL-11b | Quem não marca "Pronto" em 60 s depois do voto sai da sala e a vaga reabre (D-43). |
 | RN-RKL-12 | Desmarcar "Pronto", trocar de lado, sair ou entrar alguém durante a contagem a cancela; ela recomeça do zero quando todos estiverem prontos de novo. |
-| RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". |
+| RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". Cada formato tem rating próprio; o rating geral soma score e neg dos três (D-42). |
 | RN-RKL-14 | Partida **clã x clã**: todos de um lado com a mesma clan tag e todos do outro com outra (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |
 | RN-RKL-15 | **Pausa tática:** cada time tem 60 s de pausa por jogo, em até 3 pedidos (ex.: 3 × 20 s). Pausado, o mundo e o tempo da partida não avançam; o chat continua. Só no Ranked. |
 | RN-RKL-16 | O saldo vale por jogo. A pausa termina quando o time que pediu retoma (o adversário não pode) ou quando o saldo acaba, sempre com contagem de retomada de 3 s (D-45). |

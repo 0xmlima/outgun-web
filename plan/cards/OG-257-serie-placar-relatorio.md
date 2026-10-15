@@ -16,7 +16,7 @@
 Como jogador de uma md3/md5, quero ver o placar da série durante e depois dos jogos, para acompanhar a disputa inteira.
 
 ## Escopo
-- Placar da série no HUD/placar e na tela de fim de jogo; ao fim de um jogo que não encerra a série, todos voltam ao lobby (voto do próximo mapa).
+- Placar da série no HUD/placar e na tela de fim de jogo; ao fim de um jogo que não encerra a série, todos voltam **direto ao lobby** da sala (voto do próximo mapa, vagas reabertas); ao fim da série — ou de uma md1 — todos voltam ao **menu inicial** (D-41).
 - Relatório da partida (OG-214) mostra formato, série, número do jogo e links para os outros jogos; página da série com o resultado final.
 
 ## Critérios de aceite

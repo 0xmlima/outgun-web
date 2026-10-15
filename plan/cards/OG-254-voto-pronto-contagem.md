@@ -16,17 +16,17 @@
 Como jogador de Ranked, quero votar no mapa e confirmar que estou pronto, para a partida só começar quando todos concordarem.
 
 ## Escopo
-- Voto de mapa com a sala completa: só mapas da rotação do formato (OG-251); em série, mapa já jogado sai do voto (D-41). Encerra quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação.
+- Voto de mapa com a sala completa: só mapas da rotação do formato (OG-251); em série o voto é normal, mapas podem repetir (D-41). Encerra quando todos votam ou em 30 s; empate → sorteio entre os empatados; sem votos → sorteio na rotação.
 - Depois do voto, cada jogador marca "Pronto" (e pode desmarcar).
 - Todos prontos → contagem de 5 s; desmarcar, trocar de lado, sair ou entrar alguém cancela a contagem e volta para "prontos".
 - Ao fim da contagem, o mapa carrega e a partida começa para todos juntos.
 
 ## Critérios de aceite
-- [ ] Testes das regras de voto (fim por todos/tempo, empate, mapa repetido na série).
+- [ ] Testes das regras de voto (fim por todos/tempo, empate, sem votos).
 - [ ] Testes da contagem: cancela com cada evento listado e recomeça do zero.
 
 ## Notas técnicas
-- Inatividade no lobby (alguém que nunca marca "Pronto"): prazo e expulsão a decidir com o PO (D-43).
+- Quem não marca "Pronto" em 60 s após o voto sai da sala e a vaga reabre (D-43, RN-RKL-11b).
 
 ## Notas de implementação
 (preenchido durante a execução)
