@@ -85,16 +85,8 @@
 .app-account-user:hover {
   background: var(--surface-2);
 }
-.app-avatar {
-  display: inline-grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+.app-account-user .ui-player-avatar {
+  flex: none;
 }
 .app-account-name {
   max-width: 12rem;
@@ -596,4 +588,31 @@
 }
 .phone-notice p {
   margin: 0;
+}
+
+/* Itens do menu inicial com ícone (OG-291): o selo à direita (ex.: "exige conta") desce para baixo
+   da descrição, para o rótulo não espremer nas colunas estreitas. */
+.home-menu .ui-menu-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+}
+.home-menu .ui-menu-icon {
+  grid-row: 1;
+  grid-column: 1;
+}
+.home-menu .ui-menu-text {
+  grid-row: 1;
+  grid-column: 2;
+}
+.home-menu .ui-menu-aside {
+  grid-row: 2;
+  grid-column: 2;
+  justify-self: start;
+  margin-top: var(--space-1);
+}
+.home-menu .ui-menu-shortcut {
+  grid-row: 1;
+  grid-column: 3;
 }

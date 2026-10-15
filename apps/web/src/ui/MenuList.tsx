@@ -3,10 +3,13 @@
 // Home/End, Enter/Espaço, Esc e atalhos numéricos), mouse, toque e gamepad. Tab sai da lista, como
 // em qualquer página web.
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Icon, type IconName } from './icons.js';
 import { firstEnabled, menuKey, shortcutDigit } from './menu-nav.js';
 
 export interface MenuListItem {
   readonly label: ReactNode;
+  /** Ícone à esquerda do rótulo (OG-291). */
+  readonly icon?: IconName;
   /** Linha menor abaixo do rótulo. */
   readonly description?: ReactNode;
   /** À direita (ex.: um `Badge` ou o valor atual). */
@@ -83,6 +86,11 @@ export function MenuList({ label, items, onBack, autoFocus = false, className }:
               onFocus={() => !item.disabled && setCurrent(index)}
               onClick={() => !item.disabled && item.onActivate()}
             >
+              {item.icon && (
+                <span className="ui-menu-icon">
+                  <Icon name={item.icon} />
+                </span>
+              )}
               <span className="ui-menu-text">
                 <span className="ui-menu-label">{item.label}</span>
                 {item.description && <span className="ui-menu-description">{item.description}</span>}
