@@ -40,6 +40,26 @@ export function SourceLink() {
 }
 
 /** Raiz de todas as rotas: idioma do documento, escala dos pixels, fonte bitmap e avisos (OG-200). */
+/**
+ * Celular (D-50, OG-209): o jogo ainda não é para celular. Toque sem mouse e tela curta (o lado menor
+ * abaixo de 600 px) pega celulares e deixa de fora tablets com teclado e notebooks com toque.
+ */
+export function isPhone(): boolean {
+  if (typeof matchMedia !== 'function') return false;
+  return matchMedia('(pointer: coarse) and (hover: none)').matches && Math.min(screen.width, screen.height) < 600;
+}
+
+function PhoneNotice() {
+  const { t } = usePrefs();
+  return (
+    <main className="phone-notice">
+      <h1 className="home-title">Outgun</h1>
+      <p>{t('Outgun is not available on phones yet.')}</p>
+      <p className="ui-muted">{t('Open this page on a computer to play.')}</p>
+    </main>
+  );
+}
+
 export function Root() {
   const { prefs, t } = usePrefs();
   const scale = usePixelScale();
@@ -50,7 +70,7 @@ export function Root() {
   return (
     <FontProvider name={GAME_FONT}>
       <ToastProvider closeLabel={t('Close')}>
-        <Outlet />
+        {isPhone() ? <PhoneNotice /> : <Outlet />}
       </ToastProvider>
     </FontProvider>
   );

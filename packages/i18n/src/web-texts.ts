@@ -308,6 +308,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     '$1 players per team.': '$1 jogadores por time.',
     'Ranked rules are fixed: the password only limits who can join.': 'As regras do ranqueado são fixas: a senha só limita quem pode entrar.',
     'Now on Outgun': 'Agora no Outgun',
+    'Outgun is not available on phones yet.': 'O Outgun ainda não está disponível para celular.',
+    'Open this page on a computer to play.': 'Abra esta página no computador para jogar.',
     'player online': 'jogador online',
     'players online': 'jogadores online',
     'Nobody is playing right now. Start a match with "Play now" and others will join.': 'Ninguém está jogando agora. Comece uma partida em "Jogar agora" e os outros chegam.',

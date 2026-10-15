@@ -538,3 +538,18 @@
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+
+/* Aviso de celular (OG-209, D-50) */
+.phone-notice {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 100dvh;
+  padding: var(--space-5);
+  text-align: center;
+  font-size: var(--text-lg);
+}
+.phone-notice p {
+  margin: 0;
+}
