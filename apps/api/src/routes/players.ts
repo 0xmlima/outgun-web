@@ -5,9 +5,9 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, asc, desc, eq, gte, sql } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { matches, matchPlayers, playerMilestones, playerProfiles, ratings, users } from '../db/schema.js';
+import { matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, ratings, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
-import { ErrorSchema, GameModeSchema } from './schemas.js';
+import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
 const Totals = Type.Object({
   matches: Type.Integer(),
@@ -35,6 +35,20 @@ const MatchSummary = Type.Object({
   mapTitle: Type.String(),
   redScore: Type.Integer(),
   blueScore: Type.Integer(),
+});
+/** Série Ranked (OG-257, RN-RKL-03): placar e os jogos dela, em ordem. */
+const SeriesView = Type.Object({
+  id: Type.String(),
+  format: RankedFormatSchema,
+  bestOf: SeriesBestOfSchema,
+  games: Type.Integer(),
+  redWins: Type.Integer(),
+  blueWins: Type.Integer(),
+  /** 0 = vermelho, 1 = azul; null = em andamento ou empatada. */
+  winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
+  finished: Type.Boolean(),
+  startedAt: Type.String(),
+  matches: Type.Array(Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String() })),
 });
 const PlayerLine = Type.Object({
   slot: Type.Integer(),
@@ -232,6 +246,10 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               replayUrl: Type.Union([Type.Null(), Type.String()]),
               /** Marcos conquistados nesta partida (OG-213). */
               milestones: Type.Array(Type.Object({ username: Type.String(), milestone: Type.String() })),
+              /** Formato, número do jogo e a série, nas partidas de sala com formato (OG-257). */
+              format: Type.Union([Type.Null(), RankedFormatSchema]),
+              gameNo: Type.Union([Type.Null(), Type.Integer()]),
+              series: Type.Union([Type.Null(), SeriesView]),
             }),
             404: ErrorSchema,
           },
@@ -260,9 +278,47 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
             .innerJoin(users, eq(users.id, playerMilestones.userId))
             .where(eq(playerMilestones.matchId, m.id))
             .orderBy(asc(users.usernameKey)),
+          format: m.format,
+          gameNo: m.gameNo,
+          series: m.seriesId ? await seriesView(m.seriesId) : null,
         };
       },
     );
+
+    app.get(
+      '/series/:id',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Série Ranked: formato, placar, vencedor e os relatórios de cada jogo (OG-257)',
+          params: Type.Object({ id: Type.String({ format: 'uuid' }) }),
+          response: { 200: Type.Object({ series: SeriesView }), 404: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const series = await seriesView(request.params.id);
+        if (!series) return reply.code(404).send({ error: 'series_not_found', message: 'series not found' });
+        return { series };
+      },
+    );
+
+    async function seriesView(id: string) {
+      const [s] = await db.select().from(rankedSeries).where(eq(rankedSeries.id, id));
+      if (!s || (s.bestOf !== 1 && s.bestOf !== 3 && s.bestOf !== 5)) return null;
+      const games = await db.select().from(matches).where(eq(matches.seriesId, id)).orderBy(asc(matches.gameNo), asc(matches.endedAt));
+      return {
+        id: s.id,
+        format: s.format,
+        bestOf: s.bestOf as 1 | 3 | 5,
+        games: s.games,
+        redWins: s.redWins,
+        blueWins: s.blueWins,
+        winner: s.winner === 0 ? (0 as const) : s.winner === 1 ? (1 as const) : null,
+        finished: s.finishedAt !== null,
+        startedAt: s.createdAt.toISOString(),
+        matches: games.map((g) => ({ id: g.id, gameNo: g.gameNo, mapTitle: summary(g).mapTitle, redScore: g.redScore, blueScore: g.blueScore, endedAt: g.endedAt.toISOString() })),
+      };
+    }
   };
 }
 

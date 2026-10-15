@@ -53,6 +53,14 @@ function clientOptions(p: Prefs): ClientOptions {
   };
 }
 
+/** Placar da série na faixa do topo (OG-257). */
+interface SeriesBar {
+  bestOf: number;
+  gameNo: number;
+  red: number;
+  blue: number;
+}
+
 export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
   const navigate = useNavigate();
@@ -157,13 +165,26 @@ export default function GameScreen() {
   // lobby Ranked (OG-256): a tela cobre a partida enquanto a sala não está em jogo
   const [lobby, setLobby] = useState<LobbyView | null>(null);
   const lobbyAt = useRef<{ msg: unknown; at: number }>({ msg: null, at: 0 });
+  // série (OG-257): placar na faixa do topo durante o jogo; no fim de um jogo, o placar final fica na
+  // tela por `game_end_delay` antes de o lobby (ou o fim da série) aparecer
+  const [series, setSeries] = useState<SeriesBar | null>(null);
+  const endHold = useRef({ phase: '', until: 0 });
   useEffect(() => {
     if (onlineKey === null) return;
     const id = setInterval(() => {
       const s = host.current?.session();
       const l = s?.lobby;
-      if (!s || !l || l.phase === 'game') return setLobby(null);
-      if (lobbyAt.current.msg !== l) lobbyAt.current = { msg: l, at: performance.now() };
+      if (!s || !l) {
+        setSeries(null);
+        return setLobby(null);
+      }
+      const now = performance.now();
+      if (endHold.current.phase === 'game' && l.phase !== 'game') endHold.current.until = now + s.settings.server.gameEndDelay * 1000;
+      endHold.current.phase = l.phase;
+      const holding = now < endHold.current.until;
+      setSeries(l.bestOf > 1 && (l.phase === 'game' || holding) ? { bestOf: l.bestOf, gameNo: l.gameNo, red: l.seriesRed, blue: l.seriesBlue } : null);
+      if (l.phase === 'game' || holding) return setLobby(null);
+      if (lobbyAt.current.msg !== l) lobbyAt.current = { msg: l, at: now };
       setLobby({
         lobby: l,
         at: lobbyAt.current.at,
@@ -258,16 +279,24 @@ export default function GameScreen() {
             <BitmapText text={toast} />
           </p>
         )}
-        {lobby && !menuOpen && <RankedLobby view={lobby} host={host.current} onLeave={() => void navigate('/rooms', { state: { mode: 'ranked' } })} />}
+        {series && !lobby && (
+          <p className="series-bar" role="status">
+            {`${t('Best of $1', String(series.bestOf))} · ${t('Game $1 of $2', String(Math.min(series.gameNo, series.bestOf)), String(series.bestOf))} · ${t('Red')} ${series.red} × ${series.blue} ${t('Blue')}`}
+          </p>
+        )}
+        {lobby && !menuOpen && (
+          <RankedLobby view={lobby} host={host.current} onLeave={() => void navigate('/rooms', { state: { mode: 'ranked' } })} onFinished={() => void navigate('/')}
+            {...(lastGameOverAt !== null && sala ? { onReport: openReport } : {})} />
+        )}
         {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
-        {gameOver && sala && !menuOpen && (
+        {gameOver && sala && !menuOpen && !lobby && (
           <Button variant="primary" className="game-report" onClick={openReport}>
             {t('View match report')}
           </Button>
         )}
         {menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
-        ) : onlineKey !== null && status?.kind === 'ready' ? null : (
+        ) : lobby || (onlineKey !== null && status?.kind === 'ready') ? null : (
           <p className="game-hint">
             <BitmapText
               text={

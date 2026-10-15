@@ -13,7 +13,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
-import { clock, date, duration, PlayerLink, Status, useApi, type MatchPage, type PlayerLine } from './stats.js';
+import { clock, date, duration, PlayerLink, Status, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
 const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
@@ -64,6 +64,67 @@ export function captureTimeline(captures: NonNullable<MatchPage['details']['capt
     else blue++;
     return { ...c, red, blue };
   });
+}
+
+/** Texto do resultado da série: vencedor, empate ou placar parcial. */
+export function seriesResult(s: SeriesView, t: (text: string, ...args: string[]) => string): string {
+  if (!s.finished) return t('Series in progress: $1 × $2', String(s.redWins), String(s.blueWins));
+  if (s.winner === null) return t('Series tied $1 × $2', String(s.redWins), String(s.blueWins));
+  return t(s.winner === 0 ? 'Red team wins the series $1 × $2' : 'Blue team wins the series $1 × $2', String(s.redWins), String(s.blueWins));
+}
+
+/** Jogos da série (OG-257, RN-RKL-03): placar da série e links para os outros relatórios. */
+function SeriesPanel({ series, current }: { series: SeriesView; current?: string }) {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  return (
+    <Panel title={`${t('Series')} · ${series.format} · ${series.bestOf === 1 ? t('Single game') : t('Best of $1', String(series.bestOf))}`} actions={current ? <Link to={`/series/${series.id}`}>{t('Series page')}</Link> : undefined}>
+      <p className="report-series-result">
+        <strong>{seriesResult(series, t)}</strong>
+      </p>
+      <Table
+        caption={t('Games of the series')}
+        rows={series.matches}
+        rowKey={(g) => g.id}
+        onRowActivate={(g) => g.id !== current && void navigate(`/matches/${g.id}`)}
+        empty={t('No games yet.')}
+        columns={[
+          { key: 'game', header: t('Game'), cell: (g) => (g.id === current ? <Badge tone="accent">{t('Game $1', String(g.gameNo ?? '?'))}</Badge> : t('Game $1', String(g.gameNo ?? '?'))) },
+          { key: 'map', header: t('Map'), cell: (g) => g.mapTitle },
+          { key: 'score', header: t('Score'), cell: (g) => `${g.redScore} – ${g.blueScore}`, align: 'end' },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+/** Página da série (OG-257): resultado final e os relatórios de cada jogo. */
+export function SeriesScreen() {
+  const { t, prefs } = usePrefs();
+  const navigate = useNavigate();
+  const { id = '' } = useParams();
+  const page = useApi<{ series: SeriesView }>(`/series/${encodeURIComponent(id)}`);
+  const s = page.data?.series;
+  if (!s) {
+    return (
+      <Page title={t('Series')} onBack={() => void navigate(-1)}>
+        <Status loading={page.data === undefined} missing={page.data === null} error={page.error} />
+      </Page>
+    );
+  }
+  return (
+    <Page title={`${t('Series')} ${s.format}`} subtitle={`${date(s.startedAt, prefs.locale)} · ${s.bestOf === 1 ? t('Single game') : t('Best of $1', String(s.bestOf))}`} onBack={() => void navigate(-1)}>
+      <section className="report-score" aria-label={t('Score')}>
+        <span className="report-team red">{t('Red')}</span>
+        <span className="report-points">
+          {s.redWins} – {s.blueWins}
+        </span>
+        <span className="report-team blue">{t('Blue')}</span>
+        <Badge tone={s.winner === null ? 'neutral' : 'success'}>{seriesResult(s, t)}</Badge>
+      </section>
+      <SeriesPanel series={s} />
+    </Page>
+  );
 }
 
 export function MatchScreen() {
@@ -123,7 +184,7 @@ export function MatchScreen() {
   return (
     <Page
       title={d.mapTitle ?? m.match.map}
-      subtitle={`${date(m.match.endedAt, prefs.locale)} · ${m.match.mode === 'ranked' ? t('Ranked') : t('Casual')}${m.match.mode === 'ranked' && !ranked ? ` (${t('did not count for the ranking')})` : ''} · ${duration(seconds)}`}
+      subtitle={`${date(m.match.endedAt, prefs.locale)} · ${m.match.mode === 'ranked' ? t('Ranked') : t('Casual')}${m.match.mode === 'ranked' && !ranked ? ` (${t('did not count for the ranking')})` : ''}${m.format ? ` · ${m.format}` : ''}${m.series && m.series.bestOf > 1 && m.gameNo ? ` · ${t('Game $1 of $2', String(m.gameNo), String(m.series.bestOf))}` : ''} · ${duration(seconds)}`}
       onBack={() => void navigate(-1)}
     >
       <section className="report-score" aria-label={t('Score')}>
@@ -169,6 +230,7 @@ export function MatchScreen() {
             </dl>
           )}
         </Panel>
+        {m.series && <SeriesPanel series={m.series} current={m.match.id} />}
         <Panel title={t('Captures')}>
           {timeline.length === 0 ? (
             <p className="ui-muted">{t('No captures.')}</p>

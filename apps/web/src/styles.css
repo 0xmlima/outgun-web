@@ -577,3 +577,20 @@ body {
     order: -1;
   }
 }
+
+/* Placar da série durante o jogo (OG-257): faixa pequena no topo, centralizada (área nova declarada) */
+.series-bar {
+  position: absolute;
+  top: var(--space-2);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 70%);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}

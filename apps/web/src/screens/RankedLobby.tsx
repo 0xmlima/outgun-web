@@ -41,7 +41,10 @@ export function secondsLeft(view: Pick<LobbyView, 'lobby' | 'at'>, now: number):
   return Math.max(0, Math.ceil(view.lobby.seconds - (now - view.at) / 1000));
 }
 
-export function RankedLobby({ view, host, onLeave }: { view: LobbyView; host: GameHost | null; onLeave: () => void }) {
+/** Fim da série (ou de uma md1): o resultado fica na tela e todos voltam ao menu inicial (D-41). */
+export const FINISHED_SECONDS = 10;
+
+export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { view: LobbyView; host: GameHost | null; onLeave: () => void; onFinished: () => void; onReport?: () => void }) {
   const { t } = usePrefs();
   const { lobby, me, maxPlayers, names } = view;
   const [now, setNow] = useState(() => performance.now());
@@ -62,6 +65,10 @@ export function RankedLobby({ view, host, onLeave }: { view: LobbyView; host: Ga
   const seconds = secondsLeft(view, now);
   const counts = voteCounts(lobby, view.maps.length);
   const ready = lobby.phase === 'ready' || lobby.phase === 'countdown';
+  const homeIn = lobby.phase === 'finished' ? Math.max(0, Math.ceil(FINISHED_SECONDS - (now - view.at) / 1000)) : null;
+  useEffect(() => {
+    if (homeIn === 0) onFinished();
+  }, [homeIn, onFinished]);
 
   const team = (s: 0 | 1) => {
     const list = side(s);
@@ -160,9 +167,25 @@ export function RankedLobby({ view, host, onLeave }: { view: LobbyView; host: Ga
           </div>
         ))}
         {outgoing && <p className="ui-muted">{t('Swap request sent to $1.', name(outgoing.to))}</p>}
-        <Button variant="ghost" onClick={onLeave}>
-          {t('Leave room')}
-        </Button>
+        {onReport && (
+          <Button variant="ghost" onClick={onReport}>
+            {t('View match report')}
+          </Button>
+        )}
+        {homeIn !== null ? (
+          <>
+            <p className="ui-muted" role="timer">
+              {t('Back to the main menu in $1 s.', String(homeIn))}
+            </p>
+            <Button variant="primary" onClick={onFinished}>
+              {t('Main menu')}
+            </Button>
+          </>
+        ) : (
+          <Button variant="ghost" onClick={onLeave}>
+            {t('Leave room')}
+          </Button>
+        )}
       </section>
       {team(1)}
       <section className="ranked-chat" aria-label={t('Room chat')}>
