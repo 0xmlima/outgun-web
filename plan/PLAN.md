@@ -723,7 +723,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-283](cards/OG-283-atualizacao-automatica.md) | Telas do portal paradas: atualização automática mais frequente | E8 | 1 | Should | S21 | — | Concluído |
 | [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | — | OG-283 | Backlog |
 | [OG-285](cards/OG-285-opcoes-nao-salvam.md) | Opções não ficam salvas (cor favorita, mensagens rápidas) | E8 | 2 | Must | S21 | — | Concluído |
-| [OG-286](cards/OG-286-powerups-somem-troca-sala.md) | Power-ups somem ao entrar numa sala | E11 | 1 | Must | S22 | — | Pronto |
+| [OG-286](cards/OG-286-powerups-somem-troca-sala.md) | Power-ups somem ao entrar numa sala | E11 | 1 | Must | S22 | — | Em revisão |
 | [OG-287](cards/OG-287-explosao-deathbringer.md) | Deathbringer sem explosão (anel e som) para os jogadores | E11 | 1 | Must | S22 | — | Pronto |
 | [OG-288](cards/OG-288-tempos-powerup-nao-zeram.md) | Tempos de shadow, turbo e power não zeram no cliente ao perder o item | E11 | 1 | Must | S22 | — | Pronto |
 | [OG-289](cards/OG-289-config-casual-pelo-cliente.md) | Configurar bots da sala Casual pelo cliente (quantidade e nível, inclusive variável) | E11 | 5 | Should | S22 | OG-266 | Pronto |

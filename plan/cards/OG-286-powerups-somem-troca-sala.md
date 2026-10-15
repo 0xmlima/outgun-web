@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S22 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-PUP-01..09, RN-VIS-03 |
 | Skills | `outgun-card-workflow` |
@@ -26,7 +26,8 @@ Como jogador, quero ver os power-ups que já estão na sala em que eu entro, par
 - Teste em `session.test.ts`: `powerupVisible` da sala nova seguido do frame com a troca de sala mantém o item; itens da sala antiga somem.
 
 ## Critérios de aceite
-- [ ] Teste da troca de sala com o item recebido no mesmo pacote.
+- [x] Teste da troca de sala com o item recebido no mesmo pacote.
 - [ ] (PO) Entrar numa sala com power-ups no chão: eles aparecem na hora, inclusive ao renascer.
 
 ## Notas de implementação
+- Na troca de sala o cliente só esquece itens de outras salas; os da sala nova, recebidos antes do frame, ficam. Servidor sem mudança.

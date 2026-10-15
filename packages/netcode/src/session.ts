@@ -631,8 +631,10 @@ export class ClientSession {
     const self = m.self;
     const me = this.ensurePlayer(this.me);
     if (self && me) {
-      // `oldRoom`: ao trocar de sala, o servidor manda de novo os power-ups visíveis
-      if (me.pos.roomX !== self.roomX || me.pos.roomY !== self.roomY) for (const it of world.items) it.kind = PowerupKind.unused;
+      // `oldRoom`: ao trocar de sala, esquece os power-ups das outras salas. Os da sala nova chegam
+      // no mesmo pacote, antes do frame (OG-286), e ficam.
+      if (me.pos.roomX !== self.roomX || me.pos.roomY !== self.roomY)
+        for (const it of world.items) if (it.pos.roomX !== self.roomX || it.pos.roomY !== self.roomY) it.kind = PowerupKind.unused;
       me.pos = new Position(self.roomX, self.roomY, self.x, self.y);
       me.vel = new Vec(self.vx, self.vy);
       me.health = self.health;

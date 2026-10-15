@@ -308,3 +308,21 @@ describe('ficar morto no menu (OG-070)', () => {
     expect(sent.filter((m) => m.type === 'clientReady')).toHaveLength(2);
   });
 });
+
+describe('power-ups do próprio jogador', () => {
+  const inRoom = (n: number, roomX: number, p: FramePlayer) => {
+    const f = frame(n, [p]);
+    f.self = { ...f.self!, roomX };
+    return f;
+  };
+  const visible = (id: number, roomX: number) => message('powerupVisible', { id, kind: 'turbo', roomX, roomY: 0, x: 100, y: 100 });
+
+  it('ao trocar de sala, guarda os itens da sala nova que chegaram antes do frame (OG-286)', () => {
+    const { s } = session();
+    s.handle([visible(0, 0), inRoom(10, 0, player(0, 100, 100))], 1000);
+    expect(s.world!.items[0]!.isReal()).toBe(true);
+    s.handle([visible(1, 1), inRoom(11, 1, player(0, 5, 100))], 1100);
+    expect(s.world!.items[0]!.isReal()).toBe(false); // sala antiga: esquecido
+    expect(s.world!.items[1]!.isReal()).toBe(true);
+  });
+});
