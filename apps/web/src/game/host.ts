@@ -264,6 +264,12 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     } else if (action === 'changeTeam' && onlineHud && session) {
       onlineHud.wantChangeTeams = !onlineHud.wantChangeTeams;
       session.send(message('changeTeam', { on: onlineHud.wantChangeTeams }));
+    } else if (action === 'pause' && session?.pause) {
+      // pausa tática do Ranked (OG-260/264): pausado pede a retomada, senão pede a pausa
+      session.send(message('pauseRequest', { on: !session.paused }));
+    } else if ((action === 'voteBot' || action === 'voteShort') && onlineHud && session) {
+      const vote = onlineHud.vote(action === 'voteBot');
+      if (vote) session.send(vote);
     }
     else if (action === 'fullPlayfield' && onlineHud) {
       fullHud = !fullHud;
@@ -514,6 +520,16 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       app.canvas.className = 'game-canvas';
       app.canvas.setAttribute('aria-label', 'Outgun');
       container.append(app.canvas);
+      // clique numa opção do voto do bot substituto (OG-264)
+      app.canvas.addEventListener('pointerdown', (ev) => {
+        if (!hud?.voteTargets.length || !screen || !onlineHud || !session) return;
+        const r = app.canvas.getBoundingClientRect();
+        const x = ((ev.clientX - r.left) * screen.screenW) / r.width;
+        const y = ((ev.clientY - r.top) * screen.screenH) / r.height;
+        const hit = hud.voteTargets.find((v) => x >= v.x0 && x <= v.x1 && y >= v.y0 && y <= v.y1);
+        const vote = hit && onlineHud.vote(hit.bot);
+        if (vote) session.send(vote);
+      });
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
       const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);

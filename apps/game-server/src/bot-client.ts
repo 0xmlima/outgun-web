@@ -3,7 +3,7 @@
 // bytes que um jogador humano, com o atraso de `bot_ping` (`ServerClientLocalConnection`), monta a
 // visão do jogo com o `ClientSession` do netcode, decide com a IA de @outgun/bots e devolve à sala
 // `input` e `fire` como um cliente (RN-BOT-02). Spec: plan/specs/bots-ia.md.
-import { acquireAreaMap, BotPlayer, BotView, releaseAreaMap, Robot, type AreaMap, type BotFlagRules } from '@outgun/bots';
+import { acquireAreaMap, BotPlayer, botSkill, BotView, releaseAreaMap, Robot, type AreaMap, type BotFlagRules, type BotSkill } from '@outgun/bots';
 import { ClientSession } from '@outgun/netcode';
 import { decodeFrame, message, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import type { PhysicsSettings } from '@outgun/settings';
@@ -85,6 +85,8 @@ export class BotClient implements Connection {
     private readonly host: BotHost,
     private readonly rng: Rng,
     private readonly clock: () => number = () => performance.now(),
+    /** Nível de dificuldade (OG-266); sem ele, o de referência (Casual). */
+    public skill: BotSkill = botSkill(),
   ) {
     this.session = new ClientSession({
       send: (messages) => this.toServer(messages),
@@ -116,6 +118,11 @@ export class BotClient implements Connection {
     this.dropMap();
   }
 
+  /** pid na sala (−1 antes do `attach`). */
+  get playerId(): number {
+    return this.pid;
+  }
+
   moved(pid: number): void {
     this.pid = pid;
   }
@@ -126,12 +133,14 @@ export class BotClient implements Connection {
   step(): void {
     if (this.closed || this.pid < 0) return;
     const t0 = this.clock();
-    const delayFrames = Math.round(this.host.botPing() / 100);
+    const delayFrames = Math.max(0, Math.round(this.host.botPing() / 100) + this.skill.reactionFrames);
     while (this.inbox.length > 0 && this.inbox[0]!.frame + delayFrames <= this.host.frame) {
       const messages = decodeShared(this.inbox.shift()!.data);
       if (messages) this.receive(messages);
     }
-    if (this.worldFrame !== this.reactedFrame && this.worldFrame >= 0) {
+    // nível baixo decide a cada N frames (OG-266); o de referência decide em todo frame novo
+    const due = this.skill.decideEvery <= 1 || this.reactedFrame < 0 || Math.abs(this.worldFrame - this.reactedFrame) >= this.skill.decideEvery;
+    if (this.worldFrame !== this.reactedFrame && this.worldFrame >= 0 && due) {
       this.reactedFrame = this.worldFrame;
       const t1 = this.clock();
       this.decide();
@@ -263,6 +272,7 @@ export class BotClient implements Connection {
     let fire = false;
     if (view && robot) {
       robot.me = s.me;
+      robot.skill = this.skill;
       const pending = (this.clFrameSent - this.clFrameWorld + 256) % 256;
       const history: number[] = [];
       if (pending === 0) history.push(this.controlHistory[this.clFrameSent]!);

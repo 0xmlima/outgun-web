@@ -231,6 +231,22 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Toggle sound': 'Ligar/desligar som',
     Screenshot: 'Captura de tela',
     'Focus mode': 'Modo foco',
+    // Pausa e voto do bot substituto no Ranked (OG-264)
+    'Pause (Ranked)': 'Pausa (Ranked)',
+    'Vote: bot in place': 'Voto: bot no lugar',
+    'Vote: play one short': 'Voto: seguir com um a menos',
+    PAUSED: 'PAUSADO',
+    'Resuming in $1': 'Retomando em $1',
+    'Pause requested by $1 ($2) - $3 s left': 'Pausa pedida por $1 ($2) - restam $3 s',
+    'P resumes': 'P retoma',
+    '$1 lost connection': '$1 caiu',
+    'Waiting for reconnection: $1 s': 'Esperando a reconexão: $1 s',
+    '$1 left the game': '$1 saiu do jogo',
+    '$1 team is voting: $2 s': 'Time $1 votando: $2 s',
+    'Team vote: $1 s': 'Voto do time: $1 s',
+    '[1] Bot in place ($1)': '[1] Bot no lugar ($1)',
+    '[2] Play one short ($1)': '[2] Seguir com um a menos ($1)',
+    'Pause left - Red: $1 s ($2) Blue: $3 s ($4)': 'Saldo de pausa - Vermelho: $1 s ($2) Azul: $3 s ($4)',
     'Control scheme': 'Esquema de teclas',
     Classic: 'Clássico',
     'Browser (no Ctrl/Alt)': 'Navegador (sem Ctrl/Alt)',
@@ -416,6 +432,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Invite: 'Convidar',
     // Clã x clã (OG-259)
     'Clan vs clan': 'Clã x clã',
+    // Partida Ranked com desconexão permanente (OG-263)
+    'Completed with bots': 'Concluída com bots',
+    'Short-handed': 'Com um a menos',
     // Hall da fama (OG-268)
     'Hall of fame': 'Hall da fama',
     'The top 3 of every finished season: overall, in each format and among clans.': 'Os 3 primeiros de cada temporada encerrada: no geral, em cada formato e entre os clãs.',

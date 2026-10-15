@@ -12,6 +12,7 @@ import { checkGuestName } from '../auth/names.js';
 import { verifyPassword } from '../auth/password.js';
 import { bans, clanMembers, gameServers, rooms } from '../db/schema.js';
 import { playerRating } from '../ranking.js';
+import { botLevelFrom, recentRanked } from '../bot-level.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 
@@ -85,6 +86,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     // clã cadastrado (OG-253): no lobby Ranked o clã entra do mesmo lado
     const [member] = user && room.mode === 'ranked' ? await db.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id)) : [];
     const clanId = member?.clanId;
+    const rating = user ? await playerRating(db, user.id, room.format ?? undefined) : undefined;
     const jti = randomUUID();
     const ticket = signTicket(
       {
@@ -98,7 +100,9 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         ranked: room.mode === 'ranked',
         ...(user && room.ownerId === user.id ? { owner: true } : {}),
         // força no modificador de time e participação nos deltas (OG-084); sala com formato usa o rating dele (OG-258)
-        ...(user ? { rating: ticketRating(await playerRating(db, user.id, room.format ?? undefined)) } : {}),
+        ...(rating ? { rating: ticketRating(rating) } : {}),
+        // nível do bot substituto pelo histórico Ranked (OG-266)
+        ...(user && rating && room.mode === 'ranked' ? { botLevel: botLevelFrom({ ...(await recentRanked(db, user.id)), rank: rating.rank, of: rating.of }) } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
         ...(device ? { dev: device } : {}),
       },

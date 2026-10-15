@@ -1,6 +1,6 @@
 {
   "name": "@outgun/sim",
-  "version": "2.19.0",
+  "version": "2.20.0",
   "private": true,
   "description": "Simulação determinística do Outgun (port de src/world.cpp), compartilhada por servidor e cliente.",
   "license": "GPL-2.0-or-later",

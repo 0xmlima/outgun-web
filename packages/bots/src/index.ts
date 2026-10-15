@@ -8,3 +8,4 @@ export * from './robot-core.js';
 export * from './shared.js';
 export * from './situation.js';
 export * from './view.js';
+export * from './skill.js';

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.19.0",
+    "version": "2.20.0",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -2490,6 +2490,8 @@
                               "ranked",
                               "format",
                               "clanWar",
+                              "withBots",
+                              "shortHanded",
                               "map",
                               "mapTitle",
                               "redScore",
@@ -2541,6 +2543,12 @@
                                 ]
                               },
                               "clanWar": {
+                                "type": "boolean"
+                              },
+                              "withBots": {
+                                "type": "boolean"
+                              },
+                              "shortHanded": {
                                 "type": "boolean"
                               },
                               "map": {
@@ -2763,6 +2771,8 @@
                             "ranked",
                             "format",
                             "clanWar",
+                            "withBots",
+                            "shortHanded",
                             "map",
                             "mapTitle",
                             "redScore",
@@ -2814,6 +2824,12 @@
                               ]
                             },
                             "clanWar": {
+                              "type": "boolean"
+                            },
+                            "withBots": {
+                              "type": "boolean"
+                            },
+                            "shortHanded": {
                               "type": "boolean"
                             },
                             "map": {
@@ -3090,7 +3106,9 @@
                                   "mapTitle",
                                   "redScore",
                                   "blueScore",
-                                  "endedAt"
+                                  "endedAt",
+                                  "withBots",
+                                  "shortHanded"
                                 ],
                                 "properties": {
                                   "id": {
@@ -3117,6 +3135,12 @@
                                   },
                                   "endedAt": {
                                     "type": "string"
+                                  },
+                                  "withBots": {
+                                    "type": "boolean"
+                                  },
+                                  "shortHanded": {
+                                    "type": "boolean"
                                   }
                                 }
                               }
@@ -3303,7 +3327,9 @@
                               "mapTitle",
                               "redScore",
                               "blueScore",
-                              "endedAt"
+                              "endedAt",
+                              "withBots",
+                              "shortHanded"
                             ],
                             "properties": {
                               "id": {
@@ -3330,6 +3356,12 @@
                               },
                               "endedAt": {
                                 "type": "string"
+                              },
+                              "withBots": {
+                                "type": "boolean"
+                              },
+                              "shortHanded": {
+                                "type": "boolean"
                               }
                             }
                           }
@@ -8663,6 +8695,45 @@
                         ]
                       }
                     }
+                  },
+                  "substitutions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["kind", "team", "atSeconds"],
+                      "properties": {
+                        "kind": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["bot"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["short"]
+                            }
+                          ]
+                        },
+                        "team": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "enum": [0]
+                            },
+                            {
+                              "type": "number",
+                              "enum": [1]
+                            }
+                          ]
+                        },
+                        "atSeconds": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        }
+                      }
+                    },
+                    "maxItems": 10
                   },
                   "players": {
                     "type": "array",

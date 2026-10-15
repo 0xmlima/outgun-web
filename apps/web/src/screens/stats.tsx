@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
+import { Badge } from '../ui/Button.js';
 import { Tabs } from '../ui/Tabs.js';
 
 export type Mode = 'ranked' | 'casual';
@@ -47,6 +48,9 @@ export interface MatchSummary {
   format: RankedFormat | null;
   /** Partida clã x clã (OG-259, RN-RKL-14). */
   clanWar?: boolean;
+  /** Concluída com bot substituto / com um a menos (OG-263, RN-RKL-20). */
+  withBots?: boolean;
+  shortHanded?: boolean;
   map: string;
   mapTitle: string;
   redScore: number;
@@ -113,7 +117,7 @@ export interface SeriesView {
   winner: 0 | 1 | null;
   finished: boolean;
   startedAt: string;
-  matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string }[];
+  matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string; withBots?: boolean; shortHanded?: boolean }[];
 }
 
 export interface Leaderboard {
@@ -123,6 +127,17 @@ export interface Leaderboard {
 }
 
 /** Carrega `path` da API; `null` = não encontrado. `keep` mantém os dados anteriores enquanto troca de filtro. */
+/** Selos de partida Ranked com desconexão permanente (OG-263, RN-RKL-20); nada na partida normal. */
+export function SubstitutionBadges({ withBots, shortHanded }: { withBots?: boolean | undefined; shortHanded?: boolean | undefined }) {
+  const { t } = usePrefs();
+  return (
+    <>
+      {withBots && <Badge tone="warning">{t('Completed with bots')}</Badge>}
+      {shortHanded && <Badge tone="warning">{t('Short-handed')}</Badge>}
+    </>
+  );
+}
+
 export function useApi<T>(path: string, keep = false): { data: T | null | undefined; error: string | null } {
   const [state, setState] = useState<{ data: T | null | undefined; error: string | null }>({ data: undefined, error: null });
   useEffect(() => {

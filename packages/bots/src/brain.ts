@@ -48,6 +48,7 @@ import {
   teams,
 } from './situation.js';
 import type { BotPlayer, BotView } from './view.js';
+import { botSkill, type BotSkill } from './skill.js';
 
 const R2R = ROOM_TO_ROOM_BASE_DISTANCE;
 const other = (team: number): 0 | 1 => (team === 0 ? 1 : 0);
@@ -60,6 +61,9 @@ export interface BotDecision {
 
 /** Bot completo: o `Robot` do original menos a conexão (o cliente virtual fica no servidor). */
 export class Robot extends RobotCore {
+  /** Nível de dificuldade (OG-266); o de referência é o original. */
+  skill: BotSkill = botSkill();
+
   constructor(view: BotView, areaMap: AreaMap, me: number, rng: Rng) {
     super(view, areaMap, me, rng);
     this.buildMap();
@@ -592,7 +596,7 @@ export class Robot extends RobotCore {
       const [s, dir] = needShootFreeTurning(this, this.myGundir);
       shoot = s;
       const turnCeilingPerFrame = N_PI_2;
-      const displacementMul = 0.7;
+      const displacementMul = 0.7 * this.skill.aimSpread;
       const shootThreshold = N_PI / 8; // atira com a mira a até 22° do alvo
       const targetDiff = positiveFmod(dir * N_PI_4 - this.gunDir * N_PI_4 + N_PI, 2 * N_PI) - N_PI;
       let actualDiff = targetDiff;
@@ -604,8 +608,11 @@ export class Robot extends RobotCore {
       this.gunDir = adjustGunDirection(this.gunDir, actualDiff);
       if (Math.abs(actualDiff - targetDiff) > shootThreshold) shoot = false;
     } else {
-      const [s, dir] = needShootTradTurning(this);
+      const [s, aimed] = needShootTradTurning(this);
       shoot = s;
+      let dir = aimed;
+      // nível baixo (OG-266): às vezes atira 1/8 de volta para o lado; o nível de referência não sorteia
+      if (shoot && this.skill.aimMiss > 0 && this.rand() % 1000 < this.skill.aimMiss * 1000) dir = (dir + (this.rand() % 2 ? 1 : 7)) % 8;
       if (shoot && dir !== this.myGundir) {
         if (dir === currentGundir) {
           ctrl |= Ctl.strafe;

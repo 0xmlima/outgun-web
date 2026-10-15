@@ -11,11 +11,15 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
+import { botSkill } from '@outgun/bots';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
 import { RankedLobby } from './ranked-lobby.js';
-import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
+import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
+/** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
+const MAX_SUBSTITUTES = 2;
+import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer, type Substitution } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
@@ -66,6 +70,8 @@ export interface Identity {
   rating?: PlayerRating;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
+  /** Nível do bot substituto desta conta (OG-266, do ticket Ranked); ausente = intermediário. */
+  botLevel?: number;
   /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
   device?: string;
 }
@@ -196,11 +202,24 @@ interface Client {
   /** Deltas do ranking ainda não enviados (OG-084). */
   deltas: RankingDeltas;
   disconnectedFrame: number | null;
+  /** Saiu de vez de um jogo Ranked e o time está votando o bot substituto (OG-262). */
+  departing?: boolean;
+  /** Bot substituto (OG-262): quem ele substitui, para devolver a vaga se a pessoa voltar. */
+  replaced?: { identity: Identity; resumeToken: string };
 }
 
 const FLAG_TYPE = { [CarriedFlag.None]: 'none', [CarriedFlag.Own]: 'own', [CarriedFlag.Enemy]: 'enemy', [CarriedFlag.Wild]: 'wild' } as const;
 const CAUSE = { [DamageType.rocket]: 'rocket', [DamageType.deathbringer]: 'deathbringer', [DamageType.collision]: 'collision' } as const;
 const FLAG_TEAM = ['red', 'blue', 'wild'] as const;
+/** Avisos da pausa do Ranked (OG-260). */
+const PAUSE_TEXT: Record<PauseRefusal | 'unavailable', string> = {
+  unavailable: 'Pausa só no Ranked, com o jogo em andamento.',
+  busy: 'O jogo já está pausado.',
+  noBalance: 'Seu time não tem mais saldo de pausa neste jogo.',
+  noRequests: 'Seu time já usou os 3 pedidos de pausa deste jogo.',
+  notPaused: 'O jogo não está pausado.',
+  notYours: 'Só o time que pediu a pausa pode retomar.',
+};
 /** Ações que contam como atividade do jogador (o idle kick do original olha os controles). */
 function isActivity(m: AnyMessage): boolean {
   if (m.type === 'input') return (m.controls & 0x3f) !== 0;
@@ -248,6 +267,14 @@ export class Room {
   /** Lobby das salas Ranked com formato (OG-252): fora do jogo o mundo fica parado. */
   readonly lobby: RankedLobby | undefined;
   private lobbyDirty = false;
+  /** Pausa do jogo Ranked (OG-260): com ela ativa o mundo não anda (nem `world.frame`). */
+  readonly pause: RankedPause | undefined;
+  /** Último `pauseState` enviado (só manda quando muda). */
+  private sentPause = '';
+  /** Bots substitutos que já entraram neste jogo (OG-262). */
+  private substitutes = 0;
+  /** Desconexões permanentes deste jogo, para o relatório (OG-263). */
+  private substitutions: Substitution[] = [];
   /** Pedidos de troca de lado no lobby (OG-253): quem pediu → com quem. */
   private readonly swapRequests = new Map<number, number>();
   /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
@@ -319,6 +346,7 @@ export class Room {
       const lobbyRng = new GlibcRand(options.seed + 3);
       this.lobby = new RankedLobby(options.maxPlayers, this.rotation.length, (n) => lobbyRng.rand() % n);
     }
+    if (this.mode === 'ranked') this.pause = new RankedPause();
     this.world = new WorldState((this.rotation[first] as { map: GameMap }).map, options.maxPlayers);
     this.sim = new ServerSim(this.world, this.settings, rng, {
       kill: (attacker, target, cause, carried, carrierDefended, flagDefended) => {
@@ -493,6 +521,7 @@ export class Room {
     out.push(teamStatsMessage(0, this.world.teams[0]), teamStatsMessage(1, this.world.teams[1])); // `send_team_stats`
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
     out.push(message('flagModes', this.sim.flagModes())); // `send_flag_modes` na entrada
+    if (this.pause) out.push(this.pauseStateMessage()); // quem entra ou volta vê a pausa e o saldo (OG-264)
     return out;
   }
 
@@ -514,14 +543,22 @@ export class Room {
    * A conexão caiu (OG-047): a vaga, o time e as estatísticas ficam guardados por
    * `reconnectSeconds`; o jogador fica parado no mundo. Só vale para a conexão atual do jogador.
    */
-  disconnect(pid: number, conn: Connection): void {
+  disconnect(pid: number, conn: Connection, voluntary = false): void {
     const c = this.clients.get(pid);
     if (!c || c.conn !== conn) return;
     if (c.bot || this.reconnectFrames === 0 || c.kickTimer > 0) return this.leave(pid);
     // no lobby Ranked a vaga não fica guardada: quem cai fora do jogo libera a vaga (OG-252)
     if (this.lobby && !this.lobby.playing) return this.leave(pid);
+    // jogo Ranked: "Sair" é desconexão permanente na hora; a queda pausa o jogo (OG-261, RN-RKL-17/18)
+    const rankedGame = this.pause !== undefined && this.inGame;
     c.conn = OFFLINE;
-    c.disconnectedFrame = this.world.frame;
+    c.disconnectedFrame = this.uptimeFrames; // relógio da sala: anda também com o jogo pausado
+    if (rankedGame) {
+      this.releaseKeys();
+      // "Sair" sem bot disponível vira um a menos na hora e o jogador já sai da sala aqui
+      if (voluntary) return this.depart(pid);
+      this.pause!.drop(pid, this.world.teamOf(pid) as 0 | 1, this.uptimeFrames + this.reconnectFrames);
+    }
     const pl = this.world.players[pid] as PlayerState;
     pl.controls = 0;
     pl.attack = false;
@@ -530,11 +567,19 @@ export class Room {
   /** Volta de quem caiu: pelo token de retomada ou pela mesma conta. null = não há vaga guardada. */
   resume(conn: Connection, identity: Identity, token: string): JoinResult | null {
     const found = [...this.clients].find(
-      ([, c]) => !c.bot && c.kickTimer === 0 && ((token !== '' && c.resumeToken === token) || (c.disconnectedFrame !== null && identity.accountId !== null && c.identity.accountId === identity.accountId)),
+      ([, c]) =>
+        (!c.bot && c.kickTimer === 0 && ((token !== '' && c.resumeToken === token) || (c.disconnectedFrame !== null && identity.accountId !== null && c.identity.accountId === identity.accountId))) ||
+        // vaga ocupada pelo bot substituto: quem foi substituído volta e o bot sai (OG-262)
+        (c.replaced !== undefined && ((token !== '' && c.replaced.resumeToken === token) || (identity.accountId !== null && c.replaced.identity.accountId === identity.accountId))),
     );
     if (!found) return null;
     const [pid, c] = found;
-    if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
+    if (c.replaced) {
+      c.conn.close(1000, 'replaced');
+      Object.assign(c, { identity: c.replaced.identity, bot: false, replaced: undefined, deltas: new RankingDeltas() });
+      this.broadcast(message('playerName', { pid, name: c.identity.name }));
+      this.pause?.brief(this.world.teamOf(pid) as 0 | 1, pid, this.uptimeFrames); // volta com a contagem de 3 s
+    } else if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
     Object.assign(c, {
       conn,
       identity: { ...c.identity, ...(identity.ip ? { ip: identity.ip } : {}) },
@@ -551,14 +596,22 @@ export class Room {
       idleFrames: 0,
       resumeToken: randomUUID(),
       disconnectedFrame: null,
+      departing: false,
     });
     (this.world.players[pid] as PlayerState).awaitingClientReadies++; // precisa carregar o mapa de novo
+    this.pause?.undrop(pid, this.uptimeFrames); // voltou: sem mais ninguém caído, retomada em 3 s (OG-261)
     this.send(pid, [...this.welcomeMessages(pid), message('resumeToken', { token: c.resumeToken })]);
     return { ok: true, pid };
   }
 
   private get reconnectFrames(): number {
+    if (this.mode === 'ranked' && this.options.reconnectSeconds !== 0) return RANKED_RECONNECT_FRAMES; // D-46; 0 = sem reconexão
     return Math.round((this.options.reconnectSeconds ?? 15) * 10);
+  }
+
+  /** Jogo em andamento (fora do placar de fim e do lobby Ranked). */
+  private get inGame(): boolean {
+    return this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
   }
 
   /** Saída (`client_disconnected` → `removePlayer`); os deltas do ranking vão antes. */
@@ -569,6 +622,8 @@ export class Room {
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
+    this.pause?.undrop(pid, this.uptimeFrames); // prazo esgotado, saída ou expulsão: não espera mais por ele
+    this.pause?.removeVoter(pid);
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
     if (this.lobby) {
       this.lobby.leave(pid, this.world.frame);
@@ -788,6 +843,7 @@ export class Room {
           if (!client.hasInput || m.clientFrame !== client.lastClientFrame) client.frameOffset = ((this.now() - this.frameSentTime) * 10) / 1000;
           client.hasInput = true;
           client.lastClientFrame = m.clientFrame;
+          if (this.pause?.active) break; // pausado: ninguém se mexe nem mira (OG-260)
           pl.controls = clearModifiersIfIdle(m.controls & 0x3f);
           pl.accelerationMode = (m.gundir & 0x800) !== 0 && this.settings.physics.allowFreeTurning ? 'gun' : 'world';
           if (!pl.dead) {
@@ -797,6 +853,7 @@ export class Room {
           break;
         }
         case 'fire':
+          if (this.pause?.active) break;
           if (m.on) {
             pl.attack = true;
             pl.attackOnce = true;
@@ -804,9 +861,11 @@ export class Room {
           } else pl.attack = false;
           break;
         case 'dropFlag':
+          if (this.pause?.active) break;
           this.sim.setDropKey(pid, m.on);
           break;
         case 'suicide':
+          if (this.pause?.active) break;
           if (!pl.underDeathbringerEffect(this.world.time)) this.sim.suicide(pid);
           break;
         case 'minimapBandwidth':
@@ -831,6 +890,12 @@ export class Room {
           break;
         case 'lobbySwapAnswer':
           this.lobbySwapAnswer(pid, m.from, m.accept);
+          break;
+        case 'pauseRequest':
+          this.pauseRequest(pid, m.on);
+          break;
+        case 'substituteVote':
+          this.pause?.cast(pid, m.bot);
           break;
         case 'changeTeam':
           if (this.lobby) break; // no lobby Ranked a troca de lado é pelo `lobbySide` (OG-253)
@@ -921,7 +986,14 @@ export class Room {
       }
     }
     if (this.lobby) this.lobbyTick();
-    const running = this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
+    const inGame = this.inGame;
+    for (let r = this.pause?.decide(this.uptimeFrames); r; r = this.pause?.decide(this.uptimeFrames)) {
+      if (r.bot && this.substitutes < MAX_SUBSTITUTES) this.substitute(r.pid);
+      else this.goShort(r.pid);
+    }
+    if (this.pause?.tick(this.uptimeFrames)) this.broadcast(this.mapTimeMessage()); // retomou: relógio do cliente no lugar
+    const paused = inGame && (this.pause?.active ?? false);
+    const running = inGame && !paused;
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
       for (const c of this.clients.values()) c.talk.cool(); // `simulatePlayerPrePhysics`
@@ -961,12 +1033,14 @@ export class Room {
       this.sentFlagModes = flagModesKey;
     }
     this.playerTimers(running);
+    this.sendPauseState();
     this.flush();
     if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()));
     this.spectators.tick(world.frame, this.settings.server.spectatingDelay);
     const views = minimapViews(world, this.settings);
     for (const [pid, c] of this.clients) {
-      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
+      // pausado o frame continua indo (o mesmo número): o cliente mostra o mundo parado
+      const { frame, properties } = buildFrame(world, this.settings, views, pid, c.rs, { running: inGame, lastClientFrame: c.lastClientFrame, frameOffset: c.frameOffset, ping: null });
       const extra = properties.length ? [message('minimapProperties', { players: properties })] : [];
       this.send(pid, [...c.queue, message('frame', frame), ...extra]);
       c.queue = [];
@@ -974,8 +1048,119 @@ export class Room {
     this.frameSentTime = this.now();
     this.thinkAfterBroadcast();
     // `bot_loop` de cada bot: recebe o que chegou (com `bot_ping`) e decide para o próximo frame
+    if (paused) return; // o mundo não anda: nem frame, nem bots (OG-260)
     for (const bot of this.botClients()) bot.step();
     world.frame++;
+  }
+
+  /** Pedido de pausa (on) ou de retomada (off) do time do jogador (OG-260, RN-RKL-15/16). */
+  private pauseRequest(pid: number, on: boolean): void {
+    const pause = this.pause;
+    if (!pause || !this.inGame) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: PAUSE_TEXT.unavailable }));
+    const team = this.world.teamOf(pid) as 0 | 1;
+    const refusal = on ? pause.request(team, pid) : pause.resume(team, this.uptimeFrames);
+    if (refusal) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: PAUSE_TEXT[refusal] }));
+    if (on) this.releaseKeys();
+  }
+
+  /**
+   * Desconexão permanente no jogo Ranked (OG-262, RN-RKL-18/19): o time desfalcado vota entre bot e
+   * um a menos; sem bot disponível (limite de 2 por partida), segue direto com um a menos.
+   */
+  private depart(pid: number): void {
+    const c = this.clients.get(pid);
+    const pause = this.pause;
+    if (!c || !pause) return;
+    const offered = this.substitutes + pause.votes.length;
+    if (offered >= MAX_SUBSTITUTES) return this.goShort(pid);
+    c.departing = true;
+    const team = this.world.teamOf(pid) as 0 | 1;
+    const voters = [...this.clients].filter(([p, o]) => p !== pid && !o.bot && o.conn !== OFFLINE && this.world.teamOf(p) === team).map(([p]) => p);
+    pause.depart(pid, team, voters, this.uptimeFrames);
+  }
+
+  /**
+   * Bot substituto (OG-262): assume a vaga (o mesmo pid, com os frags e a bandeira) como `BOT-<nome>`,
+   * com o clã do substituído (clã x clã, OG-259). É o único caminho de bot no Ranked (RN-MOD-06).
+   */
+  private substitute(pid: number): void {
+    const c = this.clients.get(pid);
+    if (!c?.departing) return;
+    this.flushDeltas(pid); // o que a pessoa fez até aqui é dela; o bot não pontua (sem conta)
+    const { identity } = c;
+    const bot = new BotClient(this.botHost(), this.botRng, this.now, botSkill(identity.botLevel)); // nível pelo histórico (OG-266)
+    Object.assign(c, {
+      conn: bot,
+      bot: true,
+      departing: false,
+      disconnectedFrame: null,
+      replaced: { identity, resumeToken: c.resumeToken },
+      identity: { name: `BOT-${identity.name}`, accountId: null, clanTag: identity.clanTag ?? null, clanId: identity.clanId ?? null },
+      deltas: new RankingDeltas(),
+      hasInput: false,
+      queue: [],
+      rs: new RecipientState(),
+    });
+    this.substitutes++;
+    this.substitutions.push({ kind: 'bot', team: this.world.teamOf(pid) as 0 | 1, atSeconds: Math.trunc(this.world.mapTime() / 10) });
+    const pl = this.world.players[pid] as PlayerState;
+    pl.awaitingClientReadies = 0; // bot não carrega mapa
+    bot.attach(pid);
+    this.send(pid, this.welcomeMessages(pid));
+    this.broadcast(message('playerName', { pid, name: c.identity.name }));
+  }
+
+  /** O time segue com um a menos (OG-262/263). */
+  private goShort(pid: number): void {
+    if (!this.clients.has(pid)) return;
+    this.substitutions.push({ kind: 'short', team: this.world.teamOf(pid) as 0 | 1, atSeconds: Math.trunc(this.world.mapTime() / 10) });
+    this.leave(pid);
+  }
+
+  /** Fim do jogo: o bot substituto não passa para o próximo (D-43) e quem saiu no meio do voto sai; a vaga reabre. */
+  private dropSubstitutes(): void {
+    for (const [pid, c] of [...this.clients]) if (c.replaced || c.departing) this.leave(pid);
+    this.substitutes = 0;
+    this.substitutions = [];
+  }
+
+  /** Ninguém fica com tecla presa durante a pausa. */
+  private releaseKeys(): void {
+    for (const p of this.world.players) {
+      if (!p) continue;
+      p.controls = 0;
+      p.attack = false;
+      p.attackOnce = false;
+    }
+  }
+
+  /** `pauseState` para todos quando algo visível muda (fase, segundos, saldo). */
+  private sendPauseState(): void {
+    if (!this.pause) return;
+    const msg = this.pauseStateMessage();
+    const key = JSON.stringify(msg);
+    if (key === this.sentPause) return;
+    this.sentPause = key;
+    this.broadcast(msg);
+  }
+
+  private pauseStateMessage(): AnyMessage {
+    const pause = this.pause!;
+    const cause = pause.cause;
+    const state = {
+      phase: pause.phase,
+      reason: cause?.reason ?? 'team',
+      team: cause?.team ?? 0,
+      by: cause?.by ?? 255, // 255 = ninguém (`pidOrNone`)
+      seconds: pause.seconds(this.uptimeFrames),
+      redSeconds: Math.ceil(pause.balance[0] / 10),
+      redRequests: PAUSE_REQUESTS - pause.requests[0],
+      blueSeconds: Math.ceil(pause.balance[1] / 10),
+      blueRequests: PAUSE_REQUESTS - pause.requests[1],
+      votesBot: pause.tally()[0],
+      votesShort: pause.tally()[1],
+    } as const;
+    return message('pauseState', state);
   }
 
   /** Anúncio "x/y votos para trocar de mapa" e o fim do bloqueio de votação. */
@@ -1022,6 +1207,9 @@ export class Room {
     const c = this.clients.get(pid);
     if (!c || raw === '') return;
     const text = raw; // mais de MAX_CHAT_LENGTH já foi recusado como mensagem inválida (OG-043)
+    // pausa tática pelo chat (D-45): /pause e /resume
+    const cmd = text.trim().toLowerCase();
+    if (cmd === '/pause' || cmd === '/resume') return this.pauseRequest(pid, cmd === '/pause');
     if (text.startsWith('/')) return runCommand(this.console, pid, text);
     if (text.trim() === '') return; // só espaços
     if (c.talk.speak()) return this.queueTo(pid, message('tooMuchTalk', {}));
@@ -1055,7 +1243,11 @@ export class Room {
     const humans = [...this.clients.values()].filter((c) => !c.bot).length;
     for (const [pid, c] of [...this.clients]) {
       if (c.disconnectedFrame !== null) {
-        if (this.world.frame - c.disconnectedFrame >= this.reconnectFrames) this.leave(pid);
+        // `<=`: o relógio da sala anda no início do tick; sai no tick em que se completam os frames da queda
+        if (c.departing || this.uptimeFrames - c.disconnectedFrame <= this.reconnectFrames) continue;
+        // queda no jogo Ranked sem volta no prazo: desconexão permanente e voto do bot (OG-262)
+        if (this.pause?.drops.has(pid)) this.depart(pid);
+        else this.leave(pid);
         continue;
       }
       if (c.kickTimer) {
@@ -1282,9 +1474,11 @@ export class Room {
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
+    this.pause?.reset(); // saldo de pausa por jogo, também na série (D-45)
     // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar (e no fim do replay)
     this.broadcast(...endOfGameMessages([...this.clients.keys()].map((pid) => this.world.players[pid] as PlayerState), [this.world.teams[0], this.world.teams[1]]));
     this.report(result);
+    this.dropSubstitutes();
     if (this.lobby) return this.lobbyGameOver(reason);
     this.nextMap(reason);
   }
@@ -1394,6 +1588,7 @@ export class Room {
         who: (pid) => this.reportPlayer(pid),
         ...(this.options.ranked ? { format: this.options.ranked.format } : {}),
         ...(series ? { series } : {}),
+        substitutions: this.substitutions,
       }),
     );
   }
@@ -1566,6 +1761,8 @@ export class Room {
 
   /** `server_next_map`: escolhe o próximo mapa (RN-VOT-03), zera os votos nele e mostra o placar. */
   private nextMap(reason: GameOverReason | 'vote', forced?: number): void {
+    this.pause?.reset();
+    this.dropSubstitutes();
     this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
     if (this.pendingRotation && !this.lobby) {
       // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados

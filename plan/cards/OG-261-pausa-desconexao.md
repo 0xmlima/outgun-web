@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S20 |
-| Status | Backlog |
+| Status | Concluído |
 | Dependências | [OG-260](OG-260-pausa-tatica.md) |
 | Regras de negócio | RN-RKL-17 |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,11 @@ Como jogador de Ranked, quero que o jogo pause sozinho se alguém cair, para que
 - Duas quedas ao mesmo tempo: um só congelamento, cada jogador com o seu prazo.
 
 ## Critérios de aceite
-- [ ] Testes: queda pausa, reconexão retoma, prazo esgotado dispara o OG-262.
-- [ ] Saída voluntária (botão "Sair") também conta como desconexão permanente, sem esperar o prazo.
+- [x] Testes: queda pausa, reconexão retoma, prazo esgotado dispara o OG-262.
+- [x] Saída voluntária (botão "Sair") também conta como desconexão permanente, sem esperar o prazo.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `RankedPause.drop/undrop/expired` (`pause.ts`); o `pauseState` mostra o caído de prazo mais curto (`reason: 'drop'`, segundos do prazo). Uma queda durante a pausa do time ou a contagem toma o lugar dela (o saldo para de descontar).
+- Prazo no Ranked: 120 s fixos (`RANKED_RECONNECT_FRAMES`), salvo `reconnectSeconds: 0` (sem reconexão, usado nos testes do servidor). Conta pelo relógio da sala, que anda pausado.
+- "Sair": o cliente fecha com 1000 (`connection.close`) e o servidor passa `voluntary` ao `disconnect`; no jogo Ranked sai na hora. Fechar a aba (1001) conta como queda.
+- Até o OG-262, prazo esgotado ou "Sair" só tiram o jogador e o jogo retoma com a contagem.

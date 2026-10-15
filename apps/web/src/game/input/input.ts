@@ -14,6 +14,12 @@ export interface InputSample {
 
 /** Gamepad no layout "standard": botões 0/1/2 como os botões 1/2/3 do joystick do original. */
 export const GAMEPAD = { fire: 0, run: 1, strafe: 2, start: 9, dpadUp: 12, dpadDown: 13, dpadLeft: 14, dpadRight: 15, threshold: 0.5 } as const;
+/** Botões de toque no Ranked (OG-264): Select pausa; no voto, Y = bot e X = um a menos (o jogo está parado). */
+const GAMEPAD_PRESS: readonly [number, PressAction][] = [
+  [8, 'pause'],
+  [3, 'voteBot'],
+  [2, 'voteShort'],
+];
 
 /** Bits e tiro de um gamepad (`ClientControls::fromJoystick`). */
 export function gamepadSample(pad: Pick<Gamepad, 'axes' | 'buttons'>): { controls: number; fire: boolean; start: boolean } {
@@ -41,6 +47,7 @@ export class GameInput {
   private readonly pressed = new Set<string>();
   private codes: Set<string>;
   private startWasPressed = false;
+  private readonly padWasPressed = new Set<number>();
   private readonly listeners: ((action: PressAction | 'menu') => void)[] = [];
   private enabled = true;
 
@@ -99,13 +106,18 @@ export class GameInput {
     let controls = controlBits(held);
     let fire = held.has('fire');
     let start = false;
+    const padPressed = new Set<number>();
     for (const pad of typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : []) {
       if (!pad || !this.enabled) continue;
       const s = gamepadSample(pad);
       controls |= s.controls;
       fire ||= s.fire;
       start ||= s.start;
+      for (const [button] of GAMEPAD_PRESS) if (pad.buttons[button]?.pressed) padPressed.add(button);
     }
+    for (const [button, action] of GAMEPAD_PRESS) if (padPressed.has(button) && !this.padWasPressed.has(button)) this.emit(action);
+    this.padWasPressed.clear();
+    for (const b of padPressed) this.padWasPressed.add(b);
     if (start && !this.startWasPressed) this.emit('menu');
     this.startWasPressed = start;
     return { controls, fire, dropFlag: held.has('dropFlag'), showPings: held.has('showPings') };

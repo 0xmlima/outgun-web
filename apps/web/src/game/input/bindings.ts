@@ -21,6 +21,10 @@ export const PRESS_ACTIONS = [
   'toggleSound',
   'screenshot',
   'focusMode',
+  // Ranked (OG-264): pausa tática e o voto do bot substituto
+  'pause',
+  'voteBot',
+  'voteShort',
 ] as const;
 
 export type HeldAction = (typeof HELD_ACTIONS)[number];
@@ -53,6 +57,9 @@ export const ACTION_LABELS: Readonly<Record<Action, string>> = {
   toggleSound: 'Toggle sound',
   screenshot: 'Screenshot',
   focusMode: 'Focus mode',
+  pause: 'Pause (Ranked)',
+  voteBot: 'Vote: bot in place',
+  voteShort: 'Vote: play one short',
 };
 
 /** Acorde: tecla física e modificadores exigidos. */
@@ -96,6 +103,9 @@ export const CLASSIC_BINDINGS: Bindings = {
   // F11 é a tela cheia do navegador
   screenshot: k('F9'),
   focusMode: k('F10'),
+  pause: k('KeyP', 'Pause'),
+  voteBot: k('Digit1'),
+  voteShort: k('Digit2'),
 };
 
 /** Esquema sem Ctrl/Alt (nenhum atalho do navegador por perto). */

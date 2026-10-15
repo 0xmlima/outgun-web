@@ -16,7 +16,7 @@ import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { TitleBadges } from './HallOfFame.js';
 import { useManifestLists } from './options.js';
-import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
+import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, SubstitutionBadges, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
 
 interface Mate {
   username: string;
@@ -257,6 +257,7 @@ export function ProfileScreen() {
                       <>
                         {m.mode === 'ranked' ? (m.format ? `${t('Ranked')} ${m.format}` : t('Ranked')) : t('Casual')}
                         {m.clanWar && <Badge tone="accent">{t('Clan vs clan')}</Badge>}
+                        <SubstitutionBadges withBots={m.withBots} shortHanded={m.shortHanded} />
                       </>
                     ),
                   },

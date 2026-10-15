@@ -150,6 +150,24 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
     expect((await internal('/internal/matches', match({ serverMatchId: 'e', redScore: -1 }))).statusCode).toBe(400);
   });
 
+  it('bot no Ranked só como substituto declarado (D-46): grava a marca e o resumo mostra o selo (OG-263)', async () => {
+    const bot = { ...match().players[1], name: 'BOT-Jogador2' };
+    const subs = [{ kind: 'bot', team: 1, atSeconds: 300 }];
+    const ranked = { mode: 'ranked', ranked: true, roomId: 'ranked' };
+    expect((await internal('/internal/matches', match({ ...ranked, serverMatchId: 's1', substitutions: [{ kind: 'short', team: 1, atSeconds: 9 }] }))).statusCode).toBe(422);
+    expect((await internal('/internal/matches', match({ ...ranked, serverMatchId: 's2', substitutions: [...subs, ...subs, ...subs] }))).statusCode).toBe(422);
+    expect((await internal('/internal/matches', match({ ...ranked, serverMatchId: 's3', substitutions: subs, players: [match().players[0], { ...bot, scoreDelta: 5 }] }))).statusCode).toBe(422);
+    expect((await internal('/internal/matches', match({ serverMatchId: 's4', substitutions: subs }))).statusCode).toBe(422); // Casual não tem
+
+    const res = await internal('/internal/matches', match({ ...ranked, serverMatchId: 's5', substitutions: [...subs, { kind: 'short', team: 0, atSeconds: 400 }], players: [match().players[0], bot] }));
+    expect(res.statusCode).toBe(201);
+    const [row] = await t.db.select().from(matches).where(eq(matches.id, res.json().id));
+    expect([row?.substituteBots, row?.shortHanded, row?.substitutions]).toEqual([1, 1, [...subs, { kind: 'short', team: 0, atSeconds: 400 }]]);
+    expect((await app.inject(`/matches/${row!.id}`)).json().match).toMatchObject({ withBots: true, shortHanded: true });
+    const normal = await internal('/internal/matches', match({ serverMatchId: 's6' }));
+    expect((await app.inject(`/matches/${normal.json().id}`)).json().match).toMatchObject({ withBots: false, shortHanded: false });
+  });
+
   it('partida Ranked entra na temporada ativa', async () => {
     const humans = match().players.map((p, i) => ({ ...p, slot: i, isBot: false }));
     const res = await internal('/internal/matches', match({ serverMatchId: 'rk', roomId: 'ranked', mode: 'ranked', ranked: true, players: humans }));
