@@ -202,6 +202,10 @@ export const matches = pgTable(
     clanWar: boolean('clan_war').notNull().default(false),
     redClanId: uuid('red_clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
     blueClanId: uuid('blue_clan_id').references((): AnyPgColumn => clans.id, { onDelete: 'set null' }),
+    /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bots substitutos, vagas vazias e quando. */
+    substituteBots: smallint('substitute_bots').notNull().default(0),
+    shortHanded: smallint('short_handed').notNull().default(0),
+    substitutions: jsonb('substitutions').$type<{ kind: 'bot' | 'short'; team: 0 | 1; atSeconds: number }[]>().notNull().default([]),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('matches_server_match_idx').on(t.serverId, t.serverMatchId)],

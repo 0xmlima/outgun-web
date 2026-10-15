@@ -13,7 +13,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
-import { clock, date, duration, PlayerLink, Status, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
+import { clock, date, duration, PlayerLink, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
 const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
@@ -90,7 +90,16 @@ function SeriesPanel({ series, current }: { series: SeriesView; current?: string
         empty={t('No games yet.')}
         columns={[
           { key: 'game', header: t('Game'), cell: (g) => (g.id === current ? <Badge tone="accent">{t('Game $1', String(g.gameNo ?? '?'))}</Badge> : t('Game $1', String(g.gameNo ?? '?'))) },
-          { key: 'map', header: t('Map'), cell: (g) => g.mapTitle },
+          {
+            key: 'map',
+            header: t('Map'),
+            cell: (g) => (
+              <>
+                {g.mapTitle}
+                <SubstitutionBadges withBots={g.withBots} shortHanded={g.shortHanded} />
+              </>
+            ),
+          },
           { key: 'score', header: t('Score'), cell: (g) => `${g.redScore} – ${g.blueScore}`, align: 'end' },
         ]}
       />
@@ -194,6 +203,7 @@ export function MatchScreen() {
         </span>
         <span className="report-team blue">{t('Blue')}</span>
         <Badge tone={redScore === blueScore ? 'neutral' : 'success'}>{winner}</Badge>
+        <SubstitutionBadges withBots={m.match.withBots} shortHanded={m.match.shortHanded} />
         {m.match.clanWar && (
           <Badge tone="accent">
             {t('Clan vs clan')}

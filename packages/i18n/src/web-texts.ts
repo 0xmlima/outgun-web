@@ -416,6 +416,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Invite: 'Convidar',
     // Clã x clã (OG-259)
     'Clan vs clan': 'Clã x clã',
+    // Partida Ranked com desconexão permanente (OG-263)
+    'Completed with bots': 'Concluída com bots',
+    'Short-handed': 'Com um a menos',
     // Hall da fama (OG-268)
     'Hall of fame': 'Hall da fama',
     'The top 3 of every finished season: overall, in each format and among clans.': 'Os 3 primeiros de cada temporada encerrada: no geral, em cada formato e entre os clãs.',

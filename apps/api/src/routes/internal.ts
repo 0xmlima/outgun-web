@@ -169,6 +169,10 @@ const MatchResult = Type.Object({
       winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
     }),
   ),
+  /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bot no lugar ou um a menos. */
+  substitutions: Type.Optional(
+    Type.Array(Type.Object({ kind: Type.Union([Type.Literal('bot'), Type.Literal('short')]), team: Type.Union([Type.Literal(0), Type.Literal(1)]), atSeconds: Count }), { maxItems: 10 }),
+  ),
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
@@ -399,6 +403,9 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               clanWar: war !== undefined,
               redClanId: war?.[0] ?? null,
               blueClanId: war?.[1] ?? null,
+              substituteBots: (body.substitutions ?? []).filter((x) => x.kind === 'bot').length,
+              shortHanded: (body.substitutions ?? []).filter((x) => x.kind === 'short').length,
+              substitutions: body.substitutions ?? [],
             })
             .returning({ id: matches.id });
           if (body.players.length > 0) {
@@ -586,7 +593,13 @@ function inetOrNull(ip: string | undefined): string | null {
 /** Regras de consistência que o esquema JSON não expressa. */
 export function validateMatch(body: MatchResultBody): string | undefined {
   if (body.ranked && body.mode !== 'ranked') return 'ranked match must be in ranked mode';
-  if (body.ranked && body.players.some((p) => p.isBot)) return 'bots are not allowed in ranked matches (D-11)';
+  // no Ranked, bot só como substituto (RN-RKL-19, D-46): até 2, cada um declarado em `substitutions`, sem conta nem pontos
+  const bots = body.players.filter((p) => p.isBot);
+  const subBots = (body.substitutions ?? []).filter((s) => s.kind === 'bot').length;
+  if (body.substitutions?.length && body.mode !== 'ranked') return 'substitutions only in ranked mode';
+  if (subBots > 2) return 'at most 2 substitute bots per ranked match';
+  if (body.mode === 'ranked' && bots.length > subBots) return 'bots are only allowed in ranked matches as substitutes (D-46)';
+  if (bots.some((p) => p.userId || p.scoreDelta !== 0 || p.negDelta !== 0)) return 'bots have no account nor ranking deltas';
   if (!body.ranked && body.players.some((p) => p.scoreDelta !== 0 || p.negDelta !== 0)) return 'ranking deltas only in ranked matches';
   if (Date.parse(body.endedAt) < Date.parse(body.startedAt)) return 'endedAt before startedAt';
   if (body.format && body.mode !== 'ranked') return 'format only in ranked mode';

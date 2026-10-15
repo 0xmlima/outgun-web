@@ -8,6 +8,7 @@ import type { PlayerState } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { PAUSE_BALANCE_FRAMES, RANKED_RECONNECT_FRAMES, RankedPause, RESUME_FRAMES, VOTE_FRAMES } from './pause.js';
+import type { MatchReport } from './match-report.js';
 import { Room, type Connection } from './room.js';
 
 describe('saldo e pedidos de pausa (OG-260)', () => {
@@ -73,8 +74,8 @@ class TestConnection implements Connection {
 
 describe('sala pausada (OG-260)', () => {
   const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
-  const setup = (preset: 'ranked' | 'classic') => {
-    const r = new Room({ id: 'r', preset, maps, maxPlayers: 4, seed: 5 });
+  const setup = (preset: 'ranked' | 'classic', reports: MatchReport[] = []) => {
+    const r = new Room({ id: 'r', preset, maps, maxPlayers: 4, seed: 5, reportMatch: (m) => void reports.push(m) });
     const players = [1, 2, 3, 4].map((n) => {
       const conn = new TestConnection();
       const res = r.join(conn, { name: `J${n}`, accountId: `00000000-0000-4000-8000-00000000000${n}` });
@@ -232,5 +233,25 @@ describe('sala pausada (OG-260)', () => {
     run(r, 1);
     expect([r.bots(), r.playerName(a.pid), (r.world.players[a.pid] as PlayerState).stats.frags]).toEqual([[other.pid], 'J1', frags]);
     expect(r.pause?.phase).toBe('resuming');
+  });
+
+  it('o relatório leva as substituições (bot e um a menos) e o bot sai no fim do jogo (OG-263)', () => {
+    const reports: MatchReport[] = [];
+    const { r, players } = setup('ranked', reports);
+    const a = players[0]!;
+    const teamA = r.world.teamOf(a.pid);
+    r.disconnect(a.pid, a.conn, true);
+    r.handle(mate(r, players, a).pid, [message('substituteVote', { bot: true })]);
+    run(r, RESUME_FRAMES + 2);
+    const other = players.find((p) => r.world.teamOf(p.pid) !== r.world.teamOf(a.pid))!;
+    r.disconnect(other.pid, other.conn, true);
+    r.handle(mate(r, players, other).pid, [message('substituteVote', { bot: false })]);
+    run(r, 1);
+    (r as unknown as { onGameOver(reason: string, result: object): void }).onGameOver('captureLimit', { reason: 'captureLimit', mapTime: 100, mapTitle: 'x', mapCrc: 0, winner: 0, players: [], teams: r.world.teams.map(() => ({ score: 0, kills: 0, deaths: 0, captures: [] })) });
+    expect(reports.at(-1)?.substitutions).toEqual([
+      { kind: 'bot', team: teamA, atSeconds: expect.any(Number) },
+      { kind: 'short', team: 1 - teamA, atSeconds: expect.any(Number) },
+    ]);
+    expect([r.bots(), r.playerCount]).toEqual([[], 2]);
   });
 });

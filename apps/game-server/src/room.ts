@@ -19,7 +19,7 @@ import { RankedLobby } from './ranked-lobby.js';
 import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
-import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer } from './match-report.js';
+import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer, type Substitution } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
@@ -273,6 +273,8 @@ export class Room {
   private sentPause = '';
   /** Bots substitutos que já entraram neste jogo (OG-262). */
   private substitutes = 0;
+  /** Desconexões permanentes deste jogo, para o relatório (OG-263). */
+  private substitutions: Substitution[] = [];
   /** Pedidos de troca de lado no lobby (OG-253): quem pediu → com quem. */
   private readonly swapRequests = new Map<number, number>();
   /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
@@ -985,7 +987,7 @@ export class Room {
     const inGame = this.inGame;
     for (let r = this.pause?.decide(this.uptimeFrames); r; r = this.pause?.decide(this.uptimeFrames)) {
       if (r.bot && this.substitutes < MAX_SUBSTITUTES) this.substitute(r.pid);
-      else this.leave(r.pid); // um a menos
+      else this.goShort(r.pid);
     }
     if (this.pause?.tick(this.uptimeFrames)) this.broadcast(this.mapTimeMessage()); // retomou: relógio do cliente no lugar
     const paused = inGame && (this.pause?.active ?? false);
@@ -1068,7 +1070,7 @@ export class Room {
     const pause = this.pause;
     if (!c || !pause) return;
     const offered = this.substitutes + pause.votes.length;
-    if (offered >= MAX_SUBSTITUTES) return this.leave(pid);
+    if (offered >= MAX_SUBSTITUTES) return this.goShort(pid);
     c.departing = true;
     const team = this.world.teamOf(pid) as 0 | 1;
     const voters = [...this.clients].filter(([p, o]) => p !== pid && !o.bot && o.conn !== OFFLINE && this.world.teamOf(p) === team).map(([p]) => p);
@@ -1098,6 +1100,7 @@ export class Room {
       rs: new RecipientState(),
     });
     this.substitutes++;
+    this.substitutions.push({ kind: 'bot', team: this.world.teamOf(pid) as 0 | 1, atSeconds: Math.trunc(this.world.mapTime() / 10) });
     const pl = this.world.players[pid] as PlayerState;
     pl.awaitingClientReadies = 0; // bot não carrega mapa
     bot.attach(pid);
@@ -1105,10 +1108,18 @@ export class Room {
     this.broadcast(message('playerName', { pid, name: c.identity.name }));
   }
 
+  /** O time segue com um a menos (OG-262/263). */
+  private goShort(pid: number): void {
+    if (!this.clients.has(pid)) return;
+    this.substitutions.push({ kind: 'short', team: this.world.teamOf(pid) as 0 | 1, atSeconds: Math.trunc(this.world.mapTime() / 10) });
+    this.leave(pid);
+  }
+
   /** Fim do jogo: o bot substituto não passa para o próximo (D-43) e quem saiu no meio do voto sai; a vaga reabre. */
   private dropSubstitutes(): void {
     for (const [pid, c] of [...this.clients]) if (c.replaced || c.departing) this.leave(pid);
     this.substitutes = 0;
+    this.substitutions = [];
   }
 
   /** Ninguém fica com tecla presa durante a pausa. */
@@ -1569,6 +1580,7 @@ export class Room {
         who: (pid) => this.reportPlayer(pid),
         ...(this.options.ranked ? { format: this.options.ranked.format } : {}),
         ...(series ? { series } : {}),
+        substitutions: this.substitutions,
       }),
     );
   }

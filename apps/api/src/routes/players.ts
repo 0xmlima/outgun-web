@@ -35,6 +35,9 @@ const MatchSummary = Type.Object({
   format: Type.Union([RankedFormatSchema, Type.Null()]),
   /** Partida clã x clã (OG-259, RN-RKL-14). */
   clanWar: Type.Boolean(),
+  /** Concluída com bot substituto / com um a menos (OG-263, RN-RKL-20). */
+  withBots: Type.Boolean(),
+  shortHanded: Type.Boolean(),
   map: Type.String(),
   /** Título do mapa (`P title`), que a partida e o relatório mostram; o arquivo (`map`) quando faltar (OG-207). */
   mapTitle: Type.String(),
@@ -53,7 +56,9 @@ const SeriesView = Type.Object({
   winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
   finished: Type.Boolean(),
   startedAt: Type.String(),
-  matches: Type.Array(Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String() })),
+  matches: Type.Array(
+    Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String(), withBots: Type.Boolean(), shortHanded: Type.Boolean() }),
+  ),
 });
 /** Pódio no hall da fama (OG-268): temporada, quadro (geral, formato ou clãs) e posição. */
 export const Title = Type.Object({ season: Type.String(), board: Type.String(), position: Type.Integer() });
@@ -342,7 +347,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
         winner: s.winner === 0 ? (0 as const) : s.winner === 1 ? (1 as const) : null,
         finished: s.finishedAt !== null,
         startedAt: s.createdAt.toISOString(),
-        matches: games.map((g) => ({ id: g.id, gameNo: g.gameNo, mapTitle: summary(g).mapTitle, redScore: g.redScore, blueScore: g.blueScore, endedAt: g.endedAt.toISOString() })),
+        matches: games.map((g) => ({ id: g.id, gameNo: g.gameNo, mapTitle: summary(g).mapTitle, redScore: g.redScore, blueScore: g.blueScore, endedAt: g.endedAt.toISOString(), withBots: g.substituteBots > 0, shortHanded: g.shortHanded > 0 })),
       };
     }
   };
@@ -351,7 +356,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
 function summary(m: typeof matches.$inferSelect) {
   const title = m.details['mapTitle'];
   const mapTitle = typeof title === 'string' && title.trim() ? title.trim() : m.map;
-  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, format: m.format, clanWar: m.clanWar, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
+  return { id: m.id, endedAt: m.endedAt.toISOString(), mode: m.mode, ranked: m.ranked, format: m.format, clanWar: m.clanWar, withBots: m.substituteBots > 0, shortHanded: m.shortHanded > 0, map: m.map, mapTitle, redScore: m.redScore, blueScore: m.blueScore };
 }
 
 /** Pódios do hall da fama que casam com `where` (conta ou clã), da temporada mais recente para a mais antiga. */

@@ -56,6 +56,8 @@ export interface MatchReport {
   format?: RankedFormat;
   /** Série a que o jogo pertence e o placar dela depois deste jogo (OG-250, RN-RKL-03). */
   series?: MatchSeries;
+  /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bot no lugar ou um a menos; ausente = nenhuma. */
+  substitutions?: Substitution[];
   players: {
     slot: number;
     userId?: string;
@@ -73,6 +75,13 @@ export interface MatchReport {
     clanId?: string;
     stats: Record<string, number>;
   }[];
+}
+
+export interface Substitution {
+  kind: 'bot' | 'short';
+  team: 0 | 1;
+  /** Segundos de mapa em que aconteceu. */
+  atSeconds: number;
 }
 
 export interface MatchSeries {
@@ -128,6 +137,7 @@ export interface ReportInput {
   deltas?: (pid: number) => { score: number; neg: number };
   format?: RankedFormat;
   series?: MatchSeries;
+  substitutions?: readonly Substitution[];
 }
 
 function stats(p: PlayerResult): Record<string, number> {
@@ -169,6 +179,7 @@ export function matchReport(input: ReportInput): MatchReport {
     details: details(input),
     ...(input.format ? { format: input.format } : {}),
     ...(input.series ? { series: input.series } : {}),
+    ...(input.substitutions?.length ? { substitutions: input.substitutions.slice(0, 10) } : {}),
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);
       if (!who) return [];
