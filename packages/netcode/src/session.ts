@@ -134,6 +134,8 @@ export class ClientSession {
   gameOver: { reason: MessageOf<'gameOver'>['reason'] | 'vote'; red: number; blue: number } | null = null;
   /** Rotação de mapas (`mapList`), votos por mapa e o índice do mapa atual. */
   mapList: MessageOf<'mapList'>['maps'] = [];
+  /** Lobby da sala Ranked com formato (OG-252..256): último `lobbyState`; null nas outras salas. */
+  lobby: MessageOf<'lobbyState'> | null = null;
   mapVoteCounts: number[] = [];
   currentMapIndex = -1;
   /** Preset da sala (`serverSettings`). */
@@ -381,6 +383,9 @@ export class ClientSession {
         break;
       case 'mapVotes':
         this.mapVoteCounts = m.votes;
+        break;
+      case 'lobbyState':
+        this.lobby = m;
         break;
       case 'currentMap':
         this.currentMapIndex = m.mapIndex;

@@ -17,6 +17,7 @@ import { Button } from '../ui/Button.js';
 import { GAME_FONT } from '../ui/fonts.js';
 import { useMusicMode } from '../app/music/MusicProvider.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
+import { RankedLobby, type LobbyView } from './RankedLobby.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
 
 /** Opções do jogador que valem na partida (OG-068). */
@@ -153,7 +154,30 @@ export default function GameScreen() {
     () => host.current?.setPrediction({ enabled: prefs.lagPrediction, amount: prefs.lagPredictionAmount }),
     [prefs.lagPrediction, prefs.lagPredictionAmount],
   );
-  useEffect(() => host.current?.setInputEnabled(!menuOpen), [menuOpen]);
+  // lobby Ranked (OG-256): a tela cobre a partida enquanto a sala não está em jogo
+  const [lobby, setLobby] = useState<LobbyView | null>(null);
+  const lobbyAt = useRef<{ msg: unknown; at: number }>({ msg: null, at: 0 });
+  useEffect(() => {
+    if (onlineKey === null) return;
+    const id = setInterval(() => {
+      const s = host.current?.session();
+      const l = s?.lobby;
+      if (!s || !l || l.phase === 'game') return setLobby(null);
+      if (lobbyAt.current.msg !== l) lobbyAt.current = { msg: l, at: performance.now() };
+      setLobby({
+        lobby: l,
+        at: lobbyAt.current.at,
+        me: s.me,
+        maxPlayers: s.maxPlayers,
+        names: new Map(s.names),
+        maps: s.mapList.map((m) => ({ file: m.file, title: m.title })),
+        chat: host.current?.chat(8) ?? [],
+      });
+    }, 250);
+    return () => clearInterval(id);
+  }, [onlineKey]);
+  const inLobby = lobby !== null;
+  useEffect(() => host.current?.setInputEnabled(!menuOpen && !inLobby), [menuOpen, inLobby]);
 
   // `netStatsReady`/`netGameStarted`: F3/F4 abrem sozinhas no fim da partida e fecham no começo da
   // próxima; F5 abre ao conectar com `Show server info when connected` (OG-066)
@@ -234,6 +258,7 @@ export default function GameScreen() {
             <BitmapText text={toast} />
           </p>
         )}
+        {lobby && !menuOpen && <RankedLobby view={lobby} host={host.current} onLeave={() => void navigate('/rooms', { state: { mode: 'ranked' } })} />}
         {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
         {gameOver && sala && !menuOpen && (
           <Button variant="primary" className="game-report" onClick={openReport}>

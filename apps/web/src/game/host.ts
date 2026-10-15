@@ -5,7 +5,7 @@
 // PageUp/PageDown mudam quantas salas aparecem).
 import { parseMapFile } from '@outgun/content';
 import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
-import { message } from '@outgun/protocol';
+import { message, type AnyMessage } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
 import { Application, Assets, TilingSprite, type BitmapFont, type Texture } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
@@ -17,7 +17,7 @@ import { GameInput, toggleFocusMode } from './input/input.js';
 import { boundCodes } from './input/bindings.js';
 import type { Translate } from './hud/feed.js';
 import { GameFont, HudRenderer } from './hud/hud-renderer.js';
-import { OnlineHud } from './hud/online-hud.js';
+import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
@@ -34,6 +34,8 @@ import { loadRoomTheme, type RoomTheme } from './render/theme.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
 
+export type LobbyAction = Extract<AnyMessage, { type: 'lobbyReady' | 'lobbyVote' | 'lobbySide' | 'lobbySwapAnswer' }>;
+
 export interface GameHost {
   /** Com o menu aberto o jogo não lê teclas. */
   setInputEnabled(enabled: boolean): void;
@@ -46,6 +48,12 @@ export interface GameHost {
   session(): ClientSession | null;
   mapVote(): number;
   voteMap(index: number): void;
+  /** Ações do lobby Ranked (OG-256): "Pronto", voto, troca de lado e resposta a pedido de troca. */
+  sendLobby(m: LobbyAction): void;
+  /** Chat da sala para a tela do lobby: as últimas `count` linhas, em texto. */
+  chat(count: number): { team: number; text: string }[];
+  /** Manda uma linha de chat (ou comando /...), como a caixa de chat da partida. */
+  say(text: string): void;
   /** Teclas para uma tela aberta (antes do chat e dos controles); devolve true se usou a tecla. */
   setKeyInterceptor(fn: ((ev: KeyboardEvent) => boolean) | null): void;
   /** Para o laço e solta o canvas (e fecha a conexão). */
@@ -670,6 +678,12 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       onlineHud.mapVote = index;
       onlineHud.mapExitDelayed = false;
       session.send(message('mapVote', { map: index < 0 ? -1 : index }));
+    },
+    sendLobby: (m) => session?.send(m),
+    chat: (count) => (onlineHud?.feed.visible(count, Infinity, true) ?? []).map((l) => ({ team: l.team, text: l.parts.map((p) => p.text).join('') })),
+    say: (raw) => {
+      const text = raw.trim().slice(0, MAX_CHAT_LENGTH);
+      if (text && text !== '.') session?.send(message('chat', { text, teamOnly: text.startsWith('.') }));
     },
     setKeyInterceptor: (fn) => {
       interceptor = fn;
