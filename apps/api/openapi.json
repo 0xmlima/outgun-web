@@ -24,7 +24,9 @@
     "/health": {
       "get": {
         "summary": "Estado da API e das dependências",
-        "tags": ["sistema"],
+        "tags": [
+          "sistema"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -32,21 +34,32 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["status", "version", "database", "redis"],
+                  "required": [
+                    "status",
+                    "version",
+                    "database",
+                    "redis"
+                  ],
                   "properties": {
                     "status": {
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["ok"]
+                          "enum": [
+                            "ok"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["degraded"]
+                          "enum": [
+                            "degraded"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["stopping"]
+                          "enum": [
+                            "stopping"
+                          ]
                         }
                       ]
                     },
@@ -60,15 +73,21 @@
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["ok"]
+                          "enum": [
+                            "ok"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["down"]
+                          "enum": [
+                            "down"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["disabled"]
+                          "enum": [
+                            "disabled"
+                          ]
                         }
                       ]
                     }
@@ -83,21 +102,32 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["status", "version", "database", "redis"],
+                  "required": [
+                    "status",
+                    "version",
+                    "database",
+                    "redis"
+                  ],
                   "properties": {
                     "status": {
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["ok"]
+                          "enum": [
+                            "ok"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["degraded"]
+                          "enum": [
+                            "degraded"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["stopping"]
+                          "enum": [
+                            "stopping"
+                          ]
                         }
                       ]
                     },
@@ -111,15 +141,21 @@
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["ok"]
+                          "enum": [
+                            "ok"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["down"]
+                          "enum": [
+                            "down"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["disabled"]
+                          "enum": [
+                            "disabled"
+                          ]
                         }
                       ]
                     }
@@ -134,18 +170,24 @@
     "/rooms": {
       "get": {
         "summary": "Salas no ar (e as da plataforma que abrem sob demanda), com jogadores e mapa",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "parameters": [
           {
             "schema": {
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["casual"]
+                  "enum": [
+                    "casual"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["ranked"]
+                  "enum": [
+                    "ranked"
+                  ]
                 }
               ]
             },
@@ -161,7 +203,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["rooms"],
+                  "required": [
+                    "rooms"
+                  ],
                   "properties": {
                     "rooms": {
                       "type": "array",
@@ -193,11 +237,15 @@
                             "anyOf": [
                               {
                                 "type": "string",
-                                "enum": ["casual"]
+                                "enum": [
+                                  "casual"
+                                ]
                               },
                               {
                                 "type": "string",
-                                "enum": ["ranked"]
+                                "enum": [
+                                  "ranked"
+                                ]
                               }
                             ]
                           },
@@ -261,14 +309,19 @@
       },
       "post": {
         "summary": "Cria uma sala privada Casual (só com conta); ela abre quando o primeiro jogador entra",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "preset"],
+                "required": [
+                  "name",
+                  "preset"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -317,7 +370,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["room", "inviteUrl"],
+                  "required": [
+                    "room",
+                    "inviteUrl"
+                  ],
                   "properties": {
                     "room": {
                       "type": "object",
@@ -347,11 +403,15 @@
                           "anyOf": [
                             {
                               "type": "string",
-                              "enum": ["casual"]
+                              "enum": [
+                                "casual"
+                              ]
                             },
                             {
                               "type": "string",
-                              "enum": ["ranked"]
+                              "enum": [
+                                "ranked"
+                              ]
                             }
                           ]
                         },
@@ -419,7 +479,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -438,7 +501,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -457,7 +523,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -476,7 +545,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -495,7 +567,9 @@
     "/rooms/{id}": {
       "get": {
         "summary": "Uma sala (também as privadas fora do lobby: página do link de convite)",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "parameters": [
           {
             "schema": {
@@ -514,7 +588,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["room"],
+                  "required": [
+                    "room"
+                  ],
                   "properties": {
                     "room": {
                       "type": "object",
@@ -544,11 +620,15 @@
                           "anyOf": [
                             {
                               "type": "string",
-                              "enum": ["casual"]
+                              "enum": [
+                                "casual"
+                              ]
                             },
                             {
                               "type": "string",
-                              "enum": ["ranked"]
+                              "enum": [
+                                "ranked"
+                              ]
                             }
                           ]
                         },
@@ -613,7 +693,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -632,7 +715,9 @@
     "/regions": {
       "get": {
         "summary": "Regiões com game server no ar e um endereço para medir o ping de cada uma",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -640,13 +725,18 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["regions"],
+                  "required": [
+                    "regions"
+                  ],
                   "properties": {
                     "regions": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["region", "pingUrl"],
+                        "required": [
+                          "region",
+                          "pingUrl"
+                        ],
                         "properties": {
                           "region": {
                             "type": "string"
@@ -668,7 +758,9 @@
     "/presets": {
       "get": {
         "summary": "Presets Casual para salas privadas: os do jogo e os criados no painel (OG-087)",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -676,13 +768,18 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["presets"],
+                  "required": [
+                    "presets"
+                  ],
                   "properties": {
                     "presets": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["id", "description"],
+                        "required": [
+                          "id",
+                          "description"
+                        ],
                         "properties": {
                           "id": {
                             "type": "string"
@@ -704,7 +801,9 @@
     "/seasons": {
       "get": {
         "summary": "Temporadas do ranking (a ativa recebe as partidas Ranked)",
-        "tags": ["ranking"],
+        "tags": [
+          "ranking"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -712,13 +811,21 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["seasons"],
+                  "required": [
+                    "seasons"
+                  ],
                   "properties": {
                     "seasons": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["id", "name", "startsAt", "endsAt", "active"],
+                        "required": [
+                          "id",
+                          "name",
+                          "startsAt",
+                          "endsAt",
+                          "active"
+                        ],
                         "properties": {
                           "id": {
                             "type": "integer"
@@ -756,7 +863,9 @@
     "/leaderboard": {
       "get": {
         "summary": "Leaderboard da temporada: rating = (score+1)/(neg+1), mínimo de 100 de score, desempate por score",
-        "tags": ["ranking"],
+        "tags": [
+          "ranking"
+        ],
         "parameters": [
           {
             "schema": {
@@ -797,11 +906,21 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["season", "total", "entries"],
+                  "required": [
+                    "season",
+                    "total",
+                    "entries"
+                  ],
                   "properties": {
                     "season": {
                       "type": "object",
-                      "required": ["id", "name", "startsAt", "endsAt", "active"],
+                      "required": [
+                        "id",
+                        "name",
+                        "startsAt",
+                        "endsAt",
+                        "active"
+                      ],
                       "properties": {
                         "id": {
                           "type": "integer"
@@ -890,7 +1009,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -909,7 +1031,9 @@
     "/players/{name}": {
       "get": {
         "summary": "Perfil público: nome, clã, posição no ranking e estatísticas por modo",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
@@ -929,11 +1053,23 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user", "ranking", "totals"],
+                  "required": [
+                    "user",
+                    "ranking",
+                    "totals",
+                    "favoriteColors",
+                    "lastMatchAt",
+                    "milestones"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "clanTag", "createdAt"],
+                      "required": [
+                        "id",
+                        "username",
+                        "clanTag",
+                        "createdAt"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -1004,7 +1140,10 @@
                     },
                     "totals": {
                       "type": "object",
-                      "required": ["ranked", "casual"],
+                      "required": [
+                        "ranked",
+                        "casual"
+                      ],
                       "properties": {
                         "ranked": {
                           "type": "object",
@@ -1133,6 +1272,51 @@
                           }
                         }
                       }
+                    },
+                    "favoriteColors": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "lastMatchAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "milestones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "achievedAt",
+                          "matchId"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "achievedAt": {
+                            "type": "string"
+                          },
+                          "matchId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -1145,7 +1329,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -1164,18 +1351,24 @@
     "/players/{name}/matches": {
       "get": {
         "summary": "Histórico de partidas do jogador (mais recentes primeiro)",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["casual"]
+                  "enum": [
+                    "casual"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["ranked"]
+                  "enum": [
+                    "ranked"
+                  ]
                 }
               ]
             },
@@ -1223,7 +1416,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["total", "hidden", "matches"],
+                  "required": [
+                    "total",
+                    "hidden",
+                    "matches"
+                  ],
                   "properties": {
                     "total": {
                       "type": "integer"
@@ -1257,11 +1454,15 @@
                                 "anyOf": [
                                   {
                                     "type": "string",
-                                    "enum": ["casual"]
+                                    "enum": [
+                                      "casual"
+                                    ]
                                   },
                                   {
                                     "type": "string",
-                                    "enum": ["ranked"]
+                                    "enum": [
+                                      "ranked"
+                                    ]
                                   }
                                 ]
                               },
@@ -1281,8 +1482,21 @@
                           },
                           {
                             "type": "object",
-                            "required": ["player"],
+                            "required": [
+                              "replayUrl",
+                              "player"
+                            ],
                             "properties": {
+                              "replayUrl": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
                               "player": {
                                 "type": "object",
                                 "required": [
@@ -1350,7 +1564,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -1369,7 +1586,9 @@
     "/rooms/{id}/last-match": {
       "get": {
         "summary": "Última partida registrada de uma sala (o \"Ver relatório\" do fim de partida, OG-214)",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1398,7 +1617,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id"],
+                  "required": [
+                    "id"
+                  ],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -1414,7 +1635,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -1433,7 +1657,9 @@
     "/matches/{id}": {
       "get": {
         "summary": "Partida: regras, estatísticas de time, de cada jogador e capturas",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1452,7 +1678,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["match", "details", "players", "replayUrl"],
+                  "required": [
+                    "match",
+                    "details",
+                    "players",
+                    "replayUrl",
+                    "milestones"
+                  ],
                   "properties": {
                     "match": {
                       "allOf": [
@@ -1478,11 +1710,15 @@
                               "anyOf": [
                                 {
                                   "type": "string",
-                                  "enum": ["casual"]
+                                  "enum": [
+                                    "casual"
+                                  ]
                                 },
                                 {
                                   "type": "string",
-                                  "enum": ["ranked"]
+                                  "enum": [
+                                    "ranked"
+                                  ]
                                 }
                               ]
                             },
@@ -1502,7 +1738,11 @@
                         },
                         {
                           "type": "object",
-                          "required": ["startedAt", "roomId", "seasonId"],
+                          "required": [
+                            "startedAt",
+                            "roomId",
+                            "seasonId"
+                          ],
                           "properties": {
                             "startedAt": {
                               "type": "string"
@@ -1616,6 +1856,24 @@
                           "type": "string"
                         }
                       ]
+                    },
+                    "milestones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "username",
+                          "milestone"
+                        ],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "milestone": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -1628,7 +1886,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -1647,7 +1908,9 @@
     "/players/{name}/social": {
       "get": {
         "summary": "Companheiros e rivais mais frequentes e o clã do jogador",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1667,7 +1930,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["hidden", "companions", "rivals", "clan"],
+                  "required": [
+                    "hidden",
+                    "companions",
+                    "rivals",
+                    "clan"
+                  ],
                   "properties": {
                     "hidden": {
                       "type": "boolean"
@@ -1676,7 +1944,13 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["username", "clanTag", "matches", "wins", "losses"],
+                        "required": [
+                          "username",
+                          "clanTag",
+                          "matches",
+                          "wins",
+                          "losses"
+                        ],
                         "properties": {
                           "username": {
                             "type": "string"
@@ -1709,7 +1983,13 @@
                         "allOf": [
                           {
                             "type": "object",
-                            "required": ["username", "clanTag", "matches", "wins", "losses"],
+                            "required": [
+                              "username",
+                              "clanTag",
+                              "matches",
+                              "wins",
+                              "losses"
+                            ],
                             "properties": {
                               "username": {
                                 "type": "string"
@@ -1737,7 +2017,10 @@
                           },
                           {
                             "type": "object",
-                            "required": ["draws", "balance"],
+                            "required": [
+                              "draws",
+                              "balance"
+                            ],
                             "properties": {
                               "draws": {
                                 "type": "integer"
@@ -1754,7 +2037,10 @@
                       "anyOf": [
                         {
                           "type": "object",
-                          "required": ["tag", "members"],
+                          "required": [
+                            "tag",
+                            "members"
+                          ],
                           "properties": {
                             "tag": {
                               "type": "string"
@@ -1783,7 +2069,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -1802,7 +2091,9 @@
     "/players/{name}/progress": {
       "get": {
         "summary": "Evolução: rating por temporada, série da temporada ativa e totais por período",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1822,7 +2113,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["hidden", "seasons", "series", "periods"],
+                  "required": [
+                    "hidden",
+                    "seasons",
+                    "series",
+                    "periods"
+                  ],
                   "properties": {
                     "hidden": {
                       "type": "boolean"
@@ -1831,7 +2127,15 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["id", "name", "active", "score", "neg", "rating", "matches"],
+                        "required": [
+                          "id",
+                          "name",
+                          "active",
+                          "score",
+                          "neg",
+                          "rating",
+                          "matches"
+                        ],
                         "properties": {
                           "id": {
                             "type": "integer"
@@ -1861,7 +2165,12 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["at", "score", "neg", "rating"],
+                        "required": [
+                          "at",
+                          "score",
+                          "neg",
+                          "rating"
+                        ],
                         "properties": {
                           "at": {
                             "type": "string"
@@ -1882,7 +2191,11 @@
                       "anyOf": [
                         {
                           "type": "object",
-                          "required": ["days7", "days30", "all"],
+                          "required": [
+                            "days7",
+                            "days30",
+                            "all"
+                          ],
                           "properties": {
                             "days7": {
                               "type": "object",
@@ -1995,7 +2308,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2011,10 +2327,101 @@
         }
       }
     },
+    "/directory": {
+      "get": {
+        "summary": "Diretório (OG-215): jogadores mais ativos nos últimos 7 dias (sem quem esconde o histórico) e clãs",
+        "tags": [
+          "perfil"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "active",
+                    "clans"
+                  ],
+                  "properties": {
+                    "active": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "username",
+                          "clanTag",
+                          "matches",
+                          "wins",
+                          "playSeconds"
+                        ],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "matches": {
+                            "type": "integer"
+                          },
+                          "wins": {
+                            "type": "integer"
+                          },
+                          "playSeconds": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "clans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "tag",
+                          "members",
+                          "activeMembers",
+                          "matches"
+                        ],
+                        "properties": {
+                          "tag": {
+                            "type": "string"
+                          },
+                          "members": {
+                            "type": "integer"
+                          },
+                          "activeMembers": {
+                            "type": "integer"
+                          },
+                          "matches": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/players": {
       "get": {
         "summary": "Busca de jogadores pelo começo do nome (mesma comparação do login) ou pelo clã",
-        "tags": ["perfil"],
+        "tags": [
+          "perfil"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2056,7 +2463,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["total", "players"],
+                  "required": [
+                    "total",
+                    "players"
+                  ],
                   "properties": {
                     "total": {
                       "type": "integer"
@@ -2065,7 +2475,10 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["username", "clanTag"],
+                        "required": [
+                          "username",
+                          "clanTag"
+                        ],
                         "properties": {
                           "username": {
                             "type": "string"
@@ -2094,7 +2507,9 @@
     "/names/check": {
       "get": {
         "summary": "Nome válido? Livre? Como aparece para um convidado?",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2113,7 +2528,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["valid", "registrable", "taken", "guestName"],
+                  "required": [
+                    "valid",
+                    "registrable",
+                    "taken",
+                    "guestName"
+                  ],
                   "properties": {
                     "valid": {
                       "type": "boolean"
@@ -2145,7 +2565,9 @@
     "/.well-known/jwks.json": {
       "get": {
         "summary": "Chaves públicas (Ed25519) que conferem os tickets de entrada",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -2161,7 +2583,9 @@
     "/rooms/{id}/join": {
       "post": {
         "summary": "Ticket de entrada (60 s) para o game server da sala",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2208,7 +2632,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ticket", "wsUrl", "name", "guest", "roomId"],
+                  "required": [
+                    "ticket",
+                    "wsUrl",
+                    "name",
+                    "guest",
+                    "roomId"
+                  ],
                   "properties": {
                     "ticket": {
                       "type": "string"
@@ -2237,7 +2667,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2256,7 +2689,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2275,7 +2711,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2294,7 +2733,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2313,7 +2755,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2332,7 +2777,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2351,7 +2799,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2370,14 +2821,18 @@
     "/rooms/quick-join": {
       "post": {
         "summary": "\"Jogar agora\": ticket para a melhor sala pública do modo",
-        "tags": ["salas"],
+        "tags": [
+          "salas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["mode"],
+                "required": [
+                  "mode"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -2395,11 +2850,15 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["casual"]
+                        "enum": [
+                          "casual"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["ranked"]
+                        "enum": [
+                          "ranked"
+                        ]
                       }
                     ]
                   }
@@ -2415,7 +2874,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ticket", "wsUrl", "name", "guest", "roomId"],
+                  "required": [
+                    "ticket",
+                    "wsUrl",
+                    "name",
+                    "guest",
+                    "roomId"
+                  ],
                   "properties": {
                     "ticket": {
                       "type": "string"
@@ -2444,7 +2909,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2463,7 +2931,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2482,7 +2953,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2501,7 +2975,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2520,7 +2997,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2539,7 +3019,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2558,7 +3041,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2577,14 +3063,20 @@
     "/auth/register": {
       "post": {
         "summary": "Cria a conta e já entra (sem confirmação de e-mail)",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "email", "password"],
+                "required": [
+                  "username",
+                  "email",
+                  "password"
+                ],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -2625,11 +3117,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user"],
+                  "required": [
+                    "user"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2669,7 +3170,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2688,7 +3192,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2707,7 +3214,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2726,7 +3236,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2745,14 +3258,19 @@
     "/auth/login": {
       "post": {
         "summary": "Entra com nome de usuário (sem diferenciar maiúsculas) e senha",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "password"],
+                "required": [
+                  "username",
+                  "password"
+                ],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -2775,11 +3293,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user"],
+                  "required": [
+                    "user"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2819,7 +3346,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2838,7 +3368,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2857,7 +3390,9 @@
     "/auth/logout": {
       "post": {
         "summary": "Encerra a sessão atual",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "responses": {
           "204": {
             "description": "Default Response"
@@ -2868,7 +3403,9 @@
     "/auth/me": {
       "get": {
         "summary": "Usuário da sessão",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -2876,11 +3413,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user"],
+                  "required": [
+                    "user"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2920,7 +3466,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -2939,14 +3488,18 @@
     "/auth/password/forgot": {
       "post": {
         "summary": "Envia o link de redefinição; a resposta é a mesma exista ou não a conta",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["login"],
+                "required": [
+                  "login"
+                ],
                 "properties": {
                   "login": {
                     "type": "string",
@@ -2969,11 +3522,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok"],
+                  "required": [
+                    "ok"
+                  ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     }
                   }
                 }
@@ -2986,7 +3543,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3005,14 +3565,19 @@
     "/auth/password/reset": {
       "post": {
         "summary": "Troca a senha com o link do e-mail; encerra as outras sessões e entra",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["token", "password"],
+                "required": [
+                  "token",
+                  "password"
+                ],
                 "properties": {
                   "token": {
                     "type": "string",
@@ -3036,11 +3601,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user"],
+                  "required": [
+                    "user"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -3080,7 +3654,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3099,14 +3676,19 @@
     "/account/password": {
       "post": {
         "summary": "Troca a senha (pede a atual) e encerra as outras sessões",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["currentPassword", "newPassword"],
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ],
                 "properties": {
                   "currentPassword": {
                     "type": "string",
@@ -3132,7 +3714,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3151,7 +3736,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3170,7 +3758,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3189,7 +3780,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3208,14 +3802,19 @@
     "/account/username": {
       "post": {
         "summary": "Troca o nome de usuário (uma vez a cada 30 dias; o antigo fica reservado por 90)",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "password"],
+                "required": [
+                  "username",
+                  "password"
+                ],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -3238,11 +3837,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user"],
+                  "required": [
+                    "user"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -3282,7 +3890,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3301,7 +3912,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3320,7 +3934,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3339,7 +3956,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3358,7 +3978,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3377,14 +4000,18 @@
     "/account/clan-tag": {
       "put": {
         "summary": "Define ou remove a clan tag, exibida como \"(TAG) nome\" no chat",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["clanTag"],
+                "required": [
+                  "clanTag"
+                ],
                 "properties": {
                   "clanTag": {
                     "anyOf": [
@@ -3409,11 +4036,20 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["user"],
+                  "required": [
+                    "user"
+                  ],
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -3453,7 +4089,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3472,7 +4111,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3491,7 +4133,9 @@
     "/account/settings": {
       "get": {
         "summary": "Opções do jogador guardadas na conta (OG-068); vazio se nunca gravou",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -3499,7 +4143,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["settings", "updatedAt"],
+                  "required": [
+                    "settings",
+                    "updatedAt"
+                  ],
                   "properties": {
                     "settings": {
                       "type": "object",
@@ -3526,7 +4173,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3543,14 +4193,18 @@
       },
       "put": {
         "summary": "Grava as opções do jogador (substitui as anteriores; até 16 KiB)",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["settings"],
+                "required": [
+                  "settings"
+                ],
                 "properties": {
                   "settings": {
                     "type": "object",
@@ -3569,11 +4223,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok"],
+                  "required": [
+                    "ok"
+                  ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     }
                   }
                 }
@@ -3586,7 +4244,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3605,7 +4266,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3624,7 +4288,9 @@
     "/account/ranking": {
       "get": {
         "summary": "Meu ranking na temporada ativa e se participo dele",
-        "tags": ["ranking"],
+        "tags": [
+          "ranking"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -3632,7 +4298,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["score", "neg", "participate", "rank", "of"],
+                  "required": [
+                    "score",
+                    "neg",
+                    "participate",
+                    "rank",
+                    "of"
+                  ],
                   "properties": {
                     "score": {
                       "type": "number"
@@ -3660,7 +4332,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3677,14 +4352,18 @@
       },
       "put": {
         "summary": "Liga ou desliga a participação no ranking (vale na próxima entrada numa sala)",
-        "tags": ["ranking"],
+        "tags": [
+          "ranking"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["participate"],
+                "required": [
+                  "participate"
+                ],
                 "properties": {
                   "participate": {
                     "type": "boolean"
@@ -3701,7 +4380,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["participate"],
+                  "required": [
+                    "participate"
+                  ],
                   "properties": {
                     "participate": {
                       "type": "boolean"
@@ -3717,7 +4398,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3736,7 +4420,9 @@
     "/account/privacy": {
       "get": {
         "summary": "Privacidade do perfil social: esconder companheiros/rivais e o histórico de partidas",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -3744,7 +4430,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["hideCompanions", "hideHistory"],
+                  "required": [
+                    "hideCompanions",
+                    "hideHistory"
+                  ],
                   "properties": {
                     "hideCompanions": {
                       "type": "boolean"
@@ -3763,7 +4452,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3780,14 +4472,19 @@
       },
       "put": {
         "summary": "Muda a privacidade do perfil social (vale na hora; o cache público expira em 30 s)",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["hideCompanions", "hideHistory"],
+                "required": [
+                  "hideCompanions",
+                  "hideHistory"
+                ],
                 "properties": {
                   "hideCompanions": {
                     "type": "boolean"
@@ -3807,7 +4504,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["hideCompanions", "hideHistory"],
+                  "required": [
+                    "hideCompanions",
+                    "hideHistory"
+                  ],
                   "properties": {
                     "hideCompanions": {
                       "type": "boolean"
@@ -3826,7 +4526,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3845,7 +4548,9 @@
     "/account/export": {
       "get": {
         "summary": "Todos os dados pessoais da conta em JSON (LGPD)",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -3861,7 +4566,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3880,14 +4588,18 @@
     "/account/": {
       "delete": {
         "summary": "Exclui a conta; as partidas jogadas ficam anônimas",
-        "tags": ["contas"],
+        "tags": [
+          "contas"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["password"],
+                "required": [
+                  "password"
+                ],
                 "properties": {
                   "password": {
                     "type": "string",
@@ -3908,7 +4620,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3927,7 +4642,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3946,7 +4664,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -3965,18 +4686,27 @@
     "/internal/rooms/heartbeat": {
       "post": {
         "summary": "Game server informa as salas que hospeda (a cada ~3 s, OG-086)",
-        "tags": ["interno"],
+        "tags": [
+          "interno"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["server", "rooms"],
+                "required": [
+                  "server",
+                  "rooms"
+                ],
                 "properties": {
                   "server": {
                     "type": "object",
-                    "required": ["wsBaseUrl", "region", "maxRooms"],
+                    "required": [
+                      "wsBaseUrl",
+                      "region",
+                      "maxRooms"
+                    ],
                     "properties": {
                       "wsBaseUrl": {
                         "type": "string",
@@ -4023,11 +4753,15 @@
                           "anyOf": [
                             {
                               "type": "string",
-                              "enum": ["casual"]
+                              "enum": [
+                                "casual"
+                              ]
                             },
                             {
                               "type": "string",
-                              "enum": ["ranked"]
+                              "enum": [
+                                "ranked"
+                              ]
                             }
                           ]
                         },
@@ -4062,7 +4796,13 @@
                           "type": "array",
                           "items": {
                             "type": "object",
-                            "required": ["uid", "name", "team", "bot", "muted"],
+                            "required": [
+                              "uid",
+                              "name",
+                              "team",
+                              "bot",
+                              "muted"
+                            ],
                             "properties": {
                               "uid": {
                                 "type": "integer",
@@ -4103,7 +4843,10 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": ["id", "ok"],
+                      "required": [
+                        "id",
+                        "ok"
+                      ],
                       "properties": {
                         "id": {
                           "type": "integer",
@@ -4118,7 +4861,9 @@
                         },
                         "target": {
                           "type": "object",
-                          "required": ["name"],
+                          "required": [
+                            "name"
+                          ],
                           "properties": {
                             "name": {
                               "type": "string",
@@ -4160,7 +4905,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["updated", "commands", "config"],
+                  "required": [
+                    "updated",
+                    "commands",
+                    "config"
+                  ],
                   "properties": {
                     "updated": {
                       "type": "integer"
@@ -4169,7 +4918,12 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["id", "roomId", "kind", "actor"],
+                        "required": [
+                          "id",
+                          "roomId",
+                          "kind",
+                          "actor"
+                        ],
                         "properties": {
                           "id": {
                             "type": "integer"
@@ -4201,7 +4955,11 @@
                     },
                     "config": {
                       "type": "object",
-                      "required": ["version", "presets", "rotations"],
+                      "required": [
+                        "version",
+                        "presets",
+                        "rotations"
+                      ],
                       "properties": {
                         "version": {
                           "type": "string"
@@ -4210,7 +4968,11 @@
                           "type": "array",
                           "items": {
                             "type": "object",
-                            "required": ["id", "description", "overrides"],
+                            "required": [
+                              "id",
+                              "description",
+                              "overrides"
+                            ],
                             "properties": {
                               "id": {
                                 "type": "string"
@@ -4254,7 +5016,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4273,7 +5038,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4292,7 +5060,9 @@
     "/internal/matches": {
       "post": {
         "summary": "Resultado de uma partida encerrada (idempotente por serverMatchId)",
-        "tags": ["interno"],
+        "tags": [
+          "interno"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4330,11 +5100,15 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["casual"]
+                        "enum": [
+                          "casual"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["ranked"]
+                        "enum": [
+                          "ranked"
+                        ]
                       }
                     ]
                   },
@@ -4448,7 +5222,12 @@
                         "type": "array",
                         "items": {
                           "type": "object",
-                          "required": ["time", "team", "capturer", "assistant"],
+                          "required": [
+                            "time",
+                            "team",
+                            "capturer",
+                            "assistant"
+                          ],
                           "properties": {
                             "time": {
                               "type": "integer",
@@ -4459,11 +5238,15 @@
                               "anyOf": [
                                 {
                                   "type": "number",
-                                  "enum": [0]
+                                  "enum": [
+                                    0
+                                  ]
                                 },
                                 {
                                   "type": "number",
-                                  "enum": [1]
+                                  "enum": [
+                                    1
+                                  ]
                                 }
                               ]
                             },
@@ -4535,11 +5318,15 @@
                           "anyOf": [
                             {
                               "type": "number",
-                              "enum": [0]
+                              "enum": [
+                                0
+                              ]
                             },
                             {
                               "type": "number",
-                              "enum": [1]
+                              "enum": [
+                                1
+                              ]
                             }
                           ]
                         },
@@ -4609,14 +5396,19 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "duplicate"],
+                  "required": [
+                    "id",
+                    "duplicate"
+                  ],
                   "properties": {
                     "id": {
                       "type": "string"
                     },
                     "duplicate": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     }
                   }
                 }
@@ -4629,14 +5421,19 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "duplicate"],
+                  "required": [
+                    "id",
+                    "duplicate"
+                  ],
                   "properties": {
                     "id": {
                       "type": "string"
                     },
                     "duplicate": {
                       "type": "boolean",
-                      "enum": [false]
+                      "enum": [
+                        false
+                      ]
                     }
                   }
                 }
@@ -4649,7 +5446,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4668,7 +5468,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4687,14 +5490,21 @@
     "/internal/rating-deltas": {
       "post": {
         "summary": "Deltas do ranking de quem saiu ou na troca de mapa (idempotente por deltaId, OG-084)",
-        "tags": ["interno"],
+        "tags": [
+          "interno"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["deltaId", "userId", "scoreDelta", "negDelta"],
+                "required": [
+                  "deltaId",
+                  "userId",
+                  "scoreDelta",
+                  "negDelta"
+                ],
                 "properties": {
                   "deltaId": {
                     "type": "string",
@@ -4736,7 +5546,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["applied"],
+                  "required": [
+                    "applied"
+                  ],
                   "properties": {
                     "applied": {
                       "type": "boolean"
@@ -4752,7 +5564,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4771,14 +5586,21 @@
     "/internal/admin-actions": {
       "post": {
         "summary": "Ação de moderação feita numa sala (auditoria, RN-CHT-04); ban também bloqueia novos tickets",
-        "tags": ["interno"],
+        "tags": [
+          "interno"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["roomId", "action", "actor", "reason"],
+                "required": [
+                  "roomId",
+                  "action",
+                  "actor",
+                  "reason"
+                ],
                 "properties": {
                   "roomId": {
                     "type": "string",
@@ -4788,41 +5610,59 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["kick"]
+                        "enum": [
+                          "kick"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["ban"]
+                        "enum": [
+                          "ban"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["mute"]
+                        "enum": [
+                          "mute"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["smute"]
+                        "enum": [
+                          "smute"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["unmute"]
+                        "enum": [
+                          "unmute"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["forcemap"]
+                        "enum": [
+                          "forcemap"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["set"]
+                        "enum": [
+                          "set"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["sayadmin"]
+                        "enum": [
+                          "sayadmin"
+                        ]
                       }
                     ]
                   },
                   "actor": {
                     "type": "object",
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "properties": {
                       "accountId": {
                         "type": "string",
@@ -4837,7 +5677,9 @@
                   },
                   "target": {
                     "type": "object",
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "properties": {
                       "accountId": {
                         "type": "string",
@@ -4899,7 +5741,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id", "banId"],
+                  "required": [
+                    "id",
+                    "banId"
+                  ],
                   "properties": {
                     "id": {
                       "type": "integer"
@@ -4925,7 +5770,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4944,7 +5792,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -4963,14 +5814,21 @@
     "/internal/reports": {
       "post": {
         "summary": "Denúncia de jogador feita com /report numa sala (OG-104); fica aberta para a moderação",
-        "tags": ["interno"],
+        "tags": [
+          "interno"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["roomId", "reporter", "target", "reason"],
+                "required": [
+                  "roomId",
+                  "reporter",
+                  "target",
+                  "reason"
+                ],
                 "properties": {
                   "roomId": {
                     "type": "string",
@@ -4982,7 +5840,9 @@
                   },
                   "reporter": {
                     "type": "object",
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "properties": {
                       "accountId": {
                         "type": "string",
@@ -4997,7 +5857,9 @@
                   },
                   "target": {
                     "type": "object",
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "properties": {
                       "accountId": {
                         "type": "string",
@@ -5040,7 +5902,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id"],
+                  "required": [
+                    "id"
+                  ],
                   "properties": {
                     "id": {
                       "type": "integer"
@@ -5056,7 +5920,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -5075,7 +5942,9 @@
     "/admin/me": {
       "get": {
         "summary": "Papel de quem está no painel",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -5083,17 +5952,23 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["role"],
+                  "required": [
+                    "role"
+                  ],
                   "properties": {
                     "role": {
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["moderator"]
+                          "enum": [
+                            "moderator"
+                          ]
                         },
                         {
                           "type": "string",
-                          "enum": ["admin"]
+                          "enum": [
+                            "admin"
+                          ]
                         }
                       ]
                     }
@@ -5108,7 +5983,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -5127,7 +6005,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -5146,7 +6027,9 @@
     "/admin/rooms": {
       "get": {
         "summary": "Salas no ar com os jogadores (do último heartbeat)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -5157,36 +6040,50 @@
     "/admin/rooms/{id}/commands": {
       "post": {
         "summary": "Kick, ban, mute ou mensagem numa sala (entregue ao game server em até ~3 s)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["kind"],
+                "required": [
+                  "kind"
+                ],
                 "properties": {
                   "kind": {
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["kick"]
+                        "enum": [
+                          "kick"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["ban"]
+                        "enum": [
+                          "ban"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["mute"]
+                        "enum": [
+                          "mute"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["unmute"]
+                        "enum": [
+                          "unmute"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["message"]
+                        "enum": [
+                          "message"
+                        ]
                       }
                     ]
                   },
@@ -5237,7 +6134,9 @@
     "/admin/commands/{id}": {
       "get": {
         "summary": "Andamento de um comando do painel",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5258,14 +6157,18 @@
     "/admin/broadcast": {
       "post": {
         "summary": "Mensagem do servidor em todas as salas no ar",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["text"],
+                "required": [
+                  "text"
+                ],
                 "properties": {
                   "text": {
                     "type": "string",
@@ -5287,22 +6190,30 @@
     "/admin/reports": {
       "get": {
         "summary": "Denúncias do /report",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["open"]
+                  "enum": [
+                    "open"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["dismissed"]
+                  "enum": [
+                    "dismissed"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["actioned"]
+                  "enum": [
+                    "actioned"
+                  ]
                 }
               ]
             },
@@ -5321,24 +6232,32 @@
     "/admin/reports/{id}": {
       "post": {
         "summary": "Fecha uma denúncia",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["status"],
+                "required": [
+                  "status"
+                ],
                 "properties": {
                   "status": {
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["dismissed"]
+                        "enum": [
+                          "dismissed"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["actioned"]
+                        "enum": [
+                          "actioned"
+                        ]
                       }
                     ]
                   },
@@ -5371,7 +6290,9 @@
     "/admin/bans": {
       "get": {
         "summary": "Bans em vigor (mais recentes primeiro)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -5380,14 +6301,18 @@
       },
       "post": {
         "summary": "Ban de plataforma por conta e/ou IP (só admin)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["reason"],
+                "required": [
+                  "reason"
+                ],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -5421,7 +6346,9 @@
     "/admin/bans/{id}": {
       "delete": {
         "summary": "Revoga um ban (de plataforma, só admin)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5442,7 +6369,9 @@
     "/admin/audit": {
       "get": {
         "summary": "Log de auditoria (mais recentes primeiro)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5473,7 +6402,9 @@
     "/admin/presets": {
       "get": {
         "summary": "Presets do jogo (só leitura) e Casual do painel",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -5484,14 +6415,19 @@
     "/admin/presets/{id}": {
       "put": {
         "summary": "Cria ou altera um preset Casual (versionado); presets do jogo não mudam aqui",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["description", "overrides"],
+                "required": [
+                  "description",
+                  "overrides"
+                ],
                 "properties": {
                   "description": {
                     "type": "string",
@@ -5526,7 +6462,9 @@
       },
       "delete": {
         "summary": "Desativa um preset Casual do painel",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5548,7 +6486,9 @@
     "/admin/presets/{id}/versions": {
       "get": {
         "summary": "Histórico de um preset Casual do painel",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5570,7 +6510,9 @@
     "/admin/rotations": {
       "get": {
         "summary": "Rotações de mapas do painel por modo (sem linha = a do servidor)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -5581,14 +6523,18 @@
     "/admin/rotations/{mode}": {
       "put": {
         "summary": "Troca a rotação oficial de um modo (vale nas salas da plataforma a partir da próxima troca de mapa)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["maps"],
+                "required": [
+                  "maps"
+                ],
                 "properties": {
                   "maps": {
                     "type": "array",
@@ -5610,11 +6556,15 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["casual"]
+                  "enum": [
+                    "casual"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["ranked"]
+                  "enum": [
+                    "ranked"
+                  ]
                 }
               ]
             },
@@ -5633,7 +6583,9 @@
     "/admin/invites": {
       "get": {
         "summary": "Convites do beta",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -5642,14 +6594,18 @@
       },
       "post": {
         "summary": "Gera códigos de convite do beta",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["count"],
+                "required": [
+                  "count"
+                ],
                 "properties": {
                   "count": {
                     "type": "integer",
@@ -5685,7 +6641,9 @@
     "/admin/invites/{code}": {
       "delete": {
         "summary": "Revoga um convite",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5707,30 +6665,42 @@
     "/admin/feedback": {
       "get": {
         "summary": "Feedback do beta com o resumo das notas de fidelidade",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["new"]
+                  "enum": [
+                    "new"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["confirmed"]
+                  "enum": [
+                    "confirmed"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["critical"]
+                  "enum": [
+                    "critical"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["resolved"]
+                  "enum": [
+                    "resolved"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["dismissed"]
+                  "enum": [
+                    "dismissed"
+                  ]
                 }
               ]
             },
@@ -5743,19 +6713,27 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["bug"]
+                  "enum": [
+                    "bug"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["suggestion"]
+                  "enum": [
+                    "suggestion"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["praise"]
+                  "enum": [
+                    "praise"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["other"]
+                  "enum": [
+                    "other"
+                  ]
                 }
               ]
             },
@@ -5774,36 +6752,50 @@
     "/admin/feedback/{id}": {
       "post": {
         "summary": "Triagem de um feedback",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["status"],
+                "required": [
+                  "status"
+                ],
                 "properties": {
                   "status": {
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["new"]
+                        "enum": [
+                          "new"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["confirmed"]
+                        "enum": [
+                          "confirmed"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["critical"]
+                        "enum": [
+                          "critical"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["resolved"]
+                        "enum": [
+                          "resolved"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["dismissed"]
+                        "enum": [
+                          "dismissed"
+                        ]
                       }
                     ]
                   },
@@ -5836,30 +6828,42 @@
     "/admin/feedback.csv": {
       "get": {
         "summary": "Feedback do beta em CSV",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["new"]
+                  "enum": [
+                    "new"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["confirmed"]
+                  "enum": [
+                    "confirmed"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["critical"]
+                  "enum": [
+                    "critical"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["resolved"]
+                  "enum": [
+                    "resolved"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["dismissed"]
+                  "enum": [
+                    "dismissed"
+                  ]
                 }
               ]
             },
@@ -5872,19 +6876,27 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["bug"]
+                  "enum": [
+                    "bug"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["suggestion"]
+                  "enum": [
+                    "suggestion"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["praise"]
+                  "enum": [
+                    "praise"
+                  ]
                 },
                 {
                   "type": "string",
-                  "enum": ["other"]
+                  "enum": [
+                    "other"
+                  ]
                 }
               ]
             },
@@ -5903,7 +6915,9 @@
     "/admin/network": {
       "get": {
         "summary": "Rede dos jogadores por região (resumos anônimos dos últimos dias)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "parameters": [
           {
             "schema": {
@@ -5926,28 +6940,38 @@
     "/admin/users/{username}/role": {
       "put": {
         "summary": "Muda o papel de uma conta (jogador, moderador, admin)",
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["role"],
+                "required": [
+                  "role"
+                ],
                 "properties": {
                   "role": {
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["player"]
+                        "enum": [
+                          "player"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["moderator"]
+                        "enum": [
+                          "moderator"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["admin"]
+                        "enum": [
+                          "admin"
+                        ]
                       }
                     ]
                   }
@@ -5977,7 +7001,9 @@
     "/beta": {
       "get": {
         "summary": "Se o servidor está em beta fechado (cadastro com convite)",
-        "tags": ["beta"],
+        "tags": [
+          "beta"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -5985,7 +7011,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["beta"],
+                  "required": [
+                    "beta"
+                  ],
                   "properties": {
                     "beta": {
                       "type": "boolean"
@@ -6001,32 +7029,45 @@
     "/feedback": {
       "post": {
         "summary": "Feedback de quem joga: tipo, notas de fidelidade e geral, texto e contexto (só com conta)",
-        "tags": ["beta"],
+        "tags": [
+          "beta"
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["kind", "text"],
+                "required": [
+                  "kind",
+                  "text"
+                ],
                 "properties": {
                   "kind": {
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["bug"]
+                        "enum": [
+                          "bug"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["suggestion"]
+                        "enum": [
+                          "suggestion"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["praise"]
+                        "enum": [
+                          "praise"
+                        ]
                       },
                       {
                         "type": "string",
-                        "enum": ["other"]
+                        "enum": [
+                          "other"
+                        ]
                       }
                     ]
                   },
@@ -6074,7 +7115,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["id"],
+                  "required": [
+                    "id"
+                  ],
                   "properties": {
                     "id": {
                       "type": "integer"
@@ -6090,7 +7133,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -6109,7 +7155,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -6128,7 +7177,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -6147,7 +7199,9 @@
     "/telemetry": {
       "post": {
         "summary": "Resumo anônimo da rede de uma partida (ping, atraso, correções de predição, fps); sem conta nem IP",
-        "tags": ["beta"],
+        "tags": [
+          "beta"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -6262,7 +7316,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
@@ -6281,7 +7338,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "properties": {
                     "error": {
                       "type": "string"
