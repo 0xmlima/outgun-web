@@ -582,7 +582,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S15 | v2: perfil social | OG-212, OG-213, OG-215 | **M6 — v2 visual e social** |
 | S16 | v2: clãs e temporadas mensais | OG-270, OG-271, OG-272, OG-275, OG-267 | |
 | S17 | v2: lobby Ranked (servidor e API) | OG-250, OG-251, OG-252, OG-253, OG-254 | |
-| S18 | v2: lobby Ranked (cliente), séries e clã no HUD | OG-265, OG-206, OG-255, OG-256, OG-257 | |
+| S18 | v2: lobby Ranked (cliente), séries, clã no HUD e tela inicial | OG-207, OG-265, OG-206, OG-255, OG-256, OG-257, OG-208 | |
 | S19 | v2: rating por formato, clã x clã, ranking de clãs e hall da fama | OG-258, OG-259, OG-273, OG-274, OG-268 | |
 | S20 | v2: pausas, quedas e bots substitutos | OG-260, OG-261, OG-262, OG-266, OG-263, OG-264 | **M7 — Ranked competitivo e clãs** |
 
@@ -670,6 +670,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
 | [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Backlog |
 | [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
+| [OG-207](cards/OG-207-titulo-do-mapa-nas-telas.md) | Título do mapa (e não o nome do arquivo) em todas as telas | E8 | 2 | Must | S18 | — | Backlog |
+| [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Backlog |
 | [OG-210](cards/OG-210-portal-web.md) | Portal web público (fora do cliente do jogo) | E9 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-211](cards/OG-211-api-social.md) | API social: companheiros, rivais, evolução e busca | E9 | 5 | Must | S14 | OG-085 | Concluído |
 | [OG-212](cards/OG-212-perfil-social.md) | Página de perfil social | E9 | 5 | Must | S15 | OG-200, OG-211 | Concluído |
@@ -708,7 +710,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Concluído |
 | [OG-276](cards/OG-276-filtro-nomes-jogadores.md) | Filtro de nomes proibidos também nos nomes de jogador | E13 | 1 | Should | — | OG-275 | Backlog |
 
-**Total:** 113 cards, 450 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 44 cards, 155 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 115 cards, 455 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 46 cards, 160 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
