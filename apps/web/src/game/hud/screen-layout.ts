@@ -24,7 +24,7 @@ export interface BarLabels {
 
 /**
  * `faixa`: chat na largura toda em cima, sala embaixo à esquerda, minimapa e placar à direita (4:3).
- * `coluna`: telas largas, sala com a altura toda e chat no alto da coluna da direita (OG-295).
+ * `coluna`: telas largas (≥ 3:2), sala com a altura toda e chat no alto da coluna da direita (OG-295).
  * `livre`: sem minimapa e placar (F12), sala centralizada.
  */
 export type HudMode = 'faixa' | 'coluna' | 'livre';
@@ -55,6 +55,8 @@ export interface ScreenLayout {
   readonly chat: Rect;
   /** Altura de uma linha de chat. */
   readonly lineH: number;
+  /** Caracteres por linha de chat (até os 79 do original). */
+  readonly chatChars: number;
   /** Lugar do minimapa (o minimapa fica centralizado nele na proporção do mapa). */
   readonly minimapPlace: Rect | null;
   readonly scoreboard: ScoreboardPlace | null;
@@ -119,6 +121,47 @@ export function screenLayout(screenW: number, screenH: number, baseFont: FontMet
     const h = Math.round(mul * ROOM_HEIGHT);
     playfield = { x: Math.trunc((screenW - w) / 2), y: screenH - bottombarH - h, w, h };
     chat = { x: 3 * u, y: 3 * u, w: screenW - 6 * u, h: playfield.y - 3 * u };
+  } else if (screenW / screenH >= 1.5) {
+    // tela larga (OG-295): sala com a altura toda; chat no alto da coluna, times do placar lado a lado
+    mode = 'coluna';
+    const minCol = Math.max(2 * boardW(u) + 8 * u + 12, 40 * charW * u + 12);
+    mul = (screenH - bottombarH - 4 * u) / ROOM_HEIGHT;
+    let w = Math.round(ROOM_WIDTH * mul);
+    if (screenW - w < minCol) {
+      w = screenW - minCol;
+      mul = w / ROOM_WIDTH;
+    }
+    const h = Math.round(ROOM_HEIGHT * mul);
+    playfield = { x: 0, y: screenH - bottombarH - h, w, h };
+    const colX = w;
+    const colW = screenW - colX;
+    /** Maior escala do placar (lado a lado se couber) que deixe o minimapa com `minMm` de altura. */
+    const fit = (avail: number, minMm: number) => {
+      for (let t = 2 * u; t >= u; t -= 0.5) {
+        const side = colW - 12 >= 2 * boardW(t) + 8 * u;
+        if (!side && boardW(t) > colW - 12) continue;
+        const need = (side ? SCOREBOARD_ROWS / 2 : SCOREBOARD_ROWS) * rowH(t) + (side ? 0 : 6 * u);
+        if (avail - need >= minMm) return { s: t, side, mmH: avail - need };
+      }
+      return { s: u, side: false, mmH: Math.max(0, avail - SCOREBOARD_ROWS * rowH(u) - 6 * u) };
+    };
+    let mmY: number;
+    let f: ReturnType<typeof fit>;
+    if (playfield.y >= 4 * lineH + 6 * u) {
+      // a sala parou pela largura (16:10): a sobra de cima vira faixa de chat na largura toda
+      chat = { x: 3 * u, y: 3 * u, w: screenW - 6 * u, h: playfield.y - 3 * u };
+      mmY = playfield.y;
+      const avail = screenH - mmY - 8 * u - fpsH;
+      f = fit(avail, 0.25 * avail);
+    } else {
+      const chatH = Math.round(8 * lineH + 6 * u);
+      chat = { x: colX + 6 * u, y: 3 * u, w: colW - 9 * u, h: chatH - 3 * u };
+      mmY = chatH + 4 * u;
+      f = fit(screenH - mmY - 8 * u - fpsH, 0.2 * screenH);
+    }
+    const mmH = Math.round(f.mmH);
+    minimapPlace = { x: colX + 4 * u, y: mmY, w: colW - 8 * u, h: mmH };
+    scoreboard = { x1: colX, y1: mmY + mmH + 4 * u, x2: screenW - 1, y2: screenH - fpsH - 4 * u - 1, scale: f.s, side: f.side };
   } else {
     mode = 'faixa';
     const chatH = Math.round(Math.max(7 * lineH + 6 * u, 0.22 * screenH));
@@ -188,6 +231,7 @@ export function screenLayout(screenW: number, screenH: number, baseFont: FontMet
     playfield,
     chat,
     lineH,
+    chatChars: Math.min(79, Math.trunc(chat.w / (charW * u))),
     minimapPlace,
     scoreboard,
     indicatorsY,

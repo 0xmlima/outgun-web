@@ -84,3 +84,35 @@ describe('scoreboardName (OG-294)', () => {
     expect(scoreboardName('Rato', 10)).toBe('Rato');
   });
 });
+
+describe('screenLayout em coluna, telas largas (OG-295)', () => {
+  it('1920×1080: sala com a altura toda, chat no alto da coluna, times lado a lado', () => {
+    const l = screenLayout(1920, 1080, font16, EN);
+    expect(l.mode).toBe('coluna');
+    expect(l.ui).toBe(1.5);
+    expect(l.playfield).toEqual({ x: 0, y: 6, w: 1313, h: 985 });
+    expect(l.chat.x).toBeGreaterThan(1313);
+    expect(l.chatChars).toBeGreaterThanOrEqual(40);
+    expect(chatLines(l, false)).toBe(7);
+    expect(l.minimapPlace?.y).toBeGreaterThan(l.chat.y + l.chat.h);
+    expect(l.scoreboard?.side).toBe(true);
+  });
+
+  it('2560×1440: escala 2, times lado a lado', () => {
+    const l = screenLayout(2560, 1440, font16, EN);
+    expect(l.mode).toBe('coluna');
+    expect(l.ui).toBe(2);
+    expect(l.scoreboard?.side).toBe(true);
+    expect(chatLines(l, false)).toBe(7);
+  });
+
+  it('1440×900: a sala para pela largura e o chat volta para a faixa de cima', () => {
+    const l = screenLayout(1440, 900, font16, EN);
+    expect(l.mode).toBe('coluna');
+    expect(l.playfield).toEqual({ x: 0, y: 145, w: 888, h: 666 });
+    expect(l.chat).toEqual({ x: 4.5, y: 4.5, w: 1431, h: 140.5 });
+    expect(chatLines(l, false)).toBe(3);
+    expect(l.minimapPlace?.y).toBe(145);
+    expect(l.scoreboard?.side).toBe(true);
+  });
+});

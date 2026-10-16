@@ -305,7 +305,7 @@ export class OnlineHud {
         : null,
       mapTime: s.mapEnd !== null && s.gameOver === null && playing ? { seconds: s.mapEnd - Math.trunc(time), extra: s.extraTime } : null,
       fps: opts.fps,
-      chat: this.feed.visible(chatCount, time, this.showAll),
+      chat: this.feed.visible(chatCount, time, this.showAll, opts.screen.chatChars),
       prompt: chatPrompt(this.chat, this.t),
       // com o mapa carregado, "Waiting game start - next map is" aparece também junto do placar
       hidden: hiddenGame ? { gameOver: s.gameOver, waitingMap: s.world?.map.title ?? null } : null,

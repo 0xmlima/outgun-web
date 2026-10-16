@@ -117,6 +117,15 @@ describe('MessageFeed', () => {
     expect(feed.visible(1, 10, true).map((l) => l.parts[0]?.text)).toEqual(['nova']);
   });
 
+  it('chat estreito (OG-295): quebra de novo na largura e mantém as últimas N linhas', () => {
+    const feed = new MessageFeed(en);
+    feed.push('info', 'palavra '.repeat(8).trim(), 0);
+    const lines = feed.visible(10, 1, false, 20);
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.every((l) => l.parts.reduce((n, p) => n + p.text.length, 0) <= 20)).toBe(true);
+    expect(feed.visible(2, 1, false, 20)).toHaveLength(2);
+  });
+
   it('fim de partida com o placar e o objetivo', () => {
     const feed = new MessageFeed(en);
     feed.gameOverScores(3, 8, ctx);
