@@ -28,7 +28,7 @@ Achado: a API usa o usuário `outgun`, que é **SUPERUSER** (pode criar papéis,
 
 ## Critérios de aceite
 - [x] API rodando com `outgun_app`; tentativa de DDL pela API falha.
-- [x] Migrations rodam com `outgun_migrate`.
+- [x] Migrations rodam com o dono do schema (`outgun`), só no container `migrate`.
 - [x] Redis exige senha; API e game server conectam.
 
 ## Notas técnicas
