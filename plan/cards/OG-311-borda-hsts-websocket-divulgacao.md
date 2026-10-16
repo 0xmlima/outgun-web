@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S29 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -27,8 +27,11 @@ Achados: o HSTS só sai nas respostas da API, não nas páginas do site; o game 
 
 ## Critérios de aceite
 - [ ] HSTS nas páginas do site.
-- [ ] WebSocket de outra origem recusado (teste).
+- [x] WebSocket de outra origem recusado (teste).
 - [ ] `https://outgunweb.com.br/.well-known/security.txt` no ar.
 
 ## Notas técnicas
 ## Notas de implementação
+- HSTS (`max-age=31536000; includeSubDomains`) em todas as respostas pelo Caddy da borda (`caddy validate` ok).
+- Game server: `allowedOrigins` (env `ALLOWED_ORIGINS`, no compose `https://${DOMAIN}`): upgrade de jogador e espectador com `Origin` fora da lista recebe 403; sem `Origin` (bots, carga) passa — o ticket assinado continua sendo a autenticação. Teste `origin.test.ts`.
+- `SECURITY.md` e `/.well-known/security.txt` (RFC 9116, expira em 2027-10-16) apontando para o relato privado de vulnerabilidades do GitHub, que foi ligado no repositório.

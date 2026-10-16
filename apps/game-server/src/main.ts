@@ -163,6 +163,8 @@ const server = await startServer({
   ...(instanceId ? { instanceId } : {}),
   ...(env.METRICS_TOKEN ? { metricsToken: env.METRICS_TOKEN } : {}),
   ...(env.MAX_CONNECTIONS_PER_IP ? { maxConnectionsPerIp: Number(env.MAX_CONNECTIONS_PER_IP) } : {}),
+  // ALLOWED_ORIGINS: origens do site separadas por vírgula (OG-311); vazio = qualquer
+  ...(env.ALLOWED_ORIGINS ? { allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean) } : {}),
 });
 if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);

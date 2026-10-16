@@ -1,0 +1,5 @@
+# Outgun Web — como relatar uma falha de segurança (RFC 9116, OG-311)
+Contact: https://github.com/thiagovasconcellos/outgun-web/security/advisories/new
+Policy: https://github.com/thiagovasconcellos/outgun-web/blob/v2/SECURITY.md
+Preferred-Languages: pt, en
+Expires: 2027-10-16T00:00:00.000Z
