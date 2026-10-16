@@ -259,6 +259,13 @@ body {
   position: absolute;
   inset: 0;
 }
+/* modo foco (OG-315): o jogo inteiro em tela cheia; o ponteiro some sobre a partida e volta nas telas */
+.game:fullscreen {
+  background: #000;
+}
+.game:fullscreen .game-host {
+  cursor: none;
+}
 .game-canvas {
   display: block;
 }

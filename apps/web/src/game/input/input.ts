@@ -131,23 +131,18 @@ export class GameInput {
 }
 
 /**
- * Modo foco: tela cheia com o teclado travado (Chrome/Edge capturam até Ctrl+W, Ctrl+T e Ctrl+N)
- * e o ponteiro escondido. Liga e desliga.
+ * Modo foco: tela cheia com o teclado travado (Chrome/Edge capturam até Ctrl+W, Ctrl+T e Ctrl+N).
+ * O ponteiro some só sobre o jogo, pelo CSS (`.game:fullscreen`): sem trava de ponteiro, o mouse
+ * continua servindo nas telas e no menu que abrem por cima (OG-315). Liga e desliga.
  */
 export async function toggleFocusMode(element: HTMLElement): Promise<boolean> {
   const nav = navigator as Navigator & { keyboard?: { lock?: () => Promise<void>; unlock?: () => void } };
   if (document.fullscreenElement) {
     nav.keyboard?.unlock?.();
-    if (document.pointerLockElement) document.exitPointerLock();
     await document.exitFullscreen();
     return false;
   }
   await element.requestFullscreen();
   await nav.keyboard?.lock?.().catch(() => undefined);
-  try {
-    await element.requestPointerLock();
-  } catch {
-    // ponteiro visível: sem problema
-  }
   return true;
 }

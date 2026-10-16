@@ -594,7 +594,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S26 | v2: estilos do HUD (Clássico, Moderno e Personalizado) | OG-297, OG-298, OG-299, OG-300, OG-302 | |
 | S27 | v2: ajustes do HUD Moderno | OG-303 | |
 | S28 | v2: domínio próprio e prévia de compartilhamento | OG-304, OG-305 | |
-| S29 | v2: segurança da operação (servidor, banco, GitHub, borda) — OWASP Cheat Sheets | OG-306, OG-308, OG-309, OG-311 | |
+| S29 | v2: segurança da operação (servidor, banco, GitHub, borda) — OWASP Cheat Sheets | OG-306, OG-308, OG-309, OG-311, OG-315 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -760,8 +760,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-312](cards/OG-312-containers-endurecidos-e-rede.md) | Containers endurecidos, limites de memória e rede segmentada | E14 | 3 | Should | — | OG-308 | Backlog |
 | [OG-313](cards/OG-313-logs-de-seguranca-e-alertas.md) | Logs de eventos de segurança e alertas ao PO | E14 | 3 | Should | — | OG-307 | Backlog |
 | [OG-314](cards/OG-314-mfa-para-admins.md) | Segundo fator (TOTP) para contas admin e moderador | E14 | 5 | Should | — | — | Backlog |
+| [OG-315](cards/OG-315-modo-foco-telas-visiveis.md) | Modo foco mostra as telas do F1–F5, o menu e os avisos | E8 | 1 | Must | S29 | — | Em revisão |
 
-**Total:** 156 cards, 557 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 87 cards, 262 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 157 cards, 558 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 88 cards, 263 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 

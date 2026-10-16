@@ -105,6 +105,11 @@ export interface OnlineOptions {
 }
 
 export interface GameOptions {
+  /**
+   * O que entra em tela cheia no modo foco (OG-315): o contêiner do jogo inteiro, com as telas do F1–F5,
+   * o menu e os avisos; sem ele, só o canvas (e o que fica fora dele some na tela cheia).
+   */
+  readonly focusTarget?: HTMLElement;
   /** Tema gráfico (`''` = sem tema, o padrão distribuído com o original). */
   readonly theme: string;
   /** Salas na tela em cada direção (o original distribuído usa 1). */
@@ -256,7 +261,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     if (action === 'suicide') {
       demo?.suicide();
       session?.send(message('suicide', {}));
-    } else if (action === 'focusMode') void toggleFocusMode(container).catch(() => undefined);
+    } else if (action === 'focusMode') void toggleFocusMode(opts.focusTarget ?? container).catch(() => undefined);
     else if (action === 'moreMessages' && onlineHud) onlineHud.showAll = !onlineHud.showAll;
     else if (action === 'voteMapChange' && onlineHud && session) {
       onlineHud.wantMapExit = !onlineHud.wantMapExit;
