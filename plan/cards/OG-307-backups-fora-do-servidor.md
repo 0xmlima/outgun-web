@@ -6,11 +6,13 @@
 | Tipo | Infra |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | S29 |
-| Status | Pronto |
+| Sprint | — |
+| Status | Backlog |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
+
+> Na geladeira (PO, 2026-10-17): o time de infra decide se o armazenamento dos backups vai para outro servidor antes de criar o bucket na Oracle.
 
 ## História
 Como operador, quero cópias do banco cifradas e fora da VM, para não perder contas, ranking e clãs se a máquina sumir.

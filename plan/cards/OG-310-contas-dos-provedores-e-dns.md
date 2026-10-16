@@ -6,11 +6,13 @@
 | Tipo | Infra |
 | Prioridade | Must |
 | Estimativa | 1 pts |
-| Sprint | S29 |
-| Status | Em andamento |
+| Sprint | — |
+| Status | Backlog |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
+
+> Com o PO (2026-10-17): as ações de conta (MFA, DNSSEC, CAA, senha da chave SSH) são dele; o card fica no Backlog até ele concluir.
 
 ## História
 Como PO, quero as contas que controlam o jogo protegidas por segundo fator, para que uma senha vazada não entregue servidor, domínio ou código.
