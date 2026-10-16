@@ -113,10 +113,9 @@ export function screenLayout(screenW: number, screenH: number, baseFont: FontMet
   let scoreboard: ScoreboardPlace | null = null;
 
   if (!full) {
-    // F12: só a sala, centralizada, com a faixa de chat em cima
+    // F12: a sala o maior possível, centralizada; o chat fica com o que sobra em cima (mín. 3 mensagens)
     mode = 'livre';
-    const chatH = Math.round(Math.max(7 * lineH + 6 * u, 0.22 * screenH));
-    mul = Math.min(screenW / ROOM_WIDTH, (screenH - chatH - bottombarH) / ROOM_HEIGHT);
+    mul = Math.min(screenW / ROOM_WIDTH, (screenH - (4 * lineH + 6 * u) - bottombarH) / ROOM_HEIGHT);
     const w = Math.round(mul * ROOM_WIDTH);
     const h = Math.round(mul * ROOM_HEIGHT);
     playfield = { x: Math.trunc((screenW - w) / 2), y: screenH - bottombarH - h, w, h };

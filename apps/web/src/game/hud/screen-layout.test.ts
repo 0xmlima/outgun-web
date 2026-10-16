@@ -61,6 +61,13 @@ describe('screenLayout em faixa (D-54, plan/specs/hud-resolucoes)', () => {
     expect(l.scoreboard).toBeNull();
     expect(l.playfield.x).toBe(Math.trunc((1024 - l.playfield.w) / 2));
     expect(l.chat.h).toBe(l.playfield.y - 3);
+    expect(chatLines(l, false)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('sem minimapa em 16:9: a sala fica maior que no modo coluna', () => {
+    const l = screenLayout(1280, 720, font16, EN, false);
+    expect(l.playfield.h).toBe(Math.round(354 * ((720 - 82 - 59) / 354)));
+    expect(chatLines(l, false)).toBe(3);
   });
 
   it('relógio vai para a segunda linha quando não cabe', () => {
