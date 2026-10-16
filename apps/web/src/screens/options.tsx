@@ -331,7 +331,7 @@ export function OptionsScreen() {
                 hint={t('Nothing is drawn over the room in any style.')}
               />
               <div className="options-hud-edit">
-                <Button onClick={() => void navigate('/options/hud')}>{t('Edit custom HUD…')}</Button>
+                <Button onClick={() => void navigate('/options/hud')}>{t('Edit custom HUD...')}</Button>
                 <span>{t('Opens an example match where you move, resize and hide each part of the HUD.')}</span>
               </div>
               {select<ShowNames>('showNames', 'Show player names', [

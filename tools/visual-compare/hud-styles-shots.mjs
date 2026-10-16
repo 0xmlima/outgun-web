@@ -14,7 +14,8 @@ const repo = fileURLToPath(new URL('../..', import.meta.url));
 const style = process.argv[2] ?? 'modern';
 const out = process.argv[3] ?? `${repo}tools/parity/out/hud-styles/`;
 const extra = process.env.HUD_CUSTOM ? JSON.parse(process.env.HUD_CUSTOM) : undefined;
-const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME =
+  process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const GS_PORT = 17760;
 const WEB_PORT = 14283;
 const SERVER = `ws://localhost:${GS_PORT}`;
@@ -27,7 +28,8 @@ const RESOLUTIONS = [
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(out, { recursive: true });
 
-const start = (args, env) => spawn(process.execPath, args, { cwd: repo, env: { ...process.env, ...env }, stdio: 'ignore' });
+const start = (args, env) =>
+  spawn(process.execPath, args, { cwd: repo, env: { ...process.env, ...env }, stdio: 'ignore' });
 const children = [
   start(['apps/game-server/dist/main.js'], {
     PORT: String(GS_PORT),
@@ -39,9 +41,19 @@ const children = [
     MAX_CONNECTIONS_PER_IP: '0',
     LOG_LEVEL: 'warn',
   }),
-  start(['apps/web/node_modules/vite/bin/vite.js', 'preview', 'apps/web', '--port', String(WEB_PORT), '--strictPort'], {
-    CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}`,
-  }),
+  start(
+    [
+      'apps/web/node_modules/vite/bin/vite.js',
+      'preview',
+      'apps/web',
+      '--port',
+      String(WEB_PORT),
+      '--strictPort',
+    ],
+    {
+      CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}`,
+    },
+  ),
 ];
 const stop = () => children.forEach((c) => c.exitCode === null && c.kill('SIGKILL'));
 process.on('exit', stop);
@@ -59,7 +71,11 @@ async function up(url) {
 try {
   await up(`http://localhost:${GS_PORT}/health`);
   await up(`http://localhost:${WEB_PORT}`);
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--use-angle=metal'] });
+  const browser = await puppeteer.launch({
+    executablePath: CHROME,
+    headless: true,
+    args: ['--use-angle=metal'],
+  });
   const [page] = await browser.pages();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -69,7 +85,9 @@ try {
     (prefs) => localStorage.setItem('outgun.prefs', JSON.stringify(prefs)),
     { locale: 'pt-BR', hudStyle: style, ...(extra ? { hudCustom: extra } : {}) },
   );
-  await page.goto(`http://localhost:${WEB_PORT}/play?server=${encodeURIComponent(SERVER)}&name=Ana`);
+  await page.goto(
+    `http://localhost:${WEB_PORT}/play?server=${encodeURIComponent(SERVER)}&name=Ana`,
+  );
   await page.waitForSelector('.game[data-status=ready]', { timeout: 30_000 });
   await wait(4000);
   await page.keyboard.type('vou pegar a bandeira azul');

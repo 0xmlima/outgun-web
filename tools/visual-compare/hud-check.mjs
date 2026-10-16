@@ -37,7 +37,9 @@ const only = process.argv.includes('--only')
   ? process.argv[process.argv.indexOf('--only') + 1]
   : '';
 /** Estilo do HUD (D-55): o Clássico mantém os nomes de antes; os outros ganham prefixo. */
-const style = process.argv.includes('--style') ? process.argv[process.argv.indexOf('--style') + 1] : 'classic';
+const style = process.argv.includes('--style')
+  ? process.argv[process.argv.indexOf('--style') + 1]
+  : 'classic';
 const PREFIX = { classic: '', modern: 'moderno-', custom: 'personalizado-' }[style] ?? `${style}-`;
 const RESOLUTIONS = [
   { name: '1280x720', width: 1280, height: 720 },
