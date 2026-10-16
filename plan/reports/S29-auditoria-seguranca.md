@@ -10,7 +10,7 @@ GitHub, gitleaks no histórico, `pnpm audit`, cabeçalhos do site no ar).
 
 | # | Gravidade | Achado | Guia OWASP | Card |
 |---|---|---|---|---|
-| S1 | **Alta** | Backups só na própria VM e sem cifra: perder a máquina é perder o banco e os backups | Database Security, Cryptographic Storage | OG-307 |
+| S1 | **Alta** | Backups só na própria VM e sem cifra: perder a máquina é perder o banco e os backups (o volume que parecia expor os dados do banco ao container de backup é anônimo e vazio — corrigido depois da auditoria) | Database Security, Cryptographic Storage | OG-307 |
 | S2 | **Alta** | Contas que controlam tudo (GitHub, Oracle, Cloudflare, Resend, Registro.br) sem MFA confirmado | Multifactor Authentication, Secrets Management | OG-310 |
 | S3 | Média | API usa usuário do Postgres com SUPERUSER (defesa em profundidade: as consultas são parametrizadas) | Database Security, SQL Injection Prevention | OG-308 |
 | S4 | Média | Repositório **público** sem varredura de segredos, Dependabot nem proteção de branches | CI CD Security, GitHub Actions Security, Software Supply Chain | OG-309 |

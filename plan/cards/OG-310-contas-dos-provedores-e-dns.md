@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pts |
 | Sprint | S29 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,7 +23,8 @@ Quem controla GitHub, Oracle Cloud, Cloudflare, Resend ou o registro do domínio
 ## Escopo
 - PO: MFA (app autenticador ou chave física) em GitHub, Oracle Cloud, Cloudflare, Resend e Registro.br; revisar quem tem acesso a cada um.
 - DNS: DNSSEC ligado (Cloudflare + Registro.br) e registro CAA só para `letsencrypt.org`; conferir que não há registros apontando para serviços desativados.
-- Agente: apagar os `.env.bak-*` do servidor; mover a chave SSH da Oracle para `~/.ssh` com permissão 600; inventário de segredos (onde está cada um e como trocar) no README do deploy.
+- PO: senha na chave SSH que entra como root no servidor (`ssh-keygen -p -f ~/.ssh/id_ed25519`, com `UseKeychain yes` no `~/.ssh/config` para o macOS lembrar).
+- Agente: apagar os `.env.bak-*` do servidor; inventário de segredos (onde está cada um e como trocar) no README do deploy.
 
 ## Critérios de aceite
 - [ ] PO confirma MFA nas cinco contas.
@@ -32,3 +33,4 @@ Quem controla GitHub, Oracle Cloud, Cloudflare, Resend ou o registro do domínio
 
 ## Notas técnicas
 ## Notas de implementação
+- Na máquina do PO: a chave da Oracle não está mais em `~/Downloads`; `~/.ssh` e `~/.oci` com permissão 600; FileVault ligado. A chave `~/.ssh/id_ed25519` (root no servidor) e a chave de API da OCI estão **sem senha**: com FileVault, o risco que sobra é um programa malicioso no Mac. Recomendado ao PO pôr senha na chave SSH.
