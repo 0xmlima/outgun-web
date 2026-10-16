@@ -111,6 +111,17 @@ describe('HUD Personalizado (D-55, OG-300)', () => {
     }
   });
 
+  it('um componente nunca fica sobre outro, mesmo em outra resolução', () => {
+    for (const room of ['left', 'centre'] as const) {
+      const saved = customFromPlaces(1920, 1080, room, startingPlaces(1920, 1080, 1.5, room));
+      for (const [W, H] of SCREENS) {
+        const list = Object.entries(customArrangement(W, H, autoHudScale(W, H), saved).places);
+        for (let i = 0; i < list.length; i++)
+          for (let j = i + 1; j < list.length; j++) expect(overlaps(list[i]![1], list[j]![1]), `${room} ${W}×${H} ${list[i]![0]} × ${list[j]![0]}`).toBe(false);
+      }
+    }
+  });
+
   it('componente salvo no meio da sala é empurrado para fora', () => {
     const base = customFromPlaces(1920, 1080, 'left', startingPlaces(1920, 1080, 1.5, 'left'));
     const comps = { ...base.comps!, score: { ...base.comps!.score, anchor: 4, dx: 0, dy: 0 } };

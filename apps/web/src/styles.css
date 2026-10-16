@@ -594,3 +594,128 @@ body {
   white-space: nowrap;
   pointer-events: none;
 }
+
+/* Opções › Gráficos: botão do editor do HUD Personalizado (OG-300) */
+.options-hud-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Editor do HUD Personalizado (OG-300): a tela inteira é a partida de exemplo; o painel fica no meio
+   da sala, onde nenhum componente pode estar (D-55) */
+.hud-editor {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+  font-family: var(--font);
+}
+.hud-editor-canvas {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: block;
+}
+.hud-editor-room {
+  position: absolute;
+  outline: 1px dashed rgb(255 255 255 / 18%);
+  outline-offset: -1px;
+  pointer-events: none;
+}
+.hud-editor-box {
+  position: absolute;
+  border: 1px dashed rgb(255 255 255 / 35%);
+  cursor: grab;
+}
+.hud-editor-box:hover,
+.hud-editor-box:focus-visible {
+  border-color: rgb(255 255 255 / 70%);
+  outline: none;
+}
+.hud-editor-box.is-selected {
+  border: 2px solid #ffe81a;
+}
+.hud-editor-box.is-blocked {
+  border: 2px solid var(--danger);
+  background: rgb(255 122 122 / 12%);
+}
+.hud-editor-label {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  transform: translateY(-100%);
+  padding: 0 var(--space-1);
+  background: rgb(0 0 0 / 80%);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hud-editor-box.is-selected .hud-editor-label {
+  background: #ffe81a;
+  color: #000;
+}
+.hud-editor-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: #ffe81a;
+  cursor: nwse-resize;
+}
+.hud-editor-panel {
+  position: absolute;
+  transform: translateY(-50%);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgb(11 16 32 / 94%);
+  box-shadow: var(--shadow-2);
+  color: var(--text);
+}
+.hud-editor-panel h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.hud-editor-panel p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.hud-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.hud-editor-spacer {
+  flex: 1;
+}
+.hud-editor-panel .ui-button {
+  min-height: 2.25rem;
+  font-size: var(--text-sm);
+}
+.hud-editor-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+.hud-editor-toggles label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  cursor: pointer;
+}
+.hud-editor-toggles input {
+  accent-color: var(--accent);
+}

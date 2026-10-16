@@ -110,26 +110,49 @@ export function outsideRoom(r: Rect, room: Rect, W: number, H: number): Rect | n
   return best;
 }
 
-/** Personalizado: cada componente pela âncora; o que cair sobre a sala vai para fora dela ou encolhe (D-55). */
+/**
+ * Lugar livre mais próximo de `r`: na mesma coluna (deslizando na vertical) ou numa lateral da sala;
+ * nada sobre a sala nem sobre outro componente. `null` se não houver.
+ */
+export function freeSpot(r: Rect, room: Rect, taken: readonly Rect[], W: number, H: number): Rect | null {
+  const blocked = [room, ...taken];
+  const xs = [...new Set([r.x, room.x - r.w, room.x + room.w].map((x) => clamp(x, 0, W - r.w)))].sort((a, b) => Math.abs(a - r.x) - Math.abs(b - r.x));
+  const step = 4;
+  for (const x of xs)
+    for (let d = 0; d <= H; d += step)
+      for (const y of d ? [r.y + d, r.y - d] : [r.y]) {
+        if (y < 0 || y > H - r.h) continue;
+        const c = { ...r, x, y };
+        if (blocked.every((b) => !overlaps(c, b))) return c;
+      }
+  return null;
+}
+
+/**
+ * Personalizado: cada componente pela âncora, no lugar livre mais próximo dela (D-55: nada sobre a sala,
+ * nem um componente sobre outro); se não couber em lugar nenhum, encolhe.
+ */
 export function customArrangement(W: number, H: number, u: number, custom: HudCustom, minimap = true): HudArrangement {
   if (!custom.comps && custom.room === 'left') return modernArrangement(W, H, u, minimap);
   const room = customRoom(W, H, custom.room);
   const comps = custom.comps ?? customFromPlaces(W, H, custom.room, startingPlaces(W, H, u, custom.room)).comps;
   if (!comps) return modernArrangement(W, H, u, minimap);
   const places: Places = {};
+  const taken: Rect[] = [];
   for (const id of HUD_COMPONENTS) {
     const c = comps[id];
     if (!c.visible || (id === 'minimap' && !minimap)) continue;
     // escala do texto dentro dos limites relativos à escala automática do HUD
     const s0 = clamp(c.s * H, CUSTOM_SCALE_MIN * u, CUSTOM_SCALE_MAX * u);
     const k0 = s0 / (c.s * H);
-    for (let k = k0; k >= 0.4 * k0; k *= 0.85) {
+    for (let k = k0; k >= 0.3 * k0; k *= 0.85) {
       const w = Math.min(W, Math.round(c.w * H * k));
       const h = Math.min(H, Math.round(c.h * H * k));
       const [x, y] = fromAnchor(c, w, h, W, H);
-      const out = outsideRoom({ x, y, w, h }, room, W, H);
-      if (out) {
-        places[id] = { ...out, s: c.s * H * k };
+      const spot = freeSpot({ x, y, w, h }, room, taken, W, H);
+      if (spot) {
+        places[id] = { ...spot, s: c.s * H * k };
+        taken.push(spot);
         break;
       }
     }
@@ -143,6 +166,7 @@ export function startingPlaces(W: number, H: number, u: number, room: HudRoom): 
   if (room === 'left') return from;
   const r = customRoom(W, H, room);
   const out: Places = {};
+  const taken: Rect[] = [];
   for (const id of HUD_COMPONENTS) {
     const p = from[id];
     if (!p) continue;
@@ -151,8 +175,11 @@ export function startingPlaces(W: number, H: number, u: number, room: HudRoom): 
     const k = Math.min(1, (side - 2 * Math.round(10 * u)) / p.w);
     const w = Math.round(p.w * k);
     const h = Math.round(p.h * k);
-    const res = outsideRoom({ x: clamp(p.x, 0, W - w), y: clamp(p.y, 0, H - h), w, h }, r, W, H);
-    if (res) out[id] = { ...res, s: p.s * k };
+    const res = freeSpot({ x: clamp(p.x, 0, W - w), y: clamp(p.y, 0, H - h), w, h }, r, taken, W, H);
+    if (res) {
+      out[id] = { ...res, s: p.s * k };
+      taken.push(res);
+    }
   }
   return out;
 }
