@@ -742,8 +742,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-298](cards/OG-298-hud-moderno.md) | HUD Moderno: sala grande e coluna do jogador (opção A) | E8 | 5 | Must | S26 | OG-297 | Em revisão |
 | [OG-299](cards/OG-299-placar-tab.md) | Placar completo no TAB (Moderno e Personalizado) | E8 | 2 | Must | S26 | OG-298 | Em revisão |
 | [OG-300](cards/OG-300-hud-personalizado-editor.md) | HUD Personalizado: editor de posição e tamanho dos componentes | E8 | 8 | Should | S26 | OG-298 | Em revisão |
+| [OG-301](cards/OG-301-faixa-serie-fora-da-sala.md) | Faixa da série do Ranked fora da sala no HUD Moderno e no Personalizado | E8 | 2 | Should | — | OG-298 | Backlog |
 
-**Total:** 142 cards, 525 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 73 cards, 230 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 143 cards, 527 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 74 cards, 232 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
