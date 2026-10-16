@@ -1,0 +1,869 @@
+<title>Outgun HUD Moderno</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&family=IBM+Plex+Mono:wght@500;600&family=VT323&display=swap">
+<style>
+/* Layout: prancha escura (a tela do jogo é preta). Comparador com abas Original / A / B e resolução,
+   depois o editor do HUD personalizado e o que muda no código. Cores do jogo só nos desenhos. */
+:root {
+  color-scheme: dark;
+  --page: #050505;
+  --page-1: #0e0f0d;
+  --page-2: #171915;
+  --line: #2a2d27;
+  --text: #ececea;
+  --muted: #a2a59c;
+  --mark: #FFE81A;      /* amarelo do mastro: seleção e foco */
+  --wall: #30C000;      /* parede do tema padrão: estados "sempre na tela" */
+  --red: #FF5544;
+  --blue: #6f7dff;
+  --warn: #FFB238;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font: 400 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--page); }
+button, input { font: inherit; color: inherit; }
+code { font: 500 .88em var(--mono); }
+.wrap { max-width: 84rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.head { padding-block: 2.5rem 1.5rem; display: grid; gap: 1rem; }
+.eyebrow { font: 600 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3rem); line-height: 1.05; letter-spacing: -.03em; font-weight: 850; text-wrap: balance; }
+.lede { margin: 0; max-width: 68ch; color: var(--muted); }
+.lede b { color: var(--text); font-weight: 600; }
+
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .75rem; margin-top: .5rem; }
+.mode { border: 1px solid var(--line); background: var(--page-1); padding: 1rem 1.1rem; display: grid; gap: .35rem; align-content: start; min-width: 0; }
+.mode h3 { margin: 0; font-size: 16px; font-weight: 750; display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.mode h3 small { font: 600 11px var(--mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.mode p { margin: 0; font-size: 14px; color: var(--muted); }
+
+section.block { padding-block: 2rem; border-top: 1px solid var(--line); }
+h2 { margin: 0 0 1rem; font-size: 1.5rem; letter-spacing: -.02em; font-weight: 780; text-wrap: balance; }
+h2 small { display: block; font-size: 13.5px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-top: .25rem; }
+
+/* barra de controles */
+.ctrl { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; margin-bottom: 1rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: .5rem .85rem; cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--muted); display: inline-flex; gap: .45rem; align-items: baseline; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button small { font: 500 11px var(--mono); color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--page); }
+.seg button[aria-pressed="true"] small { color: #444; }
+.tabkey { display: inline-flex; gap: .55rem; align-items: center; border: 1px solid var(--line); background: transparent; padding: .45rem .8rem; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.tabkey kbd { font: 600 11.5px var(--mono); border: 1px solid currentColor; padding: .05rem .4rem; }
+.tabkey[aria-pressed="true"] { color: var(--mark); border-color: var(--mark); }
+button:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+
+.stage { position: relative; border: 1px solid var(--line); background: #000; line-height: 0; }
+.stage canvas { width: 100%; height: auto; display: block; }
+.res-note { font: 500 12px var(--mono); color: var(--muted); margin-top: .5rem; }
+
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; gap: 1.5rem; align-items: start; }
+.facts { display: grid; gap: 1rem; min-width: 0; }
+.facts h3 { margin: 0; font-size: 1.15rem; font-weight: 760; letter-spacing: -.01em; }
+.facts .tag { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.facts p { margin: 0; font-size: 14px; color: var(--muted); }
+.facts ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .35rem; font-size: 14px; }
+.facts li::marker { color: var(--muted); }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .35rem .9rem; font-size: 13.5px; margin: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.chip { font-size: 12px; padding: .15rem .5rem; border: 1px solid var(--line); color: var(--text); }
+.chip.on { border-color: color-mix(in srgb, var(--wall) 60%, transparent); }
+.chip.tab { border-style: dashed; color: var(--muted); }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.pc div { min-width: 0; }
+.pc b { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .25rem; }
+.pc .pro b { color: var(--wall); }
+.pc .con b { color: var(--warn); }
+.pc ul { padding-left: 1rem; font-size: 13.5px; color: var(--muted); }
+
+.thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1rem; }
+.thumb { border: 1px solid var(--line); background: var(--page-1); padding: .45rem; cursor: pointer; display: grid; gap: .4rem; text-align: left; }
+.thumb canvas { width: 100%; height: auto; display: block; background: #000; }
+.thumb span { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.thumb[aria-pressed="true"] { border-color: var(--mark); }
+.thumb[aria-pressed="true"] span { color: var(--text); }
+
+/* opções › gráficos */
+.optmenu { border: 1px solid var(--line); background: #000; max-width: 34rem; font-size: 14px; }
+.optmenu .cap { background: #104000; color: #fff; padding: .55rem .9rem; font-weight: 700; letter-spacing: .02em; display: flex; justify-content: space-between; gap: 1rem; }
+.optmenu .cap span { font: 500 12px var(--mono); color: #b7e6a8; }
+.optmenu .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; padding: .55rem .9rem; border-top: 1px solid #1d2a17; align-items: center; }
+.optmenu .row .v { font-weight: 600; color: #fff; }
+.optmenu .row.new { background: #0b1a06; }
+.optmenu .row.new .k::after { content: "novo"; margin-left: .5rem; font: 600 10px var(--mono); color: #000; background: var(--mark); padding: .05rem .35rem; vertical-align: 2px; }
+.optmenu .row .k { color: #cfd6c8; }
+.optmenu .pick { display: inline-flex; gap: .25rem; flex-wrap: wrap; justify-content: flex-end; }
+.optmenu .pick i { font-style: normal; padding: .1rem .5rem; border: 1px solid #2c4a22; color: #cfd6c8; font-size: 12.5px; }
+.optmenu .pick i.sel { background: #30C000; color: #000; border-color: #30C000; font-weight: 700; }
+.optmenu .row.dim { opacity: .55; }
+
+/* editor */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: 1.25rem; align-items: start; }
+.ed-stage { position: relative; border: 1px solid var(--line); background: #000; line-height: 0; touch-action: none; user-select: none; }
+.ed-stage canvas { width: 100%; height: auto; display: block; }
+.ed-layer { position: absolute; inset: 0; }
+.box { position: absolute; border: 1px dashed rgba(255,255,255,.28); cursor: grab; }
+.box:hover { border-color: rgba(255,255,255,.6); }
+.box.sel { border: 1.5px solid var(--mark); cursor: grabbing; }
+.box.over { border-color: var(--warn); }
+.box .lbl { position: absolute; left: -1px; top: -1px; transform: translateY(-100%); font: 600 10.5px/1.5 var(--mono); padding: 0 .35rem; background: rgba(0,0,0,.75); color: var(--muted); white-space: nowrap; pointer-events: none; }
+.box.sel .lbl { background: var(--mark); color: #000; }
+.box .rs { position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; background: var(--mark); cursor: nwse-resize; display: none; }
+.box.sel .rs { display: block; }
+.side { display: grid; gap: 1rem; min-width: 0; }
+.side h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .55rem; align-items: center; padding: .35rem .5rem; background: var(--page-1); border: 1px solid transparent; cursor: pointer; font-size: 13.5px; }
+.list li.sel { border-color: var(--mark); }
+.list li .st { font: 500 11px var(--mono); color: var(--muted); }
+.list li .st.warn { color: var(--warn); }
+.list input[type=checkbox] { accent-color: var(--wall); width: 15px; height: 15px; margin: 0; }
+.prop { display: grid; gap: .6rem; background: var(--page-1); border: 1px solid var(--line); padding: .8rem .9rem; }
+.prop label { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr) 3rem; gap: .6rem; align-items: center; font-size: 13px; color: var(--muted); }
+.prop label output { font: 600 12px var(--mono); color: var(--text); text-align: right; }
+.prop input[type=range] { width: 100%; accent-color: var(--mark); }
+.prop .anc { font: 500 12px/1.5 var(--mono); color: var(--text); }
+.prop .anc span { color: var(--muted); }
+.btns { display: flex; flex-wrap: wrap; gap: .4rem; }
+.btn { border: 1px solid var(--line); background: transparent; padding: .4rem .7rem; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text); }
+.btn:hover { border-color: var(--muted); }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+/* implementação */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: .75rem; }
+.card { background: var(--page-1); border: 1px solid var(--line); padding: 1rem 1.1rem; display: grid; gap: .45rem; align-content: start; min-width: 0; }
+.card h3 { margin: 0; font-size: 15px; font-weight: 720; }
+.card p, .card li { margin: 0; font-size: 14px; color: var(--muted); }
+.card ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+.card code { color: var(--text); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; min-width: 40rem; font-size: 14px; }
+th, td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--page-1); }
+td:first-child { font: 600 13px var(--mono); white-space: nowrap; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.qs { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; counter-reset: q; }
+.qs li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .8rem; background: var(--page-1); border: 1px solid var(--line); padding: .8rem 1rem; font-size: 14.5px; }
+.qs li::before { counter-increment: q; content: counter(q); font: 600 12px var(--mono); color: #000; background: var(--mark); width: 1.4rem; height: 1.4rem; display: grid; place-items: center; }
+.qs li span { color: var(--muted); display: block; font-size: 13.5px; margin-top: .15rem; }
+footer { padding-block: 2rem 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+
+@media (max-width: 62rem) {
+  .cmp, .editor { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 34rem) {
+  .thumbs { grid-template-columns: minmax(0, 1fr); }
+  .pc { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<header class="wrap head">
+  <div class="eyebrow">Proposta para a S26 · HUD da partida · 2026-10-16</div>
+  <h1>Um HUD mais limpo para o Outgun Web</h1>
+  <p class="lede">A S25 deixou o HUD do jeito do original em qualquer resolução. Esta proposta abre um segundo caminho: <b>tirar a lista de frags da tela</b> (ela passa a aparecer só com <b>TAB</b>), dar mais espaço à sala e agrupar o que o jogador olha durante a partida. Em Opções › Gráficos o jogador escolhe entre três estilos.</p>
+  <div class="modes">
+    <div class="mode"><h3>Original <small>hoje, S25</small></h3><p>Fica como está: chat, minimapa e placar com os frags na coluna, barra de vida e energia embaixo. TAB continua mostrando os pings no placar.</p></div>
+    <div class="mode"><h3>Moderno <small>A ou B, escolha do PO</small></h3><p>Sem frags na tela. Placar dos times e relógio no alto, vida, energia, power-ups e arma num bloco só. TAB abre o placar completo sobre a sala.</p></div>
+    <div class="mode"><h3>Personalizado <small>editor</small></h3><p>Começa de um dos modernos. O jogador arrasta, aumenta, esconde e deixa mais transparente cada componente. Vale para qualquer resolução.</p></div>
+  </div>
+</header>
+
+<section class="wrap block" aria-labelledby="c-h">
+  <h2 id="c-h">As duas opções do Moderno<small>mesma cena nos três estilos: Ana* (você, vermelho) com 132 de vida, turbo ativo, arma nível 2, Bia* levando a bandeira vermelha</small></h2>
+  <div class="ctrl">
+    <div class="seg" role="group" aria-label="Estilo">
+      <button type="button" data-opt="orig" aria-pressed="false">Original <small>hoje</small></button>
+      <button type="button" data-opt="A" aria-pressed="true">A · Coluna</button>
+      <button type="button" data-opt="B" aria-pressed="false">B · Arena</button>
+    </div>
+    <div class="seg" role="group" aria-label="Resolução">
+      <button type="button" data-res="1920x1080" aria-pressed="true">1920×1080 <small>16:9</small></button>
+      <button type="button" data-res="1680x1050" aria-pressed="false">1680×1050 <small>16:10</small></button>
+      <button type="button" data-res="1024x768" aria-pressed="false">1024×768 <small>4:3</small></button>
+    </div>
+    <button type="button" class="tabkey" id="tabBtn" aria-pressed="false"><kbd>TAB</kbd> segurar placar</button>
+  </div>
+  <div class="cmp">
+    <div>
+      <div class="stage"><canvas id="main" aria-label="Simulação do HUD"></canvas></div>
+      <div class="res-note" id="resNote"></div>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+    <div class="facts" id="facts"></div>
+  </div>
+</section>
+
+<section class="wrap block" aria-labelledby="p-h">
+  <h2 id="p-h">Personalizado: o editor do HUD<small>arraste os componentes, puxe o canto amarelo para mudar o tamanho, desmarque para esconder. É uma simulação do editor que entraria no jogo</small></h2>
+  <div class="editor">
+    <div>
+      <div class="ed-stage" id="edStage"><canvas id="edCanvas" aria-label="Editor do HUD"></canvas><div class="ed-layer" id="edLayer"></div></div>
+      <p class="hint" style="margin-top:.6rem">Os componentes encaixam na grade de 8 px, nas margens e no centro. Contorno laranja: o componente cobre parte da sala (permitido, mas avisado).</p>
+    </div>
+    <div class="side">
+      <div class="btns" role="group" aria-label="Posição da sala">
+        <button type="button" class="btn" data-room="centro">Sala centralizada</button>
+        <button type="button" class="btn" data-room="esquerda">Sala à esquerda</button>
+      </div>
+      <div>
+        <h3>Componentes</h3>
+        <ul class="list" id="edList"></ul>
+      </div>
+      <div class="prop" id="edProp"></div>
+      <div class="btns">
+        <button type="button" class="btn" data-preset="A">Começar do A</button>
+        <button type="button" class="btn" data-preset="B">Começar do B</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:2rem; display:grid; gap:1rem">
+    <h2 style="margin:0">Onde fica nas Opções<small>Opções › Gráficos, ao lado da "Escala do HUD" que a S25 criou</small></h2>
+    <div class="optmenu" aria-label="Simulação do menu Opções › Gráficos">
+      <div class="cap">Gráficos <span>Opções</span></div>
+      <div class="row new"><span class="k">Estilo do HUD</span><span class="pick"><i>Original</i><i class="sel">Moderno</i><i>Personalizado</i></span></div>
+      <div class="row"><span class="k">Escala do HUD</span><span class="v">Automática</span></div>
+      <div class="row new dim"><span class="k">Editar HUD personalizado…</span><span class="v">abre o editor</span></div>
+      <div class="row new"><span class="k">Opacidade dos painéis</span><span class="v">55%</span></div>
+      <div class="row new"><span class="k">Chat some depois de</span><span class="v">10 s</span></div>
+      <div class="row"><span class="k">Tema do menu</span><span class="v">Campo</span></div>
+    </div>
+    <p class="hint">"Editar HUD personalizado…" abre o editor sobre uma partida de demonstração (a cena acima), com Salvar, Cancelar e Restaurar. Com o estilo Original, opacidade e chat ficam desativados.</p>
+  </div>
+</section>
+
+<section class="wrap block" aria-labelledby="i-h">
+  <h2 id="i-h">O que muda no código<small>a partir de <code>apps/web/src/game/hud/screen-layout.ts</code> e <code>hud-renderer.ts</code></small></h2>
+  <div class="grid2">
+    <div class="card"><h3>Layout por componentes</h3><p><code>screenLayout()</code> passa a devolver um retângulo por componente (<code>placar</code>, <code>minimapa</code>, <code>vida</code>, <code>energia</code>, <code>powerups</code>, <code>arma</code>, <code>chat</code>, <code>frags</code>, <code>fps</code>), cada um com escala e opacidade. O Original é a função de hoje reescrita nesse formato, com diferença zero no <code>visual:check</code>.</p></div>
+    <div class="card"><h3>Personalizado sobrevive à troca de resolução</h3><p>Cada componente é salvo como âncora (um dos 9 pontos da tela), deslocamento em % da altura e escala relativa à escala do HUD. Trocar de 1080p para 4:3 mantém o minimapa no canto, só que menor. Componentes fora da tela voltam para dentro.</p></div>
+    <div class="card"><h3>TAB com duas funções</h3><p>No Original, TAB segue trocando frags por pings. Nos outros estilos abre o placar completo (frags, capturas, ping, quem leva a bandeira) sobre a sala, enquanto a tecla estiver pressionada. F4 continua com as estatísticas.</p></div>
+    <div class="card"><h3>Texto do HUD moderno</h3><p>Os desenhos usam Inter (D-35). No jogo, a fonte entra no Pixi como fonte bitmap gerada no tamanho da escala do HUD, nunca ampliada. Foi o que quebrou o OG-205; o card só fecha depois de uma partida online conferida, com capturas ao PO.</p></div>
+    <div class="card"><h3>Sem vantagem no Ranked</h3><p>Os três estilos mostram as mesmas informações; o Personalizado só muda lugar, tamanho e opacidade. Não existe componente que revele algo novo. Esconder o minimapa é escolha do jogador.</p></div>
+    <div class="card"><h3>Regra nova no PLAN</h3><p>Uma decisão D-55 e uma RN-UI-07 registram os três estilos e abrem exceção à RN-UI-05 só para o Moderno e o Personalizado. O Original fica protegido pelas capturas do <code>visual:check</code>, que ganham uma série para cada estilo.</p></div>
+  </div>
+
+  <h2 style="margin-top:2rem">Cards sugeridos para a S26</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Card</th><th>O que entrega</th><th>Pontos</th><th>Depende de</th></tr></thead>
+      <tbody>
+        <tr><td>OG-297</td><td>Layout por componentes e opção "Estilo do HUD" (só o Original, diferença zero nas capturas)</td><td class="n">5</td><td>—</td></tr>
+        <tr><td>OG-298</td><td>HUD Moderno (a opção escolhida) em 16:9, 16:10 e 4:3, com o texto novo</td><td class="n">5</td><td>OG-297</td></tr>
+        <tr><td>OG-299</td><td>Placar completo no TAB para Moderno e Personalizado</td><td class="n">3</td><td>OG-297</td></tr>
+        <tr><td>OG-300</td><td>Editor do HUD personalizado (arrastar, tamanho, opacidade, esconder, salvar)</td><td class="n">8</td><td>OG-298</td></tr>
+        <tr><td>OG-301</td><td>Opacidade dos painéis e chat que some sozinho; capturas do <code>visual:check</code> por estilo</td><td class="n">2</td><td>OG-298</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="margin-top:2rem">Decisões do PO</h2>
+  <ol class="qs">
+    <li><div>Qual opção vira o "Moderno": A (Coluna) ou B (Arena)?<span>A outra pode ficar só como ponto de partida no editor do Personalizado.</span></div></li>
+    <li><div>O Personalizado fica salvo no navegador ou na conta?<span>Na conta, ele acompanha o jogador em outro computador, mas precisa de migration e rota na API.</span></div></li>
+    <li><div>No Personalizado, um componente pode cobrir a sala?<span>Hoje a proposta deixa, com aviso no editor. A alternativa é travar os componentes fora da sala.</span></div></li>
+  </ol>
+</section>
+
+<footer class="wrap">Protótipo da S26 · desenhado com as cores do tema padrão (chão #104000, parede #30C000, mastro amarelo). Sala 472×354 unidades, escala do HUD automática pela altura (D-54).</footer>
+
+<script>
+(() => {
+'use strict';
+const RW = 472, RH = 354;
+const INTER = "'Inter', system-ui, sans-serif";
+const PIX = "'VT323', 'IBM Plex Mono', monospace";
+const C = {
+  ground: '#104000', wall: '#30C000', red: '#FF0000', redL: '#FF5544', redD: '#660000', blue: '#0000FF', blueL: '#4455FF', blueD: '#000066',
+  pole: '#FFFF00', power: '#00FFFF', turbo: '#FFFF00', shadow: '#FF00FF', msg: '#33DD55',
+  h: ['#FF0000', '#FFFF00', '#FF00FF'], e: ['#0000FF', '#00FF00', '#7D64FF'], wpn: ['#00FF00', '#0000FF', '#FF0000', '#FFFF00'],
+};
+const teamL = (t) => (t ? C.blueL : C.redL);
+const hudU = (W, H) => Math.max(1, Math.round((Math.min(H, (W * 3) / 4) / 700) * 2) / 2);
+
+/* ---------- cena ---------- */
+const SCENE = {
+  walls: [[0, 0, 196, 12], [276, 0, 196, 12], [0, 342, 150, 12], [230, 342, 242, 12], [0, 0, 12, 137], [0, 217, 12, 137], [460, 0, 12, 354], [150, 110, 64, 40], [296, 206, 80, 30], [92, 250, 12, 60], [330, 70, 12, 70]],
+  players: [
+    { x: 118, y: 196, team: 0, col: '#FFFF00', me: true },
+    { x: 252, y: 86, team: 0, col: '#00FFFF' },
+    { x: 360, y: 160, team: 1, col: '#FF8800' },
+    { x: 404, y: 292, team: 1, col: '#FFFFFF', carry: 0 },
+  ],
+  flag: { x: 60, y: 84, team: 0, gone: true },
+  rockets: [[168, 192], [206, 188], [338, 168]],
+};
+const CHAT = [
+  { t: 'Este é o mapa The Blunt.', k: 'sys' },
+  { t: 'Ana* foi para o time vermelho.', k: 'sys' },
+  { t: 'Bia* pegou a bandeira vermelha!', k: 'b' },
+  { who: 'Duda', team: 0, t: 'segura a base que eu vou buscar' },
+  { t: 'Ana* abateu Enzo', k: 'r' },
+  { who: 'Gabi', team: 1, t: 'alguém volta pra defesa' },
+];
+const TEAMS = [
+  [{ n: 'Ana*', f: 12, c: 1, p: 23, me: 1 }, { n: 'Duda', f: 8, c: 1, p: 41 }, { n: 'Caio', f: 5, c: 0, p: 18 }, { n: 'Hugo [bot]', f: 3, c: 0, p: 0 }],
+  [{ n: 'Bia*', f: 10, c: 1, p: 35, flag: 0 }, { n: 'Enzo', f: 7, c: 0, p: 52 }, { n: 'Gabi', f: 4, c: 0, p: 29 }, { n: 'Ivo', f: 2, c: 0, p: 64 }],
+];
+const SELF = { health: 132, energy: 86, power: 0, turbo: 23, shadow: 0, weapon: 2 };
+const SCORE = [2, 1], CLOCK = '7:42';
+
+/* minimapa: 6×6 salas, paredes de borda e cruzes nas esquinas */
+const MAP = { w: 6, h: 6, red: [1, 1], blue: [4, 4], here: [1, 2] };
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const MAP_SEGS = [];
+for (let i = 0; i < 14; i++) MAP_SEGS.push([Math.floor(rnd() * 6), Math.floor(rnd() * 6), rnd() < 0.5]);
+
+/* ---------- utilidades de desenho ---------- */
+function T(ctx, t, x, y, o = {}) {
+  ctx.font = `${o.w || 500} ${o.size}px ${o.font || INTER}`;
+  ctx.fillStyle = o.c || '#fff';
+  ctx.textAlign = o.a || 'left';
+  ctx.textBaseline = o.b || 'alphabetic';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = (o.ls || 0) + 'px';
+  ctx.fillText(t, x, y);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  return ctx.measureText(t).width;
+}
+function R(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
+function stroke(ctx, x, y, w, h, c, lw = 1) { ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.strokeRect(x + lw / 2, y + lw / 2, w - lw, h - lw); }
+function flagGlyph(ctx, x, y, s, team) { R(ctx, x, y, Math.max(1, s * 0.12), s, C.pole); R(ctx, x + Math.max(1, s * 0.12), y, s * 0.6, s * 0.42, team ? C.blue : C.red); }
+
+function drawRoom(ctx, r) {
+  const m = r.w / RW;
+  R(ctx, r.x, r.y, r.w, r.h, C.ground);
+  for (const [x, y, w, h] of SCENE.walls) R(ctx, r.x + x * m, r.y + y * m, w * m, h * m, C.wall);
+  const f = SCENE.flag;
+  // base vazia: só o mastro
+  R(ctx, r.x + f.x * m, r.y + (f.y - 28) * m, 3 * m, 30 * m, C.pole);
+  ctx.fillStyle = '#fff';
+  for (const [x, y] of SCENE.rockets) { ctx.beginPath(); ctx.arc(r.x + x * m, r.y + y * m, 3 * m, 0, 7); ctx.fill(); }
+  for (const p of SCENE.players) {
+    const cx = r.x + p.x * m, cy = r.y + p.y * m;
+    ctx.beginPath(); ctx.arc(cx, cy, 15 * m, 0, 7); ctx.fillStyle = p.team ? C.blue : C.red; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, 11 * m, 0, 7); ctx.fillStyle = p.col; ctx.fill();
+    if (p.carry !== undefined) flagGlyph(ctx, cx + 8 * m, cy - 30 * m, 20 * m, p.carry);
+    if (p.me) { ctx.beginPath(); ctx.arc(cx, cy, 19 * m, 0, 7); ctx.strokeStyle = 'rgba(255,255,0,.55)'; ctx.lineWidth = Math.max(1, 1.5 * m); ctx.stroke(); }
+  }
+}
+
+function drawMinimap(ctx, r, style) {
+  const asp = (MAP.h * RH) / (MAP.w * RW);
+  let w = r.w, h = r.w * asp;
+  if (h > r.h) { h = r.h; w = h / asp; }
+  const x0 = r.x + (r.w - w) / 2, y0 = r.y + (r.h - h) / 2, cw = w / MAP.w, ch = h / MAP.h;
+  const orig = style === 'orig';
+  const ww = Math.max(2, cw * (orig ? 0.09 : 0.06));
+  for (let i = 0; i < MAP.w; i++) for (let j = 0; j < MAP.h; j++) {
+    let c = orig ? '#3c3c3c' : '#0a2400';
+    if (i === MAP.red[0] && j === MAP.red[1]) c = C.redD;
+    if (i === MAP.blue[0] && j === MAP.blue[1]) c = orig ? '#2d2d8a' : C.blueD;
+    if (!orig && i === MAP.here[0] && j === MAP.here[1]) c = '#1a4a08';
+    R(ctx, x0 + i * cw, y0 + j * ch, cw, ch, c);
+  }
+  ctx.strokeStyle = orig ? '#303030' : 'rgba(48,192,0,.22)'; ctx.lineWidth = 1;
+  for (let i = 1; i < MAP.w; i++) { ctx.beginPath(); ctx.moveTo(x0 + i * cw + 0.5, y0); ctx.lineTo(x0 + i * cw + 0.5, y0 + h); ctx.stroke(); }
+  for (let j = 1; j < MAP.h; j++) { ctx.beginPath(); ctx.moveTo(x0, y0 + j * ch + 0.5); ctx.lineTo(x0 + w, y0 + j * ch + 0.5); ctx.stroke(); }
+  const wall = orig ? '#2f9e2f' : C.wall;
+  stroke(ctx, x0, y0, w, h, wall, ww);
+  for (let i = 1; i < MAP.w; i++) for (let j = 1; j < MAP.h; j++) {
+    const cx = x0 + i * cw, cy = y0 + j * ch, a = cw * 0.22;
+    R(ctx, cx - a, cy - ww / 2, 2 * a, ww, wall); R(ctx, cx - ww / 2, cy - a, ww, 2 * a, wall);
+  }
+  for (const [i, j, hor] of MAP_SEGS) {
+    if (hor) R(ctx, x0 + i * cw, y0 + j * ch - ww / 2, cw, ww, wall); else R(ctx, x0 + i * cw - ww / 2, y0 + j * ch, ww, ch, wall);
+  }
+  if (!orig) stroke(ctx, x0 + MAP.here[0] * cw, y0 + MAP.here[1] * ch, cw, ch, C.pole, Math.max(1, cw * 0.03));
+  // bandeiras e jogadores (posição da sala + posição dentro dela)
+  const at = (ri, rj, px, py) => [x0 + (ri + px / RW) * cw, y0 + (rj + py / RH) * ch];
+  const [bx, by] = at(MAP.blue[0], MAP.blue[1], 300, 160);
+  flagGlyph(ctx, bx, by - ch * 0.3, ch * 0.3, 1);
+  const dot = (x, y, c, rad, ring) => { ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fillStyle = c; ctx.fill(); if (ring) { ctx.lineWidth = Math.max(1, rad * 0.4); ctx.strokeStyle = ring; ctx.stroke(); } };
+  const rad = Math.max(2, cw * 0.07);
+  for (const p of SCENE.players) { const [x, y] = at(MAP.here[0], MAP.here[1], p.x, p.y); dot(x, y, p.team ? C.blue : C.red, rad, p.me ? C.pole : null); }
+  const [cx, cy] = at(3, 2, 240, 170); dot(cx, cy, C.blue, rad);
+  flagGlyph(ctx, cx + rad, cy - ch * 0.32, ch * 0.28, 0);
+  const [dx, dy] = at(2, 4, 120, 200); dot(dx, dy, C.red, rad);
+}
+
+/* ---------- Original (S25) ---------- */
+function layOriginal(W, H) {
+  const u = hudU(W, H), fh = 11 * u, lineH = fh + 3 * u, bb = Math.round(3 * (fh + 2 * u) + 5 * u), fpsH = fh + 4;
+  const charW = fh * 0.56, boardW = 20 * charW + 16 * u, rowH = fh + 7 * u;
+  let room, chat, mm, fr;
+  if (W / H >= 1.5) {
+    let h = H - bb - 4 * u, w = Math.round((h * 4) / 3);
+    const minCol = Math.max(2 * boardW + 8 * u + 12, 40 * charW + 12);
+    if (W - w < minCol) { w = W - minCol; h = Math.round(w * 0.75); }
+    room = { x: 0, y: H - bb - h, w, h };
+    const cx = w, cw = W - w;
+    chat = { x: cx + 6 * u, y: 3 * u, w: cw - 9 * u, h: 8 * lineH };
+    const sbH = 9 * rowH, sbY = H - fpsH - 4 * u - sbH;
+    const mmY = chat.y + chat.h + 4 * u;
+    mm = { x: cx + 4 * u, y: mmY, w: cw - 8 * u, h: sbY - 6 * u - mmY };
+    fr = { x: cx + 4 * u, y: sbY, w: cw - 8 * u, h: sbH, side: true };
+  } else {
+    const chatH = Math.round(Math.max(7 * lineH + 6 * u, 0.22 * H));
+    let h = H - chatH - bb, w = Math.round((h * 4) / 3);
+    if (W - w < boardW + 12) { w = W - boardW - 12; h = Math.round(w * 0.75); }
+    room = { x: 0, y: H - bb - h, w, h };
+    chat = { x: 3 * u, y: 3 * u, w: W - 6 * u, h: room.y - 6 * u };
+    const cx = w, mmW = W - cx - 8 * u, sbH = 2 * 9 * rowH + 6 * u;
+    const avail = H - room.y - 8 * u - fpsH;
+    const mmH = Math.round(Math.min(mmW * 0.75, avail - sbH - 4 * u));
+    mm = { x: cx + 4 * u, y: room.y, w: mmW, h: mmH };
+    fr = { x: cx + 4 * u, y: room.y + mmH + 4 * u, w: mmW, h: sbH, side: false };
+  }
+  return {
+    style: 'orig', u, W, H, room,
+    comps: [
+      { id: 'chat', ...chat, s: u }, { id: 'minimapa', ...mm, s: u }, { id: 'frags', ...fr, s: u },
+      { id: 'barra', x: room.x, y: room.y + room.h, w: room.w, h: bb, s: u },
+      { id: 'fps', x: W - 70 * u, y: H - fpsH, w: 70 * u, h: fpsH, s: u },
+    ],
+  };
+}
+const ORIG = {
+  chat(ctx, c) {
+    const fs = 14 * c.s, lh = 12.6 * c.s * 1.5;
+    CHAT.slice(0, Math.floor(c.h / lh)).forEach((m, i) => {
+      const t = m.who ? `${m.who}: ${m.t}` : m.t;
+      T(ctx, t, c.x, c.y + (i + 1) * lh - 4 * c.s, { size: fs * 1.3, font: PIX, c: m.who ? teamL(m.team) : C.msg });
+    });
+  },
+  minimapa(ctx, c) { drawMinimap(ctx, c, 'orig'); },
+  frags(ctx, c, st) {
+    const s = c.s, rowH = 11 * s + 7 * s, gap = 6 * s, fs = 14 * s * 1.3;
+    const blocks = c.side
+      ? [[c.x, c.y, (c.w - gap) / 2], [c.x + (c.w + gap) / 2, c.y, (c.w - gap) / 2]]
+      : [[c.x, c.y, c.w], [c.x, c.y + 9 * rowH + gap, c.w]];
+    blocks.forEach(([x, y, w], t) => {
+      R(ctx, x, y, w, rowH, t ? C.blueD : C.redD);
+      R(ctx, x, y + rowH, w, 8 * rowH, t ? '#00001A' : '#1A0000');
+      ctx.strokeStyle = '#3A3A3A'; ctx.lineWidth = 1;
+      for (let j = 0; j <= 9; j++) { ctx.beginPath(); ctx.moveTo(x, y + j * rowH + 0.5); ctx.lineTo(x + w, y + j * rowH + 0.5); ctx.stroke(); }
+      const div = x + w - 6 * s - 30 * s;
+      ctx.beginPath(); ctx.moveTo(div + 0.5, y + rowH); ctx.lineTo(div + 0.5, y + 9 * rowH); ctx.stroke();
+      stroke(ctx, x, y, w, 9 * rowH, '#3A3A3A');
+      const ty = (j) => y + j * rowH + rowH * 0.78;
+      T(ctx, t ? 'Time Azul' : 'Time Vermelho', x + 6 * s, ty(0), { size: fs, font: PIX });
+      T(ctx, st.tab ? 'pings' : `${SCORE[t]} cap`, x + w - 6 * s, ty(0), { size: fs, font: PIX, a: 'right' });
+      TEAMS[t].forEach((p, j) => {
+        T(ctx, p.n, x + 14 * s, ty(j + 1), { size: fs, font: PIX, c: '#7dff7d' });
+        T(ctx, String(st.tab ? p.p : p.f), x + w - 6 * s, ty(j + 1), { size: fs, font: PIX, c: teamL(t), a: 'right' });
+        if (p.flag !== undefined) flagGlyph(ctx, x + 5 * s, y + (j + 1) * rowH + rowH * 0.25, rowH * 0.5, p.flag);
+      });
+    });
+  },
+  barra(ctx, c) {
+    const s = c.s, fs = 14 * s * 1.3, fh = 11 * s, y0 = c.y + 5 * s + fh;
+    const barW = (c.w * 100) / RW, charW = fh * 0.56;
+    const pupsW = 9 * charW, wpnW = 9 * charW, timeW = 6 * charW;
+    const space = (c.w - 20 * s - (2 * barW + pupsW + wpnW + timeW)) / 4;
+    const hx = c.x + 10 * s, ex = hx + barW + space, px = ex + barW + space, wx = px + pupsW + space, tx = wx + wpnW + space + timeW;
+    const by = y0 + fh * 0.6, bh = c.y + c.h - 5 * s - by;
+    const bar = (x, label, v, cols) => {
+      T(ctx, label, x, y0, { size: fs, font: PIX });
+      T(ctx, String(v), x + barW, y0, { size: fs, font: PIX, a: 'right' });
+      R(ctx, x, by, barW, bh, '#000');
+      cols.forEach((col, i) => { const f = Math.min(Math.max(v - 100 * i, 0), 100) / 100; if (f > 0) R(ctx, x, by, barW * f, bh, col); });
+    };
+    bar(hx, 'Vida', SELF.health, C.h);
+    bar(ex, 'Energia', SELF.energy, C.e);
+    T(ctx, 'Turbo', px, y0 + fh * 1.3, { size: fs, font: PIX, c: C.turbo });
+    T(ctx, String(SELF.turbo), px + pupsW, y0 + fh * 1.3, { size: fs, font: PIX, c: C.turbo, a: 'right' });
+    T(ctx, `Weapon ${SELF.weapon}`, wx, y0, { size: fs, font: PIX });
+    T(ctx, CLOCK, tx, y0, { size: fs, font: PIX, c: '#33ff33', a: 'right' });
+  },
+  fps(ctx, c) { T(ctx, 'FPS: 144', c.x + c.w - 2, c.y + c.h - 4, { size: 14 * c.s * 1.3, font: PIX, c: '#555', a: 'right' }); },
+};
+
+/* ---------- Moderno: componentes ---------- */
+const SIZE = { placar: [210, 38], minimapa: [300, 225], vida: [220, 36], energia: [220, 36], powerups: [186, 46], arma: [160, 26], chat: [420, 150], frags: [380, 200], fps: [70, 16] };
+const LABEL = { placar: 'Placar e relógio', minimapa: 'Minimapa', vida: 'Vida', energia: 'Energia', powerups: 'Power-ups', arma: 'Arma', chat: 'Chat e avisos', frags: 'Frags (fixo)', fps: 'FPS' };
+const comp = (id, x, y, s, w, h, extra = {}) => ({ id, x: Math.round(x), y: Math.round(y), s, w: Math.round(w ?? SIZE[id][0] * s), h: Math.round(h ?? SIZE[id][1] * s), ...extra });
+
+function panel(ctx, c, st) {
+  const a = c.alpha ?? 1;
+  if (!c.panel) return;
+  ctx.fillStyle = `rgba(0,0,0,${0.55 * a})`; ctx.fillRect(c.x, c.y, c.w, c.h);
+  ctx.strokeStyle = `rgba(48,192,0,${0.3 * a})`; ctx.lineWidth = 1; ctx.strokeRect(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1);
+}
+const MOD = {
+  placar(ctx, c) {
+    const s = c.s, cw = c.w * 0.32, side = (c.w - cw) / 2, big = c.h * 0.62;
+    R(ctx, c.x, c.y, side, c.h, C.redD); R(ctx, c.x, c.y, side, Math.max(2, 3 * s), C.red);
+    R(ctx, c.x + side + cw, c.y, side, c.h, C.blueD); R(ctx, c.x + side + cw, c.y, side, Math.max(2, 3 * s), C.blue);
+    R(ctx, c.x + side, c.y, cw, c.h, 'rgba(0,0,0,.85)');
+    const my = c.y + c.h / 2 + big * 0.36;
+    T(ctx, String(SCORE[0]), c.x + side / 2, my, { size: big, w: 800, a: 'center' });
+    T(ctx, String(SCORE[1]), c.x + side + cw + side / 2, my, { size: big, w: 800, a: 'center' });
+    T(ctx, CLOCK, c.x + c.w / 2, c.y + c.h / 2 + c.h * 0.16, { size: c.h * 0.42, w: 650, a: 'center' });
+    // bandeira vermelha em jogo, do lado de quem a leva
+    flagGlyph(ctx, c.x + c.w - side * 0.24, c.y + c.h * 0.28, c.h * 0.42, 0);
+  },
+  minimapa(ctx, c) { drawMinimap(ctx, { x: c.x + 4 * c.s, y: c.y + 4 * c.s, w: c.w - 8 * c.s, h: c.h - 8 * c.s }, 'mod'); },
+  vida(ctx, c) { modBar(ctx, c, 'VIDA', SELF.health, C.h); },
+  energia(ctx, c) { modBar(ctx, c, 'ENERGIA', SELF.energy, C.e); },
+  powerups(ctx, c) {
+    const s = c.s, gap = 6 * s, w = (c.w - 2 * gap) / 3;
+    [['Power', SELF.power, C.power], ['Turbo', SELF.turbo, C.turbo], ['Shadow', SELF.shadow, C.shadow]].forEach(([n, v, col], i) => {
+      const x = c.x + i * (w + gap), on = v > 0;
+      R(ctx, x, c.y, w, c.h, on ? 'rgba(255,255,0,.12)' : 'rgba(255,255,255,.04)');
+      stroke(ctx, x, c.y, w, c.h, on ? col : '#2b2b2b', Math.max(1, 1.5 * s));
+      if (on) R(ctx, x, c.y + c.h - 3 * s, w * (v / 60), 3 * s, col);
+      T(ctx, n.toUpperCase(), x + w / 2, c.y + 15 * s, { size: 9.5 * s, w: 650, c: on ? col : '#666', a: 'center', ls: 0.8 * s });
+      T(ctx, on ? `${v}s` : '—', x + w / 2, c.y + 36 * s, { size: 16 * s, w: 750, c: on ? '#fff' : '#555', a: 'center' });
+    });
+  },
+  arma(ctx, c) {
+    const s = c.s;
+    T(ctx, 'ARMA', c.x, c.y + c.h / 2 + 4 * s, { size: 10 * s, w: 650, c: '#aaa', ls: 1 * s });
+    const pw = 18 * s, gap = 5 * s, x0 = c.x + c.w - 4 * (pw + gap) + gap;
+    for (let i = 0; i < 4; i++) {
+      const x = x0 + i * (pw + gap);
+      if (i < SELF.weapon) R(ctx, x, c.y + c.h * 0.25, pw, c.h * 0.5, C.wpn[i]);
+      else stroke(ctx, x, c.y + c.h * 0.25, pw, c.h * 0.5, '#444', Math.max(1, s));
+    }
+  },
+  chat(ctx, c, st) {
+    const s = c.s, fs = 13 * s, lh = 20 * s, pad = c.panel ? 8 * s : 0;
+    ctx.save(); ctx.beginPath(); ctx.rect(c.x, c.y, c.w, c.h); ctx.clip();
+    const n = Math.max(1, Math.floor((c.h - 2 * pad) / lh));
+    const lines = CHAT.slice(-n);
+    lines.forEach((m, i) => {
+      const y = c.y + pad + (i + 1) * lh - 6 * s;
+      let x = c.x + pad;
+      if (m.who) {
+        x += T(ctx, m.who, x, y, { size: fs, w: 700, c: teamL(m.team) }) + 6 * s;
+        T(ctx, m.t, x, y, { size: fs, c: '#eee' });
+      } else {
+        const col = m.k === 'sys' ? '#7fdc6a' : m.k === 'r' ? C.redL : '#8d97ff';
+        T(ctx, m.t, x, y, { size: fs, w: m.k === 'sys' ? 500 : 650, c: col });
+      }
+    });
+    ctx.restore();
+  },
+  frags(ctx, c) { modFrags(ctx, c); },
+  fps(ctx, c) { T(ctx, 'FPS 144', c.x + c.w, c.y + c.h - 3 * c.s, { size: 11 * c.s, w: 600, c: '#5a5a5a', a: 'right' }); },
+};
+function modBar(ctx, c, label, v, cols) {
+  const s = c.s;
+  T(ctx, label, c.x, c.y + 11 * s, { size: 10 * s, w: 650, c: '#aaa', ls: 1 * s });
+  T(ctx, String(v), c.x + c.w, c.y + 13 * s, { size: 16 * s, w: 800, a: 'right' });
+  const by = c.y + 18 * s, bh = c.h - 18 * s;
+  R(ctx, c.x, by, c.w, bh, '#161616');
+  cols.forEach((col, i) => { const f = Math.min(Math.max(v - 100 * i, 0), 100) / 100; if (f > 0) R(ctx, c.x, by, c.w * f, bh, col); });
+  for (let i = 1; i < 4; i++) R(ctx, c.x + (c.w * i) / 4, by, 1, bh, 'rgba(0,0,0,.45)');
+}
+function modFrags(ctx, c, big) {
+  const s = c.s, pad = 12 * s, colW = (c.w - 3 * pad) / 2, rowH = 24 * s, fs = 13.5 * s;
+  ctx.fillStyle = big ? 'rgba(0,0,0,.86)' : 'rgba(0,0,0,.6)'; ctx.fillRect(c.x, c.y, c.w, c.h);
+  stroke(ctx, c.x, c.y, c.w, c.h, 'rgba(48,192,0,.4)');
+  let y = c.y + pad;
+  if (big) {
+    T(ctx, 'PLACAR', c.x + pad, y + 12 * s, { size: 11 * s, w: 700, c: '#aaa', ls: 1.5 * s });
+    T(ctx, 'solte TAB para fechar · F4 estatísticas', c.x + c.w - pad, y + 12 * s, { size: 11 * s, c: '#777', a: 'right' });
+    y += 26 * s;
+  }
+  [0, 1].forEach((t) => {
+    const x = c.x + pad + t * (colW + pad);
+    R(ctx, x, y, colW, rowH * 1.4, t ? C.blueD : C.redD);
+    R(ctx, x, y, colW, Math.max(2, 3 * s), t ? C.blue : C.red);
+    T(ctx, t ? 'Time Azul' : 'Time Vermelho', x + 8 * s, y + rowH * 0.95, { size: fs * 1.05, w: 750 });
+    T(ctx, String(SCORE[t]), x + colW - 8 * s, y + rowH * 1.02, { size: fs * 1.5, w: 800, a: 'right' });
+    const hy = y + rowH * 1.4 + 16 * s;
+    const cols = [['FRAGS', colW * 0.58], ['CAPT', colW * 0.76], ['PING', colW - 8 * s]];
+    cols.forEach(([h, cx]) => T(ctx, h, x + cx, hy, { size: 9 * s, w: 650, c: '#888', a: 'right', ls: 0.8 * s }));
+    TEAMS[t].forEach((p, j) => {
+      const ry = hy + 6 * s + j * rowH;
+      if (p.me) R(ctx, x, ry, colW, rowH, 'rgba(255,255,0,.08)');
+      if (p.flag !== undefined) flagGlyph(ctx, x + 6 * s, ry + 6 * s, 12 * s, p.flag);
+      T(ctx, p.n, x + 22 * s, ry + rowH * 0.68, { size: fs, w: p.me ? 700 : 500, c: '#eee' });
+      [[p.f, cols[0][1], 750, '#fff'], [p.c, cols[1][1], 500, '#ccc'], [p.p, cols[2][1], 500, '#888']].forEach(([v, cx, w, col]) =>
+        T(ctx, String(v), x + cx, ry + rowH * 0.68, { size: fs, w, c: col, a: 'right' }));
+    });
+  });
+}
+
+/* ---------- A · Coluna ---------- */
+function layA(W, H) {
+  const u = hudU(W, H);
+  const colW = Math.max(W - Math.round((H * 4) / 3), Math.round(W * 0.22));
+  const rw = W - colW, rh = Math.round(rw * 0.75);
+  const room = { x: 0, y: 0, w: rw, h: Math.min(rh, H) };
+  const p = Math.round(10 * u), cw = colW - 2 * p, x = rw + p;
+  const s = Math.min(u, cw / 220);
+  let y = p;
+  const comps = [];
+  const add = (c) => { comps.push(c); y = c.y + c.h + p; return c; };
+  add(comp('placar', x, y, s, cw, 40 * s));
+  add(comp('minimapa', x, y, s, cw, Math.round(cw * 0.75)));
+  y += 2 * s;
+  add(comp('vida', x, y, s, cw));
+  add(comp('energia', x, y, s, cw));
+  add(comp('powerups', x, y, s, cw));
+  add(comp('arma', x, y, s, cw));
+  if (H - room.h >= 110 * u) comps.push(comp('chat', p, room.h + p, u, rw - 2 * p, H - room.h - 2 * p));
+  else comps.push(comp('chat', x, y + p, s, cw, H - y - 2 * p - 18 * s));
+  comps.push(comp('fps', W - p - 70 * s, H - p - 16 * s, s));
+  return { style: 'mod', u, W, H, room, comps };
+}
+/* ---------- B · Arena ---------- */
+function layB(W, H) {
+  const u = hudU(W, H);
+  let rh = H, rw = Math.round((H * 4) / 3);
+  if (rw > W) { rw = W; rh = Math.round(W * 0.75); }
+  const g = Math.round((W - rw) / 2);
+  const room = { x: g, y: Math.round((H - rh) / 2), w: rw, h: rh };
+  const p = Math.round(12 * u), comps = [];
+  const plW = 210 * u;
+  comps.push(comp('placar', (W - plW) / 2, room.y + p * 0.8, u, plW, 38 * u, { panel: false }));
+  if (g >= 150 * u) {
+    const cw = g - 2 * p, s = Math.min(u, cw / 220);
+    comps.push(comp('chat', p, p, s, cw, Math.round(H * 0.42)));
+    const e = comp('energia', p, H - p - 36 * s, s, cw);
+    const v = comp('vida', p, e.y - 36 * s - 10 * s, s, cw);
+    const a = comp('arma', p, v.y - 26 * s - 14 * s, s, cw);
+    comps.push(a, v, e);
+    const m = comp('minimapa', W - g + p, p, s, cw, Math.round(cw * 0.75));
+    comps.push(m, comp('powerups', W - g + p, m.y + m.h + p, s, cw));
+    comps.push(comp('fps', W - p - 70 * s, H - p - 16 * s, s));
+  } else {
+    const s = u;
+    comps.push(comp('chat', p, p, s, Math.min(460 * s, W / 2 - plW / 2 - 2 * p), 112 * s, { panel: true }));
+    const mmW = Math.round(W * 0.2);
+    comps.push(comp('minimapa', W - p - mmW, H - p - mmW * 0.75, s, mmW, mmW * 0.75, { panel: true }));
+    const bw = 220 * s, pad = 8 * s;
+    const box = comp('vida', p, H - p - 2 * 36 * s - 34 * s - 3 * pad, s, bw + 2 * pad, 2 * 36 * s + 34 * s + 3 * pad, { panel: true, holder: true });
+    comps.push(box);
+    comps.push(comp('arma', p + pad, box.y + pad, s, bw));
+    comps.push(comp('vida', p + pad, box.y + pad + 34 * s, s, bw));
+    comps.push(comp('energia', p + pad, box.y + pad + 34 * s + 36 * s + pad, s, bw));
+    comps.push(comp('powerups', box.x + box.w + p * 0.6, H - p - 46 * s, s, 186 * s, 46 * s, { panel: true }));
+    comps.push(comp('fps', W - p - 70 * s, p, s));
+  }
+  return { style: 'mod', u, W, H, room, comps };
+}
+
+function render(ctx, L, st = {}) {
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, L.W, L.H);
+  drawRoom(ctx, L.room);
+  const set = L.style === 'orig' ? ORIG : MOD;
+  for (const c of L.comps) {
+    if (c.hidden) continue;
+    ctx.globalAlpha = c.alpha ?? 1;
+    panel(ctx, c, st);
+    if (!c.holder) set[c.id](ctx, c, st);
+    ctx.globalAlpha = 1;
+  }
+  if (st.tab && L.style !== 'orig') {
+    const s = L.u, w = Math.min(L.room.w * 0.86, 660 * s), h = 196 * s;
+    modFrags(ctx, { x: L.room.x + (L.room.w - w) / 2, y: L.room.y + (L.room.h - h) / 2, w, h, s }, true);
+  }
+}
+
+/* ---------- comparador ---------- */
+const LAYS = { orig: layOriginal, A: layA, B: layB };
+const NAMES = { orig: 'Original (hoje)', A: 'A · Coluna', B: 'B · Arena' };
+const state = { opt: 'A', res: '1920x1080', tab: false };
+try { Object.assign(state, JSON.parse(localStorage.getItem('og-hud-cmp') || '{}')); } catch (e) {}
+const FACTS = {
+  orig: {
+    tag: 'Original · S25', title: 'Como o jogo é hoje',
+    text: 'Fiel ao original em qualquer tela: a lista de frags ocupa a parte de baixo da coluna o tempo todo, mesmo quando o jogador não olha para ela.',
+    pro: ['Quem jogou o Outgun reconhece na hora', 'Já testado e protegido pelas capturas'],
+    con: ['Frags e linhas vazias ocupam muito espaço', 'Vida e energia longe do minimapa e do relógio', 'Sala menor que a tela permite'],
+  },
+  A: {
+    tag: 'Opção A · Coluna', title: 'Sala grande, tudo do jogador numa coluna',
+    text: 'A sala ocupa a altura toda à esquerda. A coluna da direita junta, de cima para baixo: placar dos times com relógio, minimapa, vida, energia, power-ups, arma e o chat. Em 4:3 o chat desce para a faixa abaixo da sala.',
+    pro: ['Evolução natural do Original: quem joga hoje se acha', 'Nada cobre a sala em nenhuma resolução', 'Um só lugar para olhar fora da sala'],
+    con: ['Olhar para a vida exige desviar para a direita', 'Em 4:3 a sala fica menor que no B'],
+  },
+  B: {
+    tag: 'Opção B · Arena', title: 'Sala no centro, HUD nas laterais',
+    text: 'A sala fica centralizada e com a maior altura possível. Em 16:9 o chat e o bloco do jogador ocupam a lateral esquerda, minimapa e power-ups a direita, e o placar dos times flutua no alto. Em 4:3 os componentes viram painéis translúcidos nos cantos.',
+    pro: ['Sala a maior possível em toda resolução', 'Visual de jogo de tiro atual, simétrico', 'Placar sempre no alto, no centro da visão'],
+    con: ['Em 4:3 os painéis cobrem os cantos da sala', 'Laterais estreitas deixam o texto um pouco menor', 'Mudança maior para quem vem do original'],
+  },
+};
+const VISIBLE = {
+  orig: ['Chat', 'Minimapa', 'Frags por jogador', 'Capturas', 'Vida', 'Energia', 'Power-ups', 'Arma', 'Relógio'],
+  mod: ['Placar dos times', 'Relógio', 'Minimapa', 'Vida', 'Energia', 'Power-ups', 'Arma', 'Chat'],
+};
+const main = document.getElementById('main');
+const thumbsEl = document.getElementById('thumbs');
+const thumbs = {};
+for (const k of ['orig', 'A', 'B']) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'thumb'; b.dataset.opt = k;
+  b.innerHTML = `<canvas></canvas><span>${NAMES[k]}</span>`;
+  b.addEventListener('click', () => { state.opt = k; draw(); });
+  thumbsEl.append(b);
+  thumbs[k] = b;
+}
+function size() { const [W, H] = state.res.split('x').map(Number); return [W, H]; }
+function draw() {
+  const [W, H] = size();
+  const L = LAYS[state.opt](W, H);
+  main.width = W; main.height = H;
+  render(main.getContext('2d'), L, state);
+  for (const k of ['orig', 'A', 'B']) {
+    const cv = thumbs[k].querySelector('canvas');
+    cv.width = W; cv.height = H;
+    render(cv.getContext('2d'), LAYS[k](W, H), state);
+    thumbs[k].setAttribute('aria-pressed', String(k === state.opt));
+  }
+  document.querySelectorAll('[data-opt]').forEach((b) => b.matches('.seg button') && b.setAttribute('aria-pressed', String(b.dataset.opt === state.opt)));
+  document.querySelectorAll('[data-res]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.res === state.res)));
+  document.getElementById('tabBtn').setAttribute('aria-pressed', String(state.tab));
+  const area = Math.round(((L.room.w * L.room.h) / (W * H)) * 100);
+  const f = FACTS[state.opt];
+  const vis = VISIBLE[state.opt === 'orig' ? 'orig' : 'mod'];
+  const tabList = state.opt === 'orig' ? ['Pings (no lugar dos frags)'] : ['Frags', 'Capturas por jogador', 'Ping', 'Quem leva a bandeira'];
+  document.getElementById('resNote').textContent = `${W}×${H} · escala do HUD ${L.u.toLocaleString('pt-BR')} · ${state.tab ? 'TAB pressionado' : 'sem TAB'}`;
+  document.getElementById('facts').innerHTML = `
+    <div><div class="tag">${f.tag}</div><h3>${f.title}</h3></div>
+    <p>${f.text}</p>
+    <dl class="kv">
+      <dt>Sala</dt><dd>${L.room.w}×${L.room.h} px</dd>
+      <dt>Área da sala</dt><dd>${area}% da tela</dd>
+      <dt>Altura da sala</dt><dd>${Math.round((L.room.h / H) * 100)}% da altura</dd>
+    </dl>
+    <div><div class="tag" style="margin-bottom:.35rem">Sempre na tela</div><div class="chips">${vis.map((v) => `<span class="chip on">${v}</span>`).join('')}</div></div>
+    <div><div class="tag" style="margin-bottom:.35rem">Só com TAB</div><div class="chips">${tabList.map((v) => `<span class="chip tab">${v}</span>`).join('')}</div></div>
+    <div class="pc"><div class="pro"><b>A favor</b><ul>${f.pro.map((x) => `<li>${x}</li>`).join('')}</ul></div><div class="con"><b>Contra</b><ul>${f.con.map((x) => `<li>${x}</li>`).join('')}</ul></div></div>`;
+  try { localStorage.setItem('og-hud-cmp', JSON.stringify(state)); } catch (e) {}
+}
+document.querySelectorAll('.seg [data-opt]').forEach((b) => b.addEventListener('click', () => { state.opt = b.dataset.opt; draw(); }));
+document.querySelectorAll('[data-res]').forEach((b) => b.addEventListener('click', () => { state.res = b.dataset.res; draw(); }));
+document.getElementById('tabBtn').addEventListener('click', () => { state.tab = !state.tab; draw(); });
+
+/* ---------- editor ---------- */
+const EW = 1920, EH = 1080;
+const ED_IDS = ['placar', 'minimapa', 'vida', 'energia', 'powerups', 'arma', 'chat', 'frags', 'fps'];
+function presetFrom(opt) {
+  const L = LAYS[opt](EW, EH), out = {};
+  for (const c of L.comps) {
+    if (c.holder || out[c.id]) continue;
+    out[c.id] = { x: c.x, y: c.y, s: +c.s.toFixed(2), w: c.w, h: c.h, vis: true, alpha: 1 };
+  }
+  out.frags = { x: 24, y: 640, s: 1, w: SIZE.frags[0], h: SIZE.frags[1], vis: false, alpha: 0.9 };
+  return { room: opt === 'A' ? 'esquerda' : 'centro', comps: out };
+}
+let ed = presetFrom('B');
+try { const saved = JSON.parse(localStorage.getItem('og-hud-editor2') || 'null'); if (saved && saved.comps && saved.comps.placar) ed = saved; } catch (e) {}
+let sel = 'minimapa';
+const edCanvas = document.getElementById('edCanvas'), edLayer = document.getElementById('edLayer');
+const edList = document.getElementById('edList'), edProp = document.getElementById('edProp');
+edCanvas.width = EW; edCanvas.height = EH;
+const roomRect = () => (ed.room === 'esquerda' ? { x: 0, y: 0, w: 1440, h: 1080 } : { x: 240, y: 0, w: 1440, h: 1080 });
+const dims = (id) => { const c = ed.comps[id]; return { w: Math.round(c.w), h: Math.round(c.h) }; };
+/** Muda o tamanho mantendo a proporção do componente (texto, barras e caixa crescem juntos). */
+function resize(id, s) { const c = ed.comps[id], f = s / c.s; c.w *= f; c.h *= f; c.s = s; }
+const overlaps = (id) => { const c = ed.comps[id], d = dims(id), r = roomRect(); return c.x < r.x + r.w && c.x + d.w > r.x && c.y < r.y + r.h && c.y + d.h > r.y; };
+function anchorOf(id) {
+  const c = ed.comps[id], d = dims(id), cx = c.x + d.w / 2, cy = c.y + d.h / 2;
+  const col = cx < EW / 3 ? 0 : cx > (2 * EW) / 3 ? 2 : 1, row = cy < EH / 3 ? 0 : cy > (2 * EH) / 3 ? 2 : 1;
+  const names = [['superior esquerdo', 'superior central', 'superior direito'], ['meio à esquerda', 'centro', 'meio à direita'], ['inferior esquerdo', 'inferior central', 'inferior direito']];
+  const dx = col === 0 ? c.x : col === 2 ? EW - (c.x + d.w) : cx - EW / 2;
+  const dy = row === 0 ? c.y : row === 2 ? EH - (c.y + d.h) : cy - EH / 2;
+  const pct = (v) => ((v / EH) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  return { name: names[row][col], dx: pct(dx), dy: pct(dy) };
+}
+function edRender() {
+  const comps = ED_IDS.map((id) => { const c = ed.comps[id], d = dims(id); return { id, x: c.x, y: c.y, w: d.w, h: d.h, s: c.s, alpha: c.alpha, hidden: !c.vis }; });
+  render(edCanvas.getContext('2d'), { style: 'mod', u: 1.5, W: EW, H: EH, room: roomRect(), comps });
+  edLayer.innerHTML = '';
+  for (const id of ED_IDS) {
+    const c = ed.comps[id];
+    if (!c.vis) continue;
+    const d = dims(id), b = document.createElement('div');
+    b.className = 'box' + (id === sel ? ' sel' : '') + (overlaps(id) ? ' over' : '');
+    Object.assign(b.style, { left: (c.x / EW) * 100 + '%', top: (c.y / EH) * 100 + '%', width: (d.w / EW) * 100 + '%', height: (d.h / EH) * 100 + '%' });
+    b.dataset.id = id;
+    b.innerHTML = `<span class="lbl">${LABEL[id]}</span><span class="rs" data-rs="1"></span>`;
+    edLayer.append(b);
+  }
+  edList.innerHTML = ED_IDS.map((id) => {
+    const c = ed.comps[id], o = c.vis && overlaps(id);
+    return `<li class="${id === sel ? 'sel' : ''}" data-id="${id}"><input type="checkbox" id="vis-${id}" ${c.vis ? 'checked' : ''} aria-label="Mostrar ${LABEL[id]}"><span>${LABEL[id]}</span><span class="st ${o ? 'warn' : ''}">${!c.vis ? 'escondido' : o ? 'sobre a sala' : Math.round(c.s * 100) + '%'}</span></li>`;
+  }).join('');
+  const c = ed.comps[sel], a = anchorOf(sel);
+  edProp.innerHTML = `<h3>${LABEL[sel]}</h3>
+    <label for="p-size">Tamanho <input type="range" id="p-size" min="50" max="250" step="5" value="${Math.round(c.s * 100)}"><output>${Math.round(c.s * 100)}%</output></label>
+    <label for="p-alpha">Opacidade <input type="range" id="p-alpha" min="20" max="100" step="5" value="${Math.round(c.alpha * 100)}"><output>${Math.round(c.alpha * 100)}%</output></label>
+    <div class="anc"><span>Âncora:</span> canto ${a.name}<br><span>Distância:</span> ${a.dx}% · ${a.dy}% da altura</div>`;
+  document.querySelectorAll('[data-room]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.room === ed.room)));
+  try { localStorage.setItem('og-hud-editor2', JSON.stringify(ed)); } catch (e) {}
+}
+function snap(v, size, max) {
+  const M = 16;
+  for (const t of [M, max - M - size, (max - size) / 2]) if (Math.abs(v - t) < 12) return Math.round(t);
+  return Math.max(0, Math.min(max - size, Math.round(v / 8) * 8));
+}
+let drag = null;
+edLayer.addEventListener('pointerdown', (e) => {
+  const box = e.target.closest('.box');
+  if (!box) return;
+  const id = box.dataset.id, k = EW / edLayer.clientWidth, c = ed.comps[id];
+  sel = id;
+  drag = { id, k, sx: e.clientX, sy: e.clientY, x: c.x, y: c.y, s: c.s, w: c.w, rs: !!e.target.dataset.rs };
+  edLayer.setPointerCapture(e.pointerId);
+  edRender();
+  e.preventDefault();
+});
+edLayer.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const c = ed.comps[drag.id], dx = (e.clientX - drag.sx) * drag.k, dy = (e.clientY - drag.sy) * drag.k;
+  if (drag.rs) {
+    const f = (drag.w + dx) / drag.w;
+    resize(drag.id, Math.max(0.5, Math.min(2.5, Math.round(drag.s * f * 20) / 20)));
+    const d = dims(drag.id);
+    c.x = Math.min(c.x, EW - d.w); c.y = Math.min(c.y, EH - d.h);
+  } else {
+    const d = dims(drag.id);
+    c.x = snap(drag.x + dx, d.w, EW); c.y = snap(drag.y + dy, d.h, EH);
+  }
+  edRender();
+});
+const endDrag = () => { drag = null; };
+edLayer.addEventListener('pointerup', endDrag);
+edLayer.addEventListener('pointercancel', endDrag);
+edList.addEventListener('click', (e) => {
+  const li = e.target.closest('li');
+  if (!li) return;
+  const id = li.dataset.id;
+  if (e.target.type === 'checkbox') ed.comps[id].vis = e.target.checked;
+  sel = id;
+  edRender();
+});
+edProp.addEventListener('input', (e) => {
+  const c = ed.comps[sel];
+  if (e.target.id === 'p-size') {
+    resize(sel, +e.target.value / 100);
+    const d = dims(sel);
+    c.x = Math.max(0, Math.min(c.x, EW - d.w)); c.y = Math.max(0, Math.min(c.y, EH - d.h));
+  }
+  if (e.target.id === 'p-alpha') c.alpha = +e.target.value / 100;
+  const focus = e.target.id;
+  edRender();
+  document.getElementById(focus)?.focus();
+});
+document.querySelectorAll('[data-room]').forEach((b) => b.addEventListener('click', () => { ed.room = b.dataset.room; edRender(); }));
+document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => { ed = presetFrom(b.dataset.preset); edRender(); }));
+
+const start = () => { draw(); edRender(); };
+draw(); edRender();
+if (document.fonts) Promise.all([document.fonts.load("600 16px 'Inter'"), document.fonts.load("16px 'VT323'")]).then(start, start);
+})();
+</script>
