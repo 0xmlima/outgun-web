@@ -65,6 +65,8 @@ mkdir -p backups && chmod 700 backups # os dumps têm hashes de senha e e-mails
 
 # atualização: o game server recebe SIGTERM e drena (as partidas terminam) antes de trocar
 docker compose up -d --remove-orphans --wait edge postgres redis api game-server web backup
+# o Caddyfile é montado do disco: sem recarregar, a borda segue com a configuração antiga (OG-311)
+docker compose exec -T edge caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || echo "aviso: não recarreguei o Caddyfile da borda"
 docker image prune -f >/dev/null
 docker compose ps --format '{{.Service}}: {{.Status}}'
 echo "no ar: https://$(grep '^DOMAIN=' .env | cut -d= -f2)"

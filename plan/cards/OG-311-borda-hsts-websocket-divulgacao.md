@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S29 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -26,12 +26,13 @@ Achados: o HSTS só sai nas respostas da API, não nas páginas do site; o game 
 - `SECURITY.md` e `security.txt` com o contato para relatar falhas.
 
 ## Critérios de aceite
-- [ ] HSTS nas páginas do site.
+- [x] HSTS nas páginas do site.
 - [x] WebSocket de outra origem recusado (teste).
-- [ ] `https://outgunweb.com.br/.well-known/security.txt` no ar.
+- [x] `https://outgunweb.com.br/.well-known/security.txt` no ar.
 
 ## Notas técnicas
 ## Notas de implementação
 - HSTS (`max-age=31536000; includeSubDomains`) em todas as respostas pelo Caddy da borda (`caddy validate` ok).
 - Game server: `allowedOrigins` (env `ALLOWED_ORIGINS`, no compose `https://${DOMAIN}`): upgrade de jogador e espectador com `Origin` fora da lista recebe 403; sem `Origin` (bots, carga) passa — o ticket assinado continua sendo a autenticação. Teste `origin.test.ts`.
 - `SECURITY.md` e `/.well-known/security.txt` (RFC 9116, expira em 2027-10-16) apontando para o relato privado de vulnerabilidades do GitHub, que foi ligado no repositório.
+- Em produção desde 2026-10-17. Achado no deploy: a borda não recarregava o Caddyfile (montado do disco) quando só ele mudava; o `install.sh` agora roda `caddy reload` em todo deploy (sem derrubar conexões).
