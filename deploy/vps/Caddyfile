@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Borda HTTPS da VPS (OG-109). Certificado automático para DOMAIN (Let's Encrypt, sem e-mail).
+# DOMAIN_ALIASES (opcional, separados por espaço; OG-304): outros nomes, cada um com certificado
+# próprio, que redirecionam para DOMAIN (ex.: www e o endereço sslip.io antigo).
 
-{$DOMAIN} {
+{$DOMAIN} {$DOMAIN_ALIASES} {
 	encode zstd gzip
+	@alias not host {$DOMAIN}
+	redir @alias https://{$DOMAIN}{uri} permanent
 	# game server: WebSocket das salas, replays e /health (ping do lobby); /metrics não sai da máquina
 	handle_path /gs/* {
 		@metrics path /metrics

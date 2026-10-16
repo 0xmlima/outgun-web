@@ -2,7 +2,8 @@
 # Outgun Web numa máquina só (OG-109): qualquer VPS Linux com Docker. O Caddy da borda faz HTTPS
 # (Let's Encrypt) para DOMAIN; o cliente e /api vão para o Caddy do cliente web, e /gs/* para o game
 # server (WebSocket em wss://DOMAIN/gs/rooms/...). Só 80/443 ficam expostas.
-# Variáveis em /opt/outgun/.env (geradas pelo install.sh): DOMAIN, TAG e os segredos.
+# Variáveis em /opt/outgun/.env (geradas pelo install.sh): DOMAIN, TAG e os segredos; DOMAIN_ALIASES
+# (opcional) são nomes que redirecionam para DOMAIN.
 name: outgun
 
 x-restart: &restart
@@ -18,6 +19,7 @@ services:
     ports: ['80:80', '443:443']
     environment:
       DOMAIN: ${DOMAIN}
+      DOMAIN_ALIASES: ${DOMAIN_ALIASES:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
