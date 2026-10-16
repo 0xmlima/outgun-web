@@ -271,6 +271,8 @@ try {
 const areas = JSON.parse(readFileSync(AREAS, 'utf8'));
 const regionsFor = (name, key) =>
   Object.entries(areas[key] ?? {})
+    // as máscaras do Clássico ("*-...") não valem para as séries com prefixo (moderno-...)
+    .filter(([pattern]) => !PREFIX || pattern.startsWith(PREFIX))
     .filter(([pattern]) =>
       new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`).test(
         name,
