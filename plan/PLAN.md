@@ -590,6 +590,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S23 | v2: menus com a cara do jogo (tema Campo) | OG-291 | |
 | S24 | v2: segundo tema de menu (Placar) | OG-292 | |
 | S25 | v2: HUD da partida por resolução (escala, faixa, coluna, placar de borda a borda) | OG-293, OG-294, OG-295, OG-296 | |
+| S26 | v2: estilos do HUD (Clássico, Moderno e Personalizado) | OG-297, OG-298, OG-299, OG-300, OG-302 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -737,8 +738,14 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-294](cards/OG-294-placar-borda-a-borda.md) | Placar de borda a borda, com escala própria | E8 | 3 | Must | S25 | OG-293 | Concluído |
 | [OG-295](cards/OG-295-hud-modo-coluna-telas-largas.md) | HUD em telas largas: modo coluna (16:9 e 16:10) | E8 | 3 | Must | S25 | OG-293, OG-294 | Concluído |
 | [OG-296](cards/OG-296-opcao-escala-hud.md) | Opção "Escala do HUD" | E8 | 2 | Should | S25 | OG-293 | Concluído |
+| [OG-297](cards/OG-297-estilo-hud-layout-componentes.md) | Opção "Estilo do HUD" e layout por componentes | E8 | 3 | Must | S26 | — | Concluído |
+| [OG-298](cards/OG-298-hud-moderno.md) | HUD Moderno: sala grande e coluna do jogador (opção A) | E8 | 5 | Must | S26 | OG-297 | Concluído |
+| [OG-299](cards/OG-299-placar-tab.md) | Placar completo no TAB (Moderno e Personalizado) | E8 | 2 | Must | S26 | OG-298 | Concluído |
+| [OG-300](cards/OG-300-hud-personalizado-editor.md) | HUD Personalizado: editor de posição e tamanho dos componentes | E8 | 8 | Should | S26 | OG-298 | Concluído |
+| [OG-301](cards/OG-301-faixa-serie-fora-da-sala.md) | Faixa da série do Ranked fora da sala no HUD Moderno e no Personalizado | E8 | 2 | Should | — | OG-298 | Backlog |
+| [OG-302](cards/OG-302-classico-frags-no-tab.md) | Clássico com os frags só no TAB (opção) | E8 | 3 | Should | S26 | OG-299 | Concluído |
 
-**Total:** 138 cards, 507 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 69 cards, 212 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 144 cards, 530 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 75 cards, 235 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -813,6 +820,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-52 | **v2** — Modo Carnificina | — | ✅ **Pedido do PO em 2026-10-15:** preset Casual "Carnificina" com o máximo de power-ups (32, o teto do jogo) reaparecendo na hora, queda de item na morte e duração longa (90 s por item, até 5 min), também ligado no meio da partida com `/carnage on|off` (dono e admins). Mudança na simulação: quando as regras de power-up mudam no meio da partida, os itens que faltam são agendados na hora e quem já espera não espera mais que o tempo novo (no original, só depois da próxima coleta). O teto de 32 continua (OG-290) | PO |
 | D-53 | **v2** — Tema dos menus | — | ✅ **Decidido pelo PO em 2026-10-15:** os menus fora da partida ganham a cara do tema padrão da partida (chão e paredes verdes, mastro amarelo, times vermelho e azul). Entre as duas direções do protótipo (`plan/specs/menus-tema/`), vale a **Campo** (OG-291); a **Placar** fica guardada para um tema futuro de menu (OG-292; na S24 virou opção em Opções › Gráficos › Menus, com Campo como padrão). Temas legados (Metal, Grid, Grass...) não servem de referência. Nada dentro da partida muda (RN-UI-05) | PO |
 | D-54 | **v2** — HUD da partida por resolução | — | ✅ **Decidido pelo PO em 2026-10-16:** o HUD deixa de ter texto fixo em pixels e ganha uma escala pela altura da tela (passos de 0,5), com chat na largura toda da faixa de cima, minimapa começando na linha da área de jogo e placar de borda a borda na coluna da direita; em telas largas (≥ 3:2) o chat vai para o alto da coluna e os times ficam lado a lado. A área de jogo segue mostrando uma sala. Protótipo: `plan/specs/hud-resolucoes/`. Exceção aprovada à RN-UI-05 para os cards OG-293 a OG-296 (RN-UI-06) | PO |
+| D-55 | **v2** — Estilos do HUD da partida | — | ✅ **Decidido pelo PO em 2026-10-16:** três estilos em Opções › Gráficos: **Clássico** (o HUD da S25, padrão), **Moderno** (opção A do protótipo `plan/specs/hud-moderno/`: sala com a altura toda à esquerda, coluna com placar dos times e relógio, minimapa, vida, energia, power-ups, arma e chat; frags só no TAB) e **Personalizado** (editor de posição, tamanho e visibilidade, começando do Moderno). A opção B (painéis sobre a sala) foi descartada: informação sobre o mapa cria pontos cegos. Por isso nenhum componente fica sobre a sala, nem no Personalizado. O layout personalizado vai na conta com as outras preferências (sem migration: é mais um campo das configurações) Em 2026-10-16 o PO decidiu que o **Clássico continua o padrão** e pediu a opção de deixar os frags só no TAB também no Clássico, desligada por padrão (OG-302) | PO |
 
 ---
 
@@ -935,3 +943,4 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-NOM-04 | **v2:** a clan tag aparece no HUD da partida, em todos os modos, como `(TAG) nome` — mesmo formato do chat (RN-NOM-03) — seguindo RN-UI-05. |
 | RN-UI-05 | Mudanças na UI **dentro da partida** não alteram a disposição atual do HUD: elementos novos são sobreposições temporárias numa área declarada; todo card que toca essa UI passa pela comparação de capturas do OG-265 (diferença zero fora da área nova) e é conferido numa partida online de verdade, com capturas para o PO (lição do OG-205). |
 | RN-UI-06 | **v2:** O HUD da partida escala com a tela (D-54): texto, barras e placar seguem a escala do HUD (automática pela altura ou escolhida nas Opções); o layout é o do protótipo `plan/specs/hud-resolucoes/` (faixa em 4:3, coluna em telas largas). A partir dele, a RN-UI-05 volta a valer: novas mudanças não movem o que existe. |
+| RN-UI-07 | **v2:** O jogador escolhe o estilo do HUD (D-55): Clássico, Moderno ou Personalizado. Nenhum estilo põe componente permanente sobre a sala; só avisos temporários e o placar do TAB, enquanto a tecla estiver pressionada. Os três mostram as mesmas informações (o Personalizado só muda lugar, tamanho e visibilidade). O Clássico segue protegido pela RN-UI-05; Moderno e Personalizado têm capturas próprias no `visual:check`. |

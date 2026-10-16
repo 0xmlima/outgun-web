@@ -1,6 +1,6 @@
 {
   "name": "outgun-web",
-  "version": "2.25.0",
+  "version": "2.26.0",
   "private": true,
   "description": "Port web do Outgun 1.0.3 (CTF 2D multiplayer)",
   "license": "GPL-2.0-or-later",
@@ -21,8 +21,8 @@
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:legacy && pnpm check:licenses && pnpm check:version",
     "oracle": "bash tools/parity/oracle.sh",
     "check:licenses": "node tools/license-check/check.mjs",
-    "visual:check": "node tools/visual-compare/hud-check.mjs",
-    "visual:update": "node tools/visual-compare/hud-check.mjs --update",
+    "visual:check": "node tools/visual-compare/hud-check.mjs && node tools/visual-compare/hud-check.mjs --style modern && node tools/visual-compare/hud-check.mjs --style classic-tab",
+    "visual:update": "node tools/visual-compare/hud-check.mjs --update && node tools/visual-compare/hud-check.mjs --update --style modern && node tools/visual-compare/hud-check.mjs --update --style classic-tab",
     "map:check": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-check/check.mjs",
     "map:preview": "turbo run build --filter=@outgun/content --output-logs=errors-only && node tools/map-preview/render.mjs",
     "assets": "turbo run build --filter=@outgun/asset-pipeline --output-logs=errors-only && node tools/asset-pipeline/dist/cli.js",

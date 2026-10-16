@@ -12,6 +12,7 @@ import { api } from '../app/api.js';
 import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, HUD_SCALES, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
+import { Button } from '../ui/Button.js';
 import { ChoiceField, FieldGroup, SliderField, TextField, ToggleField } from '../ui/Field.js';
 import { MenuList } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
@@ -318,6 +319,22 @@ export function OptionsScreen() {
                 onChange={(hudScale) => setPrefs({ hudScale })}
                 hint={t('Size of the chat, scoreboard and bars during the game.')}
               />
+              <ChoiceField
+                label={t('HUD style')}
+                value={prefs.hudStyle}
+                options={[
+                  { value: 'classic', label: t('Classic (like the original)') },
+                  { value: 'modern', label: t('Modern (big room, frags on TAB)') },
+                  { value: 'custom', label: t('Custom') },
+                ]}
+                onChange={(hudStyle) => setPrefs({ hudStyle })}
+                hint={t('Nothing is drawn over the room in any style.')}
+              />
+              {toggle('classicFragsOnTab', 'Classic HUD: frags only on TAB', prefs.hudStyle !== 'classic')}
+              <div className="options-hud-edit">
+                <Button onClick={() => void navigate('/options/hud')}>{t('Edit custom HUD...')}</Button>
+                <span>{t('Opens an example match where you move, resize and hide each part of the HUD.')}</span>
+              </div>
               {select<ShowNames>('showNames', 'Show player names', [
                 ['never', 'never'],
                 ['sameRoom', 'in same room'],

@@ -8,6 +8,8 @@ import { DrawList, registerFontSize } from '../render/draw-list.js';
 import { pfScale, roomOffsetsX, roomOffsetsY, type RoomLayout } from '../render/layout.js';
 import { colour, type RoomTheme } from '../render/theme.js';
 import type { FeedLine, Translate } from './feed.js';
+import { HudFaces, type FaceWeight, type HudFace } from './hud-faces.js';
+import type { Place } from './modern-layout.js';
 import { FOG_MAX_ALPHA, minimapPoint, minimapRect, minimapRoom, paintMinimap } from './minimap.js';
 import { scaleBy, type FontMetrics, type ScreenLayout } from './screen-layout.js';
 
@@ -146,6 +148,8 @@ export class HudRenderer {
   /** Opções do voto desenhadas no último `render` (para o clique). */
   voteTargets: VoteTarget[] = [];
   private minimapTexture: Texture | null = null;
+  /** Fontes Inter do HUD Moderno e do Personalizado (D-55). */
+  private readonly faces: HudFaces;
 
   constructor(
     private readonly theme: RoomTheme,
@@ -156,6 +160,7 @@ export class HudRenderer {
     const top = new Container();
     this.stage.addChild(this.minimapSprite, top);
     this.list = new DrawList(top);
+    this.faces = new HudFaces(resolution);
   }
 
   private c(name: string): string {
@@ -224,72 +229,49 @@ export class HudRenderer {
       this.drawPlayfieldMarks(s);
     } else this.minimapSprite.visible = false;
 
-    if (s.hidden) {
-      const cx = L.playfield.x + Math.trunc(scaleBy(L.mul, ROOM_WIDTH) / 2);
-      const py = (v: number) => L.playfield.y + scaleBy(L.mul, v);
-      const go = s.hidden.gameOver;
-      // o placar aparece no fim por capturas e na troca por voto (`NEXTMAP_CAPTURE_LIMIT`, `NEXTMAP_VOTE_EXIT`)
-      if (go && (go.reason === 'captureLimit' || go.reason === 'vote')) {
-        const team = go.red > go.blue ? 0 : go.blue > go.red ? 1 : -1;
-        const col = team === -1 ? this.c('game_draw') : this.teamLight(team);
-        const caption = team === 0 ? 'RED TEAM WINS' : team === 1 ? 'BLUE TEAM WINS' : 'GAME TIED';
-        const [a, b] = team === 1 ? [go.blue, go.red] : [go.red, go.blue];
-        this.text(this.t(caption), cx, py(ROOM_HEIGHT / 2 - 40), col, { centre: true });
-        this.text(this.t('SCORE $1 - $2', String(a), String(b)), cx, py(ROOM_HEIGHT / 2 - 20), col, { centre: true });
+    if (s.hidden) this.drawHidden(s);
+
+    if (L.mode === 'componentes') {
+      this.drawComponents(s);
+      if (s.showPings) this.drawTabScoreboard(s);
+    } else {
+      // OG-302: com os frags só no TAB, o TAB abre o placar completo (e não troca frags por pings)
+      const tab = L.tabScoreboard && s.showPings;
+      this.drawScoreboard(s);
+      this.k = L.ui;
+
+      // FPS no canto de baixo à direita
+      const fps = this.t('FPS:$1', String(Math.trunc(s.fps)).padStart(3, ' '));
+      this.text(fps, L.screenW - 2 - this.fw(fps), L.screenH - fh - 2, this.c('fps'));
+
+      if (s.mapTime) {
+        const sec = Math.max(0, s.mapTime.seconds);
+        const str = `${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+        this.text(str, L.timeX - this.fw(str), L.timeY, this.c('map_time'));
       }
-      if (s.hidden.waitingMap !== null) {
-        this.text(this.t('Waiting game start - next map is'), cx, py(ROOM_HEIGHT / 2 + 20), this.c('map_loading_1'), { centre: true });
-        this.text(s.hidden.waitingMap, cx, py(ROOM_HEIGHT / 2 + 50), this.c('map_loading_2'), { centre: true });
+
+      if (s.self) {
+        const pups = [
+          ['Power', s.self.power, 'power'],
+          ['Turbo', s.self.turbo, 'turbo'],
+          ['Shadow', s.self.shadow, 'shadow'],
+        ] as const;
+        pups.forEach(([caption, val, col], line) => {
+          if (val <= 0) return;
+          const y = L.indicatorsY + line * (fh + 2 * L.ui);
+          this.text(this.t(caption), L.pupsX, y, this.c(col));
+          const v = String(iround(val)).padStart(3, ' ');
+          this.text(v, L.pupsValX - this.fw(v), y, this.c(col));
+        });
+        this.text(this.t('Weapon $1', String(s.self.weapon)), L.weaponX, L.indicatorsY, this.c('weapon'));
+        this.drawChangeMessages(s);
+        this.drawBar(s, L.healthX, this.t('Health'), s.self.health, 'health');
+        this.drawBar(s, L.energyX, this.t('Energy'), s.self.energy, 'energy');
       }
+
+      this.drawChat(s);
+      if (tab) this.drawTabScoreboard(s);
     }
-
-    this.drawScoreboard(s);
-    this.k = L.ui;
-
-    // FPS no canto de baixo à direita
-    const fps = this.t('FPS:$1', String(Math.trunc(s.fps)).padStart(3, ' '));
-    this.text(fps, L.screenW - 2 - this.fw(fps), L.screenH - fh - 2, this.c('fps'));
-
-    if (s.mapTime) {
-      const sec = Math.max(0, s.mapTime.seconds);
-      const str = `${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-      this.text(str, L.timeX - this.fw(str), L.timeY, this.c('map_time'));
-    }
-
-    if (s.self) {
-      const pups = [
-        ['Power', s.self.power, 'power'],
-        ['Turbo', s.self.turbo, 'turbo'],
-        ['Shadow', s.self.shadow, 'shadow'],
-      ] as const;
-      pups.forEach(([caption, val, col], line) => {
-        if (val <= 0) return;
-        const y = L.indicatorsY + line * (fh + 2 * L.ui);
-        this.text(this.t(caption), L.pupsX, y, this.c(col));
-        const v = String(iround(val)).padStart(3, ' ');
-        this.text(v, L.pupsValX - this.fw(v), y, this.c(col));
-      });
-      this.text(this.t('Weapon $1', String(s.self.weapon)), L.weaponX, L.indicatorsY, this.c('weapon'));
-      if (s.changeTeams) {
-        // `draw_change_team_message`: pisca a 2 Hz no canto de baixo da área de jogo
-        const col = this.c(Math.trunc(positiveFmod(s.time * 2, 2)) ? 'change_message_1' : 'change_message_2');
-        const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 6 * 8 + 10);
-        this.text(this.t('CHANGE'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true });
-        this.text(this.t('TEAMS'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true });
-      }
-      if (s.mapExit) {
-        // `draw_change_map_message`
-        const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 64 - 6 * 8);
-        const delayed = s.mapExit === 'delayed';
-        const col = delayed ? this.c('change_message_delayed') : this.c(Math.trunc(positiveFmod(s.time * 2, 2)) ? 'change_message_1' : 'change_message_2');
-        this.text(this.t('EXIT'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true, border: delayed });
-        this.text(this.t('MAP'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true, border: delayed });
-      }
-      this.drawBar(s, L.healthX, this.t('Health'), s.self.health, 'health');
-      this.drawBar(s, L.energyX, this.t('Energy'), s.self.energy, 'energy');
-    }
-
-    this.drawChat(s);
     this.drawPause(s);
 
     if (s.notResponding) {
@@ -304,6 +286,48 @@ export class HudRenderer {
       lines.forEach((l, i) => this.text(l, x + 10, y + 4 + i * (fh + 4) + (i ? 6 : 0), this.c(i ? 'menu_value' : 'menu_caption')));
     }
     this.list.end();
+  }
+
+  /** Avisos com o jogo escondido: placar do fim por capturas ou voto e o próximo mapa. */
+  private drawHidden(s: HudState): void {
+    const L = s.screen;
+    if (!s.hidden) return;
+    const cx = L.playfield.x + Math.trunc(scaleBy(L.mul, ROOM_WIDTH) / 2);
+    const py = (v: number) => L.playfield.y + scaleBy(L.mul, v);
+    const go = s.hidden.gameOver;
+    // o placar aparece no fim por capturas e na troca por voto (`NEXTMAP_CAPTURE_LIMIT`, `NEXTMAP_VOTE_EXIT`)
+    if (go && (go.reason === 'captureLimit' || go.reason === 'vote')) {
+      const team = go.red > go.blue ? 0 : go.blue > go.red ? 1 : -1;
+      const col = team === -1 ? this.c('game_draw') : this.teamLight(team);
+      const caption = team === 0 ? 'RED TEAM WINS' : team === 1 ? 'BLUE TEAM WINS' : 'GAME TIED';
+      const [a, b] = team === 1 ? [go.blue, go.red] : [go.red, go.blue];
+      this.text(this.t(caption), cx, py(ROOM_HEIGHT / 2 - 40), col, { centre: true });
+      this.text(this.t('SCORE $1 - $2', String(a), String(b)), cx, py(ROOM_HEIGHT / 2 - 20), col, { centre: true });
+    }
+    if (s.hidden.waitingMap !== null) {
+      this.text(this.t('Waiting game start - next map is'), cx, py(ROOM_HEIGHT / 2 + 20), this.c('map_loading_1'), { centre: true });
+      this.text(s.hidden.waitingMap, cx, py(ROOM_HEIGHT / 2 + 50), this.c('map_loading_2'), { centre: true });
+    }
+  }
+
+  /** "CHANGE TEAMS" e "EXIT MAP" piscando no canto de baixo da área de jogo. */
+  private drawChangeMessages(s: HudState): void {
+    const L = s.screen;
+    if (s.changeTeams) {
+      // `draw_change_team_message`: pisca a 2 Hz no canto de baixo da área de jogo
+      const col = this.c(Math.trunc(positiveFmod(s.time * 2, 2)) ? 'change_message_1' : 'change_message_2');
+      const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 6 * 8 + 10);
+      this.text(this.t('CHANGE'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true });
+      this.text(this.t('TEAMS'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true });
+    }
+    if (s.mapExit) {
+      // `draw_change_map_message`
+      const x = L.playfield.x + scaleBy(L.mul, ROOM_WIDTH - 64 - 6 * 8);
+      const delayed = s.mapExit === 'delayed';
+      const col = delayed ? this.c('change_message_delayed') : this.c(Math.trunc(positiveFmod(s.time * 2, 2)) ? 'change_message_1' : 'change_message_2');
+      this.text(this.t('EXIT'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 18), col, { centre: true, border: delayed });
+      this.text(this.t('MAP'), x, L.playfield.y + scaleBy(L.mul, ROOM_HEIGHT - 9), col, { centre: true, border: delayed });
+    }
   }
 
   /** Overlay da pausa (OG-264): mesma caixa e cores do "Server not responding", no centro da área de jogo. */
@@ -612,6 +636,233 @@ export class HudRenderer {
     }
   }
 
+  /** Cor de uma mensagem do chat pelo tipo e pelo time. */
+  private chatColour(msg: FeedLine): string {
+    const teamName = msg.team === 0 ? 'redteam' : msg.team === 1 ? 'blueteam' : 'unknown';
+    if (msg.type === 'warning') return this.c('message_warning');
+    if (msg.type === 'team') return this.c(`team_message_${teamName}`);
+    if (msg.type === 'info') return this.c('message_info');
+    if (msg.type === 'header') return this.c('message_header');
+    if (msg.type === 'server' || msg.type === 'admin') return this.c('message_server');
+    return this.c(`normal_message_${teamName}`);
+  }
+
+  // ---- HUD Moderno e Personalizado (D-55, RN-UI-07): componentes em Inter, nada sobre a sala ----
+
+  private face(weight: FaceWeight, px: number): HudFace {
+    return this.faces.get(weight, px);
+  }
+
+  /** Texto em Inter com o topo em `y`; `align` alinha pelo `x`. */
+  private ftext(face: HudFace, text: string, x: number, y: number, col: string, align: 'left' | 'centre' | 'right' = 'left'): number {
+    const w = face.width(text);
+    if (text) this.list.text(face.name, text, align === 'centre' ? x - w / 2 : align === 'right' ? x - w : x, y, col, 1);
+    return w;
+  }
+
+  private box(x: number, y: number, w: number, h: number, col: string, alpha = 1): void {
+    if (w > 0 && h > 0) this.list.g().rect(x, y, w, h).fill({ color: col, alpha });
+  }
+
+  private frame(x: number, y: number, w: number, h: number, col: string, width: number): void {
+    this.list.g().rect(x + width / 2, y + width / 2, w - width, h - width).stroke({ color: col, width });
+  }
+
+  /** Bandeirinha: mastro amarelo e pano na cor do time. */
+  private flagGlyph(x: number, y: number, size: number, team: number): void {
+    const pole = Math.max(1, Math.round(size * 0.12));
+    this.box(x, y, pole, size, this.c('flag_pole'));
+    this.box(x + pole, y, Math.round(size * 0.6), Math.round(size * 0.42), this.teamCol(team));
+  }
+
+  private clock(s: HudState): string {
+    if (!s.mapTime) return '';
+    const sec = Math.max(0, s.mapTime.seconds);
+    return `${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
+  private drawComponents(s: HudState): void {
+    const places = s.screen.hud;
+    if (!places) return;
+    if (places.score) this.drawScore(s, places.score);
+    if (s.self) {
+      if (places.health) this.drawModernBar(places.health, this.t('Health'), s.self.health, 'health');
+      if (places.energy) this.drawModernBar(places.energy, this.t('Energy'), s.self.energy, 'energy');
+      if (places.powerups) this.drawPowerups(s, places.powerups);
+      if (places.weapon) this.drawWeapon(places.weapon, s.self.weapon);
+      this.drawChangeMessages(s);
+    }
+    if (places.chat) this.drawModernChat(s, places.chat);
+    if (places.fps) {
+      const f = places.fps;
+      this.ftext(this.face(600, 11 * f.s), this.t('FPS:$1', String(Math.trunc(s.fps)).padStart(3, ' ')), f.x + f.w, f.y + f.h - this.face(600, 11 * f.s).height, this.c('fps'), 'right');
+    }
+  }
+
+  /** Placar dos times e relógio: vermelho | relógio | azul; a bandeira levada aparece do lado de quem a leva. */
+  private drawScore(s: HudState, p: Place): void {
+    const cw = Math.round(p.w * 0.32);
+    const side = Math.round((p.w - cw) / 2);
+    const stripe = Math.max(2, Math.round(3 * p.s));
+    const blueX = p.x + side + cw;
+    this.box(p.x, p.y, side, p.h, this.c('team_red_dark'));
+    this.box(p.x, p.y, side, stripe, this.c('team_red_basic'));
+    this.box(blueX, p.y, p.w - side - cw, p.h, this.c('team_blue_dark'));
+    this.box(blueX, p.y, p.w - side - cw, stripe, this.c('team_blue_basic'));
+    this.box(p.x + side, p.y, cw, p.h, '#000000', 0.85);
+    const big = this.face(800, p.h * 0.62);
+    const ny = p.y + Math.round((p.h - big.height) / 2);
+    this.ftext(big, String(s.scores[0]), p.x + side / 2, ny, '#ffffff', 'centre');
+    this.ftext(big, String(s.scores[1]), blueX + side / 2, ny, '#ffffff', 'centre');
+    const cf = this.face(600, p.h * 0.42);
+    // sem limite de tempo: um traço no lugar do relógio
+    const clock = this.clock(s);
+    this.ftext(cf, clock || '\u2014', p.x + p.w / 2, p.y + Math.round((p.h - cf.height) / 2), clock ? this.c('map_time') : '#555555', 'centre');
+    // bandeira do time t levada: aparece no lado do time adversário
+    const fs = Math.round(p.h * 0.36);
+    for (const team of [0, 1] as const) {
+      if (!s.flags.some((f) => f.team === team && f.carried)) continue;
+      const x = team === 0 ? blueX + (p.w - side - cw) - fs - Math.round(4 * p.s) : p.x + Math.round(6 * p.s);
+      this.flagGlyph(x, p.y + Math.round((p.h - fs) / 2), fs, team);
+    }
+  }
+
+  /** Vida ou energia: legenda e valor em cima, barra com as três faixas de 100 do original embaixo. */
+  private drawModernBar(p: Place, caption: string, value: number, kind: 'health' | 'energy'): void {
+    const label = this.face(600, 10 * p.s);
+    const num = this.face(800, 16 * p.s);
+    const top = Math.round(18 * p.s);
+    this.ftext(label, caption.toUpperCase(), p.x, p.y + top - label.height, '#aaaaaa');
+    this.ftext(num, String(value), p.x + p.w, p.y + top - num.height + Math.round(2 * p.s), '#ffffff', 'right');
+    const by = p.y + top + Math.round(2 * p.s);
+    const bh = p.y + p.h - by;
+    this.box(p.x, by, p.w, bh, '#ffffff', 0.08);
+    for (const [i, name] of [`${kind}_100`, `${kind}_200`, `${kind}_300`].entries()) {
+      const f = Math.min(Math.max(value - 100 * i, 0), 100) / 100;
+      if (f > 0) this.box(p.x, by, Math.round(p.w * f), bh, this.c(name));
+    }
+    for (let i = 1; i < 4; i++) this.box(p.x + Math.round((p.w * i) / 4), by, 1, bh, '#000000', 0.45);
+  }
+
+  /** Power, Turbo e Shadow: três quadros com o tempo restante; apagados quando inativos. */
+  private drawPowerups(s: HudState, p: Place): void {
+    if (!s.self) return;
+    const gap = Math.round(6 * p.s);
+    const w = Math.floor((p.w - 2 * gap) / 3);
+    const label = this.face(600, 9.5 * p.s);
+    const num = this.face(800, 16 * p.s);
+    const items = [
+      ['Power', s.self.power, 'power'],
+      ['Turbo', s.self.turbo, 'turbo'],
+      ['Shadow', s.self.shadow, 'shadow'],
+    ] as const;
+    items.forEach(([caption, val, colName], i) => {
+      const x = p.x + i * (w + gap);
+      const on = val > 0;
+      const col = this.c(colName);
+      this.box(x, p.y, w, p.h, on ? col : '#ffffff', on ? 0.12 : 0.04);
+      this.frame(x, p.y, w, p.h, on ? col : '#2b2b2b', Math.max(1, Math.round(1.5 * p.s)));
+      this.ftext(label, this.t(caption).toUpperCase(), x + w / 2, p.y + Math.round(5 * p.s), on ? col : '#666666', 'centre');
+      this.ftext(num, on ? String(iround(val)) : '—', x + w / 2, p.y + p.h - num.height - Math.round(4 * p.s), on ? '#ffffff' : '#555555', 'centre');
+    });
+  }
+
+  /** Nível da arma: legenda e quatro marcas nas cores dos power-ups de arma. */
+  private drawWeapon(p: Place, level: number): void {
+    const label = this.face(600, 10 * p.s);
+    this.ftext(label, this.t('Weapon').toUpperCase(), p.x, p.y + Math.round((p.h - label.height) / 2), '#aaaaaa');
+    const pw = Math.round(18 * p.s);
+    const gap = Math.round(5 * p.s);
+    const x0 = p.x + p.w - 4 * pw - 3 * gap;
+    const y = p.y + Math.round(p.h * 0.25);
+    const h = Math.round(p.h * 0.5);
+    for (let i = 0; i < 4; i++) {
+      const x = x0 + i * (pw + gap);
+      if (i < level) this.box(x, y, pw, h, this.c(`pup_weapon_${i + 1}`));
+      else this.frame(x, y, pw, h, '#444444', Math.max(1, Math.round(p.s)));
+    }
+  }
+
+  /** Chat em Inter dentro do componente, sem contorno (nunca fica sobre a sala). */
+  private drawModernChat(s: HudState, p: Place): void {
+    const face = this.face(500, 13 * p.s);
+    const lineH = s.screen.lineH;
+    const dy = Math.round((lineH - face.height) / 2);
+    let line = 0;
+    for (const msg of s.chat) {
+      const y = p.y + line * lineH + dy;
+      line++;
+      if (y + face.height > p.y + p.h) break;
+      const col = this.chatColour(msg);
+      let x = p.x;
+      for (const part of msg.parts) x += this.ftext(face, part.text, x, y, part.color === 'default' ? col : this.c(`message_${part.color}`));
+    }
+    if (s.prompt.text) {
+      const y = p.y + line * lineH + dy;
+      const col = this.c('message_input');
+      this.ftext(face, s.prompt.text, p.x, y, col);
+      if (s.prompt.cursor >= 0 && Math.trunc(positiveFmod(performance.now() / 500, 2))) {
+        const cx = p.x + face.width(s.prompt.text.slice(0, s.prompt.cursor));
+        this.box(cx, y, Math.max(1, Math.round(p.s)), face.height, col);
+      }
+    }
+  }
+
+  /** TAB no Moderno e no Personalizado (OG-299): placar completo sobre a sala enquanto a tecla estiver pressionada. */
+  private drawTabScoreboard(s: HudState): void {
+    const R = s.screen.playfield;
+    const k = s.screen.ui;
+    const w = Math.round(Math.min(R.w * 0.86, 680 * k));
+    const pad = Math.round(12 * k);
+    const rowH = Math.round(24 * k);
+    const perTeam = [0, 1].map((t) => s.players.filter((p) => p.team === t).sort((a, b) => b.frags - a.frags));
+    const rows = Math.max(1, ...perTeam.map((l) => l.length));
+    const head = Math.round(26 * k);
+    const teamH = Math.round(rowH * 1.4);
+    const colH = Math.round(16 * k);
+    const h = pad * 2 + head + teamH + colH + rows * rowH;
+    const x = R.x + Math.round((R.w - w) / 2);
+    const y = R.y + Math.round((R.h - h) / 2);
+    this.box(x, y, w, h, '#000000', 0.94);
+    this.frame(x, y, w, h, '#2a5a1c', 1);
+    const small = this.face(600, 11 * k);
+    this.ftext(small, this.t('Scoreboard').toUpperCase(), x + pad, y + pad, '#aaaaaa');
+    this.ftext(small, this.t('Release TAB to close'), x + w - pad, y + pad, '#777777', 'right');
+    const colW = Math.floor((w - 3 * pad) / 2);
+    const body = this.face(500, 13.5 * k);
+    const bold = this.face(800, 13.5 * k);
+    const teamFace = this.face(800, 14 * k);
+    const scoreFace = this.face(800, 20 * k);
+    const hdr = this.face(600, 9 * k);
+    const ty = y + pad + head;
+    for (const team of [0, 1] as const) {
+      const cx = x + pad + team * (colW + pad);
+      this.box(cx, ty, colW, teamH, this.c(team ? 'team_blue_dark' : 'team_red_dark'));
+      this.box(cx, ty, colW, Math.max(2, Math.round(3 * k)), this.c(team ? 'team_blue_basic' : 'team_red_basic'));
+      this.ftext(teamFace, this.t(team ? 'Blue Team' : 'Red Team'), cx + Math.round(8 * k), ty + Math.round((teamH - teamFace.height) / 2), '#ffffff');
+      this.ftext(scoreFace, String(s.scores[team]), cx + colW - Math.round(8 * k), ty + Math.round((teamH - scoreFace.height) / 2), '#ffffff', 'right');
+      const fragsX = cx + Math.round(colW * 0.72);
+      const pingX = cx + colW - Math.round(8 * k);
+      const hy = ty + teamH + Math.round(4 * k);
+      this.ftext(hdr, this.t('Frags').toUpperCase(), fragsX, hy, '#888888', 'right');
+      this.ftext(hdr, this.t('Ping').toUpperCase(), pingX, hy, '#888888', 'right');
+      perTeam[team]!.forEach((pl, j) => {
+        const ry = ty + teamH + colH + j * rowH;
+        if (pl.me) this.box(cx, ry, colW, rowH, this.c('flag_pole'), 0.08);
+        const yy = ry + Math.round((rowH - body.height) / 2);
+        if (pl.flagTeam >= 0) this.flagGlyph(cx + Math.round(6 * k), ry + Math.round(6 * k), Math.round(12 * k), pl.flagTeam);
+        const nameX = cx + Math.round(22 * k);
+        const maxW = fragsX - Math.round(36 * k) - nameX;
+        let name = pl.name;
+        while (name.length > 1 && body.width(name) > maxW) name = name.slice(0, -1);
+        if (name !== pl.name) name = name.slice(0, -1) + '…';
+        this.ftext(pl.me ? bold : body, name, nameX, yy, '#eeeeee');
+        this.ftext(bold, String(pl.frags), fragsX, yy, '#ffffff', 'right');
+        this.ftext(body, String(pl.ping), pingX, yy, '#888888', 'right');
+      });
+    }
+  }
+
   /** `print_chat_messages`. */
   private drawChat(s: HudState): void {
     const fh = this.fh;
@@ -621,14 +872,7 @@ export class HudRenderer {
     for (const msg of s.chat) {
       const y = chat.y + line * lineH;
       line++;
-      let col: string;
-      const teamName = msg.team === 0 ? 'redteam' : msg.team === 1 ? 'blueteam' : 'unknown';
-      if (msg.type === 'warning') col = this.c('message_warning');
-      else if (msg.type === 'team') col = this.c(`team_message_${teamName}`);
-      else if (msg.type === 'info') col = this.c('message_info');
-      else if (msg.type === 'header') col = this.c('message_header');
-      else if (msg.type === 'server' || msg.type === 'admin') col = this.c('message_server');
-      else col = this.c(`normal_message_${teamName}`);
+      const col = this.chatColour(msg);
       // contorno só sobre a área de jogo (sem textura de fundo, como o `client.cfg` distribuído)
       const border = y + fh >= playfieldY;
       let x = chat.x;
@@ -650,6 +894,7 @@ export class HudRenderer {
   }
 
   destroy(): void {
+    this.faces.destroy();
     this.minimapTexture?.destroy(true);
     this.list.destroy();
     this.stage.destroy({ children: true });

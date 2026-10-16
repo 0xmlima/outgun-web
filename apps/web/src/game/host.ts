@@ -16,6 +16,7 @@ import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
 import { boundCodes } from './input/bindings.js';
 import type { Translate } from './hud/feed.js';
+import { loadInter } from './hud/hud-faces.js';
 import { GameFont, HudRenderer } from './hud/hud-renderer.js';
 import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
@@ -311,6 +312,9 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         { health: t('Health'), energy: t('Energy'), power: t('Power'), turbo: t('Turbo'), shadow: t('Shadow'), weapon0: t('Weapon $1', '0') },
         fullHud,
         hudScaleValue(graphics().hudScale),
+        graphics().hudStyle,
+        graphics().hudCustom,
+        graphics().classicFragsOnTab,
       );
       playfield = screen.playfield;
     }
@@ -554,7 +558,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       }
       const playing = Boolean(opts.online || opts.demoPlayers);
       if (playing) {
-        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
+        // a Inter do HUD Moderno precisa estar carregada antes do primeiro atlas (lição do OG-205)
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), opts.online ? loadInter() : null]);
         if (destroyed) return;
         gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);

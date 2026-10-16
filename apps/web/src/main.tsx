@@ -41,6 +41,8 @@ const ReplayScreen = lazy(() => import('./screens/ReplayScreen.js'));
 // painel admin (OG-087): só moderadores e admins baixam
 const AdminScreen = lazy(() => import('./screens/AdminScreen.js'));
 const FeedbackScreen = lazy(() => import('./screens/FeedbackScreen.js'));
+// editor do HUD Personalizado (OG-300): tela cheia, fora do Shell
+const HudEditorScreen = lazy(() => import('./screens/HudEditor.js'));
 const SpectateScreen = lazy(() => import('./screens/ReplayScreen.js').then((m) => ({ default: m.SpectateScreen })));
 // vitrine do design system v2 (OG-200): só no desenvolvimento, fora do build de produção
 const DevUiScreen = import.meta.env.DEV ? lazy(() => import('./screens/DevUiScreen.js')) : null;
@@ -110,6 +112,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={null}>
             <GameScreen />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'options/hud',
+        element: (
+          <Suspense fallback={null}>
+            <HudEditorScreen />
           </Suspense>
         ),
       },

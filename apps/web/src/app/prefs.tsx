@@ -3,6 +3,7 @@
 // guardadas no navegador e, com conta, também na API.
 import { detectLocale, LOCALES, translate, type Locale } from '@outgun/i18n';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DEFAULT_HUD_CUSTOM, HUD_STYLES, parseHudCustom, type HudCustom, type HudStyle } from '../game/hud/hud-style.js';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
 
 export type ShowNames = 'never' | 'sameRoom' | 'always';
@@ -66,6 +67,12 @@ export interface Prefs {
   readonly menuTheme: MenuTheme;
   /** Escala do HUD da partida. */
   readonly hudScale: HudScale;
+  /** Estilo do HUD (D-55): Clássico, Moderno ou Personalizado. */
+  readonly hudStyle: HudStyle;
+  /** Layout do HUD Personalizado (OG-300). */
+  readonly hudCustom: HudCustom;
+  /** HUD Clássico sem a lista de frags na tela, só no TAB (OG-302). */
+  readonly classicFragsOnTab: boolean;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
   /** Bots das salas Casual do jogador (OG-289): quantidade fixa e nível 1–5 (0 = variável). */
@@ -159,6 +166,9 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     preferThemeBackground: true,
     menuTheme: 'campo',
     hudScale: 'auto',
+    hudStyle: 'classic',
+    hudCustom: DEFAULT_HUD_CUSTOM,
+    classicFragsOnTab: false,
     bindings: CLASSIC_BINDINGS,
     casualBots: 6,
     casualBotLevel: 4, // o bot de referência (o do original)
@@ -225,6 +235,9 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     preferThemeBackground: bool(saved.preferThemeBackground, fallback.preferThemeBackground),
     menuTheme: oneOf(saved.menuTheme, MENU_THEMES, fallback.menuTheme),
     hudScale: oneOf(saved.hudScale, HUD_SCALES, fallback.hudScale),
+    hudStyle: oneOf(saved.hudStyle, HUD_STYLES, fallback.hudStyle),
+    hudCustom: saved.hudCustom === undefined ? fallback.hudCustom : parseHudCustom(saved.hudCustom),
+    classicFragsOnTab: bool(saved.classicFragsOnTab, fallback.classicFragsOnTab),
     bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
     casualBots: int(saved.casualBots, 0, CASUAL_MAX_BOTS, fallback.casualBots),
     casualBotLevel: int(saved.casualBotLevel, 0, 5, fallback.casualBotLevel),
