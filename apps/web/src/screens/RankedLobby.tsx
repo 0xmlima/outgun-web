@@ -45,7 +45,7 @@ export function secondsLeft(view: Pick<LobbyView, 'lobby' | 'at'>, now: number):
 export const FINISHED_SECONDS = 10;
 
 export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { view: LobbyView; host: GameHost | null; onLeave: () => void; onFinished: () => void; onReport?: () => void }) {
-  const { t } = usePrefs();
+  const { t, prefs } = usePrefs();
   const { lobby, me, maxPlayers, names } = view;
   const [now, setNow] = useState(() => performance.now());
   const [chat, setChat] = useState('');
@@ -105,7 +105,8 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
   };
 
   return (
-    <div className="ranked-lobby" role="dialog" aria-label={t('Ranked lobby')}>
+    // o lobby fica dentro da tela da partida, fora da moldura dos menus: leva o tema dos menus (OG-316)
+    <div className="ranked-lobby" data-menu-theme={prefs.menuTheme} role="dialog" aria-label={t('Ranked lobby')}>
       {team(0)}
       <section className="ranked-center">
         <p className="ranked-series">

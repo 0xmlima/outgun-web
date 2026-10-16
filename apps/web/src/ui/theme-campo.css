@@ -65,13 +65,20 @@
 [data-menu-theme='campo'] .app-footer {
   background: rgb(4 10 2 / 90%);
 }
+/* Lobby do Ranked (OG-316): fica dentro da tela da partida, com o mesmo fundo dos menus. */
+.ranked-lobby[data-menu-theme='campo'] {
+  background:
+    linear-gradient(90deg, rgb(4 10 2 / 97%) 0 30%, rgb(4 10 2 / 90%) 65%, rgb(4 10 2 / 84%)),
+    url('./campo-map.svg') right center / cover no-repeat,
+    var(--surface-0);
+}
 
 /* Painel: quinas em L na cor da parede, como as quinas das salas. */
-[data-menu-theme='campo'] .ui-panel {
+[data-menu-theme='campo'] :is(.ui-panel, .ranked-team, .ranked-center, .ranked-chat) {
   position: relative;
   box-shadow: none;
 }
-[data-menu-theme='campo'] .ui-panel::before {
+[data-menu-theme='campo'] :is(.ui-panel, .ranked-team, .ranked-center, .ranked-chat)::before {
   --c: var(--wall);
   --l: 0.875rem;
   --t: 3px;

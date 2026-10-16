@@ -49,7 +49,7 @@
 }
 
 /* Fundo: o mesmo mapa em versão minimapa, com as bases tingidas, escurecido. */
-.app-shell[data-menu-theme='placar'] {
+:is(.app-shell, .ranked-lobby)[data-menu-theme='placar'] {
   background:
     linear-gradient(90deg, rgb(0 0 0 / 97%) 0 30%, rgb(0 0 0 / 90%) 65%, rgb(0 0 0 / 80%)),
     url('./placar-map.svg') right center / cover no-repeat,
