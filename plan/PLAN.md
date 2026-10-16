@@ -589,6 +589,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S22 | v2: correções dos power-ups, bots do Casual e pequenas melhorias | OG-286, OG-287, OG-288 (primeiro), OG-289, OG-290, OG-280 | |
 | S23 | v2: menus com a cara do jogo (tema Campo) | OG-291 | |
 | S24 | v2: segundo tema de menu (Placar) | OG-292 | |
+| S25 | v2: HUD da partida por resolução (escala, faixa, coluna, placar de borda a borda) | OG-293, OG-294, OG-295, OG-296 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
