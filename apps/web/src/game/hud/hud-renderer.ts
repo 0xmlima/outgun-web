@@ -235,6 +235,8 @@ export class HudRenderer {
       this.drawComponents(s);
       if (s.showPings) this.drawTabScoreboard(s);
     } else {
+      // OG-302: com os frags só no TAB, o TAB abre o placar completo (e não troca frags por pings)
+      const tab = L.tabScoreboard && s.showPings;
       this.drawScoreboard(s);
       this.k = L.ui;
 
@@ -268,6 +270,7 @@ export class HudRenderer {
       }
 
       this.drawChat(s);
+      if (tab) this.drawTabScoreboard(s);
     }
     this.drawPause(s);
 

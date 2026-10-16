@@ -278,6 +278,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Scoreboard: 'Placar',
     'Release TAB to close': 'Solte o TAB para fechar',
     'Edit custom HUD': 'Editar HUD personalizado',
+    'Classic HUD: frags only on TAB': 'HUD clássico: frags só no TAB',
     'Edit custom HUD...': 'Editar HUD personalizado...',
     'Opens an example match where you move, resize and hide each part of the HUD.':
       'Abre uma partida de exemplo onde você move, aumenta e esconde cada parte do HUD.',

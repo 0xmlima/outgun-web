@@ -3,6 +3,7 @@
 // server e o build do cliente, entra com o estilo pedido e captura nas resoluções de conferência.
 //
 //   node tools/visual-compare/hud-styles-shots.mjs [modern|custom|classic] [pasta de saída]
+//   HUD_CUSTOM='{...}' (layout do Personalizado) e HUD_PREFS='{"classicFragsOnTab":true}' (outras preferências)
 //
 // Precisa do build (`pnpm build`). Diferente do visual:check, o mapa e as naves são desenhados.
 import { spawn } from 'node:child_process';
@@ -83,7 +84,12 @@ try {
   await page.setViewport({ width: 1920, height: 1080 });
   await page.evaluateOnNewDocument(
     (prefs) => localStorage.setItem('outgun.prefs', JSON.stringify(prefs)),
-    { locale: 'pt-BR', hudStyle: style, ...(extra ? { hudCustom: extra } : {}) },
+    {
+      locale: 'pt-BR',
+      hudStyle: style,
+      ...(extra ? { hudCustom: extra } : {}),
+      ...(process.env.HUD_PREFS ? JSON.parse(process.env.HUD_PREFS) : {}),
+    },
   );
   await page.goto(
     `http://localhost:${WEB_PORT}/play?server=${encodeURIComponent(SERVER)}&name=Ana`,
@@ -96,17 +102,26 @@ try {
   for (const [w, h] of RESOLUTIONS) {
     await page.setViewport({ width: w, height: h });
     await wait(900);
-    writeFileSync(`${out}${style}-${w}x${h}.png`, await page.screenshot({ type: 'png' }));
+    writeFileSync(
+      `${out}${process.env.SHOT_PREFIX ?? style}-${w}x${h}.png`,
+      await page.screenshot({ type: 'png' }),
+    );
   }
   await page.setViewport({ width: 1920, height: 1080 });
   await wait(600);
   await page.keyboard.down('Tab');
   await wait(400);
-  writeFileSync(`${out}${style}-tab-1920x1080.png`, await page.screenshot({ type: 'png' }));
+  writeFileSync(
+    `${out}${process.env.SHOT_PREFIX ?? style}-tab-1920x1080.png`,
+    await page.screenshot({ type: 'png' }),
+  );
   await page.keyboard.up('Tab');
   await page.keyboard.press('F12');
   await wait(400);
-  writeFileSync(`${out}${style}-f12-1920x1080.png`, await page.screenshot({ type: 'png' }));
+  writeFileSync(
+    `${out}${process.env.SHOT_PREFIX ?? style}-f12-1920x1080.png`,
+    await page.screenshot({ type: 'png' }),
+  );
   await browser.close();
   console.log(errors.length ? `erros na página:\n${errors.join('\n')}` : 'sem erros na página');
 } finally {

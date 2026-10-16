@@ -314,6 +314,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         hudScaleValue(graphics().hudScale),
         graphics().hudStyle,
         graphics().hudCustom,
+        graphics().classicFragsOnTab,
       );
       playfield = screen.playfield;
     }

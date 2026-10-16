@@ -9,6 +9,7 @@
 //   pnpm visual:update           regrava as referências
 //   ... -- --only placar         só as capturas cujo nome contém "placar"
 //   ... --style modern           HUD Moderno (D-55): capturas com o prefixo "moderno-"
+//   ... --style classic-tab      Clássico com os frags só no TAB (OG-302): prefixo "classico-tab-"
 //
 // Precisa do build (`pnpm build`) e do Chrome instalado (CHROME_PATH troca o caminho). Saída em
 // tools/parity/out/visual/: capturas atuais, imagens de diferença (vermelho = pixel mudou) e relatorio.md.
@@ -40,7 +41,15 @@ const only = process.argv.includes('--only')
 const style = process.argv.includes('--style')
   ? process.argv[process.argv.indexOf('--style') + 1]
   : 'classic';
-const PREFIX = { classic: '', modern: 'moderno-', custom: 'personalizado-' }[style] ?? `${style}-`;
+const PREFIX =
+  { classic: '', modern: 'moderno-', custom: 'personalizado-', 'classic-tab': 'classico-tab-' }[
+    style
+  ] ?? `${style}-`;
+/** Preferências de cada série. */
+const STYLE_PREFS =
+  style === 'classic-tab' ? { hudStyle: 'classic', classicFragsOnTab: true } : { hudStyle: style };
+/** A série do Clássico com os frags no TAB herda as máscaras do Clássico ("*-...") além das próprias. */
+const INHERIT = style === 'classic-tab';
 const RESOLUTIONS = [
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1920x1080', width: 1920, height: 1080 },
@@ -165,10 +174,10 @@ try {
     const [page] = await browser.pages();
     page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
     await page.setViewport({ ...RESOLUTIONS[0], deviceScaleFactor: 1 });
-    await page.evaluateOnNewDocument((hudStyle) => {
+    await page.evaluateOnNewDocument((prefs) => {
       globalThis.__outgunVisualCheck = true;
-      localStorage.setItem('outgun.prefs', JSON.stringify({ locale: 'pt-BR', hudStyle }));
-    }, style);
+      localStorage.setItem('outgun.prefs', JSON.stringify({ locale: 'pt-BR', ...prefs }));
+    }, STYLE_PREFS);
     await page.goto(WEB + path);
     return page;
   }
@@ -271,10 +280,23 @@ try {
 
 // --- comparação (dentro do Chrome: decodifica os PNG num canvas, sem dependências) ---
 const areas = JSON.parse(readFileSync(AREAS, 'utf8'));
-const regionsFor = (name, key) =>
+const regionsFor = (name, key) => [
+  ...regionsOf(name, key),
+  // classico-tab-*: também as máscaras do Clássico para a mesma captura sem o prefixo
+  ...(INHERIT && name.startsWith(PREFIX)
+    ? regionsOf(name.slice(PREFIX.length), key).filter((b) => !regionsOf(name, key).includes(b))
+    : []),
+];
+const regionsOf = (name, key) =>
   Object.entries(areas[key] ?? {})
     // as máscaras do Clássico ("*-...") não valem para as séries com prefixo (moderno-...)
-    .filter(([pattern]) => !PREFIX || pattern.startsWith(PREFIX))
+    .filter(
+      ([pattern]) =>
+        !PREFIX ||
+        !name.startsWith(PREFIX) ||
+        pattern.startsWith(PREFIX) ||
+        (INHERIT && pattern.startsWith('*')),
+    )
     .filter(([pattern]) =>
       new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`).test(
         name,

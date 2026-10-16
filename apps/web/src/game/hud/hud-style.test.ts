@@ -30,6 +30,32 @@ describe('estilo Clássico (RN-UI-05)', () => {
   });
 });
 
+describe('Clássico com os frags só no TAB (OG-302)', () => {
+  for (const [W, H] of SCREENS)
+    it(`${W}×${H}: sem placar, minimapa e chat na coluna sem se sobrepor`, () => {
+      const before = screenLayout(W, H, font16, EN);
+      const l = screenLayout(W, H, font16, EN, true, autoHudScale(W, H), 'classic', DEFAULT_HUD_CUSTOM, true);
+      expect(l.scoreboard).toBeNull();
+      expect(l.tabScoreboard).toBe(true);
+      expect(before.tabScoreboard).toBe(false);
+      // a sala e a barra de baixo não mudam
+      expect(l.playfield).toEqual(before.playfield);
+      expect(l.healthX).toBe(before.healthX);
+      expect(l.timeX).toBe(before.timeX);
+      expect(overlaps(l.minimapPlace!, l.playfield)).toBe(false);
+      expect(overlaps(l.minimapPlace!, l.chat)).toBe(false);
+      expect(inside(l.minimapPlace!, W, H)).toBe(true);
+      expect(chatLines(l, false)).toBeGreaterThanOrEqual(chatLines(before, false));
+    });
+
+  it('1920×1080: o chat ganha a sobra e o minimapa desce para o fim da coluna', () => {
+    const before = screenLayout(1920, 1080, font16, EN);
+    const l = screenLayout(1920, 1080, font16, EN, true, 1.5, 'classic', DEFAULT_HUD_CUSTOM, true);
+    expect(l.chat.h).toBeGreaterThan(before.chat.h);
+    expect(l.minimapPlace!.y).toBeGreaterThan(before.minimapPlace!.y);
+  });
+});
+
 describe('HUD Moderno (D-55, opção A)', () => {
   for (const [W, H] of SCREENS)
     it(`${W}×${H}: sala na proporção, nada sobre ela, tudo dentro da tela`, () => {

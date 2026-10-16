@@ -27,6 +27,8 @@ export interface GraphicsOptions {
   /** Estilo do HUD e layout do Personalizado (D-55). */
   readonly hudStyle: HudStyle;
   readonly hudCustom: HudCustom;
+  /** Clássico com os frags só no TAB (OG-302). */
+  readonly classicFragsOnTab: boolean;
 }
 
 export const DEFAULT_GRAPHICS: GraphicsOptions = {
@@ -49,6 +51,7 @@ export const DEFAULT_GRAPHICS: GraphicsOptions = {
   hudScale: 'auto',
   hudStyle: 'classic',
   hudCustom: DEFAULT_HUD_CUSTOM,
+  classicFragsOnTab: false,
 };
 
 /** Escala fixa escolhida nas Opções, ou `undefined` para a automática. */

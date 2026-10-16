@@ -51,6 +51,8 @@ export interface ScreenLayout {
   readonly mode: HudMode;
   /** Lugar de cada componente no Moderno e no Personalizado (`null` no Clássico). */
   readonly hud: Places | null;
+  /** TAB abre o placar completo (Moderno, Personalizado e Clássico com os frags só no TAB, OG-302). */
+  readonly tabScoreboard: boolean;
   /** Escala do HUD: texto, linhas, barras e espaçamentos (RN-UI-06). */
   readonly ui: number;
   /** `scr_mul`: pixels por unidade da sala. */
@@ -108,6 +110,7 @@ export function screenLayout(
   ui = autoHudScale(screenW, screenH),
   style: HudStyle = 'classic',
   custom: HudCustom = DEFAULT_HUD_CUSTOM,
+  fragsOnTab = false,
 ): ScreenLayout {
   if (style !== 'classic') return componentsLayout(screenW, screenH, style, custom, full, ui);
   const u = ui;
@@ -211,6 +214,18 @@ export function screenLayout(
     scoreboard = { x1: colX, y1, x2: screenW - 1, y2: screenH - fpsH - 4 * u - 1, scale: s, side: false };
   }
 
+  // OG-302: Clássico sem a lista de frags; a sobra vai para o chat (chat na coluna) ou fica com o minimapa
+  if (fragsOnTab && scoreboard && minimapPlace) {
+    const bottom = screenH - fpsH - 4 * u;
+    const natural = Math.round(minimapPlace.w * 0.75);
+    if (chat.x >= playfield.x + playfield.w) {
+      const mmH = Math.max(0, Math.min(natural, bottom - (chat.y + 8 * lineH + 4 * u)));
+      minimapPlace = { ...minimapPlace, y: bottom - mmH, h: mmH };
+      chat = { ...chat, h: minimapPlace.y - 4 * u - chat.y };
+    } else minimapPlace = { ...minimapPlace, h: Math.min(natural, bottom - minimapPlace.y) };
+    scoreboard = null;
+  }
+
   const indicatorsY = playfield.y + playfield.h + 5 * u;
   const leftMargin = playfield.x + 10 * u;
   const maxW = playfield.x + playfield.w - 5 * u - leftMargin;
@@ -243,6 +258,7 @@ export function screenLayout(
     style,
     mode,
     hud: null,
+    tabScoreboard: fragsOnTab,
     ui: u,
     mul,
     playfield,
@@ -282,6 +298,7 @@ function componentsLayout(screenW: number, screenH: number, style: HudStyle, cus
     style,
     mode: 'componentes',
     hud: places,
+    tabScoreboard: true,
     ui: u,
     mul: room.w / ROOM_WIDTH,
     playfield: room,

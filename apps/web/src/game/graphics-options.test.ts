@@ -26,6 +26,7 @@ describe('opções gráficas avançadas (OG-070)', () => {
       hudScale: p.hudScale,
       hudStyle: p.hudStyle,
       hudCustom: p.hudCustom,
+      classicFragsOnTab: p.classicFragsOnTab,
     }).toEqual(DEFAULT_GRAPHICS);
     expect(p.statsAlpha).toBe(255);
     expect(p.highlightUnknownMaps).toBe(false);

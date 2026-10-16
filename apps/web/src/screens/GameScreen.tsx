@@ -53,6 +53,7 @@ function clientOptions(p: Prefs): ClientOptions {
       hudScale: p.hudScale,
       hudStyle: p.hudStyle,
       hudCustom: p.hudCustom,
+      classicFragsOnTab: p.classicFragsOnTab,
     },
   };
 }

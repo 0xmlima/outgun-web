@@ -1,5 +1,5 @@
 {
-  "//": "OG-265. masks: regiões que variam a cada rodada (relógio, FPS, cursor do chat que pisca e o interior do minimapa, onde o lugar em que se nasce é sorteado). areas: o que o card em andamento declara como novo; volta a {} no fim do card. Caixas [x, y, largura, altura] por padrão de nome de captura. Placar com Tab e estatísticas: a coluna de ping (varia 0–1 ms entre rodadas). Série moderno-* (D-55): relógio no centro do placar, minimapa, FPS, cursor do chat e a coluna de ping do placar do TAB; as máscaras \"*-...\" do Clássico não valem para ela.",
+  "//": "OG-265. masks: regiões que variam a cada rodada (relógio, FPS, cursor do chat que pisca e o interior do minimapa, onde o lugar em que se nasce é sorteado). areas: o que o card em andamento declara como novo; volta a {} no fim do card. Caixas [x, y, largura, altura] por padrão de nome de captura. Placar com Tab e estatísticas: a coluna de ping (varia 0–1 ms entre rodadas). Série moderno-* (D-55): relógio no centro do placar, minimapa, FPS, cursor do chat e a coluna de ping do placar do TAB; as máscaras \"*-...\" do Clássico não valem para ela. Série classico-tab-* (OG-302): herda as máscaras do Clássico (as \"*-...\" e as do mesmo nome sem o prefixo) e mascara a coluna de ping do placar do TAB.",
   "masks": {
     "*-1280x720": [
       [1200, 696, 80, 24],
@@ -86,7 +86,23 @@
     "moderno-estatisticas-1920x1080": [[696, 0, 34, 1080]],
     "moderno-estatisticas-1024x768": [[375, 0, 27, 768]],
     "moderno-estatisticas-1600x1200": [[536, 0, 34, 1200]],
-    "moderno-estatisticas-1280x720": [[460, 0, 34, 720]]
+    "moderno-estatisticas-1280x720": [[460, 0, 34, 720]],
+    "classico-tab-placar-1280x720": [
+      [384, 4, 48, 657],
+      [718, 4, 48, 657]
+    ],
+    "classico-tab-placar-1920x1080": [
+      [575, 6, 72, 985],
+      [1076, 6, 72, 985]
+    ],
+    "classico-tab-placar-1024x768": [
+      [305, 169, 48, 540],
+      [608, 169, 48, 540]
+    ],
+    "classico-tab-placar-1600x1200": [
+      [483, 264, 72, 847],
+      [959, 264, 72, 847]
+    ]
   },
   "areas": {}
 }
