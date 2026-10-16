@@ -1,0 +1,24 @@
+# Atualizações de segurança e de versão (OG-309, OWASP Vulnerable Dependency Management).
+# Os PRs saem contra a v2 (desenvolvimento atual), agrupados para não encher a fila.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: v2
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      producao:
+        dependency-type: production
+        update-types: [minor, patch]
+      desenvolvimento:
+        dependency-type: development
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: v2
+    schedule: { interval: weekly, day: monday }
+  - package-ecosystem: docker
+    directories: [/deploy, /deploy/backup]
+    target-branch: v2
+    schedule: { interval: weekly, day: monday }

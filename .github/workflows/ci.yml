@@ -2,18 +2,30 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # main = v1 (correções do beta); v2 = desenvolvimento atual
+    branches: [main, v2]
   pull_request:
-  # o deploy (deploy.yml) roda o CI inteiro antes
-  workflow_call:
+
+# Actions fixadas por SHA e token só de leitura (OG-309, OWASP CI/CD e GitHub Actions Security)
+permissions:
+  contents: read
 
 jobs:
+  secrets:
+    # segredos no histórico (gitleaks): falha se um commit trouxer chave, senha ou token
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 git /repo --no-banner --redact --config /repo/.gitleaks.toml
+
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -32,7 +44,7 @@ jobs:
       - name: Relatório de paridade com o Outgun original
         if: always()
         run: pnpm parity --report tools/parity/out/parity-report.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: parity-report
@@ -42,8 +54,8 @@ jobs:
     # as imagens de produção (OG-103) continuam construindo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - run: for t in api game-server web; do docker build -f deploy/Dockerfile --target "$t" -t "outgun-$t:ci" .; done
       - run: docker build -t outgun-backup:ci deploy/backup
 
@@ -61,9 +73,9 @@ jobs:
     env:
       E2E_DATABASE_URL: postgres://outgun:outgun@localhost:55433/outgun
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -77,7 +89,7 @@ jobs:
         run: pnpm --filter @outgun/e2e e2e
       - name: Carga de fumaça (2 salas × 8 jogadores, rede ruim)
         run: node tools/load/run.mjs --rooms 2 --players 8 --seconds 20 --warmup 8 --workers 2 --lag 150 --loss 2
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: e2e

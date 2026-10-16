@@ -754,7 +754,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-306](cards/OG-306-servidor-ssh-e-atualizacoes.md) | Servidor: SSH endurecido, atualizações e superfície mínima | E14 | 2 | Must | S29 | — | Pronto |
 | [OG-307](cards/OG-307-backups-fora-do-servidor.md) | Backups cifrados fora do servidor, com teste de restauração | E14 | 3 | Must | S29 | — | Pronto |
 | [OG-308](cards/OG-308-banco-menor-privilegio.md) | Banco com menor privilégio: papel da aplicação sem superusuário | E14 | 3 | Must | S29 | — | Pronto |
-| [OG-309](cards/OG-309-github-cadeia-de-suprimentos.md) | GitHub e cadeia de suprimentos: varredura de segredos, Dependabot e proteção de branches | E14 | 2 | Must | S29 | — | Pronto |
+| [OG-309](cards/OG-309-github-cadeia-de-suprimentos.md) | GitHub e cadeia de suprimentos: varredura de segredos, Dependabot e proteção de branches | E14 | 2 | Must | S29 | — | Em andamento |
 | [OG-310](cards/OG-310-contas-dos-provedores-e-dns.md) | Contas dos provedores com MFA, DNS protegido e segredos arrumados | E14 | 1 | Must | S29 | — | Pronto |
 | [OG-311](cards/OG-311-borda-hsts-websocket-divulgacao.md) | Borda: HSTS em tudo, origem do WebSocket e canal de divulgação de falhas | E14 | 2 | Should | S29 | — | Pronto |
 | [OG-312](cards/OG-312-containers-endurecidos-e-rede.md) | Containers endurecidos, limites de memória e rede segmentada | E14 | 3 | Should | — | OG-308 | Backlog |

@@ -5,11 +5,14 @@ name: Regravar golden traces
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   traces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Construir o oráculo
         run: bash tools/parity/oracle.sh build
       - name: Gravar cenários
@@ -17,7 +20,7 @@ jobs:
           for s in tools/parity/scenarios/*.txt; do
             bash tools/parity/oracle.sh trace "$(basename "$s" .txt)"
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: golden-traces
           path: tools/parity/traces/

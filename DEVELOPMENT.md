@@ -106,7 +106,7 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 
 - VPS de qualquer provedor (OG-109): `bash deploy/vps/deploy.sh root@IP` (guia em `deploy/vps/README.md`). É o caminho do beta; o Fly.io fica como opção.
 
-- `deploy/`: imagens de produção (`deploy/Dockerfile`, alvos `api`, `game-server`, `web`), configuração do Fly.io (`deploy/fly/`), backup (`deploy/backup/`), homologação local (`bash deploy/staging.sh build|up|down`, em http://localhost:18080) e os testes de deploy sem queda, drenagem e restore. Guia em `deploy/README.md`; workflow em `.github/workflows/deploy.yml`.
+- `deploy/`: imagens de produção (`deploy/Dockerfile`, alvos `api`, `game-server`, `web`), configuração do Fly.io (`deploy/fly/`), backup (`deploy/backup/`), homologação local (`bash deploy/staging.sh build|up|down`, em http://localhost:18080) e os testes de deploy sem queda, drenagem e restore. Guia em `deploy/README.md`. O deploy é pela VPS (`deploy/vps/`); o workflow do Fly.io foi removido no OG-309 (sem uso).
 - Game server: no SIGTERM drena (sem salas novas; cada sala fecha no fim da partida, até `DRAIN_TIMEOUT_S`); `INSTANCE_ID`/`FLY_MACHINE_ID` publica as salas também em `/m/<id>/rooms/...` (com `fly-replay` para a máquina certa); `{instance}` em `PUBLIC_WS_URL` e `GS_ID`. API: no SIGTERM, `/health` 503 por `SHUTDOWN_GRACE_S` antes de fechar; o HMAC aceita `base.<instância>` com o segredo de `base`.
 
 ## Segurança (OG-104)

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S29 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -29,9 +29,12 @@ Achados: o repositório está **público** (a memória o dava como privado) com 
 - Remover o `deploy.yml` do Fly e o segredo `FLY_API_TOKEN` (deploy é pela VPS).
 
 ## Critérios de aceite
-- [ ] Configurações do repositório ligadas (conferidas pela API do GitHub).
+- [x] Configurações do repositório ligadas (conferidas pela API do GitHub).
 - [ ] CI com gitleaks e Actions por SHA.
-- [ ] `pnpm audit` sem vulnerabilidade alta.
+- [x] `pnpm audit` sem vulnerabilidade alta.
 
 ## Notas técnicas
 ## Notas de implementação
+- Repositório: secret scanning, push protection, alertas e correções automáticas do Dependabot ligados; `main` e `v2` protegidas (sem force push nem exclusão; checks `ci` e `secrets` obrigatórios, admin passa direto para o fluxo do agente). `.github/dependabot.yml` (npm, Actions e Docker, PRs contra a `v2`).
+- CI: passa a rodar também em push na `v2` (antes só na `main`; a v2 não tinha CI desde a S17); `permissions: contents: read`; Actions fixadas por SHA; job `secrets` com gitleaks e `.gitleaks.toml` (exceção só para `*.test.ts`) — histórico inteiro limpo. `actionlint` ok.
+- Removido o `deploy.yml` do Fly (sem uso; nenhum segredo cadastrado). puppeteer-core 24 → 25: `pnpm audit` sem vulnerabilidades.

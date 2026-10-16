@@ -1,0 +1,8 @@
+# Configuração do gitleaks (OG-309): regras padrão + exceção para os segredos fictícios dos testes
+# (constantes SECRET, 'segredo', chaves geradas na hora).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "segredos fictícios dos testes"
+paths = ['''(^|/)[^/]+\.test\.ts$''']
