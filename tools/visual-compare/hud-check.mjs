@@ -8,6 +8,7 @@
 //   pnpm visual:check            compara com tools/visual/baseline/ (falha se algo mudou)
 //   pnpm visual:update           regrava as referências
 //   ... -- --only placar         só as capturas cujo nome contém "placar"
+//   ... --style modern           HUD Moderno (D-55): capturas com o prefixo "moderno-"
 //
 // Precisa do build (`pnpm build`) e do Chrome instalado (CHROME_PATH troca o caminho). Saída em
 // tools/parity/out/visual/: capturas atuais, imagens de diferença (vermelho = pixel mudou) e relatorio.md.
@@ -35,6 +36,9 @@ const update = process.argv.includes('--update');
 const only = process.argv.includes('--only')
   ? process.argv[process.argv.indexOf('--only') + 1]
   : '';
+/** Estilo do HUD (D-55): o Clássico mantém os nomes de antes; os outros ganham prefixo. */
+const style = process.argv.includes('--style') ? process.argv[process.argv.indexOf('--style') + 1] : 'classic';
+const PREFIX = { classic: '', modern: 'moderno-', custom: 'personalizado-' }[style] ?? `${style}-`;
 const RESOLUTIONS = [
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1920x1080', width: 1920, height: 1080 },
@@ -159,10 +163,10 @@ try {
     const [page] = await browser.pages();
     page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
     await page.setViewport({ ...RESOLUTIONS[0], deviceScaleFactor: 1 });
-    await page.evaluateOnNewDocument(() => {
+    await page.evaluateOnNewDocument((hudStyle) => {
       globalThis.__outgunVisualCheck = true;
-      localStorage.setItem('outgun.prefs', JSON.stringify({ locale: 'pt-BR' }));
-    });
+      localStorage.setItem('outgun.prefs', JSON.stringify({ locale: 'pt-BR', hudStyle }));
+    }, style);
     await page.goto(WEB + path);
     return page;
   }
@@ -171,7 +175,7 @@ try {
     await wait(600);
   }
   async function shot(page, state, res) {
-    const name = `${state}-${res.name}`;
+    const name = `${PREFIX}${state}-${res.name}`;
     if (only && !name.includes(only)) return;
     await wait(250);
     const png = await page.screenshot({ type: 'png' });

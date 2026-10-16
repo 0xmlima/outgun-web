@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 8 pts |
 | Sprint | S26 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-298](OG-298-hud-moderno.md) |
 | Regras de negócio | RN-UI-07 |
 | Skills | `outgun-card-workflow` |

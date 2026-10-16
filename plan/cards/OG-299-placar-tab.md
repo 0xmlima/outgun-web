@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S26 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-298](OG-298-hud-moderno.md) |
 | Regras de negócio | RN-UI-07 |
 | Skills | `outgun-card-workflow` |
@@ -23,8 +23,10 @@ Protótipo aprovado pelo PO em 2026-10-16: `plan/specs/hud-moderno/prototipo-hud
 - No Clássico, TAB continua trocando os frags pelos pings no placar da coluna.
 
 ## Critérios de aceite
-- [ ] TAB mostra e esconde o placar no Moderno e no Personalizado.
-- [ ] Clássico sem mudança.
+- [x] TAB mostra e esconde o placar no Moderno e no Personalizado.
+- [x] Clássico sem mudança.
 
 ## Notas técnicas
 ## Notas de implementação
+- `drawTabScoreboard`: painel centralizado na sala, times lado a lado (nome, frags, ping, bandeira levada, você destacado), ordenado por frags; usa o `showPings` que o TAB já mandava. No Clássico nada mudou.
+- Capturas por jogador não estão no estado do HUD (só frags e ping); ficam no F4, como antes.

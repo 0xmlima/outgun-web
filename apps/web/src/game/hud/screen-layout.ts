@@ -265,8 +265,8 @@ export function screenLayout(
 /** Altura de uma linha do chat do HUD Moderno na escala `s`. */
 export const modernLineH = (s: number) => Math.round(20 * s);
 
-/** Largura média de um caractere da Inter no corpo do chat (13 px na escala 1), para quebrar as linhas. */
-const MODERN_CHAR_W = 7.2;
+/** Largura de um caractere da Inter no corpo do chat (13 px na escala 1), com folga para maiúsculas, para quebrar as linhas. */
+const MODERN_CHAR_W = 8;
 
 /**
  * Moderno e Personalizado (D-55): a sala e os componentes vêm de `modern-layout.ts`; os campos do
