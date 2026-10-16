@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S28 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,9 +24,11 @@ Pedido do PO em 2026-10-16. O domínio está na Cloudflare; o HTTPS entrava em l
 - README do deploy: como trocar de domínio e configurar a Cloudflare.
 
 ## Critérios de aceite
-- [ ] https://outgunweb.com.br abre o jogo, com partida online funcionando (WebSocket).
-- [ ] www e o endereço sslip.io antigo redirecionam para https://outgunweb.com.br.
-- [ ] Funciona com a Cloudflare em Completo (Estrito).
+- [x] https://outgunweb.com.br abre o jogo, com partida online funcionando (WebSocket).
+- [x] www e o endereço sslip.io antigo redirecionam para https://outgunweb.com.br.
+- [x] Funciona com a Cloudflare em Completo (Estrito).
 
 ## Notas técnicas
 ## Notas de implementação
+- `{$DOMAIN} {$DOMAIN_ALIASES}` no Caddy da borda, com `redir` dos nomes extras para o principal; testado com e sem aliases (`caddy adapt`). Servidor: `DOMAIN=outgunweb.com.br`, aliases www e sslip.io; certificados Let's Encrypt emitidos em segundos com a Cloudflare em "Somente DNS".
+- Conferido: partida como convidado por `wss://outgunweb.com.br/gs`, redirecionamentos 301, e o PO testou do lado dele. README do deploy explica a troca e os modos da Cloudflare.

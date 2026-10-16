@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+<!-- Imagem de compartilhamento (OG-305), 1200×630, com as cores do tema padrão da partida. Regerar:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+       --window-size=1200,630 --virtual-time-budget=3000 \
+       --screenshot=apps/web/public/og-image.png tools/og-image/card.html -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&display=swap">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; background: #0a2a00; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: #fff; position: relative; }
+  .ground { position: absolute; inset: 0; background: #104000; }
+  /* paredes da sala, como no mapa The Blunt */
+  .wall { position: absolute; background: #30c000; }
+  .text { position: absolute; left: 72px; top: 150px; width: 600px; }
+  h1 { font-size: 132px; font-weight: 900; letter-spacing: -6px; line-height: .9; }
+  h1 span { color: #30c000; }
+  .web { display: inline-block; margin-top: 18px; font-size: 30px; font-weight: 700; letter-spacing: 8px; color: #b7f5a0; }
+  p { margin-top: 30px; font-size: 34px; line-height: 1.25; font-weight: 500; color: #eaffdf; max-width: 560px; }
+  .chips { position: absolute; left: 72px; bottom: 64px; display: flex; gap: 14px; }
+  .chip { font-size: 24px; font-weight: 700; padding: 10px 20px; background: rgba(0,0,0,.45); border: 2px solid #30c000; color: #fff; }
+  .chip.red { border-color: #ff3b2f; } .chip.blue { border-color: #4455ff; }
+  .player { position: absolute; border-radius: 50%; }
+  .rocket { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+</style>
+</head>
+<body>
+  <div class="ground"></div>
+  <div class="wall" style="left:0;top:0;width:1200px;height:34px"></div>
+  <div class="wall" style="left:0;bottom:0;width:1200px;height:34px"></div>
+  <div class="wall" style="right:0;top:0;width:34px;height:230px"></div>
+  <div class="wall" style="right:0;bottom:0;width:34px;height:230px"></div>
+  <div class="wall" style="left:0;top:0;width:34px;height:120px"></div>
+  <div class="wall" style="left:0;bottom:0;width:34px;height:120px"></div>
+  <div class="wall" style="left:760px;top:120px;width:150px;height:70px"></div>
+  <div class="wall" style="left:1010px;top:330px;width:70px;height:170px"></div>
+
+  <!-- bandeira vermelha com o mastro amarelo e jogadores: anel do time, miolo na cor pessoal -->
+  <div style="position:absolute;left:845px;top:300px;width:16px;height:150px;background:#ffff00"></div>
+  <div style="position:absolute;left:861px;top:300px;width:84px;height:62px;background:#ff0000"></div>
+  <div class="player" style="left:690px;top:400px;width:110px;height:110px;background:#ff0000"></div>
+  <div class="player" style="left:708px;top:418px;width:74px;height:74px;background:#ffff00"></div>
+  <div class="player" style="left:950px;top:200px;width:110px;height:110px;background:#0000ff"></div>
+  <div class="player" style="left:968px;top:218px;width:74px;height:74px;background:#ff8800"></div>
+  <div class="player" style="left:1040px;top:470px;width:90px;height:90px;background:#0000ff"></div>
+  <div class="player" style="left:1055px;top:485px;width:60px;height:60px;background:#ffffff"></div>
+  <div class="rocket" style="left:820px;top:445px"></div>
+  <div class="rocket" style="left:860px;top:470px"></div>
+  <div class="rocket" style="left:920px;top:280px"></div>
+
+  <div class="text">
+    <h1>Out<span>gun</span></h1>
+    <div class="web">WEB</div>
+    <p>Capture a bandeira com os amigos, direto no navegador.</p>
+  </div>
+  <div class="chips">
+    <span class="chip">Grátis</span>
+    <span class="chip red">Casual</span>
+    <span class="chip blue">Ranked</span>
+  </div>
+</body>
+</html>
