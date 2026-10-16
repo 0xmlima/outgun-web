@@ -626,7 +626,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             }
           } else entities.render({ time: 0, players: [], rockets: [], powerups: [], flags: [], deathbringers: [], multiRoom: false }, world.layout, topLeft);
           if (hud && onlineHud && screen && gameFont) {
-            const state = onlineHud.build({ screen, rooms: world.layout, topLeft, fd, now, fps: app.ticker.FPS, showPings: input.sample().showPings, fontHeight: gameFont.height });
+            const state = onlineHud.build({ screen, rooms: world.layout, topLeft, fd, now, fps: app.ticker.FPS, showPings: input.sample().showPings });
             if (state) hud.render(state);
           }
         }

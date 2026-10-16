@@ -24,12 +24,16 @@ O que o cliente original desenha em volta e por cima das salas durante a partida
 - `src/servnet.cpp:1623-1634`, `src/server.cpp:1188` — chat: até `max_chat_message_length`, sem caracteres não imprimíveis; `.` = time; `/` = comando.
 
 ## Regras da versão web
-1. Layout como `make_layout`, com o canvas como "tela" (`SCREEN_W × SCREEN_H` em px CSS, D-13) e a fonte bitmap escolhida (altura 16 nas fontes do original).
+1. Layout por resolução (v2, D-54, RN-UI-06; protótipo em `plan/specs/hud-resolucoes/`), com o canvas como "tela" (`L × H` em px CSS, D-13) e a fonte bitmap escolhida (altura 16 nas fontes do original):
+   - Escala do HUD `u = max(1, arred½(min(H, L·¾)/700))` (ou a escolhida nas Opções, OG-296): texto, linhas (`(altura+3)·u`), barra de baixo (`3·(altura·u+2u)+5u`) e espaçamentos multiplicados por `u`.
+   - Modo faixa (L/H < 1,5): chat na largura toda em cima, com `max(7 linhas + 6u, 22% de H)`; a sala usa a altura que sobra (`scr_mul = (H − chat − barra)/354`), à esquerda; minimapa começa na linha da sala, na largura da coluna (−8u), com a altura de um mapa 4×3 ocupando a largura, limitada para o placar caber; placar do fim do minimapa até a linha do FPS, com escala própria `s` ∈ {u…2u} (OG-294).
+   - Modo coluna (L/H ≥ 1,5): OG-295. Sem minimapa (F12): sala centralizada, chat em cima.
 2. F12 alterna minimapa e placar, como no original (ação "Mostrar minimapa e placar", remapeável); fora do modo foco o navegador pode abrir as ferramentas de desenvolvimento.
 3. O servidor passa a mandar o que o HUD precisa e ainda não ia: `scoreUpdate` quando o placar muda, `mapTime` ao entrar e a cada início de partida, `powerupTimer` e `weaponChange` ao jogador quando mudam, e repassa o chat (`text` normal ou de time, "Nome: texto"); comandos `/` e moderação ficam para o OG-046.
 4. O cliente guarda a última posição de cada jogador (frame ou minimapa) com o frame em que foi vista, para a névoa e o alfa do minimapa.
 
 ## Divergências intencionais
+0. (v2, D-54) O texto do HUD deixa de ter tamanho fixo em pixels e a escala da sala vem da altura que sobra, não de `largura/640`; minimapa na linha da sala e chat na largura toda em qualquer resolução.
 1. Chat sem os comandos `/` do servidor e sem anti-flood até o OG-046 (o cliente já mostra "Command: ").
 2. Sem o painel de depuração (F9 do original é captura de tela na web, D-15).
 Registrado em PLAN seção 12 (D-19).
@@ -43,6 +47,6 @@ Registrado em PLAN seção 12 (D-19).
 5. Mapa pequeno no minimapa: proporção 4:3 por sala, centralizado no lugar.
 
 ## Vetores de teste
-- 640×480 com fonte de 8 px: `scr_mul` 1, área de jogo 472×354 em y = 480 − 354 − 35 = 91, minimapa 164 px de largura em x = 474.
-- 1024×768, fonte de 16 px: `scr_mul` 1,6, área 755×566.
+- (original) 640×480 com fonte de 8 px: `scr_mul` 1, área de jogo 472×354 em y = 91, minimapa 164 px de largura em x = 474.
+- (v2, fonte 16 px) 1024×768: u 1, área 720×540 em y 169, minimapa 296×167, placar 1×. 1280×960: u 1,5, área 880×660, placar 1,5×. 1440×1080: u 1,5, área 1004×753. 1600×1200: u 1,5, área 1129×847, placar 2×. 2048×1536: u 2, área 1440×1080, placar 2,5×.
 - Vida 250: barra vermelha cheia, amarela cheia, magenta pela metade.

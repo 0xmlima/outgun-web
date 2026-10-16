@@ -185,7 +185,6 @@ export class OnlineHud {
     now: number;
     fps: number;
     showPings: boolean;
-    fontHeight: number;
   }): HudState | null {
     const s = this.session;
     const fx = s.world;
@@ -277,7 +276,7 @@ export class OnlineHud {
 
     const hiddenGame = s.skipped || s.gameOver !== null || !opts.fd;
     const playing = players.length > 1;
-    const chatCount = chatLines(opts.screen, opts.rooms.y0, opts.fontHeight, this.showAll);
+    const chatCount = chatLines(opts.screen, this.showAll);
     if (s.lastServerFrame >= 0) this.feed.stamp(s.lastServerFrame / 10);
     return {
       screen: opts.screen,

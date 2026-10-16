@@ -183,27 +183,42 @@ export class HudRenderer {
     this.rect(x, y1, x, y2, col);
   }
 
+  /** Escala do texto em uso (a do HUD; o placar troca pela dele, OG-294). */
+  private k = 1;
+
+  /** Largura do texto na escala em uso. */
+  private fw(text: string): number {
+    return this.font.width(text) * this.k;
+  }
+
+  /** Altura da fonte na escala em uso. */
+  private get fh(): number {
+    return this.font.height * this.k;
+  }
+
   /** `textout_ex` / `print_text_border`: contorno com a fonte de borda em (x−1, y−1) por caractere. */
   private text(text: string, x: number, y: number, col: string, opts: { centre?: boolean; border?: boolean } = {}): void {
     if (!text) return;
-    const x0 = opts.centre ? x - Math.trunc(this.font.width(text) / 2) : x;
+    const k = this.k;
+    const x0 = opts.centre ? x - Math.trunc(this.fw(text) / 2) : x;
     if (opts.border) {
       const borderCol = this.c('text_border');
       let dx = x0;
       for (const ch of text) {
-        if (this.font.border) this.list.text(this.font.border.fontFamily, ch, dx - 1, y - 1, borderCol);
-        dx += this.font.charWidth(ch);
+        if (this.font.border) this.list.text(this.font.border.fontFamily, ch, dx - k, y - k, borderCol, k);
+        dx += this.font.charWidth(ch) * k;
       }
       if (!this.font.border)
-        for (const [i, j] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]] as const) this.list.text(this.font.family, text, x0 + i, y + j, borderCol);
+        for (const [i, j] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]] as const) this.list.text(this.font.family, text, x0 + i * k, y + j * k, borderCol, k);
     }
-    this.list.text(this.font.family, text, x0, y, col);
+    this.list.text(this.font.family, text, x0, y, col, k);
   }
 
   render(s: HudState): void {
     this.list.begin();
     const L = s.screen;
-    const fh = this.font.height;
+    this.k = L.ui;
+    const fh = this.fh;
     if (!s.hidden) {
       this.drawMinimap(s);
       this.drawPlayfieldMarks(s);
@@ -229,15 +244,16 @@ export class HudRenderer {
     }
 
     this.drawScoreboard(s);
+    this.k = L.ui;
 
     // FPS no canto de baixo à direita
     const fps = this.t('FPS:$1', String(Math.trunc(s.fps)).padStart(3, ' '));
-    this.text(fps, L.screenW - 2 - this.font.width(fps), L.screenH - fh - 2, this.c('fps'));
+    this.text(fps, L.screenW - 2 - this.fw(fps), L.screenH - fh - 2, this.c('fps'));
 
     if (s.mapTime) {
       const sec = Math.max(0, s.mapTime.seconds);
       const str = `${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-      this.text(str, L.timeX - this.font.width(str), L.timeY, this.c('map_time'));
+      this.text(str, L.timeX - this.fw(str), L.timeY, this.c('map_time'));
     }
 
     if (s.self) {
@@ -248,10 +264,10 @@ export class HudRenderer {
       ] as const;
       pups.forEach(([caption, val, col], line) => {
         if (val <= 0) return;
-        const y = L.indicatorsY + line * (fh + 2);
+        const y = L.indicatorsY + line * (fh + 2 * L.ui);
         this.text(this.t(caption), L.pupsX, y, this.c(col));
         const v = String(iround(val)).padStart(3, ' ');
-        this.text(v, L.pupsValX - this.font.width(v), y, this.c(col));
+        this.text(v, L.pupsValX - this.fw(v), y, this.c(col));
       });
       this.text(this.t('Weapon $1', String(s.self.weapon)), L.weaponX, L.indicatorsY, this.c('weapon'));
       if (s.changeTeams) {
@@ -279,7 +295,7 @@ export class HudRenderer {
     if (s.notResponding) {
       // `m_notResponding`: caixa no meio da tela
       const lines = [this.t('Server not responding'), this.t('May be heavy packet loss,'), this.t('or the server disconnected.')];
-      const w = Math.max(...lines.map((l) => this.font.width(l))) + 20;
+      const w = Math.max(...lines.map((l) => this.fw(l))) + 20;
       const h = lines.length * (fh + 4) + 12;
       const x = Math.trunc((L.screenW - w) / 2);
       const y = Math.trunc((L.screenH - h) / 2);
@@ -296,10 +312,10 @@ export class HudRenderer {
     const p = s.pause;
     if (!p) return;
     const L = s.screen;
-    const fh = this.font.height;
+    const fh = this.fh;
     const lineH = fh + 4;
     const body = [p.detail, ...(p.options?.map((o) => o.label) ?? []), p.hint ?? '', p.footer].filter((l) => l !== '');
-    const w = Math.max(this.font.width(p.title), ...body.map((l) => this.font.width(l))) + 20;
+    const w = Math.max(this.fw(p.title), ...body.map((l) => this.fw(l))) + 20;
     const h = (body.length + 1) * lineH + 12;
     const cx = L.playfield.x + Math.trunc(scaleBy(L.mul, ROOM_WIDTH) / 2);
     const cy = L.playfield.y + Math.trunc(scaleBy(L.mul, ROOM_HEIGHT) / 2);
@@ -326,16 +342,16 @@ export class HudRenderer {
   /** `draw_bar`: legenda, valor e a barra em três faixas de 100. */
   private drawBar(s: HudState, x: number, caption: string, value: number, kind: 'health' | 'energy'): void {
     const L = s.screen;
-    const fh = this.font.height;
+    const fh = this.fh;
     const y = L.indicatorsY;
     const col = this.c('bar_text');
     this.text(caption, x, y, col);
     const val = String(value).padStart(3, ' ');
     const width = scaleBy(L.mul, 100);
-    const valX = Math.max(x + this.font.width(caption) + this.font.width(' '), x + width - this.font.width(val));
+    const valX = Math.max(x + this.fw(caption) + this.fw(' '), x + width - this.fw(val));
     this.text(val, valX, y, col);
     const y1 = y + Math.trunc((3 * fh) / 2);
-    const y2 = L.screenH - 5;
+    const y2 = L.screenH - 5 * L.ui;
     this.rect(x, y1, x + width, y2, this.c('bar_0'));
     if (value <= 0) return;
     for (const [i, name] of [`${kind}_100`, `${kind}_200`, `${kind}_300`].entries()) {
@@ -347,7 +363,7 @@ export class HudRenderer {
   /** `draw_scoreboard`. */
   private drawScoreboard(s: HudState): void {
     const L = s.screen;
-    const font = this.font;
+    const font = { width: (t: string) => this.fw(t), height: this.fh };
     if (!L.scoreboard) {
       // sem placar (tela cheia): só o placar dos times embaixo do relógio
       const [r, b] = s.scores;
@@ -357,6 +373,8 @@ export class HudRenderer {
       return;
     }
     const { x1, y1, x2, y2 } = L.scoreboard;
+    this.k = L.scoreboard.scale;
+    font.height = this.fh;
     const placeW = x2 - x1 + 1;
     const ySpace = y2 - y1 + 1;
     const lines = 2 + s.maxPlayers + 1;
@@ -406,7 +424,7 @@ export class HudRenderer {
       const y = (teamY[p.team] as number) + (line[p.team] as number) * lineH;
       // `draw_scoreboard_name`: sublinha quem tem conta (opção, ligada no client.cfg distribuído)
       const shown = scoreboardName(p.name);
-      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.font.height, sbx + 8 + font.width(shown) - 2, textCol);
+      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.fh, sbx + 8 + font.width(shown) - 2, textCol);
       this.text(shown, sbx + 8, y, textCol);
       const pts = String(s.showPings ? p.ping : p.frags);
       this.text(pts, sbx + 20 * charW - font.width(pts), y, this.teamLight(p.team));
@@ -594,13 +612,12 @@ export class HudRenderer {
 
   /** `print_chat_messages`. */
   private drawChat(s: HudState): void {
-    const fh = this.font.height;
-    const lineH = fh + 3;
-    const margin = 3;
+    const fh = this.fh;
+    const { chat, lineH } = s.screen;
     const playfieldY = s.screen.playfield.y;
     let line = 0;
     for (const msg of s.chat) {
-      const y = margin + line * lineH;
+      const y = chat.y + line * lineH;
       line++;
       let col: string;
       const teamName = msg.team === 0 ? 'redteam' : msg.team === 1 ? 'blueteam' : 'unknown';
@@ -612,20 +629,20 @@ export class HudRenderer {
       else col = this.c(`normal_message_${teamName}`);
       // contorno só sobre a área de jogo (sem textura de fundo, como o `client.cfg` distribuído)
       const border = y + fh >= playfieldY;
-      let x = margin;
+      let x = chat.x;
       for (const part of msg.parts) {
         const pc = part.color === 'default' ? col : this.c(`message_${part.color}`);
         this.text(part.text, x, y, pc, { border });
-        x += this.font.width(part.text);
+        x += this.fw(part.text);
       }
     }
     if (s.prompt.text) {
-      const y = margin + line * lineH;
+      const y = chat.y + line * lineH;
       const col = this.c('message_input');
-      this.text(s.prompt.text, margin, y, col, { border: true });
+      this.text(s.prompt.text, chat.x, y, col, { border: true });
       if (s.prompt.cursor >= 0 && Math.trunc(positiveFmod(performance.now() / 500, 2))) {
-        const cx = margin + this.font.width(s.prompt.text.slice(0, s.prompt.cursor));
-        this.vline(cx, y, y + fh, col);
+        const cx = chat.x + this.fw(s.prompt.text.slice(0, s.prompt.cursor));
+        this.rect(cx, y, cx + Math.max(1, Math.round(this.k)) - 1, y + fh, col);
       }
     }
   }

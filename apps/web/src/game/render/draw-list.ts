@@ -69,7 +69,7 @@ export class DrawList {
     return s;
   }
 
-  text(fontFamily: string, text: string, x: number, y: number, tint: string): BitmapText {
+  text(fontFamily: string, text: string, x: number, y: number, tint: string, scale = 1): BitmapText {
     this.current = null;
     let t = this.texts[this.ti];
     if (!t) this.texts.push((t = new BitmapText({ text: '', style: { fontFamily } })));
@@ -79,6 +79,7 @@ export class DrawList {
     const size = FONT_SIZES.get(fontFamily);
     if (size !== undefined && t.style.fontSize !== size) t.style.fontSize = size;
     t.tint = tint;
+    t.scale.set(scale);
     t.position.set(Math.round(x), Math.round(y));
     this.order.push(t);
     return t;
