@@ -41,7 +41,13 @@ for (let rx = 0; rx < map.width; rx++)
   }
 
 const bases = map.teams.flatMap((team, i) =>
-  team.flags.map((p) => ({ team: i, x: r(p.room.x * ROOM_W + p.x), y: r(p.room.y * ROOM_H + p.y), rx: p.room.x, ry: p.room.y })),
+  team.flags.map((p) => ({
+    team: i,
+    x: r(p.room.x * ROOM_W + p.x),
+    y: r(p.room.y * ROOM_H + p.y),
+    rx: p.room.x,
+    ry: p.room.y,
+  })),
 );
 const w = map.width * ROOM_W;
 const h = map.height * ROOM_H;
@@ -58,14 +64,30 @@ const campo =
   '</svg>\n';
 
 const grid = [
-  ...Array.from({ length: map.width - 1 }, (_, i) => `<rect x="${(i + 1) * ROOM_W - 2}" y="0" width="4" height="${h}"/>`),
-  ...Array.from({ length: map.height - 1 }, (_, i) => `<rect x="0" y="${(i + 1) * ROOM_H - 2}" width="${w}" height="4"/>`),
+  ...Array.from(
+    { length: map.width - 1 },
+    (_, i) => `<rect x="${(i + 1) * ROOM_W - 2}" y="0" width="4" height="${h}"/>`,
+  ),
+  ...Array.from(
+    { length: map.height - 1 },
+    (_, i) => `<rect x="0" y="${(i + 1) * ROOM_H - 2}" width="${w}" height="4"/>`,
+  ),
 ].join('');
 const placar =
   `${head}<rect width="${w}" height="${h}" fill="#000000"/>` +
-  bases.map(({ team, rx, ry }) => `<rect x="${rx * ROOM_W}" y="${ry * ROOM_H}" width="${ROOM_W}" height="${ROOM_H}" fill="${TEAM[team]}" opacity=".3"/>`).join('') +
+  bases
+    .map(
+      ({ team, rx, ry }) =>
+        `<rect x="${rx * ROOM_W}" y="${ry * ROOM_H}" width="${ROOM_W}" height="${ROOM_H}" fill="${TEAM[team]}" opacity=".3"/>`,
+    )
+    .join('') +
   `<g fill="#007700">${walls.join('')}</g><g fill="#303030">${grid}</g>` +
-  bases.map(({ team, x, y }) => `<rect x="${x - 8}" y="${y - 50}" width="14" height="90" fill="${POLE}"/><rect x="${x + 6}" y="${y - 50}" width="54" height="44" fill="${TEAM[team]}"/>`).join('') +
+  bases
+    .map(
+      ({ team, x, y }) =>
+        `<rect x="${x - 8}" y="${y - 50}" width="14" height="90" fill="${POLE}"/><rect x="${x + 6}" y="${y - 50}" width="54" height="44" fill="${TEAM[team]}"/>`,
+    )
+    .join('') +
   '</svg>\n';
 
 for (const [style, svg] of [
@@ -73,5 +95,7 @@ for (const [style, svg] of [
   ['placar', placar],
 ]) {
   writeFileSync(new URL(`../src/ui/${style}-map.svg`, import.meta.url), svg);
-  console.log(`${style}-map.svg: ${map.title} (${map.width}×${map.height} salas, ${svg.length} bytes)`);
+  console.log(
+    `${style}-map.svg: ${map.title} (${map.width}×${map.height} salas, ${svg.length} bytes)`,
+  );
 }
