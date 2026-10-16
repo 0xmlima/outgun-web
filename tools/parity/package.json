@@ -1,6 +1,6 @@
 {
   "name": "@outgun/parity",
-  "version": "2.23.0",
+  "version": "2.24.0",
   "private": true,
   "description": "Harness de paridade: golden traces do Outgun original x packages/sim (card OG-003).",
   "license": "GPL-2.0-or-later",

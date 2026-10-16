@@ -1,6 +1,6 @@
 {
   "name": "@outgun/tickets",
-  "version": "2.23.0",
+  "version": "2.24.0",
   "private": true,
   "description": "Ticket de entrada no game server: JWT Ed25519 emitido pela API e conferido pelo servidor de jogo (card OG-083).",
   "license": "GPL-2.0-or-later",

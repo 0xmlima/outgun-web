@@ -1,4 +1,4 @@
-# OG-292 — Tema de menu "Placar" (guardado para um tema futuro)
+# OG-292 — Tema de menu "Placar", à escolha nas Opções
 
 | Campo | Valor |
 |---|---|
@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Could |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S24 |
+| Status | Concluído |
 | Dependências | [OG-291](OG-291-tema-menu-campo.md) |
 | Regras de negócio | RN-UI-01, RN-UI-02, RN-UI-03 |
 | Skills | `outgun-card-workflow` |
@@ -21,7 +21,7 @@ Como jogador, quero poder escolher outro visual para os menus, para variar sem p
 
 ## Escopo
 - `apps/web/src/ui/theme-placar.css` sob `[data-menu-theme='placar']`, no mesmo molde do `theme-campo.css`, com o teste de contraste equivalente.
-- Escolha do tema de menu nas opções (Gráficos), se o PO quiser expor; senão, só troca de `MENU_THEME` na `Shell`.
+- Escolha do tema de menu em Opções › Gráficos › Menus (Campo continua o padrão).
 - Fundo: o mesmo mapa em versão minimapa (`map_wall` #007700 sobre preto, salas com borda `map_room_border` #303030, bases tingidas com a cor do time).
 
 ## Tokens propostos (do protótipo)
@@ -41,9 +41,13 @@ Como jogador, quero poder escolher outro visual para os menus, para variar sem p
 | `--danger` | #FF5A7A | separado do vermelho do time |
 
 ## Critérios de aceite
-- [ ] Mesmos critérios do OG-291 (só fora da partida, contraste AA, fonte única, navegação igual).
-- [ ] Trocar entre Campo e Placar não exige mudar componentes, só o atributo `data-menu-theme`.
+- [x] Mesmos critérios do OG-291 (só fora da partida, contraste AA, fonte única, navegação igual).
+- [x] Trocar entre Campo e Placar não exige mudar componentes, só o atributo `data-menu-theme`.
 
 ## Notas técnicas
 ## Notas de implementação
-(preenchido durante a execução)
+- Preferência `menuTheme` (`'campo' | 'placar'`, padrão `campo`) em `app/prefs.tsx`, sincronizada com a conta como as outras (50 de 64 campos que a API aceita); a `Shell` põe o valor em `data-menu-theme`.
+- Fundo `ui/placar-map.svg` gerado pelo mesmo `apps/web/scripts/menu-map.mjs`, agora com os dois estilos (o do Campo saiu idêntico ao anterior).
+- Faixa de título nos painéis com `--panel-pad` (o recuo do painel, menor no celular); painéis de time do relatório ficam com o fundo do time. `--avatar-ring` por tema (verde no Campo, amarelo no Placar).
+- Teste `menu-themes.test.ts` (substitui o `theme-campo.test.ts`) roda os dois temas: contraste AA, todas as cores redefinidas e regras só sob o próprio `data-menu-theme`.
+- Corrigido junto, nos dois temas: o ícone do "Jogar agora" ficava amarelo sobre a cor do botão quando focado. Conferido em 1440×1000 (início, opções, ranking) sem API.

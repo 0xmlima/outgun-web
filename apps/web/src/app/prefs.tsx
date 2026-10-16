@@ -13,6 +13,9 @@ export type MinimapPlayers = 'fade' | 'hideEarly' | 'hideLate';
 export type EmphasizeFlags = 'never' | 'multiRoom' | 'always';
 export type NeighborMarkers = 'never' | 'oneRoom' | 'always';
 export type ViewOverBorder = 'never' | 'mapDoesntFit' | 'mapWraps' | 'always';
+/** Visual das telas fora da partida (D-53): Campo (OG-291) ou Placar (OG-292). */
+export type MenuTheme = 'campo' | 'placar';
+export const MENU_THEMES: readonly MenuTheme[] = ['campo', 'placar'];
 
 export interface Prefs {
   readonly locale: Locale;
@@ -56,6 +59,8 @@ export interface Prefs {
   /** Fundo da tela (`background.pcx`): tema escolhido (`''` = nenhum) e "Prefer main theme background". */
   readonly backgroundTheme: string;
   readonly preferThemeBackground: boolean;
+  /** Tema dos menus (só fora da partida). */
+  readonly menuTheme: MenuTheme;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
   /** Bots das salas Casual do jogador (OG-289): quantidade fixa e nível 1–5 (0 = variável). */
@@ -147,6 +152,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     underlineAccounts: true,
     backgroundTheme: '',
     preferThemeBackground: true,
+    menuTheme: 'campo',
     bindings: CLASSIC_BINDINGS,
     casualBots: 6,
     casualBotLevel: 4, // o bot de referência (o do original)
@@ -211,6 +217,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     underlineAccounts: bool(saved.underlineAccounts, fallback.underlineAccounts),
     backgroundTheme: str(saved.backgroundTheme, fallback.backgroundTheme),
     preferThemeBackground: bool(saved.preferThemeBackground, fallback.preferThemeBackground),
+    menuTheme: oneOf(saved.menuTheme, MENU_THEMES, fallback.menuTheme),
     bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
     casualBots: int(saved.casualBots, 0, CASUAL_MAX_BOTS, fallback.casualBots),
     casualBotLevel: int(saved.casualBotLevel, 0, 5, fallback.casualBotLevel),
