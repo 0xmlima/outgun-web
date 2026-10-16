@@ -738,8 +738,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-294](cards/OG-294-placar-borda-a-borda.md) | Placar de borda a borda, com escala própria | E8 | 3 | Must | S25 | OG-293 | Concluído |
 | [OG-295](cards/OG-295-hud-modo-coluna-telas-largas.md) | HUD em telas largas: modo coluna (16:9 e 16:10) | E8 | 3 | Must | S25 | OG-293, OG-294 | Concluído |
 | [OG-296](cards/OG-296-opcao-escala-hud.md) | Opção "Escala do HUD" | E8 | 2 | Should | S25 | OG-293 | Concluído |
-| [OG-297](cards/OG-297-estilo-hud-layout-componentes.md) | Opção "Estilo do HUD" e layout por componentes | E8 | 3 | Must | S26 | — | Pronto |
-| [OG-298](cards/OG-298-hud-moderno.md) | HUD Moderno: sala grande e coluna do jogador (opção A) | E8 | 5 | Must | S26 | OG-297 | Pronto |
+| [OG-297](cards/OG-297-estilo-hud-layout-componentes.md) | Opção "Estilo do HUD" e layout por componentes | E8 | 3 | Must | S26 | — | Em revisão |
+| [OG-298](cards/OG-298-hud-moderno.md) | HUD Moderno: sala grande e coluna do jogador (opção A) | E8 | 5 | Must | S26 | OG-297 | Em andamento |
 | [OG-299](cards/OG-299-placar-tab.md) | Placar completo no TAB (Moderno e Personalizado) | E8 | 2 | Must | S26 | OG-298 | Pronto |
 | [OG-300](cards/OG-300-hud-personalizado-editor.md) | HUD Personalizado: editor de posição e tamanho dos componentes | E8 | 8 | Should | S26 | OG-298 | Pronto |
 

@@ -318,6 +318,17 @@ export function OptionsScreen() {
                 onChange={(hudScale) => setPrefs({ hudScale })}
                 hint={t('Size of the chat, scoreboard and bars during the game.')}
               />
+              <ChoiceField
+                label={t('HUD style')}
+                value={prefs.hudStyle}
+                options={[
+                  { value: 'classic', label: t('Classic (like the original)') },
+                  { value: 'modern', label: t('Modern (big room, frags on TAB)') },
+                  { value: 'custom', label: t('Custom') },
+                ]}
+                onChange={(hudStyle) => setPrefs({ hudStyle })}
+                hint={t('Nothing is drawn over the room in any style.')}
+              />
               {select<ShowNames>('showNames', 'Show player names', [
                 ['never', 'never'],
                 ['sameRoom', 'in same room'],

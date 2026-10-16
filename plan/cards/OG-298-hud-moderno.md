@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S26 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-297](OG-297-estilo-hud-layout-componentes.md) |
 | Regras de negócio | RN-UI-07 |
 | Skills | `outgun-card-workflow` |

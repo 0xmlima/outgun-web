@@ -311,6 +311,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         { health: t('Health'), energy: t('Energy'), power: t('Power'), turbo: t('Turbo'), shadow: t('Shadow'), weapon0: t('Weapon $1', '0') },
         fullHud,
         hudScaleValue(graphics().hudScale),
+        graphics().hudStyle,
+        graphics().hudCustom,
       );
       playfield = screen.playfield;
     }

@@ -4,6 +4,8 @@
 // resolução (D-54, RN-UI-06, plan/specs/hud.md e plan/specs/hud-resolucoes/).
 import { iround, ROOM_HEIGHT, ROOM_WIDTH } from '@outgun/sim';
 import type { Rect } from '../render/layout.js';
+import { DEFAULT_HUD_CUSTOM, type HudCustom, type HudStyle } from './hud-style.js';
+import { customArrangement, modernArrangement, type Places } from './modern-layout.js';
 
 /** Medidas da fonte do jogo (`text_height`, `text_length`). */
 export interface FontMetrics {
@@ -26,8 +28,9 @@ export interface BarLabels {
  * `faixa`: chat na largura toda em cima, sala embaixo à esquerda, minimapa e placar à direita (4:3).
  * `coluna`: telas largas (≥ 3:2), sala com a altura toda e chat no alto da coluna da direita (OG-295).
  * `livre`: sem minimapa e placar (F12), sala centralizada.
+ * `componentes`: HUD Moderno ou Personalizado (D-55), cada componente no seu lugar (`hud`).
  */
-export type HudMode = 'faixa' | 'coluna' | 'livre';
+export type HudMode = 'faixa' | 'coluna' | 'livre' | 'componentes';
 
 export interface ScoreboardPlace {
   /** Área do placar (x1..x2, y1..y2 inclusivos). */
@@ -44,7 +47,10 @@ export interface ScoreboardPlace {
 export interface ScreenLayout {
   readonly screenW: number;
   readonly screenH: number;
+  readonly style: HudStyle;
   readonly mode: HudMode;
+  /** Lugar de cada componente no Moderno e no Personalizado (`null` no Clássico). */
+  readonly hud: Places | null;
   /** Escala do HUD: texto, linhas, barras e espaçamentos (RN-UI-06). */
   readonly ui: number;
   /** `scr_mul`: pixels por unidade da sala. */
@@ -93,7 +99,17 @@ export function scaledFont(font: FontMetrics, k: number): FontMetrics {
  * Divisão da tela. `full` = minimapa e placar visíveis (F12 alterna); `ui` = escala do HUD (padrão:
  * automática pela resolução).
  */
-export function screenLayout(screenW: number, screenH: number, baseFont: FontMetrics, labels: BarLabels, full = true, ui = autoHudScale(screenW, screenH)): ScreenLayout {
+export function screenLayout(
+  screenW: number,
+  screenH: number,
+  baseFont: FontMetrics,
+  labels: BarLabels,
+  full = true,
+  ui = autoHudScale(screenW, screenH),
+  style: HudStyle = 'classic',
+  custom: HudCustom = DEFAULT_HUD_CUSTOM,
+): ScreenLayout {
+  if (style !== 'classic') return componentsLayout(screenW, screenH, style, custom, full, ui);
   const u = ui;
   const font = scaledFont(baseFont, u);
   const fh = font.height;
@@ -224,7 +240,9 @@ export function screenLayout(screenW: number, screenH: number, baseFont: FontMet
   return {
     screenW,
     screenH,
+    style,
     mode,
+    hud: null,
     ui: u,
     mul,
     playfield,
@@ -244,8 +262,48 @@ export function screenLayout(screenW: number, screenH: number, baseFont: FontMet
   };
 }
 
+/** Altura de uma linha do chat do HUD Moderno na escala `s`. */
+export const modernLineH = (s: number) => Math.round(20 * s);
+
+/** Largura média de um caractere da Inter no corpo do chat (13 px na escala 1), para quebrar as linhas. */
+const MODERN_CHAR_W = 7.2;
+
+/**
+ * Moderno e Personalizado (D-55): a sala e os componentes vêm de `modern-layout.ts`; os campos do
+ * Clássico que o resto do cliente usa (chat, minimapa, área de jogo) apontam para os componentes.
+ * F12 esconde só o minimapa.
+ */
+function componentsLayout(screenW: number, screenH: number, style: HudStyle, custom: HudCustom, full: boolean, u: number): ScreenLayout {
+  const { room, places } = style === 'custom' ? customArrangement(screenW, screenH, u, custom, full) : modernArrangement(screenW, screenH, u, full);
+  const chat = places.chat ?? { x: 0, y: 0, w: 0, h: 0, s: u };
+  return {
+    screenW,
+    screenH,
+    style,
+    mode: 'componentes',
+    hud: places,
+    ui: u,
+    mul: room.w / ROOM_WIDTH,
+    playfield: room,
+    chat: { x: chat.x, y: chat.y, w: chat.w, h: chat.h },
+    lineH: modernLineH(chat.s),
+    chatChars: Math.max(10, Math.min(79, Math.trunc(chat.w / (MODERN_CHAR_W * chat.s)))),
+    minimapPlace: places.minimap ?? null,
+    scoreboard: null,
+    indicatorsY: 0,
+    healthX: 0,
+    energyX: 0,
+    pupsX: 0,
+    pupsValX: 0,
+    weaponX: 0,
+    timeX: 0,
+    timeY: 0,
+  };
+}
+
 /** Linhas de mensagem no chat (sem a de digitação); com Insert, até o fim da área de jogo. */
 export function chatLines(layout: ScreenLayout, all: boolean): number {
+  if (layout.mode === 'componentes') return Math.max(1, Math.trunc(layout.chat.h / layout.lineH) - 1);
   const bottom = all ? layout.playfield.y + layout.playfield.h : layout.chat.y + layout.chat.h;
   return Math.max(1, Math.trunc((bottom - layout.chat.y) / layout.lineH) - 1);
 }

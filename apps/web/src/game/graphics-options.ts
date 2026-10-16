@@ -2,6 +2,7 @@
 // Opções gráficas avançadas do original que o desenho da partida consulta (OG-070,
 // plan/specs/opcoes-graficas.md). Padrões = `config/client.cfg` distribuído (D-05).
 import type { EmphasizeFlags, HudScale, MinimapPlayers, NeighborMarkers, ViewOverBorder } from '../app/prefs.js';
+import { DEFAULT_HUD_CUSTOM, type HudCustom, type HudStyle } from './hud/hud-style.js';
 
 export interface GraphicsOptions {
   readonly scroll: boolean;
@@ -23,6 +24,9 @@ export interface GraphicsOptions {
   readonly preferThemeBackground: boolean;
   /** Escala do HUD (OG-296): `auto` = pela resolução. */
   readonly hudScale: HudScale;
+  /** Estilo do HUD e layout do Personalizado (D-55). */
+  readonly hudStyle: HudStyle;
+  readonly hudCustom: HudCustom;
 }
 
 export const DEFAULT_GRAPHICS: GraphicsOptions = {
@@ -43,6 +47,8 @@ export const DEFAULT_GRAPHICS: GraphicsOptions = {
   backgroundTheme: '',
   preferThemeBackground: true,
   hudScale: 'auto',
+  hudStyle: 'classic',
+  hudCustom: DEFAULT_HUD_CUSTOM,
 };
 
 /** Escala fixa escolhida nas Opções, ou `undefined` para a automática. */

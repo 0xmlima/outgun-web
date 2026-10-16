@@ -51,6 +51,8 @@ function clientOptions(p: Prefs): ClientOptions {
       backgroundTheme: p.backgroundTheme,
       preferThemeBackground: p.preferThemeBackground,
       hudScale: p.hudScale,
+      hudStyle: p.hudStyle,
+      hudCustom: p.hudCustom,
     },
   };
 }

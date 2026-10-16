@@ -269,6 +269,11 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'HUD scale': 'Escala do HUD',
     'automatic (by screen size)': 'automática (pelo tamanho da tela)',
     'Size of the chat, scoreboard and bars during the game.': 'Tamanho do chat, do placar e das barras durante a partida.',
+    // OG-297 a OG-300: estilos do HUD (D-55)
+    'HUD style': 'Estilo do HUD',
+    'Classic (like the original)': 'Clássico (como o original)',
+    'Modern (big room, frags on TAB)': 'Moderno (sala grande, frags no TAB)',
+    'Nothing is drawn over the room in any style.': 'Em nenhum estilo há nada desenhado sobre a sala.',
     'Number of bots': 'Quantidade de bots',
     'Bot level': 'Nível dos bots',
     'variable (each bot different)': 'variável (cada bot com um nível)',
