@@ -27,7 +27,7 @@ import { SoundEvents, type SoundContext } from './audio/sound-events.js';
 import { SoundPlayer } from './audio/sound-player.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { mapWraps, viewTopLeft, type ViewOptions } from './render/layout.js';
-import { DEFAULT_GRAPHICS, type GraphicsOptions } from './graphics-options.js';
+import { DEFAULT_GRAPHICS, hudScaleValue, type GraphicsOptions } from './graphics-options.js';
 import { createRoomSource } from './render/room-source.js';
 import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme, type RoomTheme } from './render/theme.js';
@@ -310,6 +310,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         gameFont,
         { health: t('Health'), energy: t('Energy'), power: t('Power'), turbo: t('Turbo'), shadow: t('Shadow'), weapon0: t('Weapon $1', '0') },
         fullHud,
+        hudScaleValue(graphics().hudScale),
       );
       playfield = screen.playfield;
     }
@@ -626,7 +627,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             }
           } else entities.render({ time: 0, players: [], rockets: [], powerups: [], flags: [], deathbringers: [], multiRoom: false }, world.layout, topLeft);
           if (hud && onlineHud && screen && gameFont) {
-            const state = onlineHud.build({ screen, rooms: world.layout, topLeft, fd, now, fps: app.ticker.FPS, showPings: input.sample().showPings, fontHeight: gameFont.height });
+            const state = onlineHud.build({ screen, rooms: world.layout, topLeft, fd, now, fps: app.ticker.FPS, showPings: input.sample().showPings });
             if (state) hud.render(state);
           }
         }

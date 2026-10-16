@@ -1,19 +1,48 @@
 {
-  "//": "OG-265. masks: regiões que variam a cada rodada (relógio, FPS, cursor do chat que pisca e o interior do minimapa, onde o lugar em que se nasce é sorteado). areas: o que o card em andamento declara como novo; volta a {} no fim do card. Caixas [x, y, largura, altura] por padrão de nome de captura.",
+  "//": "OG-265. masks: regiões que variam a cada rodada (relógio, FPS, cursor do chat que pisca e o interior do minimapa, onde o lugar em que se nasce é sorteado). areas: o que o card em andamento declara como novo; volta a {} no fim do card. Caixas [x, y, largura, altura] por padrão de nome de captura. Placar com Tab e estatísticas: a coluna de ping (varia 0–1 ms entre rodadas).",
   "masks": {
     "*-1280x720": [
-      [1200, 698, 80, 22],
+      [1200, 696, 80, 24],
       [800, 660, 80, 24],
-      [896, 6, 349, 262]
+      [880, 162, 396, 368]
     ],
     "*-1920x1080": [
-      [1840, 1056, 80, 24],
-      [1280, 1020, 80, 26],
-      [1344, 102, 573, 428]
+      [1820, 1048, 100, 32],
+      [1200, 992, 110, 34],
+      [1319, 243, 595, 554]
     ],
-    "sem-minimapa-1280x720": [[1030, 660, 80, 24]],
-    "sem-minimapa-1920x1080": [[1590, 1020, 80, 26]],
-    "chat-aberto-*": [[148, 18, 14, 24]]
+    "*-1024x768": [
+      [950, 742, 74, 26],
+      [640, 708, 80, 24],
+      [724, 169, 296, 167]
+    ],
+    "*-1600x1200": [
+      [1490, 1166, 110, 34],
+      [1020, 1112, 110, 34],
+      [1135, 264, 459, 221]
+    ],
+    "sem-minimapa-1280x720": [[940, 660, 90, 24]],
+    "sem-minimapa-1920x1080": [[1440, 996, 110, 34]],
+    "sem-minimapa-1024x768": [[850, 708, 80, 26]],
+    "sem-minimapa-1600x1200": [[1350, 1112, 110, 34]],
+    "chat-aberto-1024x768": [[148, 36, 16, 28]],
+    "chat-aberto-1280x720": [[1027, 36, 16, 28]],
+    "chat-aberto-1920x1080": [[1540, 54, 22, 40]],
+    "chat-aberto-1600x1200": [[222, 54, 22, 40]],
+    "placar-1024x768": [[995, 340, 26, 400]],
+    "placar-1280x720": [
+      [1045, 530, 28, 170],
+      [1245, 530, 30, 170]
+    ],
+    "placar-1920x1080": [
+      [1575, 825, 36, 225],
+      [1878, 825, 36, 225]
+    ],
+    "placar-1600x1200": [[1560, 490, 36, 680]],
+    "estatisticas-1024x768": [[337, 322, 102, 168]],
+    "estatisticas-1280x720": [[422, 302, 128, 158]],
+    "estatisticas-1920x1080": [[633, 453, 192, 237]],
+    "estatisticas-1600x1200": [[528, 504, 160, 264]]
   },
   "areas": {}
 }

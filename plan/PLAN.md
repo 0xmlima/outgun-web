@@ -589,6 +589,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S22 | v2: correções dos power-ups, bots do Casual e pequenas melhorias | OG-286, OG-287, OG-288 (primeiro), OG-289, OG-290, OG-280 | |
 | S23 | v2: menus com a cara do jogo (tema Campo) | OG-291 | |
 | S24 | v2: segundo tema de menu (Placar) | OG-292 | |
+| S25 | v2: HUD da partida por resolução (escala, faixa, coluna, placar de borda a borda) | OG-293, OG-294, OG-295, OG-296 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -732,8 +733,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-290](cards/OG-290-modo-carnificina.md) | Modo Carnificina: power-ups no máximo o tempo todo (preset e `/carnage`) | E11 | 2 | Should | S22 | — | Concluído |
 | [OG-291](cards/OG-291-tema-menu-campo.md) | Tema de menu "Campo": os menus com a cara do tema padrão da partida | E8 | 5 | Must | S23 | OG-200, OG-201 | Concluído |
 | [OG-292](cards/OG-292-tema-menu-placar.md) | Tema de menu "Placar", à escolha nas Opções | E8 | 3 | Could | S24 | OG-291 | Concluído |
+| [OG-293](cards/OG-293-hud-escala-layout-faixa.md) | HUD com escala pela resolução e layout em faixa (chat na largura toda, minimapa na linha do jogo) | E8 | 5 | Must | S25 | — | Concluído |
+| [OG-294](cards/OG-294-placar-borda-a-borda.md) | Placar de borda a borda, com escala própria | E8 | 3 | Must | S25 | OG-293 | Concluído |
+| [OG-295](cards/OG-295-hud-modo-coluna-telas-largas.md) | HUD em telas largas: modo coluna (16:9 e 16:10) | E8 | 3 | Must | S25 | OG-293, OG-294 | Concluído |
+| [OG-296](cards/OG-296-opcao-escala-hud.md) | Opção "Escala do HUD" | E8 | 2 | Should | S25 | OG-293 | Concluído |
 
-**Total:** 134 cards, 494 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 65 cards, 199 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 138 cards, 507 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 69 cards, 212 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -807,6 +812,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-51 | **v2** — Bots da sala Casual configurados pelo cliente | — | ✅ **Decidido pelo PO em 2026-10-15:** quantidade de bots e nível (1–5 ou variável, cada bot com um nível) ficam nas opções do cliente; valem ao criar sala privada e, numa sala já rodando, a partir da próxima partida (reinício ou troca de mapa), com opção de reiniciar na hora. Só o dono da sala privada e admins aplicam; salas públicas oficiais seguem o preset do servidor (OG-289) | PO |
 | D-52 | **v2** — Modo Carnificina | — | ✅ **Pedido do PO em 2026-10-15:** preset Casual "Carnificina" com o máximo de power-ups (32, o teto do jogo) reaparecendo na hora, queda de item na morte e duração longa (90 s por item, até 5 min), também ligado no meio da partida com `/carnage on|off` (dono e admins). Mudança na simulação: quando as regras de power-up mudam no meio da partida, os itens que faltam são agendados na hora e quem já espera não espera mais que o tempo novo (no original, só depois da próxima coleta). O teto de 32 continua (OG-290) | PO |
 | D-53 | **v2** — Tema dos menus | — | ✅ **Decidido pelo PO em 2026-10-15:** os menus fora da partida ganham a cara do tema padrão da partida (chão e paredes verdes, mastro amarelo, times vermelho e azul). Entre as duas direções do protótipo (`plan/specs/menus-tema/`), vale a **Campo** (OG-291); a **Placar** fica guardada para um tema futuro de menu (OG-292; na S24 virou opção em Opções › Gráficos › Menus, com Campo como padrão). Temas legados (Metal, Grid, Grass...) não servem de referência. Nada dentro da partida muda (RN-UI-05) | PO |
+| D-54 | **v2** — HUD da partida por resolução | — | ✅ **Decidido pelo PO em 2026-10-16:** o HUD deixa de ter texto fixo em pixels e ganha uma escala pela altura da tela (passos de 0,5), com chat na largura toda da faixa de cima, minimapa começando na linha da área de jogo e placar de borda a borda na coluna da direita; em telas largas (≥ 3:2) o chat vai para o alto da coluna e os times ficam lado a lado. A área de jogo segue mostrando uma sala. Protótipo: `plan/specs/hud-resolucoes/`. Exceção aprovada à RN-UI-05 para os cards OG-293 a OG-296 (RN-UI-06) | PO |
 
 ---
 
@@ -928,3 +934,4 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-RKL-20 | Partidas Ranked com bot substituto (ou com um a menos) levam a marca "Concluída com bots" (ou "Com um a menos") no relatório, no perfil e na série, e continuam contando para o ranking. |
 | RN-NOM-04 | **v2:** a clan tag aparece no HUD da partida, em todos os modos, como `(TAG) nome` — mesmo formato do chat (RN-NOM-03) — seguindo RN-UI-05. |
 | RN-UI-05 | Mudanças na UI **dentro da partida** não alteram a disposição atual do HUD: elementos novos são sobreposições temporárias numa área declarada; todo card que toca essa UI passa pela comparação de capturas do OG-265 (diferença zero fora da área nova) e é conferido numa partida online de verdade, com capturas para o PO (lição do OG-205). |
+| RN-UI-06 | **v2:** O HUD da partida escala com a tela (D-54): texto, barras e placar seguem a escala do HUD (automática pela altura ou escolhida nas Opções); o layout é o do protótipo `plan/specs/hud-resolucoes/` (faixa em 4:3, coluna em telas largas). A partir dele, a RN-UI-05 volta a valer: novas mudanças não movem o que existe. |

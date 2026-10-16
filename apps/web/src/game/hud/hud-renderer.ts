@@ -133,9 +133,9 @@ export interface VoteTarget {
 
 const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
 
-/** Nome no placar: a coluna tem 15 caracteres; com a tag do clã (OG-206) o que passar vira "...". */
-export function scoreboardName(name: string): string {
-  return name.length > 15 ? `${name.slice(0, 12)}...` : name;
+/** Nome no placar: até 15 caracteres (ou o que couber); com a tag do clã (OG-206) o que passar vira "...". */
+export function scoreboardName(name: string, max = 15): string {
+  return name.length > max ? `${name.slice(0, Math.max(0, max - 3))}...` : name;
 }
 
 export class HudRenderer {
@@ -183,27 +183,42 @@ export class HudRenderer {
     this.rect(x, y1, x, y2, col);
   }
 
+  /** Escala do texto em uso (a do HUD; o placar troca pela dele, OG-294). */
+  private k = 1;
+
+  /** Largura do texto na escala em uso. */
+  private fw(text: string): number {
+    return this.font.width(text) * this.k;
+  }
+
+  /** Altura da fonte na escala em uso. */
+  private get fh(): number {
+    return this.font.height * this.k;
+  }
+
   /** `textout_ex` / `print_text_border`: contorno com a fonte de borda em (x−1, y−1) por caractere. */
   private text(text: string, x: number, y: number, col: string, opts: { centre?: boolean; border?: boolean } = {}): void {
     if (!text) return;
-    const x0 = opts.centre ? x - Math.trunc(this.font.width(text) / 2) : x;
+    const k = this.k;
+    const x0 = opts.centre ? x - Math.trunc(this.fw(text) / 2) : x;
     if (opts.border) {
       const borderCol = this.c('text_border');
       let dx = x0;
       for (const ch of text) {
-        if (this.font.border) this.list.text(this.font.border.fontFamily, ch, dx - 1, y - 1, borderCol);
-        dx += this.font.charWidth(ch);
+        if (this.font.border) this.list.text(this.font.border.fontFamily, ch, dx - k, y - k, borderCol, k);
+        dx += this.font.charWidth(ch) * k;
       }
       if (!this.font.border)
-        for (const [i, j] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]] as const) this.list.text(this.font.family, text, x0 + i, y + j, borderCol);
+        for (const [i, j] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]] as const) this.list.text(this.font.family, text, x0 + i * k, y + j * k, borderCol, k);
     }
-    this.list.text(this.font.family, text, x0, y, col);
+    this.list.text(this.font.family, text, x0, y, col, k);
   }
 
   render(s: HudState): void {
     this.list.begin();
     const L = s.screen;
-    const fh = this.font.height;
+    this.k = L.ui;
+    const fh = this.fh;
     if (!s.hidden) {
       this.drawMinimap(s);
       this.drawPlayfieldMarks(s);
@@ -229,15 +244,16 @@ export class HudRenderer {
     }
 
     this.drawScoreboard(s);
+    this.k = L.ui;
 
     // FPS no canto de baixo à direita
     const fps = this.t('FPS:$1', String(Math.trunc(s.fps)).padStart(3, ' '));
-    this.text(fps, L.screenW - 2 - this.font.width(fps), L.screenH - fh - 2, this.c('fps'));
+    this.text(fps, L.screenW - 2 - this.fw(fps), L.screenH - fh - 2, this.c('fps'));
 
     if (s.mapTime) {
       const sec = Math.max(0, s.mapTime.seconds);
       const str = `${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-      this.text(str, L.timeX - this.font.width(str), L.timeY, this.c('map_time'));
+      this.text(str, L.timeX - this.fw(str), L.timeY, this.c('map_time'));
     }
 
     if (s.self) {
@@ -248,10 +264,10 @@ export class HudRenderer {
       ] as const;
       pups.forEach(([caption, val, col], line) => {
         if (val <= 0) return;
-        const y = L.indicatorsY + line * (fh + 2);
+        const y = L.indicatorsY + line * (fh + 2 * L.ui);
         this.text(this.t(caption), L.pupsX, y, this.c(col));
         const v = String(iround(val)).padStart(3, ' ');
-        this.text(v, L.pupsValX - this.font.width(v), y, this.c(col));
+        this.text(v, L.pupsValX - this.fw(v), y, this.c(col));
       });
       this.text(this.t('Weapon $1', String(s.self.weapon)), L.weaponX, L.indicatorsY, this.c('weapon'));
       if (s.changeTeams) {
@@ -279,7 +295,7 @@ export class HudRenderer {
     if (s.notResponding) {
       // `m_notResponding`: caixa no meio da tela
       const lines = [this.t('Server not responding'), this.t('May be heavy packet loss,'), this.t('or the server disconnected.')];
-      const w = Math.max(...lines.map((l) => this.font.width(l))) + 20;
+      const w = Math.max(...lines.map((l) => this.fw(l))) + 20;
       const h = lines.length * (fh + 4) + 12;
       const x = Math.trunc((L.screenW - w) / 2);
       const y = Math.trunc((L.screenH - h) / 2);
@@ -296,10 +312,10 @@ export class HudRenderer {
     const p = s.pause;
     if (!p) return;
     const L = s.screen;
-    const fh = this.font.height;
+    const fh = this.fh;
     const lineH = fh + 4;
     const body = [p.detail, ...(p.options?.map((o) => o.label) ?? []), p.hint ?? '', p.footer].filter((l) => l !== '');
-    const w = Math.max(this.font.width(p.title), ...body.map((l) => this.font.width(l))) + 20;
+    const w = Math.max(this.fw(p.title), ...body.map((l) => this.fw(l))) + 20;
     const h = (body.length + 1) * lineH + 12;
     const cx = L.playfield.x + Math.trunc(scaleBy(L.mul, ROOM_WIDTH) / 2);
     const cy = L.playfield.y + Math.trunc(scaleBy(L.mul, ROOM_HEIGHT) / 2);
@@ -326,16 +342,16 @@ export class HudRenderer {
   /** `draw_bar`: legenda, valor e a barra em três faixas de 100. */
   private drawBar(s: HudState, x: number, caption: string, value: number, kind: 'health' | 'energy'): void {
     const L = s.screen;
-    const fh = this.font.height;
+    const fh = this.fh;
     const y = L.indicatorsY;
     const col = this.c('bar_text');
     this.text(caption, x, y, col);
     const val = String(value).padStart(3, ' ');
     const width = scaleBy(L.mul, 100);
-    const valX = Math.max(x + this.font.width(caption) + this.font.width(' '), x + width - this.font.width(val));
+    const valX = Math.max(x + this.fw(caption) + this.fw(' '), x + width - this.fw(val));
     this.text(val, valX, y, col);
     const y1 = y + Math.trunc((3 * fh) / 2);
-    const y2 = L.screenH - 5;
+    const y2 = L.screenH - 5 * L.ui;
     this.rect(x, y1, x + width, y2, this.c('bar_0'));
     if (value <= 0) return;
     for (const [i, name] of [`${kind}_100`, `${kind}_200`, `${kind}_300`].entries()) {
@@ -347,75 +363,79 @@ export class HudRenderer {
   /** `draw_scoreboard`. */
   private drawScoreboard(s: HudState): void {
     const L = s.screen;
-    const font = this.font;
     if (!L.scoreboard) {
       // sem placar (tela cheia): só o placar dos times embaixo do relógio
       const [r, b] = s.scores;
       const col = r > b ? this.c('team_red_light') : r < b ? this.c('team_blue_light') : this.c('game_draw');
       const str = `${r} - ${b}`;
-      this.text(str, L.timeX - font.width(str), L.timeY + font.height, col);
+      this.text(str, L.timeX - this.fw(str), L.timeY + this.fh, col);
       return;
     }
-    const { x1, y1, x2, y2 } = L.scoreboard;
-    const placeW = x2 - x1 + 1;
-    const ySpace = y2 - y1 + 1;
-    const lines = 2 + s.maxPlayers + 1;
-    const characters = 20;
-    const charW = font.width('M');
-    const width = characters * charW;
-    const sbx = placeW > width ? x1 + Math.trunc((placeW - width) / 2) : x1;
-    const nSpacers = 3;
-    let spacer = 3;
-    let lineH = Math.trunc((ySpace - nSpacers * spacer) / lines);
-    if (lineH > font.height) {
-      spacer = font.height + 2;
-      lineH = Math.trunc((ySpace - nSpacers * spacer) / lines);
-      if (lineH > 2 * font.height) lineH = 2 * font.height;
-    }
-    spacer += Math.trunc((ySpace - nSpacers * spacer - lineH * lines) / nSpacers);
-    if (spacer > 15) spacer = 15;
+    // placar de borda a borda na coluna, na escala própria (OG-294); times empilhados ou lado a lado
+    const { x1, y1, x2, y2, side } = L.scoreboard;
+    this.k = L.scoreboard.scale;
+    const k = this.k;
+    const u = L.ui;
+    const fh = this.fh;
+    const charW = this.fw('M');
+    const margin = 4 * u;
+    const gap = 6 * u;
+    const hpad = Math.round(6 * k);
     const half = s.maxPlayers / 2;
-    const teamY = [y1 + spacer, y1 + spacer + (1 + half) * lineH + spacer];
-    let hpad = 6;
-    if (sbx - x1 < hpad) hpad = Math.max(1, sbx - x1 - 2);
-    const vpad = Math.max(Math.trunc((lineH - font.height) / 2), 1);
-    const bx1 = sbx - hpad;
-    const bx2 = sbx + width + hpad;
+    const rows = half + 1;
+    const ySpace = y2 - y1 + 1;
+    const rowH = Math.trunc(Math.min(2 * fh, Math.max(fh + 2 * k, side ? ySpace / rows : (ySpace - gap) / (2 * rows))));
+    const vpad = Math.max(Math.trunc((rowH - fh) / 2), 1);
+    const blockW = side ? Math.trunc((x2 - x1 + 1 - 2 * margin - gap) / 2) : x2 - x1 + 1 - 2 * margin;
+    const blocks = side
+      ? [[x1 + margin, y1], [x1 + margin + blockW + gap, y1]]
+      : [[x1 + margin, y1], [x1 + margin, y1 + rows * rowH + gap]];
     const bg = [this.c('scoreboard_bg_redteam'), this.c('scoreboard_bg_blueteam')];
     const lineCol = [this.c('scoreboard_line_redteam'), this.c('scoreboard_line_blueteam')];
     const dark = [this.c('team_red_dark'), this.c('team_blue_dark')];
+    const fragsW = this.fw('000');
+    /** Colunas de cada time: borda esquerda, onde começa o texto, divisória e fim dos frags. */
+    const cols = blocks.map(([bx, by]) => {
+      const bx1 = bx as number;
+      const bx2 = bx1 + blockW - 1;
+      const right = bx2 - hpad;
+      return { bx1, bx2, by: by as number, textX: bx1 + hpad, divider: right - fragsW - Math.round(5 * k), right };
+    });
     for (const i of [0, 1] as const) {
-      const ty = teamY[i] as number;
-      this.rect(bx1 + 1, ty + lineH - vpad + 1, bx2 - 1, ty + (half + 1) * lineH - vpad - 1, bg[i] as string);
-      this.rect(bx1 + 1, ty - vpad + 1, bx2 - 1, ty + lineH - vpad - 1, dark[i] as string);
-      this.hline(bx1 + 1, ty - vpad, bx2 - 1, lineCol[i] as string);
-      for (let j = 1; j <= half + 1; j++) this.hline(bx1 + 1, ty + j * lineH - vpad, bx2 - 1, lineCol[i] as string);
-      this.vline(bx1, ty - vpad, ty + (half + 1) * lineH - vpad, lineCol[i] as string);
-      this.vline(sbx + (characters - 3) * charW - 5, ty + lineH - vpad, ty + (half + 1) * lineH - vpad, lineCol[i] as string);
-      this.vline(bx2, ty - vpad, ty + (half + 1) * lineH - vpad, lineCol[i] as string);
-      const name = this.t(i === 0 ? 'Red Team' : 'Blue Team');
-      const right = s.showPings ? this.t('pings') : this.t('$1 capt', String(s.scores[i]).padStart(3, ' '));
-      const caption = name + right.padStart(Math.max(right.length, characters - name.length), ' ');
-      this.text(caption, sbx, ty, this.c(i === 0 ? 'scoreboard_caption_redteam' : 'scoreboard_caption_blueteam'));
+      const { bx1, bx2, by, textX, divider, right } = cols[i] as (typeof cols)[number];
+      const lc = lineCol[i] as string;
+      this.rect(bx1 + 1, by + rowH + 1, bx2 - 1, by + rows * rowH - 1, bg[i] as string);
+      this.rect(bx1 + 1, by + 1, bx2 - 1, by + rowH - 1, dark[i] as string);
+      for (let j = 0; j <= rows; j++) this.hline(bx1 + 1, by + j * rowH, bx2 - 1, lc);
+      this.vline(bx1, by, by + rows * rowH, lc);
+      this.vline(divider, by + rowH, by + rows * rowH, lc);
+      this.vline(bx2, by, by + rows * rowH, lc);
+      const capCol = this.c(i === 0 ? 'scoreboard_caption_redteam' : 'scoreboard_caption_blueteam');
+      const rightText = s.showPings ? this.t('pings') : this.t('$1 capt', String(s.scores[i]).padStart(3, ' '));
+      this.text(this.t(i === 0 ? 'Red Team' : 'Blue Team'), textX, by + vpad, capCol);
+      this.text(rightText, right - this.fw(rightText), by + vpad, capCol);
     }
     const line = [1, 1];
     for (const p of s.players) {
+      const { by, textX, divider, right } = cols[p.team] as (typeof cols)[number];
       const pc = Number.parseInt(this.c(PLAYER_COLOURS[p.color] ?? 'player_unknown').slice(1), 16);
       const light = (v: number) => 40 + Math.trunc((v * 215) / 255);
       const textCol = `#${[16, 8, 0].map((sh) => light((pc >> sh) & 255).toString(16).padStart(2, '0')).join('')}`;
-      const y = (teamY[p.team] as number) + (line[p.team] as number) * lineH;
+      const y = by + (line[p.team] as number) * rowH + vpad;
+      const nameX = textX + Math.round(8 * k);
+      // nome cabe até a divisória dos frags (no máximo os 15 caracteres do original)
+      const shown = scoreboardName(p.name, Math.min(15, Math.trunc((divider - nameX - 2 * k) / charW)));
       // `draw_scoreboard_name`: sublinha quem tem conta (opção, ligada no client.cfg distribuído)
-      const shown = scoreboardName(p.name);
-      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.font.height, sbx + 8 + font.width(shown) - 2, textCol);
-      this.text(shown, sbx + 8, y, textCol);
+      if (s.underlineAccounts && p.account) this.hline(nameX, y + fh, nameX + this.fw(shown) - 2, textCol);
+      this.text(shown, nameX, y, textCol);
       const pts = String(s.showPings ? p.ping : p.frags);
-      this.text(pts, sbx + 20 * charW - font.width(pts), y, this.teamLight(p.team));
+      this.text(pts, right - this.fw(pts), y, this.teamLight(p.team));
       if (p.flagTeam >= 0) {
         const flag = Math.trunc(charW / 2);
         const pole = Math.trunc((7 * flag) / 4);
-        const fy = y + Math.trunc((font.height - pole) / 2);
-        this.vline(sbx, fy, fy + pole, this.c('flag_pole'));
-        this.rect(sbx + 1, fy, sbx + 1 + flag, fy + flag, this.teamCol(p.flagTeam));
+        const fy = y + Math.trunc((fh - pole) / 2);
+        this.rect(textX, fy, textX + Math.max(1, Math.round(k)) - 1, fy + pole, this.c('flag_pole'));
+        this.rect(textX + Math.max(1, Math.round(k)), fy, textX + Math.max(1, Math.round(k)) + flag, fy + flag, this.teamCol(p.flagTeam));
       }
       line[p.team] = (line[p.team] as number) + 1;
     }
@@ -594,13 +614,12 @@ export class HudRenderer {
 
   /** `print_chat_messages`. */
   private drawChat(s: HudState): void {
-    const fh = this.font.height;
-    const lineH = fh + 3;
-    const margin = 3;
+    const fh = this.fh;
+    const { chat, lineH } = s.screen;
     const playfieldY = s.screen.playfield.y;
     let line = 0;
     for (const msg of s.chat) {
-      const y = margin + line * lineH;
+      const y = chat.y + line * lineH;
       line++;
       let col: string;
       const teamName = msg.team === 0 ? 'redteam' : msg.team === 1 ? 'blueteam' : 'unknown';
@@ -612,20 +631,20 @@ export class HudRenderer {
       else col = this.c(`normal_message_${teamName}`);
       // contorno só sobre a área de jogo (sem textura de fundo, como o `client.cfg` distribuído)
       const border = y + fh >= playfieldY;
-      let x = margin;
+      let x = chat.x;
       for (const part of msg.parts) {
         const pc = part.color === 'default' ? col : this.c(`message_${part.color}`);
         this.text(part.text, x, y, pc, { border });
-        x += this.font.width(part.text);
+        x += this.fw(part.text);
       }
     }
     if (s.prompt.text) {
-      const y = margin + line * lineH;
+      const y = chat.y + line * lineH;
       const col = this.c('message_input');
-      this.text(s.prompt.text, margin, y, col, { border: true });
+      this.text(s.prompt.text, chat.x, y, col, { border: true });
       if (s.prompt.cursor >= 0 && Math.trunc(positiveFmod(performance.now() / 500, 2))) {
-        const cx = margin + this.font.width(s.prompt.text.slice(0, s.prompt.cursor));
-        this.vline(cx, y, y + fh, col);
+        const cx = chat.x + this.fw(s.prompt.text.slice(0, s.prompt.cursor));
+        this.rect(cx, y, cx + Math.max(1, Math.round(this.k)) - 1, y + fh, col);
       }
     }
   }

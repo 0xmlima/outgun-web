@@ -326,11 +326,16 @@ export class MessageFeed {
   }
 
   /** Linhas visíveis (`draw_game_frame`): as últimas `count`, e só as dos últimos 80 s sem Insert. */
-  visible(count: number, time: number, all: boolean): FeedLine[] {
+  visible(count: number, time: number, all: boolean, width = 79): FeedLine[] {
     let lines = this.lines.slice(Math.max(0, this.lines.length - count));
     if (!all) {
       const first = lines.findIndex((l) => time < l.time + 80);
       lines = first === -1 ? [] : lines.slice(first);
+    }
+    // chat mais estreito que 79 caracteres (coluna das telas largas, OG-295): quebra de novo
+    if (width < 79) {
+      lines = lines.flatMap((l) => splitToLines(l.parts, width).map((parts) => ({ ...l, parts })));
+      lines = lines.slice(Math.max(0, lines.length - count));
     }
     return lines;
   }
