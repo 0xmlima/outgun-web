@@ -1,0 +1,585 @@
+<title>Outgun HUD por Resolução</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: prancha escura (a tela do jogo é preta). Abas de resolução no topo; cada aba mostra
+   "Hoje" e "Proposta" lado a lado, desenhados em px reais da tela e reduzidos para caber. */
+:root {
+  color-scheme: dark;
+  --page: #050505;
+  --page-1: #0e0e0f;
+  --page-2: #161618;
+  --line: #2a2a2c;
+  --text: #ececec;
+  --muted: #a0a0a4;
+  --mark: #FFE81A;        /* amarelo do mastro: só para marcar e medir */
+  --good: #8be36a;
+  --warn: #FFB238;
+  --bad: #ff8a7a;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font: 400 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--page); }
+button { font: inherit; color: inherit; }
+code { font: 500 .88em var(--mono); color: var(--text); }
+.wrap { max-width: 82rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.head { padding-block: 2.5rem 1.25rem; display: grid; gap: 1rem; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { margin: 0; font-size: clamp(1.8rem, 1.2rem + 2.4vw, 2.8rem); line-height: 1.1; letter-spacing: -.025em; font-weight: 800; text-wrap: balance; }
+.lede { margin: 0; max-width: 66ch; color: var(--muted); }
+.lede b { color: var(--text); font-weight: 600; }
+
+h2 { margin: 0 0 .9rem; font-size: 1.45rem; letter-spacing: -.02em; font-weight: 750; text-wrap: balance; }
+h2 small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-top: .2rem; }
+section.block { padding-block: 1.75rem; border-top: 1px solid var(--line); }
+
+/* diagnóstico */
+.diag { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem; }
+.diag div { background: var(--page-1); border: 1px solid var(--line); padding: .9rem 1rem; display: grid; gap: .25rem; min-width: 0; }
+.diag b { font: 700 1.6rem/1.1 var(--font); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.diag b.bad { color: var(--bad); }
+.diag span { font-size: 13.5px; color: var(--muted); }
+
+/* referência */
+.ref { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.ref figure { margin: 0; display: grid; gap: .5rem; }
+.ref img, .shot svg { width: 100%; height: auto; display: block; border: 1px solid var(--line); image-rendering: pixelated; }
+figcaption { font-size: 12.5px; color: var(--muted); }
+.props { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.props li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: .75rem; align-items: center; font-size: 14px; }
+.props .bar { height: 10px; background: var(--page-2); position: relative; }
+.props .bar i { position: absolute; inset: 0 auto 0 0; background: var(--muted); }
+.props .bar i.hl { background: var(--mark); }
+.props .v { font: 600 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--text); min-width: 4.5rem; text-align: right; }
+.props .k { color: var(--muted); }
+
+/* regras */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; counter-reset: r; }
+.rule { background: var(--page-1); border: 1px solid var(--line); padding: 1rem 1.1rem; display: grid; gap: .4rem; align-content: start; min-width: 0; }
+.rule h3 { margin: 0; font-size: 15px; font-weight: 700; display: flex; gap: .55rem; align-items: baseline; }
+.rule h3::before { counter-increment: r; content: counter(r); font: 600 12px var(--mono); color: var(--page); background: var(--mark); min-width: 1.35rem; height: 1.35rem; display: inline-grid; place-items: center; flex: none; }
+.rule p { margin: 0; font-size: 14px; color: var(--muted); }
+.rule .f { font: 500 13px/1.5 var(--mono); color: var(--text); background: var(--page); border: 1px solid var(--line); padding: .45rem .6rem; overflow-x: auto; white-space: nowrap; }
+
+/* abas de resolução */
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--page) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.tabs .wrap { display: flex; gap: .4rem; padding-block: .6rem; align-items: center; overflow-x: auto; }
+.tabs button { flex: none; padding: .45rem .8rem; border: 1px solid var(--line); background: transparent; cursor: pointer; font: 600 13.5px var(--mono); color: var(--muted); display: inline-flex; gap: .45rem; align-items: baseline; }
+.tabs button small { font: 500 11px var(--font); color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--text); border-color: var(--text); background: var(--page-1); }
+.tabs button:focus-visible, .tog:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+.tabs .sep { width: 1px; height: 1.6rem; background: var(--line); flex: none; margin-inline: .2rem; }
+.tog { margin-left: auto; flex: none; display: inline-flex; gap: .5rem; align-items: center; padding: .45rem .8rem; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tog[aria-pressed="true"] { color: var(--mark); border-color: var(--mark); }
+
+.board { padding-block: 1.5rem 2rem; display: grid; gap: 1.25rem; }
+.board-head { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: baseline; }
+.board-head h2 { margin: 0; font: 750 1.8rem/1.1 var(--mono); letter-spacing: -.02em; }
+.board-head .meta { color: var(--muted); font-size: 14px; }
+.verdict { display: inline-flex; gap: .4rem; align-items: center; font-size: 12.5px; font-weight: 650; padding: .15rem .6rem; border: 1px solid currentColor; }
+.verdict.ok { color: var(--good); } .verdict.add { color: var(--mark); } .verdict.meh { color: var(--warn); }
+.note { margin: 0; max-width: 78ch; color: var(--muted); font-size: 14.5px; }
+.note b { color: var(--text); font-weight: 600; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.shot { margin: 0; display: grid; gap: .55rem; min-width: 0; }
+.shot .cap { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; flex-wrap: wrap; }
+.shot .cap b { font-size: 14px; font-weight: 700; }
+.shot .cap span { font-size: 12.5px; color: var(--muted); }
+.shot.prop .cap b { color: var(--mark); }
+
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 620px; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: .55rem .8rem; background: var(--page-1); border-bottom: 1px solid var(--line); }
+td { padding: .5rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.n { font: 500 13.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.up { color: var(--good); } td.down { color: var(--bad); }
+td:first-child { color: var(--muted); font-weight: 600; }
+
+/* visão em escala */
+.scale-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+.scale-row figure { margin: 0; display: grid; gap: .35rem; min-width: 0; }
+.scale-row svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.scale-row figcaption { font: 600 12px var(--mono); color: var(--muted); }
+
+.coh td:nth-child(2) { white-space: nowrap; }
+.impl { display: grid; gap: .6rem; margin: 0; padding-left: 1.2rem; max-width: 80ch; color: var(--muted); }
+.impl b { color: var(--text); font-weight: 600; }
+.foot { padding-block: 1rem 3rem; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+@media (max-width: 860px) {
+  .ref, .pair { grid-template-columns: minmax(0, 1fr); }
+  .props li { grid-template-columns: 6.2rem minmax(0, 1fr) auto; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="wrap head">
+  <div class="eyebrow">Outgun Web · HUD da partida · disposição por resolução</div>
+  <h1>O HUD de 640×480 levado para as telas de hoje</h1>
+  <p class="lede">Hoje a área de jogo e o minimapa crescem com a tela (<code>scr_mul = largura/640</code>), mas o texto do HUD fica parado em 16 px. Quanto maior a tela, menor fica o chat, o placar e a barra de baixo em relação ao resto. A proposta mantém as proporções do jogo original e dá <b>uma escala ao HUD</b>, com <b>mais espaço para o chat</b> e <b>frags maiores</b>. Cores, fonte e desenho de cada peça continuam os mesmos; só muda o tamanho e onde cada coisa fica.</p>
+</header>
+
+<section class="wrap block" aria-labelledby="d-h">
+  <h2 id="d-h">O que acontece hoje<small>altura de uma linha de texto em relação à altura da tela</small></h2>
+  <div class="diag" id="diag"></div>
+</section>
+
+<section class="wrap block" aria-labelledby="r-h">
+  <h2 id="r-h">Referência: 640×480, como o jogo foi pensado<small>medidas tiradas da imagem enviada e de <code>make_layout</code> (src/graphics.cpp:150-230)</small></h2>
+  <div class="ref">
+    <figure>
+      <div id="ref-svg"></div>
+      <figcaption>Redesenho da tela original em 640×480: chat em cima, área de jogo de uma sala (472×354), minimapa e placar à direita, vida/energia/arma embaixo.</figcaption>
+    </figure>
+    <div>
+      <ul class="props" id="ref-props"></ul>
+      <p class="note" style="margin-top:1rem">O que se mantém da referência: <b>uma sala inteira sempre na tela</b>, coluna da direita com minimapa em cima e placar embaixo, barra de indicadores colada na área de jogo e chat no alto. O que muda: o chat passa de 19% para <b>22% da altura</b>, a coluna do placar de 26% para cerca de <b>30% da largura</b> e o placar passa a ocupar a coluna inteira.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap block" aria-labelledby="g-h">
+  <h2 id="g-h">Regras da proposta<small>valem para qualquer tamanho de janela; as resoluções abaixo são pontos de verificação</small></h2>
+  <div class="rules">
+    <div class="rule"><h3>Escala do HUD pela altura</h3><p>Todo texto, barra e espaçamento do HUD é multiplicado por <b>u</b>, em passos de 0,5 (a fonte bitmap fica nítida em 1×, 2×, 3×; em 1,5× e 2,5× usa filtro linear).</p><div class="f">u = max(1, arred½(min(H, L·¾) / 700))</div></div>
+    <div class="rule"><h3>Chat na largura toda</h3><p>Como no original, o chat ocupa toda a faixa de cima, de ponta a ponta da tela. A faixa tem pelo menos 22% da altura (eram 19%) e nunca menos que 6 mensagens + a linha de digitação.</p><div class="f">chat = max(7 · 19u + 6u, 0,22 · H)</div></div>
+    <div class="rule"><h3>Área de jogo com o que sobra</h3><p>A sala ocupa a altura que resta entre o chat e a barra; a escala da sala vem daí, não da largura. Continua mostrando exatamente uma sala: ninguém vê mais mapa por ter tela maior.</p><div class="f">mul = (H − chat − barra) / 354</div></div>
+    <div class="rule"><h3>Minimapa na linha do jogo, placar de borda a borda</h3><p>O minimapa começa na mesma linha da área de jogo, como em 640×480. Logo abaixo, o placar ocupa a largura inteira da coluna e desce até o FPS. O texto pega a maior escala entre u e 2u que ainda deixe o minimapa visível; nomes à esquerda, frags na borda direita.</p><div class="f">placar = coluna − 8u · s ∈ {u, u+½, …, 2u}</div></div>
+    <div class="rule"><h3>Telas largas: chat na coluna</h3><p>A partir de 3:2 (16:10, 16:9) o chat sobe para o alto da coluna da direita e a área de jogo usa a altura toda. Sem isso, em 16:9 a sala ficaria com só metade da largura. Se a sala parar pela largura (16:10) e sobrar espaço em cima, o chat volta para a faixa de cima na largura toda.</p><div class="f">L / H ≥ 1,5 → modo coluna</div></div>
+    <div class="rule"><h3>Escolha manual</h3><p>Nas Opções, "Escala do HUD": Automática (padrão), 1×, 1,5×, 2×, 2,5×, 3×. F12 (sem minimapa e placar) e Insert (todo o histórico do chat) continuam iguais.</p><div class="f">opção hudScale: auto | 1 | 1.5 | 2 | 2.5 | 3</div></div>
+  </div>
+</section>
+
+<nav class="tabs" aria-label="Resolução">
+  <div class="wrap" role="tablist" id="tabs"></div>
+</nav>
+
+<main class="wrap board" id="board" role="tabpanel" aria-live="polite"></main>
+
+<section class="wrap block" aria-labelledby="s-h">
+  <h2 id="s-h">Todas lado a lado, em escala<small>proposta desenhada com o mesmo fator de redução: o tamanho de cada quadro é proporcional à tela real</small></h2>
+  <div class="scale-row" id="scale-row"></div>
+</section>
+
+<section class="wrap block" aria-labelledby="c-h">
+  <h2 id="c-h">Coerência de cada resolução<small>o canvas do jogo é medido em px CSS (D-13), não em pixels físicos</small></h2>
+  <div class="tbl-wrap">
+    <table class="coh">
+      <thead><tr><th>Resolução</th><th>Proporção</th><th>Onde aparece</th><th>Veredito</th></tr></thead>
+      <tbody id="coh"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="wrap block" aria-labelledby="i-h">
+  <h2 id="i-h">O que muda no código</h2>
+  <ol class="impl">
+    <li><b><code>game/hud/screen-layout.ts</code></b>: <code>screenLayout</code> recebe a escala <code>u</code> e o modo (faixa ou coluna); <code>mul</code> passa a vir da altura que sobra, a barra de baixo usa <code>3·(16u+2u)+5u</code> e o lugar do minimapa e do placar saem das regras 4 e 5. <code>chatLines</code> passa a usar <code>19u</code> por linha.</li>
+    <li><b><code>game/hud/hud-renderer.ts</code></b>: <code>text()</code> ganha um fator de escala (todo o HUD usa <code>u</code>; o placar usa <code>s</code>). <code>drawScoreboard</code> estica o quadro até a largura da coluna (frags alinhados na borda direita), estica as linhas até o FPS e desenha os times lado a lado quando a coluna comporta. O minimapa passa a começar em <code>playfield.y</code>. As linhas e retângulos do placar e das barras usam a mesma escala.</li>
+    <li><b>Opções › Gráficos</b>: nova opção "Escala do HUD" em <code>graphics-options.ts</code> e <code>prefs.tsx</code>, com Automática como padrão.</li>
+    <li><b><code>plan/specs/hud.md</code></b>: nova divergência intencional (escala do HUD e modo coluna em telas largas; o original fixava o texto em pixels) e os vetores de teste desta prancha em <code>screen-layout.test.ts</code> (área de jogo, faixa do chat, escala do placar por resolução).</li>
+    <li><b>Jogo justo</b>: a área de jogo sempre mostra uma sala de 472×354 unidades. Mudar a escala do HUD só troca o tamanho do desenho, nunca o que o jogador enxerga do mapa.</li>
+  </ol>
+</section>
+
+<footer class="wrap foot">Números calculados nesta página pelas mesmas fórmulas de <code>screen-layout.ts</code> (Hoje) e pelas regras acima (Proposta), com fonte bitmap de 16 px e 8 px por caractere. Cores: <code>manifest.defaultColours</code>.</footer>
+
+<script>
+/* ---------- motor de layout ---------- */
+const RW = 472, RH = 354, MAXP = 16;
+const roundHalf = (v) => Math.round(v * 2) / 2;
+
+/* Hoje: port de screenLayout (screen-layout.ts) com fonte de altura fh. */
+function current(W, H, fh = 16, cw = 8) {
+  let mul = W / 640;
+  const bar = 3 * (fh + 2) + 5;
+  if (H < mul * RH + bar + fh) mul = (H - bar - fh) / RH;
+  const pfW = Math.ceil(mul * RW), pfH = Math.ceil(mul * RH);
+  const pfY = H - Math.round(mul * RH) - bar;
+  const colX = pfW + 2, colW = W - pfW - 4;
+  let mmY, mmH;
+  const top = colX > cw * 80;
+  if (top) { mmY = 4; mmH = Math.round(mul * 100) + pfY - 4; } else { mmY = pfY; mmH = Math.round(mul * 100); }
+  const extra = H - 450 - (mmY + mmH);
+  if (extra > 0) mmH += extra;
+  const lineH = fh + 3;
+  return {
+    mode: 'hoje', W, H, u: fh / 16, fh, cw, lineH, bar, mul,
+    pf: { x: 0, y: pfY, w: pfW, h: pfH },
+    chat: { x: 3, y: 3, w: (top ? colX : W) - 6, h: pfY - 3 },
+    chatLines: Math.max(1, Math.trunc(pfY / lineH)), input: false,
+    mm: { x: colX, y: mmY, w: colW, h: mmH },
+    sb: { x: pfW, y: mmY + mmH, w: W - pfW, h: H - (mmY + mmH), s: fh / 16, side: false },
+  };
+}
+
+function scoreFit(colW, availH, u, minMm) {
+  for (let s = 2 * u; s >= u; s -= 0.5) {
+    const sbW = 176 * s;
+    const side = colW - 12 >= 2 * sbW + 8 * u;
+    if (!side && sbW > colW - 12) continue;
+    const rows = side ? 1 + MAXP / 2 : 2 + MAXP;
+    const sbH = rows * 19 * s + (side ? 2 : 3) * 8 * u;
+    if (availH - sbH < minMm) continue;
+    return { s, side, sbH };
+  }
+  return { s: u, side: false, sbH: (2 + MAXP) * 19 * u + 24 * u };
+}
+
+/* Proposta. */
+function proposal(W, H) {
+  const u = Math.max(1, roundHalf(Math.min(H, (W * 3) / 4) / 700));
+  const fh = 16 * u, cw = 8 * u, lineH = 19 * u;
+  const bar = Math.round(3 * (fh + 2 * u) + 5 * u);
+  const fps = fh + 4;
+  const column = W / H >= 1.5;
+  if (!column) {
+    const chatH = Math.round(Math.max(7 * lineH + 6 * u, 0.22 * H));
+    let pfH = H - chatH - bar, mul = pfH / RH, pfW = Math.round(RW * mul);
+    const minCol = 176 * u + 12;
+    if (W - pfW < minCol) { pfW = W - minCol; mul = pfW / RW; pfH = Math.round(RH * mul); }
+    const pfY = H - bar - pfH, colX = pfW, colW = W - pfW;
+    // como no 640×480: chat na largura toda, minimapa começa na linha da área de jogo
+    const mmW = colW - 8 * u;
+    const natural = Math.round(mmW * 0.5625); // mapa 4×3 salas ocupando a largura
+    const avail = H - pfY - 4 * u - fps - 4 * u; // minimapa + placar
+    let s = u, mmH = natural;
+    for (let t = 2 * u; t >= u; t -= 0.5) {
+      const need = (2 + MAXP) * 18 * t + 3 * 6 * u;
+      if (avail - need >= Math.min(natural, mmW * 0.42)) { s = t; mmH = Math.min(natural, avail - need); break; }
+    }
+    if (mmH === natural && avail - natural < (2 + MAXP) * 18 * u + 18 * u) mmH = Math.max(mmW * 0.3, avail - (2 + MAXP) * 18 * u - 18 * u);
+    const mm = { x: colX + 4 * u, y: pfY, w: mmW, h: Math.round(mmH) };
+    const sbY = mm.y + mm.h + 4 * u;
+    return {
+      mode: 'faixa', W, H, u, fh, cw, lineH, bar, mul,
+      pf: { x: 0, y: pfY, w: pfW, h: pfH },
+      chat: { x: 3 * u, y: 3 * u, w: W - 6 * u, h: chatH - 3 * u },
+      chatLines: Math.trunc((chatH - 6 * u) / lineH) - 1, input: true,
+      mm, sb: { x: colX, y: sbY, w: colW, h: H - fps - 4 * u - sbY, s, side: false, fill: true },
+    };
+  }
+  const minCol = Math.max(2 * 176 * u + 8 * u + 12, 40 * cw + 12); // placar lado a lado sempre cabe
+  let pfH = H - bar - 4 * u, mul = pfH / RH, pfW = Math.round(RW * mul);
+  if (W - pfW < minCol) { pfW = W - minCol; mul = pfW / RW; pfH = Math.round(RH * mul); }
+  const pfY = H - bar - pfH, colX = pfW, colW = W - pfW;
+  if (pfY >= 4 * lineH + 6 * u) {
+    // a sala parou pela largura (16:10): a sobra de cima vira faixa de chat na largura toda
+    const avail = H - pfY - fps - 8;
+    const fit = scoreFit(colW, avail, u, 0.25 * avail);
+    const mm = { x: colX + 4 * u, y: pfY, w: colW - 8 * u, h: avail - fit.sbH };
+    return {
+      mode: 'coluna', W, H, u, fh, cw, lineH, bar, mul,
+      pf: { x: 0, y: pfY, w: pfW, h: pfH },
+      chat: { x: 3 * u, y: 3 * u, w: W - 6 * u, h: pfY - 3 * u },
+      chatLines: Math.trunc((pfY - 6 * u) / lineH) - 1, input: true,
+      mm, sb: { x: colX, y: mm.y + mm.h + 4 * u, w: colW, h: H - fps - 8 * u - (mm.y + mm.h), s: fit.s, side: fit.side, fill: true },
+    };
+  }
+  const chatH = Math.round(8 * lineH + 6 * u);
+  const avail = H - chatH - 4 - fps - 4;
+  const fit = scoreFit(colW, avail, u, 0.2 * H);
+  const mm = { x: colX + 4, y: chatH + 4, w: colW - 8, h: avail - fit.sbH };
+  return {
+    mode: 'coluna', W, H, u, fh, cw, lineH, bar, mul,
+    pf: { x: 0, y: pfY, w: pfW, h: pfH },
+    chat: { x: colX + 6 * u, y: 3 * u, w: colW - 9 * u, h: chatH - 3 * u },
+    chatLines: 7, input: true,
+    mm, sb: { x: colX, y: mm.y + mm.h + 4 * u, w: colW, h: H - fps - 8 * u - (mm.y + mm.h), s: fit.s, side: fit.side, fill: true },
+  };
+}
+
+/* ---------- desenho (cores de manifest.defaultColours) ---------- */
+const C = {
+  bg: '#000000', wall: '#30C000', base: '#4a0000', pole: '#FFFF00', red: '#FF0000', redL: '#FF5544', redD: '#660000',
+  blue: '#0000FF', blueL: '#4455FF', blueD: '#000066', sbRed: '#1A0000', sbBlue: '#00001A', sbLine: '#3A3A3A',
+  mmWall: '#007700', mmRoom: '#303030', mmGround: '#141414', fps: '#686868', mapTime: '#00FF00',
+  info: '#00FF00', normal: '#FFA000', team: '#FFFF00', warn: '#FF5544', server: '#00FFFF', input: '#FFFFFF',
+};
+const CHAT = [
+  [['info', 'MB-Nosf entrou na partida.']],
+  [['info', 'Status: sem login no ranking; autenticado localmente; administrador']],
+  [['info', 'Este mapa é Mooca (1 de 6).']],
+  [['normal', 'Kaze: bora pegar a bandeira deles']],
+  [['info', 'Rato PEGOU A BANDEIRA '], ['blue', 'AZUL'], ['info', '!']],
+  [['team', 'Tatu: defende a base, tão vindo pela esquerda']],
+  [['info', 'Kaze foi pego por Lince.']],
+  [['info', 'Rato CAPTUROU A BANDEIRA '], ['blue', 'AZUL'], ['info', '!']],
+  [['normal', 'MB-Nosf: boa rato']],
+  [['warn', 'Conversa demais. Relaxa...']],
+];
+const RED = [['MB-Nosf', '#00FFFF', 12], ['Kaze', '#FFA000', 9], ['Rato', '#00FF00', 7, 1], ['Juba', '#FF08FF', 4], ['Pato', '#FFFFFF', 2]];
+const BLUE = [['Tatu', '#FFFF00', 10], ['Sapo', '#00A0A0', 8], ['Lince', '#A0A0A0', 6], ['Corvo', '#A06000', 3]];
+const light = (hex) => '#' + [1, 3, 5].map((i) => (40 + Math.trunc((parseInt(hex.substr(i, 2), 16) * 215) / 255)).toString(16).padStart(2, '0')).join('');
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const r1 = (v) => Math.round(v * 10) / 10;
+
+let uid = 0;
+function render(L, opts = {}) {
+  const id = 'c' + uid++;
+  const o = [];
+  const rect = (x, y, w, h, f, extra = '') => o.push(`<rect x="${r1(x)}" y="${r1(y)}" width="${r1(Math.max(0, w))}" height="${r1(Math.max(0, h))}" fill="${f}" ${extra}/>`);
+  const text = (x, y, size, col, str, extra = '') => o.push(`<text x="${r1(x)}" y="${r1(y + size * 0.8)}" font-size="${r1(size * 0.82)}" fill="${col}" ${extra}>${esc(str)}</text>`);
+  const line = (x1, y1, x2, y2, col, w = 1) => o.push(`<line x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}" stroke="${col}" stroke-width="${w}"/>`);
+  rect(0, 0, L.W, L.H, C.bg);
+
+  // área de jogo: a sala-base vermelha da imagem de referência
+  const P = L.pf, k = P.w / RW;
+  const px = (v) => P.x + v * k, py = (v) => P.y + v * k;
+  o.push(`<clipPath id="${id}pf"><rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}"/></clipPath><g clip-path="url(#${id}pf)">`);
+  rect(P.x, P.y, P.w, P.h, C.base);
+  for (const [x, y, w, h] of [[0, 0, 472, 30], [0, 324, 472, 30], [0, 0, 30, 89], [0, 265, 30, 89], [442, 0, 30, 89], [442, 265, 30, 89]]) rect(px(x), py(y), w * k, h * k, C.wall);
+  o.push(`<circle cx="${r1(px(240))}" cy="${r1(py(180))}" r="${r1(30 * k)}" fill="url(#${id}glow)"/>`);
+  o.push(`<radialGradient id="${id}glow"><stop offset="0" stop-color="#ff3020" stop-opacity=".55"/><stop offset="1" stop-color="#ff3020" stop-opacity="0"/></radialGradient>`);
+  rect(px(232), py(156), 5 * k, 42 * k, C.pole);
+  rect(px(237), py(158), 20 * k, 19 * k, C.red);
+  o.push(`<line x1="${r1(px(308))}" y1="${r1(py(221))}" x2="${r1(px(337))}" y2="${r1(py(221))}" stroke="${C.red}" stroke-width="${r1(2.5 * k)}"/>`);
+  o.push(`<circle cx="${r1(px(308))}" cy="${r1(py(221))}" r="${r1(13.5 * k)}" fill="#20A0A0" stroke="${C.red}" stroke-width="${r1(3 * k)}"/>`);
+  o.push('</g>');
+
+  // chat
+  const fh = L.fh, cw = L.cw;
+  o.push(`<clipPath id="${id}ch"><rect x="${L.chat.x}" y="0" width="${L.chat.w}" height="${L.chat.y + L.chat.h + fh}"/></clipPath><g clip-path="url(#${id}ch)">`);
+  const shown = CHAT.slice(Math.max(0, CHAT.length - L.chatLines));
+  const maxChars = Math.floor(L.chat.w / cw);
+  let ly = L.chat.y;
+  const rows = [];
+  for (const msg of shown) {
+    // quebra em linhas como o original (continuação com 4 espaços)
+    let cur = [], len = 0;
+    for (const [kind, str] of msg) {
+      let rest = str;
+      while (rest.length) {
+        const room = maxChars - len;
+        if (rest.length <= room) { cur.push([kind, rest]); len += rest.length; rest = ''; }
+        else { let cut = rest.lastIndexOf(' ', room); if (cut <= 0) cut = room; cur.push([kind, rest.slice(0, cut)]); rows.push(cur); cur = [['info', '    ']]; len = 4; rest = rest.slice(cut).trimStart(); }
+      }
+    }
+    rows.push(cur);
+  }
+  const visible = rows.slice(Math.max(0, rows.length - L.chatLines));
+  for (const row of visible) {
+    let x = L.chat.x;
+    for (const [kind, str] of row) { text(x, ly, fh, kind === 'blue' ? C.blueL : C[kind], str); x += str.length * cw; }
+    ly += L.lineH;
+  }
+  if (L.input) text(L.chat.x, ly, fh, C.input, 'Diga: gg_');
+  o.push('</g>');
+
+  // minimapa 4×3 salas, proporção 4:3 por sala
+  const M = L.mm;
+  const cell = Math.min(M.w / 4, (M.h / 3) * (4 / 3));
+  const cw4 = cell, ch3 = cell * 0.75;
+  const mx = M.x + (M.w - cw4 * 4) / 2, my = M.y + (M.h - ch3 * 3) / 2;
+  const mw = Math.max(1, cell / 60);
+  rect(mx, my, cw4 * 4, ch3 * 3, C.mmGround);
+  for (let ry = 0; ry < 3; ry++) for (let rx = 0; rx < 4; rx++) {
+    const f = rx === 1 && ry === 2 ? '#7a0000' : rx === 2 && ry === 0 ? '#2a2ab0' : C.mmRoom;
+    rect(mx + rx * cw4 + mw, my + ry * ch3 + mw, cw4 - 2 * mw, ch3 - 2 * mw, f);
+  }
+  for (let i = 0; i <= 4; i++) rect(mx + i * cw4 - mw, my, 2 * mw, ch3 * 3, C.mmWall);
+  for (let j = 0; j <= 3; j++) rect(mx, my + j * ch3 - mw, cw4 * 4, 2 * mw, C.mmWall);
+  rect(mx + 1 * cw4 + 2 * mw, my + 2 * ch3 + 2 * mw, cw4 - 4 * mw, ch3 - 4 * mw, 'none', `stroke="${C.pole}" stroke-width="${r1(mw)}"`);
+  const flag = (cx, cy, col) => { rect(cx, cy - cell * 0.09, cell * 0.018 + 0.6, cell * 0.12, C.pole); rect(cx + cell * 0.02, cy - cell * 0.09, cell * 0.06, cell * 0.05, col); };
+  flag(mx + 1.45 * cw4, my + 2.5 * ch3, C.red);
+  flag(mx + 2.5 * cw4, my + 0.5 * ch3, C.blue);
+  o.push(`<circle cx="${r1(mx + 1.62 * cw4)}" cy="${r1(my + 2.55 * ch3)}" r="${r1(cell * 0.035)}" fill="${C.pole}" stroke="#000" stroke-width="${r1(mw)}"/>`);
+
+  // placar
+  const S = L.sb, s = S.s;
+  const scw = 8 * s, sfh = 16 * s, hpad = 6 * s;
+  const half = MAXP / 2;
+  let rowH = L.mode === 'hoje' ? Math.max(fh + 4, 19) : 18 * s;
+  let sbW = 20 * scw;
+  const blocks = [];
+  if (S.fill) {
+    // proposta: o placar ocupa a coluna inteira, de borda a borda
+    const m = 4 * L.u;
+    const teams = S.side ? 1 : 2;
+    const sp = 6 * L.u;
+    rowH = Math.min(2 * sfh, Math.max(rowH, (S.h - (teams + 1) * sp) / (teams * (half + 1))));
+    if (S.side) {
+      sbW = (S.w - 2 * m - sp - 4 * hpad) / 2;
+      blocks.push([S.x + m + hpad, S.y], [S.x + m + 3 * hpad + sbW + sp, S.y]);
+    } else {
+      sbW = S.w - 2 * m - 2 * hpad;
+      blocks.push([S.x + m + hpad, S.y], [S.x + m + hpad, S.y + (half + 1) * rowH + sp]);
+    }
+  } else if (S.side) {
+    const gap = (S.w - 2 * (sbW + 2 * hpad)) / 3;
+    blocks.push([S.x + gap + hpad, S.y + 8 * L.u], [S.x + 2 * gap + 3 * hpad + sbW, S.y + 8 * L.u]);
+  } else {
+    const bx = S.x + Math.max(hpad + 1, (S.w - sbW) / 2);
+    const sp = Math.min(15, Math.max(3, (S.h - sfh - 8 - 2 * (half + 1) * rowH) / 3));
+    blocks.push([bx, S.y + sp], [bx, S.y + sp + (half + 1) * rowH + sp]);
+  }
+  const blockH = (half + 1) * rowH;
+  for (const t of [0, 1]) {
+    const [bx, by] = blocks[t];
+    const x1 = bx - hpad, x2 = bx + sbW + hpad;
+    rect(x1, by, x2 - x1, blockH, t ? C.sbBlue : C.sbRed);
+    rect(x1, by, x2 - x1, rowH, t ? C.blueD : C.redD);
+    for (let j = 0; j <= half + 1; j++) line(x1, by + j * rowH, x2, by + j * rowH, C.sbLine, Math.max(1, s * 0.75));
+    for (const x of [x1, bx + sbW - 3 * scw - 5 * s, x2]) line(x, x === x1 || x === x2 ? by : by + rowH, x, by + blockH, C.sbLine, Math.max(1, s * 0.75));
+    const ty = by + (rowH - sfh) / 2;
+    const name = t ? 'Time Azul' : 'Time Vermelho';
+    const capt = t ? '  1 capt' : '  2 capt';
+    text(bx, ty, sfh, '#FFFFFF', name);
+    text(bx + sbW - capt.length * scw, ty, sfh, '#FFFFFF', capt, 'xml:space="preserve"');
+    (t ? BLUE : RED).forEach(([nm, col, fr, fl], i) => {
+      const y = by + (i + 1) * rowH + (rowH - sfh) / 2;
+      text(bx + 8 * s, y, sfh, light(col), nm);
+      const f = String(fr);
+      text(bx + sbW - f.length * scw, y, sfh, t ? C.blueL : C.redL, f);
+      if (fl) { rect(bx, y + sfh * 0.15, Math.max(1, s), sfh * 0.6, C.pole); rect(bx + s, y + sfh * 0.15, 4 * s, 4 * s, C.blue); }
+    });
+  }
+
+  // barra de baixo
+  const by0 = P.y + P.h + 5 * L.u;
+  const barTop = by0 + 1.5 * fh, barH = Math.max(3, L.H - 5 * L.u - barTop);
+  const bw = Math.min(100 * L.mul, P.w * 0.22);
+  const hx = P.x + 10 * L.u, ex = P.x + P.w * 0.26, wx = P.x + P.w * 0.62;
+  text(hx, by0, fh, '#FFFFFF', 'Vida'); text(hx + bw - 3 * cw, by0, fh, '#FFFFFF', '130');
+  rect(hx, barTop, bw, barH, C.red); rect(hx, barTop, bw * 0.3, barH, C.pole);
+  text(ex, by0, fh, '#FFFFFF', 'Energia'); text(ex + bw - 3 * cw, by0, fh, '#FFFFFF', '200');
+  rect(ex, barTop, bw, barH, '#00FF00');
+  text(wx, by0, fh, '#FFFFFF', 'Weapon 1');
+  text(P.x + P.w - 10 * L.u - 5 * cw, by0, fh, C.mapTime, '12:34');
+  // FPS
+  text(L.W - 2 - 7 * cw, L.H - fh - 2, fh, C.fps, 'FPS: 60');
+
+  // medidas
+  if (opts.measure) {
+    const lab = Math.max(11, L.W / 62);
+    const tag = (x, y, str) => {
+      const w = str.length * lab * 0.56 + lab * 0.8;
+      o.push(`<rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(lab * 1.45)}" fill="#FFE81A"/>`);
+      o.push(`<text x="${r1(x + lab * 0.4)}" y="${r1(y + lab * 1.07)}" font-size="${r1(lab)}" fill="#111" font-family="Inter, system-ui, sans-serif" font-weight="700">${esc(str)}</text>`);
+    };
+    const box = (R) => o.push(`<rect x="${r1(R.x + 1)}" y="${r1(R.y + 1)}" width="${r1(R.w - 2)}" height="${r1(R.h - 2)}" fill="none" stroke="#FFE81A" stroke-width="${r1(lab / 6)}" stroke-dasharray="${r1(lab * 0.6)} ${r1(lab * 0.4)}"/>`);
+    const chatBox = { x: L.chat.x - 2, y: 1, w: L.chat.w, h: L.chat.y + L.chat.h - 1 };
+    box(chatBox); box(P); box(M); box({ x: S.x + 2, y: S.y, w: S.w - 4, h: S.h - fh - 6 });
+    box({ x: P.x, y: P.y + P.h, w: P.w, h: L.bar });
+    tag(chatBox.x + 6, chatBox.y + 6, `chat ${Math.round(chatBox.h)} px · ${L.chatLines} msg`);
+    tag(P.x + 8, P.y + P.h * 0.42, `área de jogo ${P.w}×${P.h}`);
+    tag(M.x + 6, M.y + 6, `minimapa ${Math.round(M.w)}×${Math.round(M.h)}`);
+    tag(S.x + 8, S.y + S.h * 0.5, `placar ×${String(s).replace('.', ',')}${S.side ? ' · lado a lado' : ''}`);
+    tag(P.x + P.w * 0.36, P.y + P.h - lab * 1.6, `barra ${L.bar} px`);
+  }
+  return `<svg viewBox="0 0 ${L.W} ${L.H}" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-weight="600" role="img" aria-label="HUD ${L.W}×${L.H} (${L.mode})">${o.join('')}</svg>`;
+}
+
+/* ---------- dados das resoluções ---------- */
+const RES = [
+  { W: 1024, H: 768, ar: '4:3', where: 'Janela pequena, notebook antigo; iPad na horizontal (em px CSS).', v: 'ok', vt: 'Coerente · base', note: 'Ponto de partida da escala: <b>u = 1</b>. É a única das listadas que hoje já fica perto da referência, porque 16 px de fonte em 768 de altura é quase a proporção de 8 px em 480. A proposta só abre espaço para o chat e alarga a coluna do placar.' },
+  { W: 1280, H: 960, ar: '4:3', where: 'Janela 4:3 dentro de monitor 1080p ou 1440p; monitores 4:3 de 19" (SXGA−).', v: 'ok', vt: 'Coerente', note: 'Primeiro degrau de <b>u = 1,5</b>. Hoje o texto já está em 2% da altura e o placar ocupa metade da coluna. Com 1,5× o chat fica do tamanho que a referência tinha e as 6 mensagens mais recentes ficam sempre visíveis.' },
+  { W: 1440, H: 1080, ar: '4:3', where: 'O 4:3 em tela cheia de um monitor 1920×1080 (com faixas pretas nas laterais).', v: 'ok', vt: 'Coerente · recomendada', note: 'É a resolução 4:3 mais útil da lista: é o que um jogador com monitor 1080p vê se quiser jogar em 4:3. Hoje o placar fica com 160 px de largura numa coluna de 378; na proposta, 1,5× com 7 mensagens no chat.' },
+  { W: 1600, H: 1200, ar: '4:3', where: 'UXGA, monitores 4:3 de 20–21"; janela 4:3 num monitor 2560×1440.', v: 'ok', vt: 'Coerente', note: 'Hoje é onde a perda de proporção mais aparece entre as 4:3 comuns: 13 linhas de chat minúsculas e um placar que ocupa 38% da coluna. A proposta usa <b>u = 1,5</b> e o placar sobe para <b>2×</b>, frags com 32 px.' },
+  { W: 2048, H: 1536, ar: '4:3', where: 'Quase só existe como pixels físicos: iPad Retina (1024×768 em px CSS, densidade 2×). Em px CSS reais, só num monitor 4K/5K a 100%.', v: 'meh', vt: 'Só como teste', note: 'O jogo mede a tela em <b>px CSS</b> (D-13). Um iPad de 2048×1536 já cai no layout de 1024×768, com o dobro de nitidez. Fica como caso de teste da escala 2× e não como preset. Hoje o texto fica em 1,2% da altura.' },
+  { W: 1920, H: 1080, ar: '16:9', where: 'Monitor mais comum em desktop hoje.', v: 'add', vt: 'Incluir', wide: true, note: 'Não estava na lista, mas é a tela da maioria. <b>Hoje o chat fica com uma linha</b>: a sala ocupa 93% da altura e sobram 16 px em cima. A proposta usa o <b>modo coluna</b>: chat no alto da coluna da direita, sala com a altura toda e os dois times do placar lado a lado.' },
+  { W: 2560, H: 1440, ar: '16:9', where: 'Segundo monitor mais comum entre quem joga; MacBook/iMac em escala padrão ficam perto (16:10).', v: 'add', vt: 'Incluir', wide: true, note: 'Mesmo problema da 1920×1080, maior: chat com uma linha e texto em 1,3% da altura. Modo coluna com <b>u = 2</b> e placar lado a lado.' },
+  { W: 1440, H: 900, ar: '16:10', where: 'MacBook Air/Pro em escala padrão (1440×900, 1512×982 em px CSS).', v: 'add', vt: 'Incluir', wide: true, note: 'Tela de notebook em px CSS. Hoje sobram 2 linhas de chat. Aqui a sala para pela largura (a coluna precisa caber os dois times lado a lado), então a sobra de cima vira chat na largura toda, como no 4:3, e o minimapa começa na linha do jogo. A faixa comporta 3 mensagens + digitação; o Insert mostra o histórico inteiro.' },
+];
+const pct = (a, b) => `${Math.round((100 * a) / b)}%`;
+const fmtS = (s) => String(s).replace('.', ',') + '×';
+
+/* diagnóstico */
+(function diag() {
+  const items = [
+    ['2,5%', 'Referência 640×480: linha de 12 px em 480', ''],
+    ...[[1024, 768], [1600, 1200], [2048, 1536]].map(([W, H]) => {
+      const L = current(W, H);
+      return [(100 * L.lineH / H).toFixed(1).replace('.', ',') + '%', `Hoje em ${W}×${H}: linha de ${L.lineH} px em ${H}`, H > 800 ? 'bad' : ''];
+    }),
+    ['1 linha', 'de chat hoje em 1920×1080 e 2560×1440: a sala ocupa 93–95% da altura', 'bad'],
+  ];
+  document.getElementById('diag').innerHTML = items.map(([b, t, c]) => `<div><b class="${c}">${b}</b><span>${t}</span></div>`).join('');
+})();
+
+/* referência 640×480 */
+(function ref() {
+  const L = current(640, 480, 8, 8);
+  L.lineH = 12; L.chatLines = 7; L.chat.h = 88;
+  document.getElementById('ref-svg').innerHTML = render(L);
+  const rows = [
+    ['Chat (faixa de cima)', 91 / 480, '91 px · 19%', true],
+    ['Área de jogo (altura)', 354 / 480, '354 px · 74%'],
+    ['Área de jogo (largura)', 472 / 640, '472 px · 74%'],
+    ['Coluna da direita', 168 / 640, '168 px · 26%', true],
+    ['Barra de baixo', 35 / 480, '35 px · 7%'],
+    ['Linha de texto', 12 / 480 * 10, '12 px · 2,5%'],
+  ];
+  document.getElementById('ref-props').innerHTML = rows.map(([k, f, v, hl]) => `<li><span class="k">${k}</span><span class="bar"><i class="${hl ? 'hl' : ''}" style="width:${Math.min(100, f * 100)}%"></i></span><span class="v">${v}</span></li>`).join('');
+})();
+
+/* abas e prancha */
+let sel = 0;
+let measure = true;
+try { const v = localStorage.getItem('hud-res'); if (v !== null && RES[+v]) sel = +v; const m = localStorage.getItem('hud-measure'); if (m !== null) measure = m === '1'; } catch (e) {}
+const tabs = document.getElementById('tabs');
+function drawTabs() {
+  tabs.innerHTML = RES.map((r, i) => `${i === 5 ? '<span class="sep" aria-hidden="true"></span>' : ''}<button role="tab" id="t${i}" aria-selected="${i === sel}" data-i="${i}">${r.W}×${r.H}<small>${r.ar}</small></button>`).join('') +
+    `<button class="tog" id="measure-toggle" aria-pressed="${measure}">Medidas</button>`;
+}
+function metric(label, a, b, dir) {
+  return `<tr><td>${label}</td><td class="n">${a}</td><td class="n ${dir || ''}">${b}</td></tr>`;
+}
+function drawBoard() {
+  const r = RES[sel];
+  const A = current(r.W, r.H), B = proposal(r.W, r.H);
+  const vClass = r.v === 'ok' ? 'ok' : r.v === 'add' ? 'add' : 'meh';
+  document.getElementById('board').innerHTML = `
+    <div class="board-head"><h2>${r.W}×${r.H}</h2><span class="meta">${r.ar} · ${r.where}</span><span class="verdict ${vClass}">${r.vt}</span></div>
+    <p class="note">${r.note}</p>
+    <div class="pair">
+      <figure class="shot"><div class="cap"><b>Hoje</b><span>make_layout · fonte fixa 16 px</span></div>${render(A, { measure })}</figure>
+      <figure class="shot prop"><div class="cap"><b>Proposta · ${B.mode === 'coluna' ? 'modo coluna' : 'modo faixa'}</b><span>HUD ${fmtS(B.u)} · placar ${fmtS(B.sb.s)}</span></div>${render(B, { measure })}</figure>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th></th><th>Hoje</th><th>Proposta</th></tr></thead>
+      <tbody>
+        ${metric('Escala do HUD', '1× (fixa)', fmtS(B.u), B.u > 1 ? 'up' : '')}
+        ${metric('Linha de texto', `${A.lineH} px · ${(100 * A.lineH / r.H).toFixed(1).replace('.', ',')}% da altura`, `${B.lineH} px · ${(100 * B.lineH / r.H).toFixed(1).replace('.', ',')}% da altura`, B.lineH > A.lineH ? 'up' : '')}
+        ${metric('Chat', `${Math.round(A.chat.h)} px · ${A.chatLines} linhas · ${pct(A.chat.h, r.H)}`, `${Math.round(B.chat.h)} px · ${B.chatLines} msg + digitação`, A.chatLines < 4 ? 'up' : '')}
+        ${metric('Área de jogo', `${A.pf.w}×${A.pf.h} · ${pct(A.pf.w, r.W)} da largura`, `${B.pf.w}×${B.pf.h} · ${pct(B.pf.w, r.W)} da largura`, B.pf.w < A.pf.w ? 'down' : '')}
+        ${metric('Placar', `1× · frags 16 px · ${pct(160, A.sb.w)} da coluna`, `${fmtS(B.sb.s)} · frags ${16 * B.sb.s} px${B.sb.side ? ' · times lado a lado' : ''}`, 'up')}
+        ${metric('Minimapa (lugar)', `${A.mm.w}×${Math.round(A.mm.h)}`, `${Math.round(B.mm.w)}×${Math.round(B.mm.h)}`)}
+        ${metric('Barra de baixo', `${A.bar} px`, `${B.bar} px`)}
+      </tbody></table></div>`;
+}
+tabs.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.id === 'measure-toggle') { measure = !measure; try { localStorage.setItem('hud-measure', measure ? '1' : '0'); } catch (e) {} }
+  else { sel = +b.dataset.i; try { localStorage.setItem('hud-res', String(sel)); } catch (e) {} }
+  drawTabs(); drawBoard();
+  if (b.id !== 'measure-toggle') document.getElementById('t' + sel).focus();
+});
+tabs.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  sel = (sel + (e.key === 'ArrowRight' ? 1 : RES.length - 1)) % RES.length;
+  drawTabs(); drawBoard(); document.getElementById('t' + sel).focus();
+});
+drawTabs(); drawBoard();
+
+/* em escala */
+(function scaleRow() {
+  const maxW = 2560;
+  document.getElementById('scale-row').innerHTML = RES.map((r) => {
+    const B = proposal(r.W, r.H);
+    return `<figure style="width:calc(${(r.W / maxW) * 100}% - 1rem); min-width:9rem">${render(B)}<figcaption>${r.W}×${r.H} · ${fmtS(B.u)}</figcaption></figure>`;
+  }).join('');
+})();
+
+/* coerência */
+document.getElementById('coh').innerHTML = [
+  ['640×480', '4:3', 'Tela original do jogo.', 'Referência de proporções. Na web, abaixo de 1024×768 o HUD fica em 1× e a área de jogo encolhe pela regra antiga.'],
+  ...RES.map((r) => [`${r.W}×${r.H}`, r.ar, r.where, `<span class="verdict ${r.v === 'ok' ? 'ok' : r.v === 'add' ? 'add' : 'meh'}">${r.vt}</span>`]),
+].map((c) => `<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td></tr>`).join('');
+</script>
