@@ -734,7 +734,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-291](cards/OG-291-tema-menu-campo.md) | Tema de menu "Campo": os menus com a cara do tema padrão da partida | E8 | 5 | Must | S23 | OG-200, OG-201 | Concluído |
 | [OG-292](cards/OG-292-tema-menu-placar.md) | Tema de menu "Placar", à escolha nas Opções | E8 | 3 | Could | S24 | OG-291 | Concluído |
 | [OG-293](cards/OG-293-hud-escala-layout-faixa.md) | HUD com escala pela resolução e layout em faixa (chat na largura toda, minimapa na linha do jogo) | E8 | 5 | Must | S25 | — | Em revisão |
-| [OG-294](cards/OG-294-placar-borda-a-borda.md) | Placar de borda a borda, com escala própria | E8 | 3 | Must | S25 | OG-293 | Pronto |
+| [OG-294](cards/OG-294-placar-borda-a-borda.md) | Placar de borda a borda, com escala própria | E8 | 3 | Must | S25 | OG-293 | Em revisão |
 | [OG-295](cards/OG-295-hud-modo-coluna-telas-largas.md) | HUD em telas largas: modo coluna (16:9 e 16:10) | E8 | 3 | Must | S25 | OG-293, OG-294 | Pronto |
 | [OG-296](cards/OG-296-opcao-escala-hud.md) | Opção "Escala do HUD" | E8 | 2 | Should | S25 | OG-293 | Pronto |
 

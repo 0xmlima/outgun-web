@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
+import { scoreboardName } from './hud-renderer.js';
 import { autoHudScale, chatLines, screenLayout, type BarLabels, type FontMetrics } from './screen-layout.js';
 
 const font16: FontMetrics = { height: 16, width: (t) => 8 * t.length };
@@ -73,5 +74,13 @@ describe('screenLayout em faixa (D-54, plan/specs/hud-resolucoes)', () => {
     const l = screenLayout(1024, 768, font16, EN);
     expect(chatLines(l, false)).toBe(Math.trunc(166 / 19) - 1);
     expect(chatLines(l, true)).toBe(Math.trunc((169 + 540 - 3) / 19) - 1);
+  });
+});
+
+describe('scoreboardName (OG-294)', () => {
+  it('corta no que cabe até a divisória dos frags, no máximo 15', () => {
+    expect(scoreboardName('(ABC) jogador-longo')).toBe('(ABC) jogado...');
+    expect(scoreboardName('(ABC) jogador-longo', 10)).toBe('(ABC) j...');
+    expect(scoreboardName('Rato', 10)).toBe('Rato');
   });
 });

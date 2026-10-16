@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S25 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | [OG-293](OG-293-hud-escala-layout-faixa.md) |
 | Regras de negócio | RN-UI-05, RN-UI-06 |
 | Skills | `outgun-card-workflow` |
@@ -25,9 +25,11 @@ Como jogador, quero o placar ocupando toda a coluna da direita com frags maiores
 - Times lado a lado quando a coluna comporta (`2·176s + 8u + 12 ≤ coluna`).
 
 ## Critérios de aceite
-- [ ] Em 1024×768 a 2048×1536 o placar ocupa a largura da coluna e vai até o FPS.
-- [ ] Escalas: 1024×768 → 1×, 1280×960 e 1440×1080 → 1,5×, 1600×1200 → 2×, 2048×1536 → 2,5× (protótipo).
-- [ ] Nomes longos não invadem a coluna dos frags.
+- [x] Em 1024×768 a 2048×1536 o placar ocupa a largura da coluna e vai até o FPS.
+- [x] Escalas: 1024×768 → 1×, 1280×960 e 1440×1080 → 1,5×, 1600×1200 → 2×, 2048×1536 → 2,5× (protótipo).
+- [x] Nomes longos não invadem a coluna dos frags.
 
 ## Notas técnicas
 ## Notas de implementação
+- `drawScoreboard` reescrito: quadro com margem 4u na coluna, linhas esticadas até o FPS (entre `altura+2k` e `2·altura`), frags e "capt" alinhados na borda direita, divisória a 3 dígitos dos frags. A escala `s` vem do layout (OG-293); "lado a lado" já é suportado (usado pelo OG-295).
+- `scoreboardName(nome, max)` corta pelo que cabe até a divisória (máx. 15). Conferência visual fica para o fechamento (capturas do `visual:check`).

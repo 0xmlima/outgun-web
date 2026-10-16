@@ -133,9 +133,9 @@ export interface VoteTarget {
 
 const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
 
-/** Nome no placar: a coluna tem 15 caracteres; com a tag do clã (OG-206) o que passar vira "...". */
-export function scoreboardName(name: string): string {
-  return name.length > 15 ? `${name.slice(0, 12)}...` : name;
+/** Nome no placar: até 15 caracteres (ou o que couber); com a tag do clã (OG-206) o que passar vira "...". */
+export function scoreboardName(name: string, max = 15): string {
+  return name.length > max ? `${name.slice(0, Math.max(0, max - 3))}...` : name;
 }
 
 export class HudRenderer {
@@ -363,77 +363,79 @@ export class HudRenderer {
   /** `draw_scoreboard`. */
   private drawScoreboard(s: HudState): void {
     const L = s.screen;
-    const font = { width: (t: string) => this.fw(t), height: this.fh };
     if (!L.scoreboard) {
       // sem placar (tela cheia): só o placar dos times embaixo do relógio
       const [r, b] = s.scores;
       const col = r > b ? this.c('team_red_light') : r < b ? this.c('team_blue_light') : this.c('game_draw');
       const str = `${r} - ${b}`;
-      this.text(str, L.timeX - font.width(str), L.timeY + font.height, col);
+      this.text(str, L.timeX - this.fw(str), L.timeY + this.fh, col);
       return;
     }
-    const { x1, y1, x2, y2 } = L.scoreboard;
+    // placar de borda a borda na coluna, na escala própria (OG-294); times empilhados ou lado a lado
+    const { x1, y1, x2, y2, side } = L.scoreboard;
     this.k = L.scoreboard.scale;
-    font.height = this.fh;
-    const placeW = x2 - x1 + 1;
-    const ySpace = y2 - y1 + 1;
-    const lines = 2 + s.maxPlayers + 1;
-    const characters = 20;
-    const charW = font.width('M');
-    const width = characters * charW;
-    const sbx = placeW > width ? x1 + Math.trunc((placeW - width) / 2) : x1;
-    const nSpacers = 3;
-    let spacer = 3;
-    let lineH = Math.trunc((ySpace - nSpacers * spacer) / lines);
-    if (lineH > font.height) {
-      spacer = font.height + 2;
-      lineH = Math.trunc((ySpace - nSpacers * spacer) / lines);
-      if (lineH > 2 * font.height) lineH = 2 * font.height;
-    }
-    spacer += Math.trunc((ySpace - nSpacers * spacer - lineH * lines) / nSpacers);
-    if (spacer > 15) spacer = 15;
+    const k = this.k;
+    const u = L.ui;
+    const fh = this.fh;
+    const charW = this.fw('M');
+    const margin = 4 * u;
+    const gap = 6 * u;
+    const hpad = Math.round(6 * k);
     const half = s.maxPlayers / 2;
-    const teamY = [y1 + spacer, y1 + spacer + (1 + half) * lineH + spacer];
-    let hpad = 6;
-    if (sbx - x1 < hpad) hpad = Math.max(1, sbx - x1 - 2);
-    const vpad = Math.max(Math.trunc((lineH - font.height) / 2), 1);
-    const bx1 = sbx - hpad;
-    const bx2 = sbx + width + hpad;
+    const rows = half + 1;
+    const ySpace = y2 - y1 + 1;
+    const rowH = Math.trunc(Math.min(2 * fh, Math.max(fh + 2 * k, side ? ySpace / rows : (ySpace - gap) / (2 * rows))));
+    const vpad = Math.max(Math.trunc((rowH - fh) / 2), 1);
+    const blockW = side ? Math.trunc((x2 - x1 + 1 - 2 * margin - gap) / 2) : x2 - x1 + 1 - 2 * margin;
+    const blocks = side
+      ? [[x1 + margin, y1], [x1 + margin + blockW + gap, y1]]
+      : [[x1 + margin, y1], [x1 + margin, y1 + rows * rowH + gap]];
     const bg = [this.c('scoreboard_bg_redteam'), this.c('scoreboard_bg_blueteam')];
     const lineCol = [this.c('scoreboard_line_redteam'), this.c('scoreboard_line_blueteam')];
     const dark = [this.c('team_red_dark'), this.c('team_blue_dark')];
+    const fragsW = this.fw('000');
+    /** Colunas de cada time: borda esquerda, onde começa o texto, divisória e fim dos frags. */
+    const cols = blocks.map(([bx, by]) => {
+      const bx1 = bx as number;
+      const bx2 = bx1 + blockW - 1;
+      const right = bx2 - hpad;
+      return { bx1, bx2, by: by as number, textX: bx1 + hpad, divider: right - fragsW - Math.round(5 * k), right };
+    });
     for (const i of [0, 1] as const) {
-      const ty = teamY[i] as number;
-      this.rect(bx1 + 1, ty + lineH - vpad + 1, bx2 - 1, ty + (half + 1) * lineH - vpad - 1, bg[i] as string);
-      this.rect(bx1 + 1, ty - vpad + 1, bx2 - 1, ty + lineH - vpad - 1, dark[i] as string);
-      this.hline(bx1 + 1, ty - vpad, bx2 - 1, lineCol[i] as string);
-      for (let j = 1; j <= half + 1; j++) this.hline(bx1 + 1, ty + j * lineH - vpad, bx2 - 1, lineCol[i] as string);
-      this.vline(bx1, ty - vpad, ty + (half + 1) * lineH - vpad, lineCol[i] as string);
-      this.vline(sbx + (characters - 3) * charW - 5, ty + lineH - vpad, ty + (half + 1) * lineH - vpad, lineCol[i] as string);
-      this.vline(bx2, ty - vpad, ty + (half + 1) * lineH - vpad, lineCol[i] as string);
-      const name = this.t(i === 0 ? 'Red Team' : 'Blue Team');
-      const right = s.showPings ? this.t('pings') : this.t('$1 capt', String(s.scores[i]).padStart(3, ' '));
-      const caption = name + right.padStart(Math.max(right.length, characters - name.length), ' ');
-      this.text(caption, sbx, ty, this.c(i === 0 ? 'scoreboard_caption_redteam' : 'scoreboard_caption_blueteam'));
+      const { bx1, bx2, by, textX, divider, right } = cols[i] as (typeof cols)[number];
+      const lc = lineCol[i] as string;
+      this.rect(bx1 + 1, by + rowH + 1, bx2 - 1, by + rows * rowH - 1, bg[i] as string);
+      this.rect(bx1 + 1, by + 1, bx2 - 1, by + rowH - 1, dark[i] as string);
+      for (let j = 0; j <= rows; j++) this.hline(bx1 + 1, by + j * rowH, bx2 - 1, lc);
+      this.vline(bx1, by, by + rows * rowH, lc);
+      this.vline(divider, by + rowH, by + rows * rowH, lc);
+      this.vline(bx2, by, by + rows * rowH, lc);
+      const capCol = this.c(i === 0 ? 'scoreboard_caption_redteam' : 'scoreboard_caption_blueteam');
+      const rightText = s.showPings ? this.t('pings') : this.t('$1 capt', String(s.scores[i]).padStart(3, ' '));
+      this.text(this.t(i === 0 ? 'Red Team' : 'Blue Team'), textX, by + vpad, capCol);
+      this.text(rightText, right - this.fw(rightText), by + vpad, capCol);
     }
     const line = [1, 1];
     for (const p of s.players) {
+      const { by, textX, divider, right } = cols[p.team] as (typeof cols)[number];
       const pc = Number.parseInt(this.c(PLAYER_COLOURS[p.color] ?? 'player_unknown').slice(1), 16);
       const light = (v: number) => 40 + Math.trunc((v * 215) / 255);
       const textCol = `#${[16, 8, 0].map((sh) => light((pc >> sh) & 255).toString(16).padStart(2, '0')).join('')}`;
-      const y = (teamY[p.team] as number) + (line[p.team] as number) * lineH;
+      const y = by + (line[p.team] as number) * rowH + vpad;
+      const nameX = textX + Math.round(8 * k);
+      // nome cabe até a divisória dos frags (no máximo os 15 caracteres do original)
+      const shown = scoreboardName(p.name, Math.min(15, Math.trunc((divider - nameX - 2 * k) / charW)));
       // `draw_scoreboard_name`: sublinha quem tem conta (opção, ligada no client.cfg distribuído)
-      const shown = scoreboardName(p.name);
-      if (s.underlineAccounts && p.account) this.hline(sbx + 8, y + this.fh, sbx + 8 + font.width(shown) - 2, textCol);
-      this.text(shown, sbx + 8, y, textCol);
+      if (s.underlineAccounts && p.account) this.hline(nameX, y + fh, nameX + this.fw(shown) - 2, textCol);
+      this.text(shown, nameX, y, textCol);
       const pts = String(s.showPings ? p.ping : p.frags);
-      this.text(pts, sbx + 20 * charW - font.width(pts), y, this.teamLight(p.team));
+      this.text(pts, right - this.fw(pts), y, this.teamLight(p.team));
       if (p.flagTeam >= 0) {
         const flag = Math.trunc(charW / 2);
         const pole = Math.trunc((7 * flag) / 4);
-        const fy = y + Math.trunc((font.height - pole) / 2);
-        this.vline(sbx, fy, fy + pole, this.c('flag_pole'));
-        this.rect(sbx + 1, fy, sbx + 1 + flag, fy + flag, this.teamCol(p.flagTeam));
+        const fy = y + Math.trunc((fh - pole) / 2);
+        this.rect(textX, fy, textX + Math.max(1, Math.round(k)) - 1, fy + pole, this.c('flag_pole'));
+        this.rect(textX + Math.max(1, Math.round(k)), fy, textX + Math.max(1, Math.round(k)) + flag, fy + flag, this.teamCol(p.flagTeam));
       }
       line[p.team] = (line[p.team] as number) + 1;
     }
