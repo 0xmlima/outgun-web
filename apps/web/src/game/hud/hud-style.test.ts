@@ -177,6 +177,10 @@ describe('HUD Personalizado (D-55, OG-300)', () => {
     const good = customFromPlaces(1920, 1080, 'centre', startingPlaces(1920, 1080, 1.5, 'centre'));
     expect(parseHudCustom(JSON.parse(JSON.stringify(good)))).toEqual(good);
     expect(parseHudCustom(null)).toEqual(DEFAULT_HUD_CUSTOM);
+    // salvo antes do OG-303, com o componente "weapon" separado: continua valendo
+    const old = JSON.parse(JSON.stringify(good)) as { comps: Record<string, unknown> };
+    old.comps.weapon = { anchor: 2, dx: 0.01, dy: 0.6, w: 0.4, h: 0.03, s: 0.0014, visible: true };
+    expect(parseHudCustom(old)).toEqual(good);
     expect(parseHudCustom({ room: 'centre' })).toEqual({ room: 'centre', comps: null });
     const bad = JSON.parse(JSON.stringify(good)) as { comps: Record<string, Record<string, unknown>> };
     bad.comps.chat!.anchor = 9;

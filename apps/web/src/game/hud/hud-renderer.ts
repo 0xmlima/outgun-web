@@ -689,7 +689,6 @@ export class HudRenderer {
       if (places.health) this.drawModernBar(places.health, this.t('Health'), s.self.health, 'health');
       if (places.energy) this.drawModernBar(places.energy, this.t('Energy'), s.self.energy, 'energy');
       if (places.powerups) this.drawPowerups(s, places.powerups);
-      if (places.weapon) this.drawWeapon(places.weapon, s.self.weapon);
       this.drawChangeMessages(s);
     }
     if (places.chat) this.drawModernChat(s, places.chat);
@@ -744,43 +743,32 @@ export class HudRenderer {
     for (let i = 1; i < 4; i++) this.box(p.x + Math.round((p.w * i) / 4), by, 1, bh, '#000000', 0.45);
   }
 
-  /** Power, Turbo e Shadow: três quadros com o tempo restante; apagados quando inativos. */
+  /**
+   * Power, Turbo, Shadow e Arma: quatro quadros iguais na mesma linha (OG-303). Os power-ups mostram o
+   * tempo restante e apagam quando inativos; a arma mostra o nível e acende, na cor dele, acima do 1.
+   */
   private drawPowerups(s: HudState, p: Place): void {
     if (!s.self) return;
-    const gap = Math.round(6 * p.s);
-    const w = Math.floor((p.w - 2 * gap) / 3);
+    const gap = Math.round(5 * p.s);
+    const w = Math.floor((p.w - 3 * gap) / 4);
     const label = this.face(600, 9.5 * p.s);
     const num = this.face(800, 16 * p.s);
-    const items = [
-      ['Power', s.self.power, 'power'],
-      ['Turbo', s.self.turbo, 'turbo'],
-      ['Shadow', s.self.shadow, 'shadow'],
-    ] as const;
-    items.forEach(([caption, val, colName], i) => {
+    const level = Math.max(1, Math.min(4, s.self.weapon));
+    const items: [string, string, boolean, string][] = [
+      ...([
+        ['Power', s.self.power, 'power'],
+        ['Turbo', s.self.turbo, 'turbo'],
+        ['Shadow', s.self.shadow, 'shadow'],
+      ] as const).map(([caption, val, col]): [string, string, boolean, string] => [this.t(caption), val > 0 ? String(iround(val)) : '\u2014', val > 0, this.c(col)]),
+      [this.t('Weapon'), String(level), level > 1, this.c(`pup_weapon_${level}`)],
+    ];
+    items.forEach(([caption, value, on, col], i) => {
       const x = p.x + i * (w + gap);
-      const on = val > 0;
-      const col = this.c(colName);
       this.box(x, p.y, w, p.h, on ? col : '#ffffff', on ? 0.12 : 0.04);
       this.frame(x, p.y, w, p.h, on ? col : '#2b2b2b', Math.max(1, Math.round(1.5 * p.s)));
-      this.ftext(label, this.t(caption).toUpperCase(), x + w / 2, p.y + Math.round(5 * p.s), on ? col : '#666666', 'centre');
-      this.ftext(num, on ? String(iround(val)) : '—', x + w / 2, p.y + p.h - num.height - Math.round(4 * p.s), on ? '#ffffff' : '#555555', 'centre');
+      this.ftext(label, caption.toUpperCase(), x + w / 2, p.y + Math.round(5 * p.s), on ? col : '#666666', 'centre');
+      this.ftext(num, value, x + w / 2, p.y + p.h - num.height - Math.round(4 * p.s), on ? '#ffffff' : i === 3 ? '#aaaaaa' : '#555555', 'centre');
     });
-  }
-
-  /** Nível da arma: legenda e quatro marcas nas cores dos power-ups de arma. */
-  private drawWeapon(p: Place, level: number): void {
-    const label = this.face(600, 10 * p.s);
-    this.ftext(label, this.t('Weapon').toUpperCase(), p.x, p.y + Math.round((p.h - label.height) / 2), '#aaaaaa');
-    const pw = Math.round(18 * p.s);
-    const gap = Math.round(5 * p.s);
-    const x0 = p.x + p.w - 4 * pw - 3 * gap;
-    const y = p.y + Math.round(p.h * 0.25);
-    const h = Math.round(p.h * 0.5);
-    for (let i = 0; i < 4; i++) {
-      const x = x0 + i * (pw + gap);
-      if (i < level) this.box(x, y, pw, h, this.c(`pup_weapon_${i + 1}`));
-      else this.frame(x, y, pw, h, '#444444', Math.max(1, Math.round(p.s)));
-    }
   }
 
   /** Chat em Inter dentro do componente, sem contorno (nunca fica sobre a sala). */

@@ -29,7 +29,7 @@ const place = (id: HudComponent, x: number, y: number, s: number, w?: number, h?
 
 /**
  * Moderno: sala com a altura toda à esquerda; coluna à direita com placar, minimapa, vida, energia,
- * power-ups, arma, chat e FPS. Se sobra uma faixa embaixo da sala (4:3), o chat vai para ela.
+ * power-ups e arma (uma linha), chat e FPS. Se sobra uma faixa embaixo da sala (4:3), o chat vai para ela.
  * `minimap = false` (F12) tira o minimapa e a coluna sobe.
  */
 export function modernArrangement(W: number, H: number, u: number, minimap = true): HudArrangement {
@@ -52,7 +52,6 @@ export function modernArrangement(W: number, H: number, u: number, minimap = tru
   add('health', place('health', x, y, s, cw));
   add('energy', place('energy', x, y, s, cw));
   add('powerups', place('powerups', x, y, s, cw));
-  add('weapon', place('weapon', x, y, s, cw));
   const fps = place('fps', W - p - HUD_SIZES.fps[0] * s, H - p - HUD_SIZES.fps[1] * s, s);
   if (H - rh >= 110 * u) places.chat = place('chat', p, rh + p, u, rw - 2 * p, H - rh - 2 * p);
   else places.chat = place('chat', x, y, s, cw, Math.max(0, fps.y - p - y));
