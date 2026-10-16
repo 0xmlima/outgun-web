@@ -54,6 +54,9 @@ if [ ! -f .env ]; then
   chmod 600 .env
   echo "segredos gerados em /opt/outgun/.env"
 fi
+# senhas do papel da aplicação no Postgres e do Redis (OG-308), também em instalações antigas
+grep -q '^APP_DB_PASSWORD=' .env || echo "APP_DB_PASSWORD=$(secret)" >> .env
+grep -q '^REDIS_PASSWORD=' .env || echo "REDIS_PASSWORD=$(secret)" >> .env
 # beta fechado (OG-106) ligado por padrão; a publicação aberta põe BETA=0 no .env
 grep -q '^BETA=' .env || echo "BETA=1" >> .env
 # a versão fica no .env: `docker compose` sem argumentos usa a instalada

@@ -6,6 +6,7 @@ import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { connect } from './db/client.js';
 import { appliedVersions, loadMigrations, migrateDown, migrateUp } from './db/migrate.js';
+import { ensureAppRole } from './db/app-role.js';
 import { seed } from './db/seed.js';
 import { backfillMilestones } from './milestones.js';
 import { startSeason } from './ranking.js';
@@ -24,6 +25,12 @@ const database = connect(config.databaseUrl, 1);
 try {
   if (command === 'migrate' && arg1 === 'up') {
     console.log('aplicadas:', (await migrateUp(database.sql)).join(', ') || 'nenhuma');
+    // OG-308: a API usa um papel sem DDL; as migrations (este comando) seguem com o dono do schema
+    if (process.env.APP_DB_PASSWORD) {
+      const role = process.env.APP_DB_USER ?? 'outgun_app';
+      await ensureAppRole(database.sql, role, process.env.APP_DB_PASSWORD);
+      console.log(`papel da aplicação ${role} conferido`);
+    }
   } else if (command === 'migrate' && arg1 === 'down') {
     console.log('desfeitas:', (await migrateDown(database.sql, Number(arg2 ?? 1))).join(', ') || 'nenhuma');
   } else if (command === 'migrate' && arg1 === 'status') {

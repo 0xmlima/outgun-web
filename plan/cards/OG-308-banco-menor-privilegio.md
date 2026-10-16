@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S29 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -33,3 +33,6 @@ Achado: a API usa o usuário `outgun`, que é **SUPERUSER** (pode criar papéis,
 
 ## Notas técnicas
 ## Notas de implementação
+- `apps/api/src/db/app-role.ts` (`ensureAppRole`, idempotente): papel `outgun_app` com LOGIN e só SELECT/INSERT/UPDATE/DELETE e uso de sequências, privilégios padrão para as próximas tabelas, sem escrita em `schema_migrations`, `REVOKE CREATE ON SCHEMA public FROM PUBLIC`. Roda no fim do `cli.js migrate up` quando há `APP_DB_PASSWORD`. Variante do escopo: o dono do schema continua o `outgun` (superusuário), usado só pelos containers `migrate` e `backup`; a API nunca mais o usa.
+- Compose: API com `outgun_app` e `MIGRATE=0` (o `CREATE TABLE IF NOT EXISTS schema_migrations` do arranque exige permissão de criar); Redis com `--requirepass`. `install.sh` gera `APP_DB_PASSWORD` e `REDIS_PASSWORD` também em instalações existentes.
+- Teste no Postgres real (`app-role.test.ts`): lê e grava; recusa CREATE/ALTER/DROP TABLE, CREATE ROLE, escrita nas migrations e `COPY ... TO PROGRAM`; idempotente; troca de senha.
