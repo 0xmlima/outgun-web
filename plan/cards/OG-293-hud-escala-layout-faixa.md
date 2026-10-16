@@ -30,7 +30,7 @@ Como jogador numa tela grande, quero que o chat, o placar e a barra de baixo cre
 - [x] Vetores de teste em `screen-layout.test.ts` batem com o protótipo: 1024×768 (u 1, área 720×540 em y 169), 1280×960 (u 1,5, área 880×660), 1440×1080 (u 1,5, área 1004×753), 1600×1200 (u 1,5), 2048×1536 (u 2, área 1440×1080).
 - [x] O chat mostra pelo menos 6 mensagens + a digitação e ocupa a largura toda.
 - [x] A área de jogo continua mostrando exatamente uma sala (472×354 unidades).
-- [ ] Capturas do `pnpm visual:check` regravadas com o novo layout e conferidas numa partida online.
+- [x] Capturas do `pnpm visual:check` regravadas com o novo layout e conferidas numa partida online.
 
 ## Notas técnicas
 - `ScreenLayout` ganha `ui` (escala) e `mode`; o `HudRenderer` passa a escala ao `text()` (BitmapText com `scale`).
@@ -38,4 +38,4 @@ Como jogador numa tela grande, quero que o chat, o placar e a barra de baixo cre
 ## Notas de implementação
 - `screenLayout` ganhou `ui` (escala, padrão `autoHudScale`), `mode`, `chat` e `lineH`; `scoreboard` virou lugar + `scale`/`side`. `chatLines` usa a faixa do chat (sem a linha de digitação).
 - `HudRenderer` desenha tudo na escala em uso (`k`): `DrawList.text` ganhou `scale` (BitmapText); contorno do texto e cursor também escalam. O placar já usa a escala `s` do layout; o quadro de borda a borda é o OG-294.
-- Captura do `visual:check` (último critério) fica para o fechamento da sprint: as referências e as máscaras de `tools/visual/areas.json` precisam ser regravadas com o layout novo.
+- `visual:check` regravado no fechamento, agora também em 1024×768 e 1600×1200 (modo faixa); máscaras novas para relógio, FPS, minimapa, cursor do chat e coluna de ping (placar com Tab e estatísticas), 3 rodadas seguidas sem diferença.

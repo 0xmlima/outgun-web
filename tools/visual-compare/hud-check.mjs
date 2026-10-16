@@ -38,6 +38,9 @@ const only = process.argv.includes('--only')
 const RESOLUTIONS = [
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1920x1080', width: 1920, height: 1080 },
+  // 4:3, modo faixa do HUD (OG-293)
+  { name: '1024x768', width: 1024, height: 768 },
+  { name: '1600x1200', width: 1600, height: 1200 },
 ];
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
