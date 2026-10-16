@@ -24,6 +24,20 @@ instala Docker, firewall (só 22/80/443), swap de 2 GB e gera `/opt/outgun/.env`
 atualiza: o game server drena (as partidas em andamento terminam) antes de trocar de versão.
 A versão é o hash do commit (`TAG` no `.env`).
 
+## Manutenção e endurecimento do servidor (OG-306)
+
+Feito uma vez à mão no servidor (o `install.sh` não mexe nisso):
+
+- **SSH** (`/etc/ssh/sshd_config.d/10-outgun-hardening.conf`): só chave, `root` e `ubuntu`, 3 tentativas,
+  sem X11 nem encaminhamento de portas. Antes de mudar, `sshd -t`; depois de `systemctl reload ssh`, abra
+  uma conexão nova antes de fechar a atual.
+- **fail2ban** (`/etc/fail2ban/jail.d/outgun.local`): bane por 1 h (crescendo até 1 semana) quem erra 5
+  vezes em 10 min. No Ubuntu 24.04 o serviço é `ssh.service` (o padrão do fail2ban procura
+  `sshd.service` e não vê nada). Ver: `fail2ban-client status sshd`; desbanir: `fail2ban-client set sshd unbanip IP`.
+- **Atualizações** automáticas todo dia; se o kernel pedir, o servidor reinicia às 08:00 UTC (05:00 em
+  Brasília) e os containers voltam sozinhos (`/etc/apt/apt.conf.d/52outgun-reboot`).
+- **Serviços desligados**: `rpcbind` (mascarado). Para fora só ficam 22, 80 e 443.
+
 ## Trocar de domínio (OG-304)
 
 O `DOMAIN` só é escolhido na primeira instalação; depois, troque no `/opt/outgun/.env` e rode o

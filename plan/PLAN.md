@@ -751,7 +751,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-303](cards/OG-303-arma-junto-dos-power-ups.md) | Arma no mesmo padrão e na mesma linha dos power-ups (HUD Moderno) | E8 | 1 | Should | S27 | OG-298 | Concluído |
 | [OG-304](cards/OG-304-dominio-proprio.md) | Domínio próprio (outgunweb.com.br) com HTTPS atrás da Cloudflare | E8 | 1 | Must | S28 | — | Concluído |
 | [OG-305](cards/OG-305-previa-de-compartilhamento.md) | Prévia de compartilhamento (Open Graph) para WhatsApp e redes | E8 | 1 | Should | S28 | OG-304 | Concluído |
-| [OG-306](cards/OG-306-servidor-ssh-e-atualizacoes.md) | Servidor: SSH endurecido, atualizações e superfície mínima | E14 | 2 | Must | S29 | — | Pronto |
+| [OG-306](cards/OG-306-servidor-ssh-e-atualizacoes.md) | Servidor: SSH endurecido, atualizações e superfície mínima | E14 | 2 | Must | S29 | — | Em andamento |
 | [OG-307](cards/OG-307-backups-fora-do-servidor.md) | Backups cifrados fora do servidor, com teste de restauração | E14 | 3 | Must | S29 | — | Pronto |
 | [OG-308](cards/OG-308-banco-menor-privilegio.md) | Banco com menor privilégio: papel da aplicação sem superusuário | E14 | 3 | Must | S29 | — | Em andamento |
 | [OG-309](cards/OG-309-github-cadeia-de-suprimentos.md) | GitHub e cadeia de suprimentos: varredura de segredos, Dependabot e proteção de branches | E14 | 2 | Must | S29 | — | Em andamento |
