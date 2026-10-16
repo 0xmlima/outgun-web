@@ -289,7 +289,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Team score and clock': 'Placar dos times e relógio',
     Minimap: 'Minimapa',
     Chat: 'Chat',
-    'Power-ups': 'Power-ups',
+    'Power-ups and weapon': 'Power-ups e arma',
     'Hold the base, I will get the flag': 'segura a base que eu vou buscar a bandeira',
     'Someone go back to defense': 'alguém volta pra defesa',
     'Number of bots': 'Quantidade de bots',

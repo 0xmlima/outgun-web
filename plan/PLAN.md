@@ -591,6 +591,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S24 | v2: segundo tema de menu (Placar) | OG-292 | |
 | S25 | v2: HUD da partida por resolução (escala, faixa, coluna, placar de borda a borda) | OG-293, OG-294, OG-295, OG-296 | |
 | S26 | v2: estilos do HUD (Clássico, Moderno e Personalizado) | OG-297, OG-298, OG-299, OG-300, OG-302 | |
+| S27 | v2: ajustes do HUD Moderno | OG-303 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -744,8 +745,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-300](cards/OG-300-hud-personalizado-editor.md) | HUD Personalizado: editor de posição e tamanho dos componentes | E8 | 8 | Should | S26 | OG-298 | Concluído |
 | [OG-301](cards/OG-301-faixa-serie-fora-da-sala.md) | Faixa da série do Ranked fora da sala no HUD Moderno e no Personalizado | E8 | 2 | Should | — | OG-298 | Backlog |
 | [OG-302](cards/OG-302-classico-frags-no-tab.md) | Clássico com os frags só no TAB (opção) | E8 | 3 | Should | S26 | OG-299 | Concluído |
+| [OG-303](cards/OG-303-arma-junto-dos-power-ups.md) | Arma no mesmo padrão e na mesma linha dos power-ups (HUD Moderno) | E8 | 1 | Should | S27 | OG-298 | Em revisão |
 
-**Total:** 144 cards, 530 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 75 cards, 235 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 145 cards, 531 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 76 cards, 236 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 

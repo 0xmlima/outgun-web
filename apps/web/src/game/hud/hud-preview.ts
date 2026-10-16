@@ -148,36 +148,24 @@ const DRAW: Record<HudComponent, (ctx: CanvasRenderingContext2D, p: Place, t: Pr
   health: (ctx, p, t) => bar(ctx, p, t.health, 132, C.health),
   energy: (ctx, p, t) => bar(ctx, p, t.energy, 86, C.energy),
   powerups(ctx, p, t) {
-    const gap = 6 * p.s;
-    const w = (p.w - 2 * gap) / 3;
-    t.pups.forEach((name, i) => {
+    const gap = 5 * p.s;
+    const w = (p.w - 3 * gap) / 4;
+    const items: [string, string, boolean, string][] = [
+      [t.pups[0], '\u2014', false, C.pups[0]!],
+      [t.pups[1], '23', true, C.pups[1]!],
+      [t.pups[2], '\u2014', false, C.pups[2]!],
+      [t.weapon, '2', true, C.weapon[1]!],
+    ];
+    items.forEach(([name, value, on, col], i) => {
       const x = p.x + i * (w + gap);
-      const on = i === 1;
-      ctx.fillStyle = on ? 'rgba(255,255,0,.12)' : 'rgba(255,255,255,.04)';
+      ctx.fillStyle = on ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)';
       ctx.fillRect(x, p.y, w, p.h);
-      ctx.strokeStyle = on ? C.pups[i]! : '#2b2b2b';
+      ctx.strokeStyle = on ? col : '#2b2b2b';
       ctx.lineWidth = Math.max(1, 1.5 * p.s);
       ctx.strokeRect(x + 0.75, p.y + 0.75, w - 1.5, p.h - 1.5);
-      text(ctx, name.toUpperCase(), x + w / 2, p.y + 5 * p.s, 9.5 * p.s, 600, on ? C.pups[i]! : '#666666', 'center');
-      text(ctx, on ? '23' : '—', x + w / 2, p.y + p.h - 23 * p.s, 16 * p.s, 800, on ? '#ffffff' : '#555555', 'center');
+      text(ctx, name.toUpperCase(), x + w / 2, p.y + 5 * p.s, 9.5 * p.s, 600, on ? col : '#666666', 'center');
+      text(ctx, value, x + w / 2, p.y + p.h - 23 * p.s, 16 * p.s, 800, on ? '#ffffff' : '#555555', 'center');
     });
-  },
-  weapon(ctx, p, t) {
-    text(ctx, t.weapon.toUpperCase(), p.x, p.y + (p.h - 12 * p.s) / 2, 10 * p.s, 600, '#aaaaaa');
-    const pw = 18 * p.s;
-    const gap = 5 * p.s;
-    const x0 = p.x + p.w - 4 * pw - 3 * gap;
-    for (let i = 0; i < 4; i++) {
-      const x = x0 + i * (pw + gap);
-      if (i < 2) {
-        ctx.fillStyle = C.weapon[i]!;
-        ctx.fillRect(x, p.y + p.h * 0.25, pw, p.h * 0.5);
-      } else {
-        ctx.strokeStyle = '#444444';
-        ctx.lineWidth = Math.max(1, p.s);
-        ctx.strokeRect(x, p.y + p.h * 0.25, pw, p.h * 0.5);
-      }
-    }
   },
   chat(ctx, p, t) {
     ctx.save();

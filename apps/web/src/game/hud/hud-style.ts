@@ -7,7 +7,8 @@ export type HudStyle = 'classic' | 'modern' | 'custom';
 export const HUD_STYLES: readonly HudStyle[] = ['classic', 'modern', 'custom'];
 
 /** Componentes do HUD Moderno e do Personalizado, na ordem da coluna. */
-export const HUD_COMPONENTS = ['score', 'minimap', 'health', 'energy', 'powerups', 'weapon', 'chat', 'fps'] as const;
+// a arma é o quarto quadro dos power-ups (OG-303); layouts salvos com "weapon" continuam valendo (a chave é ignorada)
+export const HUD_COMPONENTS = ['score', 'minimap', 'health', 'energy', 'powerups', 'chat', 'fps'] as const;
 export type HudComponent = (typeof HUD_COMPONENTS)[number];
 
 /** Tamanho de cada componente na escala 1 (px CSS); a escala do componente multiplica os dois lados. */
@@ -16,8 +17,7 @@ export const HUD_SIZES: Readonly<Record<HudComponent, readonly [number, number]>
   minimap: [300, 225],
   health: [220, 36],
   energy: [220, 36],
-  powerups: [186, 46],
-  weapon: [160, 26],
+  powerups: [248, 46],
   chat: [420, 150],
   fps: [70, 16],
 };

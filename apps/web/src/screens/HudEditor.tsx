@@ -18,8 +18,7 @@ const LABELS: Record<HudComponent, string> = {
   minimap: 'Minimap',
   health: 'Health',
   energy: 'Energy',
-  powerups: 'Power-ups',
-  weapon: 'Weapon',
+  powerups: 'Power-ups and weapon',
   chat: 'Chat',
   fps: 'FPS',
 };
