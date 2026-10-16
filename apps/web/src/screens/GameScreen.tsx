@@ -50,6 +50,7 @@ function clientOptions(p: Prefs): ClientOptions {
       stayDeadInMenus: p.stayDeadInMenus,
       backgroundTheme: p.backgroundTheme,
       preferThemeBackground: p.preferThemeBackground,
+      hudScale: p.hudScale,
     },
   };
 }

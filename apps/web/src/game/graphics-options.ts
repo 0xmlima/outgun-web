@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Opções gráficas avançadas do original que o desenho da partida consulta (OG-070,
 // plan/specs/opcoes-graficas.md). Padrões = `config/client.cfg` distribuído (D-05).
-import type { EmphasizeFlags, MinimapPlayers, NeighborMarkers, ViewOverBorder } from '../app/prefs.js';
+import type { EmphasizeFlags, HudScale, MinimapPlayers, NeighborMarkers, ViewOverBorder } from '../app/prefs.js';
 
 export interface GraphicsOptions {
   readonly scroll: boolean;
@@ -21,6 +21,8 @@ export interface GraphicsOptions {
   /** Tema cuja imagem `background` cobre a tela fora das salas (`''` = nenhum) e "Prefer main theme background". */
   readonly backgroundTheme: string;
   readonly preferThemeBackground: boolean;
+  /** Escala do HUD (OG-296): `auto` = pela resolução. */
+  readonly hudScale: HudScale;
 }
 
 export const DEFAULT_GRAPHICS: GraphicsOptions = {
@@ -40,7 +42,13 @@ export const DEFAULT_GRAPHICS: GraphicsOptions = {
   stayDeadInMenus: true,
   backgroundTheme: '',
   preferThemeBackground: true,
+  hudScale: 'auto',
 };
+
+/** Escala fixa escolhida nas Opções, ou `undefined` para a automática. */
+export function hudScaleValue(scale: HudScale): number | undefined {
+  return scale === 'auto' ? undefined : Number(scale);
+}
 
 /** `calculateVisibilities`: frames sem notícia até o jogador sumir do minimapa e início do esmaecimento. */
 export function minimapFade(mode: MinimapPlayers): { max: number; start: number } {

@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
-import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
+import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, HUD_SCALES, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
 import { ChoiceField, FieldGroup, SliderField, TextField, ToggleField } from '../ui/Field.js';
@@ -311,6 +311,13 @@ export function OptionsScreen() {
           </Panel>
           <Panel title={t('Graphic options')}>
             <FieldGroup>
+              <ChoiceField
+                label={t('HUD scale')}
+                value={prefs.hudScale}
+                options={HUD_SCALES.map((value) => ({ value, label: value === 'auto' ? t('automatic (by screen size)') : `${value}×` }))}
+                onChange={(hudScale) => setPrefs({ hudScale })}
+                hint={t('Size of the chat, scoreboard and bars during the game.')}
+              />
               {select<ShowNames>('showNames', 'Show player names', [
                 ['never', 'never'],
                 ['sameRoom', 'in same room'],

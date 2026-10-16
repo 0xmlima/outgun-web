@@ -16,6 +16,9 @@ export type ViewOverBorder = 'never' | 'mapDoesntFit' | 'mapWraps' | 'always';
 /** Visual das telas fora da partida (D-53): Campo (OG-291) ou Placar (OG-292). */
 export type MenuTheme = 'campo' | 'placar';
 export const MENU_THEMES: readonly MenuTheme[] = ['campo', 'placar'];
+/** Escala do HUD da partida (OG-296, RN-UI-06): automática pela resolução ou fixa. */
+export type HudScale = 'auto' | '1' | '1.5' | '2' | '2.5' | '3';
+export const HUD_SCALES: readonly HudScale[] = ['auto', '1', '1.5', '2', '2.5', '3'];
 
 export interface Prefs {
   readonly locale: Locale;
@@ -61,6 +64,8 @@ export interface Prefs {
   readonly preferThemeBackground: boolean;
   /** Tema dos menus (só fora da partida). */
   readonly menuTheme: MenuTheme;
+  /** Escala do HUD da partida. */
+  readonly hudScale: HudScale;
   /** Teclas de cada ação (OG-063). */
   readonly bindings: Bindings;
   /** Bots das salas Casual do jogador (OG-289): quantidade fixa e nível 1–5 (0 = variável). */
@@ -153,6 +158,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     backgroundTheme: '',
     preferThemeBackground: true,
     menuTheme: 'campo',
+    hudScale: 'auto',
     bindings: CLASSIC_BINDINGS,
     casualBots: 6,
     casualBotLevel: 4, // o bot de referência (o do original)
@@ -218,6 +224,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     backgroundTheme: str(saved.backgroundTheme, fallback.backgroundTheme),
     preferThemeBackground: bool(saved.preferThemeBackground, fallback.preferThemeBackground),
     menuTheme: oneOf(saved.menuTheme, MENU_THEMES, fallback.menuTheme),
+    hudScale: oneOf(saved.hudScale, HUD_SCALES, fallback.hudScale),
     bindings: saved.bindings ? parseBindings(JSON.stringify(saved.bindings)) : fallback.bindings,
     casualBots: int(saved.casualBots, 0, CASUAL_MAX_BOTS, fallback.casualBots),
     casualBotLevel: int(saved.casualBotLevel, 0, 5, fallback.casualBotLevel),
