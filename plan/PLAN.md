@@ -592,6 +592,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S25 | v2: HUD da partida por resolução (escala, faixa, coluna, placar de borda a borda) | OG-293, OG-294, OG-295, OG-296 | |
 | S26 | v2: estilos do HUD (Clássico, Moderno e Personalizado) | OG-297, OG-298, OG-299, OG-300, OG-302 | |
 | S27 | v2: ajustes do HUD Moderno | OG-303 | |
+| S28 | v2: domínio próprio e prévia de compartilhamento | OG-304, OG-305 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -746,8 +747,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-301](cards/OG-301-faixa-serie-fora-da-sala.md) | Faixa da série do Ranked fora da sala no HUD Moderno e no Personalizado | E8 | 2 | Should | — | OG-298 | Backlog |
 | [OG-302](cards/OG-302-classico-frags-no-tab.md) | Clássico com os frags só no TAB (opção) | E8 | 3 | Should | S26 | OG-299 | Concluído |
 | [OG-303](cards/OG-303-arma-junto-dos-power-ups.md) | Arma no mesmo padrão e na mesma linha dos power-ups (HUD Moderno) | E8 | 1 | Should | S27 | OG-298 | Concluído |
+| [OG-304](cards/OG-304-dominio-proprio.md) | Domínio próprio (outgunweb.com.br) com HTTPS atrás da Cloudflare | E8 | 1 | Must | S28 | — | Concluído |
+| [OG-305](cards/OG-305-previa-de-compartilhamento.md) | Prévia de compartilhamento (Open Graph) para WhatsApp e redes | E8 | 1 | Should | S28 | OG-304 | Concluído |
 
-**Total:** 145 cards, 531 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 76 cards, 236 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 147 cards, 533 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 78 cards, 238 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 

@@ -24,6 +24,23 @@ instala Docker, firewall (só 22/80/443), swap de 2 GB e gera `/opt/outgun/.env`
 atualiza: o game server drena (as partidas em andamento terminam) antes de trocar de versão.
 A versão é o hash do commit (`TAG` no `.env`).
 
+## Trocar de domínio (OG-304)
+
+O `DOMAIN` só é escolhido na primeira instalação; depois, troque no `/opt/outgun/.env` e rode o
+deploy de novo. `DOMAIN_ALIASES` (separados por espaço) recebe os nomes que devem redirecionar para
+o principal, cada um com certificado próprio:
+
+```sh
+DOMAIN=outgunweb.com.br
+DOMAIN_ALIASES=www.outgunweb.com.br 137-131-202-138.sslip.io
+```
+
+Com a Cloudflare: registros A apontando para o IP em "Somente DNS" (nuvem cinza) até o Caddy emitir
+os certificados (Let's Encrypt, desafio HTTP na porta 80); depois, se quiser o proxy (nuvem laranja),
+use o modo SSL/TLS **Completo (Estrito)**. O modo Flexível entra em loop (o Caddy redireciona HTTP
+para HTTPS) e deixaria as senhas sem criptografia entre a Cloudflare e o servidor. Quem jogava pelo
+endereço antigo precisa entrar de novo no novo (sessão e opções do navegador são por endereço).
+
 ## Ajustes no servidor (`/opt/outgun/.env`, depois `docker compose up -d`)
 
 - `ROTATION` (mapas da rotação, separados por vírgula), `GAMEMOD` (linhas de gamemod separadas por

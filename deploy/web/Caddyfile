@@ -44,6 +44,10 @@
 		@pages not path /assets/*
 		header @pages cache-control "no-cache"
 		try_files {path} /index.html
+		# prévia de compartilhamento (OG-305): o index.html leva o domínio de quem pediu (og:url, og:image)
+		templates {
+			mime text/html
+		}
 		file_server
 	}
 }
