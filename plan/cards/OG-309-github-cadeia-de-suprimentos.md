@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S29 |
-| Status | Em andamento |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -30,7 +30,7 @@ Achados: o repositório está **público** (a memória o dava como privado) com 
 
 ## Critérios de aceite
 - [x] Configurações do repositório ligadas (conferidas pela API do GitHub).
-- [ ] CI com gitleaks e Actions por SHA.
+- [x] CI com gitleaks e Actions por SHA.
 - [x] `pnpm audit` sem vulnerabilidade alta.
 
 ## Notas técnicas
@@ -38,3 +38,4 @@ Achados: o repositório está **público** (a memória o dava como privado) com 
 - Repositório: secret scanning, push protection, alertas e correções automáticas do Dependabot ligados; `main` e `v2` protegidas (sem force push nem exclusão; checks `ci` e `secrets` obrigatórios, admin passa direto para o fluxo do agente). `.github/dependabot.yml` (npm, Actions e Docker, PRs contra a `v2`).
 - CI: passa a rodar também em push na `v2` (antes só na `main`; a v2 não tinha CI desde a S17); `permissions: contents: read`; Actions fixadas por SHA; job `secrets` com gitleaks e `.gitleaks.toml` (exceção só para `*.test.ts`) — histórico inteiro limpo. `actionlint` ok.
 - Removido o `deploy.yml` do Fly (sem uso; nenhum segredo cadastrado). puppeteer-core 24 → 25: `pnpm audit` sem vulnerabilidades.
+- Primeira rodada na `v2` (2026-10-17): `ci`, `secrets` e `images` verdes; `e2e` falhou num teste parado desde a S18 (convidado no Ranked esperava "Jogar agora"; hoje é "Criar sala ranqueada" com o selo "exige conta"). Teste atualizado; rodada 38986278281 toda verde.
