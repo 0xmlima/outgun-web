@@ -21,6 +21,18 @@ const HIGHLIGHT_TIME = 0.5;
 /** Tamanho máximo do chat (RN-CHT-01). */
 export const MAX_CHAT_LENGTH = 200;
 
+/**
+ * Ordem do placar como o original (`compare_players` com `stable_sort`, src/world.cpp:64 e
+ * src/clientbase.cpp:668, OG-317): time vermelho antes do azul, mais frags primeiro e, no empate, a
+ * ordem anterior (os nomes não trocam de lugar a cada quadro). Quem acabou de entrar vai para o fim
+ * do grupo de mesmo placar, por `pid`.
+ */
+export function scoreboardOrder<T extends { pid: number; team: number; frags: number }>(players: readonly T[], previous: readonly number[]): T[] {
+  const rank = new Map(previous.map((pid, i) => [pid, i]));
+  const before = (p: T) => rank.get(p.pid) ?? previous.length + p.pid;
+  return [...players].sort((a, b) => a.team - b.team || b.frags - a.frags || before(a) - before(b));
+}
+
 export class OnlineHud {
   readonly feed: MessageFeed;
   /** Texto sendo digitado (`talkbuffer`). */
@@ -38,6 +50,8 @@ export class OnlineHud {
   private subVote: { pid: number; bot: boolean } | null = null;
   /** Onde cada bandeira carregada foi vista por último (portador na tela). */
   private readonly flagSeen = new Map<string, WorldCoords>();
+  /** Ordem do placar no quadro anterior (desempate estável, OG-317). */
+  private scoreOrder: number[] = [];
   private deadAfterHighlighted = true;
   private spawnTime = -10;
 
@@ -274,6 +288,8 @@ export class OnlineHud {
     }
     const highlight = time - this.spawnTime < HIGHLIGHT_TIME ? 1 - (time - this.spawnTime) / HIGHLIGHT_TIME : 0;
 
+    const ordered = scoreboardOrder(players, this.scoreOrder);
+    this.scoreOrder = ordered.map((p) => p.pid);
     const hiddenGame = s.skipped || s.gameOver !== null || !opts.fd;
     const playing = players.length > 1;
     const chatCount = chatLines(opts.screen, this.showAll);
@@ -285,7 +301,7 @@ export class OnlineHud {
       map: fx.map,
       time,
       maxPlayers: fx.maxPlayers,
-      players: players.sort((a, b) => a.pid - b.pid),
+      players: ordered,
       flags,
       oldFlags,
       roomVis,
