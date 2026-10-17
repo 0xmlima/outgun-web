@@ -227,9 +227,9 @@ test('convidado não entra no Ranked: vai para o login', async ({ page }) => {
   await page.goto('/rooms');
   await page.getByRole('tab', { name: 'Ranqueado' }).click();
   await expect(page.locator('.lobby')).toContainText('Ranqueado: sem power-ups');
-  // desde a S18 a aba Ranqueado lista as salas e cria uma; o convidado vê "precisa de conta" e vai ao login
+  // desde a S18 a aba Ranqueado lista as salas e cria uma; o convidado vê "exige conta" e vai ao login
   const create = page.locator('.lobby').getByRole('button', { name: /Criar sala ranqueada/ });
-  await expect(create).toContainText('precisa de conta');
+  await expect(create).toContainText('exige conta');
   await create.click();
   await expect(page).toHaveURL(/\/login$/);
 });
