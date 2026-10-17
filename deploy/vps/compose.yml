@@ -37,6 +37,8 @@ services:
   redis:
     <<: *restart
     image: redis:7-alpine
+    # senha mesmo na rede interna (OG-308)
+    command: ['redis-server', '--requirepass', '${REDIS_PASSWORD}']
 
   migrate:
     image: outgun-api:${TAG}
@@ -52,8 +54,10 @@ services:
     image: outgun-api:${TAG}
     env_file: .env
     environment:
-      DATABASE_URL: postgres://outgun:${POSTGRES_PASSWORD}@postgres:5432/outgun
-      REDIS_URL: redis://redis:6379
+      # papel sem DDL (OG-308); as migrations rodam só no container migrate, com o dono do schema
+      DATABASE_URL: postgres://outgun_app:${APP_DB_PASSWORD}@postgres:5432/outgun
+      MIGRATE: '0'
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       WEB_URL: https://${DOMAIN}
       TRUST_PROXY: '1'
       MAILER: ${MAILER:-log}
@@ -70,6 +74,7 @@ services:
       API_URL: http://api:7800
       TICKET_JWKS_URL: http://api:7800/.well-known/jwks.json
       PUBLIC_WS_URL: wss://${DOMAIN}/gs
+      ALLOWED_ORIGINS: https://${DOMAIN}
       REGION: ${REGION:-beta}
       TRUST_PROXY: '1'
       GS_ID: vps

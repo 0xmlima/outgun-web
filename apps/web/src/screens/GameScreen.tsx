@@ -76,6 +76,8 @@ export default function GameScreen() {
   // senha da sala privada vem do lobby pelo estado da navegação (nunca na URL)
   const password = (useLocation().state as { password?: string } | null)?.password;
   const hostRef = useRef<HTMLDivElement>(null);
+  /** Contêiner do jogo inteiro: é ele que entra em tela cheia no modo foco (OG-315). */
+  const gameRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
   // trilha (OG-221, D-37): playlist só nas salas Casual; até o servidor dizer o modo, silêncio
@@ -116,6 +118,7 @@ export default function GameScreen() {
       };
     }
     const game = mountGame(hostRef.current, {
+      ...(gameRef.current ? { focusTarget: gameRef.current } : {}),
       ...(online ? { online } : {}),
       map,
       theme,
@@ -311,7 +314,7 @@ export default function GameScreen() {
   ];
 
   return (
-    <div className="game" data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
+    <div ref={gameRef} className="game" data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
       <div ref={hostRef} className="game-host" />
       <div className="game-overlay">
         {toast && !menuOpen && (

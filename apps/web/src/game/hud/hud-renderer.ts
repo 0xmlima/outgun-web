@@ -803,7 +803,8 @@ export class HudRenderer {
     const w = Math.round(Math.min(R.w * 0.86, 680 * k));
     const pad = Math.round(12 * k);
     const rowH = Math.round(24 * k);
-    const perTeam = [0, 1].map((t) => s.players.filter((p) => p.team === t).sort((a, b) => b.frags - a.frags));
+    // a lista já vem na ordem do placar (OG-317)
+    const perTeam = [0, 1].map((t) => s.players.filter((p) => p.team === t));
     const rows = Math.max(1, ...perTeam.map((l) => l.length));
     const head = Math.round(26 * k);
     const teamH = Math.round(rowH * 1.4);

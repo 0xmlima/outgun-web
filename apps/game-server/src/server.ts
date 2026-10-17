@@ -50,6 +50,12 @@ export interface ServerOptions {
   instanceId?: string;
   /** Conexões abertas ao mesmo tempo por IP, jogadores e espectadores (OG-104; padrão 8, 0 = sem limite). */
   maxConnectionsPerIp?: number;
+  /**
+   * Origens aceitas no upgrade do WebSocket (OG-311, OWASP WebSocket Security): pedido de navegador
+   * vindo de outro site é recusado. Vazio = qualquer origem (desenvolvimento). Sem `Origin` (clientes
+   * fora do navegador: bots, carga) continua aceito; o ticket assinado é que autentica.
+   */
+  allowedOrigins?: readonly string[];
   /** Log estruturado das entradas e recusas (com o `jti` do ticket para correlacionar com a API). */
   logger?: Logger;
 }
@@ -90,6 +96,15 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     const n = (perIp.get(ip) ?? 1) - 1;
     if (n > 0) perIp.set(ip, n);
     else perIp.delete(ip);
+  };
+  const origins = new Set((options.allowedOrigins ?? []).map((o) => o.replace(/\/+$/, '').toLowerCase()));
+  /** Origem de navegador fora da lista: responde 403 e devolve true. */
+  const badOrigin = (res: uWS.HttpResponse, req: uWS.HttpRequest, kind: 'player' | 'spectator'): boolean => {
+    const origin = req.getHeader('origin').toLowerCase();
+    if (!origin || origins.size === 0 || origins.has(origin)) return false;
+    telemetry.rejected(kind, 'badOrigin');
+    res.writeStatus('403 Forbidden').end('origem não permitida');
+    return true;
   };
   const clientIp = (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
     const forwarded = options.trustProxy ? req.getHeader('x-forwarded-for').split(',')[0]?.trim() : '';
@@ -133,6 +148,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
+      if (badOrigin(res, req, 'player')) return;
       const ip = clientIp(res, req);
       if (ipFull(ip)) {
         telemetry.rejected('player', 'tooManyConnections');
@@ -244,6 +260,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('404 Not Found').end('sala inexistente');
         return;
       }
+      if (badOrigin(res, req, 'spectator')) return;
       const ip = clientIp(res, req);
       if (ipFull(ip)) {
         telemetry.rejected('spectator', 'tooManyConnections');

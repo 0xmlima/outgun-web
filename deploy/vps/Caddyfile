@@ -5,6 +5,8 @@
 
 {$DOMAIN} {$DOMAIN_ALIASES} {
 	encode zstd gzip
+	# HSTS em todas as respostas, não só nas da API (OG-311, OWASP HTTP Strict Transport Security)
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	@alias not host {$DOMAIN}
 	redir @alias https://{$DOMAIN}{uri} permanent
 	# game server: WebSocket das salas, replays e /health (ping do lobby); /metrics não sai da máquina

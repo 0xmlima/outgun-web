@@ -15,8 +15,9 @@ o primeiro deploy de verdade depende das contas e do domínio (ver "Falta decidi
 | Métricas e alertas | `tools/observability/`       | Prometheus/Grafana (ou o Prometheus gerenciado do Fly) | `METRICS_TOKEN`                                                                                                    |
 
 Ambientes: **homologação** (apps com sufixo `-staging`, deploy a cada push na `main`) e **produção**
-(deploy a cada tag `v*`, com aprovação no ambiente `production` do GitHub). O workflow é
-`.github/workflows/deploy.yml`; ele roda o CI inteiro antes.
+(deploy a cada tag `v*`, com aprovação no ambiente `production` do GitHub). O workflow do Fly.io
+foi removido no OG-309 por falta de uso (o jogo roda na VPS, `deploy/vps/`); para adotar o Fly,
+recrie-o a partir do histórico do git (`git log -- .github/workflows/deploy.yml`).
 
 ## Garantias e como foram testadas
 

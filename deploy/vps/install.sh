@@ -54,6 +54,9 @@ if [ ! -f .env ]; then
   chmod 600 .env
   echo "segredos gerados em /opt/outgun/.env"
 fi
+# senhas do papel da aplicação no Postgres e do Redis (OG-308), também em instalações antigas
+grep -q '^APP_DB_PASSWORD=' .env || echo "APP_DB_PASSWORD=$(secret)" >> .env
+grep -q '^REDIS_PASSWORD=' .env || echo "REDIS_PASSWORD=$(secret)" >> .env
 # beta fechado (OG-106) ligado por padrão; a publicação aberta põe BETA=0 no .env
 grep -q '^BETA=' .env || echo "BETA=1" >> .env
 # a versão fica no .env: `docker compose` sem argumentos usa a instalada
@@ -62,6 +65,8 @@ mkdir -p backups && chmod 700 backups # os dumps têm hashes de senha e e-mails
 
 # atualização: o game server recebe SIGTERM e drena (as partidas terminam) antes de trocar
 docker compose up -d --remove-orphans --wait edge postgres redis api game-server web backup
+# o Caddyfile é montado do disco: sem recarregar, a borda segue com a configuração antiga (OG-311)
+docker compose exec -T edge caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || echo "aviso: não recarreguei o Caddyfile da borda"
 docker image prune -f >/dev/null
 docker compose ps --format '{{.Service}}: {{.Status}}'
 echo "no ar: https://$(grep '^DOMAIN=' .env | cut -d= -f2)"
