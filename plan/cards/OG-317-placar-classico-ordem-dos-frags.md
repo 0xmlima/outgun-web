@@ -30,3 +30,4 @@ Relato do PO em 2026-10-17 (captura: vermelho 13, 16, 21, 18; azul 18, 18, 11, 2
 ## Notas de implementação
 - `scoreboardOrder` (pura, em `online-hud.ts`): time, frags decrescentes e, no empate, a ordem do quadro anterior (o HUD guarda `scoreOrder`); quem acabou de entrar fica no fim do grupo de mesmo placar. O placar do TAB do Moderno passou a usar a mesma lista em vez da ordenação própria.
 - Teste com os números da captura do PO (`scoreboard-order.test.ts`); `visual:check` do Clássico sem diferença (a referência tem um jogador por time); partida com 8 bots por 75 s: vermelho 11, 9, 8, 2 e azul 11, 6, 5, 0.
+- No ar desde 2026-10-17 (deploy do `s29`, commit 08c4e79; backup antes; partida de convidado conferida).

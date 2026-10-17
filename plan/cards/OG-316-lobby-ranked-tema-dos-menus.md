@@ -29,3 +29,4 @@ Achado ao verificar o HUD do Ranked (2026-10-17) e pedido do PO: o lobby fica de
 ## Notas técnicas
 ## Notas de implementação
 - `RankedLobby` com `data-menu-theme={prefs.menuTheme}`; em `theme-campo.css`, fundo do mapa no `.ranked-lobby` e as quinas do `.ui-panel` também nos painéis do lobby; em `theme-placar.css`, o fundo do `.app-shell` vale para o `.ranked-lobby`.
+- No ar desde 2026-10-17 (deploy do `s29`, commit 08c4e79; backup antes; partida de convidado conferida).
