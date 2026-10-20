@@ -31,7 +31,7 @@ Allegro, HawkNL e Pthreads-win32. O port web não usa essas bibliotecas; elas ap
 
 ## Música
 
-- **Trilha sonora** (OG-220, D-38): **Thiago Vasconcellos**. Dez faixas em `songs/` ("Outgun Epic" no menu; as demais nas partidas), licenciadas sob **Creative Commons Atribuição-CompartilhaIgual 4.0 Internacional** (CC BY-SA 4.0, <https://creativecommons.org/licenses/by-sa/4.0/>): podem ser copiadas, remixadas e redistribuídas, inclusive fora do jogo, desde que creditem o autor e que obras derivadas usem a mesma licença (ver `songs/LICENSE.txt`). Os créditos também aparecem na tela de créditos e no manifesto de assets.
+- **Trilha sonora** (OG-220, D-38): **Thiago Anuszkiewicz**. Vinte faixas em `songs/` ("Outgun Main Theme" abre o menu, depois as faixas se revezam; nas partidas, todas menos o tema), licenciadas sob **Creative Commons Atribuição-CompartilhaIgual 4.0 Internacional** (CC BY-SA 4.0, <https://creativecommons.org/licenses/by-sa/4.0/>): podem ser copiadas, remixadas e redistribuídas, inclusive fora do jogo, desde que creditem o autor e que obras derivadas usem a mesma licença (ver `songs/LICENSE.txt`). Os créditos também aparecem na tela de créditos e no manifesto de assets.
 
 ## Licença
 

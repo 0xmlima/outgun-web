@@ -150,7 +150,7 @@ function Footer() {
 export function Shell() {
   const { prefs } = usePrefs();
   useGamepadKeys();
-  useMusicMode('menu'); // "Outgun Epic" em loop nas telas fora da partida (RN-MUS-01)
+  useMusicMode('menu'); // o tema na primeira vez da sessão, depois a rotação das faixas (RN-MUS-01)
   return (
     <div className="ui-page app-shell" data-menu-theme={prefs.menuTheme}>
       <TopBar />

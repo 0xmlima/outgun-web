@@ -93,7 +93,7 @@ export const WEB_CREDITS: readonly CreditGroup[] = [
   {
     // D-38: trilha composta pelo PO; os títulos das faixas vêm do manifesto (OG-220)
     role: 'Music',
-    people: ['Thiago Vasconcellos (CC BY-SA 4.0)'],
+    people: ['Thiago Anuszkiewicz (CC BY-SA 4.0)'],
   },
 ];
 

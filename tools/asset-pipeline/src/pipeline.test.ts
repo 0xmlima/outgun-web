@@ -148,10 +148,10 @@ describe('build completo', () => {
     expect(visa.samples.diedb).toBe(visa.samples.death2);
     expect(visa.samples.spree).toBe(visa.samples.got);
     for (const silent of ['wallhit', 'qwallhit', 'colldam', '5_min']) expect(visa.samples[silent]).toBeNull();
-    // Trilha (OG-220): 1 faixa de menu e 9 de partida, copiadas como estão, com crédito.
-    expect(manifest.music.map((m) => m.role)).toEqual(['menu', ...Array<string>(9).fill('match')]);
-    expect(manifest.music[0]).toMatchObject({ id: 'outgun-epic', title: 'Outgun Epic', credit: 'Thiago Vasconcellos', license: 'CC-BY-SA-4.0' });
-    expect(new Set(manifest.music.map((m) => m.id)).size).toBe(10);
+    // Trilha (OG-220): 1 faixa de menu e 19 de partida, copiadas como estão, com crédito e tags ID3.
+    expect(manifest.music.map((m) => m.role)).toEqual(['menu', ...Array<string>(19).fill('match')]);
+    expect(manifest.music[0]).toMatchObject({ id: 'outgun-epic', title: 'Outgun Main Theme', artist: 'Thiago Anuszkiewicz', credit: 'Thiago Anuszkiewicz', license: 'CC-BY-SA-4.0' });
+    expect(new Set(manifest.music.map((m) => m.id)).size).toBe(20);
     expect(readFileSync(join(dir, manifest.music[0]!.file))).toEqual(readFileSync(join(repoRoot, 'songs/Outgun epic.mp3')));
     // Arquivos com hash de conteúdo, presentes no disco.
     const player = manifest.graphics.Metal!.graphics.player!;

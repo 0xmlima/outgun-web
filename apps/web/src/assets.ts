@@ -36,7 +36,11 @@ export interface Manifest {
 
 export interface MusicTrack {
   readonly id: string;
+  /** Das tags ID3 da faixa (artista, álbum e ano só quando houver). */
   readonly title: string;
+  readonly artist?: string;
+  readonly album?: string;
+  readonly year?: string;
   readonly role: 'menu' | 'match';
   readonly file: string;
   /** Segundos. */

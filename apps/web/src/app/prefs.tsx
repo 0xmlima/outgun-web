@@ -106,6 +106,8 @@ export interface Prefs {
   /** Trilha sonora (OG-222, RN-MUS-04): ligada e volume 0..100, separados dos efeitos. */
   readonly musicEnabled: boolean;
   readonly musicVolume: number;
+  /** Mudo do tocador da tela inicial: a faixa segue tocando, sem som. */
+  readonly musicMuted: boolean;
 }
 
 const STORAGE_KEY = 'outgun.prefs';
@@ -189,6 +191,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     soundTheme: 'Visa',
     musicEnabled: true,
     musicVolume: 50,
+    musicMuted: false,
   };
 }
 
@@ -258,6 +261,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     soundTheme: str(saved.soundTheme, fallback.soundTheme),
     musicEnabled: bool(saved.musicEnabled, fallback.musicEnabled),
     musicVolume: int(saved.musicVolume, 0, 100, fallback.musicVolume),
+    musicMuted: bool(saved.musicMuted, fallback.musicMuted),
   };
 }
 
