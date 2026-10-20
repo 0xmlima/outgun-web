@@ -611,6 +611,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Watch': 'Assistir',
     'Open replay file': 'Abrir arquivo de replay',
     'Watch live': 'Assistir ao vivo',
+    'Connecting to the live match: it appears after the delay.': 'Conectando à partida ao vivo: ela aparece depois do atraso.',
     'Live': 'Ao vivo',
     '$1 s delay': 'atraso de $1 s',
     'Live with $1 s delay: the match appears after the delay.': 'Ao vivo com atraso de $1 s: a partida aparece depois do atraso.',

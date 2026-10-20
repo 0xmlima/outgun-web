@@ -64,6 +64,25 @@ const seriesLabel = (bestOf: SeriesBestOf) => (bestOf === 1 ? 'Single game' : `B
 const isFull = (r: RoomSummary) => r.online && r.players >= r.maxPlayers;
 
 /** Aba Ranked do lobby. */
+/** "Assistir" de uma sala da lista (OG-320, D-57): qualquer sala no ar, cheia, em jogo ou com senha; não ativa a linha. */
+export function WatchButton({ room }: { room: RoomSummary }) {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  if (!room.spectateUrl) return null;
+  const url = room.spectateUrl;
+  return (
+    <Button
+      onClick={(ev) => {
+        ev.stopPropagation();
+        void navigate(`/spectate?src=${encodeURIComponent(url)}`);
+      }}
+      onKeyDown={(ev) => ev.stopPropagation()}
+    >
+      {t('Watch')}
+    </Button>
+  );
+}
+
 export function RankedRoomsPanel({ pings }: { pings: ReadonlyMap<string, number> }) {
   const { t } = usePrefs();
   const { user } = useAccount();
@@ -182,6 +201,7 @@ export function RankedRoomsPanel({ pings }: { pings: ReadonlyMap<string, number>
           { key: 'players', header: t('Players'), cell: (r) => `${r.players}/${r.maxPlayers}`, align: 'end' },
           { key: 'phase', header: t('Phase'), cell: (r) => <Badge tone={r.phase === 'lobby' ? 'success' : 'neutral'}>{t(phaseLabel(r.phase))}</Badge> },
           { key: 'ping', header: t('Ping'), cell: (r) => (r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—'), align: 'end' },
+          { key: 'watch', header: t('Watch'), cell: (r) => <WatchButton room={r} />, align: 'end' },
         ]}
       />
     </div>

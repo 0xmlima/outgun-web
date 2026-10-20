@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S30 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | [OG-319](OG-319-espectador-em-sala-com-senha.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -25,10 +25,12 @@ Como espectador, quero um botão "Assistir" em qualquer sala da lista, para ver 
 - Design system v2 (tokens do OG-200), nos dois temas de menu (Campo e Placar).
 
 ## Critérios de aceite
-- [ ] Toda sala online das duas listas tem "Assistir", que abre `/spectate` com o `spectateUrl` dela.
-- [ ] Sala Ranked cheia ou em jogo: "Assistir" funciona; "Entrar" segue bloqueado.
-- [ ] A tela do espectador mostra o aviso de espera desde a abertura.
-- [ ] Textos novos em todos os idiomas do catálogo.
+- [x] Toda sala online das duas listas tem "Assistir", que abre `/spectate` com o `spectateUrl` dela.
+- [x] Sala Ranked cheia ou em jogo: "Assistir" funciona; "Entrar" segue bloqueado.
+- [x] A tela do espectador mostra o aviso de espera desde a abertura.
+- [x] Textos novos em todos os idiomas do catálogo.
 
 ## Notas técnicas
 ## Notas de implementação
+- `WatchButton` (`ranked-rooms.tsx`) numa coluna "Assistir" das listas do Casual e do Ranked; não ativa a linha (clique e Enter param no botão), então sala cheia/em jogo continua sem "Entrar". Aparece em toda sala com `spectateUrl` (no ar).
+- Tela do espectador: "Conectando à partida ao vivo..." desde a abertura até o `spectatorStart`. Só há catálogo pt-BR para textos da web (`web-texts.ts`).
