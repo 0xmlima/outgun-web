@@ -82,7 +82,12 @@ else {
     win.focus();
   });
   app.whenReady().then(() => {
-    Menu.setApplicationMenu(null);
+    // no macOS, Cmd+Q e copiar/colar nos campos de texto dependem dos menus do aplicativo
+    Menu.setApplicationMenu(
+      process.platform === 'darwin'
+        ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }])
+        : null,
+    );
     // o jogo não usa câmera, microfone, notificações etc.; o gamepad não passa por permissão
     session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) =>
       callback(permission === 'fullscreen'),

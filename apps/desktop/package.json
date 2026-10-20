@@ -2,7 +2,7 @@
   "name": "@outgun/desktop",
   "version": "2.31.0",
   "private": true,
-  "description": "Cliente para Windows (OG-324, D-58): uma janela do Electron que carrega o site do jogo.",
+  "description": "Cliente para Windows, macOS e Ubuntu (OG-324, OG-326, D-58): uma janela do Electron que carrega o site do jogo.",
   "license": "GPL-2.0-or-later",
   "author": "Outgun Web",
   "homepage": "https://outgunweb.com.br",
@@ -10,7 +10,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis --x64 --publish never"
+    "dist:win": "electron-builder --win nsis --x64 --publish never",
+    "dist:mac": "electron-builder --mac dmg --universal --publish never",
+    "dist:linux": "electron-builder --linux deb --x64 --publish never"
   },
   "devDependencies": {
     "electron": "44.5.1",
@@ -38,6 +40,28 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "Outgun"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.games",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "notarize": false,
+      "artifactName": "Outgun-mac-${version}.${ext}"
+    },
+    "dmg": {
+      "title": "Outgun"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Game",
+      "maintainer": "Outgun Web",
+      "synopsis": "Capture a bandeira com os amigos",
+      "executableName": "outgun",
+      "artifactName": "Outgun-linux-${version}.${ext}"
+    },
+    "deb": {
+      "packageCategory": "games"
     }
   }
 }

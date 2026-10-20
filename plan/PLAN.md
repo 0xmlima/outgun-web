@@ -597,7 +597,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S29 | v2: segurança da operação (servidor, banco, GitHub, borda) — OWASP Cheat Sheets | OG-306, OG-308, OG-309, OG-311, OG-315, OG-316, OG-317 | |
 | S30 | v2: espectador para o competitivo e nome que some com o ciano | OG-318, OG-319, OG-320, OG-321 | |
 | S31 | v2: faixas novas, rotação da trilha no menu e tocador na tela inicial | OG-322 | |
-| S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325 | |
+| S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -774,8 +774,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-323](cards/OG-323-app-instalavel-pelo-navegador.md) | Outgun instalável pelo navegador (PWA) | E7 | 2 | Should | S32 | — | Em revisão |
 | [OG-324](cards/OG-324-cliente-desktop-electron.md) | Cliente para Windows (Electron) que abre o site | E7 | 3 | Should | S32 | — | Em revisão |
 | [OG-325](cards/OG-325-pagina-de-download.md) | Página "Jogar no computador" e download do instalador | E7 | 2 | Should | S32 | OG-323, OG-324 | Em revisão |
+| [OG-326](cards/OG-326-cliente-mac-e-ubuntu.md) | Cliente para macOS e Ubuntu e ícones dos sistemas na página | E7 | 2 | Should | S32 | OG-324, OG-325 | Em andamento |
 
-**Total:** 167 cards, 576 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 98 cards, 281 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 168 cards, 578 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 99 cards, 283 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
