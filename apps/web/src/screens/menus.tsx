@@ -93,7 +93,7 @@ export function HomeScreen() {
     { icon: 'options', label: t('Options'), onActivate: go('/options') },
     { icon: 'help', label: t('Help'), onActivate: go('/help') },
     { icon: 'credits', label: t('Credits'), onActivate: go('/credits') },
-    ...(isInstalledApp() ? [] : [{ icon: 'download' as const, label: t('Play on your computer'), description: t('Install Outgun or download it for Windows'), onActivate: go('/download') }]),
+    ...(isInstalledApp() ? [] : [{ icon: 'download' as const, label: t('Play on your computer'), description: t('Install Outgun or download it for Windows, macOS or Ubuntu'), onActivate: go('/download') }]),
     ...(user ? [{ icon: 'feedback' as const, label: t('Send feedback'), onActivate: go('/feedback') }] : []),
     ...(user && (user.isAdmin || user.isModerator) ? [{ icon: 'shield' as const, label: t('Moderation'), onActivate: go('/admin') }] : []),
     user ? { icon: 'account', label: t('Account'), aside: user.username, onActivate: go('/account') } : { icon: 'account', label: t('Sign in'), onActivate: go('/login') },

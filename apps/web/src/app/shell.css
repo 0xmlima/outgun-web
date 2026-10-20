@@ -815,3 +815,47 @@
 .legal a.ui-button {
   text-decoration: none;
 }
+.download-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-5);
+}
+.download-os {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.download-os.mine {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.download-os-icon {
+  color: var(--text);
+}
+.download-os h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.download-os p {
+  margin: 0;
+}
+.download-os-detail {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.download-os-note {
+  grid-column: 2 / -1;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
