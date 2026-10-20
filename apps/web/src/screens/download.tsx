@@ -39,7 +39,7 @@ export function DownloadScreen() {
           !inApp && <p className="stats-line ui-muted">{t('If no button appears here, open the browser menu and choose "Install Outgun" (Chrome: the icon at the right of the address bar). Firefox and Safari do not install sites.')}</p>
         )}
         <h2>{t('Download for Windows')}</h2>
-        <p className="stats-line">{t('An installer for Windows 10 and 11 (64 bits), about 90 MB. The game itself still comes from the site, so it is always up to date.')}</p>
+        <p className="stats-line">{t('An installer for Windows 10 and 11 (64 bits), about 110 MB. The game itself still comes from the site, so it is always up to date.')}</p>
         {!isDesktopClient() && (
           <p>
             <a className="ui-button ui-button-secondary ui-button-md" href={DESKTOP_INSTALLER} download>

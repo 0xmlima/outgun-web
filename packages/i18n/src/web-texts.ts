@@ -769,8 +769,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'If no button appears here, open the browser menu and choose "Install Outgun" (Chrome: the icon at the right of the address bar). Firefox and Safari do not install sites.':
       'Se nenhum botão aparecer aqui, abra o menu do navegador e escolha "Instalar Outgun" (no Chrome, o ícone à direita da barra de endereço). O Firefox e o Safari não instalam sites.',
     'Download for Windows': 'Baixar para Windows',
-    'An installer for Windows 10 and 11 (64 bits), about 90 MB. The game itself still comes from the site, so it is always up to date.':
-      'Um instalador para Windows 10 e 11 (64 bits), com cerca de 90 MB. O jogo em si continua vindo do site, então está sempre atualizado.',
+    'An installer for Windows 10 and 11 (64 bits), about 110 MB. The game itself still comes from the site, so it is always up to date.':
+      'Um instalador para Windows 10 e 11 (64 bits), com cerca de 110 MB. O jogo em si continua vindo do site, então está sempre atualizado.',
     'Download Outgun-Setup.exe': 'Baixar Outgun-Setup.exe',
     'The installer has no digital signature yet, so Windows may show "Windows protected your PC". Click "More info" and then "Run anyway".':
       'O instalador ainda não tem assinatura digital, então o Windows pode mostrar "O Windows protegeu o computador". Clique em "Mais informações" e depois em "Executar assim mesmo".',
