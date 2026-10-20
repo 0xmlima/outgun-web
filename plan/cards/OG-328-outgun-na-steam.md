@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S33 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-324, OG-326 |
 | Regras de negócio | — (D-59) |
 | Skills | `outgun-card-workflow` |
@@ -26,8 +26,12 @@ Como jogador que tem o Outgun na Steam, quero receber a versão nova pela própr
 - `pnpm steam:upload` na raiz.
 
 ## Critérios de aceite
-- [ ] `STEAM_USER=<conta> pnpm steam:upload` envia os três depots e deixa o build na branch `beta`.
-- [ ] Pela Steam, com a senha da `beta`, o Outgun abre e conecta ao site no Windows, no macOS e no Linux.
-- [ ] Nada muda na `default` até o PO promover o build.
+- [x] `STEAM_USER=<conta> pnpm steam:upload` envia os três depots e deixa o build na branch `beta`.
+- [x] Pela Steam, com a senha da `beta`, o Outgun abre e conecta ao site no Windows, no macOS e no Linux.
+- [x] Nada muda na `default` até o PO promover o build.
 
 ## Notas de implementação
+- Primeiro envio em 2026-10-20: BuildID 26090773 na `beta` (run 39499360348); o PO testou pela Steam e funcionou.
+- O CI empacota as pastas que o electron-builder já deixa em `dist/` ao gerar os instaladores (sem build extra); `dist:steam:*` fica para gerar localmente.
+- Linux abre com `--no-sandbox` (opção de inicialização no Steamworks): a Steam não instala o `chrome-sandbox` com setuid.
+- Para liberar a todos (PO, no Steamworks): build na `default`, apagar a opção antiga do `outgun.exe`, limpar o Beta Branch das novas, marcar macOS e Linux em Supported OS e preencher os requisitos na página da loja.
