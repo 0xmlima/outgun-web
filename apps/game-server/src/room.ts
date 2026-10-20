@@ -623,7 +623,9 @@ export class Room {
     });
     (this.world.players[pid] as PlayerState).awaitingClientReadies++; // precisa carregar o mapa de novo
     this.pause?.undrop(pid, this.uptimeFrames); // voltou: sem mais ninguém caído, retomada em 3 s (OG-261)
-    this.send(pid, [...this.welcomeMessages(pid), message('resumeToken', { token: c.resumeToken })]);
+    // a página pode ser nova (volta pela conta): o próprio nome e clã, sem anunciar entrada (OG-321)
+    const self = [message('playerName', { pid, name: c.identity.name }), ...(c.identity.clanTag ? [message('playerClan', { pid, tag: c.identity.clanTag })] : [])];
+    this.send(pid, [...this.welcomeMessages(pid), ...self, message('resumeToken', { token: c.resumeToken })]);
     return { ok: true, pid };
   }
 

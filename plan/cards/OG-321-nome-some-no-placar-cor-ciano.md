@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S30 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -26,8 +26,11 @@ Como jogador, quero ver meu nome no placar sempre, qualquer que seja a minha cor
 - Garantir que o próprio nome esteja na sessão também depois de `resume`.
 
 ## Critérios de aceite
-- [ ] Teste que reproduz o nome vazio e passa com a correção.
+- [x] Teste que reproduz o nome vazio e passa com a correção.
 - [ ] Placar e nome sobre o boneco aparecem para o jogador com ciano nos três estilos de HUD; `visual:check` sem diferença (RN-UI-05).
 
 ## Notas técnicas
 ## Notas de implementação
+- Causa: jogador com conta que recarrega a página (ou abre outra aba) dentro do tempo de reconexão volta à mesma vaga pelo `resume` (pela conta, sem token), com frags e time guardados, mas numa sessão nova do cliente; `welcomeMessages` pula o próprio pid, então o cliente nunca recebia o próprio nome nem o clã (linha do placar com frags e sem nome, e sem nome sobre o boneco). A cor não entra na causa: provavelmente quem relatou é o jogador do ciano.
+- Correção: `resume` manda `playerName` e `playerClan` do próprio jogador depois do `welcome` (sem `playerJoined`, que anunciaria uma entrada no feed). Teste em `idle.test.ts` com uma `ClientSession` de verdade: falha sem a correção e passa com ela.
+- Só muda o que chega ao cliente; nada no desenho do HUD (RN-UI-05), então o `visual:check` fica para o fechamento.

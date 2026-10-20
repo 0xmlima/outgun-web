@@ -767,7 +767,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-318](cards/OG-318-espectador-atraso-30s.md) | Espectador com 30 s de atraso | E6 | 1 | Must | S30 | — | Em revisão |
 | [OG-319](cards/OG-319-espectador-em-sala-com-senha.md) | Espectador também em salas com senha | E6 | 1 | Must | S30 | — | Em revisão |
 | [OG-320](cards/OG-320-botao-assistir-em-toda-sala.md) | Botão "Assistir" em toda sala, Casual e Ranked | E8 | 2 | Must | S30 | OG-319 | Em revisão |
-| [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Pronto |
+| [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Em revisão |
 
 **Total:** 163 cards, 566 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 94 cards, 271 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
