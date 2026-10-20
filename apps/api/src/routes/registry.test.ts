@@ -230,6 +230,8 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     expect(claims(ok.json().ticket, room.id).spawn).toMatchObject({ mode: 'ranked', preset: 'ranked', maxPlayers: 6, ranked: { format: '3x3', bestOf: 3 } });
     await heartbeat('gs-1', [{ id: room.id, players: 6, mode: 'ranked', preset: 'ranked', persistent: false, maxPlayers: 6, phase: 'game' }]);
     expect((await list('?mode=ranked&format=3x3')).find((r) => r.id === room.id)).toMatchObject({ online: true, players: 6, phase: 'game' });
+    // sala com senha também pode ser assistida (D-57, OG-319)
+    expect((await app.inject(`/rooms/${room.id}`)).json().room.spectateUrl).toBe(`ws://gs-1.test/rooms/${room.id}/spectate`);
     expect((await list('?format=5x5')).some((r) => r.id === room.id)).toBe(false);
     expect((await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true)).json().error).toBe('room_in_game');
     // "Jogar agora" do Ranked não cai em sala de lobby (RN-RKL-05: entra-se pela lista)

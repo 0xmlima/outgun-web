@@ -55,7 +55,7 @@ function summary(r: typeof rooms.$inferSelect, region: string | null, now: numbe
     online,
     persistent: r.persistent,
     region: region ?? null,
-    spectateUrl: online && r.wsUrl && r.passwordHash === null ? `${r.wsUrl}/spectate` : null,
+    spectateUrl: online && r.wsUrl ? `${r.wsUrl}/spectate` : null,
     format: r.format,
     bestOf: isSeriesBestOf(r.bestOf) ? r.bestOf : null,
     // fora do ar a sala de lobby ainda não abriu: está no lobby
