@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S30 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | [OG-319](OG-319-espectador-em-sala-com-senha.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

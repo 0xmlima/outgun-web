@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S30 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,10 +24,12 @@ Como espectador, quero ver a partida com pouco atraso, porque 2 minutos é tempo
 - Registrar a mudança como decisão D-NN (PLAN seção 12).
 
 ## Critérios de aceite
-- [ ] Sala nova sem gamemod manda `spectatorStart` com `delay: 30` e o espectador fica 300 frames atrás.
-- [ ] Teste de `spectators.test.ts` cobrindo o padrão novo.
+- [x] Sala nova sem gamemod manda `spectatorStart` com `delay: 30` e o espectador fica 300 frames atrás.
+- [x] Teste de `spectators.test.ts` cobrindo o padrão novo.
 
 ## Notas técnicas
 - O padrão do `CLASSIC_GAMEMOD` (texto do original) pode ficar em 120; vale o padrão de `types.ts`, a menos que o preset aplique o gamemod clássico por cima (conferir).
 
 ## Notas de implementação
+- `SPECTATING_DELAY = 30` aplicado em `classicSettings()` depois do `gamemod.txt` (que traz 120) e no padrão do código; vale para todos os presets. D-56.
+- Teste novo em `spectators.test.ts` (sala sem gamemod: `delay: 30`, 300 frames atrás).
