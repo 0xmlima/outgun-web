@@ -62,6 +62,7 @@ grep -q '^BETA=' .env || echo "BETA=1" >> .env
 # a versão fica no .env: `docker compose` sem argumentos usa a instalada
 if grep -q '^TAG=' .env; then sed -i "s/^TAG=.*/TAG=$TAG/" .env; else echo "TAG=$TAG" >> .env; fi
 mkdir -p backups && chmod 700 backups # os dumps têm hashes de senha e e-mails
+mkdir -p downloads # instalador do cliente para Windows (OG-325)
 
 # atualização: o game server recebe SIGTERM e drena (as partidas terminam) antes de trocar
 docker compose up -d --remove-orphans --wait edge postgres redis api game-server web backup

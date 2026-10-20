@@ -755,6 +755,25 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Next track': 'Próxima faixa',
     'Mute music': 'Silenciar música',
     'Unmute music': 'Tirar do mudo',
+    // Jogar no computador (OG-323 a OG-325)
+    'Play on your computer': 'Jogar no computador',
+    'Install Outgun or download it for Windows': 'Instale o Outgun ou baixe para Windows',
+    'You are already playing in the Outgun app for Windows.': 'Você já está jogando no app do Outgun para Windows.',
+    'You are already playing in the installed Outgun app.': 'Você já está jogando no app instalado do Outgun.',
+    'Outgun runs in the browser, but you can also open it from an icon on your computer, in its own window. It is the same game and always the same version as the site: nothing to update.':
+      'O Outgun roda no navegador, mas você também pode abri-lo por um ícone no computador, numa janela própria. É o mesmo jogo e sempre a mesma versão do site: não há nada para atualizar.',
+    'Install from the browser': 'Instalar pelo navegador',
+    'In Chrome or Edge: no download, a desktop shortcut and its own window. Takes a few seconds.': 'No Chrome ou no Edge: sem baixar nada, com atalho na área de trabalho e janela própria. Leva poucos segundos.',
+    'Installed. Open Outgun from the icon on your computer.': 'Instalado. Abra o Outgun pelo ícone no computador.',
+    'Install Outgun': 'Instalar o Outgun',
+    'If no button appears here, open the browser menu and choose "Install Outgun" (Chrome: the icon at the right of the address bar). Firefox and Safari do not install sites.':
+      'Se nenhum botão aparecer aqui, abra o menu do navegador e escolha "Instalar Outgun" (no Chrome, o ícone à direita da barra de endereço). O Firefox e o Safari não instalam sites.',
+    'Download for Windows': 'Baixar para Windows',
+    'An installer for Windows 10 and 11 (64 bits), about 90 MB. The game itself still comes from the site, so it is always up to date.':
+      'Um instalador para Windows 10 e 11 (64 bits), com cerca de 90 MB. O jogo em si continua vindo do site, então está sempre atualizado.',
+    'Download Outgun-Setup.exe': 'Baixar Outgun-Setup.exe',
+    'The installer has no digital signature yet, so Windows may show "Windows protected your PC". Click "More info" and then "Run anyway".':
+      'O instalador ainda não tem assinatura digital, então o Windows pode mostrar "O Windows protegeu o computador". Clique em "Mais informações" e depois em "Executar assim mesmo".',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
     // telas restantes no visual v2 (OG-203)
     'A .ogr file saved on this computer': 'Um arquivo .ogr salvo neste computador',

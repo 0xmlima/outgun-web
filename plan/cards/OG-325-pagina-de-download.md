@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S32 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-323, OG-324 |
 | Regras de negócio | D-58 |
 | Skills | `outgun-card-workflow` |
@@ -25,6 +25,8 @@ Como jogador, quero achar no site como instalar o Outgun no computador.
 
 ## Critérios de aceite
 - [ ] `https://outgunweb.com.br/download/Outgun-Setup.exe` baixa o instalador atual.
-- [ ] A página explica as duas opções em pt-BR e esconde o botão de instalar quando o navegador não oferece.
+- [x] A página explica as duas opções em pt-BR e esconde o botão de instalar quando o navegador não oferece.
 
 ## Notas de implementação
+- `/download` (`screens/download.tsx`), item "Jogar no computador" no menu principal (some no app instalado e no cliente) e link no rodapé.
+- Caddy da borda serve `/download/*` de `/opt/outgun/downloads` (montada só leitura); `deploy/vps/upload-desktop.sh` envia o `.exe` com a versão no nome e troca o link `Outgun-Setup.exe` de forma atômica.

@@ -137,6 +137,7 @@ function Footer() {
     <footer className="app-footer">
       <span>Outgun Web</span>
       <nav aria-label={t('Legal')}>
+        <Link to="/download">{t('Play on your computer')}</Link>
         <Link to="/about">{t('About')}</Link>
         <Link to="/terms">{t('Terms')}</Link>
         <Link to="/privacy">{t('Privacy')}</Link>

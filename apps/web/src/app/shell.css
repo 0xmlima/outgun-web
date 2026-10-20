@@ -810,3 +810,8 @@
   grid-row: 1;
   grid-column: 3;
 }
+
+/* Jogar no computador (OG-325): o link de download tem cara de botão */
+.legal a.ui-button {
+  text-decoration: none;
+}
