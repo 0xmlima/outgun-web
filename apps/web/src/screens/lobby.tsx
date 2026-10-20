@@ -18,7 +18,7 @@ import { ChoiceField, SliderField, TextField, ToggleField } from '../ui/Field.js
 import { Form, FormMessageLine, Page } from '../ui/Page.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
-import { RankedRoomsPanel } from './ranked-rooms.js';
+import { RankedRoomsPanel, WatchButton } from './ranked-rooms.js';
 
 type Mode = 'casual' | 'ranked';
 
@@ -222,6 +222,7 @@ export function LobbyScreen() {
                 { key: 'map', header: t('Map'), cell: (r) => r.map ?? '—' },
                 { key: 'players', header: t('Players'), cell: (r) => `${r.players}/${r.maxPlayers}`, align: 'end' },
                 { key: 'ping', header: t('Ping'), cell: (r) => (r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—'), align: 'end' },
+                { key: 'watch', header: t('Watch'), cell: (r) => <WatchButton room={r} />, align: 'end' },
               ]}
             />
           </div>

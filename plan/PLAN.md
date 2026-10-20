@@ -764,10 +764,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-315](cards/OG-315-modo-foco-telas-visiveis.md) | Modo foco mostra as telas do F1–F5, o menu e os avisos | E8 | 1 | Must | S29 | — | Concluído |
 | [OG-316](cards/OG-316-lobby-ranked-tema-dos-menus.md) | Lobby do Ranked com o tema dos menus (Campo ou Placar) | E8 | 1 | Should | S29 | — | Concluído |
 | [OG-317](cards/OG-317-placar-classico-ordem-dos-frags.md) | Placar do HUD Clássico ordenado por frags | E8 | 1 | Should | S29 | — | Concluído |
-| [OG-318](cards/OG-318-espectador-atraso-30s.md) | Espectador com 30 s de atraso | E6 | 1 | Must | S30 | — | Pronto |
-| [OG-319](cards/OG-319-espectador-em-sala-com-senha.md) | Espectador também em salas com senha | E6 | 1 | Must | S30 | — | Pronto |
-| [OG-320](cards/OG-320-botao-assistir-em-toda-sala.md) | Botão "Assistir" em toda sala, Casual e Ranked | E8 | 2 | Must | S30 | OG-319 | Pronto |
-| [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Pronto |
+| [OG-318](cards/OG-318-espectador-atraso-30s.md) | Espectador com 30 s de atraso | E6 | 1 | Must | S30 | — | Concluído |
+| [OG-319](cards/OG-319-espectador-em-sala-com-senha.md) | Espectador também em salas com senha | E6 | 1 | Must | S30 | — | Concluído |
+| [OG-320](cards/OG-320-botao-assistir-em-toda-sala.md) | Botão "Assistir" em toda sala, Casual e Ranked | E8 | 2 | Must | S30 | OG-319 | Concluído |
+| [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Concluído |
 
 **Total:** 163 cards, 566 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 94 cards, 271 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
@@ -845,6 +845,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-53 | **v2** — Tema dos menus | — | ✅ **Decidido pelo PO em 2026-10-15:** os menus fora da partida ganham a cara do tema padrão da partida (chão e paredes verdes, mastro amarelo, times vermelho e azul). Entre as duas direções do protótipo (`plan/specs/menus-tema/`), vale a **Campo** (OG-291); a **Placar** fica guardada para um tema futuro de menu (OG-292; na S24 virou opção em Opções › Gráficos › Menus, com Campo como padrão). Temas legados (Metal, Grid, Grass...) não servem de referência. Nada dentro da partida muda (RN-UI-05) | PO |
 | D-54 | **v2** — HUD da partida por resolução | — | ✅ **Decidido pelo PO em 2026-10-16:** o HUD deixa de ter texto fixo em pixels e ganha uma escala pela altura da tela (passos de 0,5), com chat na largura toda da faixa de cima, minimapa começando na linha da área de jogo e placar de borda a borda na coluna da direita; em telas largas (≥ 3:2) o chat vai para o alto da coluna e os times ficam lado a lado. A área de jogo segue mostrando uma sala. Protótipo: `plan/specs/hud-resolucoes/`. Exceção aprovada à RN-UI-05 para os cards OG-293 a OG-296 (RN-UI-06) | PO |
 | D-55 | **v2** — Estilos do HUD da partida | — | ✅ **Decidido pelo PO em 2026-10-16:** três estilos em Opções › Gráficos: **Clássico** (o HUD da S25, padrão), **Moderno** (opção A do protótipo `plan/specs/hud-moderno/`: sala com a altura toda à esquerda, coluna com placar dos times e relógio, minimapa, vida, energia, power-ups, arma e chat; frags só no TAB) e **Personalizado** (editor de posição, tamanho e visibilidade, começando do Moderno). A opção B (painéis sobre a sala) foi descartada: informação sobre o mapa cria pontos cegos. Por isso nenhum componente fica sobre a sala, nem no Personalizado. O layout personalizado vai na conta com as outras preferências (sem migration: é mais um campo das configurações) Em 2026-10-16 o PO decidiu que o **Clássico continua o padrão** e pediu a opção de deixar os frags só no TAB também no Clássico, desligada por padrão (OG-302) | PO |
+| D-56 | **v2** — Atraso do espectador ao vivo | — | ✅ **Decidido pelo PO em 2026-10-20:** o `spectating_delay` padrão passa de 120 s (original) para **30 s** em todos os presets, porque 2 minutos é demais para um jogo tão rápido; o atraso continua para ninguém passar posições a um time assistindo ao vivo. `/set spectating_delay` segue valendo (OG-318) | PO |
+| D-57 | **v2** — Espectador em salas com senha | — | ✅ **Decidido pelo PO em 2026-10-20:** salas com senha também podem ser assistidas (revoga a divergência do OG-092 de 2026-10-14); a senha protege só a entrada como jogador. Toda sala, Casual ou Ranked, tem botão "Assistir" (OG-319, OG-320) | PO |
 
 ---
 

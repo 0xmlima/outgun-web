@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S30 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -25,7 +25,9 @@ Como espectador, quero assistir também às partidas em salas com senha, porque 
 - Registrar como decisão D-NN e atualizar a nota do OG-092 / `plan/specs/replays.md`.
 
 ## Critérios de aceite
-- [ ] Teste da rota `/rooms` e `/rooms/:id`: sala com senha tem `spectateUrl`.
+- [x] Teste da rota `/rooms` e `/rooms/:id`: sala com senha tem `spectateUrl`.
 
 ## Notas técnicas
 ## Notas de implementação
+- `spectateUrl` não depende mais da senha (`rooms.ts`); o WebSocket do espectador já não conferia senha. D-57.
+- Teste em `registry.test.ts` (Ranked com senha em jogo); roda com Postgres no fechamento.

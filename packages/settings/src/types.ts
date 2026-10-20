@@ -300,7 +300,7 @@ export function codeDefaults(): GameSettings {
       idlekickTime: 1200,
       idlekickPlayerlimit: 4,
       recording: 0,
-      spectatingDelay: 120,
+      spectatingDelay: 30, // D-56 (o original usa 120)
       logPlayerChat: false,
       rankingMinhumans: 2,
       rankingMinplayers: 4,

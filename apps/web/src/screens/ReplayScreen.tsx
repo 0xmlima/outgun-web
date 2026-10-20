@@ -205,9 +205,9 @@ export function SpectateScreen() {
             {error}
           </p>
         )}
-        {!error && !status && delay !== null && (
+        {!error && !status && (
           <p className="game-toast" role="status">
-            {t('Live with $1 s delay: the match appears after the delay.', String(delay))}
+            {delay !== null ? t('Live with $1 s delay: the match appears after the delay.', String(delay)) : t('Connecting to the live match: it appears after the delay.')}
           </p>
         )}
         {status && (

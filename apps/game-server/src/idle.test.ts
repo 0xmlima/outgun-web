@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Inatividade (RN-IDL-01) e reconexão (OG-047) na sala.
 import { fileURLToPath } from 'node:url';
-import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
+import { ClientSession } from '@outgun/netcode';
+import { chatName, decodeFrame, message, type AnyMessage } from '@outgun/protocol';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
@@ -121,6 +122,30 @@ describe('queda e volta (OG-047)', () => {
     expect(r.world.players[a.pid]!.stats.frags).toBe(4);
     expect(back.of('welcome')[0]?.pid).toBe(a.pid);
     expect(back.of('frags').find((f) => f.pid === a.pid)?.frags).toBe(4);
+  });
+
+  it('quem volta pela conta numa página nova sabe o próprio nome e clã (OG-321)', () => {
+    const r = new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 16, seed: 7 });
+    const join = (name: string, accountId: string, clanTag?: string) => {
+      const conn = new TestConnection();
+      const res = r.join(conn, { name, accountId, ...(clanTag ? { clanTag } : {}) });
+      if (!res.ok) throw new Error(res.text);
+      return { conn, pid: res.pid };
+    };
+    const a = join('Ana', 'u-1', 'Sk');
+    const b = join('Bia', 'u-2');
+    for (let i = 0; i < 5; i++) r.tick();
+    r.disconnect(a.pid, a.conn);
+    // página recarregada: sessão nova, sem token, volta à mesma vaga pela conta
+    const back = new TestConnection();
+    expect(r.resume(back, { name: 'Ana', accountId: 'u-1' }, '')).toEqual({ ok: true, pid: a.pid });
+    const s = new ClientSession({ send: () => {}, onMapChange: () => {} });
+    s.handle(back.received, 0);
+    expect(s.me).toBe(a.pid);
+    expect(s.names.get(a.pid)).toBe(chatName('Ana', 'Sk'));
+    expect(s.names.get(b.pid)).toBe('Bia');
+    // a volta não anuncia uma entrada nova no feed
+    expect(back.of('playerJoined').some((m) => m.pid === a.pid)).toBe(false);
   });
 
   it('conta volta mesmo sem token (outra aba); convidado precisa do token', () => {

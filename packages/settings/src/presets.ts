@@ -80,11 +80,15 @@ export const PRESETS: readonly Preset[] = [
   },
 ];
 
+/** Atraso padrão do espectador ao vivo, em segundos (D-56). */
+export const SPECTATING_DELAY = 30;
+
 /** Configurações do preset Clássico: defaults do código + `config/gamemod.txt`. */
 export function classicSettings(): GameSettings {
   const result = applyGamemod(codeDefaults(), CLASSIC_GAMEMOD);
   if (result.errors.length > 0) throw new Error(`gamemod clássico inválido: ${result.errors[0]?.message}`);
-  return result.settings;
+  // espectador com 30 s de atraso em vez dos 120 do gamemod.txt (D-56, OG-318)
+  return { ...result.settings, server: { ...result.settings.server, spectatingDelay: SPECTATING_DELAY } };
 }
 
 export function presetSettings(id: string): GameSettings {
