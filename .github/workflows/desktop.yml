@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Instalador do cliente para Windows (OG-324, D-58). Roda só quando apps/desktop muda (o jogo em si
+# vem do site); o disparo manual vale quando este arquivo estiver no branch padrão. Baixe o artefato e envie ao servidor com
+# deploy/vps/upload-desktop.sh (OG-325).
+name: Cliente desktop
+
+on:
+  push:
+    paths: ['apps/desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --no-audit --no-fund
+      # o npm novo pode pular o postinstall do Electron; garante o binário
+      - run: node node_modules/electron/install.js
+      - run: npm run dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: outgun-setup
+          path: apps/desktop/dist/Outgun-Setup-*.exe
+          if-no-files-found: error

@@ -1,4 +1,6 @@
 packages:
   - apps/*
+  # cliente desktop (OG-324): npm próprio, para o install do monorepo não baixar o Electron
+  - '!apps/desktop'
   - packages/*
   - tools/*
