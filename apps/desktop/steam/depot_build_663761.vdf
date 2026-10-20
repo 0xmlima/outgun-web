@@ -1,0 +1,11 @@
+// Depot 663761: Windows (win-unpacked).
+"DepotBuild"
+{
+	"DepotID" "663761"
+	"FileMapping"
+	{
+		"LocalPath" "win/*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+}

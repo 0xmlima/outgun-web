@@ -13,7 +13,10 @@
     "start": "electron .",
     "dist:win": "electron-builder --win nsis --x64 --publish never",
     "dist:mac": "electron-builder --mac dmg --universal --publish never",
-    "dist:linux": "electron-builder --linux deb --x64 --publish never"
+    "dist:linux": "electron-builder --linux deb --x64 --publish never",
+    "dist:steam:win": "electron-builder --win dir --x64 --publish never",
+    "dist:steam:mac": "electron-builder --mac dir --universal --publish never",
+    "dist:steam:linux": "electron-builder --linux dir --x64 --publish never"
   },
   "devDependencies": {
     "electron": "44.5.1",

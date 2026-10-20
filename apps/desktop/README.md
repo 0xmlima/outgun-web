@@ -32,3 +32,27 @@ Sem assinatura digital paga:
   Ajustes do Sistema → Privacidade e Segurança → "Abrir mesmo assim".
 - **Ubuntu:** `.deb` para 22.04 ou mais novo (x64); instala com dois cliques ou
   `sudo apt install ./Outgun-linux.deb`.
+
+## Steam (OG-328, D-59)
+
+O Outgun está na Steam como app **663760**, com um depot por sistema: **663761** (Windows),
+**663762** (macOS) e **663763** (Linux + SteamOS). A Steam recebe a pasta do app, sem instalador:
+o workflow "Cliente desktop" publica `outgun-steam-win|mac|linux` (`.tar.gz` de `win-unpacked/`,
+`Outgun.app` universal e `linux-unpacked/`).
+
+```sh
+brew install --cask steamcmd
+steamcmd +login <conta> +quit              # uma vez por máquina: senha e Steam Guard
+STEAM_USER=<conta> pnpm steam:upload       # última execução do workflow com sucesso
+STEAM_USER=<conta> pnpm steam:upload <run> # ou uma execução específica
+```
+
+O build entra só na branch `beta` (com senha). Para liberar a todos, o PO coloca o build na
+`default` em Steamworks › SteamPipe › Builds; o build antigo (5426019, `outgun.exe`) é a volta atrás.
+Opções de inicialização (Installation › General): `Outgun.exe` no Windows, `Outgun.app` no macOS e
+`outgun` com o argumento `--no-sandbox` no Linux (a Steam não instala o `chrome-sandbox` com setuid,
+e o Ubuntu 24.04 bloqueia o sandbox sem ele; a janela só abre o site do jogo).
+
+No macOS, o SteamCMD do Homebrew vem com a marca de quarentena e o Gatekeeper diz que o
+`Breakpad.framework` está danificado: `xattr -dr com.apple.quarantine /usr/local/Caskroom/steamcmd
+~/Library/Application\ Support/Steam`.

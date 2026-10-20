@@ -1,0 +1,11 @@
+// Depot 663763: Linux + SteamOS (linux-unpacked).
+"DepotBuild"
+{
+	"DepotID" "663763"
+	"FileMapping"
+	{
+		"LocalPath" "linux/*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+}

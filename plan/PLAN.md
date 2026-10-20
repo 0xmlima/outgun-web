@@ -598,6 +598,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S30 | v2: espectador para o competitivo e nome que some com o ciano | OG-318, OG-319, OG-320, OG-321 | |
 | S31 | v2: faixas novas, rotação da trilha no menu e tocador na tela inicial | OG-322 | |
 | S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
+| S33 | v2: Outgun na Steam | OG-328 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -776,8 +777,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-325](cards/OG-325-pagina-de-download.md) | Página "Jogar no computador" e download do instalador | E7 | 2 | Should | S32 | OG-323, OG-324 | Concluído |
 | [OG-326](cards/OG-326-cliente-mac-e-ubuntu.md) | Cliente para macOS e Ubuntu e ícones dos sistemas na página | E7 | 2 | Should | S32 | OG-324, OG-325 | Concluído |
 | [OG-327](cards/OG-327-teste-do-tick-instavel.md) | Teste do tick com 32 conexões falha à toa | E7 | 2 | Should | — | — | Backlog |
+| [OG-328](cards/OG-328-outgun-na-steam.md) | Outgun na Steam: cliente Electron por cima do jogo antigo (app 663760) | E7 | 3 | Should | S33 | OG-324, OG-326 | Em andamento |
 
-**Total:** 169 cards, 580 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 100 cards, 285 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 170 cards, 583 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 101 cards, 288 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -856,6 +858,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-56 | **v2** — Atraso do espectador ao vivo | — | ✅ **Decidido pelo PO em 2026-10-20:** o `spectating_delay` padrão passa de 120 s (original) para **30 s** em todos os presets, porque 2 minutos é demais para um jogo tão rápido; o atraso continua para ninguém passar posições a um time assistindo ao vivo. `/set spectating_delay` segue valendo (OG-318) | PO |
 | D-57 | **v2** — Espectador em salas com senha | — | ✅ **Decidido pelo PO em 2026-10-20:** salas com senha também podem ser assistidas (revoga a divergência do OG-092 de 2026-10-14); a senha protege só a entrada como jogador. Toda sala, Casual ou Ranked, tem botão "Assistir" (OG-319, OG-320) | PO |
 | D-58 | **v2** — Jogo no computador | — | ✅ **Decidido pelo PO em 2026-10-20:** além da web, o jogador pode instalar o Outgun pelo navegador (PWA) ou baixar um `.exe` (Electron). O cliente desktop é só uma janela que carrega o site: a versão é sempre a mesma da web, sem instalador novo a cada deploy. Sem assinatura digital por ora; o instalador fica no servidor do beta, porque o repositório é privado (OG-323, OG-324, OG-325) | PO |
+| D-59 | **v2** — Outgun na Steam | — | ✅ **Decidido pelo PO em 2026-10-20:** o cliente Electron substitui o jogo antigo no app 663760 da Steam, com depots para Windows (663761), macOS (663762) e Linux (663763). Cada envio vai para a branch `beta` (com senha); só o PO promove para a `default` no Steamworks, e o build antigo (5426019) fica como volta atrás (OG-328) | PO |
 
 ---
 
