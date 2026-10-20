@@ -8,6 +8,7 @@
   "homepage": "https://outgunweb.com.br",
   "type": "module",
   "main": "main.js",
+  "desktopName": "outgun.desktop",
   "scripts": {
     "start": "electron .",
     "dist:win": "electron-builder --win nsis --x64 --publish never",
@@ -58,10 +59,24 @@
       "maintainer": "Outgun Web",
       "synopsis": "Capture a bandeira com os amigos",
       "executableName": "outgun",
-      "artifactName": "Outgun-linux-${version}.${ext}"
+      "artifactName": "Outgun-linux-${version}.${ext}",
+      "syncDesktopName": true
     },
     "deb": {
-      "packageCategory": "games"
+      "packageCategory": "games",
+      "depends": [
+        "libgtk-3-0t64 | libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0t64 | libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2t64 | libasound2",
+        "libgbm1"
+      ]
     }
   }
 }
