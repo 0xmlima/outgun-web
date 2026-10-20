@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S32 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | D-58 |
 | Skills | `outgun-card-workflow` |
@@ -25,7 +25,10 @@ Como jogador, quero instalar o Outgun pelo Chrome ou Edge, para abrir o jogo pel
 - Botão "Instalar no computador" na página de download (OG-325), usando `beforeinstallprompt` quando o navegador oferecer.
 
 ## Critérios de aceite
-- [ ] O Chrome mostra "Instalar Outgun" na barra de endereço; o app abre em janela própria com ícone e nome do Outgun.
-- [ ] Sem service worker: o app instalado sempre carrega a versão atual do site.
+- [x] O Chrome mostra "Instalar Outgun" na barra de endereço; o app abre em janela própria com ícone e nome do Outgun.
+- [x] Sem service worker: o app instalado sempre carrega a versão atual do site.
 
 ## Notas de implementação
+- Ícones gerados da arte 16×16 do favicon por `apps/web/scripts/app-icons.mjs` (encoder PNG próprio, ampliação sem suavizar); `maskable` com 10% de margem.
+- `app/install.ts` guarda o `beforeinstallprompt` desde a carga (import em `main.tsx`) e expõe `useInstallPrompt`; `isDesktopClient` reconhece o cliente do OG-324 pelo `OutgunDesktop/` no user agent.
+- O botão "Instalar" fica na página de download (OG-325).

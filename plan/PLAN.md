@@ -771,7 +771,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-320](cards/OG-320-botao-assistir-em-toda-sala.md) | Botão "Assistir" em toda sala, Casual e Ranked | E8 | 2 | Must | S30 | OG-319 | Concluído |
 | [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Concluído |
 | [OG-322](cards/OG-322-trilha-nova-e-tocador-na-tela-inicial.md) | Faixas novas, rotação no menu e tocador na tela inicial | E10 | 3 | Should | S31 | — | Concluído |
-| [OG-323](cards/OG-323-app-instalavel-pelo-navegador.md) | Outgun instalável pelo navegador (PWA) | E7 | 2 | Should | S32 | — | Em andamento |
+| [OG-323](cards/OG-323-app-instalavel-pelo-navegador.md) | Outgun instalável pelo navegador (PWA) | E7 | 2 | Should | S32 | — | Em revisão |
 | [OG-324](cards/OG-324-cliente-desktop-electron.md) | Cliente para Windows (Electron) que abre o site | E7 | 3 | Should | S32 | — | Em andamento |
 | [OG-325](cards/OG-325-pagina-de-download.md) | Página "Jogar no computador" e download do instalador | E7 | 2 | Should | S32 | OG-323, OG-324 | Pronto |
 

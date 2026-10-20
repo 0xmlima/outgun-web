@@ -29,6 +29,8 @@ import { OptionsScreen } from './screens/options.js';
 import { ClanInboxScreen, ClanScreen, ClansScreen, CreateClanScreen } from './screens/clans.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
 import { installErrorReporting } from './app/errors.js';
+// guarda o `beforeinstallprompt` desde a carga (OG-323)
+import './app/install.js';
 import './ui/tokens.css';
 import './ui/components.css';
 import './styles.css';
