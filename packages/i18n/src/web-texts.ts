@@ -755,6 +755,32 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Next track': 'Próxima faixa',
     'Mute music': 'Silenciar música',
     'Unmute music': 'Tirar do mudo',
+    // Jogar no computador (OG-323 a OG-326)
+    'Play on your computer': 'Jogar no computador',
+    'Install Outgun or download it for Windows, macOS or Ubuntu': 'Instale o Outgun ou baixe para Windows, macOS ou Ubuntu',
+    'You are already playing in the Outgun app for your computer.': 'Você já está jogando no app do Outgun para computador.',
+    'You are already playing in the installed Outgun app.': 'Você já está jogando no app instalado do Outgun.',
+    'Outgun runs in the browser, but you can also open it from an icon on your computer, in its own window. It is the same game and always the same version as the site: nothing to update.':
+      'O Outgun roda no navegador, mas você também pode abri-lo por um ícone no computador, numa janela própria. É o mesmo jogo e sempre a mesma versão do site: não há nada para atualizar.',
+    'Download the app': 'Baixar o app',
+    'The game itself still comes from the site, so the app is always up to date.': 'O jogo em si continua vindo do site, então o app está sempre atualizado.',
+    'Your system': 'Seu sistema',
+    'Download $1': 'Baixar $1',
+    'Windows 10 and 11, 64 bits. About 110 MB.': 'Windows 10 e 11, 64 bits. Cerca de 110 MB.',
+    'No digital signature yet: if Windows shows "Windows protected your PC", click "More info" and then "Run anyway".':
+      'Ainda sem assinatura digital: se o Windows mostrar "O Windows protegeu o computador", clique em "Mais informações" e depois em "Executar assim mesmo".',
+    'Apple Silicon and Intel, macOS 12 or newer. About 230 MB.': 'Apple Silicon e Intel, macOS 12 ou mais novo. Cerca de 230 MB.',
+    'Open the .dmg and drag Outgun to Applications. The first time, the Mac blocks the app because it does not come from the App Store: go to System Settings > Privacy & Security and click "Open Anyway".':
+      'Abra o .dmg e arraste o Outgun para Aplicativos. Na primeira vez, o Mac bloqueia o app porque ele não vem da App Store: vá em Ajustes do Sistema > Privacidade e Segurança e clique em "Abrir mesmo assim".',
+    'Ubuntu 22.04 or newer (and Debian-based systems), 64 bits. About 110 MB.': 'Ubuntu 22.04 ou mais novo (e sistemas baseados no Debian), 64 bits. Cerca de 110 MB.',
+    'Open the .deb to install it from the App Center, or run: sudo apt install ./Outgun-linux.deb':
+      'Abra o .deb para instalar pela Central de Aplicativos, ou rode: sudo apt install ./Outgun-linux.deb',
+    'Or install from the browser': 'Ou instale pelo navegador',
+    'In Chrome or Edge: no download, a desktop shortcut and its own window. Takes a few seconds.': 'No Chrome ou no Edge: sem baixar nada, com atalho na área de trabalho e janela própria. Leva poucos segundos.',
+    'Installed. Open Outgun from the icon on your computer.': 'Instalado. Abra o Outgun pelo ícone no computador.',
+    'Install Outgun': 'Instalar o Outgun',
+    'If no button appears here, open the browser menu and choose "Install Outgun" (Chrome: the icon at the right of the address bar). Firefox and Safari do not install sites.':
+      'Se nenhum botão aparecer aqui, abra o menu do navegador e escolha "Instalar Outgun" (no Chrome, o ícone à direita da barra de endereço). O Firefox e o Safari não instalam sites.',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
     // telas restantes no visual v2 (OG-203)
     'A .ogr file saved on this computer': 'Um arquivo .ogr salvo neste computador',

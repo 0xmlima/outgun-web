@@ -57,6 +57,7 @@ const PATHS = {
     </>
   ),
   credits: <path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3" />,
+  download: <path d="M12 3v12M7 10l5 5 5-5M4 15v5h16v-5" />,
   feedback: <path d="M4 5h16v11H11l-5 4v-4H4zM8 10.5h.5M12 10.5h.5M16 10.5h.5" />,
   account: (
     <>

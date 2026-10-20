@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
 import { MusicDock } from '../app/music/MusicDock.js';
+import { isInstalledApp } from '../app/install.js';
 import { usePrefs } from '../app/prefs.js';
 import { usePlayNow } from '../app/play-now.js';
 import { APP_VERSION, isOutdated, useServerVersion } from '../app/version.js';
@@ -92,6 +93,7 @@ export function HomeScreen() {
     { icon: 'options', label: t('Options'), onActivate: go('/options') },
     { icon: 'help', label: t('Help'), onActivate: go('/help') },
     { icon: 'credits', label: t('Credits'), onActivate: go('/credits') },
+    ...(isInstalledApp() ? [] : [{ icon: 'download' as const, label: t('Play on your computer'), description: t('Install Outgun or download it for Windows, macOS or Ubuntu'), onActivate: go('/download') }]),
     ...(user ? [{ icon: 'feedback' as const, label: t('Send feedback'), onActivate: go('/feedback') }] : []),
     ...(user && (user.isAdmin || user.isModerator) ? [{ icon: 'shield' as const, label: t('Moderation'), onActivate: go('/admin') }] : []),
     user ? { icon: 'account', label: t('Account'), aside: user.username, onActivate: go('/account') } : { icon: 'account', label: t('Sign in'), onActivate: go('/login') },

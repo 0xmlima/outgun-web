@@ -28,7 +28,10 @@ import { CreditsScreen, HelpScreen, HomeScreen, ReplaysScreen, SourceScreen } fr
 import { OptionsScreen } from './screens/options.js';
 import { ClanInboxScreen, ClanScreen, ClansScreen, CreateClanScreen } from './screens/clans.js';
 import { AboutScreen, PrivacyScreen, TermsScreen } from './screens/legal.js';
+import { DownloadScreen } from './screens/download.js';
 import { installErrorReporting } from './app/errors.js';
+// guarda o `beforeinstallprompt` desde a carga (OG-323)
+import './app/install.js';
 import './ui/tokens.css';
 import './ui/components.css';
 import './styles.css';
@@ -64,6 +67,7 @@ const router = createBrowserRouter([
           { path: 'terms', element: <TermsScreen /> },
           { path: 'privacy', element: <PrivacyScreen /> },
           { path: 'about', element: <AboutScreen /> },
+          { path: 'download', element: <DownloadScreen /> },
           { path: 'login', element: <LoginScreen /> },
           { path: 'register', element: <RegisterScreen /> },
           { path: 'forgot-password', element: <ForgotPasswordScreen /> },

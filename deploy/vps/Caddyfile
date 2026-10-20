@@ -15,6 +15,13 @@
 		respond @metrics 404
 		reverse_proxy game-server:7700
 	}
+	# instalador do cliente para Windows (OG-325, D-58): arquivo estático da pasta downloads da VPS
+	handle_path /download/* {
+		root * /srv/downloads
+		header Cache-Control "no-cache"
+		header X-Content-Type-Options nosniff
+		file_server
+	}
 	handle {
 		@metrics path /api/metrics
 		respond @metrics 404

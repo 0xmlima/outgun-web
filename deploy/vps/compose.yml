@@ -24,6 +24,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+      # instalador do cliente para Windows (OG-325), enviado por upload-desktop.sh
+      - ./downloads:/srv/downloads:ro
     depends_on: [web, game-server]
 
   postgres:

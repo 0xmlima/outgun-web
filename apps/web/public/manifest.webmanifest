@@ -1,0 +1,23 @@
+{
+  "name": "Outgun",
+  "short_name": "Outgun",
+  "description": "Capture a bandeira com os amigos. O clássico Outgun: partidas Casual com convidados e Ranked por temporada.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000040",
+  "theme_color": "#000040",
+  "lang": "pt-BR",
+  "categories": ["games"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

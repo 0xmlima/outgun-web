@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Instaladores do cliente para Windows, macOS e Ubuntu (OG-324, OG-326, D-58). Roda só quando
+# apps/desktop muda (o jogo em si vem do site); o disparo manual vale quando este arquivo estiver no
+# branch padrão. Baixe os artefatos e envie ao servidor com deploy/vps/upload-desktop.sh (OG-325).
+name: Cliente desktop
+
+on:
+  push:
+    paths: ['apps/desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, target: win, files: 'apps/desktop/dist/Outgun-Setup-*.exe' }
+          - { os: macos-latest, target: mac, files: 'apps/desktop/dist/Outgun-mac-*.dmg' }
+          - { os: ubuntu-latest, target: linux, files: 'apps/desktop/dist/Outgun-linux-*.deb' }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --no-audit --no-fund
+      # o npm novo pode pular o postinstall do Electron; garante o binário
+      - run: node node_modules/electron/install.js
+      - run: npm run dist:${{ matrix.target }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: outgun-${{ matrix.target }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error

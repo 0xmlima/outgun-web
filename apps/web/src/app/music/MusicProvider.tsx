@@ -3,6 +3,7 @@
 // pedido por cada tela (`useMusicMode`).
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { loadManifest } from '../../assets.js';
+import { isDesktopClient } from '../install.js';
 import { usePrefs } from '../prefs.js';
 import { MusicPlayer, type MusicMode, type MusicState } from './player.js';
 
@@ -20,6 +21,8 @@ export function MusicProvider({ children }: { readonly children: ReactNode }) {
     void loadManifest().then((m) => alive && player.setTracks(m?.music ?? []));
     // política de autoplay: a música começa no primeiro gesto (tecla, clique ou toque)
     const unlock = () => player.unlock();
+    // no cliente desktop (OG-324) o Electron libera o autoplay: a trilha começa ao abrir
+    if (isDesktopClient()) unlock();
     for (const type of ['keydown', 'pointerdown', 'touchend'] as const) addEventListener(type, unlock, true);
     // para os testes manuais e do navegador (tools/visual-compare)
     (window as { __outgunMusic?: MusicPlayer }).__outgunMusic = player;

@@ -597,6 +597,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S29 | v2: segurança da operação (servidor, banco, GitHub, borda) — OWASP Cheat Sheets | OG-306, OG-308, OG-309, OG-311, OG-315, OG-316, OG-317 | |
 | S30 | v2: espectador para o competitivo e nome que some com o ciano | OG-318, OG-319, OG-320, OG-321 | |
 | S31 | v2: faixas novas, rotação da trilha no menu e tocador na tela inicial | OG-322 | |
+| S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -770,8 +771,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-320](cards/OG-320-botao-assistir-em-toda-sala.md) | Botão "Assistir" em toda sala, Casual e Ranked | E8 | 2 | Must | S30 | OG-319 | Concluído |
 | [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Concluído |
 | [OG-322](cards/OG-322-trilha-nova-e-tocador-na-tela-inicial.md) | Faixas novas, rotação no menu e tocador na tela inicial | E10 | 3 | Should | S31 | — | Concluído |
+| [OG-323](cards/OG-323-app-instalavel-pelo-navegador.md) | Outgun instalável pelo navegador (PWA) | E7 | 2 | Should | S32 | — | Concluído |
+| [OG-324](cards/OG-324-cliente-desktop-electron.md) | Cliente para Windows (Electron) que abre o site | E7 | 3 | Should | S32 | — | Concluído |
+| [OG-325](cards/OG-325-pagina-de-download.md) | Página "Jogar no computador" e download do instalador | E7 | 2 | Should | S32 | OG-323, OG-324 | Concluído |
+| [OG-326](cards/OG-326-cliente-mac-e-ubuntu.md) | Cliente para macOS e Ubuntu e ícones dos sistemas na página | E7 | 2 | Should | S32 | OG-324, OG-325 | Concluído |
 
-**Total:** 164 cards, 569 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 95 cards, 274 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 168 cards, 578 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 99 cards, 283 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -849,6 +854,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-55 | **v2** — Estilos do HUD da partida | — | ✅ **Decidido pelo PO em 2026-10-16:** três estilos em Opções › Gráficos: **Clássico** (o HUD da S25, padrão), **Moderno** (opção A do protótipo `plan/specs/hud-moderno/`: sala com a altura toda à esquerda, coluna com placar dos times e relógio, minimapa, vida, energia, power-ups, arma e chat; frags só no TAB) e **Personalizado** (editor de posição, tamanho e visibilidade, começando do Moderno). A opção B (painéis sobre a sala) foi descartada: informação sobre o mapa cria pontos cegos. Por isso nenhum componente fica sobre a sala, nem no Personalizado. O layout personalizado vai na conta com as outras preferências (sem migration: é mais um campo das configurações) Em 2026-10-16 o PO decidiu que o **Clássico continua o padrão** e pediu a opção de deixar os frags só no TAB também no Clássico, desligada por padrão (OG-302) | PO |
 | D-56 | **v2** — Atraso do espectador ao vivo | — | ✅ **Decidido pelo PO em 2026-10-20:** o `spectating_delay` padrão passa de 120 s (original) para **30 s** em todos os presets, porque 2 minutos é demais para um jogo tão rápido; o atraso continua para ninguém passar posições a um time assistindo ao vivo. `/set spectating_delay` segue valendo (OG-318) | PO |
 | D-57 | **v2** — Espectador em salas com senha | — | ✅ **Decidido pelo PO em 2026-10-20:** salas com senha também podem ser assistidas (revoga a divergência do OG-092 de 2026-10-14); a senha protege só a entrada como jogador. Toda sala, Casual ou Ranked, tem botão "Assistir" (OG-319, OG-320) | PO |
+| D-58 | **v2** — Jogo no computador | — | ✅ **Decidido pelo PO em 2026-10-20:** além da web, o jogador pode instalar o Outgun pelo navegador (PWA) ou baixar um `.exe` (Electron). O cliente desktop é só uma janela que carrega o site: a versão é sempre a mesma da web, sem instalador novo a cada deploy. Sem assinatura digital por ora; o instalador fica no servidor do beta, porque o repositório é privado (OG-323, OG-324, OG-325) | PO |
 
 ---
 
