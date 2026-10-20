@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { readOutgunFont, toBmFont } from './font.js';
-import { MENU_TRACK, mp3Duration, MUSIC_CREDIT, MUSIC_LICENSE, trackId, trackTitle, type MusicTrack } from './music.js';
+import { id3Tags, MENU_TRACK, mp3Duration, MUSIC_CREDIT, MUSIC_LICENSE, trackId, trackTitle, type MusicTrack } from './music.js';
 import { decodePcx } from './pcx.js';
 import { encodePng } from './png.js';
 
@@ -247,9 +247,13 @@ export function buildAssets(gameRoot: string, outDir: string, songsRoot?: string
       if (!file.toLowerCase().endsWith('.mp3')) continue;
       const id = trackId(file);
       const bytes = readFileSync(join(songsRoot, file));
+      const tags = id3Tags(bytes);
       manifest.music.push({
         id,
-        title: trackTitle(file),
+        title: tags.title ?? trackTitle(file),
+        ...(tags.artist && { artist: tags.artist }),
+        ...(tags.album && { album: tags.album }),
+        ...(tags.year && { year: tags.year }),
         role: id === MENU_TRACK ? 'menu' : 'match',
         file: writeHashed(outDir, 'music', id, 'mp3', bytes),
         duration: Math.round(mp3Duration(bytes) * 10) / 10,
@@ -280,7 +284,7 @@ function previewPage(manifest: AssetManifest): string {
     .join('\n');
   const music = manifest.music.length
     ? `<h2>Música (${esc(manifest.music[0]!.credit)})</h2><ul class="sounds">${manifest.music
-        .map((m) => `<li><span>${esc(m.title)}</span><em>${m.role} · ${m.duration} s</em><audio controls preload="none" src="${esc(m.file)}"></audio></li>`)
+        .map((m) => `<li><span>${esc(m.title)}</span><em>${[m.artist, m.album, m.year].filter(Boolean).map((v) => esc(v!)).join(' · ')} · ${m.role} · ${m.duration} s</em><audio controls preload="none" src="${esc(m.file)}"></audio></li>`)
         .join('\n')}</ul>`
     : '';
   const sounds = Object.entries(manifest.sounds)

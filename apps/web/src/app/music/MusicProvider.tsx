@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Liga o tocador da trilha (OG-221) ao app: faixas do manifesto, primeiro gesto do jogador e o modo
 // pedido por cada tela (`useMusicMode`).
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { loadManifest } from '../../assets.js';
 import { usePrefs } from '../prefs.js';
-import { MusicPlayer, type MusicMode } from './player.js';
+import { MusicPlayer, type MusicMode, type MusicState } from './player.js';
 
 const MusicContext = createContext<MusicPlayer | null>(null);
 
@@ -13,8 +13,8 @@ export function MusicProvider({ children }: { readonly children: ReactNode }) {
   const { prefs } = usePrefs();
   // OG-222: efeito imediato; desligada, nenhuma faixa é baixada
   useEffect(() => {
-    player.configure(prefs.musicEnabled, prefs.musicVolume / 100);
-  }, [player, prefs.musicEnabled, prefs.musicVolume]);
+    player.configure(prefs.musicEnabled, prefs.musicVolume / 100, prefs.musicMuted);
+  }, [player, prefs.musicEnabled, prefs.musicVolume, prefs.musicMuted]);
   useEffect(() => {
     let alive = true;
     void loadManifest().then((m) => alive && player.setTracks(m?.music ?? []));
@@ -33,6 +33,15 @@ export function MusicProvider({ children }: { readonly children: ReactNode }) {
 
 export function useMusic(): MusicPlayer | null {
   return useContext(MusicContext);
+}
+
+const NO_MUSIC: MusicState = { status: 'idle', track: null, muted: false };
+const noop = () => () => undefined;
+
+/** Faixa e estado do tocador, para a UI. */
+export function useMusicState(): MusicState {
+  const player = useMusic();
+  return useSyncExternalStore(player?.subscribe ?? noop, player ? player.getState : () => NO_MUSIC);
 }
 
 /** A tela pede o que tocar enquanto estiver aberta (menu, partida Casual, nada). */

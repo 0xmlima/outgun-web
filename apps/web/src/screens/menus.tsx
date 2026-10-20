@@ -7,6 +7,7 @@ import { useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
+import { MusicDock } from '../app/music/MusicDock.js';
 import { usePrefs } from '../app/prefs.js';
 import { usePlayNow } from '../app/play-now.js';
 import { APP_VERSION, isOutdated, useServerVersion } from '../app/version.js';
@@ -97,13 +98,16 @@ export function HomeScreen() {
   ];
   return (
     <div className="ui-container home">
-      <section className="home-hero">
-        <h1 className="home-title">
-          Out<span className="home-title-accent">gun</span>
-        </h1>
-        <p className="home-tagline">{t('Capture the flag with friends, right in the browser.')}</p>
-        <GameVersion />
-      </section>
+      <div className="home-top">
+        <section className="home-hero">
+          <h1 className="home-title">
+            Out<span className="home-title-accent">gun</span>
+          </h1>
+          <p className="home-tagline">{t('Capture the flag with friends, right in the browser.')}</p>
+          <GameVersion />
+        </section>
+        <MusicDock />
+      </div>
       <div className="home-grid">
         <MenuList label={t('Main menu')} items={items} autoFocus className="home-menu" />
         <div className="home-side">

@@ -596,6 +596,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S28 | v2: domínio próprio e prévia de compartilhamento | OG-304, OG-305 | |
 | S29 | v2: segurança da operação (servidor, banco, GitHub, borda) — OWASP Cheat Sheets | OG-306, OG-308, OG-309, OG-311, OG-315, OG-316, OG-317 | |
 | S30 | v2: espectador para o competitivo e nome que some com o ciano | OG-318, OG-319, OG-320, OG-321 | |
+| S31 | v2: faixas novas, rotação da trilha no menu e tocador na tela inicial | OG-322 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -768,8 +769,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-319](cards/OG-319-espectador-em-sala-com-senha.md) | Espectador também em salas com senha | E6 | 1 | Must | S30 | — | Concluído |
 | [OG-320](cards/OG-320-botao-assistir-em-toda-sala.md) | Botão "Assistir" em toda sala, Casual e Ranked | E8 | 2 | Must | S30 | OG-319 | Concluído |
 | [OG-321](cards/OG-321-nome-some-no-placar-cor-ciano.md) | Nome do jogador some no placar (cor ciano) | E8 | 2 | Must | S30 | — | Concluído |
+| [OG-322](cards/OG-322-trilha-nova-e-tocador-na-tela-inicial.md) | Faixas novas, rotação no menu e tocador na tela inicial | E10 | 3 | Should | S31 | — | Concluído |
 
-**Total:** 163 cards, 566 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 94 cards, 271 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 164 cards, 569 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 95 cards, 274 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -827,7 +829,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-35 | **v2** — Fonte única da interface (OG-200) | Inter / Manrope / Space Grotesk / Barlow | ✅ **Decidido em 2026-10-14 (delegada pelo PO):** **Inter** — moderna, simples, a mais legível em tamanhos pequenos e tabelas (algarismos tabulares), acentos completos, OFL | Tech Lead |
 | D-36 | **v2** — Site público / portal | App separado / junto do servidor do jogo | ✅ **Decidido pelo PO em 2026-10-14:** sem portal por ora (OG-210 e OG-216 cancelados). Perfil social e relatórios ficam no cliente atual, servidos junto do servidor do jogo; um site público, quando fizer sentido, será um repositório dedicado | PO |
 | D-37 | **v2** — Música fora do Casual | Só Casual / também Ranked / espectador e replay | ✅ **Decidido pelo PO em 2026-10-14:** Casual e espectador ao vivo com música; Ranked e replay sem | PO |
-| D-38 | **v2** — Autoria e crédito da trilha sonora | — | ✅ **Decidido pelo PO em 2026-10-14:** faixas geradas no Suno pelo próprio PO; crédito "Música: Thiago Vasconcellos"; metadados do Suno removidos dos arquivos. Licença das faixas (PO, 2026-10-14): **CC BY-SA 4.0** | PO |
+| D-38 | **v2** — Autoria e crédito da trilha sonora | — | ✅ **Decidido pelo PO em 2026-10-14:** faixas geradas no Suno pelo próprio PO; crédito "Música: Thiago Vasconcellos" (PO, 2026-10-20: passa a "Música: Thiago Anuszkiewicz", o mesmo autor com o sobrenome polonês, igual à tag de artista dos MP3); metadados do Suno removidos dos arquivos. Licença das faixas (PO, 2026-10-14): **CC BY-SA 4.0** | PO |
 | D-39 | **v2** — Visibilidade do perfil social | Público / público com opção de esconder / só com conta | ✅ **Decidido pelo PO em 2026-10-14:** público, com opções na conta para esconder companheiros/rivais e histórico de partidas (OG-211) | PO |
 | D-40 | **v2** — Quando a partida Ranked começa | Mínimo de 6 jogadores em qualquer formato / sala completa do formato (6, 8 ou 10) | ✅ **Decidido pelo PO em 2026-10-15:** só com a sala completa do formato — um 3x3 não começa sem os 6 jogadores | PO |
 | D-41 | **v2** — Séries md3/md5 | — | ✅ **Decidido pelo PO em 2026-10-15:** séries são só facilitadoras — cada jogo é uma ranqueada normal (ranking por jogo, voto de mapa normal, lados podem mudar no lobby). Fim de md1 → todos voltam ao menu inicial; fim de um jogo de md3/md5 que não encerra a série → todos voltam direto ao lobby da sala; fim da série → menu inicial | PO |
@@ -929,7 +931,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-SOC-03 | Marcos são concedidos automaticamente por feitos em partidas com conta, com data de conquista, inclusive retroativamente. |
 | RN-SOC-04 | Jogadores podem ser buscados por nome ou clã, sem diferença de maiúsculas e acentos. |
 | RN-SOC-05 | Páginas sociais só mostram dados públicos; e-mail e dados sensíveis nunca aparecem. O jogador pode esconder companheiros/rivais e histórico (D-39). |
-| RN-MUS-01 | O menu toca "Outgun Epic" em loop. |
+| RN-MUS-01 | O menu abre com o tema ("Outgun Main Theme", `Outgun epic.mp3`) na primeira vez em que a sessão do navegador toca música; depois rotaciona as demais faixas em ordem aleatória, com crossfade. A tela inicial tem um tocador com a faixa atual (título, artista, álbum e ano das tags ID3), pausar, próxima faixa e mudo. |
 | RN-MUS-02 | Partidas casuais tocam as demais faixas de `songs/` em ordem aleatória, sem repetir até todas tocarem; "Outgun Epic" nunca toca em partida. Outros modos seguem a D-37. |
 | RN-MUS-03 | Música e efeitos têm volumes separados; a música começa só após um gesto do jogador (política de autoplay). |
 | RN-MUS-04 | Nas Opções, o jogador liga/desliga a trilha sonora e ajusta o volume; a escolha é salva e sincronizada com a conta. |

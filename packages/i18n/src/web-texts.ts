@@ -745,7 +745,16 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Soundtrack: 'Trilha sonora',
     'Play the soundtrack': 'Tocar a trilha sonora',
     'Music volume': 'Volume da música',
-    '"Outgun Epic" in the menus; the other tracks shuffled in Casual matches.': '"Outgun Epic" nos menus; as outras faixas em ordem aleatória nas partidas casuais.',
+    'The main theme opens the menus; then all tracks rotate. In Casual matches, every track but the theme, shuffled.':
+      'O tema principal abre os menus; depois todas as faixas se revezam. Nas partidas casuais, todas menos o tema, em ordem aleatória.',
+    'The soundtrack is off.': 'A trilha sonora está desligada.',
+    'Press play or any key to start the music.': 'Aperte o play ou qualquer tecla para começar a música.',
+    'Turn on': 'Ligar',
+    'Play music': 'Tocar música',
+    'Pause music': 'Pausar música',
+    'Next track': 'Próxima faixa',
+    'Mute music': 'Silenciar música',
+    'Unmute music': 'Tirar do mudo',
     'No matches yet. "Play now" starts one.': 'Nenhuma partida ainda. "Jogar agora" começa uma.',
     // telas restantes no visual v2 (OG-203)
     'A .ogr file saved on this computer': 'Um arquivo .ogr salvo neste computador',

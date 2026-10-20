@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Trilha sonora da v2 (OG-220, D-38): as faixas de `songs/` vão para a web como estão (MP3 de ~190
-// kbps, 48 kHz), com hash no nome; o manifesto lista título, papel e duração. Sem recodificar: o
+// kbps, 48 kHz), com hash no nome; o manifesto lista título, artista, álbum e ano (das tags ID3),
+// papel e duração. Sem recodificar: o
 // cliente baixa uma faixa por vez, sob demanda (RN-MUS-05), e o pipeline não depende do ffmpeg.
 
 /** Faixa do menu (RN-MUS-01); as demais tocam nas partidas (RN-MUS-02). */
 export const MENU_TRACK = 'outgun-epic';
-export const MUSIC_CREDIT = 'Thiago Vasconcellos';
+export const MUSIC_CREDIT = 'Thiago Anuszkiewicz';
 /** Licença das faixas (D-38; songs/LICENSE.txt). */
 export const MUSIC_LICENSE = 'CC-BY-SA-4.0';
 
 export interface MusicTrack {
   /** Do nome do arquivo (`Outgun 2-2.mp3` → `outgun-2-2`): faixas distintas podem ter o mesmo título nos metadados. */
   id: string;
+  /** Da tag ID3 (TIT2); sem ela, do nome do arquivo. */
   title: string;
+  /** Tags ID3 TPE1, TALB e TYER/TDRC, quando houver. */
+  artist?: string;
+  album?: string;
+  year?: string;
   role: 'menu' | 'match';
   file: string;
   /** Segundos, com uma casa decimal. */
@@ -95,4 +101,55 @@ export function mp3Duration(bytes: Uint8Array): number {
     offset += frame.length;
   }
   return seconds;
+}
+
+export interface Id3Tags {
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: string;
+}
+
+const ID3_FRAMES: Record<string, keyof Id3Tags> = { TIT2: 'title', TPE1: 'artist', TALB: 'album', TYER: 'year', TDRC: 'year' };
+
+/** Texto de um quadro ID3v2 (byte de encoding + conteúdo). */
+function id3Text(bytes: Uint8Array): string {
+  const body = bytes.subarray(1);
+  let text: string;
+  switch (bytes[0]) {
+    case 1: // UTF-16 com BOM
+    case 2: // UTF-16BE (v2.4)
+      text = new TextDecoder(bytes[0] === 2 || (body[0] === 0xfe && body[1] === 0xff) ? 'utf-16be' : 'utf-16le').decode(body);
+      break;
+    case 3:
+      text = new TextDecoder('utf-8').decode(body);
+      break;
+    default:
+      text = String.fromCharCode(...body);
+  }
+  return text.replace(/^\uFEFF/, '').replace(/\0[\s\S]*$/, '').trim();
+}
+
+const syncsafe = (b: Uint8Array, i: number) => ((b[i]! & 0x7f) << 21) | ((b[i + 1]! & 0x7f) << 14) | ((b[i + 2]! & 0x7f) << 7) | (b[i + 3]! & 0x7f);
+
+/** Título, artista, álbum e ano da tag ID3v2.3/2.4 do início do arquivo (vazio se não houver). */
+export function id3Tags(bytes: Uint8Array): Id3Tags {
+  const tags: Id3Tags = {};
+  if (!(bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)) return tags;
+  const version = bytes[3]!;
+  if (version !== 3 && version !== 4) return tags;
+  const end = Math.min(bytes.length, 10 + syncsafe(bytes, 6));
+  let offset = 10;
+  if (bytes[5]! & 0x40) offset += version === 4 ? syncsafe(bytes, 10) : 4 + ((bytes[10]! << 24) | (bytes[11]! << 16) | (bytes[12]! << 8) | bytes[13]!);
+  while (offset + 10 <= end && bytes[offset] !== 0) {
+    const id = String.fromCharCode(...bytes.subarray(offset, offset + 4));
+    const size = version === 4 ? syncsafe(bytes, offset + 4) : ((bytes[offset + 4]! << 24) | (bytes[offset + 5]! << 16) | (bytes[offset + 6]! << 8) | bytes[offset + 7]!) >>> 0;
+    const key = ID3_FRAMES[id];
+    if (key && size > 1) {
+      const text = id3Text(bytes.subarray(offset + 10, Math.min(end, offset + 10 + size)));
+      if (text) tags[key] = key === 'year' ? text.slice(0, 4) : text;
+    }
+    offset += 10 + size;
+  }
+  return tags;
 }

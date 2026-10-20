@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ordem das faixas nas partidas (RN-MUS-02, OG-221): aleatória, sem repetir até todas tocarem, e sem
-// emendar a mesma faixa na virada de uma rodada para a outra. "Outgun Epic" (a do menu) nunca entra.
+// emendar a mesma faixa na virada de uma rodada para a outra. o tema do menu nunca entra.
 import type { MusicTrack } from '../../assets.js';
 
 /** Faixas das partidas (papel `match`). */
