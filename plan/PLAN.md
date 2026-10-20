@@ -775,8 +775,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-324](cards/OG-324-cliente-desktop-electron.md) | Cliente para Windows (Electron) que abre o site | E7 | 3 | Should | S32 | — | Concluído |
 | [OG-325](cards/OG-325-pagina-de-download.md) | Página "Jogar no computador" e download do instalador | E7 | 2 | Should | S32 | OG-323, OG-324 | Concluído |
 | [OG-326](cards/OG-326-cliente-mac-e-ubuntu.md) | Cliente para macOS e Ubuntu e ícones dos sistemas na página | E7 | 2 | Should | S32 | OG-324, OG-325 | Concluído |
+| [OG-327](cards/OG-327-teste-do-tick-instavel.md) | Teste do tick com 32 conexões falha à toa | E7 | 2 | Should | — | — | Backlog |
 
-**Total:** 168 cards, 578 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 99 cards, 283 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 169 cards, 580 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 100 cards, 285 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
