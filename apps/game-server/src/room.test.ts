@@ -152,13 +152,13 @@ describe('Room', () => {
     expect(r.results).toHaveLength(1);
     expect(r.results[0]!.winner).toBe(0);
     const frameAtEnd = r.frame;
-    for (let i = 0; i < 49; i++) r.tick();
+    for (let i = 0; i < 99; i++) r.tick();
     expect(a.conn.lastFrame()?.skipped).toBe(true);
     expect(a.conn.of('startGame')).toHaveLength(1); // só o do segundo jogador
     r.tick();
     expect(a.conn.of('startGame')).toHaveLength(2);
-    // 50 frames de placar depois do frame do fim (como match-sudden-death no original)
-    expect(r.world.mapStartFrame).toBe(frameAtEnd - 1 + 50);
+    // 100 frames de placar depois do frame do fim (10 s para o modal de fim de partida, D-63)
+    expect(r.world.mapStartFrame).toBe(frameAtEnd - 1 + 100);
     // precisa confirmar o mapa novo antes de nascer
     r.handle(a.pid, [message('clientReady', {})]);
     for (let i = 0; i < 2; i++) r.tick();

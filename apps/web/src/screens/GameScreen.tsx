@@ -5,7 +5,7 @@
 // ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim; a senha
 // da sala vem do lobby no estado da navegação),
 // ?demo=JOGADORES (partida local) e ?map=NOME&theme=TEMA&rooms=N&room=X,Y (visualizador de mapa).
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
 import { joinName, useAccount } from '../app/account.js';
@@ -21,6 +21,7 @@ import { useMusicMode } from '../app/music/MusicProvider.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 import { RankedLobby, type LobbyView } from './RankedLobby.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
+import { MatchEndDialog, matchSummary, type MatchSummary } from './match-end.js';
 import { OptionsBody, SaveStatusLine, type OptionsTab } from './options.js';
 
 /** Opções do jogador que valem na partida (OG-068). */
@@ -202,6 +203,9 @@ export default function GameScreen() {
   // tela por `game_end_delay` antes de o lobby (ou o fim da série) aparecer
   const [series, setSeries] = useState<SeriesBar | null>(null);
   const endHold = useRef({ phase: '', until: 0 });
+  // fim de partida no modal (OG-344): o lobby da série (ou o menu) só aparece quando ele fecha
+  const [matchEnd, setMatchEnd] = useState<MatchSummary | null>(null);
+  const matchEndOpen = useRef(false);
   useEffect(() => {
     if (onlineKey === null) return;
     const id = setInterval(() => {
@@ -214,7 +218,7 @@ export default function GameScreen() {
       const now = performance.now();
       if (endHold.current.phase === 'game' && l.phase !== 'game') endHold.current.until = now + s.settings.server.gameEndDelay * 1000;
       endHold.current.phase = l.phase;
-      const holding = now < endHold.current.until;
+      const holding = now < endHold.current.until || matchEndOpen.current;
       setSeries(l.bestOf > 1 && (l.phase === 'game' || holding) ? { bestOf: l.bestOf, gameNo: l.gameNo, red: l.seriesRed, blue: l.seriesBlue } : null);
       if (l.phase === 'game' || holding) return setLobby(null);
       if (lobbyAt.current.msg !== l) lobbyAt.current = { msg: l, at: now };
@@ -231,7 +235,13 @@ export default function GameScreen() {
     return () => clearInterval(id);
   }, [onlineKey]);
   const inLobby = lobby !== null;
-  useEffect(() => host.current?.setInputEnabled(!menuOpen && !inLobby), [menuOpen, inLobby]);
+  useEffect(() => host.current?.setInputEnabled(!menuOpen && !inLobby && !matchEnd), [menuOpen, inLobby, matchEnd]);
+  // fechou o modal: fim da série ou md1 vai ao menu; jogo da série que não acaba vai ao lobby; Casual segue
+  const closeMatchEnd = useCallback(() => {
+    matchEndOpen.current = false;
+    setMatchEnd(null);
+    if (host.current?.session()?.lobby?.phase === 'finished') void navigate('/');
+  }, [navigate]);
   // fechar o menu fecha também as Opções
   useEffect(() => {
     if (!menuOpen) setOptionsTab(null);
@@ -253,10 +263,17 @@ export default function GameScreen() {
       if (a.statsReady < 0) a.statsReady = s.statsReadyCount;
       if (s.statsReadyCount !== a.statsReady) {
         a.statsReady = s.statsReadyCount;
-        if (prefs.showStats !== 'off') setInfo((cur) => cur ?? { kind: prefs.showStats === 'teams' ? 'teams' : 'players', auto: true });
+        // no fim de partida quem mostra os números é o modal (OG-344)
+        if (prefs.showStats !== 'off' && s.gameOver === null) setInfo((cur) => cur ?? { kind: prefs.showStats === 'teams' ? 'teams' : 'players', auto: true });
       }
       if (a.gameOver && !s.gameOver) setInfo((cur) => (cur?.auto ? null : cur));
-      if (!a.gameOver && s.gameOver !== null) setLastGameOverAt(Date.now());
+      if (!a.gameOver && s.gameOver !== null) {
+        setLastGameOverAt(Date.now());
+        matchEndOpen.current = true;
+      }
+      // o placar da série chega logo depois do fim: o retrato acompanha enquanto o modal está aberto
+      const summary = matchEndOpen.current ? matchSummary(s) : null;
+      if (summary) setMatchEnd(summary);
       a.gameOver = s.gameOver !== null;
       setGameOver(a.gameOver);
       if (!a.serverShown && s.me >= 0 && s.world) {
@@ -284,7 +301,7 @@ export default function GameScreen() {
   useEffect(() => {
     if (menuOpen) return;
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') {
+      if (ev.key === 'Escape' && !matchEndOpen.current) {
         ev.preventDefault();
         setMenuOpen(true);
       }
@@ -347,7 +364,8 @@ export default function GameScreen() {
             {...(lastGameOverAt !== null && sala ? { onReport: openReport } : {})} />
         )}
         {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
-        {gameOver && sala && !menuOpen && !lobby && (
+        {matchEnd && !menuOpen && <MatchEndDialog summary={matchEnd} onClose={closeMatchEnd} {...(sala ? { onReport: openReport } : {})} />}
+        {gameOver && sala && !menuOpen && !lobby && !matchEnd && (
           <Button variant="primary" className="game-report" onClick={openReport}>
             {t('View match report')}
           </Button>

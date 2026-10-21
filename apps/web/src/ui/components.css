@@ -795,3 +795,30 @@ html {
   gap: var(--space-2);
   padding-inline-start: var(--space-5);
 }
+
+/* Fim de partida (OG-344) */
+.match-end .team-red {
+  color: var(--text-team-red);
+}
+.match-end .team-blue {
+  color: var(--text-team-blue);
+}
+.match-end-win .ui-panel-title {
+  color: var(--text-success);
+}
+.match-end-loss .ui-panel-title {
+  color: var(--text-danger);
+}
+.match-end-score {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+.match-end-reason,
+.match-end-series {
+  text-align: center;
+}
+.match-end-me {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}

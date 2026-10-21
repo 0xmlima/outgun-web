@@ -81,6 +81,7 @@ describe('ranking na sala (OG-084)', () => {
     r.sim.scoreFrag(red[0]!, 3);
     r.sim.scoreNeg(red[1]!, 2);
     r.settings.world.timeLimit = 30;
+    r.settings.world.extraTime = 0; // sem a prorrogação do Ranked (RN-RKL-25)
     for (let i = 0; i < 40; i++) r.tick();
     expect(matches).toHaveLength(1);
     const m = matches[0]!;
