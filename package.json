@@ -1,6 +1,6 @@
 {
   "name": "outgun-web",
-  "version": "2.32.0",
+  "version": "2.33.0",
   "private": true,
   "description": "Port web do Outgun 1.0.3 (CTF 2D multiplayer)",
   "license": "GPL-2.0-or-later",
@@ -20,6 +20,7 @@
     "check:version": "node tools/dev/version.mjs --check",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:legacy && pnpm check:licenses && pnpm check:version",
     "oracle": "bash tools/parity/oracle.sh",
+    "steam:upload": "bash apps/desktop/steam/upload.sh",
     "check:licenses": "node tools/license-check/check.mjs",
     "visual:check": "node tools/visual-compare/hud-check.mjs && node tools/visual-compare/hud-check.mjs --style modern && node tools/visual-compare/hud-check.mjs --style classic-tab",
     "visual:update": "node tools/visual-compare/hud-check.mjs --update && node tools/visual-compare/hud-check.mjs --update --style modern && node tools/visual-compare/hud-check.mjs --update --style classic-tab",

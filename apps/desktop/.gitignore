@@ -1,2 +1,4 @@
 dist/
 node_modules/
+# pastas baixadas e saída do SteamCMD (OG-328)
+steam/work/

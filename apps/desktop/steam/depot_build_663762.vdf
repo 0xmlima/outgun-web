@@ -1,0 +1,11 @@
+// Depot 663762: macOS (Outgun.app universal).
+"DepotBuild"
+{
+	"DepotID" "663762"
+	"FileMapping"
+	{
+		"LocalPath" "mac/*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+}

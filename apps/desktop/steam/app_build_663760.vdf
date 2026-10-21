@@ -1,0 +1,16 @@
+// Build do Outgun na Steam (OG-328, D-59). Usado por upload.sh; os caminhos são relativos a este
+// arquivo. O build vai só para a branch "beta": a "default" o PO promove à mão no Steamworks.
+"AppBuild"
+{
+	"AppID" "663760"
+	"Desc" "Outgun"
+	"SetLive" "beta"
+	"ContentRoot" "work/content/"
+	"BuildOutput" "work/output/"
+	"Depots"
+	{
+		"663761" "depot_build_663761.vdf"
+		"663762" "depot_build_663762.vdf"
+		"663763" "depot_build_663763.vdf"
+	}
+}
