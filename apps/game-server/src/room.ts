@@ -1097,11 +1097,7 @@ export class Room {
         this.sentTeamStats[team] = key;
         this.broadcast(teamStatsMessage(team, world.teams[team]));
       });
-      world.teams.forEach((t, team) => {
-        if (t.score === this.sentScores[team]) return;
-        this.sentScores[team] = t.score;
-        this.broadcast(message('scoreUpdate', { team: team === 0 ? 'red' : 'blue', score: t.score }));
-      });
+      this.sendScores();
     }
     if (running) this.announceVotes();
     const flagModes = this.sim.flagModes();
@@ -1565,8 +1561,19 @@ export class Room {
   }
 
   /** Fim de partida no meio do frame (`server_next_map`): próximo mapa da rotação e placar. */
+  /** `scoreUpdate` do placar que mudou desde o último envio. */
+  private sendScores(): void {
+    this.world.teams.forEach((t, team) => {
+      if (t.score === this.sentScores[team]) return;
+      this.sentScores[team] = t.score;
+      this.broadcast(message('scoreUpdate', { team: team === 0 ? 'red' : 'blue', score: t.score }));
+    });
+  }
+
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
+    // a captura final acontece no mesmo frame: o placar vai antes do `gameOver`, que o cliente congela (OG-343)
+    this.sendScores();
     this.pause?.reset(); // saldo de pausa por jogo, também na série (D-45)
     // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar (e no fim do replay)
     this.broadcast(...endOfGameMessages([...this.clients.keys()].map((pid) => this.world.players[pid] as PlayerState), [this.world.teams[0], this.world.teams[1]]));

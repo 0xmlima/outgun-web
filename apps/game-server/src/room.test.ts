@@ -146,6 +146,9 @@ describe('Room', () => {
     r.world.players[0]!.stats.carriedFlag = 2;
     r.tick();
     expect(a.conn.of('gameOver')).toHaveLength(1);
+    // a captura final chega antes do placar de fim de partida (OG-343: mostrava 7 em vez de 8)
+    const order = a.conn.received.filter((m) => m.type === 'scoreUpdate' || m.type === 'gameOver').map((m) => (m.type === 'scoreUpdate' ? m.score : m.type));
+    expect(order).toEqual([1, 'gameOver', 0]); // depois, o placar zerado do mapa seguinte
     expect(r.results).toHaveLength(1);
     expect(r.results[0]!.winner).toBe(0);
     const frameAtEnd = r.frame;
