@@ -8,6 +8,8 @@ export interface AccountUser {
   readonly username: string;
   readonly email: string;
   readonly clanTag: string | null;
+  /** Tag decorada pelo estilo do clã (OG-338). */
+  readonly clanLabel: string | null;
   readonly isAdmin: boolean;
   /** Moderador do painel (OG-087). */
   readonly isModerator?: boolean;
@@ -47,4 +49,12 @@ export function useAccount(): AccountContextValue {
   const value = useContext(AccountContext);
   if (!value) throw new Error('useAccount fora do AccountProvider');
   return value;
+}
+
+/**
+ * Nome que vai no pedido de entrada: o da conta, ou o das preferências para o convidado (OG-333).
+ * Com sessão a API usa o da conta de qualquer jeito; mandar "Convidado" só confundia quem lê o pedido.
+ */
+export function joinName(user: AccountUser | null | undefined, playerName: string): string {
+  return user?.username ?? (playerName.trim() || 'Convidado');
 }

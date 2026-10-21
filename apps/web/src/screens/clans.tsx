@@ -7,7 +7,8 @@ import { useAccount, type AccountUser } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { TextAreaField, TextField } from '../ui/Field.js';
+import { CLAN_TAG_STYLES, chatName, clanLabel, type ClanTagStyle } from '@outgun/protocol';
+import { ChoiceField, TextAreaField, TextField } from '../ui/Field.js';
 import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
@@ -55,6 +56,24 @@ export function useClanInbox(): { inbox: ClanInbox | undefined; reload: () => vo
 export const inboxCount = (inbox: ClanInbox | undefined) => (inbox ? inbox.invites.length + inbox.clanRequests : 0);
 
 const clanPath = (tag: string) => `/clans/${encodeURIComponent(tag)}`;
+
+/** Estilo da tag com a prévia de cada opção, "(Dk) Felix", "Dk.Felix" (OG-338). */
+function TagStyleField({ tag, value, onChange, disabled, hint }: { readonly tag: string; readonly value: ClanTagStyle; readonly onChange: (v: ClanTagStyle) => void; readonly disabled?: boolean; readonly hint?: string | undefined }) {
+  const { t } = usePrefs();
+  const { user } = useAccount();
+  const sample = tag.trim() || 'Dk';
+  const name = user?.username ?? 'Felix';
+  return (
+    <ChoiceField
+      label={t('Tag in game')}
+      value={value}
+      options={CLAN_TAG_STYLES.map((style) => ({ value: style, label: chatName(name, clanLabel(sample, style)) }))}
+      onChange={onChange}
+      {...(disabled ? { disabled } : {})}
+      hint={hint ?? t('How the tag appears next to the names of the members.')}
+    />
+  );
+}
 
 export function ClanInboxScreen() {
   const { t } = usePrefs();
@@ -182,6 +201,9 @@ interface ClanMember {
 interface ClanPage {
   readonly name: string;
   readonly tag: string;
+  /** Como a tag aparece junto do nome (OG-338). */
+  readonly tagStyle: ClanTagStyle;
+  readonly tagLabel: string;
   readonly description: string;
   readonly createdAt: string;
   readonly members: readonly ClanMember[];
@@ -306,7 +328,7 @@ export function ClansScreen() {
         ) : (
           <Status loading={list.data === undefined} missing={false} error={list.error} />
         )}
-        <p className="ui-muted">{t('The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show a tag as "(TAG) name".')}</p>
+        <p className="ui-muted">{t('The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show its tag next to your name.')}</p>
       </Panel>
     </Page>
   );
@@ -319,6 +341,7 @@ export function CreateClanScreen() {
   const errorText = useClanErrorText();
   const [name, setName] = useState('');
   const [tag, setTag] = useState('');
+  const [tagStyle, setTagStyle] = useState<ClanTagStyle>('paren');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<FormMessage>(null);
@@ -327,7 +350,7 @@ export function CreateClanScreen() {
   const submit = async () => {
     setBusy(true);
     try {
-      const r = await api<{ clan: ClanPage }>('/clans', { method: 'POST', body: { name: name.trim(), tag: tag.trim(), description } });
+      const r = await api<{ clan: ClanPage }>('/clans', { method: 'POST', body: { name: name.trim(), tag: tag.trim(), tagStyle, description } });
       setUser((await api<{ user: AccountUser }>('/auth/me')).user);
       void navigate(clanPath(r.clan.tag), { replace: true });
     } catch (e) {
@@ -349,7 +372,8 @@ export function CreateClanScreen() {
           }
         >
           <TextField label={t('Clan name')} value={name} onChange={setName} maxLength={24} hint={t('3 to 24 characters.')} autoFocus />
-          <TextField label={t('Tag')} value={tag} onChange={setTag} maxLength={2} hint={t('1 or 2 characters, shown in game as "(TAG) name".')} />
+          <TextField label={t('Tag')} value={tag} onChange={setTag} maxLength={2} hint={t('1 or 2 characters.')} />
+          <TagStyleField tag={tag} value={tagStyle} onChange={setTagStyle} />
           <TextAreaField label={t('Description')} value={description} onChange={setDescription} maxLength={500} rows={4} />
         </Form>
         <FormMessageLine message={message} />
@@ -397,7 +421,7 @@ export function ClanScreen() {
 
   return (
     <Page
-      title={`(${clan.tag}) ${clan.name}`}
+      title={`${clan.tagLabel} ${clan.name}`}
       subtitle={`${t('Founded on $1', new Date(clan.createdAt).toLocaleDateString())} · ${t('$1 members', String(clan.members.length))}`}
       onBack={() => void navigate('/clans')}
       backLabel={t('Back')}
@@ -524,11 +548,12 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
   const base = clanPath(clan.tag);
   const [name, setName] = useState(clan.name);
   const [tag, setTag] = useState(clan.tag);
+  const [tagStyle, setTagStyle] = useState<ClanTagStyle>(clan.tagStyle);
   const [description, setDescription] = useState(clan.description);
   const [invitee, setInvitee] = useState('');
   const pending = useApi<{ invites: Pending[]; requests: Pending[] }>(`${base}/pending?v=${tick}`);
   const save = () => {
-    const body = { name: name.trim(), description, ...(leader ? { tag: tag.trim() } : {}) };
+    const body = { name: name.trim(), description, ...(leader ? { tag: tag.trim(), tagStyle } : {}) };
     void act(base, { method: 'PATCH', body }, () => {
       toast(t('Saved.'), 'success');
       void navigate(clanPath(body.tag ?? clan.tag), { replace: true });
@@ -592,6 +617,7 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
         >
           <TextField label={t('Clan name')} value={name} onChange={setName} maxLength={24} />
           <TextField label={t('Tag')} value={tag} onChange={setTag} maxLength={2} disabled={!leader} hint={leader ? undefined : t('Only the leader changes the tag.')} />
+          <TagStyleField tag={tag} value={tagStyle} onChange={setTagStyle} disabled={!leader} hint={leader ? undefined : t('Only the leader changes the tag.')} />
           <TextAreaField label={t('Description')} value={description} onChange={setDescription} maxLength={500} rows={4} />
         </Form>
       </Panel>

@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
+import { joinName, useAccount } from '../app/account.js';
 import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
 import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
 import type { Prefs } from '../app/prefs.js';
@@ -20,6 +21,7 @@ import { useMusicMode } from '../app/music/MusicProvider.js';
 import { Menu, type MenuItem } from '../ui/Menu.js';
 import { RankedLobby, type LobbyView } from './RankedLobby.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
+import { OptionsBody, SaveStatusLine, type OptionsTab } from './options.js';
 
 /** Opções do jogador que valem na partida (OG-068). */
 function clientOptions(p: Prefs): ClientOptions {
@@ -71,6 +73,7 @@ const FOCUS_HINT_KEY = 'outgun.focusHint';
 
 export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
+  const { user } = useAccount();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   // senha da sala privada vem do lobby pelo estado da navegação (nunca na URL)
@@ -79,10 +82,12 @@ export default function GameScreen() {
   /** Contêiner do jogo inteiro: é ele que entra em tela cheia no modo foco (OG-315). */
   const gameRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  /** Opções por cima da partida (OG-339): a sala continua; o Esc volta ao menu. */
+  const [optionsTab, setOptionsTab] = useState<OptionsTab | null>(null);
   const [status, setStatus] = useState<GameStatus | null>(null);
-  // trilha (OG-221, D-37): playlist só nas salas Casual; até o servidor dizer o modo, silêncio
+  // trilha (OG-221, D-37): playlist no Casual e no Ranked (OG-334); até o servidor dizer o modo, silêncio
   const [roomMode, setRoomMode] = useState<'casual' | 'ranked' | null>(null);
-  useMusicMode(roomMode === 'casual' ? 'match' : 'off');
+  useMusicMode(roomMode !== null ? 'match' : 'off');
   const [toast, setToast] = useState<string | null>(null);
   /** Tela F1–F5 aberta (OG-066); `auto` = aberta sozinha no fim da partida (`stats_autoshowing`). */
   const [info, setInfo] = useState<{ kind: InfoKind; auto: boolean } | null>(null);
@@ -111,7 +116,7 @@ export default function GameScreen() {
         url: params.get('server') ?? defaultServerUrl(),
         explicitServer: params.has('server'),
         room: params.get('sala') ?? 'main',
-        name: params.get('name') ?? (prefs.playerName.trim() || 'Convidado'),
+        name: params.get('name') ?? joinName(user, prefs.playerName),
         ...(password ? { password } : {}),
         telemetry: prefs.shareNetStats,
         ...(lag > 0 || loss > 0 ? { simulate: { rttMs: lag, jitterMs: lag / 10, loss } } : {}),
@@ -227,6 +232,10 @@ export default function GameScreen() {
   }, [onlineKey]);
   const inLobby = lobby !== null;
   useEffect(() => host.current?.setInputEnabled(!menuOpen && !inLobby), [menuOpen, inLobby]);
+  // fechar o menu fecha também as Opções
+  useEffect(() => {
+    if (!menuOpen) setOptionsTab(null);
+  }, [menuOpen]);
 
   // `netStatsReady`/`netGameStarted`: F3/F4 abrem sozinhas no fim da partida e fecham no começo da
   // próxima; F5 abre ao conectar com `Show server info when connected` (OG-066)
@@ -301,8 +310,14 @@ export default function GameScreen() {
       { kind: 'action', label: t('Bots from my options and restart now'), onActivate: () => apply(true) },
     ];
   }
+  const onOff = (on: boolean) => (on ? t('On') : t('Off'));
   const items: MenuItem[] = [
     { kind: 'action', label: t('Back to game'), onActivate: () => setMenuOpen(false) },
+    // ajustes rápidos sem sair da partida (OG-339)
+    { kind: 'choice', label: t('Music'), value: onOff(prefs.musicEnabled), onChange: () => setPrefs({ musicEnabled: !prefs.musicEnabled }) },
+    { kind: 'choice', label: t('Sound effects'), value: onOff(prefs.soundEnabled), onChange: () => setPrefs({ soundEnabled: !prefs.soundEnabled }) },
+    { kind: 'action', label: t('Controls...'), onActivate: () => setOptionsTab('controls') },
+    { kind: 'action', label: t('Options...'), onActivate: () => setOptionsTab('game') },
     ...(lastGameOverAt !== null && sala ? [{ kind: 'action' as const, label: t('View match report'), onActivate: openReport }] : []),
     {
       kind: 'action',
@@ -337,7 +352,9 @@ export default function GameScreen() {
             {t('View match report')}
           </Button>
         )}
-        {menuOpen ? (
+        {menuOpen && optionsTab ? (
+          <InGameOptions tab={optionsTab} onTab={setOptionsTab} onClose={() => setOptionsTab(null)} />
+        ) : menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
         ) : lobby || (onlineKey !== null && status?.kind === 'ready') ? null : (
           <p className="game-hint">
@@ -358,5 +375,31 @@ export default function GameScreen() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Opções sobre a partida (OG-339): as mesmas abas da tela de Opções; Esc ou "Voltar" retornam ao menu. */
+function InGameOptions({ tab, onTab, onClose }: { readonly tab: OptionsTab; readonly onTab: (tab: OptionsTab) => void; readonly onClose: () => void }) {
+  const { t } = usePrefs();
+  const { user } = useAccount();
+  useEffect(() => {
+    // a captura de tecla dos Controles consome o próprio Esc (defaultPrevented)
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+      ev.preventDefault();
+      onClose();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <section className="game-options" aria-label={t('Options')}>
+      <header className="game-options-head">
+        <h2>{t('Options')}</h2>
+        <SaveStatusLine account={!!user} />
+        <Button onClick={onClose}>{t('Back')}</Button>
+      </header>
+      <OptionsBody tab={tab} onTab={onTab} inGame />
+    </section>
   );
 }

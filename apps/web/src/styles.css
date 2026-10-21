@@ -361,11 +361,12 @@ body {
   padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
   color: var(--menu-disabled);
 }
+/* no topo, sobre as salas: embaixo ficam o minimapa e o placar do HUD (OG-340) */
 .replay-bar {
   position: absolute;
   left: calc(var(--px) * 8px);
   right: calc(var(--px) * 8px);
-  bottom: calc(var(--px) * 6px);
+  top: calc(var(--px) * 6px);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -725,4 +726,26 @@ body {
 }
 .hud-editor-toggles input {
   accent-color: var(--accent);
+}
+
+/* Opções por cima da partida (OG-339): a sala segue atrás; as mesmas abas da tela de Opções. */
+.game-options {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+  background: var(--surface-0);
+  color: var(--text);
+  font-family: var(--font);
+  pointer-events: auto;
+}
+.game-options-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.game-options-head h2 {
+  margin: 0;
+  flex: 1;
 }

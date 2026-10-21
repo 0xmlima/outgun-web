@@ -1,48 +1,39 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Chat (OG-046, RN-CHT-01/02): anti-flood como `Server::chat` (src/server.cpp:1480-1494) e o
-// resfriamento em `simulatePlayerPrePhysics` (src/world.cpp:3126-3132), `isFlood`
-// (src/commont.cpp:202), `formatDuration` (src/utility.cpp:551) e o filtro de palavras (novo).
+// Chat (OG-046, RN-CHT-01/02): anti-flood só para rajadas extremas (D-60, OG-335; o original bloqueava
+// na 3ª mensagem seguida e descartava caractere repetido), `formatDuration` (src/utility.cpp:551) e o
+// filtro de palavras (novo).
 import { foldAccents } from '@outgun/protocol';
 
 /** max_chat_message_length (src/commont.h:54). */
 export const MAX_CHAT_LENGTH = 200;
 
-/** "Temperatura" da conversa de um jogador. */
+/** Mensagens numa rajada que bloqueiam o chat (D-60: só o flood extremo). */
+export const FLOOD_LIMIT = 30;
+/** O bloqueio acaba quando a conta esfria até aqui (~10 s depois do bloqueio). */
+const FLOOD_RELEASE = FLOOD_LIMIT - 10;
+
+/**
+ * "Temperatura" da conversa de um jogador (D-60, revê a RN-CHT-02 do original): cada mensagem soma 1 e
+ * esfria 0,1 por frame (uma mensagem por segundo nunca acumula); passar de `FLOOD_LIMIT` bloqueia até
+ * esfriar a `FLOOD_RELEASE`. Tentativas durante o bloqueio não esquentam, então ele sempre acaba.
+ */
 export class TalkMeter {
   temp = 0;
-  hotness = 1;
+  blocked = false;
 
-  /** Uma vez por frame. */
+  /** Uma vez por frame do servidor (também no lobby, na pausa e entre mapas). */
   cool(): void {
     this.temp = Math.max(0, this.temp - 0.1);
-    this.hotness = Math.max(1, this.hotness - 0.1);
+    if (this.blocked && this.temp <= FLOOD_RELEASE) this.blocked = false;
   }
 
   /** Conta uma mensagem; true = "too much talk" (a mensagem é descartada). */
   speak(): boolean {
-    this.temp += this.hotness;
-    this.hotness += 3;
-    if (this.temp > 18) this.temp = 18;
-    if (this.hotness > 6) this.hotness = 6;
-    if (this.temp > 10) {
-      this.temp = 18;
-      return true;
-    }
-    return false;
+    if (this.blocked) return true;
+    this.temp += 1;
+    if (this.temp > FLOOD_LIMIT) this.blocked = true;
+    return this.blocked;
   }
-}
-
-/** Mesmo caractere 7 vezes seguidas. */
-export function isFlood(message: string): boolean {
-  let count = 0;
-  let chr = '';
-  for (const ch of message) {
-    if (ch !== chr) {
-      chr = ch;
-      count = 1;
-    } else if (++count === 7) return true;
-  }
-  return false;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');

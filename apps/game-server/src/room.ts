@@ -8,7 +8,7 @@ import { applyGamemod, formatPlayers, newSeries, recordSeriesGame, seriesOver, s
 import { findPreset } from './presets.js';
 import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
 import { randomUUID } from 'node:crypto';
-import { censor, formatDuration, isFlood, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
+import { censor, formatDuration, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
 import { BOT_LEVELS, botSkill, type BotSkill } from '@outgun/bots';
@@ -1070,11 +1070,12 @@ export class Room {
       else this.goShort(r.pid);
     }
     if (this.pause?.tick(this.uptimeFrames)) this.broadcast(this.mapTimeMessage()); // retomou: relógio do cliente no lugar
+    // o chat esfria sempre: no lobby, na pausa e entre mapas o bloqueio também acaba (OG-335)
+    for (const c of this.clients.values()) c.talk.cool();
     const paused = inGame && (this.pause?.active ?? false);
     const running = inGame && !paused;
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
-      for (const c of this.clients.values()) c.talk.cool(); // `simulatePlayerPrePhysics`
       this.sim.simulateFrame();
       for (const [pid, c] of this.clients) {
         const pl = world.players[pid] as PlayerState;
@@ -1304,7 +1305,6 @@ export class Room {
     if (text.trim() === '') return; // só espaços
     if (c.talk.speak()) return this.queueTo(pid, message('tooMuchTalk', {}));
     if (c.muted === 1) return this.queueTo(pid, message('muted', {}));
-    if (isFlood(text)) return;
     const team = text.startsWith('.');
     const body = censor((team ? text.slice(1) : text).trim(), this.options.chatFilter ?? new Set());
     const msg = message('text', { kind: team ? 'team' : 'normal', from: pid, text: `${chatName(c.identity.name, c.identity.clanTag)}: ${body}` });
@@ -2000,13 +2000,15 @@ export class Room {
     this.pendingRotation = same ? null : [...entries];
   }
 
-  /** Jogadores para o painel admin (heartbeat, OG-087). */
-  roster(): { uid: number; name: string; team: number; accountId?: string; bot: boolean; muted: number }[] {
+  /** Jogadores para o painel admin (heartbeat, OG-087) e a volta de quem caiu (OG-332). */
+  roster(): { uid: number; name: string; team: number; accountId?: string; replacedAccountId?: string; bot: boolean; muted: number }[] {
     return [...this.clients].map(([pid, c]) => ({
       uid: c.uid,
       name: c.identity.name.slice(0, 32),
       team: this.world.teamOf(pid) === 1 ? 1 : 0,
       ...(c.identity.accountId ? { accountId: c.identity.accountId } : {}),
+      // vaga guardada para quem caiu no Ranked: a API deixa essa conta voltar com o jogo em andamento (OG-332)
+      ...(c.replaced?.identity.accountId ? { replacedAccountId: c.replaced.identity.accountId } : {}),
       bot: c.bot,
       muted: c.muted,
     }));

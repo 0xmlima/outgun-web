@@ -8,6 +8,7 @@ import {
   CLASSIC_BINDINGS,
   controlBits,
   heldActions,
+  isGameKey,
   parseBindings,
   pressedActions,
   rebind,
@@ -92,5 +93,26 @@ describe('gamepad (fromJoystick)', () => {
     expect(s.fire).toBe(true);
     expect(s.controls).toBe(CONTROL.right | CONTROL.run | CONTROL.strafe);
     expect(gamepadSample(pad([0, 0], [9])).start).toBe(true);
+  });
+});
+
+describe('tecla do jogo para o chat (OG-336)', () => {
+  const ev = (code: string, mods: { ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean } = {}) => ({ code, ctrlKey: false, altKey: false, shiftKey: false, ...mods });
+
+  it('N e P sozinhos não são do jogo (Ctrl+N, Ctrl+P); com Ctrl são', () => {
+    expect(isGameKey(CLASSIC_BINDINGS, ev('KeyN'))).toBe(false);
+    expect(isGameKey(CLASSIC_BINDINGS, ev('KeyN', { shiftKey: true }))).toBe(false);
+    expect(isGameKey(CLASSIC_BINDINGS, ev('KeyN', { ctrlKey: true }))).toBe(true);
+    expect(isGameKey(CLASSIC_BINDINGS, ev('KeyP'))).toBe(false);
+    expect(isGameKey(CLASSIC_BINDINGS, ev('KeyP', { ctrlKey: true }))).toBe(true);
+    expect(isGameKey(BROWSER_BINDINGS, ev('KeyZ'))).toBe(true);
+  });
+
+  it('P sozinho salvo como pausa sai e entra a pausa do esquema; associação própria em outra tecla fica', () => {
+    const saved = serializeBindings({ ...CLASSIC_BINDINGS, pause: [{ code: 'KeyP' }, { code: 'Pause' }] });
+    expect(parseBindings(saved).pause).toEqual([{ code: 'KeyP', ctrl: true }, { code: 'Pause' }]);
+    expect(parseBindings(saved, BROWSER_BINDINGS).pause).toEqual([{ code: 'Home' }, { code: 'Pause' }]);
+    const custom = serializeBindings({ ...CLASSIC_BINDINGS, pause: [{ code: 'KeyO' }] });
+    expect(parseBindings(custom).pause).toEqual([{ code: 'KeyO' }]);
   });
 });

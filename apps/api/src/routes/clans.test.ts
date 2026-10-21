@@ -92,6 +92,25 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await call('GET', '/clans/nn')).statusCode).toBe(404);
   });
 
+  it('estilo da tag (OG-338): padrão entre parênteses; só o líder muda; o rótulo vai para os membros', async () => {
+    expect(await clan('NX')).toMatchObject({ tagStyle: 'paren', tagLabel: '(NX)' });
+    expect((await me('Memb2')).clanLabel).toBe('(NX)');
+    expect((await call('PATCH', '/clans/NX', { tagStyle: 'dot' }, 'Adm1')).statusCode).toBe(403);
+    expect((await call('PATCH', '/clans/NX', { tagStyle: 'nope' }, 'Lider')).statusCode).toBe(400);
+    expect((await call('PATCH', '/clans/NX', { tagStyle: 'dash' }, 'Lider')).json().clan).toMatchObject({ tagStyle: 'dash', tagLabel: 'NX-' });
+    expect((await me('Memb2')).clanLabel).toBe('NX-');
+    // trocar a tag mantém o estilo
+    expect((await call('PATCH', '/clans/NX', { tag: 'DT' }, 'Lider')).json().clan.tagLabel).toBe('DT-');
+    expect((await me('Lider')).clanLabel).toBe('DT-');
+    expect((await call('PATCH', '/clans/DT', { tag: 'NX', tagStyle: 'paren' }, 'Lider')).statusCode).toBe(200);
+    // criar já com o estilo
+    const res = await call('POST', '/clans', { name: 'Os Pontos', tag: 'Dk', tagStyle: 'dot' }, 'Sozinho');
+    expect(res.json().clan).toMatchObject({ tagStyle: 'dot', tagLabel: 'Dk.' });
+    expect((await me('Sozinho')).clanLabel).toBe('Dk.');
+    expect((await call('DELETE', '/clans/Dk', undefined, 'Sozinho')).statusCode).toBe(204);
+    expect((await me('Sozinho')).clanLabel).toBeNull();
+  });
+
   it('expulsar: admin só expulsa membro comum; ninguém expulsa o líder', async () => {
     await join('Adm2', 'NX');
     expect((await call('PUT', '/clans/NX/members/Adm2/role', { role: 'admin' }, 'Lider')).json().clan.members).toContainEqual(

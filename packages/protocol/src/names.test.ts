@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Vetores da spec plan/specs/names.md.
 import { describe, expect, it } from 'vitest';
-import { chatName, checkClanName, checkClanTag, checkName, checkRegisteredName, comparableName, guestName, makeComparable } from './names.js';
+import { chatName, checkClanName, clanLabel, checkClanTag, checkName, checkRegisteredName, comparableName, guestName, makeComparable } from './names.js';
 
 describe('checkName (check_name)', () => {
   it.each([
@@ -83,5 +83,9 @@ describe('convidados e clan tag', () => {
   it('chat mostra "(TAG) nome"', () => {
     expect(chatName('Ana', 'XYZ')).toBe('(XYZ) Ana');
     expect(chatName('Ana', null)).toBe('Ana');
+    // estilos do clã (OG-338): o rótulo vem decorado
+    for (const [style, out] of [['paren', '(Dk) Ana'], ['bracket', '[Dk] Ana'], ['dash', 'Dk-Ana'], ['dot', 'Dk.Ana'], ['pipe', 'Dk|Ana']] as const) {
+      expect(chatName('Ana', clanLabel('Dk', style))).toBe(out);
+    }
   });
 });

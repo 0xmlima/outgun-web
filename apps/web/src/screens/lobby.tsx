@@ -8,7 +8,7 @@ import { PRESETS } from '@outgun/settings';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
-import { useAccount } from '../app/account.js';
+import { joinName, useAccount } from '../app/account.js';
 import { deviceId } from '../app/device.js';
 import { api, ApiError } from '../app/api.js';
 import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
@@ -131,7 +131,7 @@ export function LobbyScreen() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [hideFull, setHideFull] = useState(false);
-  const name = prefs.playerName.trim() || 'Convidado';
+  const name = joinName(user, prefs.playerName);
 
   useEffect(() => {
     if (mode !== 'casual') return;

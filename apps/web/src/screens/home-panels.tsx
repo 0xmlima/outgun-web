@@ -2,6 +2,7 @@
 // Tela inicial viva (OG-208): "Agora no Outgun" (jogadores online e salas com gente) e o ranking da
 // temporada do mês (top 5 e a minha posição). Só leitura de endpoints que já existem; atualiza a
 // cada 30 s enquanto a aba está visível.
+import { chatName } from '@outgun/protocol';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
@@ -95,7 +96,7 @@ export function NowPlaying() {
 interface Leaderboard {
   season: { name: string };
   total: number;
-  entries: { position: number; username: string; clanTag: string | null; rating: number }[];
+  entries: { position: number; username: string; clanTag: string | null; clanLabel: string | null; rating: number }[];
 }
 
 export function MonthRanking() {
@@ -124,7 +125,7 @@ export function MonthRanking() {
             empty=""
             columns={[
               { key: 'pos', header: '#', cell: (e) => `${e.position}º`, align: 'end' },
-              { key: 'name', header: t('Player'), cell: (e) => (e.clanTag ? `(${e.clanTag}) ${e.username}` : e.username) },
+              { key: 'name', header: t('Player'), cell: (e) => chatName(e.username, e.clanLabel) },
               { key: 'rating', header: t('Rating'), cell: (e) => rating(e.rating), align: 'end' },
             ]}
           />

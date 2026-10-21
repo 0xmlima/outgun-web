@@ -14,7 +14,7 @@ import { ASSETS, loadManifest } from '../assets.js';
 import { LocalDemo } from './demo.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
-import { boundCodes } from './input/bindings.js';
+import { isGameKey } from './input/bindings.js';
 import type { Translate } from './hud/feed.js';
 import { loadInter } from './hud/hud-faces.js';
 import { GameFont, HudRenderer } from './hud/hud-renderer.js';
@@ -674,7 +674,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       return;
     }
     if (!onlineHud || !input.isEnabled()) return;
-    if (onlineHud.onKey(ev, boundCodes(bindings))) {
+    if (onlineHud.onKey(ev, (e) => isGameKey(bindings, e))) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
     }

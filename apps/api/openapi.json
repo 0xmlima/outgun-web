@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.34.0",
+    "version": "2.35.0",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -1476,6 +1476,7 @@
                           "userId",
                           "username",
                           "clanTag",
+                          "clanLabel",
                           "score",
                           "neg",
                           "rating",
@@ -1492,6 +1493,16 @@
                             "type": "string"
                           },
                           "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "clanLabel": {
                             "anyOf": [
                               {
                                 "type": "string"
@@ -1616,6 +1627,7 @@
                           "userId",
                           "username",
                           "clanTag",
+                          "clanLabel",
                           "score",
                           "neg",
                           "rating",
@@ -1632,6 +1644,16 @@
                             "type": "string"
                           },
                           "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "clanLabel": {
                             "anyOf": [
                               {
                                 "type": "string"
@@ -2131,7 +2153,7 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "clanTag", "createdAt"],
+                      "required": ["id", "username", "clanTag", "clanLabel", "createdAt"],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -2140,6 +2162,16 @@
                           "type": "string"
                         },
                         "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "clanLabel": {
                           "anyOf": [
                             {
                               "type": "string"
@@ -3459,12 +3491,29 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["username", "clanTag", "matches", "wins", "losses"],
+                        "required": [
+                          "username",
+                          "clanTag",
+                          "clanLabel",
+                          "matches",
+                          "wins",
+                          "losses"
+                        ],
                         "properties": {
                           "username": {
                             "type": "string"
                           },
                           "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "clanLabel": {
                             "anyOf": [
                               {
                                 "type": "string"
@@ -3492,12 +3541,29 @@
                         "allOf": [
                           {
                             "type": "object",
-                            "required": ["username", "clanTag", "matches", "wins", "losses"],
+                            "required": [
+                              "username",
+                              "clanTag",
+                              "clanLabel",
+                              "matches",
+                              "wins",
+                              "losses"
+                            ],
                             "properties": {
                               "username": {
                                 "type": "string"
                               },
                               "clanTag": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "clanLabel": {
                                 "anyOf": [
                                   {
                                     "type": "string"
@@ -3811,12 +3877,29 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["username", "clanTag", "matches", "wins", "playSeconds"],
+                        "required": [
+                          "username",
+                          "clanTag",
+                          "clanLabel",
+                          "matches",
+                          "wins",
+                          "playSeconds"
+                        ],
                         "properties": {
                           "username": {
                             "type": "string"
                           },
                           "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "clanLabel": {
                             "anyOf": [
                               {
                                 "type": "string"
@@ -3921,12 +4004,22 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["username", "clanTag"],
+                        "required": ["username", "clanTag", "clanLabel"],
                         "properties": {
                           "username": {
                             "type": "string"
                           },
                           "clanTag": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "clanLabel": {
                             "anyOf": [
                               {
                                 "type": "string"
@@ -4043,6 +4136,10 @@
                     "type": "string",
                     "maxLength": 2
                   },
+                  "tagStyle": {
+                    "type": "string",
+                    "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                  },
                   "description": {
                     "type": "string",
                     "maxLength": 500
@@ -4063,12 +4160,28 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
+                      "required": [
+                        "name",
+                        "tag",
+                        "tagStyle",
+                        "tagLabel",
+                        "description",
+                        "createdAt",
+                        "members",
+                        "titles"
+                      ],
                       "properties": {
                         "name": {
                           "type": "string"
                         },
                         "tag": {
+                          "type": "string"
+                        },
+                        "tagStyle": {
+                          "type": "string",
+                          "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                        },
+                        "tagLabel": {
                           "type": "string"
                         },
                         "description": {
@@ -4220,12 +4333,28 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
+                      "required": [
+                        "name",
+                        "tag",
+                        "tagStyle",
+                        "tagLabel",
+                        "description",
+                        "createdAt",
+                        "members",
+                        "titles"
+                      ],
                       "properties": {
                         "name": {
                           "type": "string"
                         },
                         "tag": {
+                          "type": "string"
+                        },
+                        "tagStyle": {
+                          "type": "string",
+                          "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                        },
+                        "tagLabel": {
                           "type": "string"
                         },
                         "description": {
@@ -4312,7 +4441,7 @@
         }
       },
       "patch": {
-        "summary": "Edita o clã: nome e descrição (líder e admins), tag (só o líder)",
+        "summary": "Edita o clã: nome e descrição (líder e admins), tag e estilo da tag (só o líder)",
         "tags": ["clãs"],
         "requestBody": {
           "required": true,
@@ -4328,6 +4457,10 @@
                   "tag": {
                     "type": "string",
                     "maxLength": 2
+                  },
+                  "tagStyle": {
+                    "type": "string",
+                    "enum": ["paren", "bracket", "dash", "dot", "pipe"]
                   },
                   "description": {
                     "type": "string",
@@ -4361,12 +4494,28 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
+                      "required": [
+                        "name",
+                        "tag",
+                        "tagStyle",
+                        "tagLabel",
+                        "description",
+                        "createdAt",
+                        "members",
+                        "titles"
+                      ],
                       "properties": {
                         "name": {
                           "type": "string"
                         },
                         "tag": {
+                          "type": "string"
+                        },
+                        "tagStyle": {
+                          "type": "string",
+                          "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                        },
+                        "tagLabel": {
                           "type": "string"
                         },
                         "description": {
@@ -5040,12 +5189,28 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
+                      "required": [
+                        "name",
+                        "tag",
+                        "tagStyle",
+                        "tagLabel",
+                        "description",
+                        "createdAt",
+                        "members",
+                        "titles"
+                      ],
                       "properties": {
                         "name": {
                           "type": "string"
                         },
                         "tag": {
+                          "type": "string"
+                        },
+                        "tagStyle": {
+                          "type": "string",
+                          "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                        },
+                        "tagLabel": {
                           "type": "string"
                         },
                         "description": {
@@ -5215,12 +5380,28 @@
                   "properties": {
                     "clan": {
                       "type": "object",
-                      "required": ["name", "tag", "description", "createdAt", "members", "titles"],
+                      "required": [
+                        "name",
+                        "tag",
+                        "tagStyle",
+                        "tagLabel",
+                        "description",
+                        "createdAt",
+                        "members",
+                        "titles"
+                      ],
                       "properties": {
                         "name": {
                           "type": "string"
                         },
                         "tag": {
+                          "type": "string"
+                        },
+                        "tagStyle": {
+                          "type": "string",
+                          "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                        },
+                        "tagLabel": {
                           "type": "string"
                         },
                         "description": {
@@ -6834,7 +7015,15 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "clanLabel",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -6846,6 +7035,16 @@
                           "type": "string"
                         },
                         "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "clanLabel": {
                           "anyOf": [
                             {
                               "type": "string"
@@ -6984,7 +7183,15 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "clanLabel",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -6996,6 +7203,16 @@
                           "type": "string"
                         },
                         "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "clanLabel": {
                           "anyOf": [
                             {
                               "type": "string"
@@ -7085,7 +7302,15 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "clanLabel",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -7097,6 +7322,16 @@
                           "type": "string"
                         },
                         "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "clanLabel": {
                           "anyOf": [
                             {
                               "type": "string"
@@ -7245,7 +7480,15 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "clanLabel",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -7257,6 +7500,16 @@
                           "type": "string"
                         },
                         "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "clanLabel": {
                           "anyOf": [
                             {
                               "type": "string"
@@ -7447,7 +7700,15 @@
                   "properties": {
                     "user": {
                       "type": "object",
-                      "required": ["id", "username", "email", "clanTag", "isAdmin", "isModerator"],
+                      "required": [
+                        "id",
+                        "username",
+                        "email",
+                        "clanTag",
+                        "clanLabel",
+                        "isAdmin",
+                        "isModerator"
+                      ],
                       "properties": {
                         "id": {
                           "type": "string"
@@ -7459,6 +7720,16 @@
                           "type": "string"
                         },
                         "clanTag": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "clanLabel": {
                           "anyOf": [
                             {
                               "type": "string"
@@ -8208,6 +8479,10 @@
                                 "maximum": 1
                               },
                               "accountId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "replacedAccountId": {
                                 "type": "string",
                                 "format": "uuid"
                               },

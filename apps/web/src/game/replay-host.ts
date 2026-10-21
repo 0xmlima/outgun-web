@@ -11,6 +11,10 @@ import { Application } from 'pixi.js';
 import 'pixi.js/unsafe-eval';
 import { loadManifest } from '../assets.js';
 import { loadFont, loadMap, visualCheck } from './host.js';
+import type { Translate } from './hud/feed.js';
+import { HudRenderer } from './hud/hud-renderer.js';
+import { OnlineHud } from './hud/online-hud.js';
+import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
@@ -54,6 +58,8 @@ export interface ReplayOptions {
   readonly onError: (message: string) => void;
   /** Ao vivo (espectador, OG-092): os blocos chegam em `replay.frames`; toca no tempo real, sem velocidade nem seek. */
   readonly live?: boolean;
+  /** Textos do HUD (placar, chat, avisos), como na partida (OG-340). */
+  readonly translate?: Translate;
 }
 
 /** Lê um `.ogr`: prefixo, gzip (DecompressionStream) e blocos. */
@@ -92,6 +98,14 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   let map: GameMap | undefined;
   let mapName = '';
   let lastStatus = '';
+  // HUD da partida para quem assiste (OG-340): minimapa, placar dos times, frags, relógio e chat.
+  // Voltar no replay recria a sessão; o HUD acompanha.
+  const t: Translate = opts.translate ?? ((text, ...args) => args.reduce<string>((out, a, i) => out.replace(`$${i + 1}`, a), text));
+  let hud: HudRenderer | undefined;
+  let hudFor: ReplayPlayer['session'] | undefined;
+  let onlineHud: OnlineHud | undefined;
+  let screen: ScreenLayout | undefined;
+  let gameFont: Awaited<ReturnType<typeof loadFont>> | undefined;
   /** Aberturas em ordem (um mapa carregando de cada vez). */
   // a fila de aberturas só anda depois do carregamento: segmento ao vivo que chega antes do `app.init`
   // acabar espera em vez de falhar com "player não iniciado" (OG-281)
@@ -118,7 +132,16 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
     }
   };
 
-  const layout = () => world?.setPlayfield({ x: 0, y: 0, w: app.screen.width, h: app.screen.height }, { visibleRooms: visible, continuousTextures: opts.continuousTextures });
+  const layout = () => {
+    let playfield = { x: 0, y: 0, w: app.screen.width, h: app.screen.height };
+    // a tela dividida da partida (estilo Clássico): salas, minimapa, placar e barra
+    if (hud && gameFont) {
+      const labels = { health: t('Health'), energy: t('Energy'), power: t('Power'), turbo: t('Turbo'), shadow: t('Shadow'), weapon0: t('Weapon $1', '0') };
+      screen = screenLayout(app.screen.width, app.screen.height, gameFont, labels);
+      playfield = screen.playfield;
+    }
+    world?.setPlayfield(playfield, { visibleRooms: visible, continuousTextures: opts.continuousTextures });
+  };
 
   /** Próximo jogador presente depois de `follow` (−1 volta à sala fixa). */
   const nextFollow = () => {
@@ -172,13 +195,20 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       entities.showNames = 'always';
       app.stage.addChild(entities.stage);
     }
+    if (!hud && font) {
+      gameFont = font;
+      hud = new HudRenderer(theme, font, t, app.renderer.resolution);
+      app.stage.addChild(hud.stage);
+      layout();
+    }
     const recorded = next.init.find((m) => m.type === 'mapChange');
     if (recorded?.type === 'mapChange' && map && recorded.crc !== map.crc) console.warn(`replay: CRC do mapa ${map.crc} ≠ ${recorded.crc} gravado`);
     const fx = entities;
     const p = new ReplayPlayer(next, map!, (ev) => {
       const time = (p.session.world?.frame ?? 0) / 10;
       const at = (pos: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: pos.roomX, y: pos.roomY }, x: pos.x, y: pos.y });
-      if (ev.kind === 'rocketHitWall') fx.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);
+      if (ev.kind === 'message') onlineHud?.onMessage(ev.message);
+      else if (ev.kind === 'rocketHitWall') fx.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);
       else if (ev.kind === 'rocketHitPlayer') fx.addEffect('gunExplosion', at(ev.pos), ev.team, time);
     });
     replay = next;
@@ -249,6 +279,15 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
           container.dataset.players = String(frame.players.length);
         }
         world.render(topLeft);
+        if (hud && screen) {
+          if (hudFor !== s) {
+            onlineHud = new OnlineHud(s, t);
+            hudFor = s;
+          }
+          // `now` no relógio do replay: sem o aviso de "servidor não responde"
+          const state = onlineHud!.build({ screen, rooms: world.layout, topLeft, fd, now: s.lastPacketTime, fps: app.ticker.FPS, showPings: false });
+          if (state) hud.render(state);
+        }
         if (hideWorld) world.stage.visible = entities.stage.visible = false;
         container.dataset.position = String(p.position);
         container.dataset.frame = String(s.world?.frame ?? -1);
@@ -278,6 +317,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       removeEventListener('keydown', onKey);
       world?.destroy();
       entities?.destroy();
+      hud?.destroy();
       if (ready) app.destroy(true);
     },
   };

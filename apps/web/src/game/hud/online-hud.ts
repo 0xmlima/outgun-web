@@ -155,7 +155,7 @@ export class OnlineHud {
   }
 
   /** Tecla durante o jogo; devolve true se foi usada pelo chat. */
-  onKey(ev: KeyboardEvent, boundCodes: ReadonlySet<string>): boolean {
+  onKey(ev: KeyboardEvent, isGameKey: (ev: KeyboardEvent) => boolean): boolean {
     // mensagem rápida: Alt+1..9 e Alt+0 (10ª), só com a linha de chat vazia. No Mac também Cmd+número,
     // que o Chrome só deixa chegar ao jogo no modo foco (OG-232)
     const digit = /^Digit(\d)$/.exec(ev.code);
@@ -175,7 +175,7 @@ export class OnlineHud {
     }
     if (!this.chat) {
       // tecla do jogo não começa o chat
-      if (ev.key.length !== 1 || boundCodes.has(ev.code)) return false;
+      if (ev.key.length !== 1 || isGameKey(ev)) return false;
     }
     if (ev.key === 'Escape' || ev.key === 'Backspace') {
       if (!this.chat) return false;

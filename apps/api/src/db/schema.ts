@@ -2,6 +2,7 @@
 // Tabelas para o Drizzle. A fonte de verdade é o SQL de migrations/; schema.test.ts confere que as
 // duas descrições têm as mesmas colunas.
 import { sql } from 'drizzle-orm';
+import type { ClanTagStyle } from '@outgun/protocol';
 import type { RotationKey } from '@outgun/settings';
 import {
   bigserial,
@@ -46,6 +47,8 @@ export const users = pgTable(
     passwordHash: text('password_hash').notNull(),
     /** Cópia da tag do clã atual (OG-270), mantida por gatilho; não gravar direto. */
     clanTag: text('clan_tag'),
+    /** Tag decorada pelo estilo do clã, "(Dk)", "Dk." (OG-338), mantida por gatilho; não gravar direto. */
+    clanLabel: text('clan_label'),
     /** Carência para entrar em outro clã depois de sair ou ser expulso (OG-271, D-47). */
     clanCooldownUntil: tstz('clan_cooldown_until'),
     isAdmin: boolean('is_admin').notNull().default(false),
@@ -362,6 +365,8 @@ export const clans = pgTable(
     nameKey: text('name_key').notNull(),
     tag: text('tag').notNull(),
     tagKey: text('tag_key').notNull(),
+    /** Como a tag aparece junto do nome (OG-338): `CLAN_TAG_STYLES`. */
+    tagStyle: text('tag_style').$type<ClanTagStyle>().notNull().default('paren'),
     description: text('description').notNull().default(''),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
@@ -477,6 +482,8 @@ export interface RosterEntry {
   name: string;
   team: number;
   accountId?: string;
+  /** Bot substituto: conta de quem ele substitui (OG-332). */
+  replacedAccountId?: string;
   bot: boolean;
   muted: number;
 }

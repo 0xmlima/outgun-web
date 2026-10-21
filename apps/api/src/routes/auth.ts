@@ -24,13 +24,15 @@ export const PublicUser = Type.Object({
   /** Só para o próprio dono da conta; nunca aparece para outros jogadores. */
   email: Type.String(),
   clanTag: Type.Union([Type.String(), Type.Null()]),
+  /** Tag decorada pelo estilo do clã, "(Dk)", "Dk." (OG-338). */
+  clanLabel: Type.Union([Type.String(), Type.Null()]),
   isAdmin: Type.Boolean(),
   isModerator: Type.Boolean(),
 });
 const UserReply = Type.Object({ user: PublicUser });
 
 export function toPublic(u: Omit<SessionUser, 'sessionId'>) {
-  return { id: u.id, username: u.username, email: u.email, clanTag: u.clanTag, isAdmin: u.isAdmin, isModerator: u.isModerator };
+  return { id: u.id, username: u.username, email: u.email, clanTag: u.clanTag, clanLabel: u.clanLabel, isAdmin: u.isAdmin, isModerator: u.isModerator };
 }
 
 const Password = Type.String({ minLength: MIN_PASSWORD, maxLength: MAX_PASSWORD });

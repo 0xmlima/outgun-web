@@ -96,7 +96,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           querystring: Type.Object({ format: Type.Optional(RankedFormatSchema) }),
           response: {
             200: Type.Object({
-              user: Type.Object({ id: Type.String(), username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), createdAt: Type.String() }),
+              user: Type.Object({ id: Type.String(), username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), clanLabel: Type.Union([Type.String(), Type.Null()]), createdAt: Type.String() }),
               ranking: Type.Union([
                 Type.Object({ season: Type.String(), score: Type.Number(), neg: Type.Integer(), rating: Type.Number(), rank: Type.Integer(), of: Type.Integer(), matches: Type.Integer(), minimumScore: Type.Integer() }),
                 Type.Null(),
@@ -159,7 +159,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           .where(eq(playerMilestones.userId, user.id))
           .orderBy(asc(playerMilestones.achievedAt));
         return {
-          user: { id: user.id, username: user.username, clanTag: user.clanTag, createdAt: user.createdAt.toISOString() },
+          user: { id: user.id, username: user.username, clanTag: user.clanTag, clanLabel: user.clanLabel, createdAt: user.createdAt.toISOString() },
           ranking,
           totals,
           favoriteColors: profile?.favoriteColors ?? [],

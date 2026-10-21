@@ -38,6 +38,8 @@ const Entry = Type.Object({
   userId: Type.String(),
   username: Type.String(),
   clanTag: Type.Union([Type.String(), Type.Null()]),
+  /** Tag decorada pelo estilo do clã, "(Dk)", "Dk." (OG-338). */
+  clanLabel: Type.Union([Type.String(), Type.Null()]),
   score: Type.Number(),
   neg: Type.Integer(),
   rating: Type.Number(),
@@ -89,7 +91,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
           const where = and(eq(formatRatings.seasonId, season.id), eq(formatRatings.format, format), sql`${formatRatings.score} >= ${MINIMUM_SCORE}`);
           const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(formatRatings).where(where);
           const rows = await db
-            .select({ userId: formatRatings.userId, username: users.username, clanTag: users.clanTag, score: formatRatings.score, neg: formatRatings.neg, rating: formatRatingExpr, matches: formatRatings.matches })
+            .select({ userId: formatRatings.userId, username: users.username, clanTag: users.clanTag, clanLabel: users.clanLabel, score: formatRatings.score, neg: formatRatings.neg, rating: formatRatingExpr, matches: formatRatings.matches })
             .from(formatRatings)
             .innerJoin(users, eq(users.id, formatRatings.userId))
             .where(where)
@@ -102,7 +104,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         const [final] = season.active ? [] : await db.select({ n: sql<number>`count(*)::int` }).from(seasonStandings).where(eq(seasonStandings.seasonId, season.id));
         if (final && final.n > 0) {
           const rows = await db
-            .select({ position: seasonStandings.position, userId: seasonStandings.userId, username: users.username, clanTag: users.clanTag, score: seasonStandings.score, neg: seasonStandings.neg, matches: seasonStandings.matches })
+            .select({ position: seasonStandings.position, userId: seasonStandings.userId, username: users.username, clanTag: users.clanTag, clanLabel: users.clanLabel, score: seasonStandings.score, neg: seasonStandings.neg, matches: seasonStandings.matches })
             .from(seasonStandings)
             .innerJoin(users, eq(users.id, seasonStandings.userId))
             .where(eq(seasonStandings.seasonId, season.id))
@@ -114,7 +116,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         const where = and(eq(ratings.seasonId, season.id), sql`${ratings.score} >= ${MINIMUM_SCORE}`);
         const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(ratings).where(where);
         const rows = await db
-          .select({ userId: ratings.userId, username: users.username, clanTag: users.clanTag, score: ratings.score, neg: ratings.neg, rating: ratingExpr, matches: ratings.matches })
+          .select({ userId: ratings.userId, username: users.username, clanTag: users.clanTag, clanLabel: users.clanLabel, score: ratings.score, neg: ratings.neg, rating: ratingExpr, matches: ratings.matches })
           .from(ratings)
           .innerJoin(users, eq(users.id, ratings.userId))
           .where(where)
@@ -148,10 +150,10 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         const [counts] = await db.execute<{ seasons: number; total: number }>(sql`
           SELECT (SELECT count(*)::int FROM seasons) AS seasons,
             (SELECT count(*)::int FROM (SELECT 1 FROM ${source} r GROUP BY user_id HAVING sum(score) >= ${MINIMUM_SCORE}) t) AS total`);
-        const rows = await db.execute<{ user_id: string; username: string; clan_tag: string | null; score: number; neg: number; matches: number }>(sql`
-          SELECT r.user_id, u.username, u.clan_tag, sum(r.score)::float8 AS score, sum(r.neg)::int AS neg, sum(r.matches)::int AS matches
+        const rows = await db.execute<{ user_id: string; username: string; clan_tag: string | null; clan_label: string | null; score: number; neg: number; matches: number }>(sql`
+          SELECT r.user_id, u.username, u.clan_tag, u.clan_label, sum(r.score)::float8 AS score, sum(r.neg)::int AS neg, sum(r.matches)::int AS matches
           FROM ${source} r JOIN users u ON u.id = r.user_id
-          GROUP BY r.user_id, u.username, u.clan_tag, u.username_key
+          GROUP BY r.user_id, u.username, u.clan_tag, u.clan_label, u.username_key
           HAVING sum(r.score) >= ${MINIMUM_SCORE}
           ORDER BY (sum(r.score) + 1) / (sum(r.neg) + 1) DESC, sum(r.score) DESC, u.username_key
           LIMIT ${limit} OFFSET ${offset}`);
@@ -163,6 +165,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
             userId: r.user_id,
             username: r.username,
             clanTag: r.clan_tag,
+            clanLabel: r.clan_label,
             score: Number(r.score),
             neg: r.neg,
             rating: (Number(r.score) + 1) / (r.neg + 1),
