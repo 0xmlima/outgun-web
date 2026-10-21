@@ -797,7 +797,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-342](cards/OG-342-explicacao-do-rating.md) | Botão "i" explicando o rating | E12 | 3 | Must | S36 | — | Pronto |
 | [OG-343](cards/OG-343-placar-final-7-em-vez-de-8.md) | Placar final mostra 7 em vez de 8 | E11 | 2 | Must | S36 | — | Em revisão |
 | [OG-344](cards/OG-344-modal-de-fim-de-partida.md) | Modal de fim de partida com resultado e detalhes | E8 | 5 | Must | S36 | OG-343 | Pronto |
-| [OG-345](cards/OG-345-ranked-cancelada-sem-humanos.md) | Ranqueada cancelada quando um lado fica sem humanos | E12 | 3 | Must | S36 | — | Pronto |
+| [OG-345](cards/OG-345-ranked-cancelada-sem-humanos.md) | Ranqueada cancelada quando um lado fica sem humanos | E12 | 3 | Must | S36 | — | Em revisão |
 | [OG-346](cards/OG-346-jogadores-demoram-a-aparecer.md) | Jogadores demoram a aparecer ao entrar na sala | E11 | 2 | Should | S36 | — | Em revisão |
 | [OG-347](cards/OG-347-minimapa-inimigo-morto.md) | Inimigo morto reaparece no minimapa onde morreu | E11 | 2 | Should | S36 | — | Em revisão |
 | [OG-348](cards/OG-348-voto-com-ctrl-1-e-ctrl-2.md) | Voto do substituto com Ctrl+1/Ctrl+2 | E12 | 2 | Must | S36 | — | Em revisão |

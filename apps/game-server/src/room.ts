@@ -230,6 +230,8 @@ const PAUSE_TEXT: Record<PauseRefusal | 'unavailable', string> = {
   notPaused: 'O jogo não está pausado.',
   notYours: 'Só o time que pediu a pausa pode retomar.',
 };
+/** Aviso da partida Ranked cancelada (RN-RKL-26). */
+const CANCELLED_TEXT = 'Partida cancelada: um dos lados ficou sem jogadores. Nada conta para o ranking e o jogo será disputado de novo.';
 /** Ações que contam como atividade do jogador (o idle kick do original olha os controles). */
 function isActivity(m: AnyMessage): boolean {
   if (m.type === 'input') return (m.controls & 0x3f) !== 0;
@@ -290,6 +292,12 @@ export class Room {
   /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
   private series: { no: number; score: SeriesScore } | undefined;
   private deltaCount = 0;
+  /**
+   * Jogo Ranked em andamento: os deltas de quem sai no meio esperam o fim do jogo, que pode ser
+   * cancelado (OG-345, RN-RKL-26) e aí não contam.
+   */
+  private holdDeltas = false;
+  private heldDeltas: DeltaReport[] = [];
   private readonly createdAt: number;
   private readonly console: ConsoleHost;
   /** Limite do `/report` por jogador (OG-104). */
@@ -1064,6 +1072,7 @@ export class Room {
       }
     }
     if (this.lobby) this.lobbyTick();
+    if (this.abandonedSide()) this.cancelGame();
     const inGame = this.inGame;
     for (let r = this.pause?.decide(this.uptimeFrames); r; r = this.pause?.decide(this.uptimeFrames)) {
       if (r.bot && this.substitutes < MAX_SUBSTITUTES) this.substitute(r.pid);
@@ -1572,6 +1581,7 @@ export class Room {
 
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
+    this.releaseDeltas(true); // os de quem saiu no meio vão antes do resultado
     // a captura final acontece no mesmo frame: o placar vai antes do `gameOver`, que o cliente congela (OG-343)
     this.sendScores();
     this.pause?.reset(); // saldo de pausa por jogo, também na série (D-45)
@@ -1647,14 +1657,50 @@ export class Room {
       if (!this.participates(c)) continue;
       const d = c.deltas.take();
       if (!d) continue;
-      this.options.reportDeltas?.({
+      const report: DeltaReport = {
         deltaId: `${this.id}-${this.createdAt.toString(36)}-d${++this.deltaCount}`,
         roomId: this.id,
         userId: c.identity.accountId!,
         scoreDelta: d.score,
         negDelta: d.neg,
-      });
+      };
+      if (this.holdDeltas) this.heldDeltas.push(report);
+      else this.options.reportDeltas?.(report);
     }
+  }
+
+  /** Fim do jogo Ranked (ou sala fechando): os deltas guardados vão (`send`) ou somem (cancelado). */
+  private releaseDeltas(send: boolean): void {
+    this.holdDeltas = false;
+    if (send) for (const d of this.heldDeltas) this.options.reportDeltas?.(d);
+    this.heldDeltas = [];
+  }
+
+  /** Lado do jogo Ranked sem humano conectado nem no prazo de volta (RN-RKL-26). */
+  private abandonedSide(): boolean {
+    if (!this.lobby?.playing || this.gameOverUntil !== null) return false;
+    const humans = [0, 0];
+    for (const [pid, c] of this.clients) if (!c.bot && !c.departing) humans[this.world.teamOf(pid)]!++;
+    return humans[0] === 0 || humans[1] === 0;
+  }
+
+  /**
+   * Partida Ranked cancelada (OG-345, D-62): nada vai à API (resultado, deltas, série), sem bot nem
+   * voto; quem ficou volta ao lobby e o jogo é disputado de novo.
+   */
+  private cancelGame(): void {
+    this.releaseDeltas(false);
+    for (const c of this.clients.values()) c.deltas.take();
+    this.recorder = null; // sem replay
+    this.pause?.reset();
+    for (const [pid, c] of [...this.clients]) if (c.bot || c.departing || c.conn === OFFLINE) this.leave(pid);
+    this.substitutes = 0;
+    this.substitutions = [];
+    this.lobby!.gameEnded(false, this.world.frame);
+    this.gameOverUntil = this.world.frame + 1;
+    this.broadcast(message('text', { kind: 'warning', from: 255, text: CANCELLED_TEXT }));
+    this.sendPauseState();
+    this.lobbyDirty = true;
   }
 
   /** Manda o resultado à API: estatísticas sempre; ranqueada só no Ranked com os mínimos. */
@@ -1750,6 +1796,7 @@ export class Room {
     this.swapRequests.clear();
     this.nextMap('vote', map);
     this.gameOverUntil = this.world.frame + 1;
+    this.holdDeltas = true;
   }
 
   /** Fim de um jogo da série: placar na tela e volta ao lobby (ou fim da série, D-41). */
@@ -2058,6 +2105,7 @@ export class Room {
       c.conn.close(1001, 'sala encerrada');
       this.leave(pid);
     }
+    this.releaseDeltas(true);
     this.spectators.close();
   }
 }
