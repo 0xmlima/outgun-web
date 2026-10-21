@@ -103,7 +103,8 @@ export const CLASSIC_BINDINGS: Bindings = {
   // F11 é a tela cheia do navegador
   screenshot: k('F9'),
   focusMode: k('F10'),
-  pause: k('KeyP', 'Pause'),
+  // Ctrl+P: o P sozinho pausava em vez de começar uma mensagem com "p" (OG-336)
+  pause: [ctrl('KeyP'), { code: 'Pause' }],
   voteBot: k('Digit1'),
   voteShort: k('Digit2'),
 };
@@ -117,6 +118,7 @@ export const BROWSER_BINDINGS: Bindings = {
   changeTeam: k('End'),
   toggleNames: k('F6'),
   toggleSound: k('F7'),
+  pause: k('Pause', 'Home'),
 };
 
 export const SCHEMES = { classic: CLASSIC_BINDINGS, browser: BROWSER_BINDINGS } as const;
@@ -153,6 +155,15 @@ export function pressedActions(bindings: Bindings, ev: KeyEventLike): PressActio
   const exact = PRESS_ACTIONS.filter((a) => bindings[a].some((c) => hasModifiers(c) && c.code === ev.code && !!c.ctrl === ev.ctrlKey && !!c.alt === ev.altKey && !!c.shift === ev.shiftKey));
   if (exact.length) return exact;
   return PRESS_ACTIONS.filter((a) => bindings[a].some((c) => !hasModifiers(c) && c.code === ev.code));
+}
+
+/**
+ * Tecla de alguma ação com os modificadores do evento: acorde com modificador casa exatamente, sem
+ * modificador casa sempre. É o que impede o chat de começar (OG-336: só a tecla física barrava o "n"
+ * do Ctrl+N).
+ */
+export function isGameKey(bindings: Bindings, ev: KeyEventLike): boolean {
+  return ACTIONS.some((a) => bindings[a].some((c) => c.code === ev.code && (!hasModifiers(c) || (!!c.ctrl === ev.ctrlKey && !!c.alt === ev.altKey && !!c.shift === ev.shiftKey))));
 }
 
 /** Teclas físicas que o jogo usa (para `preventDefault`). */
@@ -205,6 +216,11 @@ export function parseBindings(text: string | null, fallback: Bindings = CLASSIC_
     for (const a of ACTIONS) {
       const list = saved[a];
       if (Array.isArray(list) && list.every((c) => typeof c === 'object' && c && typeof (c as Chord).code === 'string')) out[a] = list as Chord[];
+    }
+    // P sozinho como pausa (padrão até a v2.34) sai: fica a pausa do esquema atual (OG-336)
+    if (out.pause.some((c) => c.code === 'KeyP' && !hasModifiers(c))) {
+      const kept = out.pause.filter((c) => c.code !== 'KeyP' || hasModifiers(c));
+      out.pause = [...fallback.pause.filter((c) => !kept.some((k) => sameChord(k, c)) && !ACTIONS.some((a) => a !== 'pause' && out[a].some((o) => sameChord(o, c)))), ...kept];
     }
   } catch {
     // associações corrompidas: padrão
