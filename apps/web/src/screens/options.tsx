@@ -140,7 +140,7 @@ function FavoriteColors({ label, hint, colors, order, disabled, onChange }: { la
 }
 
 /** Onde as opções ficam salvas e se o envio para a conta deu certo (OG-285). */
-function SaveStatusLine({ account }: { account: boolean }) {
+export function SaveStatusLine({ account }: { account: boolean }) {
   const { t } = usePrefs();
   const status = useSaveStatus();
   const text = !account
@@ -159,12 +159,14 @@ function SaveStatusLine({ account }: { account: boolean }) {
   );
 }
 
-export function OptionsScreen() {
+/**
+ * Abas das Opções: na página `/options` e por cima da partida, pelo menu do Esc (OG-339). `inGame`
+ * esconde o que sairia da partida (editor do HUD).
+ */
+export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: OptionsTab; readonly onTab: (tab: OptionsTab) => void; readonly inGame?: boolean }) {
   const { t, prefs, setPrefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
-  const { section } = useParams();
-  const tab = optionsTab(section);
   const lists = useManifestLists();
   const [ranking, setRanking] = useState<boolean | null>(null);
   useEffect(() => {
@@ -332,7 +334,7 @@ export function OptionsScreen() {
               />
               {toggle('classicFragsOnTab', 'Classic HUD: frags only on TAB', prefs.hudStyle !== 'classic')}
               <div className="options-hud-edit">
-                <Button onClick={() => void navigate('/options/hud')}>{t('Edit custom HUD...')}</Button>
+                {!inGame && <Button onClick={() => void navigate('/options/hud')}>{t('Edit custom HUD...')}</Button>}
                 <span>{t('Opens an example match where you move, resize and hide each part of the HUD.')}</span>
               </div>
               {select<ShowNames>('showNames', 'Show player names', [
@@ -421,11 +423,10 @@ export function OptionsScreen() {
   }
 
   return (
-    <Page title={t('Options')} subtitle={<SaveStatusLine account={!!user} />} onBack={() => void navigate('/')} backLabel={t('Back')}>
       <Tabs
         label={t('Options')}
         value={tab}
-        onChange={(next) => void navigate(`/options/${next}`, { replace: true })}
+        onChange={onTab}
         tabs={[
           { id: 'game', label: t('Game') },
           { id: 'graphics', label: t('Graphics') },
@@ -436,6 +437,17 @@ export function OptionsScreen() {
       >
         <div className="ui-stack options-tab">{content}</div>
       </Tabs>
+  );
+}
+
+export function OptionsScreen() {
+  const { t } = usePrefs();
+  const { user } = useAccount();
+  const navigate = useNavigate();
+  const { section } = useParams();
+  return (
+    <Page title={t('Options')} subtitle={<SaveStatusLine account={!!user} />} onBack={() => void navigate('/')} backLabel={t('Back')}>
+      <OptionsBody tab={optionsTab(section)} onTab={(next) => void navigate(`/options/${next}`, { replace: true })} />
     </Page>
   );
 }

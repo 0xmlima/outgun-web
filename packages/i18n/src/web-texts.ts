@@ -258,6 +258,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Focus mode: full screen, browser shortcuts captured (F10 or Esc leaves).':
       'Modo foco: tela cheia, atalhos do navegador capturados (F10 ou Esc sai).',
     'Back to game': 'Voltar ao jogo',
+    // menu do Esc na partida (OG-339)
+    On: 'Sim',
+    Off: 'Não',
+    Music: 'Música',
+    'Controls...': 'Controles...',
+    'Options...': 'Opções...',
     'New version available: reload': 'Nova versão disponível: recarregar',
     // OG-289: bots das salas Casual
     'Bots in your Casual rooms': 'Bots das suas salas Casual',

@@ -726,3 +726,25 @@ body {
 .hud-editor-toggles input {
   accent-color: var(--accent);
 }
+
+/* Opções por cima da partida (OG-339): a sala segue atrás; as mesmas abas da tela de Opções. */
+.game-options {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+  background: var(--surface-0);
+  color: var(--text);
+  font-family: var(--font);
+  pointer-events: auto;
+}
+.game-options-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.game-options-head h2 {
+  margin: 0;
+  flex: 1;
+}
