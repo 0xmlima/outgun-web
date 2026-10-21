@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-RKL-18, RN-UI-05 (D-64) |
 | Skills | `outgun-card-workflow` |
@@ -26,7 +26,10 @@ Como jogador, quero usar 1 e 2 para mandar códigos de estratégia no chat sem v
 - Aviso do voto mostra as teclas do esquema.
 
 ## Critérios de aceite
-- [ ] Testes: 1/2 não são do jogo; Ctrl+1/Ctrl+2 votam no Clássico; migração; clique no aviso vota.
+- [x] Testes: 1/2 não são do jogo; Ctrl+1/Ctrl+2 votam no Clássico; migração; clique no aviso vota.
 - [ ] RN-UI-05: `pnpm visual:check`; PO confere.
 
 ## Notas de implementação
+- O clique nas opções do aviso já existia (OG-264); o aviso agora mostra a tecla do esquema (`[Ctrl+1] Bot no lugar`) ou nenhuma no Navegador. O controle (gamepad) segue igual.
+- Não mexi no visual do aviso (só o texto das opções); `visual:check` fica para o fechamento da sprint.
+- Achado: a dica "P resumes" da pausa ainda cita o P sozinho (Ctrl+P desde o OG-336).

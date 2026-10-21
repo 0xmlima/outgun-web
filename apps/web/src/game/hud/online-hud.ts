@@ -15,6 +15,9 @@ import { IS_MAC } from '../input/shortcuts.js';
 const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
 
 /** Bandeira de quem saiu da vista fica marcada por 30 s. */
+/** Opção do voto com a tecla na frente, se houver. */
+const keyed = (key: string | null, label: string): string => (key ? `[${key}] ${label}` : label);
+
 const OLD_FLAG_FRAMES = 300;
 /** Duração do destaque ao nascer (s). */
 const HIGHLIGHT_TIME = 0.5;
@@ -78,6 +81,9 @@ export class OnlineHud {
     };
   }
 
+  /** Teclas do voto no esquema atual (bot, um a menos); null = só o clique (OG-348). */
+  voteKeys: readonly [string | null, string | null] = [null, null];
+
   /** Posso votar no voto do bot substituto aberto agora (sou do time desfalcado). */
   canVote(): boolean {
     const p = this.session.pause;
@@ -113,8 +119,8 @@ export class OnlineHud {
       title: t('$1 left the game', name),
       detail: t('Team vote: $1 s', String(p.seconds)),
       options: [
-        { label: t('[1] Bot in place ($1)', String(p.votesBot)), chosen: mine === true, bot: true },
-        { label: t('[2] Play one short ($1)', String(p.votesShort)), chosen: mine === false, bot: false },
+        { label: keyed(this.voteKeys[0], t('Bot in place ($1)', String(p.votesBot))), chosen: mine === true, bot: true },
+        { label: keyed(this.voteKeys[1], t('Play one short ($1)', String(p.votesShort))), chosen: mine === false, bot: false },
       ],
       footer,
       hint: null,
