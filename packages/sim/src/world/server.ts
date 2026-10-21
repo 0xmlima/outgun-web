@@ -12,6 +12,7 @@ import { isRun } from './controls.js';
 import { shootRocketFormation } from './rockets.js';
 import type { SampleName } from './samples.js';
 import type { GameMap, WorldCoords, WorldRect } from '../map/map.js';
+import { FRAG_POINTS, NEG_POINTS } from './scoring.js';
 import { finishMatch, type MatchResult } from './stats.js';
 import { applyPhysics, executePlayerBounce, type PhysicsCallbacks, type PhysicsContext, type PlayerHitResult } from './physics.js';
 import { CarriedFlag, DeathbringerExplosion, FlagState, newStats, PlayerState, Position, PowerupKind, type GameOverReason, type PlayerStats, type PowerupState, type RocketState, type WorldState } from './state.js';
@@ -200,14 +201,14 @@ export class ServerSim {
       const a = this.player(attacker);
       const atteam = this.teamOf(attacker);
       const sameTeam = tateam === atteam;
-      this.scoreFrag(attacker, sameTeam ? -2 : 1);
+      this.scoreFrag(attacker, sameTeam ? FRAG_POINTS.teamKill : FRAG_POINTS.kill);
       if (!sameTeam) {
         // defesa de portador: um aliado do atacante carrega bandeira na sala do alvo
         for (let i = atteam * world.teamSize; i < (atteam + 1) * world.teamSize; i++) {
           const p = world.players[i];
           if (p && p.stats.carriedFlag !== CarriedFlag.None && i !== attacker && this.sameRoom(p.pos, t.pos)) {
             carrierDefended = true;
-            this.scoreFrag(attacker, 1);
+            this.scoreFrag(attacker, FRAG_POINTS.carrierDefense);
             break;
           }
         }
@@ -215,16 +216,16 @@ export class ServerSim {
           const onGroundHere = (f: FlagState) => f.status !== 'carried' && this.sameRoom(f.pos, t.pos);
           if (world.teams[atteam].flags.some(onGroundHere)) {
             flagDefended = true;
-            if (!carrierDefended) this.scoreFrag(attacker, 1);
+            if (!carrierDefended) this.scoreFrag(attacker, FRAG_POINTS.flagDefense);
           }
-          if (!carrierDefended && !flagDefended && world.teams[tateam].flags.some(onGroundHere)) this.scoreFrag(attacker, 1);
+          if (!carrierDefended && !flagDefended && world.teams[tateam].flags.some(onGroundHere)) this.scoreFrag(attacker, FRAG_POINTS.flagDefense);
         }
       }
       if (t.stats.carriedFlag !== CarriedFlag.None) {
         if (!sameTeam) {
           a.stats.carriersKilled++;
-          this.scoreFrag(attacker, 1); // portador inimigo: frag extra
-        } else this.scoreFrag(attacker, -1);
+          this.scoreFrag(attacker, FRAG_POINTS.carrierKill); // portador inimigo: frag extra
+        } else this.scoreFrag(attacker, FRAG_POINTS.teamCarrierKill);
       }
       if (!sameTeam) {
         addKill(a, type === DamageType.deathbringer);
@@ -241,8 +242,8 @@ export class ServerSim {
   /** `ServerWorld::killPlayer`. */
   killPlayer(target: number, timePenalty: boolean): void {
     const t = this.player(target);
-    this.scoreNeg(target, 1);
-    if (this.dropFlagIfAny(target)) this.scoreNeg(target, 1);
+    this.scoreNeg(target, NEG_POINTS.death);
+    if (this.dropFlagIfAny(target)) this.scoreNeg(target, NEG_POINTS.deathWithFlag);
     if (t.deathbringer) {
       this.world.explosions.push(new DeathbringerExplosion(this.frame, t.pos.clone(), target, t.team));
       this.hooks.deathbringerExploded?.(t.team, t.pos.clone(), this.frame);
@@ -282,7 +283,7 @@ export class ServerSim {
   suicide(pid: number): void {
     const pl = this.player(pid);
     if (pl.dead) return;
-    this.scoreFrag(pid, -1);
+    this.scoreFrag(pid, FRAG_POINTS.suicide);
     addDeath(pl, false, Math.trunc(this.time));
     pl.stats.suicides++;
     const team = this.world.teams[this.teamOf(pid)];
@@ -423,7 +424,7 @@ export class ServerSim {
     if (purpose) {
       // morrendo, os clientes já sabem que a bandeira caiu
       this.hooks.flagDropped?.(pid, this.flagType(pid, carried.team), captureDrop);
-      if (!captureDrop) this.scoreFrag(pid, -1);
+      if (!captureDrop) this.scoreFrag(pid, FRAG_POINTS.flagDropOnPurpose);
     }
     return true;
   }
@@ -458,7 +459,7 @@ export class ServerSim {
   /** `player_steals_flag`: +1 frag (desfeito se largar de propósito) e revela o shadow. */
   private playerStealsFlag(pid: number, team: number, index: number): void {
     const pl = this.player(pid);
-    this.scoreFrag(pid, 1);
+    this.scoreFrag(pid, FRAG_POINTS.flagTake);
     const type = this.flagType(pid, team);
     addFlagTake(pl.stats, this.time, type);
     this.world.teams[this.teamOf(pid)].flagsTaken++;
@@ -479,12 +480,12 @@ export class ServerSim {
     const assist = this.teamOf(assistPid) !== myteam ? -1 : assistPid;
     world.players.forEach((p, i) => {
       if (!p) return;
-      if (this.teamOf(i) === myteam) this.scoreFrag(i, 2);
-      else if (team !== 2) this.scoreNeg(i, 1);
+      if (this.teamOf(i) === myteam) this.scoreFrag(i, FRAG_POINTS.teamCapture);
+      else if (team !== 2) this.scoreNeg(i, NEG_POINTS.enemyCapture);
     });
-    this.scoreFrag(pid, 3);
+    this.scoreFrag(pid, FRAG_POINTS.capture);
     if (assist !== -1) {
-      this.scoreFrag(assist, 3);
+      this.scoreFrag(assist, FRAG_POINTS.assist);
       this.player(assist).stats.assists++;
     }
     addCapture(this.player(pid).stats, this.time);

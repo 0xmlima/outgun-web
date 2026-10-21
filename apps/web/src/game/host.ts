@@ -14,7 +14,8 @@ import { ASSETS, loadManifest } from '../assets.js';
 import { LocalDemo } from './demo.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
-import { isGameKey } from './input/bindings.js';
+import { chordLabel, isGameKey } from './input/bindings.js';
+import { altName } from './input/shortcuts.js';
 import type { Translate } from './hud/feed.js';
 import { loadInter } from './hud/hud-faces.js';
 import { GameFont, HudRenderer } from './hud/hud-renderer.js';
@@ -207,6 +208,9 @@ export async function loadFont(name: string | undefined): Promise<GameFont | nul
     return null;
   }
 }
+
+/** Primeira tecla de cada voto do substituto (OG-348); sem tecla, só o clique. */
+const voteKeys = (b: Bindings): [string | null, string | null] => [b.voteBot[0] ? chordLabel(b.voteBot[0], altName()) : null, b.voteShort[0] ? chordLabel(b.voteShort[0], altName()) : null];
 
 const coords = (p: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: p.roomX, y: p.roomY }, x: p.x, y: p.y });
 
@@ -449,6 +453,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     });
     session.prediction = opts.prediction;
     onlineHud = new OnlineHud(session, opts.translate);
+    Object.assign(onlineHud, { voteKeys: voteKeys(bindings), pauseKey: bindings.pause[0] ? chordLabel(bindings.pause[0], altName()) : 'Pause' });
     onlineHud.setOptions(client);
     sounds = new SoundPlayer();
     sounds.configure(opts.sound.enabled, opts.sound.volume);
@@ -691,6 +696,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     setBindings: (b) => {
       bindings = b;
       input.setBindings(b);
+      if (onlineHud) Object.assign(onlineHud, { voteKeys: voteKeys(b), pauseKey: b.pause[0] ? chordLabel(b.pause[0], altName()) : 'Pause' });
     },
     setPrediction: (prediction) => {
       if (session) session.prediction = prediction;

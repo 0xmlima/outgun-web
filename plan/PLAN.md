@@ -793,14 +793,14 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-338](cards/OG-338-estilo-da-tag-do-cla.md) | Clã escolhe como a tag aparece: (nn), DT-, Dk. | E9 | 5 | Should | S35 | — | Concluído |
 | [OG-339](cards/OG-339-opcoes-dentro-da-partida.md) | Opções e controles pelo Esc, sem sair da partida | E8 | 3 | Should | S35 | — | Concluído |
 | [OG-340](cards/OG-340-hud-no-espectador-e-replay.md) | Espectador e replay com minimapa, placar e frags | E8 | 3 | Should | S35 | — | Concluído |
-| [OG-341](cards/OG-341-ranked-20-minutos-com-prorrogacao.md) | Ranked com 20 min e prorrogação de 5 no empate | E12 | 2 | Must | S36 | — | Pronto |
-| [OG-342](cards/OG-342-explicacao-do-rating.md) | Botão "i" explicando o rating | E12 | 3 | Must | S36 | — | Pronto |
-| [OG-343](cards/OG-343-placar-final-7-em-vez-de-8.md) | Placar final mostra 7 em vez de 8 | E11 | 2 | Must | S36 | — | Pronto |
-| [OG-344](cards/OG-344-modal-de-fim-de-partida.md) | Modal de fim de partida com resultado e detalhes | E8 | 5 | Must | S36 | OG-343 | Pronto |
-| [OG-345](cards/OG-345-ranked-cancelada-sem-humanos.md) | Ranqueada cancelada quando um lado fica sem humanos | E12 | 3 | Must | S36 | — | Pronto |
-| [OG-346](cards/OG-346-jogadores-demoram-a-aparecer.md) | Jogadores demoram a aparecer ao entrar na sala | E11 | 2 | Should | S36 | — | Pronto |
-| [OG-347](cards/OG-347-minimapa-inimigo-morto.md) | Inimigo morto reaparece no minimapa onde morreu | E11 | 2 | Should | S36 | — | Pronto |
-| [OG-348](cards/OG-348-voto-com-ctrl-1-e-ctrl-2.md) | Voto do substituto com Ctrl+1/Ctrl+2 | E12 | 2 | Must | S36 | — | Pronto |
+| [OG-341](cards/OG-341-ranked-20-minutos-com-prorrogacao.md) | Ranked com 20 min e prorrogação de 5 no empate | E12 | 2 | Must | S36 | — | Concluído |
+| [OG-342](cards/OG-342-explicacao-do-rating.md) | Botão "i" explicando o rating | E12 | 3 | Must | S36 | — | Concluído |
+| [OG-343](cards/OG-343-placar-final-7-em-vez-de-8.md) | Placar final mostra 7 em vez de 8 | E11 | 2 | Must | S36 | — | Concluído |
+| [OG-344](cards/OG-344-modal-de-fim-de-partida.md) | Modal de fim de partida com resultado e detalhes | E8 | 5 | Must | S36 | OG-343 | Concluído |
+| [OG-345](cards/OG-345-ranked-cancelada-sem-humanos.md) | Ranqueada cancelada quando um lado fica sem humanos | E12 | 3 | Must | S36 | — | Concluído |
+| [OG-346](cards/OG-346-jogadores-demoram-a-aparecer.md) | Jogadores demoram a aparecer ao entrar na sala | E11 | 2 | Should | S36 | — | Concluído |
+| [OG-347](cards/OG-347-minimapa-inimigo-morto.md) | Inimigo morto reaparece no minimapa onde morreu | E11 | 2 | Should | S36 | — | Concluído |
+| [OG-348](cards/OG-348-voto-com-ctrl-1-e-ctrl-2.md) | Voto do substituto com Ctrl+1/Ctrl+2 | E12 | 2 | Must | S36 | — | Concluído |
 | [OG-349](cards/OG-349-rating-interno-de-habilidade.md) | Rating interno de habilidade (matchmaking futuro) | E12 | 5 | Could | — | OG-342 | Backlog |
 
 **Total:** 191 cards, 634 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 122 cards, 339 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
@@ -999,7 +999,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-RKL-23 | Há um ranking **geral** de todas as temporadas (soma de score e neg), também por formato. |
 | RN-RKL-24 | **Hall da fama:** os 3 primeiros de cada temporada encerrada no geral, em cada formato e entre os clãs, com selo no perfil e na página do clã. |
 | RN-RKL-25 | **Duração do Ranked (D-61):** 20 min de tempo normal, sem alteração possível; quem estiver na frente vence. Empate aos 20 → prorrogação de 5 min, sem morte súbita: a partida segue até 8 capturas ou até os 25 min; empatada aos 25, termina empatada. |
-| RN-RKL-26 | **Partida cancelada (D-62):** se um lado fica sem nenhum humano conectado e a janela de reconexão (RN-RKL-17) acaba sem volta, a partida é cancelada: sem bot substituto, sem rating, estatísticas, marcos ou clã (deltas parciais descartados). Na série, o jogo não conta e é disputado de novo. |
+| RN-RKL-26 | **Partida cancelada (D-62):** se um lado fica sem nenhum humano conectado e a janela de reconexão (RN-RKL-17) acaba sem volta, a partida é cancelada: sem bot substituto, sem rating, estatísticas, marcos ou clã (deltas parciais descartados) e fora do histórico (não vai à API); os jogadores veem o aviso. Na série, o jogo não conta e é disputado de novo. |
 | RN-RKL-12 | Desmarcar "Pronto", trocar de lado, sair ou entrar alguém durante a contagem a cancela; ela recomeça do zero quando todos estiverem prontos de novo. |
 | RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". Cada formato tem rating próprio; o rating geral soma score e neg dos três (D-42). |
 | RN-RKL-14 | Partida **clã x clã**: todos de um lado do mesmo clã cadastrado e todos do outro de outro clã (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |

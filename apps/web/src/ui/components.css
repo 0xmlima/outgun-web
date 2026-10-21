@@ -710,3 +710,115 @@ html {
     gap: 0;
   }
 }
+
+/* Janela modal (OG-342) */
+.ui-dialog {
+  width: min(40rem, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100vh - 2 * var(--space-6));
+  padding: 0;
+  color: var(--text);
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}
+.ui-dialog::backdrop {
+  background: rgb(0 0 0 / 60%);
+}
+.ui-dialog-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.ui-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ui-dialog-body p,
+.ui-dialog-body ul {
+  margin: 0;
+}
+.ui-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.ui-dialog-x {
+  min-width: 2.75rem;
+  font-size: var(--text-xl);
+}
+.ui-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  margin-inline-start: var(--space-2);
+  padding: 0;
+  color: var(--text-accent);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-style: italic;
+  font-weight: var(--weight-medium);
+  vertical-align: middle;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.ui-info:hover {
+  background: var(--surface-3);
+}
+.ui-info:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.rating-help-table caption {
+  padding-bottom: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+.rating-help-table td:first-child {
+  white-space: normal;
+}
+.rating-help-formula {
+  font-size: var(--text-lg);
+  text-align: center;
+}
+.rating-help-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-5);
+}
+
+/* Fim de partida (OG-344) */
+.match-end .team-red {
+  color: var(--text-team-red);
+}
+.match-end .team-blue {
+  color: var(--text-team-blue);
+}
+.match-end-win .ui-panel-title {
+  color: var(--text-success);
+}
+.match-end-loss .ui-panel-title {
+  color: var(--text-danger);
+}
+.match-end-score {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+.match-end-reason,
+.match-end-series {
+  text-align: center;
+}
+.match-end-me {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-MOD-04, RN-RKL-25 (D-61) |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,8 @@ Como jogador do Ranked, quero partidas com duração fixa, para saber quanto tem
 - Relógio do HUD e mensagem de regras ao entrar mostram 20 min e "prorrogação de 5 min" (textos que já existem, `feed.ts`).
 
 ## Critérios de aceite
-- [ ] Testes do preset (valores e trava) e da sim: vence o líder aos 20; empate → prorrogação; captura na prorrogação não encerra; 8 capturas encerram; empate aos 25.
-- [ ] RN-RKL-25 e D-61 no PLAN.
+- [x] Testes do preset (valores e trava) e da sim: vence o líder aos 20; empate → prorrogação; captura na prorrogação não encerra; 8 capturas encerram; empate aos 25.
+- [x] RN-RKL-25 e D-61 no PLAN.
 - [ ] PO confere numa ranqueada (pode ser com `time_limit` curto pelo painel de teste).
 
 ## Notas técnicas
@@ -34,3 +34,5 @@ Como jogador do Ranked, quero partidas com duração fixa, para saber quanto tem
 - Casual não muda.
 
 ## Notas de implementação
+- Só o preset mudou: a sim já fazia prorrogação sem morte súbita (`checkTimeLimit`). Ao entrar e no fim de cada jogo o chat diz "EMPATE NO FIM: 5 MINUTOS DE PRORROGAÇÃO".
+- Teste rápido no beta: Casual com `/set time_limit 1` e `/set extra_time 1` reproduz o fluxo (o Ranked é travado).

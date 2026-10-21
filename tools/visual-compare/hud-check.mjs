@@ -267,6 +267,8 @@ try {
   // fim de partida: time_limit 2 (conta do momento em que a sala abriu)
   if (!only || 'fim-de-partida'.includes(only)) {
     await ana.waitForSelector('.game[data-game-over="1"]', { timeout: 240_000 });
+    // o modal do fim de partida (OG-344) é DOM por cima do canvas: fecha para comparar o placar de baixo
+    await ana.keyboard.press('Escape');
     await wait(1500);
     for (const res of RESOLUTIONS) {
       await resize(ana, res);

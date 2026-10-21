@@ -129,6 +129,8 @@ export interface FeedContext {
   readonly captureLimit: number;
   /** Minutos (0 = sem limite). */
   readonly timeLimit: number;
+  /** Minutos de prorrogação no empate (0 = sem). */
+  readonly extraTime?: number;
   /** Mapas na rotação (0 = lista ainda não chegou). */
   readonly mapCount: number;
 }
@@ -317,6 +319,7 @@ export class MessageFeed {
     const parts: string[] = [];
     if (c.captureLimit > 0) parts.push(t('CAPTURE $1 FLAGS TO WIN THE GAME.', String(c.captureLimit)));
     if (c.timeLimit > 0) parts.push(t('TIME LIMIT IS $1 MINUTES.', String(c.timeLimit)));
+    if (c.timeLimit > 0 && (c.extraTime ?? 0) > 0) parts.push(t('IF TIED, $1 MINUTES OF EXTRA TIME.', String(c.extraTime)));
     if (parts.length) this.pushPlain('info', parts.join(' '), c.time);
   }
 

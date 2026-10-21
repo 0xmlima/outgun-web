@@ -384,6 +384,8 @@ export class ClientSession {
       case 'spawn': {
         const p = this.world?.players[m.pid];
         if (p) p.dead = false;
+        // a posição guardada é a da morte: até chegar a nova (frame ou minimapa) ele não aparece (OG-347)
+        if (m.pid !== this.me) this.posUpdated.delete(m.pid);
         break;
       }
       case 'serverSettings':

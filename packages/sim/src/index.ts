@@ -10,6 +10,7 @@ export * from './world/controls.js';
 export * from './world/physics.js';
 export * from './world/rockets.js';
 export * from './world/samples.js';
+export * from './world/scoring.js';
 export * from './world/state.js';
 export * from './world/server.js';
 export * from './world/stats.js';

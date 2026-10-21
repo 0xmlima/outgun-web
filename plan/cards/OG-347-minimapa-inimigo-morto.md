@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,7 +23,8 @@ Como jogador, quero que o minimapa mostre só inimigos vivos, sem fantasmas.
 - Morto não aparece no minimapa até renascer (servidor não envia, cliente ignora a posição velha).
 
 ## Critérios de aceite
-- [ ] Teste no servidor e no cliente: morto fora do minimapa até o respawn.
+- [x] Teste no servidor e no cliente: morto fora do minimapa até o respawn.
 - [ ] RN-UI-05: `pnpm visual:check`; PO confere numa partida online.
 
 ## Notas de implementação
+- Causa: o servidor já não mandava mortos no minimapa; o evento `spawn` desmarcava o morto no cliente, que ainda tinha a posição da morte vista há menos de 2 s (o fade do minimapa é de 20 frames) e redesenhava ali. Agora o `spawn` esquece a posição até chegar a nova. Teste só no cliente (o servidor não mudou).

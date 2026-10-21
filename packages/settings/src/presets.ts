@@ -75,10 +75,13 @@ export const PRESETS: readonly Preset[] = [
     id: 'ranked',
     mode: 'ranked',
     locked: true,
-    description: 'Ranked: Clássico sem power-ups (RN-MOD-02) e sem bots (RN-MOD-06).',
-    overrides: 'pups_min 0\npups_max 0\npups_drop_at_death 0\npup_start_shield 0\npup_start_turbo 0\npup_start_shadow 0\npup_start_power 0\npup_start_weapon 1\npup_start_deathbringer 0\nmin_bots 0\nbots_fill 0',
+    description: 'Ranked: Clássico sem power-ups (RN-MOD-02) e sem bots (RN-MOD-06), 20 min e prorrogação de 5 no empate (RN-RKL-25).',
+    overrides: 'capture_limit 8\ntime_limit 20\nextra_time 5\nextra_time_periods 1\nsudden_death 0\npups_min 0\npups_max 0\npups_drop_at_death 0\npup_start_shield 0\npup_start_turbo 0\npup_start_shadow 0\npup_start_power 0\npup_start_weapon 1\npup_start_deathbringer 0\nmin_bots 0\nbots_fill 0',
   },
 ];
+
+/** Intervalo entre o fim de uma partida e a próxima, em segundos (D-63). */
+export const GAME_END_DELAY = 10;
 
 /** Atraso padrão do espectador ao vivo, em segundos (D-56). */
 export const SPECTATING_DELAY = 30;
@@ -87,8 +90,9 @@ export const SPECTATING_DELAY = 30;
 export function classicSettings(): GameSettings {
   const result = applyGamemod(codeDefaults(), CLASSIC_GAMEMOD);
   if (result.errors.length > 0) throw new Error(`gamemod clássico inválido: ${result.errors[0]?.message}`);
-  // espectador com 30 s de atraso em vez dos 120 do gamemod.txt (D-56, OG-318)
-  return { ...result.settings, server: { ...result.settings.server, spectatingDelay: SPECTATING_DELAY } };
+  // espectador com 30 s de atraso em vez dos 120 do gamemod.txt (D-56, OG-318); 10 s entre partidas
+  // para o modal de fim de partida (D-63, OG-344)
+  return { ...result.settings, server: { ...result.settings.server, spectatingDelay: SPECTATING_DELAY, gameEndDelay: GAME_END_DELAY } };
 }
 
 export function presetSettings(id: string): GameSettings {

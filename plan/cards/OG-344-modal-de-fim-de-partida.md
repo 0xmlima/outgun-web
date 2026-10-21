@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | OG-343 |
 | Regras de negócio | RN-RKL-02, RN-UI-05, RN-UI-07 (D-63) |
 | Skills | `outgun-card-workflow` |
@@ -29,3 +29,6 @@ Como jogador, quero ver o resultado e os números da partida quando ela acaba, e
 - [ ] RN-UI-05: sobreposição temporária; `pnpm visual:check` sem diferença fora do modal; partida online de verdade e capturas ao PO.
 
 ## Notas de implementação
+- Modal em DOM (`Dialog` do OG-342) por cima do canvas: o placar antigo segue desenhado embaixo, então o HUD não muda; o `visual:check` fecha o modal com Esc antes de capturar o fim de partida. O lobby da série (e o menu, no fim da série/md1) espera o modal fechar.
+- `game_end_delay` vai a 10 s no Clássico e em tudo que deriva dele (Casual e Ranked). No fim de partida a tela F3/F4 automática não abre mais (o modal mostra os números).
+- **Pendente:** a variação de score/neg do Ranked não chega ao cliente no fim do jogo (vai só no resultado para a API); fica para um card se o PO quiser. Destinos testados só pelo resumo (`match-end.test.ts`); a navegação o PO confere.

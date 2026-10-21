@@ -79,12 +79,15 @@ test('cadastro com convite, partida até o fim, feedback, histórico e ranking',
   await page.keyboard.up('Control');
   await page.screenshot({ path: prints('2-partida.png') });
 
-  // 4. Fim da partida (time_limit 1): o placar abre sozinho
+  // 4. Fim da partida (time_limit 1): o modal com o resultado abre sozinho (OG-344)
   await expect(game).toHaveAttribute('data-game-over', '1', { timeout: 120_000 });
+  await expect(page.getByRole('dialog')).toBeVisible();
   await page.waitForTimeout(500);
   await page.screenshot({ path: prints('3-fim.png') });
 
   // 5. Feedback do beta pelo menu do jogo (OG-106): leva a sala e o mapa como contexto
+  await page.keyboard.press('Escape'); // fecha o modal do fim de partida
+  await expect(page.getByRole('dialog')).toBeHidden();
   await page.keyboard.press('Escape');
   await menuItem(page, 'Enviar feedback').click();
   await expect(page).toHaveURL(/\/feedback\?sala=main&mapa=/);

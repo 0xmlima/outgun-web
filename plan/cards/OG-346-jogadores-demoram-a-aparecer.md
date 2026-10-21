@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,7 +23,9 @@ Como jogador, quero ver todo mundo assim que entro na sala.
 - Mandar o estado completo dos jogadores junto da entrada, para que apareçam já no primeiro frame.
 
 ## Critérios de aceite
-- [ ] Teste: o primeiro frame depois da entrada já traz os jogadores presentes.
+- [x] Teste: o primeiro frame depois da entrada já traz os jogadores presentes.
 - [ ] PO confere.
 
 ## Notas de implementação
+- Causa encontrada no servidor: o minimapa manda 2 jogadores por frame em rodízio (4 depois que o cliente informa a banda); com o time inteiro espalhado, os últimos apareciam vários frames depois. Agora o primeiro frame do jogo de cada destinatário (entrada, troca de mapa, volta da pausa ou do placar) leva todos de uma vez; depois volta o rodízio.
+- Quem está na mesma sala já vinha no primeiro frame. Se o PO ainda notar demora nos bonecos da sala, o próximo suspeito é o carregamento do mapa no cliente.

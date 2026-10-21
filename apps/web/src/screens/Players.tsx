@@ -14,6 +14,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { duration, FormatTabs, formatQuery, PlayerLink, Status, useApi, useFormatParam, type Leaderboard } from './stats.js';
+import { RatingInfo } from './rating-help.js';
 
 interface Directory {
   active: { username: string; clanTag: string | null; clanLabel: string | null; matches: number; wins: number; playSeconds: number }[];
@@ -206,7 +207,7 @@ export function LeaderboardScreen() {
               columns={[
                 { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
                 { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={withClan(e.username, e.clanLabel)} username={e.username} /> },
-                { key: 'rating', header: t('rating'), cell: (e) => e.rating.toFixed(2), align: 'end' },
+                { key: 'rating', header: <>{t('rating')}<RatingInfo /></>, cell: (e) => e.rating.toFixed(2), align: 'end' },
                 { key: 'score', header: t('score'), cell: (e) => Math.trunc(e.score), align: 'end' },
                 { key: 'neg', header: t('neg'), cell: (e) => e.neg, align: 'end' },
                 { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },

@@ -225,6 +225,20 @@ describe('ClientSession', () => {
 });
 
 describe('dados do HUD', () => {
+  it('quem renasce não reaparece no minimapa onde morreu: espera a posição nova (OG-347)', () => {
+    const { s } = session();
+    const f = frame(10, [player(0, 100, 100)]);
+    f.minimap = [{ pid: 2, x: 200, y: 10 }];
+    s.handle([f], 1000);
+    s.handle([message('spawn', { pid: 2 }), frame(30, [player(0, 100, 100)])], 3000);
+    expect(s.world!.players[2]!.dead).toBe(false);
+    expect(s.posUpdated.has(2)).toBe(false);
+    const g = frame(31, [player(0, 100, 100)]);
+    g.minimap = [{ pid: 2, x: 10, y: 10 }];
+    s.handle([g], 3100);
+    expect(s.posUpdated.get(2)).toBe(31);
+  });
+
   it('posição do minimapa vira o centro da célula e marca quando foi vista', () => {
     const { s } = session();
     const f = frame(10, [player(0, 100, 100)]);

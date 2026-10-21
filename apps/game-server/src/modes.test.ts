@@ -136,6 +136,7 @@ describe('resultado da partida (RN-MOD-05, RN-RNK-01)', () => {
   const finish = (r: Room) => {
     r.settings.world.captureLimit = 1;
     r.settings.world.timeLimit = 60; // frames: termina por tempo
+    r.settings.world.extraTime = 0; // empatado, sem a prorrogação do Ranked (RN-RKL-25)
     for (let i = 0; i < 100; i++) r.tick();
   };
 

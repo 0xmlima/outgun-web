@@ -116,3 +116,24 @@ describe('tecla do jogo para o chat (OG-336)', () => {
     expect(parseBindings(custom).pause).toEqual([{ code: 'KeyO' }]);
   });
 });
+
+describe('voto do substituto com Ctrl+1 e Ctrl+2 (OG-348)', () => {
+  const ev = (code: string, ctrlKey = false) => ({ code, ctrlKey, altKey: false, shiftKey: false });
+
+  it('1 e 2 sozinhos começam mensagem; Ctrl+1/Ctrl+2 votam no Clássico; no Navegador só o clique', () => {
+    expect(isGameKey(CLASSIC_BINDINGS, ev('Digit1'))).toBe(false);
+    expect(isGameKey(CLASSIC_BINDINGS, ev('Digit2'))).toBe(false);
+    expect(pressedActions(CLASSIC_BINDINGS, ev('Digit1', true))).toEqual(['voteBot']);
+    expect(pressedActions(CLASSIC_BINDINGS, ev('Digit2', true))).toEqual(['voteShort']);
+    expect(pressedActions(BROWSER_BINDINGS, ev('Digit1'))).toEqual([]);
+    expect(isGameKey(BROWSER_BINDINGS, ev('Digit1'))).toBe(false);
+  });
+
+  it('1 e 2 salvos no voto migram para o esquema; outra tecla escolhida fica', () => {
+    const saved = serializeBindings({ ...CLASSIC_BINDINGS, voteBot: [{ code: 'Digit1' }], voteShort: [{ code: 'Digit2' }] });
+    expect(parseBindings(saved).voteBot).toEqual([{ code: 'Digit1', ctrl: true }]);
+    expect(parseBindings(saved).voteShort).toEqual([{ code: 'Digit2', ctrl: true }]);
+    expect(parseBindings(saved, BROWSER_BINDINGS).voteBot).toEqual([]);
+    expect(parseBindings(serializeBindings({ ...CLASSIC_BINDINGS, voteBot: [{ code: 'F7' }] })).voteBot).toEqual([{ code: 'F7' }]);
+  });
+});

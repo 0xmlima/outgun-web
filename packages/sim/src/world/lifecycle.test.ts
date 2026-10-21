@@ -169,6 +169,22 @@ describe('limites de tempo', () => {
     expect(world.gameOver).toBe('extraTimeOut');
   });
 
+  it('Ranked (RN-RKL-25): empate aos 20 dá 5 min, captura na prorrogação não encerra e o tempo acaba aos 25', () => {
+    const ranked = (s: GameSettings) => Object.assign(s.world, { captureLimit: 8, timeLimit: 12000, extraTime: 3000, extraTimePeriods: 1, suddenDeath: false });
+    expect(run(ranked, [12000], [3, 2]).events).toEqual(['fim: timeOut']);
+    const ctx = run(ranked, [12000]);
+    ctx.world.teams[0].score = 1; // capturou na prorrogação
+    for (const f of [12600, 14999]) {
+      ctx.world.frame = f;
+      ctx.sim.simulateFrame();
+    }
+    expect(ctx.world.gameOver).toBeNull();
+    ctx.world.frame = 15000;
+    ctx.sim.simulateFrame();
+    expect(ctx.events).toEqual(['fim do tempo normal', 'fim: extraTimeOut']);
+    expect(run(ranked, [12000, 15000]).world.gameOver).toBe('extraTimeOut'); // empatada aos 25: empate
+  });
+
   it('sozinho no servidor não há limite de tempo', () => {
     const ctx = setup((s) => (s.world.timeLimit = 600));
     waitForever(addPlayer(ctx.world, 0));

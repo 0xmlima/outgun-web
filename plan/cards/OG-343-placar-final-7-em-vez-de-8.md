@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-STA-03 |
 | Skills | `outgun-card-workflow` |
@@ -24,7 +24,9 @@ Como jogador, quero ver o placar final certo, para não achar que o jogo acabou 
 - Conferir o mesmo no espectador e no replay.
 
 ## Critérios de aceite
-- [ ] Teste: captura que fecha o jogo no mesmo tick do `gameOver` mostra 8.
-- [ ] Relatório da partida e tela final batem.
+- [x] Teste: captura que fecha o jogo no mesmo tick do `gameOver` mostra 8.
+- [x] Relatório da partida e tela final batem.
 
 ## Notas de implementação
+- Causa: o `gameOver` sai de dentro do `simulateFrame` (hook do fim de jogo) e o `scoreUpdate` da captura final só depois do frame; o cliente congelava o placar antigo. O relatório sempre esteve certo.
+- Correção sem mudar o protocolo: o servidor manda o placar pendente antes do `gameOver` (`sendScores`). Espectador e replay recebem a mesma sequência; replays antigos continuam com o 7.

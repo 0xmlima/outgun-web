@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-RKL-17, RN-RKL-18, RN-RKL-19, RN-RKL-26 (D-62) |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,12 @@ Como jogador do Ranked, quero que uma partida sem jogadores de um dos lados seja
 - Série: o jogo cancelado não conta e é disputado de novo; os conectados voltam ao lobby da sala (ou ao menu, se não sobrou ninguém de um lado) com um aviso.
 
 ## Critérios de aceite
-- [ ] Testes: todos caem → cancelada; um time inteiro cai → cancelada; volta dentro dos 120 s → segue normal; um a menos (ainda há humano do lado) → regra atual.
-- [ ] API aceita o relatório cancelado e não aplica deltas (teste).
-- [ ] RN-RKL-26 e D-62 no PLAN.
+- [x] Testes: todos caem → cancelada; um time inteiro cai → cancelada; volta dentro dos 120 s → segue normal; um a menos (ainda há humano do lado) → regra atual.
+- [x] ~~API aceita o relatório cancelado~~ A partida cancelada não vai à API (ver notas); teste de que nada é enviado.
+- [x] RN-RKL-26 e D-62 no PLAN.
 
 ## Notas de implementação
+- Um lado "some" quando não tem humano conectado nem caído ainda no prazo (bots substitutos e quem está em voto não contam); "Sair" do lado inteiro cancela na hora.
+- Os deltas de quem sai no meio de um jogo Ranked agora esperam o fim do jogo (vão antes do resultado, ou na sala fechando) para poderem ser descartados.
+- **Decisão de implementação (para o PO):** a cancelada não é enviada à API, então não aparece no histórico. Registrar com a marca "Cancelada" exigiria filtrar a partida em todas as consultas de estatísticas; fica para um card se o PO quiser. Os jogadores veem o aviso no chat do lobby.
+- Só nas salas Ranked com lobby (as únicas criadas hoje).

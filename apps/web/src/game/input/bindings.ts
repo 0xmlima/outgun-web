@@ -105,8 +105,9 @@ export const CLASSIC_BINDINGS: Bindings = {
   focusMode: k('F10'),
   // Ctrl+P: o P sozinho pausava em vez de começar uma mensagem com "p" (OG-336)
   pause: [ctrl('KeyP'), { code: 'Pause' }],
-  voteBot: k('Digit1'),
-  voteShort: k('Digit2'),
+  // Ctrl+1/Ctrl+2: 1 e 2 sozinhos são códigos de estratégia no chat (OG-348, D-64)
+  voteBot: [ctrl('Digit1')],
+  voteShort: [ctrl('Digit2')],
 };
 
 /** Esquema sem Ctrl/Alt (nenhum atalho do navegador por perto). */
@@ -119,6 +120,9 @@ export const BROWSER_BINDINGS: Bindings = {
   toggleNames: k('F6'),
   toggleSound: k('F7'),
   pause: k('Pause', 'Home'),
+  // Ctrl+número troca de aba no navegador: o voto é pelo clique no aviso (D-64)
+  voteBot: [],
+  voteShort: [],
 };
 
 export const SCHEMES = { classic: CLASSIC_BINDINGS, browser: BROWSER_BINDINGS } as const;
@@ -221,6 +225,13 @@ export function parseBindings(text: string | null, fallback: Bindings = CLASSIC_
     if (out.pause.some((c) => c.code === 'KeyP' && !hasModifiers(c))) {
       const kept = out.pause.filter((c) => c.code !== 'KeyP' || hasModifiers(c));
       out.pause = [...fallback.pause.filter((c) => !kept.some((k) => sameChord(k, c)) && !ACTIONS.some((a) => a !== 'pause' && out[a].some((o) => sameChord(o, c)))), ...kept];
+    }
+    // 1 e 2 sozinhos no voto (padrão até a v2.35) saem: fica o voto do esquema atual (OG-348)
+    for (const a of ['voteBot', 'voteShort'] as const) {
+      const digit = a === 'voteBot' ? 'Digit1' : 'Digit2';
+      if (!out[a].some((c) => c.code === digit && !hasModifiers(c))) continue;
+      const kept = out[a].filter((c) => c.code !== digit || hasModifiers(c));
+      out[a] = [...fallback[a].filter((c) => !kept.some((k) => sameChord(k, c)) && !ACTIONS.some((o) => o !== a && out[o].some((x) => sameChord(x, c)))), ...kept];
     }
   } catch {
     // associações corrompidas: padrão
