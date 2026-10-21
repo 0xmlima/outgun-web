@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S36 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-RNK-02, RN-RNK-03, RN-RKL-13, RN-RKL-22, D-02 |
 | Skills | `outgun-card-workflow` |
@@ -29,8 +29,10 @@ Como jogador, quero entender como o meu rating é calculado, para saber o que me
 - Textos em pt-BR e inglês (`packages/i18n`).
 
 ## Critérios de aceite
-- [ ] A tabela de eventos bate com o código (teste que compara a lista com as constantes, para não ficar desatualizada).
-- [ ] "i" acessível por teclado e leitor de tela; fecha com Esc.
+- [x] A tabela de eventos bate com o código (teste que compara a lista com as constantes, para não ficar desatualizada).
+- [x] "i" acessível por teclado e leitor de tela; fecha com Esc.
 - [ ] PO lê e aprova o texto.
 
 ## Notas de implementação
+- Os pontos de cada evento saíram de números soltos na sim para `FRAG_POINTS`/`NEG_POINTS` (`packages/sim/src/world/scoring.ts`); a tabela do "i" lê dali (comportamento igual, testes da sim sem mudança).
+- Novo `Dialog` do design system (`<dialog>` nativo: foco preso, Esc fecha), reaproveitado no OG-344. O "i" está no ranking da página inicial, na página Ranking e no painel de rating do perfil; o lobby Ranked não mostra rating, então ficou sem.

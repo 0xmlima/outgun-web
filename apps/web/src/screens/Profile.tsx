@@ -17,6 +17,7 @@ import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { TitleBadges } from './HallOfFame.js';
 import { useManifestLists } from './options.js';
+import { RatingInfo } from './rating-help.js';
 import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, SubstitutionBadges, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
 
 interface Mate {
@@ -199,7 +200,7 @@ export function ProfileScreen() {
         </Panel>
       </div>
 
-      <Panel title={season ? `${t('Rating')} · ${season.name}` : t('Rating')}>
+      <Panel title={season ? `${t('Rating')} · ${season.name}` : t('Rating')} actions={<RatingInfo />}>
         {pr?.hidden ? privateNote : pr && pr.series.length > 1 ? <RatingChart series={pr.series} locale={prefs.locale} /> : <p className="ui-muted">{t('No ranked matches this season.')}</p>}
       </Panel>
 

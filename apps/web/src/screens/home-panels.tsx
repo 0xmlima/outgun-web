@@ -12,6 +12,7 @@ import { Badge, Button } from '../ui/Button.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import type { RoomSummary } from './lobby.js';
+import { RatingInfo } from './rating-help.js';
 
 /** "Agora no Outgun" acompanha o lobby (heartbeat de 3 s); o resto do portal relê a cada minuto (OG-283). */
 export const LIVE_POLL_MS = 4000;
@@ -126,7 +127,7 @@ export function MonthRanking() {
             columns={[
               { key: 'pos', header: '#', cell: (e) => `${e.position}º`, align: 'end' },
               { key: 'name', header: t('Player'), cell: (e) => chatName(e.username, e.clanLabel) },
-              { key: 'rating', header: t('Rating'), cell: (e) => rating(e.rating), align: 'end' },
+              { key: 'rating', header: <>{t('Rating')}<RatingInfo /></>, cell: (e) => rating(e.rating), align: 'end' },
             ]}
           />
           )}
