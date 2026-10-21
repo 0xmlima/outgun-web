@@ -58,6 +58,7 @@ export default function ReplayScreen() {
           preferThemeColours: prefs.preferThemeColours,
           startSeconds: start,
           onStatus: setStatus,
+          translate: (text, ...args) => t(text, ...args),
           onError: setError,
         });
       })
@@ -144,6 +145,7 @@ export function SpectateScreen() {
       preferThemeColours: prefs.preferThemeColours,
       live: true,
       onStatus: setStatus,
+      translate: (text, ...args) => t(text, ...args),
       onError: setError,
     });
     const ws = new WebSocket(src);

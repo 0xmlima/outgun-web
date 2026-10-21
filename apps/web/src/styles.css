@@ -361,11 +361,12 @@ body {
   padding: 0 calc(var(--px) * 8px) calc(var(--px) * 6px);
   color: var(--menu-disabled);
 }
+/* no topo, sobre as salas: embaixo ficam o minimapa e o placar do HUD (OG-340) */
 .replay-bar {
   position: absolute;
   left: calc(var(--px) * 8px);
   right: calc(var(--px) * 8px);
-  bottom: calc(var(--px) * 6px);
+  top: calc(var(--px) * 6px);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
