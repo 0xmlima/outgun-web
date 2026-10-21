@@ -8712,19 +8712,9 @@
                         "type": "boolean"
                       },
                       "winner": {
-                        "anyOf": [
-                          {
-                            "type": "null"
-                          },
-                          {
-                            "type": "number",
-                            "enum": [0]
-                          },
-                          {
-                            "type": "number",
-                            "enum": [1]
-                          }
-                        ]
+                        "type": ["integer", "null"],
+                        "minimum": 0,
+                        "maximum": 1
                       }
                     }
                   },

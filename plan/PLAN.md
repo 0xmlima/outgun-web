@@ -598,6 +598,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S30 | v2: espectador para o competitivo e nome que some com o ciano | OG-318, OG-319, OG-320, OG-321 | |
 | S31 | v2: faixas novas, rotação da trilha no menu e tocador na tela inicial | OG-322 | |
 | S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
+| S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -776,8 +777,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-325](cards/OG-325-pagina-de-download.md) | Página "Jogar no computador" e download do instalador | E7 | 2 | Should | S32 | OG-323, OG-324 | Concluído |
 | [OG-326](cards/OG-326-cliente-mac-e-ubuntu.md) | Cliente para macOS e Ubuntu e ícones dos sistemas na página | E7 | 2 | Should | S32 | OG-324, OG-325 | Concluído |
 | [OG-327](cards/OG-327-teste-do-tick-instavel.md) | Teste do tick com 32 conexões falha à toa | E7 | 2 | Should | — | — | Backlog |
+| [OG-329](cards/OG-329-serie-vencida-pelo-vermelho-recusada.md) | Série Ranked vencida pelo vermelho é recusada pela API | E12 | 1 | Must | S34 | — | Em revisão |
+| [OG-330](cards/OG-330-recuperar-mapa-2-da-serie-r-kvgwotx9.md) | Recuperar o mapa 2 da série r-kvgwotx9 a partir do replay | E12 | 2 | Must | S34 | OG-329 | Em revisão |
+| [OG-331](cards/OG-331-resultado-recusado-nao-se-perde.md) | Resultado de partida recusado pela API não se perde | E12 | 2 | Should | S34 | — | Em revisão |
 
-**Total:** 169 cards, 580 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 100 cards, 285 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 172 cards, 585 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 103 cards, 290 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
