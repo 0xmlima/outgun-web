@@ -3,6 +3,7 @@
 // maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Ranking da temporada em
 // /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267),
 // filtrado por formato (OG-258).
+import { chatName } from '@outgun/protocol';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
@@ -15,7 +16,7 @@ import { Tabs } from '../ui/Tabs.js';
 import { duration, FormatTabs, formatQuery, PlayerLink, Status, useApi, useFormatParam, type Leaderboard } from './stats.js';
 
 interface Directory {
-  active: { username: string; clanTag: string | null; matches: number; wins: number; playSeconds: number }[];
+  active: { username: string; clanTag: string | null; clanLabel: string | null; matches: number; wins: number; playSeconds: number }[];
   clans: { tag: string; members: number; activeMembers: number; matches: number }[];
 }
 /** Ranking geral (OG-267): soma de todas as temporadas. */
@@ -26,10 +27,11 @@ interface Overall {
 }
 interface Found {
   total: number;
-  players: { username: string; clanTag: string | null }[];
+  players: { username: string; clanTag: string | null; clanLabel: string | null }[];
 }
 
-const withClan = (username: string, clanTag: string | null) => (clanTag ? `(${clanTag}) ${username}` : username);
+/** Nome com a tag decorada pelo estilo do clã (OG-338). */
+const withClan = (username: string, clanLabel: string | null) => chatName(username, clanLabel);
 
 /** Valor que só muda depois de `ms` sem alterações (busca enquanto digita). */
 function useDebounced(value: string, ms: number): string {
@@ -64,7 +66,7 @@ export function PlayersScreen() {
               onRowActivate={(r) => open(r.username)}
               empty={t('Nobody yet.')}
               columns={[
-                { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanTag)} username={r.username} /> },
+                { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
                 { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
                 { key: 'wins', header: t('Wins'), cell: (r) => r.wins, align: 'end' },
                 { key: 'time', header: t('Playing time'), cell: (r) => duration(r.playSeconds), align: 'end' },
@@ -119,7 +121,7 @@ function SearchResults({ term, onOpen }: { term: string; onOpen: (username: stri
         rowKey={(r) => r.username}
         onRowActivate={(r) => onOpen(r.username)}
         empty={t('Nobody found.')}
-        columns={[{ key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanTag)} username={r.username} /> }]}
+        columns={[{ key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> }]}
       />
       {f.total > f.players.length && limit < 50 && (
         <div className="ui-row">
@@ -203,7 +205,7 @@ export function LeaderboardScreen() {
               empty={t('Nobody yet.')}
               columns={[
                 { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
-                { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={withClan(e.username, e.clanTag)} username={e.username} /> },
+                { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={withClan(e.username, e.clanLabel)} username={e.username} /> },
                 { key: 'rating', header: t('rating'), cell: (e) => e.rating.toFixed(2), align: 'end' },
                 { key: 'score', header: t('score'), cell: (e) => Math.trunc(e.score), align: 'end' },
                 { key: 'neg', header: t('neg'), cell: (e) => e.neg, align: 'end' },

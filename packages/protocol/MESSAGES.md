@@ -97,7 +97,7 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 122 | [`lobbyVote`](#lobbyvote) | cliente → servidor | event | — (web, OG-254) | Voto de mapa no lobby Ranked (índice na rotação; −1 = nenhum). |
 | 123 | [`lobbySide`](#lobbyside) | cliente → servidor | event | — (web, OG-253) | Troca de lado no lobby: sem alvo, vai para a vaga livre do outro lado; com alvo, pede para trocar com ele. |
 | 124 | [`lobbySwapAnswer`](#lobbyswapanswer) | cliente → servidor | event | — (web, OG-253) | Resposta a um pedido de troca de lado. |
-| 125 | [`playerClan`](#playerclan) | servidor → cliente | event | — (web, OG-206) | Tag do clã cadastrado de um jogador (logo depois do `playerJoined`; sem tag, não vem). |
+| 125 | [`playerClan`](#playerclan) | servidor → cliente | event | — (web, OG-206) | Tag do clã cadastrado de um jogador, já decorada pelo estilo do clã: "(Dk)", "Dk." (OG-338). Logo depois do `playerJoined`; sem clã, não vem. |
 | 126 | [`pauseState`](#pausestate) | servidor → cliente | event | — (web, OG-260) | Pausa do jogo Ranked: fase (sem pausa, pausado ou contagem de retomada), motivo (pedido do time, queda ou voto do bot substituto), time e quem pediu/caiu/saiu, segundos restantes (saldo do time, prazo de reconexão, voto ou contagem), o saldo de pausa de cada time e, no voto, os votos de cada opção. |
 | 127 | [`pauseRequest`](#pauserequest) | cliente → servidor | event | — (web, OG-260) | Pede a pausa tática do time (on) ou a retomada (off); só no Ranked. |
 | 128 | [`substituteVote`](#substitutevote) | cliente → servidor | event | — (web, OG-262) | Voto do time desfalcado: bot no lugar (bot) ou seguir com um a menos. |
@@ -753,7 +753,7 @@ Código 124. Resposta a um pedido de troca de lado.
 
 ### playerClan
 
-Código 125. Tag do clã cadastrado de um jogador (logo depois do `playerJoined`; sem tag, não vem).
+Código 125. Tag do clã cadastrado de um jogador, já decorada pelo estilo do clã: "(Dk)", "Dk." (OG-338). Logo depois do `playerJoined`; sem clã, não vem.
 
 - `pid`: pid (u8, 0..31)
 - `tag`: string (UTF-8, até 8 bytes)

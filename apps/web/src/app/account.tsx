@@ -8,6 +8,8 @@ export interface AccountUser {
   readonly username: string;
   readonly email: string;
   readonly clanTag: string | null;
+  /** Tag decorada pelo estilo do clã (OG-338). */
+  readonly clanLabel: string | null;
   readonly isAdmin: boolean;
   /** Moderador do painel (OG-087). */
   readonly isModerator?: boolean;

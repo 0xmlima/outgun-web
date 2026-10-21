@@ -405,7 +405,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 ### 6.15 Nomes e identidade (RN-NOM)
 - **RN-NOM-01** — Nome: até 15 caracteres, imprimíveis, não pode ser vazio/só espaços nem começar/terminar com espaço. (`commont.cpp:190`)
 - **RN-NOM-02** — Web: o **nome de usuário é o nick em jogo**: único (comparação `makeComparable` do original com acentos dobrados, `src/auth.cpp:88`) e protegido; convidados recebem o sufixo `*` e não podem usar nick registrado nem reservado (troca de nome a cada 30 dias, nome antigo reservado por 90). Ver D-20 e `plan/specs/names.md`.
-- **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat. **v2:** a tag é a do clã cadastrado do jogador (RN-CLA-05, D-47), não mais um texto livre.
+- **RN-NOM-03** — Clan tag opcional exibida como `(TAG) nome` no chat. **v2:** a tag é a do clã cadastrado do jogador (RN-CLA-05, D-47), não mais um texto livre. O clã escolhe o estilo da tag: `(TAG) nome`, `[TAG] nome`, `TAG-nome`, `TAG.nome` ou `TAG|nome` (OG-338).
 
 ### 6.16 Ranking (RN-RNK)
 Comportamento original (`server.cpp:450-515`, `servnet.cpp:924`):
@@ -600,7 +600,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
 | S33 | v2: Outgun na Steam | OG-328 | |
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
-| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337 | |
+| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -789,8 +789,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-335](cards/OG-335-chat-bloqueado-por-flood.md) | Chat bloqueia na 3ª mensagem e o bloqueio nunca acaba | E11 | 2 | Must | S35 | — | Em revisão |
 | [OG-336](cards/OG-336-teclas-n-e-p-no-chat.md) | Mensagem não começa com "n" e o "p" pausa em vez de digitar | E11 | 2 | Must | S35 | — | Em revisão |
 | [OG-337](cards/OG-337-windows-em-tela-cheia.md) | Cliente para Windows abre em tela cheia | E7 | 1 | Should | S35 | — | Em revisão |
+| [OG-338](cards/OG-338-estilo-da-tag-do-cla.md) | Clã escolhe como a tag aparece: (nn), DT-, Dk. | E9 | 5 | Should | S35 | — | Em revisão |
 
-**Total:** 179 cards, 597 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 110 cards, 302 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 180 cards, 602 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 111 cards, 307 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 

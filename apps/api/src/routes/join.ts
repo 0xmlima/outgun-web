@@ -94,7 +94,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         aud: room.id,
         sub: user ? user.id : `guest:${randomUUID()}`,
         name,
-        clan: user?.clanTag ?? null,
+        // a tag como o clã quer que apareça: "(Dk)", "Dk." (OG-338)
+        clan: user?.clanLabel ?? null,
         ...(clanId ? { clanId } : {}),
         acct: user !== undefined,
         admin: user?.isAdmin ?? false,

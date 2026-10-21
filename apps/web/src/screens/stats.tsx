@@ -29,7 +29,7 @@ export interface Totals {
 }
 
 export interface Profile {
-  user: { id: string; username: string; clanTag: string | null; createdAt: string };
+  user: { id: string; username: string; clanTag: string | null; clanLabel: string | null; createdAt: string };
   ranking: { season: string; score: number; neg: number; rating: number; rank: number; of: number; matches: number; minimumScore: number } | null;
   totals: Record<Mode, Totals>;
   favoriteColors: number[];
@@ -123,7 +123,7 @@ export interface SeriesView {
 export interface Leaderboard {
   season: { id: number; name: string; active: boolean };
   total: number;
-  entries: { position: number; username: string; clanTag: string | null; score: number; neg: number; rating: number; matches: number }[];
+  entries: { position: number; username: string; clanTag: string | null; clanLabel: string | null; score: number; neg: number; rating: number; matches: number }[];
 }
 
 /** Carrega `path` da API; `null` = não encontrado. `keep` mantém os dados anteriores enquanto troca de filtro. */

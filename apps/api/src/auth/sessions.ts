@@ -15,6 +15,8 @@ export interface SessionUser {
   username: string;
   email: string;
   clanTag: string | null;
+  /** Tag decorada pelo estilo do clã (OG-338). */
+  clanLabel: string | null;
   isAdmin: boolean;
   /** Moderador do painel (OG-087). */
   isModerator: boolean;
@@ -61,6 +63,7 @@ export class SessionStore {
         username: users.username,
         email: users.email,
         clanTag: users.clanTag,
+        clanLabel: users.clanLabel,
         isAdmin: users.isAdmin,
         isModerator: users.isModerator,
       })

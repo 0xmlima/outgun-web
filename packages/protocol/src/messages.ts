@@ -864,7 +864,7 @@ export const MESSAGES = {
     accept: bool,
   }),
   // --- clã no HUD (OG-206, RN-NOM-04): sem equivalente no original ---
-  playerClan: msg(125, 's2c', 'event', '— (web, OG-206)', 'Tag do clã cadastrado de um jogador (logo depois do `playerJoined`; sem tag, não vem).', {
+  playerClan: msg(125, 's2c', 'event', '— (web, OG-206)', 'Tag do clã cadastrado de um jogador, já decorada pelo estilo do clã: "(Dk)", "Dk." (OG-338). Logo depois do `playerJoined`; sem clã, não vem.', {
     pid,
     tag: str(8),
   }),

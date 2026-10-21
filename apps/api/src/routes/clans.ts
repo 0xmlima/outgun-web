@@ -5,7 +5,7 @@
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { checkClanName, checkClanTag, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME } from '@outgun/protocol';
+import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, type ClanTagStyle } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
@@ -27,9 +27,14 @@ export const CLAN_COOLDOWN_MS = 7 * 24 * 3600_000;
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 const RoleSchema = Type.Union([Type.Literal('leader'), Type.Literal('admin'), Type.Literal('member')]);
+/** Como a tag aparece junto do nome (OG-338). */
+const TagStyleSchema = Type.Unsafe<ClanTagStyle>({ type: 'string', enum: [...CLAN_TAG_STYLES] });
 const ClanSchema = Type.Object({
   name: Type.String(),
   tag: Type.String(),
+  tagStyle: TagStyleSchema,
+  /** A tag decorada pelo estilo, "(Dk)", "Dk." (OG-338). */
+  tagLabel: Type.String(),
   description: Type.String(),
   createdAt: Type.String(),
   members: Type.Array(Type.Object({ username: Type.String(), role: RoleSchema, joinedAt: Type.String() })),
@@ -93,6 +98,7 @@ async function memberByName(tx: Tx, clanId: string, username: string) {
 export interface ClanFields {
   readonly name?: string | undefined;
   readonly tag?: string | undefined;
+  readonly tagStyle?: ClanTagStyle | undefined;
   readonly description?: string | undefined;
 }
 
@@ -121,6 +127,7 @@ export async function updateClan(tx: Tx, clanId: string, f: ClanFields) {
     .set({
       ...(f.name !== undefined ? { name: f.name, nameKey: clanKey(f.name) } : {}),
       ...(f.tag !== undefined ? { tag: f.tag, tagKey: clanKey(f.tag) } : {}),
+      ...(f.tagStyle !== undefined ? { tagStyle: f.tagStyle } : {}),
       ...(f.description !== undefined ? { description: f.description } : {}),
       updatedAt: new Date(),
     })
@@ -222,6 +229,8 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
     return {
       name: clan.name,
       tag: clan.tag,
+      tagStyle: clan.tagStyle,
+      tagLabel: clanLabel(clan.tag, clan.tagStyle),
       description: clan.description,
       createdAt: clan.createdAt.toISOString(),
       members: members.map((m) => ({ username: m.username, role: m.role, joinedAt: m.joinedAt.toISOString() })),
@@ -324,6 +333,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           body: Type.Object({
             name: Type.String({ maxLength: MAX_CLAN_NAME }),
             tag: Type.String({ maxLength: 2 }),
+            tagStyle: Type.Optional(TagStyleSchema),
             description: Type.Optional(Type.String({ maxLength: MAX_CLAN_DESCRIPTION })),
           }),
           response: { 201: Type.Object({ clan: ClanSchema }), 400: ErrorSchema, 401: ErrorSchema, 409: ErrorSchema },
@@ -332,13 +342,13 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       async (request, reply) => {
         const user = await requireUser(request, reply);
         if (!user) return reply;
-        const { name, tag, description = '' } = request.body;
+        const { name, tag, tagStyle = 'paren', description = '' } = request.body;
         const done = await run(reply, async (tx) => {
           await checkClanFields(tx, { name, tag, description }, config.nameFilter);
           await tx.select({ id: users.id }).from(users).where(eq(users.id, user.id)).for('update');
           const [mine] = await tx.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id));
           if (mine) throw new ClanError(409, 'already_in_clan');
-          const [clan] = await tx.insert(clans).values({ name, nameKey: clanKey(name), tag, tagKey: clanKey(tag), description }).returning();
+          const [clan] = await tx.insert(clans).values({ name, nameKey: clanKey(name), tag, tagKey: clanKey(tag), tagStyle, description }).returning();
           await tx.insert(clanMembers).values({ userId: user.id, clanId: clan!.id, role: 'leader' });
           return true;
         });
@@ -352,11 +362,12 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       {
         schema: {
           tags: ['clãs'],
-          summary: 'Edita o clã: nome e descrição (líder e admins), tag (só o líder)',
+          summary: 'Edita o clã: nome e descrição (líder e admins), tag e estilo da tag (só o líder)',
           params: TagParams,
           body: Type.Object({
             name: Type.Optional(Type.String({ maxLength: MAX_CLAN_NAME })),
             tag: Type.Optional(Type.String({ maxLength: 2 })),
+            tagStyle: Type.Optional(TagStyleSchema),
             description: Type.Optional(Type.String({ maxLength: MAX_CLAN_DESCRIPTION })),
           }),
           response: { 200: Type.Object({ clan: ClanSchema }), 400: ErrorSchema, 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
@@ -365,14 +376,15 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       async (request, reply) => {
         const user = await requireUser(request, reply);
         if (!user) return reply;
-        const { name, tag, description } = request.body;
+        const { name, tag, tagStyle, description } = request.body;
         const done = await run(reply, async (tx) => {
           const clan = await lockClan(tx, request.params.tag);
           const role = await roleIn(tx, clan.id, user.id);
           if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
           if (tag !== undefined && tag !== clan.tag && role !== 'leader') throw new ClanError(403, 'clan_forbidden');
+          if (tagStyle !== undefined && tagStyle !== clan.tagStyle && role !== 'leader') throw new ClanError(403, 'clan_forbidden');
           await checkClanFields(tx, { name, tag, description }, config.nameFilter, clan.id);
-          await updateClan(tx, clan.id, { name, tag, description });
+          await updateClan(tx, clan.id, { name, tag, tagStyle, description });
           return tag ?? clan.tag;
         });
         if (!done) return reply;

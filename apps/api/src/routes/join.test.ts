@@ -74,7 +74,7 @@ describe.skipIf(!pgAdminUrl)('entrada nas salas (OG-083)', () => {
     expect((await join('ranked', { name: 'Visita' })).json().error).toBe('account_required');
     const res = await join('ranked', { name: 'ignorado' }, { cookie });
     expect(res.statusCode).toBe(200);
-    expect(claimsOf(res, 'ranked')).toMatchObject({ sub: userId, name: 'Jogador1', clan: 'XY', acct: true, ranked: true });
+    expect(claimsOf(res, 'ranked')).toMatchObject({ sub: userId, name: 'Jogador1', clan: '(XY)', acct: true, ranked: true }); // tag decorada pelo estilo (OG-338)
   });
 
   it('o ticket vale só para a sala pedida', async () => {

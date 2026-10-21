@@ -22,6 +22,8 @@ const Name = Type.Object({ name: Type.String({ minLength: 1, maxLength: 32 }) })
 const Mate = Type.Object({
   username: Type.String(),
   clanTag: Type.Union([Type.String(), Type.Null()]),
+  /** Tag decorada pelo estilo do clã (OG-338). */
+  clanLabel: Type.Union([Type.String(), Type.Null()]),
   matches: Type.Integer(),
   wins: Type.Integer(),
   losses: Type.Integer(),
@@ -123,10 +125,10 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
             : null;
           if (hidden) return { hidden: true, companions: [], rivals: [], clan };
           // resumos de player_pairs (src/social-stats.ts); quem esconde companheiros não aparece aqui
-          type Pair = { username: string; clan_tag: string | null; together: number; won_together: number; lost_together: number; against: number; won_against: number; lost_against: number };
+          type Pair = { username: string; clan_tag: string | null; clan_label: string | null; together: number; won_together: number; lost_together: number; against: number; won_against: number; lost_against: number };
           const top = (order: 'together' | 'against') =>
             db.execute<Pair>(sql`
-              SELECT u.username, u.clan_tag, pp.together, pp.won_together, pp.lost_together, pp.against, pp.won_against, pp.lost_against
+              SELECT u.username, u.clan_tag, u.clan_label, pp.together, pp.won_together, pp.lost_together, pp.against, pp.won_against, pp.lost_against
               FROM player_pairs pp
               JOIN users u ON u.id = pp.other_id
               LEFT JOIN player_profiles pr ON pr.user_id = pp.other_id
@@ -136,10 +138,11 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
           const [companions, rivals] = await Promise.all([top('together'), top('against')]);
           return {
             hidden: false,
-            companions: companions.map((r) => ({ username: r.username, clanTag: r.clan_tag, matches: r.together, wins: r.won_together, losses: r.lost_together })),
+            companions: companions.map((r) => ({ username: r.username, clanTag: r.clan_tag, clanLabel: r.clan_label, matches: r.together, wins: r.won_together, losses: r.lost_together })),
             rivals: rivals.map((r) => ({
               username: r.username,
               clanTag: r.clan_tag,
+              clanLabel: r.clan_label,
               matches: r.against,
               wins: r.won_against,
               losses: r.lost_against,
@@ -229,7 +232,7 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
           summary: 'Diretório (OG-215): jogadores mais ativos nos últimos 7 dias (sem quem esconde o histórico) e clãs',
           response: {
             200: Type.Object({
-              active: Type.Array(Type.Object({ username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), matches: Type.Integer(), wins: Type.Integer(), playSeconds: Type.Integer() })),
+              active: Type.Array(Type.Object({ username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), clanLabel: Type.Union([Type.String(), Type.Null()]), matches: Type.Integer(), wins: Type.Integer(), playSeconds: Type.Integer() })),
               clans: Type.Array(Type.Object({ tag: Type.String(), members: Type.Integer(), activeMembers: Type.Integer(), matches: Type.Integer() })),
             }),
           },
@@ -237,8 +240,8 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
       },
       async () =>
         cached('directory', false, async () => {
-          const active = await db.execute<{ username: string; clan_tag: string | null; matches: number; wins: number; play: number }>(sql`
-            SELECT u.username, u.clan_tag, sum(d.matches)::int AS matches, sum(d.wins)::int AS wins, sum(d.play_seconds)::int AS play
+          const active = await db.execute<{ username: string; clan_tag: string | null; clan_label: string | null; matches: number; wins: number; play: number }>(sql`
+            SELECT u.username, u.clan_tag, u.clan_label, sum(d.matches)::int AS matches, sum(d.wins)::int AS wins, sum(d.play_seconds)::int AS play
             FROM player_daily d JOIN users u ON u.id = d.user_id
             LEFT JOIN player_profiles pr ON pr.user_id = u.id
             WHERE d.day > current_date - 7 AND NOT coalesce(pr.hide_history, false)
@@ -252,7 +255,7 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
             WHERE u.clan_tag IS NOT NULL
             GROUP BY lower(u.clan_tag) ORDER BY active DESC, members DESC, lower(u.clan_tag) LIMIT 30`);
           return {
-            active: active.map((r) => ({ username: r.username, clanTag: r.clan_tag, matches: r.matches, wins: r.wins, playSeconds: r.play })),
+            active: active.map((r) => ({ username: r.username, clanTag: r.clan_tag, clanLabel: r.clan_label, matches: r.matches, wins: r.wins, playSeconds: r.play })),
             clans: clans.map((c) => ({ tag: c.tag, members: c.members, activeMembers: c.active, matches: c.matches })),
           };
         }),
@@ -272,7 +275,7 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
           response: {
             200: Type.Object({
               total: Type.Integer(),
-              players: Type.Array(Type.Object({ username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]) })),
+              players: Type.Array(Type.Object({ username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), clanLabel: Type.Union([Type.String(), Type.Null()]) })),
             }),
           },
         },
@@ -287,11 +290,11 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
           ? sql`(username_key LIKE ${likePrefix(key)} OR ${clanKey} = ${clan})`
           : sql`${clanKey} = ${clan}`;
         const [count] = await db.execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM users WHERE ${where}`);
-        const rows = await db.execute<{ username: string; clan_tag: string | null }>(sql`
-          SELECT username, clan_tag FROM users WHERE ${where}
+        const rows = await db.execute<{ username: string; clan_tag: string | null; clan_label: string | null }>(sql`
+          SELECT username, clan_tag, clan_label FROM users WHERE ${where}
           ORDER BY (username_key = ${key}) DESC, username_key
           LIMIT ${limit} OFFSET ${offset}`);
-        return { total: count?.n ?? 0, players: rows.map((r) => ({ username: r.username, clanTag: r.clan_tag })) };
+        return { total: count?.n ?? 0, players: rows.map((r) => ({ username: r.username, clanTag: r.clan_tag, clanLabel: r.clan_label })) };
       },
     );
   };

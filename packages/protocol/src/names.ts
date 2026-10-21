@@ -70,7 +70,36 @@ export function checkClanName(name: string): boolean {
   return name.length >= MIN_CLAN_NAME_LENGTH && checkName(name, MAX_CLAN_NAME_LENGTH);
 }
 
-/** Nome como aparece no chat (src/server.cpp:1513). */
-export function chatName(name: string, clanTag: string | null | undefined): string {
-  return clanTag ? `(${clanTag}) ${name}` : name;
+/**
+ * Como a tag do clã aparece junto do nome (OG-338): (Dk) Felix, [Dk] Felix, Dk-Felix, Dk.Felix, Dk|Felix.
+ * A mesma conta está na função SQL `clan_label` (migration 0028).
+ */
+export const CLAN_TAG_STYLES = ['paren', 'bracket', 'dash', 'dot', 'pipe'] as const;
+export type ClanTagStyle = (typeof CLAN_TAG_STYLES)[number];
+
+/** Tag decorada pelo estilo: "(Dk)", "[Dk]", "Dk-", "Dk.", "Dk|". */
+export function clanLabel(tag: string, style: ClanTagStyle): string {
+  switch (style) {
+    case 'bracket':
+      return `[${tag}]`;
+    case 'dash':
+      return `${tag}-`;
+    case 'dot':
+      return `${tag}.`;
+    case 'pipe':
+      return `${tag}|`;
+    default:
+      return `(${tag})`;
+  }
+}
+
+/**
+ * Nome como aparece no chat e no placar (src/server.cpp:1513): `label` é a tag já decorada (OG-338).
+ * Entre parênteses ou colchetes vem com espaço, "(Dk) Felix"; os outros estilos colam no nome, "Dk.Felix".
+ */
+export function chatName(name: string, label: string | null | undefined): string {
+  if (!label) return name;
+  if (/[)\]]$/.test(label)) return `${label} ${name}`;
+  if (/[-.|]$/.test(label)) return `${label}${name}`;
+  return `(${label}) ${name}`; // tag pura (replays e salas de antes do OG-338)
 }

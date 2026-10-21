@@ -432,11 +432,14 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'You can change your name again on $1.': 'Você poderá trocar de nome de novo em $1.',
     'Once every 30 days. Your old name stays reserved for you for 90 days.': 'Uma vez a cada 30 dias. Seu nome antigo fica reservado para você por 90 dias.',
     // A clan tag virou clã (OG-270)
-    'The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show a tag as "(TAG) name".':
-      'A clan tag agora é a tag do seu clã: as tags livres foram apagadas. Crie um clã ou entre num para aparecer como "(TAG) nome".',
+    'The clan tag is now the tag of your clan: free tags were removed. Create or join a clan to show its tag next to your name.':
+      'A clan tag agora é a tag do seu clã: as tags livres foram removidas. Crie ou entre num clã para mostrar a tag dele junto do seu nome.',
     // Telas de clã (OG-272)
     '$1 members': '$1 membros',
-    '1 or 2 characters, shown in game as "(TAG) name".': '1 ou 2 caracteres, mostrados no jogo como "(TAG) nome".',
+    '1 or 2 characters.': '1 ou 2 caracteres.',
+    // estilo da tag do clã (OG-338)
+    'Tag in game': 'Tag no jogo',
+    'How the tag appears next to the names of the members.': 'Como a tag aparece junto do nome dos membros.',
     '3 to 24 characters.': '3 a 24 caracteres.',
     Actions: 'Ações',
     'All clans': 'Todos os clãs',

@@ -4,6 +4,7 @@
 // temporada, marcos (OG-213), partidas recentes (relatório e replay), companheiros, rivais e clã.
 // O filtro de formato (OG-258, na URL) vale para o ranking, os números do Ranked e as partidas.
 // Tudo vem da API (OG-085, OG-211); o que o jogador escondeu (D-39) aparece como "privado".
+import { chatName } from '@outgun/protocol';
 import { MILESTONES } from '@outgun/content';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -21,6 +22,7 @@ import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, S
 interface Mate {
   username: string;
   clanTag: string | null;
+  clanLabel: string | null;
   matches: number;
   wins: number;
   losses: number;
@@ -46,7 +48,8 @@ interface Progress {
   periods: { days7: PeriodTotals; days30: PeriodTotals; all: PeriodTotals } | null;
 }
 
-const withClan = (username: string, clanTag: string | null) => (clanTag ? `(${clanTag}) ${username}` : username);
+/** Nome com a tag decorada pelo estilo do clã (OG-338). */
+const withClan = (username: string, clanLabel: string | null) => chatName(username, clanLabel);
 const kd = (kills: number, deaths: number) => (deaths > 0 ? (kills / deaths).toFixed(2) : String(kills));
 /** Nome e descrição de um marco no idioma da interface (inglês fora do pt-BR). */
 export function milestoneText(id: string, locale: string): { name: string; description: string } {
@@ -115,7 +118,7 @@ export function ProfileScreen() {
       title={
         <span className="profile-name">
           {colour && <span className="profile-colour" style={{ background: colour }} aria-hidden="true" />}
-          {withClan(p.user.username, p.user.clanTag)}
+          {withClan(p.user.username, p.user.clanLabel)}
         </span>
       }
       subtitle={subtitle}
@@ -337,7 +340,7 @@ function MateTable({ caption, rows }: { caption: string; rows: Mate[] }) {
       onRowActivate={(r) => void navigate(`/players/${encodeURIComponent(r.username)}`)}
       empty={t('Nobody yet.')}
       columns={[
-        { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanTag)} username={r.username} /> },
+        { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
         { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
         { key: 'wins', header: t('Wins'), cell: (r) => r.wins, align: 'end' },
         { key: 'losses', header: t('Losses'), cell: (r) => r.losses, align: 'end' },
