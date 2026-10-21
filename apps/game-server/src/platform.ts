@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Chamadas do game server às rotas internas da API (HMAC, OG-080): auditoria da moderação (OG-046)
 // e heartbeat do registro de salas (OG-086). Sem API, as ações só vão para o log.
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { signInternalRequest } from '@outgun/tickets';
 import type { RotationKey } from '@outgun/settings';
 import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
@@ -145,9 +147,31 @@ export class PlatformClient {
     await Promise.race([Promise.allSettled([...this.pending]), new Promise((r) => setTimeout(r, ms))]);
   }
 
+  /** Pasta onde ficam os resultados que a API não aceitou (OG-331); sem ela, só o log. */
+  private failedDir: string | undefined;
+
+  keepFailedReports(dir: string): void {
+    mkdirSync(dir, { recursive: true });
+    this.failedDir = dir;
+  }
+
   /** Resultado da partida (OG-049); a API ignora reenvios (idempotente por `serverMatchId`). */
   reportMatch(report: MatchReport): void {
-    this.track(this.post('/internal/matches', report, 5));
+    this.track(
+      this.post('/internal/matches', report, 5).then((ok) => {
+        // recusado ou sem resposta: guarda o corpo para reenviar com deploy/vps/resend-match.sh
+        if (!ok && this.failedDir) {
+          const file = join(this.failedDir, `${report.serverMatchId.replace(/[^\w-]/g, '_')}.json`);
+          try {
+            writeFileSync(file, JSON.stringify(report));
+            this.log(`resultado ${report.serverMatchId} guardado em ${file}`);
+          } catch (error) {
+            this.log(`resultado ${report.serverMatchId} não foi guardado: ${String(error)}`);
+          }
+        }
+        return ok;
+      }),
+    );
   }
 
   /** Deltas do ranking de quem saiu ou na troca de mapa (OG-084); idempotente por `deltaId`. */

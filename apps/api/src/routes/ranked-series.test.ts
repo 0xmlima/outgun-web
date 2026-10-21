@@ -89,6 +89,15 @@ describe.skipIf(!pgAdminUrl)('séries do Ranked na API (OG-250)', () => {
     expect(games.sort((a, b) => a.gameNo! - b.gameNo!)).toEqual([1, 2, 3].map((gameNo) => ({ gameNo, ranked: true, format: '3x3' })));
   });
 
+  it('md3 em 2-0 para o vermelho: a série fecha com winner 0 (OG-329)', async () => {
+    const red = (gameNo: number, redWins: number, finished: boolean) => ({ ...series(gameNo, redWins, 0, finished, finished ? 0 : null), serverSeriesId: 'ranked-x-s2' });
+    expect((await post(game('v1', red(1, 1, false)))).statusCode).toBe(201);
+    expect((await post(game('v2', red(2, 2, true)))).statusCode).toBe(201);
+    const [s] = await t.db.select().from(rankedSeries).where(eq(rankedSeries.serverSeriesId, 'ranked-x-s2'));
+    expect(s).toMatchObject({ games: 2, redWins: 2, blueWins: 0, winner: 0 });
+    expect(s!.finishedAt).not.toBeNull();
+  });
+
   it('partida sem formato continua aceita e fica sem série', async () => {
     expect((await post({ ...base('antiga'), players: [] })).statusCode).toBe(201);
     const [m] = await t.db.select().from(matches).where(eq(matches.serverMatchId, 'antiga'));

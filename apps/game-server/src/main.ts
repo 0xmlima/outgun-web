@@ -17,6 +17,7 @@
 // DRAIN_TIMEOUT_S (240): prazo da drenagem no SIGTERM.
 // SEED: semente fixa das salas (capturas determinísticas do `pnpm visual:check`, OG-265); padrão aleatória.
 // ROOMS: salas fixas além da `main`, `id[:preset[:max_jogadores]]` separadas por vírgula (testes de carga, OG-101).
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listMaps, resolveRotation, type Rotations } from './maps.js';
 import { GeneratedMaps } from './generated-maps.js';
@@ -72,6 +73,8 @@ const pruneReplays = () => {
   if (removed > 0) logger.info({ removed }, 'replays apagados pela retenção');
 };
 pruneReplays();
+// resultados que a API recusou ficam no mesmo volume, fora da retenção (só apaga `.ogr`) e do /replays/ (OG-331)
+if (replays) platform.keepFailedReports(join(replays.dir, 'failed'));
 const pruneTimer = setInterval(pruneReplays, 3_600_000);
 pruneTimer.unref();
 

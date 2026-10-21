@@ -1,6 +1,6 @@
 {
   "name": "@outgun/content",
-  "version": "2.33.0",
+  "version": "2.34.0",
   "private": true,
   "description": "Parser e gerador de mapas, manifesto de assets (cards OG-010, OG-011, OG-012).",
   "license": "GPL-2.0-or-later",

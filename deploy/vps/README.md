@@ -83,6 +83,11 @@ Restore (apaga o banco de destino): confira antes num banco temporário, como em
 `deploy/test/backup-restore.sh`; depois
 `docker compose stop api game-server && docker compose run --rm -v $PWD/backups:/backup -e RESTORE_CONFIRM=sim -e DATABASE_URL=postgres://outgun:SENHA@postgres:5432/outgun --entrypoint sh backup /usr/local/bin/restore.sh /backup/ARQUIVO.dump && docker compose up -d`.
 
+Partida que a API recusou (log `API /internal/matches: HTTP 4xx`): corrija a causa e reenvie.
+O game server guarda o corpo em `/data/replays/failed/<id>.json` (OG-331); para partidas de
+antes disso, reconstrua do replay com `node tools/dev/rebuild-match.mjs` (OG-330). Envio:
+`DRY_RUN=1 bash deploy/vps/resend-match.sh root@IP report.json` para conferir, depois sem `DRY_RUN`.
+
 ## Provedores
 
 - **DigitalOcean** (beta): sem região na América do Sul; Nova York dá ~110–150 ms a partir do

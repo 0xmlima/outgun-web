@@ -166,7 +166,9 @@ const MatchResult = Type.Object({
       redWins: Type.Integer({ minimum: 0, maximum: 3 }),
       blueWins: Type.Integer({ minimum: 0, maximum: 3 }),
       finished: Type.Boolean(),
-      winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
+      // um só `type: [integer, null]` em vez de união: com a coerção de tipos do Fastify, cada ramo do
+      // `anyOf` convertia o valor do outro (0 do vermelho virava null, ou null virava 0) (OG-329)
+      winner: Type.Unsafe<0 | 1 | null>({ type: ['integer', 'null'], minimum: 0, maximum: 1 }),
     }),
   ),
   /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bot no lugar ou um a menos. */
