@@ -75,8 +75,8 @@ export const PRESETS: readonly Preset[] = [
     id: 'ranked',
     mode: 'ranked',
     locked: true,
-    description: 'Ranked: Clássico sem power-ups (RN-MOD-02) e sem bots (RN-MOD-06).',
-    overrides: 'pups_min 0\npups_max 0\npups_drop_at_death 0\npup_start_shield 0\npup_start_turbo 0\npup_start_shadow 0\npup_start_power 0\npup_start_weapon 1\npup_start_deathbringer 0\nmin_bots 0\nbots_fill 0',
+    description: 'Ranked: Clássico sem power-ups (RN-MOD-02) e sem bots (RN-MOD-06), 20 min e prorrogação de 5 no empate (RN-RKL-25).',
+    overrides: 'capture_limit 8\ntime_limit 20\nextra_time 5\nextra_time_periods 1\nsudden_death 0\npups_min 0\npups_max 0\npups_drop_at_death 0\npup_start_shield 0\npup_start_turbo 0\npup_start_shadow 0\npup_start_power 0\npup_start_weapon 1\npup_start_deathbringer 0\nmin_bots 0\nbots_fill 0',
   },
 ];
 

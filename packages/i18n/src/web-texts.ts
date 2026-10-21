@@ -615,6 +615,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'difference of $1': 'diferença de $1',
     'Time limit': 'Limite de tempo',
     'Extra time': 'Prorrogação',
+    'IF TIED, $1 MINUTES OF EXTRA TIME.': 'EMPATE NO FIM: $1 MINUTOS DE PRORROGAÇÃO.',
     'sudden death': 'morte súbita',
     'Replay': 'Replay',
     'Watch': 'Assistir',

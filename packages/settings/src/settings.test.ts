@@ -150,10 +150,10 @@ describe('presets por modo (D-10)', () => {
     expect([p.pupsRespawnTime, p.pupsDropAtDeath, p.pupAddTime, p.pupMaxTime]).toEqual([0, true, 90, 300]);
   });
 
-  it('Ranked difere do Clássico só nos power-ups e nos bots (D-11)', () => {
+  it('Ranked difere do Clássico só nos power-ups, nos bots e no tempo (D-11, D-61)', () => {
     const classic = classicSettings();
     const ranked: GameSettings = presetSettings('ranked');
-    expect(ranked.world).toEqual(classic.world);
+    expect(ranked.world).toEqual({ ...classic.world, captureLimit: 8, timeLimit: 20 * 600, extraTime: 5 * 600, extraTimePeriods: 1, suddenDeath: false });
     expect(ranked.physics).toEqual(classic.physics);
     expect(ranked.server).toEqual({ ...classic.server, minBots: 0, botsFill: 0 });
   });

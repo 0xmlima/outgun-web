@@ -73,6 +73,7 @@ export class OnlineHud {
       time: s.lastServerFrame >= 0 ? s.lastServerFrame / 10 : -1,
       captureLimit: w.captureLimit,
       timeLimit: Math.trunc(w.timeLimit / 600),
+      extraTime: Math.trunc(w.extraTime / 600),
       mapCount: s.mapList.length,
     };
   }
