@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S29 |
-| Status | Em andamento |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -31,10 +31,10 @@ Achados: 1.153 tentativas de login SSH nas últimas 24 h sem bloqueio (sem fail2
 ## Critérios de aceite
 - [x] `sshd -T` com as opções novas; fail2ban ativo e banindo.
 - [x] Só 22/80/443 ouvindo para fora; sem `rpcbind`.
-- [ ] Sistema atualizado, sem reinício pendente; reinício automático configurado.
+- [x] Sistema atualizado, sem reinício pendente; reinício automático configurado.
 
 ## Notas técnicas
 ## Notas de implementação
 - SSH endurecido (`sshd -t`, conexão nova testada antes de fechar a sessão); fail2ban com `backend = systemd` e `journalmatch` de `ssh.service` (o padrão do Ubuntu 24.04 não enxergava as tentativas; corrigido e conferido contando falhas); `rpcbind` desligado e mascarado.
 - 18 das 21 atualizações aplicadas sem reiniciar (nenhuma mexia no Docker; jogo no ar o tempo todo); as 3 restantes (apparmor, snapd) estão em liberação gradual e entram sozinhas. Reinício pendente (kernel 7.0.0-1013) fica para o reinício automático das 05:00 de Brasília, para não derrubar partidas à noite.
-- Pendente: conferir depois do reinício automático (sem `reboot-required`, containers de pé).
+- Conferido em 2026-10-21: reinício automático em 2026-10-17, kernel 7.0.0-1013 ativo, sem `reboot-required`, fail2ban ativo e containers de pé.
