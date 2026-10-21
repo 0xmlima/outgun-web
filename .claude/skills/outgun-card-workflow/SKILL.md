@@ -46,6 +46,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 2. Relatório curto ao PO (por card: 1–2 linhas; achados; provisórios; perguntas só de produto).
 3. Na aprovação: `git merge --no-ff sNN` na `v2` ("Sprint SNN: ... aprovados pelo PO"); no mesmo commit, status `Concluído` (todos os IDs) e `node tools/dev/version.mjs 2.NN.0` (versão do jogo = sprint, em todos os `package.json`; regerar o `openapi.json` da API); tag `v2.NN.0`, push da `v2` e da tag, apagar a branch `sNN`.
 4. Atualize a memória com **um** handoff curto da sprint (substitui o da sprint anterior, não acumula).
+5. **Changelog (hook):** com a ordem do PO de subir no beta, rode `bash deploy/vps/deploy.sh root@137.131.202.138` (Docker Desktop aberto). Quando terminar, leia a saída com o Bash (se rodou em segundo plano, `tail` do arquivo de saída): o hook `.claude/hooks/changelog-after-deploy.sh` vê o `no ar: https://...`, confere a versão servida e pede o changelog da sprint em formato WhatsApp, em português, para a comunidade. Entregue o texto num bloco de código.
 
 ## Bloqueio
 Status `Bloqueado` + uma linha no card: `> Bloqueado por: <card/decisão> — <motivo>`. Se for uma decisão em aberto (D-NN), avise o usuário.

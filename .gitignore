@@ -17,3 +17,6 @@ deploy/.env.staging
 
 # gerado pelo oráculo (pnpm oracle compile-commands)
 _legacy/compile_commands.json
+
+# versão do último changelog gerado pelo hook de deploy
+.claude/hooks/.changelog-version

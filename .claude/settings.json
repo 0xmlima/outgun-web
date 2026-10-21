@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/changelog-after-deploy.sh",
+            "timeout": 30,
+            "statusMessage": "Conferindo se a versão nova está no ar..."
+          }
+        ]
+      }
+    ]
+  }
+}
