@@ -23,6 +23,8 @@ const LIMITS: Readonly<Partial<Record<AnyMessage['type'], Limit>>> = {
   changeTeam: { rate: 2, burst: 6 },
   minimapBandwidth: { rate: 2, burst: 6 },
   clientReady: { rate: 2, burst: 6 },
+  // acima do anti-flood do chat (30 seguidas, D-60): quem exagera recebe "too much talk", não é expulso
+  chat: { rate: 10, burst: 45 },
 };
 const DEFAULT_LIMIT: Limit = { rate: 5, burst: 15 };
 

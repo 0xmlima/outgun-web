@@ -47,24 +47,26 @@ function setup(preset = 'classic', opts: { chatFilter?: ReadonlySet<string>; rep
 }
 
 describe('chat (RN-CHT-01/02)', () => {
-  it('anti-flood: a 3ª mensagem seguida é descartada com "too much talk"', () => {
-    const { join, say } = setup();
+  it('anti-flood só na rajada extrema: a 31ª mensagem seguida é descartada com "too much talk" (D-60)', () => {
+    const { r, join } = setup();
     const a = join('Ana');
     const b = join('Bia');
-    say(a.pid, 'um');
-    say(a.pid, 'dois');
-    say(a.pid, 'tres');
-    expect(b.conn.texts()).toEqual(['Ana: um', 'Ana: dois']);
+    r.handle(
+      a.pid,
+      Array.from({ length: 31 }, (_, i) => message('chat', { text: `msg ${i + 1}`, teamOnly: false })),
+    );
+    r.tick();
+    expect(b.conn.texts()).toHaveLength(30);
     expect(a.conn.of('tooMuchTalk')).toHaveLength(1);
   });
 
-  it('caractere repetido 7 vezes é descartado; só espaços é ignorado', () => {
+  it('caractere repetido passa (kkkkkkkk); só espaços é ignorado', () => {
     const { join, say } = setup();
     const a = join('Ana');
     const b = join('Bia');
     say(a.pid, 'kkkkkkkk');
     say(a.pid, '   ');
-    expect(b.conn.texts()).toEqual([]);
+    expect(b.conn.texts()).toEqual(['Ana: kkkkkkkk']);
   });
 
   it('filtro de palavras opcional por sala', () => {
