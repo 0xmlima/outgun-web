@@ -238,7 +238,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     PAUSED: 'PAUSADO',
     'Resuming in $1': 'Retomando em $1',
     'Pause requested by $1 ($2) - $3 s left': 'Pausa pedida por $1 ($2) - restam $3 s',
-    'P resumes': 'P retoma',
+    '$1 resumes': '$1 retoma',
     '$1 lost connection': '$1 caiu',
     'Waiting for reconnection: $1 s': 'Esperando a reconexão: $1 s',
     '$1 left the game': '$1 saiu do jogo',

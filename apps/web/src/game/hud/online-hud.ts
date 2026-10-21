@@ -83,6 +83,8 @@ export class OnlineHud {
 
   /** Teclas do voto no esquema atual (bot, um a menos); null = só o clique (OG-348). */
   voteKeys: readonly [string | null, string | null] = [null, null];
+  /** Tecla da pausa no esquema atual, para a dica de retomar. */
+  pauseKey = 'Ctrl+P';
 
   /** Posso votar no voto do bot substituto aberto agora (sou do time desfalcado). */
   canVote(): boolean {
@@ -110,7 +112,7 @@ export class OnlineHud {
     if (p.phase === 'resuming') return { title: t('Resuming in $1', String(p.seconds)), detail: '', options: null, footer, hint: null };
     if (p.reason === 'team') {
       const mine = ctx.teamOf(this.session.me) === p.team;
-      return { title: t('PAUSED'), detail: t('Pause requested by $1 ($2) - $3 s left', name, team(p.team), String(p.seconds)), options: null, footer, hint: mine ? t('P resumes') : null };
+      return { title: t('PAUSED'), detail: t('Pause requested by $1 ($2) - $3 s left', name, team(p.team), String(p.seconds)), options: null, footer, hint: mine ? t('$1 resumes', this.pauseKey) : null };
     }
     if (p.reason === 'drop') return { title: t('$1 lost connection', name), detail: t('Waiting for reconnection: $1 s', String(p.seconds)), options: null, footer, hint: null };
     if (!this.canVote()) return { title: t('$1 left the game', name), detail: t('$1 team is voting: $2 s', team(p.team), String(p.seconds)), options: null, footer, hint: null };

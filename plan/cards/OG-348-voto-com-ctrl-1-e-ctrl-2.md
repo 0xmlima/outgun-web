@@ -32,4 +32,4 @@ Como jogador, quero usar 1 e 2 para mandar códigos de estratégia no chat sem v
 ## Notas de implementação
 - O clique nas opções do aviso já existia (OG-264); o aviso agora mostra a tecla do esquema (`[Ctrl+1] Bot no lugar`) ou nenhuma no Navegador. O controle (gamepad) segue igual.
 - Não mexi no visual do aviso (só o texto das opções); `visual:check` fica para o fechamento da sprint.
-- Achado: a dica "P resumes" da pausa ainda cita o P sozinho (Ctrl+P desde o OG-336).
+- A dica de retomar a pausa também passou a mostrar a tecla do esquema (dizia "P", que é Ctrl+P desde o OG-336).

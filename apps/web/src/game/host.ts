@@ -453,7 +453,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     });
     session.prediction = opts.prediction;
     onlineHud = new OnlineHud(session, opts.translate);
-    onlineHud.voteKeys = voteKeys(bindings);
+    Object.assign(onlineHud, { voteKeys: voteKeys(bindings), pauseKey: bindings.pause[0] ? chordLabel(bindings.pause[0], altName()) : 'Pause' });
     onlineHud.setOptions(client);
     sounds = new SoundPlayer();
     sounds.configure(opts.sound.enabled, opts.sound.volume);
@@ -696,7 +696,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     setBindings: (b) => {
       bindings = b;
       input.setBindings(b);
-      if (onlineHud) onlineHud.voteKeys = voteKeys(b);
+      if (onlineHud) Object.assign(onlineHud, { voteKeys: voteKeys(b), pauseKey: b.pause[0] ? chordLabel(b.pause[0], altName()) : 'Pause' });
     },
     setPrediction: (prediction) => {
       if (session) session.prediction = prediction;
