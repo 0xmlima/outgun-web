@@ -477,6 +477,8 @@ export interface RosterEntry {
   name: string;
   team: number;
   accountId?: string;
+  /** Bot substituto: conta de quem ele substitui (OG-332). */
+  replacedAccountId?: string;
   bot: boolean;
   muted: number;
 }

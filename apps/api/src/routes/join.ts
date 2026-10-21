@@ -39,7 +39,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
   const fail = (code: Failure['code'], error: string, message: string): Admission => ({ ok: false, code, error, message });
 
   /** Confere tudo e emite o ticket (a senha já foi conferida por quem chama, se a sala tiver). */
-  async function admit(request: FastifyRequest, room: RoomRow, body: { name?: string | undefined; region?: string | undefined; device?: string | undefined }): Promise<Admission> {
+  async function admit(request: FastifyRequest, room: RoomRow, body: { name?: string | undefined; region?: string | undefined; device?: string | undefined }, returning = false): Promise<Admission> {
     const user = await sessions.current(request);
     const device = body.device ? deviceHash(body.device) : null;
     // Convidado só no Casual (RN-PLT-02, RN-MOD-03).
@@ -78,7 +78,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
       )
       .limit(1);
     if (ban) return fail(403, 'banned', 'you are banned from this room');
-    if (roomOnline(room) && room.players >= room.maxPlayers) return fail(409, 'room_full', 'room is full');
+    // quem volta à própria vaga não conta como mais um (a vaga está guardada ou com o bot substituto)
+    if (!returning && roomOnline(room) && room.players >= room.maxPlayers) return fail(409, 'room_full', 'room is full');
 
     const place = await placeRoom(db, room, deps.config.devRoomWsUrl, body.region);
     if (!place.ok) return fail(503, 'room_offline', 'no game server available');
@@ -142,9 +143,12 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
       async (request, reply) => {
         const [room] = await db.select().from(rooms).where(eq(rooms.id, request.params.id));
         if (!room) return reply.code(404).send({ error: 'room_not_found', message: 'room not found' });
-        // lobby Ranked (OG-252): conta antes da senha; com o jogo em andamento ou a série no fim, ninguém entra (D-43)
-        if (room.mode === 'ranked' && !(await sessions.current(request))) return reply.code(401).send({ error: 'account_required', message: 'ranked rooms require an account' });
-        if (room.format && roomOnline(room) && (room.phase === 'game' || room.phase === 'finished')) {
+        // lobby Ranked (OG-252): conta antes da senha; com o jogo em andamento ou a série no fim, ninguém entra (D-43),
+        // exceto quem caiu no meio do jogo e ainda tem a vaga (guardada ou com o bot substituto, OG-332)
+        const user = room.mode === 'ranked' ? await sessions.current(request) : undefined;
+        if (room.mode === 'ranked' && !user) return reply.code(401).send({ error: 'account_required', message: 'ranked rooms require an account' });
+        const returning = room.phase === 'game' && user !== undefined && room.roster.some((r) => r.accountId === user.id || r.replacedAccountId === user.id);
+        if (room.format && roomOnline(room) && (room.phase === 'game' || room.phase === 'finished') && !returning) {
           return reply.code(409).send({ error: 'room_in_game', message: 'the match is in progress' });
         }
         if (room.passwordHash) {
@@ -156,7 +160,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
             return reply.code(403).send({ error: 'wrong_password', message: 'wrong room password' });
           }
         }
-        const result = await admit(request, room, request.body);
+        const result = await admit(request, room, request.body, returning);
         if (!result.ok) return reply.code(result.code).send({ error: result.error, message: result.message });
         const { ok: _, ...body } = result;
         return body;

@@ -46,6 +46,8 @@ const Heartbeat = Type.Object({
             name: Type.String({ minLength: 1, maxLength: 32 }),
             team: Type.Integer({ minimum: 0, maximum: 1 }),
             accountId: Type.Optional(Type.String({ format: 'uuid' })),
+            /** Bot substituto: conta de quem ele substitui, que pode voltar à vaga (OG-332). */
+            replacedAccountId: Type.Optional(Type.String({ format: 'uuid' })),
             bot: Type.Boolean(),
             muted: Type.Integer({ minimum: 0, maximum: 2 }),
           }),

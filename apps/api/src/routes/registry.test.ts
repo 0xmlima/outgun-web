@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { gameServers, rooms } from '../db/schema.js';
+import { gameServers, rooms, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { ONLINE_MS, pickServer, type ServerRow } from '../registry.js';
@@ -63,7 +63,7 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     await t.db.update(rooms).set({ serverId: null, wsUrl: null, players: 0, map: null, lastHeartbeatAt: null });
   });
 
-  const heartbeat = (server: string, hosted: { id: string; players: number; mode?: string; preset?: string; persistent?: boolean; maxPlayers?: number; phase?: string; roster?: { uid: number; name: string; team: number; bot: boolean; muted: number }[] }[], region = 'eu', maxRooms = 10) => {
+  const heartbeat = (server: string, hosted: { id: string; players: number; mode?: string; preset?: string; persistent?: boolean; maxPlayers?: number; phase?: string; roster?: { uid: number; name: string; team: number; accountId?: string; replacedAccountId?: string; bot: boolean; muted: number }[] }[], region = 'eu', maxRooms = 10) => {
     const base = `ws://${server}.test`;
     const body = JSON.stringify({
       server: { wsBaseUrl: base, region, maxRooms },
@@ -233,6 +233,16 @@ describe.skipIf(!pgAdminUrl)('registro de salas (OG-086)', () => {
     // sala com senha também pode ser assistida (D-57, OG-319)
     expect((await app.inject(`/rooms/${room.id}`)).json().room.spectateUrl).toBe(`ws://gs-1.test/rooms/${room.id}/spectate`);
     expect((await list('?format=5x5')).some((r) => r.id === room.id)).toBe(false);
+    expect((await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true)).json().error).toBe('room_in_game');
+    // quem caiu no meio do jogo volta à vaga: guardada (ainda no roster) ou com o bot substituto (OG-332)
+    const [me] = await t.db.select({ id: users.id }).from(users).where(eq(users.username, 'Jogador1'));
+    const inGame = (roster: { uid: number; name: string; team: number; accountId?: string; replacedAccountId?: string; bot: boolean; muted: number }[]) =>
+      heartbeat('gs-1', [{ id: room.id, players: 6, mode: 'ranked', preset: 'ranked', persistent: false, maxPlayers: 6, phase: 'game', roster }]);
+    await inGame([{ uid: 1, name: 'Jogador1', team: 0, accountId: me!.id, bot: false, muted: 0 }]);
+    expect((await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true)).statusCode).toBe(200);
+    await inGame([{ uid: 2, name: 'BOT-Jogador1', team: 0, replacedAccountId: me!.id, bot: true, muted: 0 }]);
+    expect((await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true)).statusCode).toBe(200);
+    await heartbeat('gs-1', [{ id: room.id, players: 6, mode: 'ranked', preset: 'ranked', persistent: false, maxPlayers: 6, phase: 'finished', roster: [{ uid: 1, name: 'Jogador1', team: 0, accountId: me!.id, bot: false, muted: 0 }] }]);
     expect((await post(`/rooms/${room.id}/join`, { password: 'segredo' }, true)).json().error).toBe('room_in_game');
     // "Jogar agora" do Ranked não cai em sala de lobby (RN-RKL-05: entra-se pela lista)
     expect((await post('/rooms/quick-join', { mode: 'ranked' }, true)).json().roomId).not.toBe(room.id);

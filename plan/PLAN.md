@@ -600,6 +600,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
 | S33 | v2: Outgun na Steam | OG-328 | |
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
+| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -782,8 +783,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-329](cards/OG-329-serie-vencida-pelo-vermelho-recusada.md) | Série Ranked vencida pelo vermelho é recusada pela API | E12 | 1 | Must | S34 | — | Concluído |
 | [OG-330](cards/OG-330-recuperar-mapa-2-da-serie-r-kvgwotx9.md) | Recuperar o mapa 2 da série r-kvgwotx9 a partir do replay | E12 | 2 | Must | S34 | OG-329 | Concluído |
 | [OG-331](cards/OG-331-resultado-recusado-nao-se-perde.md) | Resultado de partida recusado pela API não se perde | E12 | 2 | Should | S34 | — | Concluído |
+| [OG-332](cards/OG-332-volta-ao-ranked-em-andamento.md) | Quem caiu no Ranked não consegue voltar à partida (409) | E12 | 2 | Must | S35 | — | Em revisão |
+| [OG-333](cards/OG-333-nome-convidado-no-pedido-de-entrada.md) | Pedido de entrada manda o nome "Convidado" para quem está logado | E12 | 1 | Should | S35 | — | Em revisão |
 
-**Total:** 173 cards, 588 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 104 cards, 293 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 175 cards, 591 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 106 cards, 296 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 

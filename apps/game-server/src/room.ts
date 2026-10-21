@@ -2000,13 +2000,15 @@ export class Room {
     this.pendingRotation = same ? null : [...entries];
   }
 
-  /** Jogadores para o painel admin (heartbeat, OG-087). */
-  roster(): { uid: number; name: string; team: number; accountId?: string; bot: boolean; muted: number }[] {
+  /** Jogadores para o painel admin (heartbeat, OG-087) e a volta de quem caiu (OG-332). */
+  roster(): { uid: number; name: string; team: number; accountId?: string; replacedAccountId?: string; bot: boolean; muted: number }[] {
     return [...this.clients].map(([pid, c]) => ({
       uid: c.uid,
       name: c.identity.name.slice(0, 32),
       team: this.world.teamOf(pid) === 1 ? 1 : 0,
       ...(c.identity.accountId ? { accountId: c.identity.accountId } : {}),
+      // vaga guardada para quem caiu no Ranked: a API deixa essa conta voltar com o jogo em andamento (OG-332)
+      ...(c.replaced?.identity.accountId ? { replacedAccountId: c.replaced.identity.accountId } : {}),
       bot: c.bot,
       muted: c.muted,
     }));

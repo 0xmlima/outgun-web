@@ -8211,6 +8211,10 @@
                                 "type": "string",
                                 "format": "uuid"
                               },
+                              "replacedAccountId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
                               "bot": {
                                 "type": "boolean"
                               },
