@@ -82,9 +82,9 @@ export default function GameScreen() {
   const gameRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<GameStatus | null>(null);
-  // trilha (OG-221, D-37): playlist só nas salas Casual; até o servidor dizer o modo, silêncio
+  // trilha (OG-221, D-37): playlist no Casual e no Ranked (OG-334); até o servidor dizer o modo, silêncio
   const [roomMode, setRoomMode] = useState<'casual' | 'ranked' | null>(null);
-  useMusicMode(roomMode === 'casual' ? 'match' : 'off');
+  useMusicMode(roomMode !== null ? 'match' : 'off');
   const [toast, setToast] = useState<string | null>(null);
   /** Tela F1–F5 aberta (OG-066); `auto` = aberta sozinha no fim da partida (`stats_autoshowing`). */
   const [info, setInfo] = useState<{ kind: InfoKind; auto: boolean } | null>(null);

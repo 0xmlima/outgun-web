@@ -395,7 +395,7 @@ Ordem por frame para cada jogador vivo (`WorldBase::applyPlayerAcceleration`, `w
 
 ### 6.13 Chat e moderação (RN-CHT)
 - **RN-CHT-01** — Mensagem até 200 caracteres. Iniciada com `.` → só para o time. Iniciada com `/` → comando.
-- **RN-CHT-02** — Anti-flood: "temperatura" sobe a cada mensagem e esfria 0,1/frame; acima de 10 → bloqueio temporário ("too much talk"). Mensagem com o mesmo caractere repetido 7+ vezes é descartada. (`server.cpp`, `commont.cpp:202`)
+- **RN-CHT-02** — Anti-flood só para rajadas extremas (D-60): cada mensagem soma 1 e esfria 0,1/frame, sempre (lobby, pausa e troca de mapa incluídos); mais de 30 seguidas → bloqueio ("too much talk") até esfriar ~11 s; tentar durante o bloqueio não o prolonga. Caractere repetido não é mais descartado. (Original: bloqueio na 3ª mensagem seguida e descarte de 7 caracteres iguais, `server.cpp`, `commont.cpp:202`.)
 - **RN-CHT-03** — Comandos de jogador: `/help`, `/info`, `/time`, `/sayadmin`. Admin: `/list`, `/kick`, `/ban ID min` (até 1 semana), `/mute`, `/smute` (silencioso: só o próprio vê), `/unmute`, `/forcemap`, `/set` (alterar settings permitidos).
 - **RN-CHT-04** — Ações de admin são registradas em log (auditoria).
 
@@ -600,7 +600,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
 | S33 | v2: Outgun na Steam | OG-328 | |
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
-| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333 | |
+| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -785,8 +785,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-331](cards/OG-331-resultado-recusado-nao-se-perde.md) | Resultado de partida recusado pela API não se perde | E12 | 2 | Should | S34 | — | Concluído |
 | [OG-332](cards/OG-332-volta-ao-ranked-em-andamento.md) | Quem caiu no Ranked não consegue voltar à partida (409) | E12 | 2 | Must | S35 | — | Em revisão |
 | [OG-333](cards/OG-333-nome-convidado-no-pedido-de-entrada.md) | Pedido de entrada manda o nome "Convidado" para quem está logado | E12 | 1 | Should | S35 | — | Em revisão |
+| [OG-334](cards/OG-334-musica-no-ranked.md) | Música também nas partidas Ranked | E10 | 1 | Must | S35 | — | Em revisão |
+| [OG-335](cards/OG-335-chat-bloqueado-por-flood.md) | Chat bloqueia na 3ª mensagem e o bloqueio nunca acaba | E11 | 2 | Must | S35 | — | Em revisão |
+| [OG-336](cards/OG-336-teclas-n-e-p-no-chat.md) | Mensagem não começa com "n" e o "p" pausa em vez de digitar | E11 | 2 | Must | S35 | — | Em revisão |
 
-**Total:** 175 cards, 591 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 106 cards, 296 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 178 cards, 596 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 109 cards, 301 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -843,7 +846,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-34 | Painel admin × game servers | API chama cada game server (porta de controle) / comandos e configuração na resposta do heartbeat | ✅ **Decidido no OG-087 (delegada):** o painel grava o comando (`admin_commands`) e a auditoria na API; o game server recebe na resposta do heartbeat (≤ 3 s), executa pelas mesmas ações do console e confirma no heartbeat seguinte (o ban é criado com a conta, IP e dispositivo que só o game server conhece). Nenhuma porta de entrada nova nos game servers e funciona com várias máquinas por região. Presets: os do jogo (inclusive o Ranked travado) só mudam com uma versão nova — no painel são só leitura; o painel cria presets Casual versionados (histórico em `casual_preset_versions`), validados (só regras de jogo/saúde/power-ups/física/bots). Rotações por modo valem nas salas da plataforma a partir da próxima troca de mapa. Papéis: moderador (salas, denúncias, bans de sala, auditoria) e admin (tudo + mensagem geral, bans de plataforma, presets, rotações, papéis) | Tech Lead |
 | D-35 | **v2** — Fonte única da interface (OG-200) | Inter / Manrope / Space Grotesk / Barlow | ✅ **Decidido em 2026-10-14 (delegada pelo PO):** **Inter** — moderna, simples, a mais legível em tamanhos pequenos e tabelas (algarismos tabulares), acentos completos, OFL | Tech Lead |
 | D-36 | **v2** — Site público / portal | App separado / junto do servidor do jogo | ✅ **Decidido pelo PO em 2026-10-14:** sem portal por ora (OG-210 e OG-216 cancelados). Perfil social e relatórios ficam no cliente atual, servidos junto do servidor do jogo; um site público, quando fizer sentido, será um repositório dedicado | PO |
-| D-37 | **v2** — Música fora do Casual | Só Casual / também Ranked / espectador e replay | ✅ **Decidido pelo PO em 2026-10-14:** Casual e espectador ao vivo com música; Ranked e replay sem | PO |
+| D-37 | **v2** — Música fora do Casual | Só Casual / também Ranked / espectador e replay | ✅ **Decidido pelo PO em 2026-10-14:** Casual e espectador ao vivo com música; Ranked e replay sem. **Revisto em 2026-10-21 (pedido da comunidade, OG-334):** o Ranked também toca a playlist das partidas; replay segue sem. Quem não quiser desliga nas Opções (RN-MUS-04) | PO |
 | D-38 | **v2** — Autoria e crédito da trilha sonora | — | ✅ **Decidido pelo PO em 2026-10-14:** faixas geradas no Suno pelo próprio PO; crédito "Música: Thiago Vasconcellos" (PO, 2026-10-20: passa a "Música: Thiago Anuszkiewicz", o mesmo autor com o sobrenome polonês, igual à tag de artista dos MP3); metadados do Suno removidos dos arquivos. Licença das faixas (PO, 2026-10-14): **CC BY-SA 4.0** | PO |
 | D-39 | **v2** — Visibilidade do perfil social | Público / público com opção de esconder / só com conta | ✅ **Decidido pelo PO em 2026-10-14:** público, com opções na conta para esconder companheiros/rivais e histórico de partidas (OG-211) | PO |
 | D-40 | **v2** — Quando a partida Ranked começa | Mínimo de 6 jogadores em qualquer formato / sala completa do formato (6, 8 ou 10) | ✅ **Decidido pelo PO em 2026-10-15:** só com a sala completa do formato — um 3x3 não começa sem os 6 jogadores | PO |
@@ -866,6 +869,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-57 | **v2** — Espectador em salas com senha | — | ✅ **Decidido pelo PO em 2026-10-20:** salas com senha também podem ser assistidas (revoga a divergência do OG-092 de 2026-10-14); a senha protege só a entrada como jogador. Toda sala, Casual ou Ranked, tem botão "Assistir" (OG-319, OG-320) | PO |
 | D-58 | **v2** — Jogo no computador | — | ✅ **Decidido pelo PO em 2026-10-20:** além da web, o jogador pode instalar o Outgun pelo navegador (PWA) ou baixar um `.exe` (Electron). O cliente desktop é só uma janela que carrega o site: a versão é sempre a mesma da web, sem instalador novo a cada deploy. Sem assinatura digital por ora; o instalador fica no servidor do beta, porque o repositório é privado (OG-323, OG-324, OG-325) | PO |
 | D-59 | **v2** — Outgun na Steam | — | ✅ **Decidido pelo PO em 2026-10-20:** o cliente Electron substitui o jogo antigo no app 663760 da Steam, com depots para Windows (663761), macOS (663762) e Linux (663763). Cada envio vai para a branch `beta` (com senha); só o PO promove para a `default` no Steamworks, e o build antigo (5426019) fica como volta atrás (OG-328) | PO |
+| D-60 | **v2** — Anti-flood do chat | Limiar do original / só flood extremo | ✅ **Decidido pelo PO em 2026-10-21:** só rajadas extremas contam como flood (30–40 mensagens em poucos segundos); o bloqueio sempre acaba. Revê a RN-CHT-02 (OG-335) | PO |
 
 ---
 
