@@ -20,7 +20,7 @@ Como jogador, quero ver quem se destacou em cada atributo no mês, para ter onde
 
 ## Escopo
 - Endpoint público do leaderboard: stat, período (temporada mensal por id, ou "sempre"), formato (todos, 3x3, 4x4, 5x5), paginação.
-- Só partidas ranqueadas concluídas; só contas com participação ativa; bots fora.
+- Só partidas ranqueadas concluídas; todas as contas (não há opção de ficar de fora, RN-SKL-06); bots fora.
 - Stats e forma de ranquear (RN-LDB-02):
   - por 10 min jogados: abates (sem `botKills`), capturas, assistências, bandeiras pegas, devolvidas, portadores abatidos, tempo com bandeira (s), frags, dano bruto;
   - razão no período: K/D (abates / mortes), precisão (acertos / tiros);

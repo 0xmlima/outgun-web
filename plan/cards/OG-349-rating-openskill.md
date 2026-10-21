@@ -9,7 +9,7 @@
 | Sprint | S37 |
 | Status | Pronto |
 | Dependências | — |
-| Regras de negócio | RN-SKL-01..05 (D-65) |
+| Regras de negócio | RN-SKL-01..06 (D-65) |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -23,8 +23,9 @@ Como jogador, quero um rating que meça a minha habilidade pelo resultado das pa
 - Biblioteca `openskill` (npm, MIT) com versão fixa, modelo **Plackett–Luce** e **parâmetros padrão** (μ 25, σ 25/3, β σ/2, τ padrão por partida). Sem pesos, sem decaimento por tempo, sem inflar σ na virada da temporada.
 - **Um rating por conta**, único para todos os formatos (3x3, 4x4, 5x5) e permanente (não zera por temporada).
 - Atualiza a cada ranqueada concluída (`POST /internal/matches`, partida `ranked`, não cancelada): vitória, derrota ou empate (RN-RKL-25). O placar não importa.
-- Quem conta (RN-SKL-03): todo humano com conta que começou a partida recebe o resultado do time, mesmo que tenha saído; bot substituto não tem rating e fica fora do cálculo; time com um a menos entra com quem tem.
+- Quem conta (RN-SKL-03, confirmado pelo PO em 2026-10-22): todo humano com conta que começou a partida recebe o resultado do time, mesmo que tenha saído; bot substituto não tem rating e fica fora do cálculo; time com um a menos entra com quem tem.
 - Tabelas novas: rating atual por conta (μ, σ, partidas, atualizado em) e histórico por partida (μ/σ antes e depois, chance de vitória prevista). Idempotente por partida (reenvio não aplica duas vezes).
+- Todo jogador com conta numa ranqueada participa: não há opção de ficar de fora (RN-SKL-06).
 - Começa **do zero** na implantação: nenhuma partida anterior é reprocessada.
 - Valor exibido (RN-SKL-04): `max(0, round((μ − 3σ) × 100))`; "em calibração" com menos de 10 partidas. Função única na API, usada pelo perfil, relatório e leaderboard.
 - Endpoints: rating da conta (perfil) e variação da conta numa partida (relatório).
