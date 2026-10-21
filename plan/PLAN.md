@@ -600,7 +600,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S32 | v2: Outgun no computador (app instalável e `.exe`) | OG-323, OG-324, OG-325, OG-326 | |
 | S33 | v2: Outgun na Steam | OG-328 | |
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
-| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336 | |
+| S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -788,8 +788,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-334](cards/OG-334-musica-no-ranked.md) | Música também nas partidas Ranked | E10 | 1 | Must | S35 | — | Em revisão |
 | [OG-335](cards/OG-335-chat-bloqueado-por-flood.md) | Chat bloqueia na 3ª mensagem e o bloqueio nunca acaba | E11 | 2 | Must | S35 | — | Em revisão |
 | [OG-336](cards/OG-336-teclas-n-e-p-no-chat.md) | Mensagem não começa com "n" e o "p" pausa em vez de digitar | E11 | 2 | Must | S35 | — | Em revisão |
+| [OG-337](cards/OG-337-windows-em-tela-cheia.md) | Cliente para Windows abre em tela cheia | E7 | 1 | Should | S35 | — | Em revisão |
 
-**Total:** 178 cards, 596 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 109 cards, 301 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 179 cards, 597 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 110 cards, 302 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 

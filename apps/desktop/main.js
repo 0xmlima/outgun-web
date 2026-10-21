@@ -33,6 +33,8 @@ function createWindow() {
     backgroundColor: '#000040',
     title: 'Outgun',
     autoHideMenuBar: true,
+    // no Windows abre em tela cheia, como o jogo antigo (OG-337); F11 volta para a janela
+    fullscreen: process.platform === 'win32',
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
