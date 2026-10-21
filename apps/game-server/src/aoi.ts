@@ -90,6 +90,8 @@ export class RecipientState {
   nextMinimapPlayer = 0;
   /** Jogadores do minimapa que o cliente aceita por frame (`data_set_minimap_player_bandwidth`). */
   minimapPerFrame = 2;
+  /** Ainda não recebeu frame do jogo (entrada, troca de mapa, pausa): o próximo leva todo o minimapa (OG-346). */
+  minimapCatchUp = true;
   /** Últimas propriedades informadas de cada jogador (`knownProperties`). */
   readonly known = new Int16Array(MAX_PLAYERS).fill(-1);
 }
@@ -122,7 +124,10 @@ export function buildFrame(
   // `bound(frameOffset, 0, .999) * 256` (servnet.cpp:2073)
   const frameOffset = Math.trunc(Math.min(0.999, Math.max(0, opts.frameOffset ?? 0)) * 256);
   const header = { frame: world.frame, lastClientFrame: opts.lastClientFrame & 255, frameOffset, skipped };
-  if (skipped) return { frame: { ...header, self: null, players: [], minimap: [], ping: null } as FrameMessage, properties: [] };
+  if (skipped) {
+    rs.minimapCatchUp = true;
+    return { frame: { ...header, self: null, players: [], minimap: [], ping: null } as FrameMessage, properties: [] };
+  }
 
   const time = world.time;
   const shadowSeeShadow = settings.powerups.shadowSeeShadow;
@@ -154,7 +159,9 @@ export function buildFrame(
   // minimapa: quem o time vê, menos quem já está na sala, em rodízio
   const seen = [...(me.hasShadow() ? views.shadow : views.normal)[me.team]];
   for (const p of world.players) if (p && p.pos.roomX === me.pos.roomX && p.pos.roomY === me.pos.roomY) seen[p.pid] = false;
-  const limit = Math.min(settings.server.minimapSendLimit, rs.minimapPerFrame);
+  // quem acabou de entrar vê todo o time no primeiro frame, sem esperar o rodízio (OG-346)
+  const limit = Math.min(settings.server.minimapSendLimit, rs.minimapCatchUp ? MAX_PLAYERS : rs.minimapPerFrame);
+  rs.minimapCatchUp = false;
   const minimap: FrameMessage['minimap'][number][] = [];
   const properties: { pid: number; properties: number }[] = [];
   if (limit > 0) {

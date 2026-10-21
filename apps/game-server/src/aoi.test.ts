@@ -109,6 +109,7 @@ describe('minimapa', () => {
   it('rodízio: 2 por frame (banda padrão do cliente), sem quem está na sala', () => {
     const { w, settings } = scene([0, 1, 2, 3, 4, 5, 6].map((pid) => ({ pid, room: [pid, 0] as [number, number] })));
     const rs = new RecipientState();
+    rs.minimapCatchUp = false;
     const seq = [0, 1, 2].map(() => frameFor(w, settings, 0, rs).minimap.map((m) => m.pid));
     expect(seq).toEqual([
       [1, 2],
@@ -119,6 +120,15 @@ describe('minimapa', () => {
     expect(frameFor(w, settings, 0, rs).minimap.map((m) => m.pid)).toEqual([1, 2, 3, 4, 5, 6]);
     const limited = { ...settings, server: { ...settings.server, minimapSendLimit: 0 } };
     expect(frameFor(w, limited, 0, rs).minimap).toEqual([]);
+  });
+
+  it('primeiro frame do jogo (entrada, troca de mapa) leva todo o minimapa; depois volta o rodízio (OG-346)', () => {
+    const { w, settings } = scene([0, 1, 2, 3, 4, 5, 6].map((pid) => ({ pid, room: [pid, 0] as [number, number] })));
+    const rs = new RecipientState();
+    expect(frameFor(w, settings, 0, rs).minimap.map((m) => m.pid)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(frameFor(w, settings, 0, rs).minimap.map((m) => m.pid)).toEqual([1, 2]);
+    buildFrame(w, settings, minimapViews(w, settings), 0, rs, { running: false, lastClientFrame: 0, ping: null }); // pulado
+    expect(frameFor(w, settings, 0, rs).minimap).toHaveLength(6);
   });
 
   it('posição no minimapa (writeMinimapPlayerPosition)', () => {
