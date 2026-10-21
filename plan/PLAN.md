@@ -601,6 +601,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S33 | v2: Outgun na Steam | OG-328 | |
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
 | S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338, OG-339, OG-340 | |
+| S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -792,8 +793,17 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-338](cards/OG-338-estilo-da-tag-do-cla.md) | Clã escolhe como a tag aparece: (nn), DT-, Dk. | E9 | 5 | Should | S35 | — | Concluído |
 | [OG-339](cards/OG-339-opcoes-dentro-da-partida.md) | Opções e controles pelo Esc, sem sair da partida | E8 | 3 | Should | S35 | — | Concluído |
 | [OG-340](cards/OG-340-hud-no-espectador-e-replay.md) | Espectador e replay com minimapa, placar e frags | E8 | 3 | Should | S35 | — | Concluído |
+| [OG-341](cards/OG-341-ranked-20-minutos-com-prorrogacao.md) | Ranked com 20 min e prorrogação de 5 no empate | E12 | 2 | Must | S36 | — | Pronto |
+| [OG-342](cards/OG-342-explicacao-do-rating.md) | Botão "i" explicando o rating | E12 | 3 | Must | S36 | — | Pronto |
+| [OG-343](cards/OG-343-placar-final-7-em-vez-de-8.md) | Placar final mostra 7 em vez de 8 | E11 | 2 | Must | S36 | — | Pronto |
+| [OG-344](cards/OG-344-modal-de-fim-de-partida.md) | Modal de fim de partida com resultado e detalhes | E8 | 5 | Must | S36 | OG-343 | Pronto |
+| [OG-345](cards/OG-345-ranked-cancelada-sem-humanos.md) | Ranqueada cancelada quando um lado fica sem humanos | E12 | 3 | Must | S36 | — | Pronto |
+| [OG-346](cards/OG-346-jogadores-demoram-a-aparecer.md) | Jogadores demoram a aparecer ao entrar na sala | E11 | 2 | Should | S36 | — | Pronto |
+| [OG-347](cards/OG-347-minimapa-inimigo-morto.md) | Inimigo morto reaparece no minimapa onde morreu | E11 | 2 | Should | S36 | — | Pronto |
+| [OG-348](cards/OG-348-voto-com-ctrl-1-e-ctrl-2.md) | Voto do substituto com Ctrl+1/Ctrl+2 | E12 | 2 | Must | S36 | — | Pronto |
+| [OG-349](cards/OG-349-rating-interno-de-habilidade.md) | Rating interno de habilidade (matchmaking futuro) | E12 | 5 | Could | — | OG-342 | Backlog |
 
-**Total:** 182 cards, 608 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 113 cards, 313 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 191 cards, 634 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 122 cards, 339 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -874,6 +884,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-58 | **v2** — Jogo no computador | — | ✅ **Decidido pelo PO em 2026-10-20:** além da web, o jogador pode instalar o Outgun pelo navegador (PWA) ou baixar um `.exe` (Electron). O cliente desktop é só uma janela que carrega o site: a versão é sempre a mesma da web, sem instalador novo a cada deploy. Sem assinatura digital por ora; o instalador fica no servidor do beta, porque o repositório é privado (OG-323, OG-324, OG-325) | PO |
 | D-59 | **v2** — Outgun na Steam | — | ✅ **Decidido pelo PO em 2026-10-20:** o cliente Electron substitui o jogo antigo no app 663760 da Steam, com depots para Windows (663761), macOS (663762) e Linux (663763). Cada envio vai para a branch `beta` (com senha); só o PO promove para a `default` no Steamworks, e o build antigo (5426019) fica como volta atrás (OG-328) | PO |
 | D-60 | **v2** — Anti-flood do chat | Limiar do original / só flood extremo | ✅ **Decidido pelo PO em 2026-10-21:** só rajadas extremas contam como flood (30–40 mensagens em poucos segundos); o bloqueio sempre acaba. Revê a RN-CHT-02 (OG-335) | PO |
+| D-61 | **v2** — Duração do Ranked | Só limite de capturas / 20 min + prorrogação | ✅ **Decidido pelo PO em 2026-10-21:** 20 min fixos; empate → +5 min sem morte súbita (até 8 capturas ou 25 min); empate aos 25 é empate. RN-RKL-25 (OG-341) | PO |
+| D-62 | **v2** — Ranked sem humanos de um lado | Seguir com bots / cancelar | ✅ **Decidido pelo PO em 2026-10-21:** cancelar quando todos caem ou quando um time inteiro cai, descartando rating e estatísticas; jogo da série disputado de novo. RN-RKL-26 (OG-345) | PO |
+| D-63 | **v2** — Fim de partida | Placar sobre o mapa / modal | ✅ **Decidido pelo PO em 2026-10-21:** modal com resultado e detalhes, fecha pelo jogador ou em 10 s e segue o destino (lobby da série, menu ou próximo mapa); intervalo do Casual vai a 10 s (OG-344) | PO |
+| D-64 | **v2** — Teclas do voto do substituto | 1 e 2 / Ctrl+1 e Ctrl+2 | ✅ **Decidido pelo PO em 2026-10-21:** Ctrl+1/Ctrl+2 no esquema Clássico e botões clicáveis no aviso (o navegador comum usa Ctrl+número para abas); 1 e 2 ficam para o chat (OG-348) | PO |
 
 ---
 
@@ -984,6 +998,8 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-RKL-22 | Temporadas são **mensais**: viram automaticamente no dia 1 às 00:00 (Brasília) e guardam a classificação final (D-48). |
 | RN-RKL-23 | Há um ranking **geral** de todas as temporadas (soma de score e neg), também por formato. |
 | RN-RKL-24 | **Hall da fama:** os 3 primeiros de cada temporada encerrada no geral, em cada formato e entre os clãs, com selo no perfil e na página do clã. |
+| RN-RKL-25 | **Duração do Ranked (D-61):** 20 min de tempo normal, sem alteração possível; quem estiver na frente vence. Empate aos 20 → prorrogação de 5 min, sem morte súbita: a partida segue até 8 capturas ou até os 25 min; empatada aos 25, termina empatada. |
+| RN-RKL-26 | **Partida cancelada (D-62):** se um lado fica sem nenhum humano conectado e a janela de reconexão (RN-RKL-17) acaba sem volta, a partida é cancelada: sem bot substituto, sem rating, estatísticas, marcos ou clã (deltas parciais descartados). Na série, o jogo não conta e é disputado de novo. |
 | RN-RKL-12 | Desmarcar "Pronto", trocar de lado, sair ou entrar alguém durante a contagem a cancela; ela recomeça do zero quando todos estiverem prontos de novo. |
 | RN-RKL-13 | Estatísticas, partidas e ranking Ranked podem ser filtrados por formato (3x3, 4x4, 5x5); partidas anteriores aos formatos só aparecem em "Todos". Cada formato tem rating próprio; o rating geral soma score e neg dos três (D-42). |
 | RN-RKL-14 | Partida **clã x clã**: todos de um lado do mesmo clã cadastrado e todos do outro de outro clã (ex.: nn x BC), lados completos. Ela é marcada no relatório e gera marcos próprios (RN-SOC-03). |
