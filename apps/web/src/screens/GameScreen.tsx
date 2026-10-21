@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
+import { joinName, useAccount } from '../app/account.js';
 import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
 import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
 import type { Prefs } from '../app/prefs.js';
@@ -71,6 +72,7 @@ const FOCUS_HINT_KEY = 'outgun.focusHint';
 
 export default function GameScreen() {
   const { t, prefs, setPrefs } = usePrefs();
+  const { user } = useAccount();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   // senha da sala privada vem do lobby pelo estado da navegação (nunca na URL)
@@ -111,7 +113,7 @@ export default function GameScreen() {
         url: params.get('server') ?? defaultServerUrl(),
         explicitServer: params.has('server'),
         room: params.get('sala') ?? 'main',
-        name: params.get('name') ?? (prefs.playerName.trim() || 'Convidado'),
+        name: params.get('name') ?? joinName(user, prefs.playerName),
         ...(password ? { password } : {}),
         telemetry: prefs.shareNetStats,
         ...(lag > 0 || loss > 0 ? { simulate: { rttMs: lag, jitterMs: lag / 10, loss } } : {}),

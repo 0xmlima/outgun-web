@@ -48,3 +48,11 @@ export function useAccount(): AccountContextValue {
   if (!value) throw new Error('useAccount fora do AccountProvider');
   return value;
 }
+
+/**
+ * Nome que vai no pedido de entrada: o da conta, ou o das preferências para o convidado (OG-333).
+ * Com sessão a API usa o da conta de qualquer jeito; mandar "Convidado" só confundia quem lê o pedido.
+ */
+export function joinName(user: AccountUser | null | undefined, playerName: string): string {
+  return user?.username ?? (playerName.trim() || 'Convidado');
+}
