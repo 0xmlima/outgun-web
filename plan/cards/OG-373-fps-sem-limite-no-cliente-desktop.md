@@ -23,7 +23,7 @@ Como jogador competitivo na Steam, quero que "sem limite" signifique sem limite,
 - Desktop: preload mínimo (`contextBridge`, sem Node na página) com `outgunDesktop.setFrameRate('vsync' | 'unlocked')`; o main grava em `userData` e aplica os switches na próxima abertura ("vale ao reiniciar o jogo").
 - Opções > Gráficos: no desktop, "Sincronia vertical (VSync)" ligada/desligada além do limite; no navegador, "sem limite" vira "taxa do monitor" com dica explicando o porquê.
 - `app.init` do PixiJS com `powerPreference: 'high-performance'` (notebooks com duas placas).
-- Padrão continua VSync (sem esquentar notebook nem rasgar a tela); quem desliga escolhe.
+- Padrão **sem VSync** (decisão do PO na S39): menos atraso na tela; o limite "automático" vira 240 FPS para a placa não desenhar sem parar, e "sem limite" fica como escolha explícita. Quem vir a imagem rasgar religa o VSync.
 - D-73 na seção 12; README do desktop atualizado.
 
 ## Critérios de aceite
@@ -38,4 +38,5 @@ Como jogador competitivo na Steam, quero que "sem limite" signifique sem limite,
 ## Notas de implementação
 - `apps/desktop/preload.cjs` (CommonJS: preload com sandbox não aceita ESM) + IPC síncrono no `main.js`; o envio só é aceito da origem do jogo. Modo gravado em `userData/outgun-desktop.json`, aplicado ao abrir.
 - Web: "Sincronia vertical (VSync)" em Gráficos só no cliente; "sem limite" vira "taxa do monitor" (com dica) quando o FPS não pode passar do monitor. `powerPreference: 'high-performance'` no PixiJS.
+- Padrão trocado para VSync desligado + automático 240 a pedido do PO (calor e rasgo a confirmar com os testadores do beta da Steam).
 - Cliente desktop antigo (sem preload) continua funcionando; precisa de instalador/build da Steam novos para ganhar a opção.

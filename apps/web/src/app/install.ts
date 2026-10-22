@@ -38,6 +38,9 @@ export interface DesktopBridge {
   setFrameRate(mode: 'vsync' | 'unlocked'): void;
 }
 
+/** Limite de FPS "sem limite" de verdade (cliente desktop sem VSync, OG-373); 0 é o automático. */
+export const FPS_UNLIMITED = 10_000;
+
 export function desktopBridge(): DesktopBridge | undefined {
   return typeof window === 'undefined' ? undefined : (window as { outgunDesktop?: DesktopBridge }).outgunDesktop;
 }

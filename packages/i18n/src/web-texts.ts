@@ -95,6 +95,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Show input latency': 'Mostrar latência das teclas',
     'Diagonal tolerance': 'Tolerância de diagonal',
     'monitor refresh rate': 'taxa do monitor',
+    'automatic (240)': 'automático (240)',
     'Vertical sync (VSync)': 'Sincronia vertical (VSync)',
     'Takes effect when you reopen the game.': 'Vale quando você reabrir o jogo.',
     'Off: more frames and less screen delay, but more heat and possible tearing.': 'Desligada: mais quadros e menos atraso na tela, mas mais calor e a imagem pode rasgar.',

@@ -4,7 +4,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('outgunDesktop', {
-  /** 'vsync' (padrão) ou 'unlocked', como está gravado (vale ao reabrir). */
+  /** 'unlocked' (padrão) ou 'vsync', como está gravado (vale ao reabrir). */
   frameRate: () => ipcRenderer.sendSync('outgun:frame-rate'),
   /** O modo que está valendo nesta abertura. */
   frameRateActive: () => ipcRenderer.sendSync('outgun:frame-rate-active'),

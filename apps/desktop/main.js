@@ -12,17 +12,18 @@ const GAME_URL = new URL(process.env.OUTGUN_URL ?? 'https://outgunweb.com.br/');
 // a trilha começa sem esperar o primeiro clique ou tecla (no navegador, a política de autoplay pede)
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-// VSync (OG-373, D-73): o Chromium prende o requestAnimationFrame à taxa do monitor; desligado, o
-// jogo passa dela e o limite de FPS do jogo vale de verdade. Os switches só valem no início do
-// processo: a opção fica gravada em userData e vale na próxima abertura.
+// VSync (OG-373, D-73): o Chromium prende o requestAnimationFrame à taxa do monitor; desligado (o
+// padrão: menos atraso na tela), o jogo passa dela e o limite de FPS do jogo vale de verdade (no
+// automático, 240). Os switches só valem no início do processo: a opção fica gravada em userData e
+// vale na próxima abertura.
 const settingsFile = join(app.getPath('userData'), 'outgun-desktop.json');
 /** @returns {{ frameRate: 'vsync' | 'unlocked' }} */
 function readSettings() {
   try {
     const saved = JSON.parse(readFileSync(settingsFile, 'utf8'));
-    return { frameRate: saved.frameRate === 'unlocked' ? 'unlocked' : 'vsync' };
+    return { frameRate: saved.frameRate === 'vsync' ? 'vsync' : 'unlocked' };
   } catch {
-    return { frameRate: 'vsync' };
+    return { frameRate: 'unlocked' };
   }
 }
 const settings = readSettings();

@@ -23,6 +23,7 @@ import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
+import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
 import { CHORD_WINDOW_DEFAULT_MS, ChordFilter } from './input/chord.js';
 import { LatencyWindow } from './net/latency.js';
 import { browserName, NetTelemetry, sendNetReport } from './net/telemetry.js';
@@ -84,6 +85,16 @@ export interface ClientOptions {
   readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
   /** Opções gráficas avançadas do original (OG-070). */
   readonly graphics?: GraphicsOptions;
+}
+
+/** Automático sem VSync: bem acima de quase todo monitor, sem a placa desenhar sem parar (D-73). */
+const FPS_AUTO_UNLOCKED = 240;
+
+/** `maxFPS` do PixiJS para o limite escolhido (0 = sem limite para o PixiJS). */
+function maxFps(limit: number): number {
+  if (limit === FPS_UNLIMITED) return 0;
+  if (limit === 0) return desktopBridge()?.frameRateActive() === 'unlocked' ? FPS_AUTO_UNLOCKED : 0;
+  return limit;
 }
 
 export const DEFAULT_CLIENT: ClientOptions = {
@@ -569,7 +580,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
       const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
-      app.ticker.maxFPS = client.fpsLimit;
+      app.ticker.maxFPS = maxFps(client.fpsLimit);
       if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
       // fundo da tela em mosaico (`load_background`): o do tema principal, se preferido e existir, senão o escolhido
@@ -752,7 +763,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         entities.graphics = graphics();
       }
       if (relayout) layout();
-      if (ready) app.ticker.maxFPS = next.fpsLimit;
+      if (ready) app.ticker.maxFPS = maxFps(next.fpsLimit);
       if (themeChanged && sounds) {
         const player = sounds;
         void loadManifest().then((m) => m && player.load(m, next.soundTheme));

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
-import { desktopBridge } from '../app/install.js';
+import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
 import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, HUD_SCALES, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
@@ -22,15 +22,16 @@ import { ControlsPanel } from './ControlsScreen.js';
 
 /** Limites de FPS oferecidos (o original aceita 1..10000; 60 é o padrão). */
 // 0 = sem limite (o navegador ainda segue a taxa de atualização do monitor)
-const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240];
 /** FPS acima da taxa do monitor: só no cliente desktop com o VSync desligado nesta abertura (OG-373). */
 const fpsUnlocked = desktopBridge()?.frameRateActive() === 'unlocked';
+/** 0 = automático (taxa do monitor; 240 sem VSync); "sem limite" de verdade só sem VSync. */
+const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240, ...(fpsUnlocked ? [FPS_UNLIMITED] : [])];
 
 /** VSync do cliente desktop (OG-373, D-73): gravado pelo cliente e aplicado ao reabrir o jogo. */
 function VsyncField() {
   const { t } = usePrefs();
   const bridge = desktopBridge();
-  const [mode, setMode] = useState(() => bridge?.frameRate() ?? 'vsync');
+  const [mode, setMode] = useState(() => bridge?.frameRate() ?? 'unlocked');
   if (!bridge) return null;
   const pending = mode !== bridge.frameRateActive();
   return (
@@ -381,7 +382,7 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               <ChoiceField
                 label={t('FPS limit')}
                 value={String(FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 0)}
-                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t(fpsUnlocked ? 'unlimited' : 'monitor refresh rate') : String(v) }))}
+                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t(fpsUnlocked ? 'automatic (240)' : 'monitor refresh rate') : v === FPS_UNLIMITED ? t('unlimited') : String(v) }))}
                 hint={fpsUnlocked ? undefined : t(desktopBridge() ? 'Turn off vertical sync to go above the monitor refresh rate.' : 'Browsers draw at most once per monitor refresh. The desktop client (Steam) can go above it.')}
                 onChange={(v) => setPrefs({ fpsLimit: Number(v) })}
               />
