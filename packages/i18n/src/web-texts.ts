@@ -909,5 +909,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Also on Steam': 'Também na Steam',
     'Outgun is on Steam too: install it from the store and Steam keeps it updated.': 'O Outgun também está na Steam: instale pela loja e a Steam mantém o jogo atualizado.',
     'Open Outgun on Steam': 'Abrir o Outgun na Steam',
+    // notificações (OG-361)
+    '$1 invited you to the clan $2': '$1 convidou você para o clã $2',
+    '$1 asked to join $2': '$1 pediu para entrar em $2',
+    'Notifications ($1 unread)': 'Notificações ($1 não lidas)',
+    'Notifications': 'Notificações',
+    'Mark all as read': 'Marcar todas como lidas',
+    'No notifications.': 'Nenhuma notificação.',
   },
 };

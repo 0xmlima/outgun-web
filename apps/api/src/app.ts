@@ -14,6 +14,7 @@ import { SessionStore } from './auth/sessions.js';
 import { LogMailer, MailpitMailer, MemoryMailer, ResendMailer, type Mailer } from './mail/mailer.js';
 import { accountRoutes } from './routes/account.js';
 import { clanRoutes } from './routes/clans.js';
+import { notificationRoutes } from './routes/notifications.js';
 import { adminRoutes } from './routes/admin.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { telemetryRoutes } from './routes/telemetry.js';
@@ -188,6 +189,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(playerRoutes(deps, services));
   await app.register(socialRoutes(deps, services));
   await app.register(clanRoutes(deps, services));
+  await app.register(notificationRoutes(deps, services));
   await app.register(nameRoutes(deps));
   await app.register(joinRoutes(deps, services));
   await app.register(authRoutes(deps, services), { prefix: '/auth' });

@@ -38,6 +38,7 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   season_champions: 'personal',
   player_skill: 'personal',
   skill_changes: 'personal',
+  notifications: 'personal',
   clans: 'none',
   clan_members: 'personal',
   clan_requests: 'personal',
@@ -92,8 +93,8 @@ export const DATA_INVENTORY: readonly DataItem[] = [
     retention: b('Estatísticas: enquanto o serviço existir (ao excluir a conta o nome vira "(anon)"); replays: 30 dias', 'Statistics: while the service exists (deleting the account replaces the name with "(anon)"); replays: 30 days'),
   },
   {
-    what: b('Clã: de que clã você é, papel, data de entrada, convites e pedidos de entrada, carência depois de sair', 'Clan: which clan you are in, role, join date, invites and join requests, waiting period after leaving'),
-    where: ['clan_members', 'clan_requests', 'users'],
+    what: b('Clã: de que clã você é, papel, data de entrada, convites e pedidos de entrada (e as notificações deles), carência depois de sair', 'Clan: which clan you are in, role, join date, invites and join requests (and their notifications), waiting period after leaving'),
+    where: ['clan_members', 'clan_requests', 'notifications', 'users'],
     why: b('Mostrar a tag do clã no jogo e na página pública do clã', 'Showing the clan tag in game and on the public clan page'),
     retention: b('Até você sair do clã (convites e pedidos: 7 dias) ou excluir a conta', 'Until you leave the clan (invites and requests: 7 days) or delete the account'),
   },

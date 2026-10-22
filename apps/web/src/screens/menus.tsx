@@ -18,7 +18,6 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { type HistoryEntry, useApi } from './stats.js';
-import { inboxCount, useClanInbox } from './clans.js';
 import { MonthRanking, NowPlaying } from './home-panels.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
@@ -60,14 +59,16 @@ function RecentMatches({ username }: { readonly username: string }) {
   );
 }
 
-/** Tela inicial (OG-201): "Jogar agora" em destaque (RN-UI-04), o resto do menu e as últimas partidas. */
+/**
+ * Tela inicial (OG-201): "Jogar agora" em destaque (RN-UI-04), o menu e as últimas partidas. Desde o
+ * OG-360 o menu só tem o que não está no topo: Ranking, Jogadores, Clãs, Replays, Opções e Ajuda
+ * ficam na barra superior, a conta no nome à direita; Créditos e Enviar feedback estão ocultos.
+ */
 export function HomeScreen() {
   const { t } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
   const playNow = usePlayNow();
-  const { inbox } = useClanInbox();
-  const pending = inboxCount(inbox);
   const go = (to: string) => () => void navigate(to);
   const items: MenuListItem[] = [
     { icon: 'play', label: t('Play now'), description: t('Casual: power-ups on, guests welcome, does not count for the ranking.'), primary: true, onActivate: playNow },
@@ -79,24 +80,9 @@ export function HomeScreen() {
       aside: user ? undefined : <Badge>{t('needs an account')}</Badge>,
       onActivate: go(user ? '/rooms/new' : '/login'),
     },
-    { icon: 'trophy', label: t('Ranking'), description: t('Season leaderboard'), onActivate: go('/ranking') },
-    { icon: 'players', label: t('Players'), description: t('Find players and clans'), onActivate: go('/players') },
     ...(user ? [{ icon: 'player' as const, label: t('My profile'), description: t('Statistics, milestones and matches'), onActivate: go(`/players/${encodeURIComponent(user.username)}`) }] : []),
-    {
-      icon: 'clan',
-      label: t('Clans'),
-      description: user?.clanTag ? t('Your clan and the clan directory') : t('Create or join a clan'),
-      aside: pending > 0 ? <Badge tone="accent">{pending}</Badge> : undefined,
-      onActivate: go(pending > 0 ? '/clans/inbox' : user?.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans'),
-    },
-    { icon: 'replay', label: t('Replays'), description: t('Watch recorded matches'), onActivate: go('/replays') },
-    { icon: 'options', label: t('Options'), onActivate: go('/options') },
-    { icon: 'help', label: t('Help'), onActivate: go('/help') },
-    { icon: 'credits', label: t('Credits'), onActivate: go('/credits') },
     ...(isInstalledApp() ? [] : [{ icon: 'download' as const, label: t('Play on your computer'), description: t('Install Outgun or download it for Windows, macOS or Ubuntu'), onActivate: go('/download') }]),
-    ...(user ? [{ icon: 'feedback' as const, label: t('Send feedback'), onActivate: go('/feedback') }] : []),
     ...(user && (user.isAdmin || user.isModerator) ? [{ icon: 'shield' as const, label: t('Moderation'), onActivate: go('/admin') }] : []),
-    user ? { icon: 'account', label: t('Account'), aside: user.username, onActivate: go('/account') } : { icon: 'account', label: t('Sign in'), onActivate: go('/login') },
   ];
   return (
     <div className="ui-container home">

@@ -456,6 +456,24 @@ export const skillChanges = pgTable(
   (t) => [primaryKey({ columns: [t.matchId, t.userId] }), index('skill_changes_user_idx').on(t.userId)],
 );
 
+/** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã. */
+export type NotificationKind = 'clan_invite' | 'clan_request';
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<NotificationKind>().notNull(),
+    /** Clã (tag e nome) e quem convidou ou pediu. */
+    data: jsonb('data').$type<{ clanTag?: string; clanName?: string; from?: string }>().notNull().default({}),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    readAt: tstz('read_at'),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+);
+
 export const bans = pgTable('bans', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
@@ -688,6 +706,7 @@ export const allTables = {
   rating_points: ratingPoints,
   player_skill: playerSkill,
   skill_changes: skillChanges,
+  notifications,
   bans,
   admin_actions: adminActions,
   player_reports: playerReports,
