@@ -278,9 +278,12 @@ export const formatRatings = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.seasonId, t.format] }), index('format_ratings_board_idx').on(t.seasonId, t.format)],
 );
 
-/** Hall da fama (OG-268): os 3 primeiros de cada temporada encerrada no geral, por formato e dos clãs. */
+/**
+ * Hall da fama (OG-268): os 3 primeiros de cada temporada encerrada. Até outubro/2026, no geral, por
+ * formato e dos clãs (score/neg); desde novembro, de cada stat principal (`stat:<id>`, OG-354) e dos clãs.
+ */
 export const CHAMPION_BOARDS = ['overall', '3x3', '4x4', '5x5', 'clans'] as const;
-export type ChampionBoard = (typeof CHAMPION_BOARDS)[number];
+export type ChampionBoard = (typeof CHAMPION_BOARDS)[number] | `stat:${string}`;
 export const seasonChampions = pgTable(
   'season_champions',
   {
@@ -420,6 +423,55 @@ export const ratingPoints = pgTable(
     negDelta: integer('neg_delta').notNull(),
   },
   (t) => [index('rating_points_user_idx').on(t.userId, t.seasonId, t.at)],
+);
+
+/** Rating de habilidade OpenSkill da conta (OG-349, D-65): um só, permanente, todos os formatos. */
+export const playerSkill = pgTable('player_skill', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  mu: doublePrecision('mu').notNull(),
+  sigma: doublePrecision('sigma').notNull(),
+  matches: integer('matches').notNull().default(0),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+});
+
+/** Variação do rating de habilidade em cada ranqueada (OG-349): antes, depois e a chance prevista do time. */
+export const skillChanges = pgTable(
+  'skill_changes',
+  {
+    matchId: uuid('match_id')
+      .notNull()
+      .references(() => matches.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    team: smallint('team').notNull(),
+    muBefore: doublePrecision('mu_before').notNull(),
+    sigmaBefore: doublePrecision('sigma_before').notNull(),
+    muAfter: doublePrecision('mu_after').notNull(),
+    sigmaAfter: doublePrecision('sigma_after').notNull(),
+    winChance: doublePrecision('win_chance').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.userId] }), index('skill_changes_user_idx').on(t.userId)],
+);
+
+/** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã. */
+export type NotificationKind = 'clan_invite' | 'clan_request';
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<NotificationKind>().notNull(),
+    /** Clã (tag e nome) e quem convidou ou pediu. */
+    data: jsonb('data').$type<{ clanTag?: string; clanName?: string; from?: string }>().notNull().default({}),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    readAt: tstz('read_at'),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
 );
 
 export const bans = pgTable('bans', {
@@ -652,6 +704,9 @@ export const allTables = {
   clan_members: clanMembers,
   clan_requests: clanRequests,
   rating_points: ratingPoints,
+  player_skill: playerSkill,
+  skill_changes: skillChanges,
+  notifications,
   bans,
   admin_actions: adminActions,
   player_reports: playerReports,

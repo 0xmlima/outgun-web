@@ -8,7 +8,7 @@ import type { RotationKey } from '@outgun/settings';
 import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
 import type { RemoteCommand } from './room.js';
-import type { DeltaReport, MatchReport } from './match-report.js';
+import type { MatchReport } from './match-report.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -172,11 +172,6 @@ export class PlatformClient {
         return ok;
       }),
     );
-  }
-
-  /** Deltas do ranking de quem saiu ou na troca de mapa (OG-084); idempotente por `deltaId`. */
-  reportDeltas(report: DeltaReport): void {
-    this.track(this.post('/internal/rating-deltas', report, 5));
   }
 
   /** Denúncia do `/report` (OG-104). */

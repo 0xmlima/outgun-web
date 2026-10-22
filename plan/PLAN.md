@@ -604,7 +604,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
 | S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338, OG-339, OG-340 | |
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
-| S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354 | |
+| S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -804,17 +804,21 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-346](cards/OG-346-jogadores-demoram-a-aparecer.md) | Jogadores demoram a aparecer ao entrar na sala | E11 | 2 | Should | S36 | — | Concluído |
 | [OG-347](cards/OG-347-minimapa-inimigo-morto.md) | Inimigo morto reaparece no minimapa onde morreu | E11 | 2 | Should | S36 | — | Concluído |
 | [OG-348](cards/OG-348-voto-com-ctrl-1-e-ctrl-2.md) | Voto do substituto com Ctrl+1/Ctrl+2 | E12 | 2 | Must | S36 | — | Concluído |
-| [OG-349](cards/OG-349-rating-openskill.md) | Rating de habilidade com OpenSkill (Plackett–Luce) | E12 | 5 | Must | S37 | — | Pronto |
-| [OG-350](cards/OG-350-descontinuar-ranking-score-neg.md) | Descontinuar o ranking por score/neg | E12 | 5 | Must | S37 | OG-349 | Pronto |
-| [OG-351](cards/OG-351-rating-no-perfil-e-relatorio.md) | Rating do OpenSkill no perfil e no relatório da partida | E9 | 5 | Must | S37 | OG-349 | Pronto |
-| [OG-352](cards/OG-352-leaderboard-de-atributos-api.md) | Leaderboard de atributos: API | E12 | 3 | Must | S37 | — | Pronto |
-| [OG-353](cards/OG-353-pagina-do-leaderboard.md) | Página do leaderboard mensal | E9 | 5 | Must | S37 | OG-352 | Pronto |
-| [OG-354](cards/OG-354-hall-da-fama-pelo-leaderboard.md) | Hall da fama mensal pelo leaderboard | E12 | 3 | Must | S37 | OG-352, OG-350 | Pronto |
+| [OG-349](cards/OG-349-rating-openskill.md) | Rating de habilidade com OpenSkill (Plackett–Luce) | E12 | 5 | Must | S37 | — | Concluído |
+| [OG-350](cards/OG-350-descontinuar-ranking-score-neg.md) | Descontinuar o ranking por score/neg | E12 | 5 | Must | S37 | OG-349 | Concluído |
+| [OG-351](cards/OG-351-rating-no-perfil-e-relatorio.md) | Rating do OpenSkill no perfil e no relatório da partida | E9 | 5 | Must | S37 | OG-349 | Concluído |
+| [OG-352](cards/OG-352-leaderboard-de-atributos-api.md) | Leaderboard de atributos: API | E12 | 3 | Must | S37 | — | Concluído |
+| [OG-353](cards/OG-353-pagina-do-leaderboard.md) | Página do leaderboard mensal | E9 | 5 | Must | S37 | OG-352 | Concluído |
+| [OG-354](cards/OG-354-hall-da-fama-pelo-leaderboard.md) | Hall da fama mensal pelo leaderboard | E12 | 3 | Must | S37 | OG-352, OG-350 | Concluído |
+| [OG-358](cards/OG-358-lista-geral-do-mes.md) | Lista geral do mês (índice dos 6 stats principais) e selo de melhor do mês | E12 | 3 | Must | S37 | OG-352, OG-353, OG-354 | Concluído |
+| [OG-359](cards/OG-359-link-da-steam-no-download.md) | Link da Steam na página de download | E7 | 1 | Should | S37 | OG-328 | Concluído |
+| [OG-360](cards/OG-360-menu-inicial-enxuto.md) | Menu inicial enxuto (opções no menu superior) | E8 | 2 | Should | S37 | — | Concluído |
+| [OG-361](cards/OG-361-notificacoes.md) | Notificações: sino no topo e aviso (toast) das não lidas | E9 | 5 | Should | S37 | — | Concluído |
 | [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | — | OG-352 | Backlog |
 | [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (multi-kill, troca, quem matou quem) | E12 | 8 | Could | — | OG-355 | Backlog |
 | [OG-357](cards/OG-357-balanceamento-de-times-no-lobby.md) | Balanceamento dos times no lobby pelo rating | E12 | 5 | Could | — | OG-349 | Backlog |
 
-**Total:** 199 cards, 673 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 130 cards, 378 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 203 cards, 684 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 134 cards, 389 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
@@ -901,6 +905,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-64 | **v2** — Teclas do voto do substituto | 1 e 2 / Ctrl+1 e Ctrl+2 | ✅ **Decidido pelo PO em 2026-10-21:** Ctrl+1/Ctrl+2 no esquema Clássico e botões clicáveis no aviso (o navegador comum usa Ctrl+número para abas); 1 e 2 ficam para o chat (OG-348) | PO |
 | D-65 | **v2** — Rating de habilidade | score/neg (D-02) / Glicko-2 / OpenSkill | ✅ **Decidido pelo PO com a comunidade em 2026-10-22:** OpenSkill Plackett–Luce **puro**, parâmetros padrão; um rating **único** (todos os formatos) e **permanente**; sem decaimento por tempo e sem inflar σ por temporada; começa **do zero** na implantação (sem reprocessar o histórico); sem opção de não participar (quem não quer joga Casual); aparece no perfil e será a base do balanceamento (adiado, OG-357). Exibido como `max(0, (μ − 3σ) × 100)`, "em calibração" nas 10 primeiras. Proposta: https://claude.ai/artifact/CKBe4QGjaDSyspswaE3GQN. RN-SKL (OG-349) | PO |
 | D-66 | **v2** — Ranking por score/neg, temporadas e hall da fama | Manter / substituir | ✅ **Decidido pelo PO em 2026-10-22:** o ranking por score/neg é **descontinuado** (dados guardados, só leitura); outubro/2026 é a última temporada dele. As temporadas mensais passam a ser um **leaderboard de atributos** individuais (estilo HLTV) que reinicia todo mês, para manter a competição acessível a novos jogadores; o hall da fama segue mensal, pelos 3 primeiros de cada stat principal. Ranking de clãs não muda. RN-LDB (OG-350 a OG-354) | PO |
+| D-67 | **v2** — Lista geral do mês | Rating OpenSkill / índice por percentis / quadro de medalhas | ✅ **Decidido pelo PO em 2026-10-22:** índice de 0 a 100 = soma de peso × percentil nos 6 stats principais; pesos sugeridos para um CTF (objetivo 60%, combate 40%): capturas 25%, abates 20%, devoluções 20%, tempo com bandeira 15%, K/D 10%, precisão 10%; selo de melhor do mês no hall da fama. RN-LDB-06 (OG-358) | PO |
 
 ---
 
@@ -1033,6 +1038,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-LDB-03 | Dano bruto = acertos em inimigos × `rocket_damage` da partida (inclui o excesso). Stats que dependem de contadores novos só valem a partir da implantação e mostram "desde DD/MM". |
 | RN-LDB-04 | Mínimo de 5 ranqueadas no período para aparecer; desempate pelo total do stat e depois pelo nome. |
 | RN-LDB-05 | **Hall da fama:** na virada do mês, os 3 primeiros de cada stat principal do mês encerrado (todos os formatos), com selo no perfil. Os selos do ranking antigo continuam como "ranking clássico"; o hall de clãs segue RN-CLA-07. |
+| RN-LDB-06 | **Lista geral do mês (D-67):** índice de 0 a 100 = soma de peso × percentil em cada stat principal, entre quem tem o mínimo de partidas (1º = 1, último = 0). Pesos: capturas 25%, abates 20%, devoluções 20%, tempo com bandeira 15%, K/D 10%, precisão 10%. Os 3 primeiros entram no hall da fama ("Melhor do mês"). |
 | RN-NOM-04 | **v2:** a clan tag aparece no HUD da partida, em todos os modos, como `(TAG) nome` — mesmo formato do chat (RN-NOM-03) — seguindo RN-UI-05. |
 | RN-UI-05 | Mudanças na UI **dentro da partida** não alteram a disposição atual do HUD: elementos novos são sobreposições temporárias numa área declarada; todo card que toca essa UI passa pela comparação de capturas do OG-265 (diferença zero fora da área nova) e é conferido numa partida online de verdade, com capturas para o PO (lição do OG-205). |
 | RN-UI-06 | **v2:** O HUD da partida escala com a tela (D-54): texto, barras e placar seguem a escala do HUD (automática pela altura ou escolhida nas Opções); o layout é o do protótipo `plan/specs/hud-resolucoes/` (faixa em 4:3, coluna em telas largas). A partir dele, a RN-UI-05 volta a valer: novas mudanças não movem o que existe. |

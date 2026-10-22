@@ -100,7 +100,8 @@ export const PLAYER_PAGES = [
   ['Ping', 'Frags', 'Capt', 'Kills', 'Deaths', 'Suicides'],
   ['Flags taken', 'dropped', 'returned', 'Carriers killed', 'Carry time'],
   ['Shots', 'Accuracy', 'Taken', 'Movement', 'Speed'],
-  ['Playtime', 'Average lifetime', 'rank', 'power', 'score'],
+  // rating de habilidade OpenSkill (OG-350): posição e valor no lugar de força e score/neg
+  ['Playtime', 'Average lifetime', 'rank', 'rating'],
 ] as const;
 
 /** F4 — `draw_statistics` / `draw_player_statistics`, página 0..3. */
@@ -130,7 +131,7 @@ export function playerScreen(s: ClientSession, page: number, t: T): InfoScreen {
           const minutes = Math.trunc(st.playtime / 60);
           const avg = st.lifetime / (st.deaths + 1);
           values = [st.playtime > 2 * 60 * 60 ? `${Math.trunc(minutes / 60)} h` : `${minutes} min`, clock(avg)];
-          if (info?.loggedIn) values.push(String(info.rank), ((info.score + 1) / (info.negScore + 1)).toFixed(2), String(info.score - info.negScore));
+          if (info?.loggedIn) values.push(info.rank > 0 ? String(info.rank) : '-', String(info.score));
         }
         return { cells: [flags, name.slice(0, 17), ...values], tone: team === 0 ? 'red' : 'blue', ...(info?.loggedIn && name ? { profile: name } : {}) };
       }),

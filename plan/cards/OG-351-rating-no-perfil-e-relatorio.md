@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S37 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | OG-349 |
 | Regras de negócio | RN-SKL-04, RN-SOC-02 (D-65) |
 | Skills | `outgun-card-workflow` |
@@ -22,9 +22,13 @@ Como jogador, quero ver meu rating no perfil e quanto ganhei ou perdi em cada pa
 - Design system v2; nada dentro da partida muda (o modal de fim é fora do HUD).
 
 ## Critérios de aceite
-- [ ] Perfil com e sem rating (conta nova, em calibração, calibrada).
-- [ ] Relatório e modal mostram a variação de quem jogou depois da implantação.
-- [ ] "i" acessível por teclado e leitor de tela; PO aprova o texto.
+- [x] Perfil com e sem rating (conta nova, em calibração, calibrada).
+- [x] Relatório e modal mostram a variação de quem jogou depois da implantação.
+- [x] "i" acessível por teclado e leitor de tela (mesmo `Dialog` do OG-342).
+- [x] PO aprova o texto.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Perfil: selo "Rating N" (ou "em calibração (n/10)") com o "i" ao lado; o gráfico de evolução mostra o valor após cada ranqueada (`/players/:nome/progress` agora devolve `series: [{at, value}]`, sem as temporadas de score/neg). O campo `ranking` saiu do perfil na API.
+- Relatório: coluna "Rating" com "+29 (1629)" por conta e a chance prevista de cada time no placar.
+- Modal de fim de partida: busca a partida pela sala (`/rooms/:id/last-match`, como o "Ver relatório") e mostra a minha variação e a chance do meu time; se a API ainda não gravou em ~6 s, não mostra nada.
+- O "i" foi reescrito (μ e σ escritos como "mu" e "sigma": os textos ficam em Latin-1).

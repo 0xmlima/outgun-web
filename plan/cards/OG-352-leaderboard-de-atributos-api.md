@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S37 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-LDB-01..04 (D-66) |
 | Skills | `outgun-card-workflow` |
@@ -31,9 +31,12 @@ Como jogador, quero ver quem se destacou em cada atributo no mês, para ter onde
 - Lista de stats numa constante única, que a página (OG-353) e o hall da fama (OG-354) leem.
 
 ## Critérios de aceite
-- [ ] Testes por grupo de stat (por 10 min, razão, recorde, média), mínimo de partidas, filtro de formato e período.
-- [ ] Casual, canceladas e bots não entram; abates em bot substituto não contam.
-- [ ] Consulta indexada no PostgreSQL; OpenAPI atualizado.
+- [x] Testes por grupo de stat (por 10 min, razão, recorde, média), mínimo de partidas, filtro de formato e período.
+- [x] Casual, canceladas e bots não entram; abates em bot substituto não contam.
+- [x] Consulta indexada no PostgreSQL; OpenAPI atualizado.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `apps/api/src/leaderboard.ts`: lista única `LEADERBOARD_STATS` (com `main` para o hall) e uma consulta por stat sobre `match_players` + `matches`. Rotas `GET /leaderboard/stats` (3 primeiros de cada) e `GET /leaderboard/stats/:stat` (`season`, `overall`, `format`, `player`, paginação).
+- Dano bruto usa os acertos totais: o jogo não separa acertos em bot substituto (abates em bot já ficam fora).
+- K/D com 0 mortes divide por 1; tempo médio de vida = tempo vivo / (mortes + partidas), como o original.
+- Sem índice novo: a consulta já filtra por partida ranqueada; medir no fechamento se a página ficar lenta.

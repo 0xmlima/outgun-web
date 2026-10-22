@@ -5,11 +5,12 @@ import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TO
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, clanMembers, clans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
+import { adminActions, bans, clanMembers, clans, gameServers, matches, matchPlayers, playerReports, rankedSeries, rooms, users } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
-import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
+import { closeSeason, seasonAt } from '../ranking.js';
+import { applySkill } from '../skill.js';
 import { awardMilestones } from '../milestones.js';
-import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
+import { recordMatchSocial } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
@@ -178,6 +179,11 @@ const MatchResult = Type.Object({
     Type.Array(Type.Object({ kind: Type.Union([Type.Literal('bot'), Type.Literal('short')]), team: Type.Union([Type.Literal(0), Type.Literal(1)]), atSeconds: Count }), { maxItems: 10 }),
   ),
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
+  /**
+   * Contas que jogaram a ranqueada, inclusive quem saiu no meio (OG-349, RN-SKL-03); sem o campo
+   * (servidor antigo), vale quem está em `players`.
+   */
+  skillRoster: Type.Optional(Type.Array(Type.Object({ userId: Type.String({ format: 'uuid' }), team: Type.Union([Type.Literal(0), Type.Literal(1)]) }), { maxItems: 32 })),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
 
@@ -355,7 +361,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           // temporada em que a partida começou, mesmo que tenha terminado depois da virada (OG-267)
           const season = await seasonAt(tx, new Date(body.startedAt));
           // Conta excluída entre o fim da partida e o envio: o jogador entra como anônimo.
-          const ids = body.players.flatMap((p) => (p.userId ? [p.userId] : []));
+          const ids = [...body.players.flatMap((p) => (p.userId ? [p.userId] : [])), ...(body.skillRoster ?? []).map((r) => r.userId)];
           const known = new Set(
             ids.length === 0
               ? []
@@ -435,16 +441,13 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           }
           await recordMatchSocial(tx, match!.id);
           await awardMilestones(tx, [...known], { beta: config.beta });
-          // Ranking (OG-084): só partida ranqueada; o servidor já calculou os deltas. Temporada já encerrada
-          // (partida na virada) tem a classificação final regravada.
-          if (body.ranked && season) {
-            await applyDeltas(
-              tx,
-              season.id,
-              body.players.flatMap((p) => (p.userId && known.has(p.userId) ? [{ userId: p.userId, score: p.scoreDelta, neg: p.negDelta, match: true }] : [])),
-              body.format,
-            );
-            if (!season.active) await snapshotStandings(tx, season.id);
+          // Rating de habilidade (OG-349, RN-SKL-02/03): pelo placar final, com quem saiu no meio
+          if (body.ranked) {
+            const roster = body.skillRoster ?? body.players.flatMap((p) => (p.userId && !p.isBot ? [{ userId: p.userId, team: p.team as 0 | 1 }] : []));
+            const winner = body.redScore > body.blueScore ? 0 : body.blueScore > body.redScore ? 1 : null;
+            await applySkill(tx, match!.id, roster.filter((r) => known.has(r.userId)), winner);
+            // partida da temporada que já virou (começou antes da virada): hall da fama regravado (OG-354)
+            if (season && !season.active) await closeSeason(tx, season.id);
           }
           return { id: match!.id, duplicate: false as const };
         });
@@ -457,33 +460,14 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
       {
         schema: {
           tags: ['interno'],
-          summary: 'Deltas do ranking de quem saiu ou na troca de mapa (idempotente por deltaId, OG-084)',
+          summary: 'Descontinuado (OG-350, D-66): aceita e ignora os deltas de score/neg de servidores antigos',
           security,
           body: RatingDelta,
           response: { 200: Type.Object({ applied: Type.Boolean() }), 401: ErrorSchema },
         },
       },
-      async (request) => {
-        const serverId = request.serverId!;
-        const d = request.body;
-        const applied = await database.db.transaction(async (tx) => {
-          const season = await activeSeason(tx);
-          const [user] = await tx.select({ id: users.id }).from(users).where(eq(users.id, d.userId));
-          const [room] = d.roomId ? await tx.select({ id: rooms.id, format: rooms.format }).from(rooms).where(eq(rooms.id, d.roomId)) : [];
-          const [row] = await tx
-            .insert(ratingDeltas)
-            .values({ serverId, deltaId: d.deltaId, userId: user?.id ?? null, seasonId: season?.id ?? null, roomId: room?.id ?? null, scoreDelta: d.scoreDelta, negDelta: d.negDelta })
-            .onConflictDoNothing()
-            .returning({ id: ratingDeltas.deltaId });
-          if (!row) return false; // reenvio
-          if (user && season) {
-            await applyDeltas(tx, season.id, [{ userId: user.id, score: d.scoreDelta, neg: d.negDelta, match: false }], room?.format);
-            await recordRatingPoint(tx, user.id, season.id, d.scoreDelta, d.negDelta);
-          }
-          return true;
-        });
-        return { applied };
-      },
+      // ranking por score/neg descontinuado (OG-350, D-66): servidores antigos ainda podem mandar; nada é somado
+      async () => ({ applied: false }),
     );
 
     app.post(

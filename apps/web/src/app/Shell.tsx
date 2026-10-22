@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Moldura das telas fora da partida (OG-201, design system v2): barra superior com logo, navegação e
-// conta; rodapé com Sobre, Termos, Privacidade e o código-fonte (GPL, OG-005). As telas ainda no
+// Moldura das telas fora da partida (OG-201, design system v2): barra superior com logo, navegação
+// (OG-360: tudo o que saiu do menu inicial), o sino das notificações (OG-361) e a conta; rodapé com Sobre, Termos, Privacidade e o código-fonte (GPL, OG-005). As telas ainda no
 // visual antigo (caixas de menu com fonte bitmap) aparecem centralizadas no meio, com a escala
 // inteira de pixels, até migrarem (OG-202, OG-203).
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { useAccount } from './account.js';
+import { NotificationBell, NotificationsProvider } from './notifications.js';
 import { useMusicMode } from './music/MusicProvider.js';
 import { usePlayNow } from './play-now.js';
 import { usePrefs } from './prefs.js';
@@ -103,12 +104,16 @@ function AccountChip() {
 
 function TopBar() {
   const { t } = usePrefs();
+  const { user } = useAccount();
   const playNow = usePlayNow();
   const links = [
     ['/rooms', t('Rooms')],
     ['/ranking', t('Ranking')],
     ['/players', t('Players')],
+    [user?.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans', t('Clans')],
     ['/replays', t('Replays')],
+    ['/options', t('Options')],
+    ['/help', t('Help')],
   ] as const;
   return (
     <header className="app-topbar">
@@ -126,7 +131,10 @@ function TopBar() {
           </NavLink>
         ))}
       </nav>
-      <AccountChip />
+      <div className="app-user">
+        {user && <NotificationBell />}
+        <AccountChip />
+      </div>
     </header>
   );
 }
@@ -153,6 +161,7 @@ export function Shell() {
   useGamepadKeys();
   useMusicMode('menu'); // o tema na primeira vez da sessão, depois a rotação das faixas (RN-MUS-01)
   return (
+    <NotificationsProvider>
     <div className="ui-page app-shell" data-menu-theme={prefs.menuTheme}>
       <TopBar />
       <main className="app-main">
@@ -160,5 +169,6 @@ export function Shell() {
       </main>
       <Footer />
     </div>
+    </NotificationsProvider>
   );
 }

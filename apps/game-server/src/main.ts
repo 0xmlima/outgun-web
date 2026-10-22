@@ -91,7 +91,6 @@ const manager = new RoomManager({
       logger.info({ room: report.roomId, map: report.map, red: report.redScore, blue: report.blueScore, ranked: report.ranked }, 'fim de partida');
       platform.reportMatch(report);
     },
-    reportDeltas: (report) => platform.reportDeltas(report),
     reportPlayer: (report) => {
       logger.info({ room: report.roomId, reporter: report.reporter.name, target: report.target.name, reason: report.reason }, 'denúncia de jogador');
       platform.reportPlayer(report);

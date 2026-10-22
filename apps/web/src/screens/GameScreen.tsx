@@ -5,7 +5,7 @@
 // ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim; a senha
 // da sala vem do lobby no estado da navegação),
 // ?demo=JOGADORES (partida local) e ?map=NOME&theme=TEMA&rooms=N&room=X,Y (visualizador de mapa).
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
 import { joinName, useAccount } from '../app/account.js';
@@ -313,6 +313,11 @@ export default function GameScreen() {
   const sala = params.get('sala');
   // margem de 1 min para o relógio do servidor (ended_at) e o do navegador
   const openReport = () => lastGameOverAt !== null && sala && void navigate(`/rooms/${encodeURIComponent(sala)}/report?${new URLSearchParams({ after: new Date(lastGameOverAt - 60_000).toISOString() })}`);
+  // variação do meu rating no modal de fim de partida (OG-351): só com conta; no Casual não acha nada
+  const ratingLookup = useMemo(
+    () => (sala && user && lastGameOverAt !== null ? { room: sala, after: new Date(lastGameOverAt - 60_000).toISOString(), username: user.username } : undefined),
+    [sala, user, lastGameOverAt],
+  );
   /** Dono da sala privada ou admin no Casual (OG-289): os bots das opções valem na próxima partida ou já. */
   function botItems(): MenuItem[] {
     const s = host.current?.session();
@@ -364,7 +369,7 @@ export default function GameScreen() {
             {...(lastGameOverAt !== null && sala ? { onReport: openReport } : {})} />
         )}
         {info && !menuOpen && <InfoOverlay kind={info.kind} host={host.current} onClose={() => setInfo(null)} />}
-        {matchEnd && !menuOpen && <MatchEndDialog summary={matchEnd} onClose={closeMatchEnd} {...(sala ? { onReport: openReport } : {})} />}
+        {matchEnd && !menuOpen && <MatchEndDialog summary={matchEnd} onClose={closeMatchEnd} {...(sala ? { onReport: openReport } : {})} {...(ratingLookup ? { rating: ratingLookup } : {})} />}
         {gameOver && sala && !menuOpen && !lobby && !matchEnd && (
           <Button variant="primary" className="game-report" onClick={openReport}>
             {t('View match report')}

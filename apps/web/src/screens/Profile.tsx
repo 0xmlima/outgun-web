@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Perfil social (OG-212, RN-SOC-01/02/03): página com rolagem em /players/:nome. Cabeçalho (clã, cor,
-// membro desde, última partida, ranking), números por modo e por período, evolução do rating na
-// temporada, marcos (OG-213), partidas recentes (relatório e replay), companheiros, rivais e clã.
-// O filtro de formato (OG-258, na URL) vale para o ranking, os números do Ranked e as partidas.
+// membro desde, última partida, rating de habilidade), números por modo e por período, evolução do
+// rating de habilidade (OG-351), marcos (OG-213), partidas recentes (relatório e replay), companheiros, rivais e clã.
+// O filtro de formato (OG-258, na URL) vale para os números do Ranked e as partidas (o rating é único).
 // Tudo vem da API (OG-085, OG-211); o que o jogador escondeu (D-39) aparece como "privado".
 import { chatName } from '@outgun/protocol';
 import { MILESTONES } from '@outgun/content';
@@ -44,8 +44,8 @@ interface PeriodTotals {
 }
 interface Progress {
   hidden: boolean;
-  seasons: { id: number; name: string; active: boolean; rating: number; matches: number }[];
-  series: { at: string; rating: number }[];
+  /** Rating de habilidade após cada ranqueada (OG-351). */
+  series: { at: string; value: number }[];
   periods: { days7: PeriodTotals; days30: PeriodTotals; all: PeriodTotals } | null;
 }
 
@@ -68,7 +68,7 @@ export function ProfileScreen() {
   const [mode, setMode] = useState<Mode>('casual');
   const [historyMode, setHistoryMode] = useState<Mode | 'all'>('all');
   const [limit, setLimit] = useState(10);
-  // filtro de formato (OG-258): ranking, números do Ranked e partidas; o Casual não tem formato
+  // filtro de formato (OG-258): números do Ranked e partidas; o Casual não tem formato
   const [format, setFormat] = useFormatParam();
   const profile = useApi<Profile>(format === 'all' ? base : `${base}?format=${format}`, true);
   const social = useApi<Social>(`${base}/social`);
@@ -109,7 +109,7 @@ export function ProfileScreen() {
     [t('Playing time'), (x) => duration(x.playSeconds)],
   ];
   const pr = progress.data;
-  const season = pr?.seasons.find((s) => s.active);
+  const skill = p.skill;
   const won = new Map(p.milestones.map((m) => [m.id, m]));
   const s = social.data;
   const privateNote = <p className="ui-muted">{t('This player keeps it private.')}</p>;
@@ -126,18 +126,14 @@ export function ProfileScreen() {
       onBack={() => void navigate(-1)}
     >
       <div className="ui-row profile-head">
-        {p.ranking ? (
-          p.ranking.rank > 0 ? (
-            <Badge tone="accent">{t('#$1 of $2 in $3', String(p.ranking.rank), String(p.ranking.of), format === 'all' ? p.ranking.season : `${p.ranking.season} · ${format}`)}</Badge>
-          ) : (
-            <Badge>{t('not ranked yet ($1 points needed)', String(p.ranking.minimumScore))}</Badge>
-          )
-        ) : null}
-        {p.ranking && p.ranking.rank > 0 && (
-          <span className="ui-muted">
-            {t('rating')} {p.ranking.rating.toFixed(2)} · {t('score')} {Math.trunc(p.ranking.score)} · {t('neg')} {p.ranking.neg}
-          </span>
+        {skill ? (
+          <Badge tone={skill.calibrating ? 'neutral' : 'accent'}>
+            {skill.calibrating ? t('Rating $1 · calibrating ($2/$3)', String(skill.value), String(skill.matches), '10') : t('Rating $1', String(skill.value))}
+          </Badge>
+        ) : (
+          <Badge>{t('No rating yet: play Ranked')}</Badge>
         )}
+        <RatingInfo />
         <TitleBadges titles={p.titles ?? []} />
         <Link to="/ranking">{t('Ranking')}</Link>
         <Link to="/players">{t('Players')}</Link>
@@ -200,8 +196,8 @@ export function ProfileScreen() {
         </Panel>
       </div>
 
-      <Panel title={season ? `${t('Rating')} · ${season.name}` : t('Rating')} actions={<RatingInfo />}>
-        {pr?.hidden ? privateNote : pr && pr.series.length > 1 ? <RatingChart series={pr.series} locale={prefs.locale} /> : <p className="ui-muted">{t('No ranked matches this season.')}</p>}
+      <Panel title={t('Rating')} actions={<RatingInfo />}>
+        {pr?.hidden ? privateNote : pr && pr.series.length > 1 ? <RatingChart series={pr.series} locale={prefs.locale} /> : <p className="ui-muted">{t('No ranked matches yet.')}</p>}
       </Panel>
 
       <Panel title={`${t('Milestones')} · ${won.size}/${MILESTONES.length}`}>
@@ -354,7 +350,7 @@ const H = 200;
 const PAD = { left: 44, right: 12, top: 12, bottom: 24 };
 
 /** Evolução do rating na temporada: linha única, eixo discreto, cruz e valor ao passar o ponteiro. */
-export function RatingChart({ series, locale }: { series: { at: string; rating: number }[]; locale: string }) {
+export function RatingChart({ series, locale }: { series: { at: string; value: number }[]; locale: string }) {
   const { t } = usePrefs();
   const [hover, setHover] = useState<number | null>(null);
   // o SVG tem a largura real do painel: textos em px de verdade (no celular não encolhem)
@@ -368,13 +364,13 @@ export function RatingChart({ series, locale }: { series: { at: string; rating: 
     return () => ro.disconnect();
   }, []);
   const times = series.map((p) => Date.parse(p.at));
-  const values = series.map((p) => p.rating);
+  const values = series.map((p) => p.value);
   const [t0, t1] = [times[0]!, times[times.length - 1]!];
   let [lo, hi] = [Math.min(...values), Math.max(...values)];
-  if (hi - lo < 0.5) [lo, hi] = [lo - 0.25, hi + 0.25];
+  if (hi - lo < 50) [lo, hi] = [Math.max(0, lo - 25), hi + 25];
   const x = (ms: number) => PAD.left + ((ms - t0) / Math.max(1, t1 - t0)) * (W - PAD.left - PAD.right);
   const y = (v: number) => PAD.top + (1 - (v - lo) / (hi - lo)) * (H - PAD.top - PAD.bottom);
-  const path = series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(times[i]!).toFixed(1)},${y(p.rating).toFixed(1)}`).join('');
+  const path = series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(times[i]!).toFixed(1)},${y(p.value).toFixed(1)}`).join('');
   const ticks = [lo, (lo + hi) / 2, hi];
   const day = (ms: number) => new Date(ms).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
   const onMove = (ev: PointerEvent<SVGSVGElement>) => {
@@ -391,7 +387,7 @@ export function RatingChart({ series, locale }: { series: { at: string; rating: 
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label={t('Rating from $1 to $2 (lowest $3, highest $4)', values[0]!.toFixed(2), last.toFixed(2), Math.min(...values).toFixed(2), Math.max(...values).toFixed(2))}
+        aria-label={t('Rating from $1 to $2 (lowest $3, highest $4)', String(values[0]), String(last), String(Math.min(...values)), String(Math.max(...values)))}
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
       >
@@ -399,7 +395,7 @@ export function RatingChart({ series, locale }: { series: { at: string; rating: 
           <g key={v}>
             <line className="grid" x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} />
             <text className="tick" x={PAD.left - 6} y={y(v)} textAnchor="end" dominantBaseline="middle">
-              {v.toFixed(1)}
+              {Math.round(v)}
             </text>
           </g>
         ))}
@@ -420,7 +416,7 @@ export function RatingChart({ series, locale }: { series: { at: string; rating: 
       </svg>
       {h && (
         <div className="rating-tip" style={{ left: `${(h.cx / W) * 100}%`, top: `${(h.cy / H) * 100}%` }}>
-          <strong>{h.p.rating.toFixed(2)}</strong> <span className="ui-muted">{date(h.p.at, locale)}</span>
+          <strong>{h.p.value}</strong> <span className="ui-muted">{date(h.p.at, locale)}</span>
         </div>
       )}
     </figure>

@@ -247,6 +247,10 @@ describe('sala pausada (OG-260)', () => {
     r.disconnect(other.pid, other.conn, true);
     r.handle(mate(r, players, other).pid, [message('substituteVote', { bot: false })]);
     run(r, 1);
+    // rating de habilidade (OG-349): quem o bot substitui e quem saiu também recebem o resultado
+    const roster = (r as unknown as { skillRoster(): { userId: string; team: number }[] }).skillRoster();
+    expect(roster.map((x) => x.userId).sort()).toEqual(players.map((_, i) => account(i + 1)).sort());
+    expect(roster.find((x) => x.userId === account(1))?.team).toBe(teamA);
     (r as unknown as { onGameOver(reason: string, result: object): void }).onGameOver('captureLimit', { reason: 'captureLimit', mapTime: 100, mapTitle: 'x', mapCrc: 0, winner: 0, players: [], teams: r.world.teams.map(() => ({ score: 0, kills: 0, deaths: 0, captures: [] })) });
     expect(reports.at(-1)?.substitutions).toEqual([
       { kind: 'bot', team: teamA, atSeconds: expect.any(Number) },

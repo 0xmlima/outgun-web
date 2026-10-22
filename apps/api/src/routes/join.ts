@@ -11,7 +11,7 @@ import type { AppDeps, Services } from '../app.js';
 import { checkGuestName } from '../auth/names.js';
 import { verifyPassword } from '../auth/password.js';
 import { bans, clanMembers, gameServers, rooms } from '../db/schema.js';
-import { playerRating } from '../ranking.js';
+import { playerSkillRank } from '../skill.js';
 import { botLevelFrom, recentRanked } from '../bot-level.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
@@ -87,7 +87,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     // clã cadastrado (OG-253): no lobby Ranked o clã entra do mesmo lado
     const [member] = user && room.mode === 'ranked' ? await db.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id)) : [];
     const clanId = member?.clanId;
-    const rating = user ? await playerRating(db, user.id, room.format ?? undefined) : undefined;
+    const skill = user ? await playerSkillRank(db, user.id) : null;
     const jti = randomUUID();
     const ticket = signTicket(
       {
@@ -101,10 +101,10 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         admin: user?.isAdmin ?? false,
         ranked: room.mode === 'ranked',
         ...(user && room.ownerId === user.id ? { owner: true } : {}),
-        // força no modificador de time e participação nos deltas (OG-084); sala com formato usa o rating dele (OG-258)
-        ...(rating ? { rating: ticketRating(rating) } : {}),
-        // nível do bot substituto pelo histórico Ranked (OG-266)
-        ...(user && rating && room.mode === 'ranked' ? { botLevel: botLevelFrom({ ...(await recentRanked(db, user.id)), rank: rating.rank, of: rating.of }) } : {}),
+        // rating de habilidade (OG-350): força do time para quem entra e posição no `playerInfo`
+        ...(skill ? { skill: { mu: skill.mu, value: skill.value, rank: skill.rank, of: skill.of } } : {}),
+        // nível do bot substituto pelo histórico Ranked e a posição no OpenSkill (OG-266, OG-350)
+        ...(user && room.mode === 'ranked' ? { botLevel: botLevelFrom({ ...(await recentRanked(db, user.id)), rank: skill?.rank ?? 0, of: skill?.of ?? 0 }) } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
         ...(device ? { dev: device } : {}),
       },
@@ -208,8 +208,4 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
 /** SHA-256 do id do navegador, 32 hex: o id cru não é guardado nem vai no ticket. */
 export function deviceHash(device: string): string {
   return createHash('sha256').update(`outgun-device:${device}`).digest('hex').slice(0, 32);
-}
-
-function ticketRating({ matches: _matches, ...rating }: Awaited<ReturnType<typeof playerRating>>) {
-  return rating;
 }

@@ -90,10 +90,9 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
   it('evolução: rating por temporada, série acumulada e totais por período', async () => {
     const p = (await app.inject('/players/Jogador1/progress')).json();
     expect(p.hidden).toBe(false);
-    expect(p.seasons).toEqual([expect.objectContaining({ name: 'Temporada 1', active: true, score: 150, neg: 2, matches: 1 })]);
+    // rating de habilidade após cada ranqueada (OG-351): a do Jogador1 entrou no OpenSkill
     expect(p.series).toHaveLength(1);
-    expect(p.series[0]).toMatchObject({ score: 150, neg: 2 });
-    expect(p.series[0].rating).toBeCloseTo(151 / 3);
+    expect(p.series[0].value).toBeGreaterThanOrEqual(0);
     expect(p.periods.days7).toMatchObject({ matches: 1, wins: 1, kills: 3 });
     expect(p.periods.days30).toMatchObject({ matches: 2, wins: 1 });
     expect(p.periods.all).toMatchObject({ matches: 3, wins: 2, deaths: 3, playSeconds: 900 });
@@ -145,7 +144,6 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
     expect((await app.inject('/players/Jogador2/matches')).json()).toEqual({ total: 0, hidden: true, matches: [] });
     const progress = (await app.inject('/players/Jogador2/progress')).json();
     expect(progress).toMatchObject({ hidden: true, series: [], periods: null });
-    expect(progress.seasons).toHaveLength(1);
     expect((await app.inject({ method: 'PUT', url: '/account/privacy', payload: { hideCompanions: true, hideHistory: false } })).statusCode).toBe(401);
   });
 });

@@ -73,6 +73,98 @@
   min-height: 2.25rem;
   text-decoration: none;
 }
+/* sino das notificações ao lado do nome (OG-361) */
+.app-user {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.app-bell {
+  position: relative;
+}
+.app-bell-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.app-bell-button:hover,
+.app-bell-button[aria-expanded='true'] {
+  background: var(--surface-2);
+}
+.app-bell-count {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  min-width: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+}
+.app-bell-panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 20;
+  width: min(22rem, 90vw);
+  max-height: 26rem;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-2);
+}
+.app-bell-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+.app-bell-all {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+.app-bell-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.app-bell-panel li button {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.app-bell-panel li button:hover {
+  background: var(--surface-2);
+}
+.app-bell-panel li.unread button {
+  border-left: 3px solid var(--accent);
+  font-weight: 600;
+}
 .app-account-user {
   display: inline-flex;
   align-items: center;
@@ -567,6 +659,36 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
   gap: var(--space-4);
+}
+/* leaderboard de atributos (OG-353): um quadro por stat com os 3 primeiros */
+.leaderboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+}
+.leaderboard-filters {
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.leaderboard-kind {
+  margin: 0 0 var(--space-2);
+}
+.leaderboard-top {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.leaderboard-top li {
+  display: grid;
+  grid-template-columns: 2.5ch 1fr auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+.leaderboard-pos {
+  text-align: end;
 }
 .map-preview {
   display: block;

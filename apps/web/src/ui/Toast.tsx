@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Avisos passageiros do design system v2 (OG-200): `useToast()(mensagem)` mostra um aviso no canto,
-// anunciado pelos leitores de tela, que some sozinho; no máximo três na tela.
+// anunciado pelos leitores de tela, que some sozinho; no máximo três na tela. Com `sticky`, fica até a
+// pessoa fechar, e `onClose` avisa quem abriu (a notificação lida, OG-361).
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { Tone } from './Button.js';
 
@@ -8,6 +9,14 @@ export interface ToastItem {
   readonly id: number;
   readonly message: ReactNode;
   readonly tone: Tone;
+  /** Chamado quando a pessoa fecha o aviso no ×. */
+  readonly onClose?: () => void;
+}
+
+export interface ToastOptions {
+  /** Não some sozinho: fica até fechar. */
+  readonly sticky?: boolean;
+  readonly onClose?: () => void;
 }
 
 export const MAX_TOASTS = 3;
@@ -18,7 +27,7 @@ export function pushToast(list: readonly ToastItem[], item: ToastItem): ToastIte
   return [...list, item].slice(-MAX_TOASTS);
 }
 
-type ShowToast = (message: ReactNode, tone?: Tone) => void;
+type ShowToast = (message: ReactNode, tone?: Tone, options?: ToastOptions) => void;
 
 const ToastContext = createContext<ShowToast | null>(null);
 
@@ -28,10 +37,10 @@ export function ToastProvider({ children, closeLabel }: { readonly children: Rea
   const [toasts, setToasts] = useState<readonly ToastItem[]>([]);
   const dismiss = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), []);
   const show = useCallback<ShowToast>(
-    (message, tone = 'neutral') => {
+    (message, tone = 'neutral', options = {}) => {
       const id = nextId++;
-      setToasts((list) => pushToast(list, { id, message, tone }));
-      setTimeout(() => dismiss(id), TOAST_MS);
+      setToasts((list) => pushToast(list, { id, message, tone, ...(options.onClose ? { onClose: options.onClose } : {}) }));
+      if (!options.sticky) setTimeout(() => dismiss(id), TOAST_MS);
     },
     [dismiss],
   );
@@ -43,7 +52,15 @@ export function ToastProvider({ children, closeLabel }: { readonly children: Rea
         {toasts.map((t) => (
           <div key={t.id} className={`ui-toast ui-tone-${t.tone}`}>
             <span>{t.message}</span>
-            <button type="button" className="ui-toast-close" aria-label={closeLabel} onClick={() => dismiss(t.id)}>
+            <button
+              type="button"
+              className="ui-toast-close"
+              aria-label={closeLabel}
+              onClick={() => {
+                dismiss(t.id);
+                t.onClose?.();
+              }}
+            >
               ×
             </button>
           </div>

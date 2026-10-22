@@ -26,7 +26,7 @@ function fakeSession(now = 100): ClientSession {
     ]),
     movementShots: new Map(),
     teamMovementShots: null,
-    playerInfo: new Map([[0, { loggedIn: true, ranked: true, admin: false, rank: 7, score: 300, negScore: 99, rankedPlayers: 42 }]]),
+    playerInfo: new Map([[0, { loggedIn: true, ranked: true, admin: false, rank: 7, score: 1729, negScore: 0, rankedPlayers: 42 }]]),
     teamStats: [
       { team: 'red', kills: 4, deaths: 2, suicides: 0, flagsTaken: 3, flagsDropped: 1, flagsReturned: 0, captures: [{ time: 70, pid: 0, assistant: 1 }, { time: 200, pid: 9, assistant: 255 }] },
       { team: 'blue', kills: 2, deaths: 4, suicides: 1, flagsTaken: 1, flagsDropped: 0, flagsReturned: 1, captures: [{ time: 125, pid: 8, assistant: 255 }] },
@@ -66,7 +66,7 @@ describe('telas F2–F5 (OG-066)', () => {
     expect(p1.tables[0]!.rows.map((r) => r.cells[1])).toEqual(['Bia', 'Ana']);
     expect(p1.tables[0]!.rows[1]!.cells).toEqual(['MR  ', 'Ana', '40', '0', '0', '4/1/3', '2/0/0', '0']);
     const p4 = playerScreen(fakeSession(), 3, t);
-    expect(p4.tables[0]!.rows[1]!.cells.slice(2)).toEqual(['1 min', '0:13', '7', '3.01', '201']);
+    expect(p4.tables[0]!.rows[1]!.cells.slice(2)).toEqual(['1 min', '0:13', '7', '1729']);
     expect(p4.footer.map((r) => r.cells[0])).toEqual(['42 players in the ranking.', '4/4']);
   });
 

@@ -9,7 +9,7 @@ import type { FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import { ACCENTED, fold, PLAIN, usernameKey } from '../db/keys.js';
 import { playerProfiles, users } from '../db/schema.js';
-import { activeSeason } from '../ranking.js';
+import { skillValue } from '../skill.js';
 import { ErrorSchema } from './schemas.js';
 
 /** Pontos da série de evolução (os mais recentes). */
@@ -160,14 +160,13 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
       {
         schema: {
           tags: ['perfil'],
-          summary: 'Evolução: rating por temporada, série da temporada ativa e totais por período',
+          summary: 'Evolução: rating de habilidade após cada ranqueada (OG-351) e totais por período',
           params: Name,
           response: {
             200: Type.Object({
               hidden: Type.Boolean(),
-              seasons: Type.Array(Type.Object({ id: Type.Integer(), name: Type.String(), active: Type.Boolean(), score: Type.Number(), neg: Type.Integer(), rating: Type.Number(), matches: Type.Integer() })),
-              /** Rating acumulado após cada partida ranqueada ou delta da temporada ativa (os últimos 500). */
-              series: Type.Array(Type.Object({ at: Type.String(), score: Type.Number(), neg: Type.Integer(), rating: Type.Number() })),
+              /** Valor exibido do rating de habilidade após cada ranqueada (RN-SKL-04; as últimas 500). */
+              series: Type.Array(Type.Object({ at: Type.String(), value: Type.Integer() })),
               periods: Type.Union([Type.Object({ days7: PeriodTotals, days30: PeriodTotals, all: PeriodTotals }), Type.Null()]),
             }),
             404: ErrorSchema,
@@ -179,31 +178,17 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
         if (!t) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
         const owner = await isOwner(request, t);
         return cached(`progress:${t.id}`, owner, async () => {
-          const seasons = (
-            await db.execute<{ id: number; name: string; active: boolean; score: number; neg: number; matches: number }>(sql`
-              SELECT s.id, s.name, s.active, r.score, r.neg, r.matches
-              FROM ratings r JOIN seasons s ON s.id = r.season_id
-              WHERE r.user_id = ${t.id} ORDER BY s.id DESC`)
-          ).map((s) => ({ ...s, rating: (s.score + 1) / (s.neg + 1) }));
-          if (t.hideHistory && !owner) return { hidden: true, seasons, series: [], periods: null };
-          const season = await activeSeason(db);
-          const series = season
-            ? (
-                await db.execute<{ at: Date | string; score: number; neg: number }>(sql`
-                  SELECT at, score, neg FROM (
-                    SELECT at, sum(score_delta) OVER w AS score, sum(neg_delta) OVER w AS neg
-                    FROM rating_points
-                    WHERE user_id = ${t.id} AND season_id = ${season.id}
-                    WINDOW w AS (ORDER BY at ROWS UNBOUNDED PRECEDING)
-                    ORDER BY at DESC
-                    LIMIT ${PROGRESS_POINTS}
-                  ) last ORDER BY at`)
-              ).map((p) => {
-                const score = Number(p.score);
-                const neg = Number(p.neg);
-                return { at: new Date(p.at).toISOString(), score, neg, rating: (score + 1) / (neg + 1) };
-              })
-            : [];
+          if (t.hideHistory && !owner) return { hidden: true, series: [], periods: null };
+          const series = (
+            await db.execute<{ at: Date | string; mu: number; sigma: number }>(sql`
+              SELECT at, mu, sigma FROM (
+                SELECT m.ended_at AS at, c.mu_after AS mu, c.sigma_after AS sigma
+                FROM skill_changes c JOIN matches m ON m.id = c.match_id
+                WHERE c.user_id = ${t.id}
+                ORDER BY m.ended_at DESC
+                LIMIT ${PROGRESS_POINTS}
+              ) last ORDER BY at`)
+          ).map((p) => ({ at: new Date(p.at).toISOString(), value: skillValue(p) }));
           // totais por dia (UTC) de player_daily: 7 e 30 dias contam hoje
           const [p] = await db.execute<Record<string, number>>(sql`
             SELECT
@@ -219,7 +204,7 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
             captures: p?.[`${prefix}_captures`] ?? 0,
             playSeconds: p?.[`${prefix}_play`] ?? 0,
           });
-          return { hidden: false, seasons, series, periods: { days7: period('d7'), days30: period('d30'), all: period('all') } };
+          return { hidden: false, series, periods: { days7: period('d7'), days30: period('d30'), all: period('all') } };
         });
       },
     );

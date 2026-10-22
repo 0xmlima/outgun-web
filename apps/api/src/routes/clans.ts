@@ -15,6 +15,7 @@ import { Title, titlesWhere } from './players.js';
 import { clanMembersStats, clanOpponents, clanWarTotals } from '../clan-stats.js';
 import { nameBlocked } from '../name-filter.js';
 import { likePrefix } from './social.js';
+import { clanStaff, notify } from './notifications.js';
 import { ErrorSchema } from './schemas.js';
 
 /** Limite de membros (D-47); vale para convites e pedidos (OG-271). */
@@ -626,6 +627,8 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
             .insert(clanRequests)
             .values({ clanId: clan.id, userId: target.id, kind: 'invite', invitedBy: user.id, expiresAt })
             .onConflictDoUpdate({ target: [clanRequests.clanId, clanRequests.userId], set: { invitedBy: user.id, createdAt: new Date(), expiresAt } });
+          // aviso no topo do site para o convidado (OG-361)
+          await notify(tx, [target.id], 'clan_invite', { clanTag: clan.tag, clanName: clan.name, from: user.username });
           return true;
         });
         if (!done) return reply;
@@ -685,6 +688,8 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           if (mine.some((r) => r.kind === 'request')) throw new ClanError(409, 'request_open');
           if (mine.some((r) => r.clanId === clan.id)) throw new ClanError(409, 'invite_pending'); // basta aceitar o convite
           await tx.insert(clanRequests).values({ clanId: clan.id, userId: user.id, kind: 'request', expiresAt: new Date(Date.now() + CLAN_REQUEST_TTL_MS) });
+          // aviso para quem responde aos pedidos: líder e admins (OG-361)
+          await notify(tx, await clanStaff(tx, clan.id), 'clan_request', { clanTag: clan.tag, clanName: clan.name, from: user.username });
           return true;
         });
         if (!done) return reply;
