@@ -14,6 +14,8 @@ const ALLOWED = new Set([
   '0BSD',
   'Apache-2.0',
   'BlueOak-1.0.0',
+  // Boost (permissiva, compatível com a GPL segundo a FSF): vem com o @stdlib que o OpenSkill usa (OG-349)
+  'BSL-1.0',
   'BSD-2-Clause',
   'BSD-3-Clause',
   'CC0-1.0',
