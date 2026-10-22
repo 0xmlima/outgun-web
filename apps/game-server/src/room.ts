@@ -19,7 +19,7 @@ import { RankedLobby } from './ranked-lobby.js';
 import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
-import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer, type Substitution } from './match-report.js';
+import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
@@ -287,6 +287,8 @@ export class Room {
   private substitutes = 0;
   /** Desconexões permanentes deste jogo, para o relatório (OG-263). */
   private substitutions: Substitution[] = [];
+  /** Contas que saíram no meio do jogo Ranked: recebem o resultado do time no rating (OG-349, RN-SKL-03). */
+  private readonly departed = new Map<string, 0 | 1>();
   /** Pedidos de troca de lado no lobby (OG-253): quem pediu → com quem. */
   private readonly swapRequests = new Map<number, number>();
   /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
@@ -651,6 +653,7 @@ export class Room {
   leave(pid: number): void {
     const c = this.clients.get(pid);
     if (!c) return;
+    if (this.mode === 'ranked' && this.gameOverUntil === null && !c.bot && c.identity.accountId) this.departed.set(c.identity.accountId, this.world.teamOf(pid) as 0 | 1);
     this.flushDeltas(pid);
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
     this.colors.release(this.world.teamOf(pid), c.color);
@@ -1696,6 +1699,7 @@ export class Room {
     for (const [pid, c] of [...this.clients]) if (c.bot || c.departing || c.conn === OFFLINE) this.leave(pid);
     this.substitutes = 0;
     this.substitutions = [];
+    this.departed.clear();
     this.lobby!.gameEnded(false, this.world.frame);
     this.gameOverUntil = this.world.frame + 1;
     this.broadcast(message('text', { kind: 'warning', from: 255, text: CANCELLED_TEXT }));
@@ -1735,8 +1739,19 @@ export class Room {
         ...(this.options.ranked ? { format: this.options.ranked.format } : {}),
         ...(series ? { series } : {}),
         substitutions: this.substitutions,
+        skillRoster: this.skillRoster(),
       }),
     );
+  }
+
+  /** Contas do jogo Ranked (OG-349): quem está, quem o bot substitui e quem saiu no meio. */
+  private skillRoster(): SkillRosterEntry[] {
+    const roster = new Map(this.departed);
+    for (const [pid, c] of this.clients) {
+      const account = c.bot ? c.replaced?.identity.accountId : c.identity.accountId;
+      if (account) roster.set(account, this.world.teamOf(pid) as 0 | 1);
+    }
+    return [...roster].map(([userId, team]) => ({ userId, team }));
   }
 
   // --- lobby Ranked (OG-252..254) ---
@@ -1941,6 +1956,7 @@ export class Room {
       entry.file = generated.file;
     }
     this.matchStartedAt = this.wallClock();
+    this.departed.clear();
     for (const c of this.clients.values()) c.botKills = 0;
     Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
     const map = entry.map;

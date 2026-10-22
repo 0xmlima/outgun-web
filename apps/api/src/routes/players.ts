@@ -8,6 +8,7 @@ import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
 import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
 import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
+import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
 const Totals = Type.Object({
@@ -79,6 +80,9 @@ const PlayerLine = Type.Object({
   stats: Type.Record(Type.String(), Type.Number()),
 });
 
+const Skill = Type.Object({ value: Type.Integer(), mu: Type.Number(), sigma: Type.Number(), matches: Type.Integer(), calibrating: Type.Boolean() });
+const SkillChangeLine = Type.Object({ username: Type.String(), team: Type.Integer(), before: Type.Integer(), after: Type.Integer(), winChance: Type.Number() });
+
 const won = sql`CASE WHEN ${matchPlayers.team} = 0 THEN ${matches.redScore} > ${matches.blueScore} ELSE ${matches.blueScore} > ${matches.redScore} END`;
 const stat = (key: string) => sql<number>`coalesce(sum((${matchPlayers.stats} ->> ${key})::numeric), 0)::int`;
 
@@ -101,6 +105,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
                 Type.Object({ season: Type.String(), score: Type.Number(), neg: Type.Integer(), rating: Type.Number(), rank: Type.Integer(), of: Type.Integer(), matches: Type.Integer(), minimumScore: Type.Integer() }),
                 Type.Null(),
               ]),
+              /** Rating de habilidade OpenSkill (OG-349, RN-SKL-04); null antes da primeira ranqueada. */
+              skill: Type.Union([Skill, Type.Null()]),
               totals: Type.Object({ ranked: Totals, casual: Totals }),
               /** Cores favoritas (índices da paleta) e data da última partida (null se escondeu o histórico). */
               favoriteColors: Type.Array(Type.Integer()),
@@ -161,6 +167,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
         return {
           user: { id: user.id, username: user.username, clanTag: user.clanTag, clanLabel: user.clanLabel, createdAt: user.createdAt.toISOString() },
           ranking,
+          skill: await playerSkillOf(db, user.id),
           totals,
           favoriteColors: profile?.favoriteColors ?? [],
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
@@ -272,6 +279,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               series: Type.Union([Type.Null(), SeriesView]),
               /** Clãs de cada lado numa partida clã x clã (OG-259); null se não for ou se um deles foi apagado. */
               clans: Type.Union([Type.Null(), Type.Object({ red: ClanRef, blue: ClanRef })]),
+              /** Variação do rating de habilidade de cada conta (OG-349); vazio antes da implantação e no Casual. */
+              skill: Type.Array(SkillChangeLine),
             }),
             404: ErrorSchema,
           },
@@ -304,9 +313,20 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           gameNo: m.gameNo,
           series: m.seriesId ? await seriesView(m.seriesId) : null,
           clans: await warClans(m),
+          skill: await skillLines(m.id),
         };
       },
     );
+
+    async function skillLines(matchId: string) {
+      const changes = await matchSkillChanges(db, matchId);
+      if (changes.length === 0) return [];
+      const names = new Map((await db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, changes.map((c) => c.userId)))).map((u) => [u.id, u.username]));
+      return changes.flatMap(({ userId, ...c }) => {
+        const username = names.get(userId);
+        return username ? [{ username, ...c }] : [];
+      });
+    }
 
     async function warClans(m: typeof matches.$inferSelect) {
       if (!m.clanWar || !m.redClanId || !m.blueClanId) return null;

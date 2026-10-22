@@ -422,6 +422,37 @@ export const ratingPoints = pgTable(
   (t) => [index('rating_points_user_idx').on(t.userId, t.seasonId, t.at)],
 );
 
+/** Rating de habilidade OpenSkill da conta (OG-349, D-65): um só, permanente, todos os formatos. */
+export const playerSkill = pgTable('player_skill', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  mu: doublePrecision('mu').notNull(),
+  sigma: doublePrecision('sigma').notNull(),
+  matches: integer('matches').notNull().default(0),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+});
+
+/** Variação do rating de habilidade em cada ranqueada (OG-349): antes, depois e a chance prevista do time. */
+export const skillChanges = pgTable(
+  'skill_changes',
+  {
+    matchId: uuid('match_id')
+      .notNull()
+      .references(() => matches.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    team: smallint('team').notNull(),
+    muBefore: doublePrecision('mu_before').notNull(),
+    sigmaBefore: doublePrecision('sigma_before').notNull(),
+    muAfter: doublePrecision('mu_after').notNull(),
+    sigmaAfter: doublePrecision('sigma_after').notNull(),
+    winChance: doublePrecision('win_chance').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.userId] }), index('skill_changes_user_idx').on(t.userId)],
+);
+
 export const bans = pgTable('bans', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
@@ -652,6 +683,8 @@ export const allTables = {
   clan_members: clanMembers,
   clan_requests: clanRequests,
   rating_points: ratingPoints,
+  player_skill: playerSkill,
+  skill_changes: skillChanges,
   bans,
   admin_actions: adminActions,
   player_reports: playerReports,

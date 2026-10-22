@@ -17,7 +17,7 @@ Como comunidade, quero um hall da fama que registre mês a mês quem dominou cad
 
 ## Escopo
 - Na virada da temporada (dia 1, 00:00 de Brasília), grava os 3 primeiros do mês que terminou em cada **stat principal** do leaderboard, todos os formatos juntos, com o valor.
-- Stats principais (proposta, PO confirma na revisão): abates, capturas, devoluções, tempo com bandeira, K/D e precisão.
+- Stats principais (aprovados pelo PO em 2026-10-22): abates, capturas, devoluções, tempo com bandeira, K/D e precisão. Mínimo de 5 partidas no mês, como no leaderboard; selo para os 3 primeiros.
 - Selo no perfil com stat, posição e mês (ex.: "1º em capturas · nov/2026"). Os selos do sistema antigo continuam, marcados como "ranking clássico".
 - Hall dos clãs continua como está (vitórias clã x clã).
 - A página do hall da fama mostra os meses do leaderboard e, abaixo, os do sistema antigo.

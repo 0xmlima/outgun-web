@@ -804,7 +804,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-346](cards/OG-346-jogadores-demoram-a-aparecer.md) | Jogadores demoram a aparecer ao entrar na sala | E11 | 2 | Should | S36 | — | Concluído |
 | [OG-347](cards/OG-347-minimapa-inimigo-morto.md) | Inimigo morto reaparece no minimapa onde morreu | E11 | 2 | Should | S36 | — | Concluído |
 | [OG-348](cards/OG-348-voto-com-ctrl-1-e-ctrl-2.md) | Voto do substituto com Ctrl+1/Ctrl+2 | E12 | 2 | Must | S36 | — | Concluído |
-| [OG-349](cards/OG-349-rating-openskill.md) | Rating de habilidade com OpenSkill (Plackett–Luce) | E12 | 5 | Must | S37 | — | Pronto |
+| [OG-349](cards/OG-349-rating-openskill.md) | Rating de habilidade com OpenSkill (Plackett–Luce) | E12 | 5 | Must | S37 | — | Em revisão |
 | [OG-350](cards/OG-350-descontinuar-ranking-score-neg.md) | Descontinuar o ranking por score/neg | E12 | 5 | Must | S37 | OG-349 | Pronto |
 | [OG-351](cards/OG-351-rating-no-perfil-e-relatorio.md) | Rating do OpenSkill no perfil e no relatório da partida | E9 | 5 | Must | S37 | OG-349 | Pronto |
 | [OG-352](cards/OG-352-leaderboard-de-atributos-api.md) | Leaderboard de atributos: API | E12 | 3 | Must | S37 | — | Pronto |

@@ -58,6 +58,8 @@ export interface MatchReport {
   series?: MatchSeries;
   /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bot no lugar ou um a menos; ausente = nenhuma. */
   substitutions?: Substitution[];
+  /** Contas que jogaram a ranqueada, inclusive quem saiu no meio (OG-349, RN-SKL-03). */
+  skillRoster?: SkillRosterEntry[];
   players: {
     slot: number;
     userId?: string;
@@ -75,6 +77,11 @@ export interface MatchReport {
     clanId?: string;
     stats: Record<string, number>;
   }[];
+}
+
+export interface SkillRosterEntry {
+  userId: string;
+  team: 0 | 1;
 }
 
 export interface Substitution {
@@ -138,6 +145,8 @@ export interface ReportInput {
   format?: RankedFormat;
   series?: MatchSeries;
   substitutions?: readonly Substitution[];
+  /** Contas da ranqueada (OG-349), com quem saiu; só vai no relatório ranqueado. */
+  skillRoster?: readonly SkillRosterEntry[];
 }
 
 function stats(p: PlayerResult): Record<string, number> {
@@ -180,6 +189,7 @@ export function matchReport(input: ReportInput): MatchReport {
     ...(input.format ? { format: input.format } : {}),
     ...(input.series ? { series: input.series } : {}),
     ...(input.substitutions?.length ? { substitutions: input.substitutions.slice(0, 10) } : {}),
+    ...(input.ranked && input.skillRoster ? { skillRoster: input.skillRoster.filter((r) => UUID.test(r.userId)).slice(0, 32) } : {}),
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);
       if (!who) return [];

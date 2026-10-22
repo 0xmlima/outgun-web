@@ -8,6 +8,7 @@ import type { AppDeps } from '../app.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matches, matchPlayers, playerReports, rankedSeries, ratingDeltas, rooms, users } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
 import { activeSeason, applyDeltas, seasonAt, snapshotStandings } from '../ranking.js';
+import { applySkill } from '../skill.js';
 import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial, recordRatingPoint } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
@@ -178,6 +179,11 @@ const MatchResult = Type.Object({
     Type.Array(Type.Object({ kind: Type.Union([Type.Literal('bot'), Type.Literal('short')]), team: Type.Union([Type.Literal(0), Type.Literal(1)]), atSeconds: Count }), { maxItems: 10 }),
   ),
   players: Type.Array(MatchPlayer, { maxItems: 32 }),
+  /**
+   * Contas que jogaram a ranqueada, inclusive quem saiu no meio (OG-349, RN-SKL-03); sem o campo
+   * (servidor antigo), vale quem está em `players`.
+   */
+  skillRoster: Type.Optional(Type.Array(Type.Object({ userId: Type.String({ format: 'uuid' }), team: Type.Union([Type.Literal(0), Type.Literal(1)]) }), { maxItems: 32 })),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
 
@@ -355,7 +361,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           // temporada em que a partida começou, mesmo que tenha terminado depois da virada (OG-267)
           const season = await seasonAt(tx, new Date(body.startedAt));
           // Conta excluída entre o fim da partida e o envio: o jogador entra como anônimo.
-          const ids = body.players.flatMap((p) => (p.userId ? [p.userId] : []));
+          const ids = [...body.players.flatMap((p) => (p.userId ? [p.userId] : [])), ...(body.skillRoster ?? []).map((r) => r.userId)];
           const known = new Set(
             ids.length === 0
               ? []
@@ -445,6 +451,12 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               body.format,
             );
             if (!season.active) await snapshotStandings(tx, season.id);
+          }
+          // Rating de habilidade (OG-349, RN-SKL-02/03): pelo placar final, com quem saiu no meio
+          if (body.ranked) {
+            const roster = body.skillRoster ?? body.players.flatMap((p) => (p.userId && !p.isBot ? [{ userId: p.userId, team: p.team as 0 | 1 }] : []));
+            const winner = body.redScore > body.blueScore ? 0 : body.blueScore > body.redScore ? 1 : null;
+            await applySkill(tx, match!.id, roster.filter((r) => known.has(r.userId)), winner);
           }
           return { id: match!.id, duplicate: false as const };
         });
