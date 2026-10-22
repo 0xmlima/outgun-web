@@ -841,7 +841,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-380](cards/OG-380-relatorio-no-visual-v2.md) | Relatório da partida no visual novo, com os marcadores novos à vista | E9 | 3 | Should | S40 | OG-355, OG-364 | Pronto |
 | [OG-381](cards/OG-381-eventos-tambem-no-casual.md) | Registro de eventos também nas partidas Casual | E12 | 3 | Should | S39 | OG-362 | Concluído |
 | [OG-382](cards/OG-382-presets-do-painel-em-formulario.md) | Presets do painel em formulário: regras por categoria, com caixas e campos | E5 | 5 | Should | S40 | OG-365 | Pronto |
-| [OG-383](cards/OG-383-aba-rotacoes-por-modo.md) | Aba Rotações por modo: escolher Casual ou Ranqueado e marcar os mapas | E5 | 3 | Must | S40 | OG-378 | Pronto |
+| [OG-383](cards/OG-383-aba-rotacoes-por-modo.md) | Aba Rotações por modo: escolher Casual ou Ranqueado e marcar os mapas | E5 | 3 | Must | S40 | OG-378 | Em revisão |
 
 **Total:** 225 cards, 749 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 156 cards, 454 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

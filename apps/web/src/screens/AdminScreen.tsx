@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
+import { Badge } from '../ui/Button.js';
 import { TextPage } from '../ui/TextPage.js';
 import { decodeMapFile, parseMapFile } from '@outgun/content';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
@@ -835,86 +836,97 @@ function addToRotation(data: RotationsData | undefined, key: string, map: string
   return maps.includes(map) ? Promise.resolve() : api(`/admin/rotations/${key}`, { method: 'PUT', body: { maps: [...maps, map] } });
 }
 
+const ROTATION_FORMAT_KEYS = RANKED_FORMATS.map((f) => `ranked:${f}`);
+
+/**
+ * Rotações por modo (OG-383): Casual ou Ranqueado (por formato), numa grade de mapas com miniatura
+ * e caixa de marcar, partindo da rotação em uso (OG-378). Sem digitar nomes de arquivo.
+ */
 function RotationsTab({ canEdit }: { canEdit: boolean }) {
   const { t } = usePrefs();
   const list = useLoad<RotationsData>('/admin/rotations');
+  const panel = useLoad<{ maps: PanelMapRow[] }>('/admin/maps');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
-  const [casualDraft, setCasualDraft] = useState<string | undefined>();
-  const [formatDrafts, setFormatDrafts] = useState<Partial<Record<RankedFormat, string[]>>>({});
-  // os rascunhos partem da rotação em uso (OG-378): acrescentar um mapa mantém os outros
-  const casual = casualDraft ?? rotationInUse(list.data, 'casual').maps.join('\n');
-  const formatMaps = (f: RankedFormat) => formatDrafts[f] ?? rotationInUse(list.data, `ranked:${f}`).maps;
-  const rows = [...new Set([...(list.data?.catalog ?? []), ...RANKED_FORMATS.flatMap(formatMaps)])];
-  const toggle = (f: RankedFormat, map: string) => {
-    const maps = formatMaps(f);
-    setFormatDrafts({ ...formatDrafts, [f]: maps.includes(map) ? maps.filter((m) => m !== map) : [...maps, map] });
-  };
-  const put = (key: string, maps: string[]) => api<{ version: number }>(`/admin/rotations/${key}`, { method: 'PUT', body: { maps } });
-  const done = (p: Promise<unknown>, after: () => void) =>
-    p.then(
+  const [mode, setMode] = useState<'casual' | 'ranked'>('casual');
+  const [format, setFormat] = useState<RankedFormat>(RANKED_FORMATS[0]);
+  const [drafts, setDrafts] = useState<Partial<Record<string, string[]>>>({});
+  const key = mode === 'casual' ? 'casual' : `ranked:${format}`;
+  const inUse = (k: string) => rotationInUse(list.data, k).maps;
+  const current = (k: string) => drafts[k] ?? inUse(k);
+  const marked = current(key);
+  const all = [...new Set([...(list.data?.catalog ?? []), ...['casual', ...ROTATION_FORMAT_KEYS].flatMap(current)])].sort((a, b) => a.localeCompare(b));
+  // mapa publicado que ainda não está em nenhuma rotação
+  const fresh = new Set((panel.data?.maps ?? []).filter((m) => m.active && !['casual', ...ROTATION_FORMAT_KEYS].some((k) => inUse(k).includes(m.name))).map((m) => m.name));
+  const set = (maps: string[]) => setDrafts({ ...drafts, [key]: maps });
+  // a ordem da rotação é mantida: mapa marcado entra no fim
+  const toggle = (map: string) => set(marked.includes(map) ? marked.filter((m) => m !== map) : [...marked, map]);
+  const changed = Object.keys(drafts).filter((k) => drafts[k]!.join('\n') !== inUse(k).join('\n'));
+  const empty = changed.some((k) => drafts[k]!.length === 0);
+  const save = () =>
+    Promise.all(changed.map((k) => api(`/admin/rotations/${k}`, { method: 'PUT', body: { maps: drafts[k] } }))).then(
       () => {
-        after();
+        setDrafts({});
         setStatus({ text: t('Rotation saved. It applies from the next map change.') });
         list.reload();
       },
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
-  const saveCasual = () => done(put('casual', casual.split('\n').map((m) => m.trim()).filter(Boolean)), () => setCasualDraft(undefined));
-  const changed = RANKED_FORMATS.filter((f) => formatDrafts[f]);
-  const saveFormats = () => done(Promise.all(changed.map((f) => put(`ranked:${f}`, formatMaps(f)))), () => setFormatDrafts({}));
   return (
-    <section className="stats-section">
+    <section className="stats-section admin-rotation">
       <Status text={status.text} error={status.error ?? list.error} />
-      <div className="admin-form">
-        <label className="admin-block">
-          {t('Casual rotation (one map per line)')}
-          {list.data && rotationInUse(list.data, 'casual').fromServer && <small> {t('(server default)')}</small>}
-          <textarea value={casual} rows={6} readOnly={!canEdit} onChange={(e) => setCasualDraft(e.target.value)} />
-        </label>
-        {canEdit && (
-          <button type="button" disabled={!casual.trim()} onClick={() => void saveCasual()}>
-            {t('Save')}
+      <p className="stats-tabs" role="tablist" aria-label={t('Mode')}>
+        {(['casual', 'ranked'] as const).map((m) => (
+          <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
+            {m === 'casual' ? t('Casual') : t('Ranked')}
           </button>
-        )}
-      </div>
-      <h3>
-        {t('Ranked rotation by format')}
-        {list.data && RANKED_FORMATS.some((f) => rotationInUse(list.data, `ranked:${f}`).fromServer) && <small> {t('(server default)')}</small>}
-      </h3>
-      {list.data && list.data.catalog.length === 0 && <p>{t('No game server has reported its maps yet; only the maps already in the rotations are listed.')}</p>}
-      <table className="stats-table wide">
-        <thead>
-          <tr>
-            <th>{t('Map')}</th>
-            {RANKED_FORMATS.map((f) => (
-              <th key={f}>{f}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((map) => (
-            <tr key={map}>
-              <td>
-                <span className="admin-map-name">
-                  <MapPreview name={map} label={map} thumb />
-                  {map}
-                </span>
-              </td>
-              {RANKED_FORMATS.map((f) => (
-                <td key={f}>
-                  <input type="checkbox" aria-label={`${map} ${f}`} checked={formatMaps(f).includes(map)} disabled={!canEdit} onChange={() => toggle(f, map)} />
-                </td>
-              ))}
-            </tr>
+        ))}
+      </p>
+      {mode === 'ranked' && (
+        <p className="stats-tabs" role="tablist" aria-label={t('Format')}>
+          {RANKED_FORMATS.map((f) => (
+            <button key={f} type="button" role="tab" aria-selected={format === f} className={format === f ? 'active' : ''} onClick={() => setFormat(f)}>
+              {f.replace('x', '×')}
+              {drafts[`ranked:${f}`] && changed.includes(`ranked:${f}`) ? ' *' : ''}
+            </button>
           ))}
-        </tbody>
-      </table>
+        </p>
+      )}
+      <p className="stats-line">
+        {t('$1 of $2 maps checked.', String(marked.length), String(all.length))}
+        {list.data && rotationInUse(list.data, key).fromServer && !drafts[key] && <> {t('(server default)')}</>} {t('Changes apply from the next map change.')}
+      </p>
+      {list.data && list.data.catalog.length === 0 && <p className="stats-note">{t('No game server has reported its maps yet; only the maps already in the rotations are listed.')}</p>}
       {canEdit && (
         <p className="admin-form">
-          <button type="button" disabled={changed.length === 0 || changed.some((f) => formatMaps(f).length === 0)} onClick={() => void saveFormats()}>
+          <button type="button" onClick={() => set([...marked, ...all.filter((m) => !marked.includes(m))])} disabled={marked.length === all.length}>
+            {t('Check all')}
+          </button>{' '}
+          <button type="button" onClick={() => set([])} disabled={marked.length === 0}>
+            {t('Uncheck all')}
+          </button>
+        </p>
+      )}
+      <ul>
+        {all.map((m) => (
+          <li key={m}>
+            <label>
+              <input type="checkbox" checked={marked.includes(m)} disabled={!canEdit} onChange={() => toggle(m)} />
+              <MapPreview name={m} label={m} thumb />
+              {m}
+              {fresh.has(m) && <Badge tone="accent">{t('new')}</Badge>}
+            </label>
+          </li>
+        ))}
+      </ul>
+      {canEdit && (
+        <p className="admin-form">
+          <button type="button" disabled={changed.length === 0 || empty} onClick={() => void save()}>
             {t('Save')}
           </button>{' '}
-          {changed.some((f) => formatMaps(f).length === 0) && t('Every format needs at least one map.')}
+          <button type="button" disabled={Object.keys(drafts).length === 0} onClick={() => setDrafts({})}>
+            {t('Undo changes')}
+          </button>{' '}
+          {empty && t('A rotation needs at least one map.')}
         </p>
       )}
     </section>
