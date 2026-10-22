@@ -178,6 +178,7 @@ async function sendCommand(roomId: string, body: Record<string, unknown>, t: (s:
   return t('Sent; the game server has not confirmed yet.');
 }
 
+/** Salas ao vivo (OG-087, OG-389): ferramentas na barra de cima e uma ficha por sala, lado a lado. */
 function RoomsTab({ isAdmin }: { isAdmin: boolean }) {
   const { t } = usePrefs();
   const rooms = useLoad<{ rooms: LiveRoom[] }>('/admin/rooms', 3000);
@@ -196,82 +197,91 @@ function RoomsTab({ isAdmin }: { isAdmin: boolean }) {
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
   };
-  const broadcast = (ev: FormEvent) => {
-    ev.preventDefault();
+  const broadcast = () => {
     if (!message.trim()) return;
     api<{ rooms: number }>('/admin/broadcast', { body: { text: message.trim() } }).then(
       (r) => setStatus({ text: t('Message sent to $1 rooms.', String(r.rooms)) }),
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
   };
+  const list = rooms.data?.rooms ?? [];
+  const players = list.reduce((n, r) => n + r.roster.filter((p) => !p.bot).length, 0);
   return (
-    <section className="stats-section">
-      <p className="admin-form">
-        <label>
-          {t('Reason')} <input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
-        </label>{' '}
-        <label>
-          {t('Ban minutes')} <input value={minutes} size={6} inputMode="numeric" onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ''))} />
-        </label>{' '}
+    <section className="admin-tab">
+      <div className="admin-bar">
+        <TextField label={t('Reason')} value={reason} maxLength={200} placeholder={t('Used in kicks, bans and room messages')} onChange={setReason} />
+        <TextField label={t('Ban minutes')} value={minutes} maxLength={6} onChange={(v) => setMinutes(v.replace(/\D/g, ''))} />
         {isAdmin && (
-          <label>
+          <label className="admin-inline-check">
             <input type="checkbox" checked={platform} onChange={(e) => setPlatform(e.target.checked)} /> {t('Platform ban')}
           </label>
         )}
-      </p>
-      <Status text={status.text} error={status.error ?? rooms.error} />
-      {rooms.data?.rooms.length === 0 && <p className="stats-note">{t('No rooms online.')}</p>}
-      {rooms.data?.rooms.map((r) => (
-        <div key={r.id} className="admin-room">
-          <h2>
-            {r.name} ({r.id}) · {r.mode} · {r.preset} · {r.map ?? '-'} · {r.players}/{r.maxPlayers}
-          </h2>
-          <table className="stats-table wide">
-            <tbody>
-              {r.roster.map((p) => (
-                <tr key={p.uid} className={p.team === 0 ? 'team-red' : 'team-blue'}>
-                  <td className="name">
-                    {p.uid} {p.name}
-                    {p.bot ? ' (bot)' : ''}
-                    {p.muted ? ` (${t('muted')})` : ''}
-                  </td>
-                  <td>
+        {isAdmin && (
+          <span className="admin-bar-end">
+            <TextField label={t('Message to all rooms')} value={message} maxLength={200} onChange={setMessage} onEnter={broadcast} />
+            <Button disabled={!message.trim()} onClick={broadcast}>
+              {t('Send')}
+            </Button>
+          </span>
+        )}
+      </div>
+      <div className="admin-summary">
+        <Badge tone="accent">{t('$1 rooms', String(list.length))}</Badge>
+        <Badge>{t('$1 players', String(players))}</Badge>
+        <Status text={status.text} error={status.error ?? rooms.error} />
+      </div>
+      {rooms.data && list.length === 0 && <p className="admin-empty">{t('No rooms online.')}</p>}
+      <div className="admin-cards">
+        {list.map((r) => (
+          <article key={r.id} className="admin-card">
+            <header className="admin-card-head">
+              <h3>{r.name}</h3>
+              <Badge tone={r.mode === 'ranked' ? 'accent' : 'neutral'}>{r.mode === 'ranked' ? t('Ranked') : t('Casual')}</Badge>
+              <span className="admin-muted">
+                {r.preset} · {r.map ?? '—'} · {r.players}/{r.maxPlayers}
+              </span>
+            </header>
+            {r.roster.length === 0 ? (
+              <p className="admin-muted">{t('Empty room.')}</p>
+            ) : (
+              <ul className="admin-roster">
+                {r.roster.map((p) => (
+                  <li key={p.uid} className={p.team === 0 ? 'red' : 'blue'}>
+                    <span className="admin-roster-name">
+                      {p.name}
+                      {p.bot && <Badge>{t('bot')}</Badge>}
+                      {p.muted ? <Badge tone="warning">{t('muted')}</Badge> : null}
+                    </span>
                     {!p.bot && (
-                      <>
-                        <button type="button" onClick={() => run(r.id, { kind: 'kick', uid: p.uid, reason })}>
-                          {t('Kick')}
-                        </button>{' '}
-                        <button type="button" onClick={() => run(r.id, { kind: 'ban', uid: p.uid, reason, minutes: Number(minutes) || 60, ...(platform ? { platform: true } : {}) })}>
-                          {t('Ban')}
-                        </button>{' '}
-                        <button type="button" onClick={() => run(r.id, { kind: p.muted ? 'unmute' : 'mute', uid: p.uid })}>
+                      <span className="admin-roster-actions">
+                        <Button variant="ghost" onClick={() => run(r.id, { kind: p.muted ? 'unmute' : 'mute', uid: p.uid })}>
                           {p.muted ? t('Unmute') : t('Mute')}
-                        </button>
-                      </>
+                        </Button>
+                        <Button variant="ghost" onClick={() => run(r.id, { kind: 'kick', uid: p.uid, reason })}>
+                          {t('Kick')}
+                        </Button>
+                        <Button variant="danger" onClick={() => run(r.id, { kind: 'ban', uid: p.uid, reason, minutes: Number(minutes) || 60, ...(platform ? { platform: true } : {}) })}>
+                          {t('Ban')}
+                        </Button>
+                      </span>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="admin-form">
-            <button type="button" disabled={!reason.trim()} onClick={() => run(r.id, { kind: 'message', text: reason.trim() })}>
-              {t('Send the reason text as a message to this room')}
-            </button>
-          </p>
-        </div>
-      ))}
-      {isAdmin && (
-        <form className="admin-form" onSubmit={broadcast}>
-          <label>
-            {t('Message to all rooms')} <input value={message} maxLength={200} onChange={(e) => setMessage(e.target.value)} />
-          </label>{' '}
-          <button type="submit">{t('Send')}</button>
-        </form>
-      )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <footer className="admin-card-foot">
+              <span className="admin-muted">{r.id}</span>
+              <Button variant="ghost" disabled={!reason.trim()} onClick={() => run(r.id, { kind: 'message', text: reason.trim() })}>
+                {t('Send the reason as a message')}
+              </Button>
+            </footer>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
+
 
 function ReportsTab() {
   const { t } = usePrefs();
@@ -286,47 +296,43 @@ function ReportsTab() {
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
   return (
-    <section className="stats-section">
-      <Status text={status.text} error={status.error ?? reports.error} />
-      {reports.data?.reports.length === 0 && <p className="stats-note">{t('No open reports.')}</p>}
-      {reports.data && reports.data.reports.length > 0 && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Date')}</th>
-              <th>{t('Room')}</th>
-              <th>{t('Reported player')}</th>
-              <th>{t('Reason')}</th>
-              <th>{t('By')}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {reports.data.reports.map((r) => (
-              <tr key={r.id}>
-                <td>{when(r.createdAt)}</td>
-                <td className="name">
-                  {r.roomId ?? '-'} {r.map ? `(${r.map})` : ''}
-                </td>
-                <td className="name">{r.target}</td>
-                <td className="name">{r.reason}</td>
-                <td className="name">{r.reporter}</td>
-                <td>
-                  <button type="button" onClick={() => void close(r.id, 'actioned')}>
-                    {t('Handled')}
-                  </button>{' '}
-                  <button type="button" onClick={() => void close(r.id, 'dismissed')}>
-                    {t('Dismiss')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <section className="admin-tab">
+      <div className="admin-summary">
+        <Badge tone={reports.data?.reports.length ? 'warning' : 'neutral'}>{t('$1 open reports', String(reports.data?.reports.length ?? 0))}</Badge>
+        <Status text={status.text} error={status.error ?? reports.error} />
+      </div>
+      <Table
+        caption={t('Reports')}
+        rows={reports.data?.reports ?? []}
+        rowKey={(r) => String(r.id)}
+        empty={t('No open reports.')}
+        columns={[
+          { key: 'date', header: t('Date'), cell: (r) => when(r.createdAt) },
+          { key: 'target', header: t('Reported player'), cell: (r) => <strong>{r.target}</strong> },
+          { key: 'reason', header: t('Reason'), cell: (r) => <span className="admin-wrap">{r.reason}</span> },
+          { key: 'room', header: t('Room'), cell: (r) => `${r.roomId ?? '—'}${r.map ? ` (${r.map})` : ''}` },
+          { key: 'by', header: t('By'), cell: (r) => r.reporter },
+          {
+            key: 'actions',
+            header: '',
+            align: 'end',
+            cell: (r) => (
+              <span className="admin-row-actions">
+                <Button variant="primary" onClick={() => void close(r.id, 'actioned')}>
+                  {t('Handled')}
+                </Button>
+                <Button variant="ghost" onClick={() => void close(r.id, 'dismissed')}>
+                  {t('Dismiss')}
+                </Button>
+              </span>
+            ),
+          },
+        ]}
+      />
     </section>
   );
 }
+
 
 interface AdminClan {
   name: string;
@@ -362,87 +368,82 @@ function ClansTab() {
     api(`/admin/clans/${encodeURIComponent(edit.tag)}`, { method: 'DELETE', body: { reason: edit.reason } }).then(done, (e: unknown) => setStatus({ error: errorText(e) }));
   };
   return (
-    <section className="stats-section">
-      <form className="admin-form" onSubmit={(ev) => ev.preventDefault()}>
-        <label>
-          {t('Search by clan name or tag')} <input value={busca} maxLength={32} onChange={(e) => setBusca(e.target.value)} />
-        </label>
-      </form>
-      <Status text={status.text} error={status.error ?? list.error} />
-      {list.data?.clans.length === 0 && <p className="stats-note">{t('No clans yet.')}</p>}
-      {list.data && list.data.clans.length > 0 && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Clan')}</th>
-              <th>{t('Leader')}</th>
-              <th>{t('Members')}</th>
-              <th>{t('Reports')}</th>
-              <th>{t('Description')}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.clans.map((c) => (
-              <tr key={c.tag}>
-                <td className="name">
-                  <Link to={`/clans/${encodeURIComponent(c.tag)}`}>
-                    ({c.tag}) {c.name}
-                  </Link>
-                </td>
-                <td className="name">{c.leader ?? '-'}</td>
-                <td>{c.members}</td>
-                <td>{c.reports}</td>
-                <td className="name">{c.description}</td>
-                <td>
-                  <button type="button" onClick={() => setEdit({ tag: c.tag, name: c.name, newTag: c.tag, description: c.description, reason: '', dissolving: false })}>
-                    {t('Moderate')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <section className="admin-tab">
+      <div className="admin-bar">
+        <TextField label={t('Search by clan name or tag')} value={busca} maxLength={32} onChange={setBusca} />
+        <span className="admin-summary">
+          <Badge>{t('$1 clans', String(list.data?.clans.length ?? 0))}</Badge>
+          <Status text={status.text} error={status.error ?? list.error} />
+        </span>
+      </div>
       {edit && (
-        <form className="admin-form" onSubmit={save}>
-          <label>
-            {t('Clan name')} <input value={edit.name} maxLength={24} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
-          </label>{' '}
-          <label>
-            {t('Tag')} <input value={edit.newTag} maxLength={2} size={3} onChange={(e) => setEdit({ ...edit, newTag: e.target.value })} />
-          </label>{' '}
-          <label>
-            {t('Description')} <input value={edit.description} maxLength={500} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
-          </label>{' '}
-          <label>
-            {t('Reason')} <input value={edit.reason} maxLength={200} onChange={(e) => setEdit({ ...edit, reason: e.target.value })} />
-          </label>{' '}
-          <button type="submit" disabled={!edit.reason.trim()}>
-            {t('Force change')}
-          </button>{' '}
-          {edit.dissolving ? (
-            <>
-              <button type="button" disabled={!edit.reason.trim()} onClick={dissolve}>
-                {t('Confirm dissolution of $1', `(${edit.tag})`)}
-              </button>{' '}
-              <button type="button" onClick={() => setEdit({ ...edit, dissolving: false })}>
-                {t('No')}
-              </button>
-            </>
-          ) : (
-            <button type="button" onClick={() => setEdit({ ...edit, dissolving: true })}>
-              {t('Dissolve clan')}
-            </button>
-          )}{' '}
-          <button type="button" onClick={() => setEdit(null)}>
-            {t('Close')}
-          </button>
+        <form className="admin-panel" onSubmit={save}>
+          <h3>{t('Moderate clan $1', `(${edit.tag})`)}</h3>
+          <div className="admin-panel-fields">
+            <TextField label={t('Clan name')} value={edit.name} maxLength={24} onChange={(v) => setEdit({ ...edit, name: v })} />
+            <TextField label={t('Tag')} value={edit.newTag} maxLength={2} onChange={(v) => setEdit({ ...edit, newTag: v })} />
+            <TextField label={t('Description')} value={edit.description} maxLength={500} onChange={(v) => setEdit({ ...edit, description: v })} />
+            <TextField label={t('Reason')} value={edit.reason} maxLength={200} hint={t('Required; goes to the audit log.')} onChange={(v) => setEdit({ ...edit, reason: v })} />
+          </div>
+          <div className="admin-row-actions">
+            <Button type="submit" variant="primary" disabled={!edit.reason.trim()}>
+              {t('Force change')}
+            </Button>
+            {edit.dissolving ? (
+              <>
+                <Button variant="danger" disabled={!edit.reason.trim()} onClick={dissolve}>
+                  {t('Confirm dissolution of $1', `(${edit.tag})`)}
+                </Button>
+                <Button variant="ghost" onClick={() => setEdit({ ...edit, dissolving: false })}>
+                  {t('No')}
+                </Button>
+              </>
+            ) : (
+              <Button variant="danger" onClick={() => setEdit({ ...edit, dissolving: true })}>
+                {t('Dissolve clan')}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setEdit(null)}>
+              {t('Close')}
+            </Button>
+          </div>
         </form>
       )}
+      <Table
+        caption={t('Clans')}
+        rows={list.data?.clans ?? []}
+        rowKey={(c) => c.tag}
+        empty={t('No clans yet.')}
+        columns={[
+          {
+            key: 'clan',
+            header: t('Clan'),
+            cell: (c) => (
+              <Link to={`/clans/${encodeURIComponent(c.tag)}`}>
+                ({c.tag}) {c.name}
+              </Link>
+            ),
+          },
+          { key: 'leader', header: t('Leader'), cell: (c) => c.leader ?? '—' },
+          { key: 'members', header: t('Members'), cell: (c) => c.members, align: 'end' },
+          { key: 'reports', header: t('Reports'), cell: (c) => (c.reports > 0 ? <Badge tone="warning">{String(c.reports)}</Badge> : '0'), align: 'end' },
+          { key: 'description', header: t('Description'), cell: (c) => <span className="admin-wrap">{c.description}</span> },
+          {
+            key: 'actions',
+            header: '',
+            align: 'end',
+            cell: (c) => (
+              <Button variant="ghost" onClick={() => setEdit({ tag: c.tag, name: c.name, newTag: c.tag, description: c.description, reason: '', dissolving: false })}>
+                {t('Moderate')}
+              </Button>
+            ),
+          },
+        ]}
+      />
     </section>
   );
 }
+
 
 function BansTab({ isAdmin }: { isAdmin: boolean }) {
   const { t } = usePrefs();
@@ -470,99 +471,81 @@ function BansTab({ isAdmin }: { isAdmin: boolean }) {
     );
   };
   return (
-    <section className="stats-section">
-      <Status text={status.text} error={status.error ?? list.error} />
+    <section className="admin-tab">
       {isAdmin && (
-        <form className="admin-form" onSubmit={create}>
-          <label>
-            {t('Account')} <input value={form.username} maxLength={32} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-          </label>{' '}
-          <label>
-            IP <input value={form.ip} maxLength={45} onChange={(e) => setForm({ ...form, ip: e.target.value })} />
-          </label>{' '}
-          <label>
-            {t('Minutes (empty = no end)')} <input value={form.minutes} size={7} inputMode="numeric" onChange={(e) => setForm({ ...form, minutes: e.target.value.replace(/\D/g, '') })} />
-          </label>{' '}
-          <label>
-            {t('Reason')} <input value={form.reason} maxLength={200} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
-          </label>{' '}
-          <button type="submit">{t('Platform ban')}</button>
+        <form className="admin-bar" onSubmit={create}>
+          <TextField label={t('Account')} value={form.username} maxLength={32} onChange={(v) => setForm({ ...form, username: v })} />
+          <TextField label="IP" value={form.ip} maxLength={45} onChange={(v) => setForm({ ...form, ip: v })} />
+          <TextField label={t('Minutes (empty = no end)')} value={form.minutes} maxLength={7} onChange={(v) => setForm({ ...form, minutes: v.replace(/\D/g, '') })} />
+          <TextField label={t('Reason')} value={form.reason} maxLength={200} onChange={(v) => setForm({ ...form, reason: v })} />
+          <span className="admin-bar-end">
+            <Button type="submit" variant="danger" disabled={!form.reason.trim() || (!form.username && !form.ip)}>
+              {t('Platform ban')}
+            </Button>
+          </span>
         </form>
       )}
-      {list.data?.bans.length === 0 && <p className="stats-note">{t('No active bans.')}</p>}
-      {list.data && list.data.bans.length > 0 && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Account')}</th>
-              <th>IP</th>
-              <th>{t('Device')}</th>
-              <th>{t('Room')}</th>
-              <th>{t('Reason')}</th>
-              <th>{t('Until')}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.bans.map((b) => (
-              <tr key={b.id}>
-                <td className="name">{b.username ?? '-'}</td>
-                <td className="name">{b.ip ?? '-'}</td>
-                <td className="name">{b.device ?? '-'}</td>
-                <td className="name">{b.roomId ?? t('platform')}</td>
-                <td className="name">{b.reason}</td>
-                <td>{b.expiresAt ? when(b.expiresAt) : t('no end')}</td>
-                <td>
-                  {(b.roomId !== null || isAdmin) && (
-                    <button type="button" onClick={() => void revoke(b.id)}>
-                      {t('Revoke')}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className="admin-summary">
+        <Badge>{t('$1 active bans', String(list.data?.bans.length ?? 0))}</Badge>
+        <Status text={status.text} error={status.error ?? list.error} />
+      </div>
+      <Table
+        caption={t('Bans')}
+        rows={list.data?.bans ?? []}
+        rowKey={(b) => String(b.id)}
+        empty={t('No active bans.')}
+        columns={[
+          { key: 'account', header: t('Account'), cell: (b) => <strong>{b.username ?? '—'}</strong> },
+          { key: 'ip', header: 'IP', cell: (b) => b.ip ?? '—' },
+          { key: 'device', header: t('Device'), cell: (b) => b.device ?? '—' },
+          { key: 'scope', header: t('Room'), cell: (b) => (b.roomId ? b.roomId : <Badge tone="danger">{t('platform')}</Badge>) },
+          { key: 'reason', header: t('Reason'), cell: (b) => <span className="admin-wrap">{b.reason}</span> },
+          { key: 'until', header: t('Until'), cell: (b) => (b.expiresAt ? when(b.expiresAt) : t('no end')) },
+          {
+            key: 'actions',
+            header: '',
+            align: 'end',
+            cell: (b) =>
+              (b.roomId !== null || isAdmin) && (
+                <Button variant="ghost" onClick={() => void revoke(b.id)}>
+                  {t('Revoke')}
+                </Button>
+              ),
+          },
+        ]}
+      />
     </section>
   );
 }
+
 
 function AuditTab() {
   const { t } = usePrefs();
   const audit = useLoad<{ entries: AuditEntry[] }>('/admin/audit?limit=100', 10_000);
   return (
-    <section className="stats-section">
-      <Status error={audit.error} />
-      {audit.data && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Date')}</th>
-              <th>{t('By')}</th>
-              <th>{t('Action')}</th>
-              <th>{t('Target')}</th>
-              <th>{t('Room')}</th>
-              <th>{t('Reason')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {audit.data.entries.map((e) => (
-              <tr key={e.id}>
-                <td>{when(e.createdAt)}</td>
-                <td className="name">{e.actor}</td>
-                <td className="name">{e.action}</td>
-                <td className="name">{e.target ?? '-'}</td>
-                <td className="name">{e.roomId ?? '-'}</td>
-                <td className="name">{e.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <section className="admin-tab">
+      <div className="admin-summary">
+        <span className="admin-muted">{t('The last 100 moderation actions; refreshes every 10 s.')}</span>
+        <Status error={audit.error} />
+      </div>
+      <Table
+        caption={t('Audit log')}
+        rows={audit.data?.entries ?? []}
+        rowKey={(e) => String(e.id)}
+        empty={t('No actions yet.')}
+        columns={[
+          { key: 'date', header: t('Date'), cell: (e) => when(e.createdAt) },
+          { key: 'by', header: t('By'), cell: (e) => <strong>{e.actor}</strong> },
+          { key: 'action', header: t('Action'), cell: (e) => <Badge tone={['ban', 'platform-ban', 'kick'].includes(e.action) ? 'danger' : 'neutral'}>{e.action}</Badge> },
+          { key: 'target', header: t('Target'), cell: (e) => e.target ?? '—' },
+          { key: 'room', header: t('Room'), cell: (e) => e.roomId ?? '—' },
+          { key: 'reason', header: t('Reason'), cell: (e) => <span className="admin-wrap">{e.reason}</span> },
+        ]}
+      />
     </section>
   );
 }
+
 
 const CATEGORY_LABELS: Readonly<Partial<Record<Category, string>>> = {
   game: 'Game',
@@ -914,105 +897,117 @@ function MapsTab() {
       },
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
+  const maps = list.data?.maps ?? [];
   return (
-    <section className="stats-section">
-      <p className="stats-line">{t('Send a map .txt in the Outgun format. Once published it can go into the rotations and private rooms, without a new release.')}</p>
-      <Status text={status.text} error={status.error ?? list.error} />
-      {list.data && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Map')}</th>
-              <th>{t('Title')}</th>
-              <th>{t('Author')}</th>
-              <th>{t('Size')}</th>
-              <th>{t('Version')}</th>
-              <th>{t('By')}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.maps.map((m) => (
-              <tr key={m.name}>
-                <td className="name">
-                  <span className="admin-map-name">
-                    {m.active && <MapPreview name={m.name} label={m.title} thumb />}
-                    {m.name}
-                  </span>
-                </td>
-                <td className="name">{m.title}</td>
-                <td className="name">{m.author || '-'}</td>
-                <td>
-                  {m.width}×{m.height}
-                </td>
-                <td>{m.active ? m.version : t('inactive')}</td>
-                <td className="name">{m.updatedBy ?? '-'}</td>
-                <td>
-                  {m.active && rotations.data && !inCasual(m.name) && (
-                    <button type="button" onClick={() => void add(m.name, ['casual'])}>
-                      {t('Add to Casual')}
-                    </button>
-                  )}{' '}
-                  {m.active && rotations.data && !inRanked(m.name) && (
-                    <button type="button" onClick={() => void add(m.name, RANKED_KEYS)}>
-                      {t('Add to Ranked')}
-                    </button>
-                  )}{' '}
-                  {m.active && (
-                    <button type="button" onClick={() => void remove(m.name)}>
-                      {t('Deactivate')}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <form
-        className="admin-form"
-        onSubmit={(ev) => {
-          ev.preventDefault();
-          void verify();
-        }}
-      >
-        <label>
-          {t('Map file (.txt)')} <input type="file" accept=".txt,text/plain" onChange={(e) => pick(e.target.files?.[0])} />
-        </label>{' '}
-        <label>
-          {t('Map')}{' '}
-          <input
+    <section className="admin-tab">
+      {/* envio à esquerda (arquivo → conferir → prévia → publicar); mapas publicados à direita */}
+      <div className="admin-maps">
+        <form
+          className="admin-panel"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void verify();
+          }}
+        >
+          <h3>{t('Send a map')}</h3>
+          <p className="admin-muted">{t('Send a map .txt in the Outgun format. Once published it can go into the rotations and private rooms, without a new release.')}</p>
+          <label className="admin-file">
+            <span>{t('Map file (.txt)')}</span>
+            <input type="file" accept=".txt,text/plain" onChange={(e) => pick(e.target.files?.[0])} />
+          </label>
+          <TextField
+            label={t('Map')}
             value={form.name}
             maxLength={64}
-            onChange={(e) => {
+            hint={t('The name players see in "Create room" and in the vote.')}
+            onChange={(v) => {
               setCheck(null);
-              setForm({ ...form, name: e.target.value });
+              setForm({ ...form, name: v });
             }}
           />
-        </label>{' '}
-        <button type="submit" disabled={!form.name || !form.text}>
-          {t('Check')}
-        </button>
-        {check && !check.ok && (
-          <ul className="stats-note error" role="alert">
-            {check.errors.map((e) => (
-              <li key={e}>{e}</li>
-            ))}
-          </ul>
-        )}
-        {check?.ok && draft && <MapDrawing map={draft} label={check.preview?.title ?? form.name} />}
-        {check?.ok && check.preview && (
-          <p className="stats-note" role="status">
-            {t('$1 by $2, $3×$4 rooms.', check.preview.title, check.preview.author || '-', String(check.preview.width), String(check.preview.height))}{' '}
-            <button type="button" onClick={() => void publish()}>
-              {t('Publish map')}
-            </button>
-          </p>
-        )}
-      </form>
+          <Button type="submit" disabled={!form.name || !form.text}>
+            {t('Check')}
+          </Button>
+          {check && !check.ok && (
+            <ul className="stats-note error" role="alert">
+              {check.errors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          )}
+          {check?.ok && draft && <MapDrawing map={draft} label={check.preview?.title ?? form.name} />}
+          {check?.ok && check.preview && (
+            <>
+              <p className="admin-muted" role="status">
+                {t('$1 by $2, $3×$4 rooms.', check.preview.title, check.preview.author || '-', String(check.preview.width), String(check.preview.height))}
+              </p>
+              <Button variant="primary" onClick={() => void publish()}>
+                {t('Publish map')}
+              </Button>
+            </>
+          )}
+        </form>
+        <div className="admin-tab">
+          <div className="admin-summary">
+            <Badge>{t('$1 published maps', String(maps.filter((m) => m.active).length))}</Badge>
+            <Status text={status.text} error={status.error ?? list.error} />
+          </div>
+          <Table
+            caption={t('Maps')}
+            rows={maps}
+            rowKey={(m) => m.name}
+            empty={t('No maps sent yet.')}
+            columns={[
+              {
+                key: 'map',
+                header: t('Map'),
+                cell: (m) => (
+                  <span className="admin-map-name">
+                    {m.active && <MapPreview name={m.name} label={m.title} thumb />}
+                    <span>
+                      <strong>{m.name}</strong>
+                      <br />
+                      <span className="admin-muted">
+                        {m.title} · {m.author || '—'}
+                      </span>
+                    </span>
+                  </span>
+                ),
+              },
+              { key: 'size', header: t('Size'), cell: (m) => `${m.width}×${m.height}`, align: 'end' },
+              { key: 'version', header: t('Version'), cell: (m) => (m.active ? m.version : <Badge>{t('inactive')}</Badge>), align: 'end' },
+              { key: 'by', header: t('By'), cell: (m) => m.updatedBy ?? '—' },
+              {
+                key: 'actions',
+                header: '',
+                align: 'end',
+                cell: (m) =>
+                  m.active && (
+                    <span className="admin-row-actions">
+                      {rotations.data && !inCasual(m.name) && (
+                        <Button variant="ghost" onClick={() => void add(m.name, ['casual'])}>
+                          {t('Add to Casual')}
+                        </Button>
+                      )}
+                      {rotations.data && !inRanked(m.name) && (
+                        <Button variant="ghost" onClick={() => void add(m.name, RANKED_KEYS)}>
+                          {t('Add to Ranked')}
+                        </Button>
+                      )}
+                      <Button variant="danger" onClick={() => void remove(m.name)}>
+                        {t('Deactivate')}
+                      </Button>
+                    </span>
+                  ),
+              },
+            ]}
+          />
+        </div>
+      </div>
     </section>
   );
 }
+
 
 interface RotationRow {
   key: string;
@@ -1080,7 +1075,7 @@ function RotationsTab({ canEdit }: { canEdit: boolean }) {
   return (
     <section className="admin-rotation">
       {/* barra fixa: modo, formato, contador e ações sempre à vista enquanto rola a grade */}
-      <div className="admin-rotation-bar">
+      <div className="admin-bar">
         <p className="stats-tabs" role="tablist" aria-label={t('Mode')}>
           {(['casual', 'ranked'] as const).map((m) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
@@ -1171,7 +1166,7 @@ function RolesTab() {
   const count = (r: UserRow['role']) => rows.filter((u) => u.role === r).length;
   return (
     <section className="admin-roles">
-      <div className="admin-rotation-bar">
+      <div className="admin-bar">
         <TextField label={t('Search account')} value={search} maxLength={32} placeholder={t('name')} onChange={setSearch} />
         <span className="admin-rotation-count">
           <Badge tone="danger">{t('$1 admins', String(count('admin')))}</Badge>
@@ -1245,70 +1240,95 @@ function FeedbackTab() {
       (e: unknown) => setMsg({ error: errorText(e) }),
     );
   const label: Record<string, string> = { new: t('new'), confirmed: t('confirmed'), critical: t('critical'), resolved: t('resolved'), dismissed: t('dismissed') };
-  const line = (title: string, x: Summary) => `${title}: ${x.people} · ${t('average')} ${x.average ?? '-'} · ${x.distribution.map((n, i) => `${i + 1}★ ${n}`).join('  ')}`;
   const sum = list.data?.summary;
+  const stars = (x: Summary) => x.distribution.map((n, i) => `${i + 1}★ ${n}`).join(' · ');
   return (
-    <section className="stats-section">
+    <section className="admin-tab">
       {sum && (
-        <>
-          <p className="stats-line">{line(t('Fidelity, veterans (goal: 20 with average 4+)'), sum.veterans)}</p>
-          <p className="stats-line">{line(t('Fidelity, everyone'), sum.all)}</p>
-          <p className="stats-line">{t('Open critical bugs: $1', String(sum.openCritical))}</p>
-        </>
+        <div className="admin-tiles">
+          <div className="admin-tile">
+            <span className="admin-muted">{t('Fidelity, veterans (goal: 20 with average 4+)')}</span>
+            <strong>{sum.veterans.average ?? '—'}</strong>
+            <span className="admin-muted">
+              {t('$1 people', String(sum.veterans.people))} · {stars(sum.veterans)}
+            </span>
+          </div>
+          <div className="admin-tile">
+            <span className="admin-muted">{t('Fidelity, everyone')}</span>
+            <strong>{sum.all.average ?? '—'}</strong>
+            <span className="admin-muted">
+              {t('$1 people', String(sum.all.people))} · {stars(sum.all)}
+            </span>
+          </div>
+          <div className={sum.openCritical > 0 ? 'admin-tile danger' : 'admin-tile'}>
+            <span className="admin-muted">{t('Open critical bugs')}</span>
+            <strong>{sum.openCritical}</strong>
+          </div>
+        </div>
       )}
-      <p className="stats-tabs">
-        {['', ...STATUSES].map((s) => (
-          <button key={s} type="button" className={s === status ? 'active' : ''} onClick={() => setStatus(s)}>
-            {s ? label[s] : t('All')}
-          </button>
-        ))}{' '}
-        <a href={`${API_URL}/admin/feedback.csv${query}`}>{t('Download CSV')}</a>
-      </p>
+      <div className="admin-bar">
+        <p className="stats-tabs" role="tablist" aria-label={t('Status')}>
+          {['', ...STATUSES].map((s) => (
+            <button key={s} type="button" role="tab" aria-selected={s === status} className={s === status ? 'active' : ''} onClick={() => setStatus(s)}>
+              {s ? label[s] : t('All')}
+            </button>
+          ))}
+        </p>
+        <span className="admin-bar-end">
+          <a className="ui-button ui-button-ghost ui-button-md" href={`${API_URL}/admin/feedback.csv${query}`}>
+            {t('Download CSV')}
+          </a>
+        </span>
+      </div>
       <Status text={msg.text} error={msg.error ?? list.error} />
-      {list.data && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Date')}</th>
-              <th>{t('Player')}</th>
-              <th>{t('Type')}</th>
-              <th>{t('Fidelity')}</th>
-              <th>{t('Overall')}</th>
-              <th>{t('Text')}</th>
-              <th>{t('Status')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.feedback.map((f) => (
-              <tr key={f.id}>
-                <td>{when(f.createdAt)}</td>
-                <td className="name">
-                  {f.username}
-                  {f.veteran ? ' (v)' : ''}
-                </td>
-                <td className="name">{f.kind}</td>
-                <td>{f.fidelity ?? '-'}</td>
-                <td>{f.overall ?? '-'}</td>
-                <td className="name" title={Object.entries(f.context).map(([k, v]) => `${k}: ${v}`).join('\n')}>
-                  {f.text}
-                </td>
-                <td>
-                  <select value={f.status} onChange={(e) => void triage(f.id, e.target.value)} aria-label={t('Status')}>
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {label[s]}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Table
+        caption={t('Feedback')}
+        rows={list.data?.feedback ?? []}
+        rowKey={(f) => String(f.id)}
+        empty={t('No feedback here.')}
+        columns={[
+          { key: 'date', header: t('Date'), cell: (f) => when(f.createdAt) },
+          {
+            key: 'player',
+            header: t('Player'),
+            cell: (f) => (
+              <span className="admin-roster-name">
+                {f.username}
+                {f.veteran && <Badge tone="accent">{t('veteran')}</Badge>}
+              </span>
+            ),
+          },
+          { key: 'type', header: t('Type'), cell: (f) => f.kind },
+          { key: 'fidelity', header: t('Fidelity'), cell: (f) => f.fidelity ?? '—', align: 'end' },
+          { key: 'overall', header: t('Overall'), cell: (f) => f.overall ?? '—', align: 'end' },
+          {
+            key: 'text',
+            header: t('Text'),
+            cell: (f) => (
+              <span className="admin-wrap" title={Object.entries(f.context).map(([k, v]) => `${k}: ${v}`).join('\n')}>
+                {f.text}
+              </span>
+            ),
+          },
+          {
+            key: 'status',
+            header: t('Status'),
+            cell: (f) => (
+              <select className="ui-input admin-role-select" value={f.status} onChange={(e) => void triage(f.id, e.target.value)} aria-label={t('Status')}>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {label[s]}
+                  </option>
+                ))}
+              </select>
+            ),
+          },
+        ]}
+      />
     </section>
   );
 }
+
 
 interface Invite {
   code: string;
@@ -1344,69 +1364,56 @@ function InvitesTab() {
       () => list.reload(),
       (e: unknown) => setMsg({ error: errorText(e) }),
     );
+  const digits = (v: string) => v.replace(/\D/g, '');
   return (
-    <section className="stats-section">
+    <section className="admin-tab">
       {list.data && !list.data.beta && <p className="stats-note">{t('The server is not in closed beta (BETA=1): invites are not required to sign up.')}</p>}
-      <form className="admin-form" onSubmit={create}>
-        <label>
-          {t('How many')} <input value={form.count} size={3} inputMode="numeric" onChange={(e) => setForm({ ...form, count: e.target.value.replace(/\D/g, '') })} />
-        </label>{' '}
-        <label>
-          {t('Uses each')} <input value={form.maxUses} size={4} inputMode="numeric" onChange={(e) => setForm({ ...form, maxUses: e.target.value.replace(/\D/g, '') })} />
-        </label>{' '}
-        <label>
-          {t('Days valid (empty = no end)')} <input value={form.expiresDays} size={4} inputMode="numeric" onChange={(e) => setForm({ ...form, expiresDays: e.target.value.replace(/\D/g, '') })} />
-        </label>{' '}
-        <label>
-          {t('Note')} <input value={form.note} maxLength={200} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-        </label>{' '}
-        <button type="submit">{t('Create invites')}</button>
+      <form className="admin-bar" onSubmit={create}>
+        <TextField label={t('How many')} value={form.count} maxLength={3} onChange={(v) => setForm({ ...form, count: digits(v) })} />
+        <TextField label={t('Uses each')} value={form.maxUses} maxLength={4} onChange={(v) => setForm({ ...form, maxUses: digits(v) })} />
+        <TextField label={t('Days valid (empty = no end)')} value={form.expiresDays} maxLength={4} onChange={(v) => setForm({ ...form, expiresDays: digits(v) })} />
+        <TextField label={t('Note')} value={form.note} maxLength={200} onChange={(v) => setForm({ ...form, note: v })} />
+        <span className="admin-bar-end">
+          <Button type="submit" variant="primary">
+            {t('Create invites')}
+          </Button>
+        </span>
       </form>
       <Status text={msg.text} error={msg.error ?? list.error} />
-      {list.data && list.data.invites.length > 0 && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Invite link')}</th>
-              <th>{t('Uses')}</th>
-              <th>{t('Used by')}</th>
-              <th>{t('Note')}</th>
-              <th>{t('Until')}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.invites.map((i) => (
-              <tr key={i.code}>
-                <td className="name">
-                  <code>{i.revoked ? i.code : link(i.code)}</code>
-                </td>
-                <td>
-                  {i.uses}/{i.maxUses}
-                </td>
-                <td className="name">{i.usedBy.join(', ') || '-'}</td>
-                <td className="name">{i.note}</td>
-                <td>{i.revoked ? t('revoked') : i.expiresAt ? when(i.expiresAt) : t('no end')}</td>
-                <td>
-                  {!i.revoked && i.uses < i.maxUses && (
-                    <>
-                      <button type="button" onClick={() => void navigator.clipboard?.writeText(link(i.code))}>
-                        {t('Copy link')}
-                      </button>{' '}
-                      <button type="button" onClick={() => void revoke(i.code)}>
-                        {t('Revoke')}
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Table
+        caption={t('Invites')}
+        rows={list.data?.invites ?? []}
+        rowKey={(i) => i.code}
+        empty={t('No invites yet.')}
+        columns={[
+          { key: 'link', header: t('Invite link'), cell: (i) => <code className="admin-wrap">{i.revoked ? i.code : link(i.code)}</code> },
+          { key: 'uses', header: t('Uses'), cell: (i) => `${i.uses}/${i.maxUses}`, align: 'end' },
+          { key: 'by', header: t('Used by'), cell: (i) => <span className="admin-wrap">{i.usedBy.join(', ') || '—'}</span> },
+          { key: 'note', header: t('Note'), cell: (i) => <span className="admin-wrap">{i.note}</span> },
+          { key: 'until', header: t('Until'), cell: (i) => (i.revoked ? <Badge tone="danger">{t('revoked')}</Badge> : i.expiresAt ? when(i.expiresAt) : t('no end')) },
+          {
+            key: 'actions',
+            header: '',
+            align: 'end',
+            cell: (i) =>
+              !i.revoked &&
+              i.uses < i.maxUses && (
+                <span className="admin-row-actions">
+                  <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(link(i.code))}>
+                    {t('Copy link')}
+                  </Button>
+                  <Button variant="ghost" onClick={() => void revoke(i.code)}>
+                    {t('Revoke')}
+                  </Button>
+                </span>
+              ),
+          },
+        ]}
+      />
     </section>
   );
 }
+
 
 interface RegionNet {
   region: string;
@@ -1425,49 +1432,58 @@ function NetworkTab() {
   const { t } = usePrefs();
   const [days, setDays] = useState(7);
   const net = useLoad<{ regions: RegionNet[] }>(`/admin/network?days=${days}`, 30_000);
+  const regions = net.data?.regions ?? [];
+  const total = regions.reduce((n, r) => n + r.reports, 0);
+  const minutes = Math.round(regions.reduce((n, r) => n + r.seconds, 0) / 60);
+  // ping mediano ponderado pelas partidas de cada região
+  const ping = total ? Math.round(regions.reduce((n, r) => n + (r.ping_p50 ?? 0) * r.reports, 0) / total) : null;
   return (
-    <section className="stats-section">
-      <p className="stats-tabs">
-        {[1, 7, 30].map((d) => (
-          <button key={d} type="button" className={d === days ? 'active' : ''} onClick={() => setDays(d)}>
-            {t('$1 days', String(d))}
-          </button>
-        ))}
-      </p>
+    <section className="admin-tab">
+      <div className="admin-bar">
+        <p className="stats-tabs" role="tablist" aria-label={t('Period')}>
+          {[1, 7, 30].map((d) => (
+            <button key={d} type="button" role="tab" aria-selected={d === days} className={d === days ? 'active' : ''} onClick={() => setDays(d)}>
+              {t('$1 days', String(d))}
+            </button>
+          ))}
+        </p>
+        <span className="admin-muted">{t('Anonymous summaries sent by the players at the end of each match.')}</span>
+      </div>
+      <div className="admin-tiles">
+        <div className="admin-tile">
+          <span className="admin-muted">{t('Matches')}</span>
+          <strong>{total}</strong>
+        </div>
+        <div className="admin-tile">
+          <span className="admin-muted">{t('Minutes played')}</span>
+          <strong>{minutes}</strong>
+        </div>
+        <div className="admin-tile">
+          <span className="admin-muted">{t('Regions')}</span>
+          <strong>{regions.length}</strong>
+        </div>
+        <div className="admin-tile">
+          <span className="admin-muted">{t('Typical ping (ms)')}</span>
+          <strong>{ping ?? '—'}</strong>
+        </div>
+      </div>
       <Status error={net.error} />
-      {net.data?.regions.length === 0 && <p className="stats-note">{t('No reports yet.')}</p>}
-      {net.data && net.data.regions.length > 0 && (
-        <table className="stats-table wide">
-          <thead>
-            <tr>
-              <th>{t('Region')}</th>
-              <th>{t('Matches')}</th>
-              <th>{t('Minutes')}</th>
-              <th>{t('Ping p50 / p95 (ms)')}</th>
-              <th>{t('Control delay p50 (ms)')}</th>
-              <th>{t('Corrections/min')}</th>
-              <th>{t('fps p5')}</th>
-              <th>{t('Frame drops')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {net.data.regions.map((r) => (
-              <tr key={r.region}>
-                <td className="name">{r.region}</td>
-                <td>{r.reports}</td>
-                <td>{Math.round(r.seconds / 60)}</td>
-                <td>
-                  {r.ping_p50 ?? '-'} / {r.ping_p95 ?? '-'}
-                </td>
-                <td>{r.lag_p50}</td>
-                <td>{r.corrections_per_min}</td>
-                <td>{r.fps_p5}</td>
-                <td>{r.stall_pct}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Table
+        caption={t('Network')}
+        rows={regions}
+        rowKey={(r) => r.region}
+        empty={t('No reports yet.')}
+        columns={[
+          { key: 'region', header: t('Region'), cell: (r) => <strong>{r.region}</strong> },
+          { key: 'matches', header: t('Matches'), cell: (r) => r.reports, align: 'end' },
+          { key: 'minutes', header: t('Minutes'), cell: (r) => Math.round(r.seconds / 60), align: 'end' },
+          { key: 'ping', header: t('Ping p50 / p95 (ms)'), cell: (r) => `${r.ping_p50 ?? '—'} / ${r.ping_p95 ?? '—'}`, align: 'end' },
+          { key: 'lag', header: t('Control delay p50 (ms)'), cell: (r) => r.lag_p50, align: 'end' },
+          { key: 'corr', header: t('Corrections/min'), cell: (r) => r.corrections_per_min, align: 'end' },
+          { key: 'fps', header: t('fps p5'), cell: (r) => r.fps_p5, align: 'end' },
+          { key: 'stall', header: t('Frame drops'), cell: (r) => `${r.stall_pct}%`, align: 'end' },
+        ]}
+      />
     </section>
   );
 }
