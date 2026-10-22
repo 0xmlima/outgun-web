@@ -3847,7 +3847,7 @@
     },
     "/matches/{id}/events": {
       "get": {
-        "summary": "Eventos de uma ranqueada (OG-362): abates e ações de bandeira em ordem; `events` null = partida sem registro",
+        "summary": "Eventos de uma partida (OG-362, OG-381): abates e ações de bandeira em ordem; `events` null = partida sem registro",
         "tags": ["perfil"],
         "parameters": [
           {

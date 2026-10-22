@@ -73,10 +73,12 @@ describe.skipIf(!pgAdminUrl)('eventos da ranqueada (OG-362)', () => {
     expect(stats.find((p) => p.name === 'Jogador1')!.stats).toMatchObject({ firstKills: 0 });
   });
 
-  it('partida sem registro devolve null; eventos só na ranqueada e com jogadores válidos', async () => {
+  it('partida sem registro devolve null; eventos também no Casual (OG-381) e com jogadores válidos', async () => {
     const plain = await internal(match('e-2', true));
     expect((await app.inject(`/matches/${plain.json().id}/events`)).json()).toEqual({ players: [], events: null });
-    expect((await internal(match('e-3', false, log()))).statusCode).toBe(422);
+    const casual = await internal(match('e-3', false, log()));
+    expect(casual.statusCode).toBe(201);
+    expect((await app.inject(`/matches/${casual.json().id}/events`)).json().events).not.toBeNull();
     const bad = log();
     bad.events.push([500, 'kill', 0, 9, 0, 0, 0, 'rocket']);
     expect((await internal(match('e-4', true, bad))).statusCode).toBe(422);
