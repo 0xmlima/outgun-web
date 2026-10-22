@@ -30,7 +30,8 @@ export interface Totals {
 
 export interface Profile {
   user: { id: string; username: string; clanTag: string | null; clanLabel: string | null; createdAt: string };
-  ranking: { season: string; score: number; neg: number; rating: number; rank: number; of: number; matches: number; minimumScore: number } | null;
+  /** Rating de habilidade OpenSkill (OG-349/351, RN-SKL-04); null antes da primeira ranqueada. */
+  skill: Skill | null;
   totals: Record<Mode, Totals>;
   favoriteColors: number[];
   lastMatchAt: string | null;
@@ -99,7 +100,29 @@ export interface MatchPage {
   series?: SeriesView | null;
   /** Clãs dos lados numa partida clã x clã (OG-259). */
   clans?: { red: ClanRef; blue: ClanRef } | null;
+  /** Variação do rating de habilidade de cada conta (OG-351); vazio antes da implantação e no Casual. */
+  skill?: SkillChange[];
 }
+
+export interface Skill {
+  value: number;
+  mu: number;
+  sigma: number;
+  matches: number;
+  calibrating: boolean;
+}
+
+export interface SkillChange {
+  username: string;
+  team: number;
+  before: number;
+  after: number;
+  /** Chance de vitória prevista do time, de 0 a 1. */
+  winChance: number;
+}
+
+/** "+29" / "−20" / "±0". */
+export const signedDelta = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `-${-n}` : '±0');
 
 export interface ClanRef {
   tag: string;

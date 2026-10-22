@@ -7,7 +7,6 @@ import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from 'drizzle-orm
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
 import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
-import { activeSeason, MINIMUM_SCORE, playerRating } from '../ranking.js';
 import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
@@ -95,16 +94,12 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
       {
         schema: {
           tags: ['perfil'],
-          summary: 'Perfil público: nome, clã, posição no ranking e estatísticas por modo',
+          summary: 'Perfil público: nome, clã, rating de habilidade e estatísticas por modo',
           params: Type.Object({ name: Type.String({ minLength: 1, maxLength: 32 }) }),
           querystring: Type.Object({ format: Type.Optional(RankedFormatSchema) }),
           response: {
             200: Type.Object({
               user: Type.Object({ id: Type.String(), username: Type.String(), clanTag: Type.Union([Type.String(), Type.Null()]), clanLabel: Type.Union([Type.String(), Type.Null()]), createdAt: Type.String() }),
-              ranking: Type.Union([
-                Type.Object({ season: Type.String(), score: Type.Number(), neg: Type.Integer(), rating: Type.Number(), rank: Type.Integer(), of: Type.Integer(), matches: Type.Integer(), minimumScore: Type.Integer() }),
-                Type.Null(),
-              ]),
               /** Rating de habilidade OpenSkill (OG-349, RN-SKL-04); null antes da primeira ranqueada. */
               skill: Type.Union([Skill, Type.Null()]),
               totals: Type.Object({ ranked: Totals, casual: Totals }),
@@ -124,12 +119,6 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
         const [user] = await db.select().from(users).where(eq(users.usernameKey, usernameKey(request.params.name)));
         if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
         const { format } = request.query;
-        const season = await activeSeason(db);
-        let ranking = null;
-        if (season) {
-          const r = await playerRating(db, user.id, format);
-          ranking = { season: season.name, score: r.score, neg: r.neg, rating: (r.score + 1) / (r.neg + 1), rank: r.rank, of: r.of, matches: r.matches, minimumScore: MINIMUM_SCORE };
-        }
         const rows = await db
           .select({
             mode: matches.mode,
@@ -166,7 +155,6 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           .orderBy(asc(playerMilestones.achievedAt));
         return {
           user: { id: user.id, username: user.username, clanTag: user.clanTag, clanLabel: user.clanLabel, createdAt: user.createdAt.toISOString() },
-          ranking,
           skill: await playerSkillOf(db, user.id),
           totals,
           favoriteColors: profile?.favoriteColors ?? [],

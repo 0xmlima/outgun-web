@@ -4,10 +4,12 @@
 // decide o destino (lobby da série, menu ou o próximo mapa do Casual).
 import type { ClientSession } from '@outgun/netcode';
 import { useEffect, useState } from 'react';
+import { api } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { currentStats, playersInOrder } from '../game/hud/info-screens.js';
 import { Button } from '../ui/Button.js';
 import { Dialog } from '../ui/Dialog.js';
+import { signedDelta, type MatchPage, type SkillChange } from './stats.js';
 
 /** Segundos até o modal fechar sozinho. */
 export const MATCH_END_SECONDS = 10;
@@ -49,8 +51,42 @@ const REASONS: Record<MatchSummary['reason'], string> = {
 
 const OUTCOMES = { win: 'Victory', loss: 'Defeat', draw: 'Draw' } as const;
 
-export function MatchEndDialog({ summary, onClose, onReport }: { summary: MatchSummary; onClose: () => void; onReport?: () => void }) {
+/** Onde buscar a variação do meu rating (OG-351): a sala, desde quando e a minha conta. */
+export interface RatingLookup {
+  readonly room: string;
+  readonly after: string;
+  readonly username: string;
+}
+
+/** Variação do meu rating na ranqueada que acabou: espera a API gravar o resultado (poucas tentativas). */
+function useMyRatingChange(lookup: RatingLookup | undefined): SkillChange | undefined {
+  const [change, setChange] = useState<SkillChange>();
+  useEffect(() => {
+    if (!lookup) return;
+    let alive = true;
+    let tries = 0;
+    const attempt = async () => {
+      try {
+        const { id } = await api<{ id: string }>(`/rooms/${encodeURIComponent(lookup.room)}/last-match?${new URLSearchParams({ after: lookup.after })}`);
+        const page = await api<MatchPage>(`/matches/${encodeURIComponent(id)}`);
+        const mine = page.skill?.find((c) => c.username === lookup.username);
+        if (alive && mine) setChange(mine);
+      } catch {
+        if (alive && ++tries < 4) setTimeout(() => void attempt(), 1500);
+      }
+    };
+    const first = setTimeout(() => void attempt(), 1000);
+    return () => {
+      alive = false;
+      clearTimeout(first);
+    };
+  }, [lookup]);
+  return change;
+}
+
+export function MatchEndDialog({ summary, onClose, onReport, rating }: { summary: MatchSummary; onClose: () => void; onReport?: () => void; rating?: RatingLookup }) {
   const { t } = usePrefs();
+  const change = useMyRatingChange(rating);
   const [left, setLeft] = useState(MATCH_END_SECONDS);
   useEffect(() => {
     const started = performance.now();
@@ -86,6 +122,11 @@ export function MatchEndDialog({ summary, onClose, onReport }: { summary: MatchS
         <span className="team-red">{t('Red')} {summary.red}</span> × <span className="team-blue">{summary.blue} {t('Blue')}</span>
       </p>
       <p className="ui-muted match-end-reason">{t(REASONS[summary.reason])}</p>
+      {change && (
+        <p className="match-end-rating">
+          {t('Rating')}: <strong>{signedDelta(change.after - change.before)}</strong> ({change.after}) · {t('your team had $1% to win', String(Math.round(100 * change.winChance)))}
+        </p>
+      )}
       {summary.series && (
         <p className="match-end-series">
           {summary.series.finished ? t('Series over') : t('Series')}: {t('Red')} {summary.series.red} × {summary.series.blue} {t('Blue')} · {t('Best of $1', String(summary.series.bestOf))}

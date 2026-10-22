@@ -90,8 +90,9 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
   it('evolução: rating por temporada, série acumulada e totais por período', async () => {
     const p = (await app.inject('/players/Jogador1/progress')).json();
     expect(p.hidden).toBe(false);
-    // score/neg não somam mais (OG-350); a evolução do rating de habilidade fica com o OG-351
-    expect([p.seasons, p.series]).toEqual([[], []]);
+    // rating de habilidade após cada ranqueada (OG-351): a do Jogador1 entrou no OpenSkill
+    expect(p.series).toHaveLength(1);
+    expect(p.series[0].value).toBeGreaterThanOrEqual(0);
     expect(p.periods.days7).toMatchObject({ matches: 1, wins: 1, kills: 3 });
     expect(p.periods.days30).toMatchObject({ matches: 2, wins: 1 });
     expect(p.periods.all).toMatchObject({ matches: 3, wins: 2, deaths: 3, playSeconds: 900 });

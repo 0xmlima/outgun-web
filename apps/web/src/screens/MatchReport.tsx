@@ -13,7 +13,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
-import { clock, date, duration, PlayerLink, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
+import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
 const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
@@ -159,6 +159,9 @@ export function MatchScreen() {
   const winner = redScore > blueScore ? t('Red team wins') : blueScore > redScore ? t('Blue team wins') : t('Draw');
   const timeline = captureTimeline(d.captures ?? [], d.baseScore);
   const ranked = m.match.ranked;
+  // rating de habilidade (OG-351): variação de cada conta e chance prevista de cada time
+  const skill = new Map((m.skill ?? []).map((c) => [c.username, c]));
+  const chance = ([0, 1] as const).map((team) => (m.skill ?? []).find((c) => c.team === team)?.winChance);
 
   const teamTable = (team: 0 | 1) => (
     <Table
@@ -183,8 +186,8 @@ export function MatchScreen() {
         { key: 'assists', header: t('Assists'), cell: (p) => p.stats.assists ?? 0, align: 'end' },
         { key: 'accuracy', header: t('Accuracy'), cell: (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`, align: 'end' },
         { key: 'returns', header: t('Flags returned'), cell: (p) => p.stats.flagsReturned ?? 0, align: 'end' },
-        ...(ranked
-          ? [{ key: 'rank', header: t('Ranking'), cell: (p: PlayerLine) => (p.username ? `${p.scoreDelta >= 0 ? '+' : ''}${p.scoreDelta} / +${p.negDelta}` : '—'), align: 'end' as const }]
+        ...(skill.size > 0
+          ? [{ key: 'rating', header: t('Rating'), cell: (p: PlayerLine) => { const c = p.username ? skill.get(p.username) : undefined; return c ? `${signedDelta(c.after - c.before)} (${c.after})` : '—'; }, align: 'end' as const }]
           : []),
       ]}
     />
@@ -214,6 +217,9 @@ export function MatchScreen() {
               </>
             )}
           </Badge>
+        )}
+        {chance[0] !== undefined && chance[1] !== undefined && (
+          <span className="ui-muted">{t('Predicted win chance: red $1% · blue $2%', String(Math.round(100 * chance[0])), String(Math.round(100 * chance[1])))}</span>
         )}
       </section>
       <div className="ui-row report-actions">
