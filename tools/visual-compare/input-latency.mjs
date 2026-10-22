@@ -229,7 +229,11 @@ try {
     overwritten: (await counter('outgun_input_overwritten_total')) - overwrittenBefore,
   };
   console.log('servidor', JSON.stringify(server));
-  const [p50, p95, p99] = (await page.evaluate(() => document.querySelector('[data-frame-ms]')?.dataset.frameMs ?? '')).split(',').map(Number);
+  const [p50, p95, p99] = (
+    await page.evaluate(() => document.querySelector('[data-frame-ms]')?.dataset.frameMs ?? '')
+  )
+    .split(',')
+    .map(Number);
   const frameMs = { p50, p95, p99 };
   console.log('quadro (ms de CPU)', JSON.stringify(frameMs));
   const report = {

@@ -1004,7 +1004,7 @@
     },
     "/rotation": {
       "get": {
-        "summary": "Rotação Casual do painel (D-69): os mapas que a sala privada pode escolher; null = sem rotação no painel (escolha livre)",
+        "summary": "Rotação Casual do painel (D-69): os mapas que a sala privada pode escolher; null = sem rotação no painel (escolha livre entre os mapas do jogo e os publicados, OG-377)",
         "tags": ["salas"],
         "responses": {
           "200": {
@@ -1013,7 +1013,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["maps"],
+                  "required": ["maps", "published"],
                   "properties": {
                     "maps": {
                       "anyOf": [
@@ -1027,6 +1027,12 @@
                           }
                         }
                       ]
+                    },
+                    "published": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
@@ -9188,6 +9194,56 @@
                           "maxLength": 64
                         },
                         "maxItems": 500
+                      },
+                      "rotations": {
+                        "type": "object",
+                        "properties": {
+                          "casual": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "maxItems": 64
+                          },
+                          "ranked": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "maxItems": 64
+                          },
+                          "ranked:3x3": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "maxItems": 64
+                          },
+                          "ranked:4x4": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "maxItems": 64
+                          },
+                          "ranked:5x5": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "maxItems": 64
+                          }
+                        }
                       }
                     }
                   },
@@ -11245,7 +11301,7 @@
     },
     "/admin/rotations": {
       "get": {
-        "summary": "Rotações de mapas do painel (sem linha = a do servidor) e os mapas que os servidores têm",
+        "summary": "Rotações de mapas do painel (sem linha = a do servidor), as padrão do servidor (OG-378) e os mapas que os servidores têm",
         "tags": ["admin"],
         "responses": {
           "200": {

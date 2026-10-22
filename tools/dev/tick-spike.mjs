@@ -19,7 +19,12 @@ const accel = physics.acceleration * physics.runMul; // correndo (o comum numa p
 
 /** Um passo de duração h (frames) com a direção `dir` (vetor unitário ou zero). */
 function step(s, dir, h, mode) {
-  const drag = h === 1 ? 1 - physics.drag : mode === 'naive' ? Math.pow(1 - physics.drag, h) : 1 - physics.drag * h;
+  const drag =
+    h === 1
+      ? 1 - physics.drag
+      : mode === 'naive'
+        ? Math.pow(1 - physics.drag, h)
+        : 1 - physics.drag * h;
   let vx = s.vx * drag;
   let vy = s.vy * drag;
   const spd = Math.hypot(vx, vy);
@@ -72,19 +77,37 @@ const atTop = { x: 0, y: 0, vx: top10, vy: 0 };
 const maneuvers = [
   ['Arrancada (2 s para a direita)', (sub, mode) => run(20, () => R, sub, mode)],
   ['Diagonal (2 s, cima+direita)', (sub, mode) => run(20, () => UR, sub, mode)],
-  ['Frenagem (solta tudo na velocidade máxima)', (sub, mode) => run(20, () => NONE, sub, mode, atTop)],
-  ['Curva (na máxima para a direita, vira para cima)', (sub, mode) => run(20, () => [0, -1], sub, mode, atTop)],
+  [
+    'Frenagem (solta tudo na velocidade máxima)',
+    (sub, mode) => run(20, () => NONE, sub, mode, atTop),
+  ],
+  [
+    'Curva (na máxima para a direita, vira para cima)',
+    (sub, mode) => run(20, () => [0, -1], sub, mode, atTop),
+  ],
 ];
 
 const lines = [];
 const log = (s = '') => lines.push(s);
 log('## Física (posição em unidades; uma sala tem 640 × 460)');
 log();
-log(`Velocidade máxima correndo: 10 Hz ${top10.toFixed(2)} u/frame · meio passo ingênuo ${topSpeed(2, 'naive').toFixed(2)} · meio passo calibrado ${topSpeed(2, 'cal').toFixed(2)}`);
+log(
+  `Velocidade máxima correndo: 10 Hz ${top10.toFixed(2)} u/frame · meio passo ingênuo ${topSpeed(2, 'naive').toFixed(2)} · meio passo calibrado ${topSpeed(2, 'cal').toFixed(2)}`,
+);
 const base = run(40, () => R, 1);
-log(`Tempo até 95% da máxima: 10 Hz ${timeTo(base, 0.95 * top10)} s · ingênuo ${timeTo(run(40, () => R, 2, 'naive'), 0.95 * top10)} s · calibrado ${timeTo(run(40, () => R, 2, 'cal'), 0.95 * top10)} s`);
+log(
+  `Tempo até 95% da máxima: 10 Hz ${timeTo(base, 0.95 * top10)} s · ingênuo ${timeTo(
+    run(40, () => R, 2, 'naive'),
+    0.95 * top10,
+  )} s · calibrado ${timeTo(
+    run(40, () => R, 2, 'cal'),
+    0.95 * top10,
+  )} s`,
+);
 log();
-log('| Manobra | Meio passo ingênuo (desvio máx.) | Meio passo calibrado (desvio máx.) | Input no subpasso (desvio máx., chegada no meio do frame) |');
+log(
+  '| Manobra | Meio passo ingênuo (desvio máx.) | Meio passo calibrado (desvio máx.) | Input no subpasso (desvio máx., chegada no meio do frame) |',
+);
 log('|---|---|---|---|');
 for (const [name, fn] of maneuvers) {
   const ref = fn(1);
@@ -92,13 +115,24 @@ for (const [name, fn] of maneuvers) {
     ? runSplit(20, R, NONE, 0.5, 'cal', atTop)
     : name.startsWith('Curva')
       ? runSplit(20, R, [0, -1], 0.5, 'cal', atTop)
-      : runSplit(20, NONE, name.startsWith('Diagonal') ? UR : R, 0.5, 'cal', { x: 0, y: 0, vx: 0, vy: 0 });
-  log(`| ${name} | ${dev(fn(2, 'naive'), ref).toFixed(1)} u | ${dev(fn(2, 'cal'), ref).toFixed(1)} u | ${dev(split, ref).toFixed(1)} u |`);
+      : runSplit(20, NONE, name.startsWith('Diagonal') ? UR : R, 0.5, 'cal', {
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+        });
+  log(
+    `| ${name} | ${dev(fn(2, 'naive'), ref).toFixed(1)} u | ${dev(fn(2, 'cal'), ref).toFixed(1)} u | ${dev(split, ref).toFixed(1)} u |`,
+  );
 }
 const stopDist = (sub, mode) => run(40, () => NONE, sub, mode, atTop).at(-1).x;
 log();
-log(`Distância de frenagem: 10 Hz ${stopDist(1).toFixed(1)} u · ingênuo ${stopDist(2, 'naive').toFixed(1)} u · calibrado ${stopDist(2, 'cal').toFixed(1)} u`);
-log('Foguetes (velocidade constante) e quiques em parede (tempo contínuo até a parede): sem desvio.');
+log(
+  `Distância de frenagem: 10 Hz ${stopDist(1).toFixed(1)} u · ingênuo ${stopDist(2, 'naive').toFixed(1)} u · calibrado ${stopDist(2, 'cal').toFixed(1)} u`,
+);
+log(
+  'Foguetes (velocidade constante) e quiques em parede (tempo contínuo até a parede): sem desvio.',
+);
 
 // --- CPU e banda numa sala de verdade ---
 const { loadMaps } = await import(`${repo}apps/game-server/dist/maps.js`);
@@ -107,14 +141,19 @@ const { message } = await import(`${repo}packages/protocol/dist/index.js`);
 const [map] = loadMaps(`${repo}_legacy/maps`, ['outgun1']);
 const room = new Room({ id: 'spike', preset: 'classic', maps: [map], maxPlayers: 16, seed: 7 });
 let bytes = 0;
-const human = room.join({ send: (d) => (bytes += d.length), close() {} }, { name: 'Medidor', accountId: null });
+const human = room.join(
+  { send: (d) => (bytes += d.length), close() {} },
+  { name: 'Medidor', accountId: null },
+);
 room.handle(human.pid, [message('clientReady', {})]);
 for (let i = 0; i < 15; i++) room.addBot();
 for (let f = 0; f < 100; f++) room.tick(); // aquecimento
 bytes = 0;
 const times = [];
 for (let f = 0; f < 600; f++) {
-  room.handle(human.pid, [message('input', { clientFrame: f & 255, controls: 1 + (f % 15), gundir: f % 16 })]);
+  room.handle(human.pid, [
+    message('input', { clientFrame: f & 255, controls: 1 + (f % 15), gundir: f % 16 }),
+  ]);
   const t0 = performance.now();
   room.tick();
   times.push(performance.now() - t0);
@@ -124,6 +163,10 @@ const mean = times.reduce((a, b) => a + b, 0) / times.length;
 log();
 log('## Custo (sala outgun1, 1 humano + 15 bots, 60 s)');
 log();
-log(`Tick da sala: média ${mean.toFixed(2)} ms · p95 ${times[Math.floor(times.length * 0.95)].toFixed(2)} ms (orçamento a 10 Hz: 100 ms; a 20 Hz: 50 ms)`);
-log(`Banda para o humano: ${(bytes / 60 / 1024).toFixed(1)} KB/s a 10 Hz → ~${((2 * bytes) / 60 / 1024).toFixed(1)} KB/s a 20 Hz (frames dobram; subpassos a 10 Hz não mudam a banda)`);
+log(
+  `Tick da sala: média ${mean.toFixed(2)} ms · p95 ${times[Math.floor(times.length * 0.95)].toFixed(2)} ms (orçamento a 10 Hz: 100 ms; a 20 Hz: 50 ms)`,
+);
+log(
+  `Banda para o humano: ${(bytes / 60 / 1024).toFixed(1)} KB/s a 10 Hz → ~${((2 * bytes) / 60 / 1024).toFixed(1)} KB/s a 20 Hz (frames dobram; subpassos a 10 Hz não mudam a banda)`,
+);
 console.log(lines.join('\n'));
