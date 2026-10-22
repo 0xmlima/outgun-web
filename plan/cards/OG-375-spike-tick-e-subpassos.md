@@ -6,7 +6,7 @@
 | Tipo | Spike |
 | Prioridade | Should |
 | Estimativa | 5 pts |
-| Sprint | S39 |
+| Sprint | S40 |
 | Status | Pronto |
 | Dependências | OG-370 |
 | Regras de negócio | D-74 |

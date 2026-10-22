@@ -6,7 +6,7 @@
 | Tipo | Feature |
 | Prioridade | Could |
 | Estimativa | 2 pts |
-| Sprint | S39 |
+| Sprint | S40 |
 | Status | Pronto |
 | Dependências | OG-369, OG-373 |
 | Regras de negócio | RN-UI-05 |
