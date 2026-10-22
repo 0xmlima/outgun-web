@@ -5,7 +5,7 @@ import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TO
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
-import { adminActions, bans, clanMembers, clans, gameServers, matches, matchPlayers, playerReports, rankedSeries, rooms, users } from '../db/schema.js';
+import { adminActions, bans, clanMembers, clans, gameServers, matchEventPlayers, matchEvents, matches, matchPlayers, playerReports, rankedSeries, rooms, users, type MatchEvent } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
 import { closeSeason, seasonAt } from '../ranking.js';
 import { applySkill } from '../skill.js';
@@ -103,6 +103,11 @@ const HeartbeatReply = Type.Object({
 });
 
 const Count = Type.Integer({ minimum: 0, maximum: 1_000_000 });
+/** Teto de eventos de uma ranqueada (OG-362), o mesmo do game server. */
+export const MATCH_EVENTS_LIMIT = 5000;
+/** Jogador num evento: índice na lista de jogadores dos eventos; −1 = ninguém. */
+const EventRef = Type.Integer({ minimum: -1, maximum: 127 });
+const RoomCoord = Type.Integer({ minimum: 0, maximum: 255 });
 const MatchPlayer = Type.Object({
   slot: Type.Integer({ minimum: 0, maximum: 31 }),
   userId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -184,6 +189,28 @@ const MatchResult = Type.Object({
    * (servidor antigo), vale quem está em `players`.
    */
   skillRoster: Type.Optional(Type.Array(Type.Object({ userId: Type.String({ format: 'uuid' }), team: Type.Union([Type.Literal(0), Type.Literal(1)]) }), { maxItems: 32 })),
+  /** Eventos da ranqueada (OG-362): abates e ações de bandeira; jogadores = índice em `players`. */
+  events: Type.Optional(
+    Type.Object({
+      players: Type.Array(
+        Type.Object({
+          slot: Type.Integer({ minimum: 0, maximum: 31 }),
+          userId: Type.Optional(Type.String({ format: 'uuid' })),
+          name: Type.String({ minLength: 1, maxLength: 32 }),
+          team: Type.Union([Type.Literal(0), Type.Literal(1)]),
+          bot: Type.Boolean(),
+        }),
+        { maxItems: 128 },
+      ),
+      events: Type.Array(
+        Type.Union([
+          Type.Tuple([Count, Type.Literal('kill'), EventRef, EventRef, RoomCoord, RoomCoord, Type.Integer({ minimum: 0, maximum: 1 }), Type.String({ minLength: 1, maxLength: 16 })]),
+          Type.Tuple([Count, Type.Union([Type.Literal('take'), Type.Literal('drop'), Type.Literal('return'), Type.Literal('capture')]), EventRef, Type.Integer({ minimum: 0, maximum: 2 })]),
+        ]),
+        { maxItems: MATCH_EVENTS_LIMIT },
+      ),
+    }),
+  ),
 });
 export type MatchResultBody = Static<typeof MatchResult>;
 
@@ -439,6 +466,17 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               })),
             );
           }
+          // eventos da ranqueada (OG-362): jogadores com conta só se ela ainda existe
+          if (body.events) {
+            await tx.insert(matchEvents).values({ matchId: match!.id, events: body.events.events as MatchEvent[] });
+            const eventIds = body.events.players.flatMap((p) => (p.userId ? [p.userId] : []));
+            const live = new Set(eventIds.length === 0 ? [] : (await tx.select({ id: users.id }).from(users).where(inArray(users.id, eventIds))).map((u) => u.id));
+            if (body.events.players.length > 0) {
+              await tx.insert(matchEventPlayers).values(
+                body.events.players.map((p, idx) => ({ matchId: match!.id, idx, slot: p.slot, userId: p.userId && live.has(p.userId) ? p.userId : null, name: p.name, team: p.team, isBot: p.bot })),
+              );
+            }
+          }
           await recordMatchSocial(tx, match!.id);
           await awardMilestones(tx, [...known], { beta: config.beta });
           // Rating de habilidade (OG-349, RN-SKL-02/03): pelo placar final, com quem saiu no meio
@@ -590,6 +628,8 @@ export function validateMatch(body: MatchResultBody): string | undefined {
   if (bots.some((p) => p.userId || p.scoreDelta !== 0 || p.negDelta !== 0)) return 'bots have no account nor ranking deltas';
   if (!body.ranked && body.players.some((p) => p.scoreDelta !== 0 || p.negDelta !== 0)) return 'ranking deltas only in ranked matches';
   if (Date.parse(body.endedAt) < Date.parse(body.startedAt)) return 'endedAt before startedAt';
+  if (body.events && !body.ranked) return 'events only in ranked matches';
+  if (body.events?.events.some((e) => (e[1] === 'kill' ? [e[2], e[3]] : [e[2]]).some((i) => i >= body.events!.players.length))) return 'event player out of range';
   if (body.format && body.mode !== 'ranked') return 'format only in ranked mode';
   const s = body.series;
   if (s) {

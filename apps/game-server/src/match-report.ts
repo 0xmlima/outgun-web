@@ -3,6 +3,7 @@
 // estatísticas; só a de sala Ranked que cumpre os mínimos (RN-RNK-01) vai marcada como ranqueada.
 import type { MatchResult, PlayerResult, TeamResult } from '@outgun/sim';
 import type { GameMode, RankedFormat, SeriesBestOf } from '@outgun/settings';
+import type { MatchEventLog } from './match-events.js';
 
 export interface ReportPlayer {
   name: string;
@@ -60,6 +61,8 @@ export interface MatchReport {
   substitutions?: Substitution[];
   /** Contas que jogaram a ranqueada, inclusive quem saiu no meio (OG-349, RN-SKL-03). */
   skillRoster?: SkillRosterEntry[];
+  /** Eventos da ranqueada (OG-362); ausente nas outras partidas. */
+  events?: MatchEventLog;
   players: {
     slot: number;
     userId?: string;
@@ -135,6 +138,8 @@ export interface ReportInput {
   substitutions?: readonly Substitution[];
   /** Contas da ranqueada (OG-349), com quem saiu; só vai no relatório ranqueado. */
   skillRoster?: readonly SkillRosterEntry[];
+  /** Eventos do jogo (OG-362); só vão no relatório ranqueado. */
+  events?: MatchEventLog;
 }
 
 function stats(p: PlayerResult): Record<string, number> {
@@ -177,6 +182,7 @@ export function matchReport(input: ReportInput): MatchReport {
     ...(input.format ? { format: input.format } : {}),
     ...(input.series ? { series: input.series } : {}),
     ...(input.substitutions?.length ? { substitutions: input.substitutions.slice(0, 10) } : {}),
+    ...(input.ranked && input.events ? { events: input.events } : {}),
     ...(input.ranked && input.skillRoster ? { skillRoster: input.skillRoster.filter((r) => UUID.test(r.userId)).slice(0, 32) } : {}),
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);

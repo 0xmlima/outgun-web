@@ -6,7 +6,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
-import { clans, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
+import { clans, matchEventPlayers, matchEvents, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
 import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
@@ -303,6 +303,37 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           clans: await warClans(m),
           skill: await skillLines(m.id),
         };
+      },
+    );
+
+    app.get(
+      '/matches/:id/events',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Eventos de uma ranqueada (OG-362): abates e ações de bandeira em ordem; `events` null = partida sem registro',
+          params: Type.Object({ id: Type.String({ format: 'uuid' }) }),
+          response: {
+            200: Type.Object({
+              players: Type.Array(Type.Object({ slot: Type.Integer(), name: Type.String(), username: Type.Union([Type.Null(), Type.String()]), team: Type.Integer(), isBot: Type.Boolean() })),
+              /** Abate: `[t, 'kill', matador, vítima, salaX, salaY, portador, causa]`; bandeira: `[t, tipo, jogador, bandeira]` (t em décimos). */
+              events: Type.Union([Type.Null(), Type.Array(Type.Array(Type.Union([Type.Integer(), Type.String()])))]),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [m] = await db.select({ id: matches.id }).from(matches).where(eq(matches.id, request.params.id));
+        if (!m) return reply.code(404).send({ error: 'match_not_found', message: 'match not found' });
+        const [row] = await db.select().from(matchEvents).where(eq(matchEvents.matchId, m.id));
+        const players = await db
+          .select({ slot: matchEventPlayers.slot, name: matchEventPlayers.name, username: users.username, team: matchEventPlayers.team, isBot: matchEventPlayers.isBot })
+          .from(matchEventPlayers)
+          .leftJoin(users, eq(users.id, matchEventPlayers.userId))
+          .where(eq(matchEventPlayers.matchId, m.id))
+          .orderBy(asc(matchEventPlayers.idx));
+        return { players, events: row?.events ?? null };
       },
     );
 

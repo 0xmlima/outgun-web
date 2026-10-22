@@ -10,7 +10,7 @@ import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { usernameKey } from '../db/keys.js';
-import { feedback, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
+import { feedback, matchEventPlayers, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
 import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
@@ -273,6 +273,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         // o clã segue a regra de saída do líder.
         await db.transaction(async (tx) => {
           await tx.update(matchPlayers).set({ name: ANONYMOUS_NAME }).where(eq(matchPlayers.userId, user.id));
+          await tx.update(matchEventPlayers).set({ name: ANONYMOUS_NAME }).where(eq(matchEventPlayers.userId, user.id));
           await tx.update(feedback).set({ username: ANONYMOUS_NAME }).where(eq(feedback.userId, user.id));
           await leaveClan(tx, user.id); // passa a liderança antes de a conta sumir (D-47)
           await tx.delete(users).where(eq(users.id, user.id));
