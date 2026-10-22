@@ -200,10 +200,10 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('PUT', '/admin/presets/festival', 'mod', { description: 'Festival: tudo liberado', overrides: 'rocket_damage 100' })).json()).toEqual({ id: 'festival', version: 1 });
     expect(await lastAudit()).toMatchObject({ action: 'preset', details: { preset: 'festival' } });
     // sem rotação Casual no painel: escolha livre
-    expect((await app.inject('/rotation')).json()).toEqual({ maps: null });
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: null, published: [] });
     expect((await call('POST', '/rooms', 'player', { name: 'Livre', preset: 'festival', maps: ['The Blunt'] })).statusCode).toBe(201);
     expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] })).json()).toMatchObject({ key: 'casual', version: 1 });
-    expect((await app.inject('/rotation')).json()).toEqual({ maps: ['outgun1', 'gun dance'] });
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: ['outgun1', 'gun dance'], published: [] });
     expect((await call('POST', '/rooms', 'player', { name: 'Fora', preset: 'festival', maps: ['The Blunt', 'outgun1'] })).json()).toMatchObject({ error: 'map_not_in_rotation', message: 'not in the casual rotation: The Blunt' });
     const ok = await call('POST', '/rooms', 'player', { name: 'Dentro', preset: 'festival', maps: ['gun dance'] });
     expect([ok.statusCode, ok.json().room.preset]).toEqual([201, 'festival']);
@@ -228,6 +228,8 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     const crc = (await call('GET', '/admin/maps', 'mod')).json().maps.find((m: { name: string }) => m.name === 'teste').crc;
     expect([served.statusCode, served.headers['x-map-crc'], served.rawPayload.toString('latin1')]).toEqual([200, String(crc), text.replace('8 3', '8 4')]);
     expect((await call('GET', '/admin/rotations', 'mod')).json().catalog).toContain('teste');
+    // publicado entra na escolha livre de "Criar sala" (OG-377)
+    expect((await app.inject('/rotation')).json().published).toEqual(['teste']);
     expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'teste'] })).statusCode).toBe(200);
     expect((await call('DELETE', '/admin/maps/teste', 'mod')).json()).toMatchObject({ error: 'map_in_rotation' });
     await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] });

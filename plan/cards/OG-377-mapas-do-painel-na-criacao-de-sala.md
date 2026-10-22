@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S40 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-367 |
 | Regras de negócio | D-69, D-70 |
 | Skills | `outgun-card-workflow` |
@@ -22,7 +22,8 @@ Como jogador, quero ver em "Criar sala" os mapas publicados pela moderação, pa
 - Com a rotação nula, a lista é a dos mapas do jogo + os ativos do painel (ex.: `GET /rotation` devolve o catálogo, ou uma rota pública com os nomes ativos), com miniatura (OG-368).
 
 ## Critérios de aceite
-- [ ] Sem rotação Casual no painel, um mapa publicado aparece em "Criar sala" e a sala abre com ele.
+- [x] Sem rotação Casual no painel, um mapa publicado aparece em "Criar sala" e a sala abre com ele.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `GET /rotation` ganhou `published` (mapas ativos do painel); sem rotação Casual, "Criar sala" lista os do manifesto + esses (miniatura pelo `MapPreview`, que já busca `/maps/:name`). O POST `/rooms` já aceitava qualquer mapa com rotação nula.
+- `openapi.json` é regerado no fechamento.
