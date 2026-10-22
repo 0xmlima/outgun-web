@@ -930,7 +930,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-71 | **v2** — Envio dos controles | 10 Hz com um reenvio por frame (como o original) / toda mudança enviada na hora, com sequência própria | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-370, OG-371):** toda mudança de controle que ainda pega o tick vai ao servidor na hora (sem o limite de um reenvio por frame); a predição usa o controle atual no quadro seguinte. Sem mudar o protocolo (dispensou o número de sequência, ver OG-370). A física não muda. | PO |
 | D-72 | **v2** — Teclas "quase simultâneas" (diagonal, Alt) | Como chegarem / janela de acorde no cliente | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-372):** janela de 30 ms (opção 0–60 ms) em que a arma não vira; o movimento não espera (strafe provisório); vale também para o direcional digital do gamepad. Sem equivalente no original. | PO |
 | D-73 | **v2** — VSync no cliente desktop | Sempre preso ao monitor / opção para desligar | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-373):** opção "Sincronia vertical" no desktop, aplicada ao reabrir; **padrão desligada** (PO, 2026-10-22: menos atraso na tela para o público competitivo), com limite automático de 240 FPS e "sem limite" explícito; no navegador o limite é a taxa do monitor. | PO |
-| D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto:** spike OG-375 na S39 (sala de teste no beta); decisão do PO com a comunidade na S40. | PO |
+| D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto:** spike OG-375 na S40 (sala de teste no beta); decisão do PO com a comunidade. | PO |
 
 ---
 
