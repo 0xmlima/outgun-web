@@ -184,6 +184,8 @@ interface Client {
   guard: InputGuard;
   /** Já chegou algum `input` (o primeiro é aceito com qualquer número de frame). */
   hasInput: boolean;
+  /** Chegada da primeira mudança de controles ainda não aplicada por um tick (OG-369), ou null. */
+  pendingInputAt: number | null;
   /** Último frame com ação do jogador (para o idle kick, RN-IDL-01). */
   lastActivityFrame: number;
   /** O que o HUD do jogador já recebeu: arma e fim de cada power-up com tempo (`data_weapon_change`, `data_pup_timer`). */
@@ -320,6 +322,8 @@ export class Room {
   private readonly botNameRng: GlibcRand;
   /** Quando o último frame foi enviado (`frameSentTime`), em ms. */
   private frameSentTime = 0;
+  /** Medições do input desde o último `drainInputStats` (OG-369): espera até o tick (ms) e mudanças sobrescritas. */
+  private inputStats = { waits: [] as number[], overwritten: 0 };
   /** Último pid cujo ping foi enviado (rodízio). */
   private pingCursor = -1;
   /** Sorteio dos bots (no original, o `rand()` global; aqui separado para não mexer na sequência do mundo). */
@@ -492,6 +496,7 @@ export class Room {
       joinedFrame: this.world.frame,
       guard: new InputGuard(),
       hasInput: false,
+      pendingInputAt: null,
       lastActivityFrame: this.world.frame,
       hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 },
       bot: opts.bot ?? false,
@@ -631,6 +636,7 @@ export class Room {
       queue: [],
       guard: new InputGuard(),
       hasInput: false,
+      pendingInputAt: null,
       lastActivityFrame: this.world.frame,
       hud: { weapon: 0, turboTime: 0, shadowTime: 0, powerTime: 0 },
       idleFrames: 0,
@@ -936,7 +942,13 @@ export class Room {
           client.hasInput = true;
           client.lastClientFrame = m.clientFrame;
           if (this.pause?.active) break; // pausado: ninguém se mexe nem mira (OG-260)
-          pl.controls = clearModifiersIfIdle(m.controls & 0x3f);
+          const controls = clearModifiersIfIdle(m.controls & 0x3f);
+          // espera até o tick e mudanças sobrescritas antes dele (OG-369)
+          if (controls !== pl.controls && !client.bot) {
+            if (client.pendingInputAt === null) client.pendingInputAt = this.now();
+            else this.inputStats.overwritten++;
+          }
+          pl.controls = controls;
           pl.accelerationMode = (m.gundir & 0x800) !== 0 && this.settings.physics.allowFreeTurning ? 'gun' : 'world';
           if (!pl.dead) {
             if (this.settings.physics.allowFreeTurning) pl.gundir = (m.gundir & 0x7ff) / 256;
@@ -1057,12 +1069,26 @@ export class Room {
     return this.clients.get(pid)?.lastActivityFrame;
   }
 
+  /** Medições do input acumuladas desde a última chamada (e recomeça). */
+  drainInputStats(): { waits: number[]; overwritten: number } {
+    const s = this.inputStats;
+    this.inputStats = { waits: [], overwritten: 0 };
+    return s;
+  }
+
   /** Um frame (`simulate_and_broadcast_frame`). */
   tick(): void {
     const world = this.world;
     this.uptimeFrames++;
     if (this.checkBotsPending) this.checkBots();
-    for (const c of this.clients.values()) c.guard.tick();
+    const tickAt = this.now();
+    for (const c of this.clients.values()) {
+      c.guard.tick();
+      if (c.pendingInputAt !== null) {
+        this.inputStats.waits.push(tickAt - c.pendingInputAt);
+        c.pendingInputAt = null;
+      }
+    }
     if (this.draining && ![...this.clients.values()].some((c) => !c.bot)) this.finished = true;
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
@@ -1190,6 +1216,7 @@ export class Room {
       replaced: { identity, resumeToken: c.resumeToken },
       identity: { name: `BOT-${identity.name}`, accountId: null, clanTag: identity.clanTag ?? null, clanId: identity.clanId ?? null },
       hasInput: false,
+      pendingInputAt: null,
       queue: [],
       rs: new RecipientState(),
     });

@@ -61,6 +61,8 @@ export interface TickObserver {
   roomTick(durationMs: number): void;
   /** A sala lançou exceção no tick; as outras salas seguem. */
   roomError(roomId: string, error: unknown): void;
+  /** Inputs de jogadores no tick (OG-369): espera de cada mudança até o tick (ms) e mudanças sobrescritas. */
+  input?(waitsMs: readonly number[], overwritten: number): void;
 }
 
 /** O que o heartbeat conta à API sobre cada sala (OG-086). */
@@ -196,6 +198,10 @@ export class RoomManager {
           observer.roomError(id, error);
         }
         observer.roomTick(this.clock.now() - start);
+        if (observer.input) {
+          const s = entry.room.drainInputStats();
+          observer.input(s.waits, s.overwritten);
+        }
       } else entry.room.tick();
       if (entry.room.playerCount > 0 || entry.persistent) entry.emptySince = null;
       else if (entry.emptySince === null) entry.emptySince = now;

@@ -79,6 +79,14 @@ export interface NetStats {
   framesReceived: number;
 }
 
+/** Amostras de latência do input acima disto (ms) são descartadas (morto, pausado, aba parada). */
+const LATENCY_SAMPLE_MAX_MS = 1000;
+
+/** Guarda uma amostra sem deixar a lista crescer se ninguém a esvaziar. */
+function pushSample(list: number[], ms: number): void {
+  if (list.length < 512) list.push(ms);
+}
+
 /** Meia-vida (ms) do deslocamento visual que esconde uma correção. */
 export const SMOOTHING_HALF_LIFE_MS = 80;
 /** Saltos maiores que isto (px) não são suavizados (renascer, colisão forte). */
@@ -177,6 +185,11 @@ export class ClientSession {
   respawnFrame = 0;
   readonly stats: NetStats = { averageLag: 0, frameOffset: 0, corrections: 0, framesReceived: 0 };
   prediction: PredictionOptions = { enabled: true, amount: 10 };
+  /**
+   * Latência das mudanças de controle (OG-369), em ms desde a tecla: até sair na mensagem `input`
+   * (`send`) e até a predição desenhar o jogador com elas (`render`). Quem lê esvazia as listas.
+   */
+  readonly inputLatency = { send: [] as number[], render: [] as number[] };
 
   // envio (`clFrameSent`, `controlHistory`, `svFrameHistory`)
   private clFrameSent = 0;
@@ -188,6 +201,9 @@ export class ClientSession {
   /** Número de frame já reenviado no meio do frame (no máximo um reenvio por número). */
   private resentFrame = -1;
   private controls = 0;
+  /** Momento da tecla da mudança de controles ainda não enviada / ainda não desenhada (OG-369). */
+  private changeNotSent: number | null = null;
+  private changeNotRendered: number | null = null;
   private hasFrame = false;
   /**
    * Relógio estimado do servidor: frame "aparente" = `now/100 + clockOffset`. Segue a chegada mais
@@ -777,16 +793,27 @@ export class ClientSession {
   // ---------------------------------------------------------------- envio
 
   /** Controles atuais (bits de `CONTROL`); mudanças no meio do frame podem ser reenviadas já. */
-  setControls(controls: number, now: number): void {
+  setControls(controls: number, now: number, changedAt = now): void {
     const c = controls & 0x3f;
     if (c === this.controls) return;
     this.controls = c;
+    if (this.changeNotSent === null) this.changeNotSent = changedAt;
+    this.changeNotRendered = changedAt;
     // ainda chega no mesmo frame do servidor que o envio anterior? então corrige esse envio (`send_frame(false)`)
     if (this.world && this.resentFrame !== this.clFrameSent && this.serverFrameNow(now) < (this.svFrameHistory[this.clFrameSent] as number) + 0.5) {
       this.resentFrame = this.clFrameSent;
       this.controlHistory[this.clFrameSent] = c;
       this.options.send([message('input', { clientFrame: this.clFrameSent, controls: c, gundir: 0 })]);
+      this.controlsSent(now);
     }
+  }
+
+  /** A mensagem com os controles atuais saiu: mede desde a tecla (OG-369). */
+  private controlsSent(now: number): void {
+    if (this.changeNotSent === null) return;
+    const ms = now - this.changeNotSent;
+    this.changeNotSent = null;
+    if (ms >= 0 && ms < LATENCY_SAMPLE_MAX_MS) pushSample(this.inputLatency.send, ms);
   }
 
   /** Frame do servidor "aparente" agora (no original, `fx.frame + (agora − frameReceiveTime)·10`). */
@@ -805,6 +832,7 @@ export class ClientSession {
     // antes do primeiro frame o relógio do servidor é desconhecido: esse envio não mede atraso
     this.sentValid[this.clFrameSent] = this.hasFrame ? 1 : 0;
     this.options.send([message('input', { clientFrame: this.clFrameSent, controls: this.controls, gundir: 0 })]);
+    this.controlsSent(now);
     const delay = 100 + this.sendAdjustment;
     this.sendAdjustment = 0;
     return delay;
@@ -836,6 +864,13 @@ export class ClientSession {
     const td = this.timeDelta(now);
     if (td === null) return null;
     const fd = this.extrapolateWith(td);
+    // tecla→tela (OG-369): o primeiro desenho em que a predição já usa os controles atuais
+    const me = fd?.players[this.me];
+    if (this.changeNotRendered !== null && this.prediction.enabled && me && !me.dead && me.controls === this.controls) {
+      const ms = now - this.changeNotRendered;
+      this.changeNotRendered = null;
+      if (ms >= 0 && ms < LATENCY_SAMPLE_MAX_MS) pushSample(this.inputLatency.render, ms);
+    }
     if (!fd || !smooth) return fd;
     // correções recentes aparecem aos poucos (divergência: o original troca de posição de uma vez)
     const decay = Math.pow(0.5, Math.max(0, now - this.lastRender) / SMOOTHING_HALF_LIFE_MS);

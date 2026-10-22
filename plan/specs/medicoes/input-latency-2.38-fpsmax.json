@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-22T18:41:54.155Z",
+  "fpsLimit": "sem limite",
+  "rounds": 40,
+  "version": "2.38.0",
+  "client": {
+    "diagonal": {
+      "keyToSend": {
+        "n": 130,
+        "p50": 22.1,
+        "p95": 62.3,
+        "max": 79.3
+      },
+      "keyToScreen": {
+        "n": 121,
+        "p50": 23.9,
+        "p95": 75.9,
+        "max": 90.7
+      }
+    },
+    "altDiagonal": {
+      "keyToSend": {
+        "n": 177,
+        "p50": 15.5,
+        "p95": 70.4,
+        "max": 82
+      },
+      "keyToScreen": {
+        "n": 152,
+        "p50": 16.1,
+        "p95": 76.8,
+        "max": 97.1
+      }
+    },
+    "zigzag": {
+      "keyToSend": {
+        "n": 199,
+        "p50": 12.7,
+        "p95": 48.6,
+        "max": 70
+      },
+      "keyToScreen": {
+        "n": 189,
+        "p50": 14.4,
+        "p95": 58.5,
+        "max": 66.8
+      }
+    }
+  },
+  "server": {
+    "changesApplied": 368,
+    "tickWaitAvgMs": 41.3,
+    "tickWaitP50BucketMs": 50,
+    "tickWaitP95BucketMs": 100,
+    "overwritten": 114
+  }
+}

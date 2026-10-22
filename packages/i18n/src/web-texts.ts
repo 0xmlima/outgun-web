@@ -92,6 +92,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'fps p5': 'fps p5',
     'Frame drops': 'Quedas de frames',
     'Send anonymous network statistics': 'Enviar estatísticas anônimas da rede',
+    'Show input latency': 'Mostrar latência das teclas',
     // beta fechado (OG-106)
     '$1 invites created.': '$1 convites criados.',
     Bug: 'Bug',

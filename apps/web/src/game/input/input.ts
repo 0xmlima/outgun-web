@@ -50,6 +50,8 @@ export class GameInput {
   private readonly padWasPressed = new Set<number>();
   private readonly listeners: ((action: PressAction | 'menu') => void)[] = [];
   private enabled = true;
+  /** Momento (`performance.now()`) da última tecla do jogo apertada ou solta (OG-369). */
+  lastChangeAt = 0;
 
   constructor(private bindings: Bindings) {
     this.codes = boundCodes(bindings);
@@ -85,12 +87,13 @@ export class GameInput {
   private readonly onKeyDown = (ev: KeyboardEvent) => {
     if (!this.enabled || ev.key === 'Escape') return;
     if (shouldPrevent(ev, this.codes)) ev.preventDefault();
+    if (!ev.repeat && this.codes.has(ev.code)) this.lastChangeAt = ev.timeStamp;
     this.pressed.add(ev.code);
     if (!ev.repeat) for (const action of pressedActions(this.bindings, ev)) this.emit(action);
   };
 
   private readonly onKeyUp = (ev: KeyboardEvent) => {
-    this.pressed.delete(ev.code);
+    if (this.pressed.delete(ev.code) && this.codes.has(ev.code)) this.lastChangeAt = ev.timeStamp;
     // Alt solto sozinho ativa a barra de menus no Windows/Firefox
     if (this.enabled && (ev.code === 'AltLeft' || ev.code === 'AltRight')) ev.preventDefault();
   };

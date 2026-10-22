@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S39 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -25,13 +25,15 @@ Como PO, quero números de quanto tempo uma tecla leva até valer no servidor e 
 - Script reaproveitável (`tools/dev/` ou `tools/visual-compare/`) que roda uma partida local com bot, injeta sequências de teclas (diagonal, Alt + diagonal, toque curto) e grava um JSON com os números; o fechamento compara S38 × S39.
 
 ## Critérios de aceite
-- [ ] Overlay de rede mostra tecla→envio e tecla→tela (p50/p95).
-- [ ] Métricas do servidor expõem a espera até o tick e os inputs sobrescritos.
-- [ ] Linha de base da v2.38.0 gravada pelo script em `plan/specs/` (ou anexada ao card).
+- [x] Overlay de rede mostra tecla→envio e tecla→tela (p50/p95).
+- [x] Métricas do servidor expõem a espera até o tick e os inputs sobrescritos.
+- [x] Linha de base da v2.38.0 gravada pelo script em `plan/specs/` (ou anexada ao card).
 
 ## Notas técnicas
 - `performance.now()` e `ev.timeStamp` estão no mesmo relógio no Chromium/Electron.
 - Nada disso vai para o banco: só as métricas já existentes (observability).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Cliente: `ClientSession.inputLatency` (tecla→envio, tecla→tela pela predição); quadro opcional "Mostrar latência das teclas" (Opções do jogo), janela de 10 s; p50/p95 vão no resumo da telemetria só como métricas da API (`outgun_client_input_*_p95_seconds`, campos opcionais, fora do banco).
+- Servidor: `outgun_input_tick_wait_seconds` e `outgun_input_overwritten_total` (só humanos).
+- Script: `tools/visual-compare/input-latency.mjs` (`--fps`, `--rounds`, `--out`). Linha de base 2.38 em `plan/specs/medicoes/`: tecla→tela p95 76–92 ms, tecla→envio p95 62–75 ms, espera no tick média 41–43 ms, ~30% das mudanças sobrescritas antes do tick.

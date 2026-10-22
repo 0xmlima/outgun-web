@@ -12,6 +12,9 @@ export interface NetSample {
   /** Totais da sessão (contadores do ClientSession). */
   framesReceived: number;
   corrections: number;
+  /** Latências das mudanças de controle desde a última amostra (OG-369), em ms desde a tecla. */
+  inputSendMs?: readonly number[];
+  inputRenderMs?: readonly number[];
 }
 
 export interface NetReport {
@@ -29,6 +32,11 @@ export interface NetReport {
   /** Segundos com menos de 8 dos 10 frames esperados (perda, travada, aba em segundo plano). */
   stallSeconds: number;
   framesPerSecond: number;
+  /** Tecla→envio e tecla→tela (OG-369), em ms; null sem mudanças de controle no trecho. */
+  inputSendP50: number | null;
+  inputSendP95: number | null;
+  inputRenderP50: number | null;
+  inputRenderP95: number | null;
 }
 
 /** Percentil `p` (0..100) de uma amostra, como o "nearest rank". */
@@ -36,6 +44,11 @@ export function percentile(values: readonly number[], p: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))] as number;
+}
+
+/** Percentil em ms inteiros, ou null sem amostras. */
+function msPercentile(values: readonly number[], p: number): number | null {
+  return values.length ? Math.round(percentile(values, p)) : null;
 }
 
 /** "Chrome 130", "Firefox 131", "Safari 18"... (só o navegador e a versão principal). */
@@ -53,6 +66,8 @@ export class NetTelemetry {
   private pings: number[] = [];
   private lags: number[] = [];
   private fps: number[] = [];
+  private inputSend: number[] = [];
+  private inputRender: number[] = [];
   private stall = 0;
   private seconds = 0;
   private firstFrames = -1;
@@ -72,6 +87,8 @@ export class NetTelemetry {
     if (s.pingMs !== undefined && s.pingMs > 0) this.pings.push(s.pingMs);
     this.lags.push(s.lagFrames * 100);
     if (s.fps > 0) this.fps.push(s.fps);
+    if (s.inputSendMs) this.inputSend.push(...s.inputSendMs);
+    if (s.inputRenderMs) this.inputRender.push(...s.inputRenderMs);
     this.last = s;
   }
 
@@ -91,8 +108,14 @@ export class NetTelemetry {
       correctionsPerMin: Math.round(((last.corrections - this.firstCorrections) / this.seconds) * 60 * 10) / 10,
       stallSeconds: this.stall,
       framesPerSecond: Math.round(((last.framesReceived - this.firstFrames) / this.seconds) * 100) / 100,
+      inputSendP50: msPercentile(this.inputSend, 50),
+      inputSendP95: msPercentile(this.inputSend, 95),
+      inputRenderP50: msPercentile(this.inputRender, 50),
+      inputRenderP95: msPercentile(this.inputRender, 95),
     };
     this.pings = [];
+    this.inputSend = [];
+    this.inputRender = [];
     this.lags = [];
     this.fps = [];
     this.stall = 0;

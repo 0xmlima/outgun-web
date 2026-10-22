@@ -26,6 +26,11 @@ export const NetReportBody = Type.Object(
   correctionsPerMin: Type.Number({ minimum: 0, maximum: 10_000 }),
   stallSeconds: Type.Integer({ minimum: 0, maximum: 86_400 }),
   framesPerSecond: Type.Number({ minimum: 0, maximum: 100 }),
+  // latência do input (OG-369): só métricas, não vai para o banco; clientes antigos não mandam
+  inputSendP50: Type.Optional(Type.Union([Ms, Type.Null()])),
+  inputSendP95: Type.Optional(Type.Union([Ms, Type.Null()])),
+  inputRenderP50: Type.Optional(Type.Union([Ms, Type.Null()])),
+  inputRenderP95: Type.Optional(Type.Union([Ms, Type.Null()])),
   },
   // campos extras (nome, conta...) são descartados antes de chegar aqui
   { additionalProperties: false },
@@ -38,6 +43,8 @@ export function telemetryRoutes({ database }: AppDeps, services: Services): Fast
     const corrections = app.metrics.histogram('outgun_client_corrections_per_minute', 'Correções de predição por minuto dos clientes.', [0, 1, 2, 5, 10, 20, 50, 100]);
     const fps = app.metrics.histogram('outgun_client_fps_p5', 'fps p5 dos clientes por partida.', [10, 20, 30, 45, 55, 60, 90, 120, 144]);
     const stall = app.metrics.counter('outgun_client_stall_seconds_total', 'Segundos de partida com menos de 8 dos 10 frames esperados.');
+    const inputSend = app.metrics.histogram('outgun_client_input_send_p95_seconds', 'Tecla→envio p95 dos clientes por partida (OG-369).', DURATION_BUCKETS);
+    const inputRender = app.metrics.histogram('outgun_client_input_render_p95_seconds', 'Tecla→tela (predição) p95 dos clientes por partida (OG-369).', DURATION_BUCKETS);
     const played = app.metrics.counter('outgun_client_seconds_total', 'Segundos de partida cobertos pela telemetria.');
 
     app.post(
@@ -52,7 +59,7 @@ export function telemetryRoutes({ database }: AppDeps, services: Services): Fast
       },
       async (request, reply) => {
         if (!(await services.rateLimit.allow(`telemetry:${request.ip}`, 60, HOUR))) return reply.code(429).send({ error: 'rate_limited', message: 'too many reports' });
-        const b = request.body;
+        const { inputSendP50: _sendP50, inputSendP95, inputRenderP50: _renderP50, inputRenderP95, ...b } = request.body;
         const [room] = await db.select({ region: gameServers.region }).from(rooms).leftJoin(gameServers, eq(gameServers.id, rooms.serverId)).where(eq(rooms.id, b.room));
         const region = room?.region ?? null;
         await db.insert(netReports).values({ roomId: room ? b.room : null, region, ...b });
@@ -62,6 +69,8 @@ export function telemetryRoutes({ database }: AppDeps, services: Services): Fast
         fps.observe(b.fpsP5, labels);
         stall.inc(b.stallSeconds, labels);
         played.inc(b.durationS, labels);
+        if (inputSendP95 != null) inputSend.observe(inputSendP95 / 1000, labels);
+        if (inputRenderP95 != null) inputRender.observe(inputRenderP95 / 1000, labels);
         return reply.code(204).send(null);
       },
     );

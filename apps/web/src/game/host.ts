@@ -23,6 +23,7 @@ import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
+import { LatencyWindow } from './net/latency.js';
 import { browserName, NetTelemetry, sendNetReport } from './net/telemetry.js';
 import { API_URL } from '../app/api.js';
 import { SoundEvents, type SoundContext } from './audio/sound-events.js';
@@ -74,6 +75,8 @@ export interface ClientOptions {
   readonly showKillMessages: boolean;
   readonly showNames: 'never' | 'sameRoom' | 'always';
   readonly fpsLimit: number;
+  /** Quadro com tecla→envio e tecla→tela sobre o jogo (OG-369). */
+  readonly showInputLatency?: boolean;
   readonly soundTheme: string;
   readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
   /** Opções gráficas avançadas do original (OG-070). */
@@ -341,20 +344,39 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     fail(message);
   };
 
-  /** Telemetria de rede (OG-108): amostra por segundo; resumo a cada 5 min, ao sair e ao fechar a aba. */
+  /**
+   * Telemetria de rede (OG-108): amostra por segundo; resumo a cada 5 min, ao sair e ao fechar a aba.
+   * A mesma amostra alimenta o quadro de latência do input (OG-369), que não depende da telemetria.
+   */
   let telemetry: { stop: () => void } | null = null;
+  const latencyBox = document.createElement('div');
+  latencyBox.className = 'input-latency';
+  latencyBox.hidden = true;
+  container.append(latencyBox);
   const startTelemetry = (online: OnlineOptions) => {
-    if (online.telemetry === false) return;
-    const net = new NetTelemetry({ room: online.room, version: import.meta.env.VITE_RELEASE ?? 'dev', browser: browserName(navigator.userAgent) });
+    const net = online.telemetry === false ? null : new NetTelemetry({ room: online.room, version: import.meta.env.VITE_RELEASE ?? 'dev', browser: browserName(navigator.userAgent) });
+    const latency = new LatencyWindow();
     const flush = () => {
-      const report = net.report();
+      const report = net?.report();
       if (report) sendNetReport(API_URL, report);
     };
     let n = 0;
     const timer = setInterval(() => {
       const s = session;
       if (!s || !s.world) return;
-      net.sample({ pingMs: s.pings.get(s.me), lagFrames: s.stats.averageLag, fps: ready ? app.ticker.FPS : 0, framesReceived: s.stats.framesReceived, corrections: s.stats.corrections });
+      const inputSendMs = s.inputLatency.send.splice(0);
+      const inputRenderMs = s.inputLatency.render.splice(0);
+      latency.add(performance.now(), inputSendMs, inputRenderMs);
+      // medição do fechamento (tools/visual-compare/input-latency.mjs): só quando o script cria a lista
+      const probe = (globalThis as { __outgunInputLatency?: { send: number[]; render: number[] } }).__outgunInputLatency;
+      if (probe) {
+        probe.send.push(...inputSendMs);
+        probe.render.push(...inputRenderMs);
+      }
+      latencyBox.hidden = !client.showInputLatency;
+      if (client.showInputLatency) latencyBox.textContent = latency.text();
+      if (!net) return;
+      net.sample({ pingMs: s.pings.get(s.me), lagFrames: s.stats.averageLag, fps: ready ? app.ticker.FPS : 0, framesReceived: s.stats.framesReceived, corrections: s.stats.corrections, inputSendMs, inputRenderMs });
       if (++n % 300 === 0) flush();
     }, 1000);
     addEventListener('pagehide', flush);
@@ -480,7 +502,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     /** Lê a entrada: controles (com reenvio no meio do frame) e bordas de tiro e largar bandeira. */
     const readInput = (now: number) => {
       const s = input.sample();
-      session?.setControls(s.controls, now);
+      // tecla→envio e tecla→tela (OG-369); mudança sem tecla (gamepad) conta do momento da leitura
+      session?.setControls(s.controls, now, input.lastChangeAt > 0 && now - input.lastChangeAt < 1000 ? input.lastChangeAt : now);
       if (s.fire !== lastFire) session?.send(message('fire', { on: (lastFire = s.fire) }));
       if (s.dropFlag !== lastDrop) session?.send(message('dropFlag', { on: (lastDrop = s.dropFlag) }));
     };
@@ -719,6 +742,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     destroy() {
       destroyed = true;
       telemetry?.stop();
+      latencyBox.remove();
       clearTimeout(reconnectTimer);
       if (sendTimer !== null) clearTimeout(sendTimer);
       connection?.close();

@@ -216,6 +216,7 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               <SliderField label={t('Lag prediction amount')} value={prefs.lagPredictionAmount} min={0} max={10} disabled={!prefs.lagPrediction} onChange={(v) => setPrefs({ lagPredictionAmount: v })} />
               <SliderField label={t('Bandwidth for out-of-room players (cps)')} value={prefs.minimapBandwidth} min={0} max={640} step={20} onChange={(v) => setPrefs({ minimapBandwidth: v })} />
               {toggle('shareNetStats', 'Send anonymous network statistics')}
+              {toggle('showInputLatency', 'Show input latency')}
               {toggle('showFlagMessages', 'Show flag messages')}
               {toggle('showKillMessages', 'Show killing messages')}
               {select<ShowStats>('showStats', 'Show stats after the round', [
