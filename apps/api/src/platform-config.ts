@@ -27,6 +27,12 @@ export async function findPreset(db: Db, id: string): Promise<Preset | undefined
   return PRESETS.find((p) => p.id === id) ?? (await panelPresets(db)).find((p) => p.id === id);
 }
 
+/** Rotação Casual do painel (D-69); null = sem rotação no painel (vale a do servidor). */
+export async function casualRotation(db: Db): Promise<string[] | null> {
+  const [row] = await db.select({ maps: mapRotations.maps }).from(mapRotations).where(eq(mapRotations.key, 'casual'));
+  return row?.maps ?? null;
+}
+
 export async function platformConfig(db: Db): Promise<PlatformConfig> {
   const presets = (await panelPresets(db)).map(({ id, description, overrides }) => ({ id, description, overrides }));
   const rotations: PlatformConfig['rotations'] = {};

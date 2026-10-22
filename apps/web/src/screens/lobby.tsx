@@ -42,7 +42,8 @@ export interface RoomSummary {
 
 /** Intervalo da atualização da lista (critério: ≤ 5 s). */
 export const REFRESH_MS = 3000;
-const CASUAL_PRESETS = PRESETS.filter((p) => p.mode === 'casual').map((p) => p.id);
+/** Presets Casual do código, até a lista da API chegar (ela traz também os do painel, OG-365). */
+const CASUAL_PRESETS = PRESETS.filter((p) => p.mode === 'casual').map(({ id, description }) => ({ id, description }));
 
 /** Filtros do lobby: busca por nome ou mapa e esconder as lotadas. */
 export function filterRooms(rooms: readonly RoomSummary[], search: string, hideFull: boolean): RoomSummary[] {
@@ -302,9 +303,17 @@ export function CreateRoomScreen() {
   const [bots, setBots] = useState(prefs.casualBots);
   const [botLevel, setBotLevel] = useState(prefs.casualBotLevel);
   const [allMaps, setAllMaps] = useState<readonly string[]>([]);
+  const [presets, setPresets] = useState<readonly { id: string; description: string }[]>(CASUAL_PRESETS);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    void loadManifest().then((m) => m && setAllMaps(Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k)));
+    // presets do jogo e do painel (OG-365); mapas só da rotação Casual do painel, se houver (D-69)
+    api<{ presets: { id: string; description: string }[] }>('/presets').then(
+      (r) => setPresets(r.presets),
+      () => {},
+    );
+    void Promise.all([api<{ maps: string[] | null }>('/rotation').catch(() => ({ maps: null })), loadManifest()]).then(([rotation, m]) =>
+      setAllMaps(rotation.maps ?? (m ? Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k) : [])),
+    );
   }, []);
   const duel = preset === 'duel';
   const slots = duel ? 2 : maxPlayers;
@@ -339,8 +348,8 @@ export function CreateRoomScreen() {
           value={preset}
           onChange={setPreset}
           // nome curto do preset: o começo da descrição ("Clássico: ...")
-          options={CASUAL_PRESETS.map((id) => ({ value: id, label: PRESETS.find((p) => p.id === id)?.description.split(':')[0] ?? id }))}
-          hint={PRESETS.find((p) => p.id === preset)?.description}
+          options={presets.map((p) => ({ value: p.id, label: p.description.split(':')[0] || p.id }))}
+          hint={presets.find((p) => p.id === preset)?.description}
         />
         <TextField label={t('Password (optional)')} type="password" autoComplete="new-password" value={password} onChange={setPassword} maxLength={15} />
         <SliderField label={t('Players')} value={duel ? 2 : maxPlayers} min={2} max={32} step={2} disabled={duel} onChange={setMaxPlayers} />

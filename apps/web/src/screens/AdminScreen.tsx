@@ -131,8 +131,9 @@ export default function AdminScreen() {
           {tab === 'clans' && <ClansTab />}
           {tab === 'bans' && <BansTab isAdmin={isAdmin} />}
           {tab === 'audit' && <AuditTab />}
-          {tab === 'presets' && <PresetsTab isAdmin={isAdmin} />}
-          {tab === 'rotations' && <RotationsTab isAdmin={isAdmin} />}
+          {/* presets e rotações: moderador também edita (D-70) */}
+          {tab === 'presets' && <PresetsTab canEdit={allowed} />}
+          {tab === 'rotations' && <RotationsTab canEdit={allowed} />}
           {tab === 'roles' && isAdmin && <RolesTab />}
         </div>
       )}
@@ -542,7 +543,7 @@ function AuditTab() {
   );
 }
 
-function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
+function PresetsTab({ canEdit }: { canEdit: boolean }) {
   const { t } = usePrefs();
   const list = useLoad<{ presets: PresetRow[] }>('/admin/presets');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
@@ -592,7 +593,7 @@ function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
                 </td>
                 <td>{p.source === 'code' ? t('game') : p.version}</td>
                 <td>
-                  {isAdmin && p.source === 'panel' && (
+                  {canEdit && p.source === 'panel' && (
                     <>
                       <button type="button" onClick={() => setForm({ id: p.id, description: p.description, overrides: p.overrides })}>
                         {t('Edit')}
@@ -608,7 +609,7 @@ function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
           </tbody>
         </table>
       )}
-      {isAdmin && (
+      {canEdit && (
         <form className="admin-form" onSubmit={save}>
           <label>
             {t('Preset')} <input value={form.id} maxLength={32} onChange={(e) => setForm({ ...form, id: e.target.value.toLowerCase() })} />
@@ -635,7 +636,7 @@ interface RotationRow {
   version: number;
 }
 
-function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
+function RotationsTab({ canEdit }: { canEdit: boolean }) {
   const { t } = usePrefs();
   const list = useLoad<{ rotations: RotationRow[]; catalog: string[] }>('/admin/rotations');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
@@ -669,9 +670,9 @@ function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
       <div className="admin-form">
         <label className="admin-block">
           {t('Casual rotation (one map per line; empty = server default)')}
-          <textarea value={casual} rows={6} readOnly={!isAdmin} onChange={(e) => setCasualDraft(e.target.value)} />
+          <textarea value={casual} rows={6} readOnly={!canEdit} onChange={(e) => setCasualDraft(e.target.value)} />
         </label>
-        {isAdmin && (
+        {canEdit && (
           <button type="button" disabled={!casual.trim()} onClick={() => void saveCasual()}>
             {t('Save')}
           </button>
@@ -694,14 +695,14 @@ function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
               <td>{map}</td>
               {RANKED_FORMATS.map((f) => (
                 <td key={f}>
-                  <input type="checkbox" aria-label={`${map} ${f}`} checked={formatMaps(f).includes(map)} disabled={!isAdmin} onChange={() => toggle(f, map)} />
+                  <input type="checkbox" aria-label={`${map} ${f}`} checked={formatMaps(f).includes(map)} disabled={!canEdit} onChange={() => toggle(f, map)} />
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
-      {isAdmin && (
+      {canEdit && (
         <p className="admin-form">
           <button type="button" disabled={changed.length === 0 || changed.some((f) => formatMaps(f).length === 0)} onClick={() => void saveFormats()}>
             {t('Save')}

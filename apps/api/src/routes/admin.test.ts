@@ -156,7 +156,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['  '] })).json()).toMatchObject({ error: 'empty_rotation' });
     expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['outgun1', 'nao existe'] })).json()).toMatchObject({ error: 'unknown_map', message: 'unknown maps: nao existe' });
     expect((await call('PUT', '/admin/rotations/ranked:6x6', 'admin', { maps: ['outgun1'] })).statusCode).toBe(400);
-    expect((await call('PUT', '/admin/rotations/ranked:4x4', 'mod', { maps: ['The Blunt'] })).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/rotations/ranked:4x4', 'player', { maps: ['The Blunt'] })).statusCode).toBe(403);
     const before = await auditCount();
     expect((await call('PUT', '/admin/rotations/ranked:4x4', 'admin', { maps: ['The Blunt', 'outgun1', 'random_map 3 3'] })).json()).toMatchObject({ key: 'ranked:4x4', version: 1 });
     expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['outgun1'] })).json()).toMatchObject({ key: 'ranked:3x3', version: 1 });
@@ -188,5 +188,21 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     const audit = (await call('GET', '/admin/audit?limit=3', 'mod')).json().entries;
     expect(audit.map((e: { action: string }) => e.action)).toEqual(['role', 'role', 'unban']);
     expect(await t.db.select({ n: count() }).from(adminCommands)).toBeTruthy();
+  });
+
+  it('moderador edita presets e a rotação Casual; sala privada só escolhe mapas da rotação (OG-365, D-69, D-70)', async () => {
+    await t.db.update(gameServers).set({ maps: ['outgun1', 'gun dance', 'The Blunt'] }).where(eq(gameServers.id, 'gs-1'));
+    expect((await call('PUT', '/admin/presets/festival', 'player', { description: 'Festival', overrides: '' })).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/presets/festival', 'mod', { description: 'Festival: tudo liberado', overrides: 'rocket_damage 100' })).json()).toEqual({ id: 'festival', version: 1 });
+    expect(await lastAudit()).toMatchObject({ action: 'preset', details: { preset: 'festival' } });
+    // sem rotação Casual no painel: escolha livre
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: null });
+    expect((await call('POST', '/rooms', 'player', { name: 'Livre', preset: 'festival', maps: ['The Blunt'] })).statusCode).toBe(201);
+    expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] })).json()).toMatchObject({ key: 'casual', version: 1 });
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: ['outgun1', 'gun dance'] });
+    expect((await call('POST', '/rooms', 'player', { name: 'Fora', preset: 'festival', maps: ['The Blunt', 'outgun1'] })).json()).toMatchObject({ error: 'map_not_in_rotation', message: 'not in the casual rotation: The Blunt' });
+    const ok = await call('POST', '/rooms', 'player', { name: 'Dentro', preset: 'festival', maps: ['gun dance'] });
+    expect([ok.statusCode, ok.json().room.preset]).toEqual([201, 'festival']);
+    await t.db.update(gameServers).set({ maps: [] }).where(eq(gameServers.id, 'gs-1'));
   });
 });

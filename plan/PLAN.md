@@ -605,7 +605,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338, OG-339, OG-340 | |
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
-| S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem) | OG-355, OG-362, OG-363, OG-364 | |
+| S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -821,8 +821,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | S38 | OG-352 | Em revisão |
 | [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (quebrado em OG-362 a OG-364) | E12 | ~~8~~ | Could | S38 | OG-355 | Quebrado |
 | [OG-357](cards/OG-357-balanceamento-de-times-no-lobby.md) | Balanceamento dos times no lobby pelo rating | E12 | 5 | Could | — | OG-349 | Backlog |
+| [OG-365](cards/OG-365-presets-e-rotacao-na-criacao-de-sala.md) | Presets do painel e rotação oficial na criação de sala | E5 | 3 | Must | S38 | OG-087 | Em revisão |
+| [OG-366](cards/OG-366-envio-de-mapas-pelo-painel.md) | Envio de mapas .txt pelo painel de moderação | E5 | 5 | Should | S38 | OG-365 | Pronto |
+| [OG-367](cards/OG-367-mapas-da-comunidade-no-jogo.md) | Mapas do painel nos servidores, nas rotações e no cliente | E5 | 3 | Should | S38 | OG-366 | Pronto |
 
-**Total:** 206 cards, 684 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 137 cards, 389 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 209 cards, 695 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 140 cards, 400 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -911,6 +914,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-66 | **v2** — Ranking por score/neg, temporadas e hall da fama | Manter / substituir | ✅ **Decidido pelo PO em 2026-10-22:** o ranking por score/neg é **descontinuado** (dados guardados, só leitura); outubro/2026 é a última temporada dele. As temporadas mensais passam a ser um **leaderboard de atributos** individuais (estilo HLTV) que reinicia todo mês, para manter a competição acessível a novos jogadores; o hall da fama segue mensal, pelos 3 primeiros de cada stat principal. Ranking de clãs não muda. RN-LDB (OG-350 a OG-354) | PO |
 | D-67 | **v2** — Lista geral do mês | Rating OpenSkill / índice por percentis / quadro de medalhas | ✅ **Decidido pelo PO em 2026-10-22:** índice de 0 a 100 = soma de peso × percentil nos 6 stats principais; pesos sugeridos para um CTF (objetivo 60%, combate 40%): capturas 25%, abates 20%, devoluções 20%, tempo com bandeira 15%, K/D 10%, precisão 10%; selo de melhor do mês no hall da fama. RN-LDB-06 (OG-358) | PO |
 | D-68 | **v2** — Contadores novos na sim (OG-355) | — | ✅ **Decidido no OG-355 (2026-10-22), a partir do pedido do PO por stats de mais estilos de jogo:** `PlayerStats`/`PlayerResult` ganham `effectiveDamage` (soma de `min(dano, vida antes do acerto)` em inimigos; dano no shield não conta), `killsEnemyBase`/`killsOwnBase`/`killsMidfield` (sala da vítima; base = sala onde nasce uma bandeira do time; base inimiga tem precedência) e `defenses` (abate com bônus de defesa de portador ou de bandeira própria, uma vez por abate; o bônus de ataque não conta). Só contadores: frags, pontuação e física não mudam. Abates em bots entram nas zonas (o `botKills` é só o total). | Dev |
+| D-69 | **v2** — Rotação do painel nas salas Casual | Escolha livre / só da rotação / sempre a rotação | ✅ **Decidido pelo PO em 2026-10-22:** a rotação do painel é sempre respeitada: a sala privada escolhe mapas só entre os da rotação Casual (sem escolha = rotação inteira) e as salas abertas seguem a rotação nova na próxima troca de mapa. Sem rotação no painel, vale a do servidor e a escolha livre. Revisa RN-CFG-03. | PO |
+| D-70 | **v2** — Mapas da comunidade e permissões da moderação | Só por versão nova / moderador envia e admin aprova / moderador publica direto | ✅ **Decidido pelo PO em 2026-10-22:** moderadores enviam mapas .txt (formato do original) pelo painel e publicam direto, com validação pelo parser e auditoria; moderadores também criam/editam presets Casual e rotações (antes só admin). | PO |
 
 ---
 

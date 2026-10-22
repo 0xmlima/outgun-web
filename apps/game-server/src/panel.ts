@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Painel admin no game server (OG-087): os comandos chegam na resposta do heartbeat, são executados
 // na sala e a confirmação volta no heartbeat seguinte; a configuração (presets Casual e rotações
-// por modo) é aplicada quando a versão muda. Rotação nova vale nas salas da plataforma (fixas) a
-// partir da próxima troca de mapa e em toda sala aberta depois; salas privadas mantêm a sua.
+// por modo) é aplicada quando a versão muda. Rotação nova vale em toda sala do modo a partir da
+// próxima troca de mapa (D-69): a sala Casual que escolheu mapas fica com os que seguem na rotação.
 import type { GameMap } from '@outgun/sim';
 import type { CommandAck, HeartbeatReply, PanelHandlers } from './platform.js';
 import { setPanelPresets } from './presets.js';
 import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
-import { isRotationEntry, resolveRotation, type Rotations } from './maps.js';
+import { isRotationEntry, panelRotationKeys, resolveRotation, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
 import type { RoomManager } from './rooms.js';
 
@@ -60,11 +60,14 @@ export class AdminPanelLink implements PanelHandlers {
         continue;
       }
       this.options.rotations[key] = files;
-      // salas da plataforma e todas as Ranked (sempre com a rotação oficial do formato, RN-MOD-04)
+      panelRotationKeys.add(key);
+      // toda sala do modo (Ranked sempre com a rotação oficial do formato, RN-MOD-04; Casual que
+      // escolheu mapas fica com os que seguem na rotação, ou a rotação inteira se não sobrar nenhum)
       for (const h of this.options.manager.hosted()) {
         const room = this.options.manager.get(h.id);
-        if (!room || (!h.persistent && h.mode !== 'ranked') || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue;
-        room.setRotation(resolveRotation(files, this.options.map, this.options.generatedMaps));
+        if (!room || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue;
+        const chosen = h.mode === 'casual' ? withinRotation(this.options.manager.chosenMaps(h.id) ?? [], files) : [];
+        room.setRotation(resolveRotation(chosen.length > 0 ? chosen : files, this.options.map, this.options.generatedMaps));
       }
     }
     this.options.log?.('configuração do painel aplicada', { version: config.version, presets: config.presets.length });

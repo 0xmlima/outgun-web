@@ -300,7 +300,8 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         },
       },
       async (request, reply) => {
-        const user = await guard(request, reply, 'admin');
+        // moderador também cria e altera presets (D-70)
+        const user = await guard(request, reply, 'moderator');
         if (!user) return reply;
         const { id } = request.params;
         if (PRESETS.some((p) => p.id === id)) {
@@ -322,7 +323,7 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
     );
 
     app.delete('/presets/:id', { schema: { tags: ['admin'], summary: 'Desativa um preset Casual do painel', params: Type.Object({ id: PresetId }) } }, async (request, reply) => {
-      const user = await guard(request, reply, 'admin');
+      const user = await guard(request, reply, 'moderator');
       if (!user) return reply;
       const [current] = await db.select().from(casualPresets).where(and(eq(casualPresets.id, request.params.id), isNull(casualPresets.deletedAt)));
       if (!current) return reply.code(404).send({ error: 'not_found', message: 'no such panel preset' });
@@ -367,7 +368,7 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         },
       },
       async (request, reply) => {
-        const user = await guard(request, reply, 'admin');
+        const user = await guard(request, reply, 'moderator');
         if (!user) return reply;
         const { key } = request.params;
         const maps = [...new Set(request.body.maps.map((m) => m.trim()).filter(Boolean))];
