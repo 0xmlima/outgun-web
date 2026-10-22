@@ -100,6 +100,8 @@ const HeartbeatReply = Type.Object({
     version: Type.String(),
     presets: Type.Array(Type.Object({ id: Type.String(), description: Type.String(), overrides: Type.String() })),
     rotations: Type.Object(Object.fromEntries(ROTATION_KEYS.map((k) => [k, Type.Optional(Type.Array(Type.String()))])) as Record<RotationKey, TOptional<TArray<TString>>>),
+    /** Mapas publicados pela moderação (OG-367): nome e CRC; o texto sai de `GET /maps/:name`. */
+    maps: Type.Array(Type.Object({ name: Type.String(), crc: Type.Integer() })),
   }),
 });
 

@@ -7,13 +7,15 @@ import { PRESETS, type Preset, type RotationKey } from '@outgun/settings';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import type { Db } from './db/client.js';
-import { adminCommands, bans, casualPresets, mapRotations, users } from './db/schema.js';
+import { adminCommands, bans, casualPresets, mapRotations, panelMaps, users } from './db/schema.js';
 
 export interface PlatformConfig {
   /** Muda quando qualquer preset ou rotação muda (o game server só reaplica se mudar). */
   version: string;
   presets: { id: string; description: string; overrides: string }[];
   rotations: Partial<Record<RotationKey, string[]>>;
+  /** Mapas publicados pela moderação (OG-367): o game server baixa o texto que não tem. */
+  maps: { name: string; crc: number }[];
 }
 
 /** Presets Casual do painel ainda ativos. */
@@ -37,8 +39,9 @@ export async function platformConfig(db: Db): Promise<PlatformConfig> {
   const presets = (await panelPresets(db)).map(({ id, description, overrides }) => ({ id, description, overrides }));
   const rotations: PlatformConfig['rotations'] = {};
   for (const r of await db.select().from(mapRotations)) rotations[r.key] = r.maps;
-  const version = createHash('sha256').update(JSON.stringify({ presets, rotations })).digest('hex').slice(0, 16);
-  return { version, presets, rotations };
+  const maps = await db.select({ name: panelMaps.name, crc: panelMaps.crc }).from(panelMaps).where(isNull(panelMaps.deletedAt)).orderBy(asc(panelMaps.name));
+  const version = createHash('sha256').update(JSON.stringify({ presets, rotations, maps })).digest('hex').slice(0, 16);
+  return { version, presets, rotations, maps };
 }
 
 export interface CommandForServer {

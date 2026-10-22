@@ -125,6 +125,8 @@ export interface RoomOptions {
    */
   randomSlots?: readonly (RandomMapParams | null)[] | undefined;
   generatedMaps?: GeneratedMaps | undefined;
+  /** Texto dos mapas da moderação (OG-367), para o replay levar o mapa. */
+  mapText?: ((file: string) => string | undefined) | undefined;
   /** Relógio em ms para medir quando os inputs chegam dentro do frame (padrão `performance.now`). */
   now?: () => number;
   /** Auditoria das ações de admin (OG-046): o servidor manda para a API. */
@@ -1510,7 +1512,8 @@ export class Room {
   /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
   private startRecording(): void {
     const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
-    const mapText = this.options.generatedMaps?.text(this.mapFile(this.mapIndex));
+    const file = this.mapFile(this.mapIndex);
+    const mapText = this.options.generatedMaps?.text(file) ?? this.options.mapText?.(file);
     this.recorder = new ReplayRecorder(
       {
         roomId: this.id,
@@ -1518,7 +1521,7 @@ export class Room {
         preset: this.preset.id,
         map: this.mapFile(this.mapIndex),
         mapTitle: this.world.map.title,
-        // mapa gerado (OG-015): o texto vai no replay, porque não existe em maps/
+        // mapa gerado (OG-015) ou da moderação (OG-367): o texto vai no replay, porque não existe em maps/
         ...(mapText !== undefined ? { mapText } : {}),
         maxPlayers: this.world.maxPlayers,
         startedAt: new Date(this.wallClock()).toISOString(),

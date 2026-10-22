@@ -38,6 +38,8 @@ export interface ServerOptions {
   replays?: ReplayStore;
   /** Mapas gerados da rotação (OG-015), servidos em /maps/mapgen_<n>.txt para o cliente baixar. */
   generatedMaps?: GeneratedMaps;
+  /** Mapas da moderação (OG-367), servidos em /maps/<nome>.txt em Latin-1. */
+  panelMaps?: { text(name: string): string | undefined };
   /** Métricas (OG-102); sem elas, o servidor cria as suas. */
   telemetry?: GameTelemetry;
   /** Exige `Authorization: Bearer <token>` em /metrics. */
@@ -311,14 +313,25 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
     res.writeHeader('content-type', 'application/json').end(JSON.stringify(rooms));
   });
 
-  if (options.generatedMaps) {
-    const generated = options.generatedMaps;
+  if (options.generatedMaps || options.panelMaps) {
+    const { generatedMaps: generated, panelMaps } = options;
     const mapText = (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
       if (elsewhere(res, req)) return;
-      const m = /^(mapgen_\d+)\.txt$/.exec(segment(req, 'maps'));
-      const text = m ? generated.text(m[1] as string) : undefined;
-      if (text === undefined) return void res.writeStatus('404 Not Found').writeHeader('access-control-allow-origin', '*').end();
-      res.writeHeader('access-control-allow-origin', '*').writeHeader('content-type', 'text/plain; charset=utf-8').writeHeader('cache-control', 'public, max-age=3600').end(text);
+      let file = '';
+      try {
+        file = decodeURIComponent(segment(req, 'maps'));
+      } catch {
+        // nome mal codificado: 404
+      }
+      const m = /^(.+)\.txt$/.exec(file);
+      const name = m?.[1] ?? '';
+      // gerado (OG-015) ou da moderação (OG-367); o da moderação vai em Latin-1 e pode mudar de versão
+      const generatedText = /^mapgen_\d+$/.test(name) ? generated?.text(name) : undefined;
+      const panelText = generatedText === undefined && name ? panelMaps?.text(name) : undefined;
+      if (generatedText === undefined && panelText === undefined) return void res.writeStatus('404 Not Found').writeHeader('access-control-allow-origin', '*').end();
+      res.writeHeader('access-control-allow-origin', '*');
+      if (generatedText !== undefined) res.writeHeader('content-type', 'text/plain; charset=utf-8').writeHeader('cache-control', 'public, max-age=3600').end(generatedText);
+      else res.writeHeader('content-type', 'text/plain; charset=iso-8859-1').writeHeader('cache-control', 'no-cache').end(Buffer.from(panelText!, 'latin1'));
     };
     app.get('/maps/:file', mapText);
     app.get('/m/:machine/maps/:file', mapText);

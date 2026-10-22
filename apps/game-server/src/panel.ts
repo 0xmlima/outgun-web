@@ -9,6 +9,7 @@ import { setPanelPresets } from './presets.js';
 import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
 import { isRotationEntry, panelRotationKeys, resolveRotation, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
+import type { PanelMaps } from './panel-maps.js';
 import type { RoomManager } from './rooms.js';
 
 export interface PanelOptions {
@@ -18,12 +19,15 @@ export interface PanelOptions {
   map: (file: string) => GameMap | undefined;
   /** Para as entradas `random_map` (OG-015). */
   generatedMaps?: GeneratedMaps;
+  /** Mapas da moderação (OG-367): baixados antes de aplicar as rotações que os usam. */
+  panelMaps?: PanelMaps;
   log?: (line: string, fields?: Record<string, unknown>) => void;
 }
 
 export class AdminPanelLink implements PanelHandlers {
   private acks: CommandAck[] = [];
   private configVersion = '';
+  private downloading = false;
 
   constructor(private readonly options: PanelOptions) {}
 
@@ -44,7 +48,21 @@ export class AdminPanelLink implements PanelHandlers {
       this.acks.push({ id: cmd.id, ...result });
       this.options.log?.('comando do painel', { room: cmd.roomId, kind: cmd.kind, actor: cmd.actor, ok: result.ok, ...(result.target ? { target: result.target.name } : {}) });
     }
-    if (reply.config.version !== this.configVersion) this.applyConfig(reply.config);
+    if (reply.config.version === this.configVersion || this.downloading) return;
+    const store = this.options.panelMaps;
+    const maps = reply.config.maps ?? [];
+    if (!store || !store.needs(maps)) {
+      void store?.sync(maps); // só tira os que saíram: nada a baixar
+      return this.applyConfig(reply.config);
+    }
+    // mapas novos da moderação: baixa antes, para a rotação que os usa já encontrá-los
+    this.downloading = true;
+    void store.sync(maps).then((failed) => {
+      this.downloading = false;
+      if (failed.length > 0) this.options.log?.('mapas da moderação não baixados: tenta no próximo heartbeat', { maps: failed });
+      this.applyConfig(reply.config);
+      if (failed.length > 0) this.configVersion = '';
+    });
   }
 
   private applyConfig(config: HeartbeatReply['config']): void {

@@ -22,6 +22,8 @@ export interface SpawnerOptions {
   log?: (line: string) => void;
   /** Mapas gerados para as entradas `random_map` (OG-015). */
   generatedMaps?: GeneratedMaps;
+  /** Busca de mapas por nome; padrão: só a pasta (a do `main` inclui os da moderação, OG-367). */
+  map?: (name: string) => GameMap | undefined;
 }
 
 /** Mapas da pasta por nome, com cache (nomes com barra ou inexistentes dão undefined). */
@@ -41,7 +43,7 @@ export function mapLoader(mapsDir: string): (name: string) => GameMap | undefine
 }
 
 export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id: string, spec: RoomSpawn) => Room | undefined {
-  const map = mapLoader(options.mapsDir);
+  const map = options.map ?? mapLoader(options.mapsDir);
 
   return (id, spec) => {
     const preset = findPreset(spec.preset);

@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Mapa fora dos assets (moderação, OG-367): baixado do game server, em Latin-1.
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../assets.js', () => ({ ASSETS: '/assets/', loadManifest: async () => ({ maps: {} }) }));
+const { loadMap, serverOnlyMap } = await import('./map-loader.js');
+
+const TEXT = 'P width 1\nP height 1\nP title Teste\nP author Moderação\nS 16 12\nflag 0 0 0 1 1\nspawn 0 0 0 8 6\nflag 1 0 0 15 11\nspawn 1 0 0 8 3\n';
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('mapa da moderação no cliente (OG-367)', () => {
+  it('fora do manifesto: baixa do game server e lê byte a byte', async () => {
+    const fetch = vi.fn(async () => new Response(Uint8Array.from(TEXT, (c) => c.charCodeAt(0))));
+    vi.stubGlobal('fetch', fetch);
+    const { map } = await loadMap('mapa novo', { base: 'https://gs.example/gs' });
+    expect(fetch).toHaveBeenCalledWith('https://gs.example/gs/maps/mapa%20novo.txt');
+    expect([map.title, map.author]).toEqual(['Teste', 'Moderação']);
+    expect(await serverOnlyMap('mapa novo')).toBe(true);
+  });
+
+  it('sem servidor e fora do manifesto: erro', async () => {
+    await expect(loadMap('mapa novo')).rejects.toThrow('mapa não encontrado');
+  });
+});

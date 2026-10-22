@@ -3,7 +3,6 @@
 // laço de quadros e o estado da vista ficam aqui. Três modos: partida no servidor (padrão, OG-064),
 // partida local de demonstração (`demoPlayers`) e visualizador de mapa (setas trocam de sala,
 // PageUp/PageDown mudam quantas salas aparecem).
-import { parseMapFile } from '@outgun/content';
 import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
 import { message, type AnyMessage } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
@@ -11,6 +10,7 @@ import { Application, Assets, TilingSprite, type BitmapFont, type Texture } from
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
+import { loadMap } from './map-loader.js';
 import { LocalDemo } from './demo.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
@@ -35,6 +35,8 @@ import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme, type RoomTheme } from './render/theme.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
+
+export { GENERATED_MAP, loadMap } from './map-loader.js';
 
 export type LobbyAction = Extract<AnyMessage, { type: 'lobbyReady' | 'lobbyVote' | 'lobbySide' | 'lobbySwapAnswer' }>;
 
@@ -156,35 +158,11 @@ export type GameStatus =
 /** Primeiro mapa da rotação padrão (`maps/`) quando nenhum é pedido. */
 export const DEFAULT_MAP = 'coliseu';
 
-/** Mapa gerado na hora pelo servidor (`random_map`, OG-015). */
-export const GENERATED_MAP = /^mapgen_\d+$/;
-
 /** Base HTTP do game server a partir do endereço WebSocket de uma sala (`wss://h/gs/rooms/x` → `https://h/gs`). */
 export function serverHttpBase(roomUrl: string): string {
   return roomUrl.replace(/^ws/, 'http').replace(/\/rooms\/[^/]+(\/spectate)?$/, '');
 }
 
-/**
- * Mapa pelo nome: dos assets (`maps/`), ou — gerado na hora (OG-015) — do texto já recebido (replay)
- * ou baixado do game server em `<base>/maps/<nome>.txt`.
- */
-export async function loadMap(name: string, source: { text?: string | undefined; base?: string | undefined } = {}): Promise<{ map: GameMap; bytes: Uint8Array }> {
-  let bytes: Uint8Array;
-  if (source.text !== undefined) bytes = new TextEncoder().encode(source.text);
-  else if (GENERATED_MAP.test(name) && source.base) {
-    const res = await fetch(`${source.base}/maps/${name}.txt`);
-    if (!res.ok) throw new Error(`mapa gerado não encontrado: ${name}`);
-    bytes = new Uint8Array(await res.arrayBuffer());
-  } else {
-    const manifest = await loadManifest();
-    const entry = manifest?.maps[name];
-    if (!entry) throw new Error(`mapa não encontrado: ${name}`);
-    bytes = new Uint8Array(await (await fetch(ASSETS + entry.file)).arrayBuffer());
-  }
-  const result = parseMapFile(name, bytes);
-  if (!result.ok) throw new Error(result.errors.join('\n'));
-  return { map: result.map, bytes };
-}
 
 /** Vista do `client.cfg` distribuído: sem rolagem, vista passa da borda só em mapas que dão a volta. */
 /** Vista do jogador (`viewTopLeft`): rolagem, borda e repetição das opções gráficas, "dá a volta" do mapa. */

@@ -8,6 +8,7 @@ import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
+import { decodeMapFile } from '@outgun/content';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
 
 type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'invites' | 'roles';
@@ -652,7 +653,7 @@ export function mapFileText(bytes: Uint8Array): string {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
-    return new TextDecoder('latin1').decode(bytes);
+    return decodeMapFile(bytes); // byte a byte (o TextDecoder 'latin1' do navegador é o windows-1252)
   }
 }
 
