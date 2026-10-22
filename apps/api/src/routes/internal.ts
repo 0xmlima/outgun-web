@@ -26,6 +26,10 @@ const Heartbeat = Type.Object({
     maxRooms: Type.Integer({ minimum: 0, maximum: 1000 }),
     /** Mapas da pasta do servidor, para o painel conferir as rotações (OG-251). */
     maps: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 64 }), { maxItems: 500 })),
+    /** Rotações padrão do servidor por chave (OG-378): o painel parte delas sem rotação salva. */
+    rotations: Type.Optional(
+      Type.Object(Object.fromEntries(ROTATION_KEYS.map((k) => [k, Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 64 }), { maxItems: 64 }))])) as Record<RotationKey, TOptional<TArray<TString>>>),
+    ),
   }),
   rooms: Type.Array(
     Type.Object({
@@ -307,7 +311,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         const { server, rooms: hosted } = request.body;
         await database.db.transaction(async (tx) => {
           const players = hosted.reduce((n, r) => n + r.players, 0);
-          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now, ...(server.maps ? { maps: server.maps } : {}) };
+          const status = { wsBaseUrl: server.wsBaseUrl, region: server.region, maxRooms: server.maxRooms, rooms: hosted.length, players, lastHeartbeatAt: now, ...(server.maps ? { maps: server.maps } : {}), ...(server.rotations ? { rotations: server.rotations } : {}) };
           await tx.insert(gameServers).values({ id: serverId, ...status }).onConflictDoUpdate({ target: gameServers.id, set: status });
           for (const r of hosted) {
             // Salas novas (as persistentes do próprio servidor) são criadas; nas existentes, só o

@@ -49,9 +49,9 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     { uid: 7, name: 'Visita*', team: 0, bot: false, muted: 0 },
     { uid: 8, name: 'BOT Taywor', team: 1, bot: true, muted: 0 },
   ];
-  const heartbeat = (acks: unknown[] = []) => {
+  const heartbeat = (acks: unknown[] = [], server: Record<string, unknown> = {}) => {
     const body = JSON.stringify({
-      server: { wsBaseUrl: 'ws://gs-1.test', region: 'eu', maxRooms: 10 },
+      server: { wsBaseUrl: 'ws://gs-1.test', region: 'eu', maxRooms: 10, ...server },
       rooms: [{ id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 2, map: 'outgun1', wsUrl: 'ws://gs-1.test/rooms/main', roster }],
       acks,
     });
@@ -151,6 +151,14 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('DELETE', '/admin/presets/sniper', 'admin')).statusCode).toBe(204);
     expect((await heartbeat()).json().config.presets.map((p: { id: string }) => p.id)).not.toContain('sniper');
     expect((await call('GET', '/admin/presets/sniper/versions', 'mod')).json().versions[0]).toMatchObject({ version: 3, deleted: true, changedBy: 'Admin' });
+  });
+
+  it('heartbeat traz as rotações padrão do servidor e o painel parte delas (OG-378)', async () => {
+    expect((await heartbeat([], { rotations: { casual: ['outgun1', 'gun dance'], ranked: ['outgun1'] } })).statusCode).toBe(200);
+    expect((await call('GET', '/admin/rotations', 'mod')).json().server).toEqual({ casual: ['outgun1', 'gun dance'], ranked: ['outgun1'] });
+    // servidor antigo (sem o campo) não apaga as que já informou
+    await heartbeat();
+    expect((await call('GET', '/admin/rotations', 'mod')).json().server.casual).toEqual(['outgun1', 'gun dance']);
   });
 
   it('rotação Ranked por formato (OG-251): formato vazio e mapa inexistente recusados, mudança auditada e no heartbeat', async () => {

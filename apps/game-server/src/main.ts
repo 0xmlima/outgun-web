@@ -182,7 +182,7 @@ const server = await startServer({
 if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 // o heartbeat lê este objeto a cada envio: na drenagem, maxRooms 0 tira o servidor da escolha da API
-const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms, maps: listMaps(mapsDir) };
+const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms, maps: listMaps(mapsDir), rotations: { casual: [...rotations.casual], ranked: [...rotations.ranked] } };
 const panel = new AdminPanelLink({ manager, rotations, map: mapFile, generatedMaps, panelMaps, log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
 if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted(), 3000, panel);
 

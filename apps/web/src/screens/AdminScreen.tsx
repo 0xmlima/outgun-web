@@ -662,8 +662,21 @@ export function mapFileText(bytes: Uint8Array): string {
 function MapsTab() {
   const { t } = usePrefs();
   const list = useLoad<{ maps: PanelMapRow[] }>('/admin/maps');
+  const rotations = useLoad<RotationsData>('/admin/rotations');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
   const [form, setForm] = useState({ name: '', text: '' });
+  // atalho (OG-378): põe o mapa publicado na rotação em uso, sem redigitar os outros
+  const RANKED_KEYS = RANKED_FORMATS.map((f) => `ranked:${f}`);
+  const inCasual = (name: string) => rotationInUse(rotations.data, 'casual').maps.includes(name);
+  const inRanked = (name: string) => RANKED_KEYS.every((k) => rotationInUse(rotations.data, k).maps.includes(name));
+  const add = (name: string, keys: string[]) =>
+    keys.reduce<Promise<unknown>>((p, k) => p.then(() => addToRotation(rotations.data, k, name)), Promise.resolve()).then(
+      () => {
+        setStatus({ text: t('Rotation saved. It applies from the next map change.') });
+        rotations.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
   const [check, setCheck] = useState<{ ok: boolean; errors: string[]; preview?: { title: string; author: string; width: number; height: number } | null } | null>(null);
   // prévia do arquivo antes de publicar (OG-368): desenhada do texto, com o mesmo parser
   const draft = useMemo(() => {
@@ -728,6 +741,16 @@ function MapsTab() {
                 <td>{m.active ? m.version : t('inactive')}</td>
                 <td className="name">{m.updatedBy ?? '-'}</td>
                 <td>
+                  {m.active && rotations.data && !inCasual(m.name) && (
+                    <button type="button" onClick={() => void add(m.name, ['casual'])}>
+                      {t('Add to Casual')}
+                    </button>
+                  )}{' '}
+                  {m.active && rotations.data && !inRanked(m.name) && (
+                    <button type="button" onClick={() => void add(m.name, RANKED_KEYS)}>
+                      {t('Add to Ranked')}
+                    </button>
+                  )}{' '}
                   {m.active && (
                     <button type="button" onClick={() => void remove(m.name)}>
                       {t('Deactivate')}
@@ -790,16 +813,37 @@ interface RotationRow {
   version: number;
 }
 
+interface RotationsData {
+  rotations: RotationRow[];
+  /** Rotações padrão do servidor (OG-378): valem enquanto o painel não salva a sua. */
+  server?: Partial<Record<string, string[]>>;
+  catalog: string[];
+}
+
+/** Rotação em uso numa chave (OG-378): a do painel; sem ela, a do servidor (formato do Ranked cai na `ranked`). */
+function rotationInUse(data: RotationsData | undefined, key: string): { maps: string[]; fromServer: boolean } {
+  const saved = (k: string) => data?.rotations.find((r) => r.key === k)?.maps;
+  const fallback = key.startsWith('ranked:') ? 'ranked' : undefined;
+  const panel = saved(key) ?? (fallback && saved(fallback));
+  if (panel) return { maps: panel, fromServer: false };
+  return { maps: data?.server?.[key] ?? (fallback && data?.server?.[fallback]) ?? [], fromServer: true };
+}
+
+/** Acrescenta um mapa à rotação em uso e salva, sem tirar os outros (OG-378). */
+function addToRotation(data: RotationsData | undefined, key: string, map: string) {
+  const { maps } = rotationInUse(data, key);
+  return maps.includes(map) ? Promise.resolve() : api(`/admin/rotations/${key}`, { method: 'PUT', body: { maps: [...maps, map] } });
+}
+
 function RotationsTab({ canEdit }: { canEdit: boolean }) {
   const { t } = usePrefs();
-  const list = useLoad<{ rotations: RotationRow[]; catalog: string[] }>('/admin/rotations');
+  const list = useLoad<RotationsData>('/admin/rotations');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
   const [casualDraft, setCasualDraft] = useState<string | undefined>();
   const [formatDrafts, setFormatDrafts] = useState<Partial<Record<RankedFormat, string[]>>>({});
-  const saved = (key: string) => list.data?.rotations.find((r) => r.key === key)?.maps;
-  const casual = casualDraft ?? saved('casual')?.join('\n') ?? '';
-  // sem rotação do formato no painel, vale a `ranked` (a do servidor, se também faltar)
-  const formatMaps = (f: RankedFormat) => formatDrafts[f] ?? saved(`ranked:${f}`) ?? saved('ranked') ?? [];
+  // os rascunhos partem da rotação em uso (OG-378): acrescentar um mapa mantém os outros
+  const casual = casualDraft ?? rotationInUse(list.data, 'casual').maps.join('\n');
+  const formatMaps = (f: RankedFormat) => formatDrafts[f] ?? rotationInUse(list.data, `ranked:${f}`).maps;
   const rows = [...new Set([...(list.data?.catalog ?? []), ...RANKED_FORMATS.flatMap(formatMaps)])];
   const toggle = (f: RankedFormat, map: string) => {
     const maps = formatMaps(f);
@@ -823,7 +867,8 @@ function RotationsTab({ canEdit }: { canEdit: boolean }) {
       <Status text={status.text} error={status.error ?? list.error} />
       <div className="admin-form">
         <label className="admin-block">
-          {t('Casual rotation (one map per line; empty = server default)')}
+          {t('Casual rotation (one map per line)')}
+          {list.data && rotationInUse(list.data, 'casual').fromServer && <small> {t('(server default)')}</small>}
           <textarea value={casual} rows={6} readOnly={!canEdit} onChange={(e) => setCasualDraft(e.target.value)} />
         </label>
         {canEdit && (
@@ -832,7 +877,10 @@ function RotationsTab({ canEdit }: { canEdit: boolean }) {
           </button>
         )}
       </div>
-      <h3>{t('Ranked rotation by format')}</h3>
+      <h3>
+        {t('Ranked rotation by format')}
+        {list.data && RANKED_FORMATS.some((f) => rotationInUse(list.data, `ranked:${f}`).fromServer) && <small> {t('(server default)')}</small>}
+      </h3>
       {list.data && list.data.catalog.length === 0 && <p>{t('No game server has reported its maps yet; only the maps already in the rotations are listed.')}</p>}
       <table className="stats-table wide">
         <thead>

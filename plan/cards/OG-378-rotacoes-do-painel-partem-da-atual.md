@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S40 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-365 |
 | Regras de negócio | D-69, D-70 |
 | Skills | `outgun-card-workflow` |
@@ -26,8 +26,10 @@ Como moderador, quero ver na aba Rotações os mapas que estão valendo hoje e s
 - Mapa publicado na aba Mapas mostra um atalho "adicionar à rotação Casual / Ranqueado".
 
 ## Critérios de aceite
-- [ ] Sem rotação salva, a aba mostra os mapas do servidor marcados; acrescentar um mapa e salvar mantém os outros.
-- [ ] Teste da API cobre o heartbeat com as rotações.
+- [x] Sem rotação salva, a aba mostra os mapas do servidor marcados; acrescentar um mapa e salvar mantém os outros.
+- [x] Teste da API cobre o heartbeat com as rotações.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Heartbeat manda `server.rotations` (as de `ROTATION`/`RANKED_ROTATION`, copiadas no boot); a API grava em `game_servers.rotations` (migração 0034) e `GET /admin/rotations` devolve `server` (o do último heartbeat).
+- Painel: `rotationInUse` = do painel → do servidor (formato cai na `ranked`), com selo "(padrão do servidor)". Na aba Mapas, "Pôr na Casual"/"Pôr no Ranqueado" (este grava os três formatos).
+- A grade por modo fica no OG-383.

@@ -836,7 +836,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S40 | OG-370 | Pronto |
 | [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | — | OG-370 | Backlog |
 | [OG-377](cards/OG-377-mapas-do-painel-na-criacao-de-sala.md) | Mapas do painel em "Criar sala" quando não há rotação Casual no painel | E5 | 1 | Must | S40 | OG-367 | Em revisão |
-| [OG-378](cards/OG-378-rotacoes-do-painel-partem-da-atual.md) | Aba Rotações parte da rotação que está valendo | E5 | 2 | Must | S40 | OG-365 | Pronto |
+| [OG-378](cards/OG-378-rotacoes-do-painel-partem-da-atual.md) | Aba Rotações parte da rotação que está valendo | E5 | 2 | Must | S40 | OG-365 | Em revisão |
 | [OG-379](cards/OG-379-fim-de-partida-zerado.md) | Fim de partida com os números zerados no Casual | E12 | 2 | Must | S39 | OG-344 | Concluído |
 | [OG-380](cards/OG-380-relatorio-no-visual-v2.md) | Relatório da partida no visual novo, com os marcadores novos à vista | E9 | 3 | Should | S40 | OG-355, OG-364 | Pronto |
 | [OG-381](cards/OG-381-eventos-tambem-no-casual.md) | Registro de eventos também nas partidas Casual | E12 | 3 | Should | S39 | OG-362 | Concluído |

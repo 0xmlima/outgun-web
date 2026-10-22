@@ -453,11 +453,21 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       return builtin.length === 0 ? [] : [...new Set([...builtin, ...(await activePanelMaps())])].sort((a, b) => a.localeCompare(b));
     };
 
-    app.get('/rotations', { schema: { tags: ['admin'], summary: 'Rotações de mapas do painel (sem linha = a do servidor) e os mapas que os servidores têm' } }, async (request, reply) => {
-      if (!(await guard(request, reply, 'moderator'))) return reply;
-      const rows = await db.select().from(mapRotations);
-      return { rotations: rows.map((r) => ({ key: r.key, maps: r.maps, version: r.version, updatedAt: r.updatedAt.toISOString() })), catalog: await mapCatalog() };
-    });
+    app.get(
+      '/rotations',
+      { schema: { tags: ['admin'], summary: 'Rotações de mapas do painel (sem linha = a do servidor), as padrão do servidor (OG-378) e os mapas que os servidores têm' } },
+      async (request, reply) => {
+        if (!(await guard(request, reply, 'moderator'))) return reply;
+        const rows = await db.select().from(mapRotations);
+        // padrão do servidor: a do que deu sinal por último (todos sobem com o mesmo ROTATION)
+        const [latest] = await db.select({ rotations: gameServers.rotations }).from(gameServers).orderBy(desc(gameServers.lastHeartbeatAt)).limit(1);
+        return {
+          rotations: rows.map((r) => ({ key: r.key, maps: r.maps, version: r.version, updatedAt: r.updatedAt.toISOString() })),
+          server: latest?.rotations ?? {},
+          catalog: await mapCatalog(),
+        };
+      },
+    );
 
     app.put(
       '/rotations/:key',
