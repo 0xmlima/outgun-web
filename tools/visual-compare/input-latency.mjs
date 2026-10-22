@@ -4,7 +4,8 @@
 // partida com bots e repete sequências de teclas (diagonal, Alt + diagonal, trocas rápidas) com
 // atrasos humanos entre as teclas. Mede tecla→envio e tecla→tela no cliente e a espera até o tick
 // e as mudanças sobrescritas no servidor (/metrics). Grava um JSON para comparar versões.
-// Uso (depois de `pnpm build`): node tools/visual-compare/input-latency.mjs [--fps 30] [--out arquivo.json]
+// Também lê o tempo de CPU por quadro do cliente (`data-frame-ms`, OG-374): p50/p95/p99.
+// Uso (depois de `pnpm build`): node tools/visual-compare/input-latency.mjs [--fps 30] [--bots 15] [--out arquivo.json]
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -22,6 +23,7 @@ const arg = (name, fallback) =>
   process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : fallback;
 const FPS = Number(arg('--fps', '0'));
 const ROUNDS = Number(arg('--rounds', '40'));
+const BOTS = arg('--bots', '4');
 const OUT = arg('--out', `${repo}tools/parity/out/input-latency/latency-fps${FPS || 'max'}.json`);
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -63,7 +65,7 @@ const children = [
       ROTATION: 'outgun1',
       SEED: '1',
       REPLAYS: '0',
-      CASUAL_BOTS_FILL: '4',
+      CASUAL_BOTS_FILL: BOTS,
       MAX_CONNECTIONS_PER_IP: '0',
       LOG_LEVEL: 'warn',
       GAMEMOD: ['idlekick_time 0', 'time_limit 30'].join('|'),
@@ -227,13 +229,18 @@ try {
     overwritten: (await counter('outgun_input_overwritten_total')) - overwrittenBefore,
   };
   console.log('servidor', JSON.stringify(server));
+  const [p50, p95, p99] = (await page.evaluate(() => document.querySelector('[data-frame-ms]')?.dataset.frameMs ?? '')).split(',').map(Number);
+  const frameMs = { p50, p95, p99 };
+  console.log('quadro (ms de CPU)', JSON.stringify(frameMs));
   const report = {
     date: new Date().toISOString(),
     fpsLimit: FPS || 'sem limite',
     rounds: ROUNDS,
+    bots: Number(BOTS),
     version: JSON.parse(readFileSync(`${repo}package.json`, 'utf8')).version,
     client: results,
     server,
+    frameMs,
   };
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, JSON.stringify(report, null, 2));
