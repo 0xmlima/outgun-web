@@ -203,6 +203,7 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
           JOIN matches m ON m.id = e.match_id
           CROSS JOIN LATERAL jsonb_array_elements(e.events) ev
           WHERE ev ->> 1 = 'kill'
+            AND m.ranked -- o perfil segue só com as ranqueadas (os eventos do Casual são do relatório, D-75)
             AND e.match_id IN (SELECT match_id FROM match_event_players WHERE user_id = ${userId})
             ${period === 'month' ? sql`AND m.ended_at >= date_trunc('month', now())` : sql``}
         )

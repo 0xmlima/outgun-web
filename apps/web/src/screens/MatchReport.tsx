@@ -33,6 +33,10 @@ const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
   ['Kills (own base)', (p) => p.stats.killsOwnBase ?? '—'],
   ['Kills (midfield)', (p) => p.stats.killsMidfield ?? '—'],
   ['Defenses', (p) => p.stats.defenses ?? '—'],
+  // OG-363 (e no Casual desde o OG-381): ausentes nas partidas sem registro de eventos
+  ['Multi-kills', (p) => p.stats.multiKills ?? '—'],
+  ['Trades', (p) => p.stats.trades ?? '—'],
+  ['First kills', (p) => p.stats.firstKills ?? '—'],
   ['Carry time', (p) => clock(p.stats.flagCarryingTime ?? 0)],
   ['Cons. kills', (p) => p.stats.consecutiveKills ?? 0],
   ['Cons. deaths', (p) => p.stats.consecutiveDeaths ?? 0],

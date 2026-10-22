@@ -288,7 +288,7 @@ export class Room {
   private substitutes = 0;
   /** Desconexões permanentes deste jogo, para o relatório (OG-263). */
   private substitutions: Substitution[] = [];
-  /** Eventos do jogo Ranked (OG-362): só vão no relatório da ranqueada. */
+  /** Eventos do jogo (OG-362; também no Casual desde o OG-381, D-75): vão no relatório da partida. */
   private readonly events = new MatchEventRecorder((pid) => {
     const c = this.clients.get(pid);
     return c ? { slot: pid, ...(c.identity.accountId ? { userId: c.identity.accountId } : {}), name: c.identity.name, team: this.world.teamOf(pid) as 0 | 1, bot: c.bot } : null;
@@ -382,7 +382,7 @@ export class Room {
         const killer = this.clients.get(attacker & 31);
         if (killer && (attacker & 31) !== target && this.clients.get(target)?.bot) killer.botKills++;
         const victim = this.world.players[target];
-        if (this.mode === 'ranked' && victim) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
+        if (victim) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended }));
       },
       suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
@@ -1121,27 +1121,13 @@ export class Room {
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
       this.sim.simulateFrame();
-      for (const [pid, c] of this.clients) {
-        const pl = world.players[pid] as PlayerState;
-        const frags = pl.stats.frags;
-        if (frags !== c.sentFrags) {
-          c.sentFrags = frags;
-          this.broadcast(message('frags', { pid, frags }));
-        }
-        const key = statsKey(pl);
-        if (key !== c.sentStats) {
-          c.sentStats = key;
-          this.broadcast(statsMessage(pl, world.time));
-        }
-        this.updateHud(pid, c, pl);
+      // a partida acabou neste frame: os contadores finais já saíram antes do `gameOver` e os do
+      // mapa seguinte (zerados pelo `changeMap`) só saem no `startGame` (OG-379)
+      if (this.gameOverUntil === null) {
+        this.sendCounters();
+        for (const [pid, c] of this.clients) this.updateHud(pid, c, world.players[pid] as PlayerState);
+        this.sendScores();
       }
-      ([0, 1] as const).forEach((team) => {
-        const key = teamStatsKey(world.teams[team]);
-        if (key === this.sentTeamStats[team]) return;
-        this.sentTeamStats[team] = key;
-        this.broadcast(teamStatsMessage(team, world.teams[team]));
-      });
-      this.sendScores();
     }
     if (running) this.announceVotes();
     const flagModes = this.sim.flagModes();
@@ -1616,7 +1602,7 @@ export class Room {
 
   /** Ação de bandeira no registro do jogo Ranked (OG-362). */
   private flagEvent(kind: 'take' | 'drop' | 'return' | 'capture', pid: number, flag: EventFlag): void {
-    if (this.mode === 'ranked') this.events.flag(this.world.mapTime(), kind, pid, flag);
+    this.events.flag(this.world.mapTime(), kind, pid, flag);
   }
 
   /** Bandeira (0 vermelha, 1 azul, 2 selvagem) que o jogador pegou ou largou. */
@@ -1625,9 +1611,35 @@ export class Room {
     return flag === CarriedFlag.Wild ? 2 : ((flag === CarriedFlag.Own ? team : 1 - team) as EventFlag);
   }
 
+  /** Frags e estatísticas que mudaram, de cada jogador e dos times. */
+  private sendCounters(): void {
+    const world = this.world;
+    for (const [pid, c] of this.clients) {
+      const pl = world.players[pid] as PlayerState;
+      const frags = pl.stats.frags;
+      if (frags !== c.sentFrags) {
+        c.sentFrags = frags;
+        this.broadcast(message('frags', { pid, frags }));
+      }
+      const key = statsKey(pl);
+      if (key !== c.sentStats) {
+        c.sentStats = key;
+        this.broadcast(statsMessage(pl, world.time));
+      }
+    }
+    ([0, 1] as const).forEach((team) => {
+      const key = teamStatsKey(world.teams[team]);
+      if (key === this.sentTeamStats[team]) return;
+      this.sentTeamStats[team] = key;
+      this.broadcast(teamStatsMessage(team, world.teams[team]));
+    });
+  }
+
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
-    // a captura final acontece no mesmo frame: o placar vai antes do `gameOver`, que o cliente congela (OG-343)
+    // a captura final acontece no mesmo frame: o placar e os contadores finais vão antes do
+    // `gameOver`, que o cliente congela (OG-343, OG-379); o `nextMap` abaixo zera os contadores
+    this.sendCounters();
     this.sendScores();
     this.pause?.reset(); // saldo de pausa por jogo, também na série (D-45)
     // `server_next_map`: movimento e tiros de todos e `stats_ready` antes do placar (e no fim do replay)

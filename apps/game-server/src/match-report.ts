@@ -182,7 +182,8 @@ export function matchReport(input: ReportInput): MatchReport {
     ...(input.format ? { format: input.format } : {}),
     ...(input.series ? { series: input.series } : {}),
     ...(input.substitutions?.length ? { substitutions: input.substitutions.slice(0, 10) } : {}),
-    ...(input.ranked && input.events ? { events: input.events } : {}),
+    // eventos também no Casual (OG-381, D-75): relatório; leaderboard e perfil seguem só com ranqueadas
+    ...(input.events ? { events: input.events } : {}),
     ...(input.ranked && input.skillRoster ? { skillRoster: input.skillRoster.filter((r) => UUID.test(r.userId)).slice(0, 32) } : {}),
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);

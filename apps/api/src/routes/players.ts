@@ -311,7 +311,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
       {
         schema: {
           tags: ['perfil'],
-          summary: 'Eventos de uma ranqueada (OG-362): abates e ações de bandeira em ordem; `events` null = partida sem registro',
+          summary: 'Eventos de uma partida (OG-362, OG-381): abates e ações de bandeira em ordem; `events` null = partida sem registro',
           params: Type.Object({ id: Type.String({ format: 'uuid' }) }),
           response: {
             200: Type.Object({

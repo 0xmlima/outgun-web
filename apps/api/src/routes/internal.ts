@@ -642,7 +642,6 @@ export function validateMatch(body: MatchResultBody): string | undefined {
   if (bots.some((p) => p.userId || p.scoreDelta !== 0 || p.negDelta !== 0)) return 'bots have no account nor ranking deltas';
   if (!body.ranked && body.players.some((p) => p.scoreDelta !== 0 || p.negDelta !== 0)) return 'ranking deltas only in ranked matches';
   if (Date.parse(body.endedAt) < Date.parse(body.startedAt)) return 'endedAt before startedAt';
-  if (body.events && !body.ranked) return 'events only in ranked matches';
   if (body.events?.events.some((e) => (e[1] === 'kill' ? [e[2], e[3]] : [e[2]]).some((i) => i >= body.events!.players.length))) return 'event player out of range';
   if (body.format && body.mode !== 'ranked') return 'format only in ranked mode';
   const s = body.series;

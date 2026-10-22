@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.39.0",
+    "version": "2.39.1",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -3847,7 +3847,7 @@
     },
     "/matches/{id}/events": {
       "get": {
-        "summary": "Eventos de uma ranqueada (OG-362): abates e ações de bandeira em ordem; `events` null = partida sem registro",
+        "summary": "Eventos de uma partida (OG-362, OG-381): abates e ações de bandeira em ordem; `events` null = partida sem registro",
         "tags": ["perfil"],
         "parameters": [
           {

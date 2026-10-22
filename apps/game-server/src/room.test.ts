@@ -148,7 +148,12 @@ describe('Room', () => {
     expect(a.conn.of('gameOver')).toHaveLength(1);
     // a captura final chega antes do placar de fim de partida (OG-343: mostrava 7 em vez de 8)
     const order = a.conn.received.filter((m) => m.type === 'scoreUpdate' || m.type === 'gameOver').map((m) => (m.type === 'scoreUpdate' ? m.score : m.type));
-    expect(order).toEqual([1, 'gameOver', 0]); // depois, o placar zerado do mapa seguinte
+    expect(order).toEqual([1, 'gameOver']); // o placar zerado do mapa seguinte só vem no recomeço
+    // nada de contadores zerados do mapa seguinte depois do `gameOver` (OG-379: o modal mostrava zeros)
+    const after = a.conn.received.slice(a.conn.received.findIndex((m) => m.type === 'gameOver'));
+    expect(after.filter((m) => m.type === 'frags' || m.type === 'stats' || m.type === 'teamStats')).toEqual([]);
+    const finalFrags = a.conn.of('frags').filter((m) => m.pid === 0);
+    expect(finalFrags.at(-1)?.frags).toBeGreaterThan(0);
     expect(r.results).toHaveLength(1);
     expect(r.results[0]!.winner).toBe(0);
     const frameAtEnd = r.frame;

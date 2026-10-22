@@ -273,9 +273,10 @@ export default function GameScreen() {
         setLastGameOverAt(Date.now());
         matchEndOpen.current = true;
       }
-      // o placar da série chega logo depois do fim: o retrato acompanha enquanto o modal está aberto
+      // o placar da série chega logo depois do fim: só ele acompanha enquanto o modal está aberto; os
+      // números dos jogadores ficam os do primeiro retrato (a sala já pode estar no mapa seguinte, OG-379)
       const summary = matchEndOpen.current ? matchSummary(s) : null;
-      if (summary) setMatchEnd(summary);
+      if (summary) setMatchEnd((cur) => (cur ? { ...cur, series: summary.series } : summary));
       a.gameOver = s.gameOver !== null;
       setGameOver(a.gameOver);
       if (!a.serverShown && s.me >= 0 && s.world) {
