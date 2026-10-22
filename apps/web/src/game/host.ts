@@ -517,6 +517,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       sendTimer = setTimeout(sendLoop, nextSend - now);
     };
     sendLoop();
+    // tecla apertada ou solta: envia já (OG-371); o timer acima segue com o envio de 10 Hz e o gamepad
+    input.onChange(() => readInput(performance.now()));
     return readInput;
   };
 

@@ -1,4 +1,4 @@
-# OG-370 — Inputs com número de sequência: toda mudança de controle chega ao servidor
+# OG-370 — Toda mudança de controle chega ao servidor a tempo
 
 | Campo | Valor |
 |---|---|

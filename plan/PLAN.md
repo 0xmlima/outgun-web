@@ -827,8 +827,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-367](cards/OG-367-mapas-da-comunidade-no-jogo.md) | Mapas do painel nos servidores, nas rotações e no cliente | E5 | 3 | Should | S38 | OG-366 | Concluído |
 | [OG-368](cards/OG-368-previa-dos-mapas-do-painel.md) | Prévia e miniatura dos mapas, inclusive os do painel | E5 | 3 | Should | S38 | OG-367 | Concluído |
 | [OG-369](cards/OG-369-telemetria-de-latencia-de-input.md) | Medir a latência do input, da tecla ao servidor | E11 | 3 | Must | S39 | — | Em revisão |
-| [OG-370](cards/OG-370-input-por-sequencia.md) | Inputs com número de sequência: toda mudança de controle chega ao servidor | E11 | 5 | Must | S39 | OG-369 | Em revisão |
-| [OG-371](cards/OG-371-input-por-evento.md) | Teclas lidas no evento, não no quadro | E11 | 3 | Must | S39 | OG-370 | Pronto |
+| [OG-370](cards/OG-370-input-por-sequencia.md) | Toda mudança de controle chega ao servidor a tempo | E11 | 5 | Must | S39 | OG-369 | Em revisão |
+| [OG-371](cards/OG-371-input-por-evento.md) | Teclas lidas no evento, não no quadro | E11 | 3 | Must | S39 | OG-370 | Em revisão |
 | [OG-372](cards/OG-372-tolerancia-de-diagonal-e-strafe.md) | Diagonal e Alt sem virar a arma por engano | E11 | 3 | Must | S39 | OG-371 | Pronto |
 | [OG-373](cards/OG-373-fps-sem-limite-no-cliente-desktop.md) | FPS sem limite de verdade no cliente desktop (Steam) | E11 | 3 | Must | S39 | — | Pronto |
 | [OG-374](cards/OG-374-quadro-de-baixa-latencia.md) | Quadro de baixa latência: menos trabalho por quadro e canvas dessincronizado | E11 | 2 | Could | S39 | OG-369, OG-373 | Pronto |

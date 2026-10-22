@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S39 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-370 |
 | Regras de negócio | D-71 |
 | Skills | `outgun-card-workflow` |
@@ -20,14 +20,14 @@ Como jogador, quero que um toque rápido de tecla sempre conte, para não perder
 
 ## Escopo
 - `keydown`/`keyup` recalculam os controles e chamam o envio na hora (via OG-370); bordas de tiro e de largar bandeira saem do evento, com ordem garantida (tiro depois do controle da mesma tecla).
-- Toque mais curto que um quadro vira "aperta + solta" no servidor: o controle fica ligado pelo menos até o próximo tick (um tiro curto sempre sai).
+- Toque mais curto que um quadro chega como "aperta + solta" ao servidor; o tiro curto sempre sai (`attackOnce` do servidor). Movimento mais curto que um tick continua não andando, como no original.
 - Gamepad continua por amostragem (a API não tem eventos), mas amostrado também no timer de envio, não só no quadro.
 - Sem mudança de associações nem das opções de teclas.
 
 ## Critérios de aceite
-- [ ] Tecla de tiro apertada e solta em 5 ms dispara um tiro (teste unitário com eventos sintéticos).
-- [ ] Com limite de 30 FPS, tecla→envio do OG-369 fica abaixo de 2 ms (p95).
-- [ ] Menu aberto, perda de foco e modo foco continuam soltando as teclas.
+- [x] Tecla de tiro apertada e solta em 5 ms dispara um tiro (teste unitário com eventos sintéticos).
+- [ ] Com limite de 30 FPS, tecla→tela do OG-369 fica em até um quadro (p95 ≤ 35 ms); medido no fechamento. (Tecla→envio deixou de ser a medida certa: pelo OG-370, a mudança que não pega mais o tick espera de propósito o próximo envio.)
+- [x] Menu aberto, perda de foco e modo foco continuam soltando as teclas.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `GameInput.onChange`: avisa a cada tecla do jogo apertada/solta (sem repetição automática) e ao soltar tudo (menu, perda de foco); o host lê e envia na hora. O timer de 10 Hz segue enviando e amostrando o gamepad. Testes em `input.test.ts` (eventos sintéticos num `EventTarget`).
