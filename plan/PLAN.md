@@ -605,7 +605,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338, OG-339, OG-340 | |
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
-| S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367 | |
+| S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -824,8 +824,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-365](cards/OG-365-presets-e-rotacao-na-criacao-de-sala.md) | Presets do painel e rotação oficial na criação de sala | E5 | 3 | Must | S38 | OG-087 | Em revisão |
 | [OG-366](cards/OG-366-envio-de-mapas-pelo-painel.md) | Envio de mapas .txt pelo painel de moderação | E5 | 5 | Should | S38 | OG-365 | Em revisão |
 | [OG-367](cards/OG-367-mapas-da-comunidade-no-jogo.md) | Mapas do painel nos servidores, nas rotações e no cliente | E5 | 3 | Should | S38 | OG-366 | Em revisão |
+| [OG-368](cards/OG-368-previa-dos-mapas-do-painel.md) | Prévia e miniatura dos mapas, inclusive os do painel | E5 | 3 | Should | S38 | OG-367 | Em revisão |
 
-**Total:** 209 cards, 695 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 140 cards, 400 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 210 cards, 698 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 141 cards, 403 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 

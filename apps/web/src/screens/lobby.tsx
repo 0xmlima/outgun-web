@@ -19,6 +19,7 @@ import { Form, FormMessageLine, Page } from '../ui/Page.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { RankedRoomsPanel, WatchButton } from './ranked-rooms.js';
+import { MapPreview } from './MapPreview.js';
 
 type Mode = 'casual' | 'ranked';
 
@@ -303,6 +304,8 @@ export function CreateRoomScreen() {
   const [bots, setBots] = useState(prefs.casualBots);
   const [botLevel, setBotLevel] = useState(prefs.casualBotLevel);
   const [allMaps, setAllMaps] = useState<readonly string[]>([]);
+  // miniaturas só com a lista aberta (cada uma lê o mapa)
+  const [mapsOpen, setMapsOpen] = useState(false);
   const [presets, setPresets] = useState<readonly { id: string; description: string }[]>(CASUAL_PRESETS);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -363,7 +366,7 @@ export function CreateRoomScreen() {
           onChange={(v) => setBotLevel(Number(v))}
         />
       </Form>
-      <details className="lobby-maps">
+      <details className="lobby-maps" onToggle={(e) => setMapsOpen(e.currentTarget.open)}>
         <summary>
           {t('Maps')}: {mapsLabel}
         </summary>
@@ -376,7 +379,9 @@ export function CreateRoomScreen() {
           {allMaps.map((m) => (
             <li key={m}>
               <label>
-                <input type="checkbox" checked={maps.includes(m)} onChange={() => toggleMap(m)} /> {m}
+                <input type="checkbox" checked={maps.includes(m)} onChange={() => toggleMap(m)} />
+                {mapsOpen && <MapPreview name={m} label={m} thumb />}
+                {m}
               </label>
             </li>
           ))}

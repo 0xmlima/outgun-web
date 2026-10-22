@@ -2,14 +2,15 @@
 // Painel admin (OG-087): salas ao vivo com os jogadores (kick, ban, mute, mensagem), denúncias,
 // clãs (OG-275), bans, auditoria e, para admin, presets Casual, rotações e papéis. Quem não é moderador nem admin
 // vê só um aviso (a API recusa as rotas de qualquer jeito).
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
-import { decodeMapFile } from '@outgun/content';
+import { decodeMapFile, parseMapFile } from '@outgun/content';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
+import { MapDrawing, MapPreview } from './MapPreview.js';
 
 type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'invites' | 'roles';
 
@@ -664,6 +665,11 @@ function MapsTab() {
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
   const [form, setForm] = useState({ name: '', text: '' });
   const [check, setCheck] = useState<{ ok: boolean; errors: string[]; preview?: { title: string; author: string; width: number; height: number } | null } | null>(null);
+  // prévia do arquivo antes de publicar (OG-368): desenhada do texto, com o mesmo parser
+  const draft = useMemo(() => {
+    const r = form.text ? parseMapFile(`${form.name}.txt`, Uint8Array.from(form.text, (c) => c.charCodeAt(0) & 0xff)) : null;
+    return r?.ok ? r.map : null;
+  }, [form]);
   const pick = (file: File | undefined) => {
     if (!file) return;
     setCheck(null);
@@ -708,7 +714,12 @@ function MapsTab() {
           <tbody>
             {list.data.maps.map((m) => (
               <tr key={m.name}>
-                <td className="name">{m.name}</td>
+                <td className="name">
+                  <span className="admin-map-name">
+                    {m.active && <MapPreview name={m.name} label={m.title} thumb />}
+                    {m.name}
+                  </span>
+                </td>
                 <td className="name">{m.title}</td>
                 <td className="name">{m.author || '-'}</td>
                 <td>
@@ -759,6 +770,7 @@ function MapsTab() {
             ))}
           </ul>
         )}
+        {check?.ok && draft && <MapDrawing map={draft} label={check.preview?.title ?? form.name} />}
         {check?.ok && check.preview && (
           <p className="stats-note" role="status">
             {t('$1 by $2, $3×$4 rooms.', check.preview.title, check.preview.author || '-', String(check.preview.width), String(check.preview.height))}{' '}
@@ -834,7 +846,12 @@ function RotationsTab({ canEdit }: { canEdit: boolean }) {
         <tbody>
           {rows.map((map) => (
             <tr key={map}>
-              <td>{map}</td>
+              <td>
+                <span className="admin-map-name">
+                  <MapPreview name={map} label={map} thumb />
+                  {map}
+                </span>
+              </td>
               {RANKED_FORMATS.map((f) => (
                 <td key={f}>
                   <input type="checkbox" aria-label={`${map} ${f}`} checked={formatMaps(f).includes(map)} disabled={!canEdit} onChange={() => toggle(f, map)} />
