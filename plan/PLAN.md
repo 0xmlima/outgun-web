@@ -606,8 +606,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
 | S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
-| S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373 | |
-| S40 | v2: estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência; mapas do painel em "Criar sala" e rotações do painel a partir da atual; fim de partida zerado, relatório no visual novo e eventos no Casual | OG-374, OG-375, OG-377, OG-378, OG-379, OG-380, OG-381 | |
+| S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373; 2.39.1: OG-379, OG-381 | |
+| S40 | v2: estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência; mapas do painel em "Criar sala" e rotações do painel a partir da atual; relatório no visual novo | OG-374, OG-375, OG-377, OG-378, OG-380 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -839,7 +839,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-378](cards/OG-378-rotacoes-do-painel-partem-da-atual.md) | Aba Rotações parte da rotação que está valendo | E5 | 2 | Must | S40 | OG-365 | Pronto |
 | [OG-379](cards/OG-379-fim-de-partida-zerado.md) | Fim de partida com os números zerados no Casual | E12 | 2 | Must | S39 | OG-344 | Em revisão |
 | [OG-380](cards/OG-380-relatorio-no-visual-v2.md) | Relatório da partida no visual novo, com os marcadores novos à vista | E9 | 3 | Should | S40 | OG-355, OG-364 | Pronto |
-| [OG-381](cards/OG-381-eventos-tambem-no-casual.md) | Registro de eventos também nas partidas Casual | E12 | 3 | Should | S40 | OG-362 | Bloqueado |
+| [OG-381](cards/OG-381-eventos-tambem-no-casual.md) | Registro de eventos também nas partidas Casual | E12 | 3 | Should | S39 | OG-362 | Em revisão |
 
 **Total:** 223 cards, 741 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 154 cards, 446 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
@@ -936,7 +936,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-72 | **v2** — Teclas "quase simultâneas" (diagonal, Alt) | Como chegarem / janela de acorde no cliente | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-372):** janela de 30 ms (opção 0–60 ms) em que a arma não vira; o movimento não espera (strafe provisório); vale também para o direcional digital do gamepad. Sem equivalente no original. | PO |
 | D-73 | **v2** — VSync no cliente desktop | Sempre preso ao monitor / opção para desligar | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-373):** opção "Sincronia vertical" no desktop, aplicada ao reabrir; **padrão desligada** (PO, 2026-10-22: menos atraso na tela para o público competitivo), com limite automático de 240 FPS e "sem limite" explícito; no navegador o limite é a taxa do monitor. | PO |
 | D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto:** spike OG-375 na S40 (sala de teste no beta); decisão do PO com a comunidade. | PO |
-| D-75 | **v2** — Registro de eventos no Casual | Só ranqueadas (OG-362) / também Casual | ⏳ **Em aberto:** o PO apontou a falta dos marcadores no Casual (2026-10-22); gravar também o Casual aumenta o banco, mas o leaderboard segue só com ranqueadas. | PO |
+| D-75 | **v2** — Registro de eventos no Casual | Só ranqueadas (OG-362) / também Casual | ✅ **Decidido pelo PO em 2026-10-22 (OG-381, 2.39.1):** os eventos são gravados também no Casual e aparecem no relatório; leaderboard, hall da fama e "quem matou quem" do perfil seguem só com ranqueadas. | PO |
 
 ---
 

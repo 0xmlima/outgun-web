@@ -54,10 +54,10 @@ describe('registro de eventos (OG-362)', () => {
     expect(log.players.every((p) => p.userId && !p.bot)).toBe(true);
   });
 
-  it('partida fora do Ranked não leva eventos', () => {
+  it('partida Casual também leva eventos (OG-381, D-75)', () => {
     const { r, matches } = setup('classic');
     for (let i = 0; i < 80 && matches.length === 0; i++) r.tick();
-    expect(matches[0]?.events).toBeUndefined();
+    expect(matches[0]?.events).toBeDefined();
   });
 
   it('bandeiras pela cor, slot reaproveitado vira outro jogador e o teto é respeitado', () => {

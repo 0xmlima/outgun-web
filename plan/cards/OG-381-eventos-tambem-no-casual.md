@@ -6,13 +6,11 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 3 pts |
-| Sprint | S40 |
-| Status | Bloqueado |
+| Sprint | S39 (2.39.1) |
+| Status | Em revisão |
 | Dependências | OG-362 |
 | Regras de negócio | D-75 |
 | Skills | `outgun-card-workflow` |
-
-> Bloqueado por: D-75 — decisão do PO sobre gravar os eventos no Casual.
 
 ## História
 Como jogador do Casual, quero ver multi-kill, trocas, primeiro abate e quem matou quem no relatório, como no Ranqueado.
@@ -26,8 +24,9 @@ Como jogador do Casual, quero ver multi-kill, trocas, primeiro abate e quem mato
 - O leaderboard continua só com ranqueadas (RN-LDB-01).
 
 ## Critérios de aceite
-- [ ] Casual concluída tem eventos e o relatório mostra multi-kill, troca, primeiro abate e quem matou quem.
-- [ ] Leaderboard e hall da fama não mudam.
+- [x] Casual concluída tem eventos e o relatório mostra multi-kill, troca, primeiro abate (colunas novas nas estatísticas detalhadas) e quem matou quem.
+- [x] Leaderboard e hall da fama não mudam (consultas já filtram `m.ranked`).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Game server grava abates e bandeiras em toda partida e o relatório leva os eventos sem exigir Ranked; a API deixou de recusar eventos fora do Ranked. Bots entram marcados (`bot`).
+- "Quem matou quem" do **perfil** continua só com ranqueadas (`m.ranked` na consulta); no relatório vale para todas. Colocar à vista e no visual novo fica com o OG-380.
