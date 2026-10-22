@@ -607,7 +607,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
 | S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
 | S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373; 2.39.1: OG-379, OG-381 | |
-| S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-380, OG-375, OG-374 | |
+| S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; enxugar o legado (sem finlandês e italiano, revisão das opções); depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-384, OG-385, OG-380, OG-375, OG-374 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -842,8 +842,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-381](cards/OG-381-eventos-tambem-no-casual.md) | Registro de eventos também nas partidas Casual | E12 | 3 | Should | S39 | OG-362 | Concluído |
 | [OG-382](cards/OG-382-presets-do-painel-em-formulario.md) | Presets do painel em formulário: regras por categoria, com caixas e campos | E5 | 5 | Should | S40 | OG-365 | Em revisão |
 | [OG-383](cards/OG-383-aba-rotacoes-por-modo.md) | Aba Rotações por modo: escolher Casual ou Ranqueado e marcar os mapas | E5 | 3 | Must | S40 | OG-378 | Em revisão |
+| [OG-384](cards/OG-384-sem-finlandes-e-italiano.md) | Tirar os idiomas finlandês e italiano | E8 | 1 | Must | S40 | — | Em revisão |
+| [OG-385](cards/OG-385-revisao-das-opcoes.md) | Revisão das opções do jogo: o que fica, o que sai | E8 | 2 | Should | S40 | — | Pronto |
 
-**Total:** 225 cards, 749 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 156 cards, 454 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 227 cards, 752 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 158 cards, 457 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -939,6 +941,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-73 | **v2** — VSync no cliente desktop | Sempre preso ao monitor / opção para desligar | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-373):** opção "Sincronia vertical" no desktop, aplicada ao reabrir; **padrão desligada** (PO, 2026-10-22: menos atraso na tela para o público competitivo), com limite automático de 240 FPS e "sem limite" explícito; no navegador o limite é a taxa do monitor. | PO |
 | D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto:** spike OG-375 na S40 (sala de teste no beta); decisão do PO com a comunidade. | PO |
 | D-75 | **v2** — Registro de eventos no Casual | Só ranqueadas (OG-362) / também Casual | ✅ **Decidido pelo PO em 2026-10-22 (OG-381, 2.39.1):** os eventos são gravados também no Casual e aparecem no relatório; leaderboard, hall da fama e "quem matou quem" do perfil seguem só com ranqueadas. | PO |
+| D-76 | **v2** — Idiomas do jogo | Manter os 4 do original / só pt-BR e inglês | ✅ **Decidido pelo PO em 2026-10-22:** finlandês e italiano saem (OG-384): legado para uma parcela mínima da comunidade de 20 anos atrás, sem os textos novos da v2. Preferência antiga cai no idioma do navegador. | PO |
 
 ---
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Traduções do Outgun (en, pt-BR, fi, it) com a mesma semântica do original: a chave é o texto em
+// Traduções do Outgun (en, pt-BR; fi e it saíram na v2, OG-384) com a mesma semântica do original: a chave é o texto em
 // inglês e `$1..$5` são substituídos pelos argumentos (`_()` em src/language.cpp).
 import { CATALOGS } from './catalogs.generated.js';
 import { WEB_TEXTS } from './web-texts.js';
@@ -7,8 +7,8 @@ import { WEB_TEXTS } from './web-texts.js';
 export { convertLanguage, phrases, textLines, type ConvertedLanguage } from './convert.js';
 export { WEB_TEXTS } from './web-texts.js';
 
-/** Idiomas do Outgun original (languages/). */
-export const LOCALES = ['en', 'pt-BR', 'fi', 'it'] as const;
+/** Idiomas do jogo: os do original menos finlandês e italiano (OG-384, D-76). */
+export const LOCALES = ['en', 'pt-BR'] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
@@ -49,8 +49,6 @@ export function detectLocale(languages: readonly string[]): Locale {
   for (const tag of languages) {
     const lang = tag.toLowerCase();
     if (lang.startsWith('pt')) return 'pt-BR';
-    if (lang.startsWith('fi')) return 'fi';
-    if (lang.startsWith('it')) return 'it';
     if (lang.startsWith('en')) return 'en';
   }
   return 'en';

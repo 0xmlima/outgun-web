@@ -38,7 +38,9 @@ describe('texto formatado', () => {
   it('tradução: com cor quando existe; senão a versão sem cor', () => {
     const tf = translateFormatted(pt);
     expect(tf('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X PEGOU A BANDEIRA $RVERMELHA$>!');
-    expect(translateFormatted((k, ...a) => translate('fi', k, ...a))('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X OTTI PUNAISEN LIPUN!');
+    // catálogo que só traduz a versão sem cor (como era o finlandês do original)
+    const plainOnly = (k: string, ...a: string[]) => (k === '$1 GOT THE RED FLAG!' ? `${a[0] ?? ''} OTTI PUNAISEN LIPUN!` : k);
+    expect(translateFormatted(plainOnly)('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X OTTI PUNAISEN LIPUN!');
     expect(translateFormatted(en)('$1 GOT THE $RRED FLAG$>!', 'X')).toBe('X GOT THE $RRED FLAG$>!');
   });
 });
