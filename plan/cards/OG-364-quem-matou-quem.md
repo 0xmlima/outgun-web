@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 2 pts |
 | Sprint | S38 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-362 |
 | Regras de negócio | RN-SOC-02 |
 | Skills | `outgun-card-workflow` |
@@ -24,8 +24,9 @@ Como jogador, quero ver quantas vezes matei (e morri para) cada adversário, par
 - pt-BR e inglês.
 
 ## Critérios de aceite
-- [ ] Relatório e perfil com e sem eventos (partidas antigas mostram "sem dados").
-- [ ] Privacidade: histórico escondido não aparece para os outros.
+- [x] Relatório e perfil com e sem eventos (partidas antigas mostram "sem dados").
+- [x] Privacidade: histórico escondido não aparece para os outros.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Relatório: "Abates por vítima" em "Estatísticas detalhadas" (linha = quem matou, coluna = vítima, todos os jogadores dos eventos, inclusive convidados e quem saiu); sem eventos mostra "Sem dados nesta partida."
+- Perfil: painel "Quem matou quem" com abas "Este mês"/"Sempre" (mês = mês do calendário pelo fim da partida), top 10 de vítimas e de quem mais mata; só contas (sem bots/convidados) e sem quem esconde companheiros, como os rivais. `GET /players/:name/kills`; histórico escondido → `hidden` para os outros.

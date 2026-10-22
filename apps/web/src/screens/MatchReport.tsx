@@ -56,6 +56,65 @@ const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
   ['Total movement', (x) => `${Math.trunc(x.movement ?? 0)} u`],
 ];
 
+/** Eventos da ranqueada (OG-362); `events` null = partida sem registro. */
+interface MatchEvents {
+  players: { slot: number; name: string; username: string | null; team: number; isBot: boolean }[];
+  events: (number | string)[][] | null;
+}
+
+/** Abates de cada jogador (linha) em cada adversário (coluna), dos eventos da partida (OG-364). */
+export function killMatrix(data: MatchEvents): { names: string[]; teams: number[]; kills: number[][] } {
+  const order = data.players.map((_, i) => i).sort((a, b) => data.players[a]!.team - data.players[b]!.team || a - b);
+  const pos = new Map(order.map((idx, i) => [idx, i]));
+  const kills = order.map(() => order.map(() => 0));
+  for (const e of data.events ?? []) {
+    if (e[1] !== 'kill') continue;
+    const k = pos.get(e[2] as number);
+    const v = pos.get(e[3] as number);
+    if (k !== undefined && v !== undefined && k !== v) kills[k]![v]!++;
+  }
+  return { names: order.map((i) => data.players[i]!.name), teams: order.map((i) => data.players[i]!.team), kills };
+}
+
+function KillMatrix({ data }: { data: MatchEvents | null | undefined }) {
+  const { t } = usePrefs();
+  if (data === undefined) return null;
+  const m = data?.events ? killMatrix(data) : null;
+  const team = (n: number) => (n === 0 ? 'team-red' : 'team-blue');
+  return (
+    <section className="stats-section">
+      <h2>{t('Kills by victim')}</h2>
+      {!m ? (
+        <p className="ui-muted">{t('No data for this match.')}</p>
+      ) : (
+        <table className="stats-table wide">
+          <caption className="ui-muted">{t('Row = killer, column = victim.')}</caption>
+          <thead>
+            <tr>
+              <th>{t('Player')}</th>
+              {m.names.map((n, i) => (
+                <th key={i} className={team(m.teams[i]!)}>
+                  {n}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {m.kills.map((row, k) => (
+              <tr key={k}>
+                <th className={team(m.teams[k]!)}>{m.names[k]}</th>
+                {row.map((n, v) => (
+                  <td key={v}>{k === v ? '—' : n || ''}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 /** Melhor jogador: mais frags; desempate por capturas, kills e menos mortes. */
 export function bestPlayer(players: readonly PlayerLine[]): PlayerLine | undefined {
   return [...players].sort((a, b) => b.frags - a.frags || b.captures - a.captures || b.kills - a.kills || a.deaths - b.deaths || a.slot - b.slot)[0];
@@ -147,6 +206,7 @@ export function MatchScreen() {
   const navigate = useNavigate();
   const { id = '' } = useParams();
   const page = useApi<MatchPage>(`/matches/${encodeURIComponent(id)}`);
+  const events = useApi<MatchEvents>(`/matches/${encodeURIComponent(id)}/events`);
   const [copied, setCopied] = useState(false);
   const m = page.data;
   if (!m) {
@@ -332,6 +392,7 @@ export function MatchScreen() {
             </table>
           </section>
         )}
+        <KillMatrix data={events.data} />
         <section className="stats-section">
           <h2>{t('Player stats')}</h2>
           <table className="stats-table wide">

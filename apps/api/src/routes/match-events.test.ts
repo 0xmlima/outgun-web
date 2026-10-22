@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { matchEventPlayers, matchPlayers, users } from '../db/schema.js';
+import { matchEventPlayers, matchPlayers, playerProfiles, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
@@ -80,5 +80,14 @@ describe.skipIf(!pgAdminUrl)('eventos da ranqueada (OG-362)', () => {
     const bad = log();
     bad.events.push([500, 'kill', 0, 9, 0, 0, 0, 'rocket']);
     expect((await internal(match('e-4', true, bad))).statusCode).toBe(422);
+  });
+
+  it('quem matou quem no perfil (OG-364): só contas; histórico escondido não aparece para os outros', async () => {
+    const kills = async (name: string, period = 'all') => (await app.inject(`/players/${name}/kills?period=${period}`)).json();
+    expect(await kills('Jogador2')).toEqual({ hidden: false, victims: [{ username: 'Jogador1', clanTag: null, clanLabel: null, kills: 1 }], killers: [] });
+    // Jogador1 matou o convidado, que não entra
+    expect(await kills('Jogador1')).toMatchObject({ victims: [], killers: [{ username: 'Jogador2', kills: 1 }] });
+    await t.db.insert(playerProfiles).values({ userId: ids.Jogador1!, hideHistory: true }).onConflictDoUpdate({ target: playerProfiles.userId, set: { hideHistory: true } });
+    expect(await kills('Jogador1', 'month')).toEqual({ hidden: true, victims: [], killers: [] });
   });
 });
