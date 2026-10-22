@@ -199,7 +199,8 @@ export class SimTraceAdapter implements SimAdapter {
     pl.dropKey = p.dropKey !== 0;
     pl.droppedFlag = p.droppedFlag !== 0;
     pl.awaitingClientReadies = p.awaitingClientReadies;
-    pl.stats = { ...p.stats, dead: p.stats.dead !== 0, carriedFlag: p.stats.carriedFlag as CarriedFlag };
+    // o trace do original não tem os contadores do OG-355 (D-68): ficam os da sim
+    pl.stats = { ...pl.stats, ...p.stats, dead: p.stats.dead !== 0, carriedFlag: p.stats.carriedFlag as CarriedFlag };
   }
 
   private copyInputs(pl: PlayerState, p: TracePlayer): void {
