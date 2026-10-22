@@ -50,6 +50,8 @@ export interface ServerInfo {
   maxRooms: number;
   /** Mapas da pasta, para o painel conferir as rotações (OG-251). */
   maps?: string[];
+  /** Rotações padrão (ROTATION/RANKED_ROTATION, OG-378): o painel parte delas sem rotação salva. */
+  rotations?: Partial<Record<RotationKey, string[]>>;
 }
 
 /** Corpo de POST /internal/rooms/heartbeat. */

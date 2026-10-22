@@ -125,7 +125,7 @@ export function hasNoPowerups(settings: GameSettings): boolean {
 }
 
 /** Grupos de regras que um preset Casual do painel pode mudar (as do servidor ficam com a operação). */
-const CASUAL_PRESET_CATEGORIES: ReadonlySet<Category> = new Set(['game', 'health', 'powerups', 'physics', 'bots']);
+export const CASUAL_PRESET_CATEGORIES: ReadonlySet<Category> = new Set(['game', 'health', 'powerups', 'physics', 'bots']);
 
 /**
  * Problemas nas linhas de gamemod de um preset Casual do painel (OG-087): configuração

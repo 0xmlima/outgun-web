@@ -6,7 +6,7 @@
 import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
 import { message, type AnyMessage } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
-import { Application, Assets, TilingSprite, type BitmapFont, type Texture } from 'pixi.js';
+import { Application, Assets, TilingSprite, UPDATE_PRIORITY, type BitmapFont, type Texture } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
@@ -561,6 +561,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         // notebooks com duas placas: a mais forte (OG-373)
         powerPreference: 'high-performance',
         background: '#000000',
+        ...lowLatencyContext(),
       });
       ready = true;
       if (destroyed) return app.destroy(true);
@@ -623,7 +624,22 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       app.renderer.on('resize', layout);
       let simTime = 0;
       let topLeft: WorldCoords = { room: view, x: 0, y: 0 };
+      // tempo de CPU de cada quadro (OG-374): p50/p95/p99 dos últimos 600 em `data-frame-ms`, para as medições
+      const frameMs = new Float32Array(600);
+      let frameCount = 0;
+      let frameStart = 0;
+      // roda depois do desenho do PixiJS (prioridade LOW): mede lógica + render do quadro
+      app.ticker.add(() => {
+        const t = performance.now() - frameStart;
+        frameMs[frameCount++ % frameMs.length] = t;
+        if (frameCount % 120 === 0) {
+          const sorted = frameMs.slice(0, Math.min(frameCount, frameMs.length)).sort();
+          const q = (p: number) => (sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))] ?? 0).toFixed(2);
+          container.dataset.frameMs = `${q(50)},${q(95)},${q(99)}`;
+        }
+      }, undefined, UPDATE_PRIORITY.UTILITY);
       app.ticker.add((ticker) => {
+        frameStart = performance.now();
         if (!session && !demo) topLeft = { room: view, x: 0, y: 0 };
         if (demo && entities && world?.layout) {
           // a simulação anda a 10 Hz; o desenho, a cada quadro do navegador
@@ -787,4 +803,17 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       if (ready) app.destroy(true);
     },
   };
+}
+
+/**
+ * Canvas de baixa latência (OG-374): no cliente desktop com o VSync desligado, o contexto WebGL é
+ * criado com `desynchronized` (o Chromium pinta sem esperar o compositor). Fora dele, o PixiJS cria
+ * o contexto como sempre. Mesmos atributos que o PixiJS usaria (fundo opaco, sem antialias).
+ */
+function lowLatencyContext(): { canvas: HTMLCanvasElement; context: WebGL2RenderingContext } | Record<string, never> {
+  if (desktopBridge()?.frameRateActive() !== 'unlocked') return {};
+  const canvas = document.createElement('canvas');
+  const attributes = { alpha: false, premultipliedAlpha: true, antialias: false, stencil: true, powerPreference: 'high-performance', desynchronized: true } as WebGLContextAttributes;
+  const context = canvas.getContext('webgl2', attributes);
+  return context ? { canvas, context } : {};
 }

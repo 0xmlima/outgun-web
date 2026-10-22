@@ -2,9 +2,11 @@
 // Textos novos da versão web (plataforma, modos de jogo D-10). A chave é o texto em inglês, como no
 // resto do jogo. Somente Latin-1 (as fontes originais não têm outros glifos).
 import type { Locale } from './index.js';
+import { SETTING_TEXTS_PT } from './setting-texts.js';
 
 export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>> = {
   'pt-BR': {
+    ...SETTING_TEXTS_PT,
     Casual: 'Casual',
     Ranked: 'Ranqueado',
     'Casual: power-ups on, guests welcome, does not count for the ranking.': 'Casual: com power-ups, aberto a convidados, não conta para o ranking.',
@@ -157,7 +159,15 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Bans: 'Bans',
     'Built-in presets change only with a new release; the Ranked preset only by decision of the product owner.': 'Os presets do jogo só mudam com uma versão nova; o Ranked, só por decisão do dono do produto.',
     By: 'Por',
-    'Casual rotation (one map per line; empty = server default)': 'Rotação Casual (um mapa por linha; vazia = a padrão do servidor)',
+    '(server default)': '(padrão do servidor)',
+    'Add to Casual': 'Pôr na Casual',
+    'Add to Ranked': 'Pôr no Ranqueado',
+    '$1 of $2 maps checked.': '$1 de $2 mapas marcados.',
+    'Changes apply from the next map change.': 'As mudanças valem a partir da próxima troca de mapa.',
+    'Check all': 'Marcar todos',
+    'Uncheck all': 'Desmarcar todos',
+    'Undo changes': 'Desfazer alterações',
+    'A rotation needs at least one map.': 'A rotação precisa de pelo menos um mapa.',
     'Change role': 'Mudar papel',
     Description: 'Descrição',
     Device: 'Dispositivo',
@@ -183,9 +193,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Preset removed.': 'Preset removido.',
     'Preset saved (version $1).': 'Preset salvo (versão $1).',
     Presets: 'Presets',
-    'Ranked rotation by format': 'Rotação Ranqueada por formato',
     'No game server has reported its maps yet; only the maps already in the rotations are listed.': 'Nenhum servidor de jogo informou seus mapas ainda; só aparecem os mapas que já estão nas rotações.',
-    'Every format needs at least one map.': 'Todo formato precisa de pelo menos um mapa.',
     'Rotation saved. It applies from the next map change.': 'Rotação salva. Vale a partir da próxima troca de mapa.',
     Reason: 'Motivo',
     Remove: 'Remover',
@@ -902,6 +910,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Trades': 'Trocas',
     'First kills': 'Primeiros abates',
     'Kills by victim': 'Abates por vítima',
+    Highlights: 'Destaques',
+    'Kills by zone': 'Abates por zona',
+    'Kills by zone: enemy base · midfield · own base.': 'Abates por zona: base inimiga · meio · própria base.',
     'No data for this match.': 'Sem dados nesta partida.',
     'Row = killer, column = victim.': 'Linha = quem matou, coluna = vítima.',
     'Who killed whom': 'Quem matou quem',

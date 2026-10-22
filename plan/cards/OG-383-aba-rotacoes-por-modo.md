@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S40 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | OG-378 |
 | Regras de negócio | D-69, D-70, RN-MOD-04 |
 | Skills | `outgun-card-workflow` |
@@ -29,8 +29,10 @@ Como moderador, quero escolher o modo (Casual ou Ranqueado) e marcar os mapas da
 - Mapa publicado e ainda fora de toda rotação ganha selo "novo".
 
 ## Critérios de aceite
-- [ ] Marcar um mapa publicado na Casual e salvar faz ele aparecer em "Criar sala" e na votação da partida, sem tirar os outros.
-- [ ] Ranqueado: marcar um mapa num formato mantém os mapas que já estavam nele.
+- [x] Marcar um mapa publicado na Casual e salvar faz ele aparecer em "Criar sala" e na votação da partida, sem tirar os outros.
+- [x] Ranqueado: marcar um mapa num formato mantém os mapas que já estavam nele.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Abas Casual | Ranqueado (este com 3×3/4×4/5×5) sobre a mesma grade do "Criar sala" (CSS compartilhado); rascunho por chave, partindo de `rotationInUse` (OG-378); "Salvar" grava todas as chaves alteradas de uma vez, formato alterado ganha " *".
+- Selo "novo" = mapa ativo do painel fora de toda rotação em uso. Mapa marcado entra no fim (a ordem da rotação é mantida).
+- A rotação base `ranked` não aparece: só os formatos, como antes.

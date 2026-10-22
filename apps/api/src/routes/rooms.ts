@@ -149,11 +149,15 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
       {
         schema: {
           tags: ['salas'],
-          summary: 'Rotação Casual do painel (D-69): os mapas que a sala privada pode escolher; null = sem rotação no painel (escolha livre)',
-          response: { 200: Type.Object({ maps: Type.Union([Type.Null(), Type.Array(Type.String())]) }) },
+          summary:
+            'Rotação Casual do painel (D-69): os mapas que a sala privada pode escolher; null = sem rotação no painel (escolha livre entre os mapas do jogo e os publicados, OG-377)',
+          response: { 200: Type.Object({ maps: Type.Union([Type.Null(), Type.Array(Type.String())]), published: Type.Array(Type.String()) }) },
         },
       },
-      async () => ({ maps: await casualRotation(db) }),
+      async () => ({
+        maps: await casualRotation(db),
+        published: (await db.select({ name: panelMaps.name }).from(panelMaps).where(isNull(panelMaps.deletedAt)).orderBy(asc(panelMaps.name))).map((m) => m.name),
+      }),
     );
 
     app.get(

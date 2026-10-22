@@ -7,7 +7,7 @@ import { catalog, convertLanguage, detectLocale, isLatin1, LOCALES, phrases, tex
 
 const languages = join(import.meta.dirname, '../../../_legacy/languages');
 const read = (name: string) => readFileSync(join(languages, name), 'latin1');
-const FILES = { 'pt-BR': 'ptBR', fi: 'fi', it: 'it' } as const;
+const FILES = { 'pt-BR': 'ptBR' } as const;
 
 describe('catálogos gerados x languages/*.txt', () => {
   it('estão atualizados (pnpm i18n:generate)', () => {
@@ -29,8 +29,6 @@ describe('catálogos gerados x languages/*.txt', () => {
   it('nomes e localidades numéricas', () => {
     expect(catalog('pt-BR').name).toBe('Português (Brasil)');
     expect(catalog('pt-BR').numberLocale).toBe('pt_BR');
-    expect(catalog('fi').name).toBe('suomi');
-    expect(catalog('it').name).toBe('italiano');
   });
 
   it('arquivo desalinhado é recusado, como no original', () => {
@@ -71,23 +69,19 @@ describe('translate (semântica de _() do original)', () => {
     expect(translate('pt-BR', 'Texto novo $1', 'x')).toBe('Texto novo x');
   });
 
-  it('frase @MISSING@ no italiano cai no inglês', () => {
-    const missing = phrases(read('en.txt')).find((k, i) => phrases(read('it.txt'))[i]!.startsWith('@MISSING@'))!;
-    expect(translate('it', missing)).toBe(missing);
-  });
-
   it('textos novos da web em pt-BR', () => {
     expect(translate('pt-BR', 'Ranked')).toBe('Ranqueado');
     expect(translate('pt-BR', 'Season $1', '3')).toBe('Temporada 3');
-    expect(translate('fi', 'Ranked')).toBe('Ranked');
+    expect(translate('en', 'Ranked')).toBe('Ranked');
   });
 });
 
 describe('detectLocale', () => {
   it('usa a primeira língua suportada do navegador', () => {
     expect(detectLocale(['pt-PT', 'en'])).toBe('pt-BR');
-    expect(detectLocale(['de-DE', 'fi-FI'])).toBe('fi');
-    expect(detectLocale(['it'])).toBe('it');
+    // finlandês e italiano saíram (OG-384): caem no inglês
+    expect(detectLocale(['fi-FI', 'pt-BR'])).toBe('pt-BR');
+    expect(detectLocale(['it'])).toBe('en');
     expect(detectLocale(['de'])).toBe('en');
   });
 });

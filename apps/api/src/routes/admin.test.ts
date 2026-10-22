@@ -49,9 +49,9 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     { uid: 7, name: 'Visita*', team: 0, bot: false, muted: 0 },
     { uid: 8, name: 'BOT Taywor', team: 1, bot: true, muted: 0 },
   ];
-  const heartbeat = (acks: unknown[] = []) => {
+  const heartbeat = (acks: unknown[] = [], server: Record<string, unknown> = {}) => {
     const body = JSON.stringify({
-      server: { wsBaseUrl: 'ws://gs-1.test', region: 'eu', maxRooms: 10 },
+      server: { wsBaseUrl: 'ws://gs-1.test', region: 'eu', maxRooms: 10, ...server },
       rooms: [{ id: 'main', name: 'Principal', mode: 'casual', preset: 'classic', maxPlayers: 16, persistent: true, players: 2, map: 'outgun1', wsUrl: 'ws://gs-1.test/rooms/main', roster }],
       acks,
     });
@@ -82,6 +82,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       ['PUT', '/admin/maps/permissao', 'moderator', { text: 'P width 1\nP height 1\nP title P\nS 16 12\nflag 0 0 0 1 1\nspawn 0 0 0 8 6\nflag 1 0 0 15 11\nspawn 1 0 0 8 3\n' }],
       ['DELETE', '/admin/maps/permissao', 'moderator'],
       ['PUT', '/admin/users/Jogador1/role', 'admin', { role: 'player' }],
+      ['GET', '/admin/users', 'admin'],
     ];
     for (const [method, url, role, body] of routes) {
       expect((await call(method, url, undefined, body)).statusCode, `${method} ${url} sem sessão`).toBe(401);
@@ -153,6 +154,14 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('GET', '/admin/presets/sniper/versions', 'mod')).json().versions[0]).toMatchObject({ version: 3, deleted: true, changedBy: 'Admin' });
   });
 
+  it('heartbeat traz as rotações padrão do servidor e o painel parte delas (OG-378)', async () => {
+    expect((await heartbeat([], { rotations: { casual: ['outgun1', 'gun dance'], ranked: ['outgun1'] } })).statusCode).toBe(200);
+    expect((await call('GET', '/admin/rotations', 'mod')).json().server).toEqual({ casual: ['outgun1', 'gun dance'], ranked: ['outgun1'] });
+    // servidor antigo (sem o campo) não apaga as que já informou
+    await heartbeat();
+    expect((await call('GET', '/admin/rotations', 'mod')).json().server.casual).toEqual(['outgun1', 'gun dance']);
+  });
+
   it('rotação Ranked por formato (OG-251): formato vazio e mapa inexistente recusados, mudança auditada e no heartbeat', async () => {
     await t.db.update(gameServers).set({ maps: ['outgun1', 'gun dance', 'The Blunt'] }).where(eq(gameServers.id, 'gs-1'));
     expect((await call('GET', '/admin/rotations', 'mod')).json().catalog).toEqual(['gun dance', 'outgun1', 'The Blunt']);
@@ -185,6 +194,12 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('DELETE', `/admin/bans/${ban.json().id}`, 'admin')).statusCode).toBe(204);
     expect((await call('PUT', '/admin/users/Admin/role', 'admin', { role: 'player' })).statusCode).toBe(422); // o próprio papel não
     expect((await call('PUT', '/admin/users/Jogador1/role', 'admin', { role: 'moderator' })).json()).toEqual({ username: 'Jogador1', role: 'moderator' });
+    // lista por papel (OG-388): admin, moderador, jogador; busca pelo nome
+    const listed = (await call('GET', '/admin/users', 'admin')).json();
+    const roles = listed.users.map((u: { role: string }) => u.role);
+    expect(roles).toEqual([...roles].sort((a: string, b: string) => ['admin', 'moderator', 'player'].indexOf(a) - ['admin', 'moderator', 'player'].indexOf(b)));
+    expect(listed.users.find((u: { username: string }) => u.username === 'Jogador1')).toMatchObject({ role: 'moderator' });
+    expect((await call('GET', '/admin/users?busca=jogador1', 'admin')).json().users.map((u: { username: string }) => u.username)).toEqual(['Jogador1']);
     expect((await call('GET', '/admin/me', 'player')).json()).toEqual({ role: 'moderator' }); // a sessão do Jogador1 já vale como moderador
     await call('PUT', '/admin/users/Jogador1/role', 'admin', { role: 'player' });
     const actions = (await t.db.select().from(adminActions).orderBy(desc(adminActions.id)).limit((await auditCount()) - before)).map((a) => a.action).reverse();
@@ -200,10 +215,10 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('PUT', '/admin/presets/festival', 'mod', { description: 'Festival: tudo liberado', overrides: 'rocket_damage 100' })).json()).toEqual({ id: 'festival', version: 1 });
     expect(await lastAudit()).toMatchObject({ action: 'preset', details: { preset: 'festival' } });
     // sem rotação Casual no painel: escolha livre
-    expect((await app.inject('/rotation')).json()).toEqual({ maps: null });
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: null, published: [] });
     expect((await call('POST', '/rooms', 'player', { name: 'Livre', preset: 'festival', maps: ['The Blunt'] })).statusCode).toBe(201);
     expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] })).json()).toMatchObject({ key: 'casual', version: 1 });
-    expect((await app.inject('/rotation')).json()).toEqual({ maps: ['outgun1', 'gun dance'] });
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: ['outgun1', 'gun dance'], published: [] });
     expect((await call('POST', '/rooms', 'player', { name: 'Fora', preset: 'festival', maps: ['The Blunt', 'outgun1'] })).json()).toMatchObject({ error: 'map_not_in_rotation', message: 'not in the casual rotation: The Blunt' });
     const ok = await call('POST', '/rooms', 'player', { name: 'Dentro', preset: 'festival', maps: ['gun dance'] });
     expect([ok.statusCode, ok.json().room.preset]).toEqual([201, 'festival']);
@@ -228,6 +243,8 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     const crc = (await call('GET', '/admin/maps', 'mod')).json().maps.find((m: { name: string }) => m.name === 'teste').crc;
     expect([served.statusCode, served.headers['x-map-crc'], served.rawPayload.toString('latin1')]).toEqual([200, String(crc), text.replace('8 3', '8 4')]);
     expect((await call('GET', '/admin/rotations', 'mod')).json().catalog).toContain('teste');
+    // publicado entra na escolha livre de "Criar sala" (OG-377)
+    expect((await app.inject('/rotation')).json().published).toEqual(['teste']);
     expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'teste'] })).statusCode).toBe(200);
     expect((await call('DELETE', '/admin/maps/teste', 'mod')).json()).toMatchObject({ error: 'map_in_rotation' });
     await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] });

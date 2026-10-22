@@ -629,6 +629,10 @@ html {
 .ui-pagebody.narrow {
   max-width: 32rem;
 }
+.ui-pagebody.full {
+  max-width: 120rem;
+  padding-inline: var(--space-5);
+}
 .ui-pagehead {
   display: flex;
   align-items: center;

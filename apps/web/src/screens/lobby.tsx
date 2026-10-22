@@ -314,8 +314,11 @@ export function CreateRoomScreen() {
       (r) => setPresets(r.presets),
       () => {},
     );
-    void Promise.all([api<{ maps: string[] | null }>('/rotation').catch(() => ({ maps: null })), loadManifest()]).then(([rotation, m]) =>
-      setAllMaps(rotation.maps ?? (m ? Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k) : [])),
+    // sem rotação: os mapas do jogo + os publicados no painel (OG-377)
+    void Promise.all([api<{ maps: string[] | null; published?: string[] }>('/rotation').catch(() => ({ maps: null, published: [] })), loadManifest()]).then(([rotation, m]) =>
+      setAllMaps(
+        rotation.maps ?? [...new Set([...(m ? Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k) : []), ...(rotation.published ?? [])])],
+      ),
     );
   }, []);
   const duel = preset === 'duel';

@@ -9,7 +9,8 @@ import { convertLanguage, textLines } from '../../packages/i18n/dist/convert.js'
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const read = (name) => readFileSync(join(root, '_legacy/languages', name), 'latin1');
 const english = read('en.txt');
-const files = { en: 'en', 'pt-BR': 'ptBR', fi: 'fi', it: 'it' };
+// finlandês e italiano saíram na v2 (OG-384, D-76)
+const files = { en: 'en', 'pt-BR': 'ptBR' };
 const catalogs = {};
 for (const [locale, file] of Object.entries(files)) {
   const converted =

@@ -77,7 +77,7 @@ describe.skipIf(!pgAdminUrl)('ranking por score/neg descontinuado (OG-350)', () 
     const cookie = await login('Jogador2');
     const get = () => app.inject({ url: '/account/settings', headers: { cookie } });
     expect((await get()).json()).toEqual({ settings: {}, updatedAt: null });
-    const settings = { locale: 'fi', favoriteColors: [3, 1, 99, 2], showNames: 'always' };
+    const settings = { locale: 'en', favoriteColors: [3, 1, 99, 2], showNames: 'always' };
     const put = await app.inject({ method: 'PUT', url: '/account/settings', payload: { settings }, headers: { origin: ORIGIN, cookie } });
     expect(put.json()).toEqual({ ok: true });
     expect((await get()).json().settings).toEqual(settings);

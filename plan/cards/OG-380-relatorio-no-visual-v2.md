@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S40 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | OG-355, OG-364 |
 | Regras de negócio | RN-SOC-01 |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,10 @@ Como jogador, quero um relatório da partida com o visual do resto do jogo e os 
 - Os blocos do registro de eventos (multi-kill, troca, primeiro abate, quem matou quem) com o mesmo visual.
 
 ## Critérios de aceite
-- [ ] Relatório de uma Casual mostra dano efetivo, defesas e abates por zona sem abrir o detalhado.
-- [ ] Nenhuma tabela do relatório usa as classes antigas.
+- [x] Relatório de uma Casual mostra dano efetivo, defesas e abates por zona sem abrir o detalhado.
+- [x] Nenhuma tabela do relatório usa as classes antigas.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Tabelas dos times ganharam Dano efetivo, Defesas e Abates por zona (base inimiga · meio · própria, legenda abaixo); novo painel "Destaques" com quem liderou dano, defesas, multi-kills, trocas e primeiros abates (`highlights`).
+- "Estatísticas detalhadas" (times, abates por vítima, jogadores) no `Table`/`Panel` do design system; nomes com a cor do time (`.report-name`). Nenhuma `stats-table` no relatório.
+- Partidas anteriores ao OG-355 mostram "—" e não entram nos destaques.

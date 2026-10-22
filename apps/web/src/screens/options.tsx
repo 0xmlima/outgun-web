@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
 import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
-import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, HUD_SCALES, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
+import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, HUD_SCALES, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
 import { Button } from '../ui/Button.js';
@@ -239,7 +239,6 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
             <FieldGroup>
               {toggle('lagPrediction', 'Lag prediction')}
               <SliderField label={t('Lag prediction amount')} value={prefs.lagPredictionAmount} min={0} max={10} disabled={!prefs.lagPrediction} onChange={(v) => setPrefs({ lagPredictionAmount: v })} />
-              <SliderField label={t('Bandwidth for out-of-room players (cps)')} value={prefs.minimapBandwidth} min={0} max={640} step={20} onChange={(v) => setPrefs({ minimapBandwidth: v })} />
               {toggle('shareNetStats', 'Send anonymous network statistics')}
               {toggle('showInputLatency', 'Show input latency')}
               {toggle('showFlagMessages', 'Show flag messages')}
@@ -249,8 +248,6 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
                 ['teams', 'teams'],
                 ['players', 'players'],
               ])}
-              {toggle('showServerInfo', 'Show server info when connected')}
-              {toggle('stayDeadInMenus', 'Stay dead when in a menu at round start')}
               {toggle('underlineAccounts', 'Underline players with an account')}
               {select<SkipMaps>('skipMaps', 'Skip maps in rotation', [
                 ['none', 'none'],
@@ -295,10 +292,6 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
           <Panel title={t('Theme')}>
             <FieldGroup>
               {named('Theme', prefs.graphicsTheme, lists.themes, '<no theme>', (graphicsTheme) => setPrefs({ graphicsTheme }))}
-              {named('Colour theme', prefs.colourTheme, lists.colourThemes, '<default>', (colourTheme) => setPrefs({ colourTheme }))}
-              {toggle('preferThemeColours', 'Prefer main theme colours')}
-              {named('Background theme', prefs.backgroundTheme, lists.backgrounds, '<no background>', (backgroundTheme) => setPrefs({ backgroundTheme }))}
-              {toggle('preferThemeBackground', 'Prefer main theme background')}
             </FieldGroup>
           </Panel>
           <Panel title={t('Menus')}>
@@ -349,35 +342,6 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               {toggle('scroll', 'Scrolling')}
               {toggle('lessTransparency', 'Less transparency effects')}
               {toggle('continuousTextures', 'Continuous textures between rooms')}
-              {select<MinimapPlayers>('minimapPlayers', 'Disappeared players on minimap', [
-                ['fade', 'fade out'],
-                ['hideEarly', 'hide early'],
-                ['hideLate', 'hide late'],
-              ])}
-              {toggle('highlightReturnedFlags', 'Highlight returned and dropped flags')}
-              {select<EmphasizeFlags>('emphasizeFlags', 'Make flags extra-visible', [
-                ['never', 'never'],
-                ['multiRoom', 'multi-roomed'],
-                ['always', 'always'],
-              ])}
-              {toggle('oldFlagPositions', 'Show flag disappearance positions')}
-              {toggle('spawnHighlight', 'Highlight self after spawn')}
-              {select<NeighborMarkers>('neighborMarkers', 'Markers for nearby players and flags in game', [
-                ['never', 'never'],
-                ['oneRoom', 'single-roomed'],
-                ['always', 'always'],
-              ])}
-              {toggle('boxVisibleArea', 'Box visible area on map in game')}
-              {select<ViewOverBorder>('viewOverBorder', 'Let view follow over map border', [
-                ['never', 'never'],
-                ['mapDoesntFit', "when all rooms aren't shown"],
-                ['mapWraps', 'if the border has doorways'],
-                ['always', 'always'],
-              ])}
-              {toggle('repeatMap', 'Allow parts of map to repeat on screen')}
-              {toggle('highlightUnknownMaps', 'Highlight maps not in the game')}
-              <SliderField label={t('Stats screen alpha')} value={prefs.statsAlpha} min={0} max={255} step={15} onChange={(v) => setPrefs({ statsAlpha: v })} />
-              {toggle('mapInfoMode', 'Map info mode')}
               <VsyncField />
               <ChoiceField
                 label={t('FPS limit')}

@@ -180,6 +180,8 @@ export const gameServers = pgTable('game_servers', {
   lastHeartbeatAt: tstz('last_heartbeat_at').notNull(),
   /** Mapas que o servidor tem (rotação do painel é conferida contra eles, OG-251). */
   maps: text('maps').array().notNull().default(sql`'{}'::text[]`),
+  /** Rotações padrão do servidor (ROTATION/RANKED_ROTATION, OG-378): o painel parte delas sem rotação salva. */
+  rotations: jsonb('rotations').$type<Partial<Record<RotationKey, string[]>>>().notNull().default({}),
 });
 
 export const matches = pgTable(
