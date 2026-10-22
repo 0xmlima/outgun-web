@@ -923,6 +923,41 @@
   cursor: pointer;
   font-weight: var(--weight-medium);
 }
+.report-details-body {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+.report-name.red,
+.report-name.red a {
+  color: var(--text-team-red);
+}
+.report-name.blue,
+.report-name.blue a {
+  color: var(--text-team-blue);
+}
+/* destaques da partida (OG-380): quem liderou cada marcador novo */
+.report-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.report-highlights li {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+.report-highlight-value {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
 
 /* Perfil social (OG-212) */
 .profile-name {

@@ -84,40 +84,47 @@ function KillMatrix({ data }: { data: MatchEvents | null | undefined }) {
   const { t } = usePrefs();
   if (data === undefined) return null;
   const m = data?.events ? killMatrix(data) : null;
-  const team = (n: number) => (n === 0 ? 'team-red' : 'team-blue');
+  const name = (i: number) => <span className={m!.teams[i] === 0 ? 'report-name red' : 'report-name blue'}>{m!.names[i]}</span>;
   return (
-    <section className="stats-section">
-      <h2>{t('Kills by victim')}</h2>
+    <Panel title={t('Kills by victim')}>
       {!m ? (
         <p className="ui-muted">{t('No data for this match.')}</p>
       ) : (
-        <table className="stats-table wide">
-          <caption className="ui-muted">{t('Row = killer, column = victim.')}</caption>
-          <thead>
-            <tr>
-              <th>{t('Player')}</th>
-              {m.names.map((n, i) => (
-                <th key={i} className={team(m.teams[i]!)}>
-                  {n}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {m.kills.map((row, k) => (
-              <tr key={k}>
-                <th className={team(m.teams[k]!)}>{m.names[k]}</th>
-                {row.map((n, v) => (
-                  <td key={v}>{k === v ? '—' : n || ''}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <p className="ui-muted">{t('Row = killer, column = victim.')}</p>
+          <Table
+            caption={t('Kills by victim')}
+            rows={m.kills.map((row, k) => ({ row, k }))}
+            rowKey={(r) => String(r.k)}
+            columns={[
+              { key: 'player', header: t('Player'), cell: (r) => name(r.k) },
+              ...m.names.map((_, v) => ({ key: String(v), header: name(v), cell: (r: { row: number[]; k: number }) => (r.k === v ? '—' : r.row[v] || ''), align: 'end' as const })),
+            ]}
+          />
+        </>
       )}
-    </section>
+    </Panel>
   );
 }
+
+/** Quem mais se destacou em cada marcador novo (OG-355, OG-363), à vista no topo (OG-380). */
+export function highlights(players: readonly PlayerLine[]): { label: string; player: PlayerLine; value: number }[] {
+  const keys: [string, (p: PlayerLine) => number | undefined][] = [
+    ['Effective damage', (p) => p.stats.effectiveDamage],
+    ['Defenses', (p) => p.stats.defenses],
+    ['Multi-kills', (p) => p.stats.multiKills],
+    ['Trades', (p) => p.stats.trades],
+    ['First kills', (p) => p.stats.firstKills],
+  ];
+  return keys.flatMap(([label, value]) => {
+    const top = [...players].filter((p) => (value(p) ?? 0) > 0).sort((a, b) => value(b)! - value(a)! || a.slot - b.slot)[0];
+    return top ? [{ label, player: top, value: Math.round(value(top)!) }] : [];
+  });
+}
+
+/** Abates por zona: base inimiga · meio · própria base (OG-355). */
+const zones = (p: PlayerLine) =>
+  p.stats.killsEnemyBase === undefined ? '—' : `${p.stats.killsEnemyBase} · ${p.stats.killsMidfield ?? 0} · ${p.stats.killsOwnBase ?? 0}`;
 
 /** Melhor jogador: mais frags; desempate por capturas, kills e menos mortes. */
 export function bestPlayer(players: readonly PlayerLine[]): PlayerLine | undefined {
@@ -225,6 +232,7 @@ export function MatchScreen() {
   const minutes = (frames: number) => `${Math.trunc(frames / 600)} min`;
   const { redScore, blueScore } = m.match;
   const best = bestPlayer(m.players);
+  const top = highlights(m.players);
   const seconds = (Date.parse(m.match.endedAt) - Date.parse(m.match.startedAt)) / 1000;
   const winner = redScore > blueScore ? t('Red team wins') : blueScore > redScore ? t('Blue team wins') : t('Draw');
   const timeline = captureTimeline(d.captures ?? [], d.baseScore);
@@ -254,6 +262,10 @@ export function MatchScreen() {
         { key: 'deaths', header: t('Deaths'), cell: (p) => p.deaths, align: 'end' },
         { key: 'captures', header: t('Captures'), cell: (p) => p.captures, align: 'end' },
         { key: 'assists', header: t('Assists'), cell: (p) => p.stats.assists ?? 0, align: 'end' },
+        // marcadores novos à vista (OG-380); '—' nas partidas anteriores ao OG-355
+        { key: 'damage', header: t('Effective damage'), cell: (p) => (p.stats.effectiveDamage === undefined ? '—' : Math.round(p.stats.effectiveDamage)), align: 'end' },
+        { key: 'defenses', header: t('Defenses'), cell: (p) => p.stats.defenses ?? '—', align: 'end' },
+        { key: 'zones', header: t('Kills by zone'), cell: zones, align: 'end' },
         { key: 'accuracy', header: t('Accuracy'), cell: (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`, align: 'end' },
         { key: 'returns', header: t('Flags returned'), cell: (p) => p.stats.flagsReturned ?? 0, align: 'end' },
         ...(skill.size > 0
@@ -365,63 +377,66 @@ export function MatchScreen() {
           </ul>
         </Panel>
       )}
+      {top.length > 0 && (
+        <Panel title={t('Highlights')}>
+          <ul className="report-highlights">
+            {top.map((h) => (
+              <li key={h.label}>
+                <span className="ui-muted">{t(h.label)}</span>
+                <strong className={h.player.team === 0 ? 'report-name red' : 'report-name blue'}>
+                  <PlayerLink name={h.player.name} username={h.player.username} />
+                </strong>
+                <span className="report-highlight-value">{h.value}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
       <Panel title={`${t('Red team')} · ${redScore}`} className="report-team-panel red">
         {teamTable(0)}
       </Panel>
       <Panel title={`${t('Blue team')} · ${blueScore}`} className="report-team-panel blue">
         {teamTable(1)}
       </Panel>
+      <p className="ui-muted">{t('Kills by zone: enemy base · midfield · own base.')}</p>
       <details className="report-details">
         <summary>{t('Detailed statistics')}</summary>
-        {d.teams && (
-          <section className="stats-section">
-            <h2>{t('Team stats')}</h2>
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>{t('Team')}</th>
-                  <th className="team-red">{t('Red')}</th>
-                  <th className="team-blue">{t('Blue')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {TEAM_ROWS.map(([label, value]) => (
-                  <tr key={label}>
-                    <th>{t(label)}</th>
-                    <td>{value(d.teams![0] ?? {})}</td>
-                    <td>{value(d.teams![1] ?? {})}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
-        <KillMatrix data={events.data} />
-        <section className="stats-section">
-          <h2>{t('Player stats')}</h2>
-          <table className="stats-table wide">
-            <thead>
-              <tr>
-                <th>{t('Player')}</th>
-                {PLAYER_COLUMNS.map(([label]) => (
-                  <th key={label}>{t(label)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {m.players.map((p) => (
-                <tr key={p.slot} className={p.team === 0 ? 'team-red' : 'team-blue'}>
-                  <td className="name">
-                    <PlayerLink name={p.name} username={p.username} />
-                  </td>
-                  {PLAYER_COLUMNS.map(([label, value]) => (
-                    <td key={label}>{value(p)}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <div className="report-details-body">
+          {d.teams && (
+            <Panel title={t('Team stats')}>
+              <Table
+                caption={t('Team stats')}
+                rows={TEAM_ROWS}
+                rowKey={([label]) => label}
+                columns={[
+                  { key: 'stat', header: t('Team'), cell: ([label]) => t(label) },
+                  { key: 'red', header: <span className="report-name red">{t('Red')}</span>, cell: ([, value]) => value(d.teams![0] ?? {}), align: 'end' },
+                  { key: 'blue', header: <span className="report-name blue">{t('Blue')}</span>, cell: ([, value]) => value(d.teams![1] ?? {}), align: 'end' },
+                ]}
+              />
+            </Panel>
+          )}
+          <KillMatrix data={events.data} />
+          <Panel title={t('Player stats')}>
+            <Table
+              caption={t('Player stats')}
+              rows={m.players}
+              rowKey={(p) => String(p.slot)}
+              columns={[
+                {
+                  key: 'player',
+                  header: t('Player'),
+                  cell: (p) => (
+                    <span className={p.team === 0 ? 'report-name red' : 'report-name blue'}>
+                      <PlayerLink name={p.name} username={p.username} />
+                    </span>
+                  ),
+                },
+                ...PLAYER_COLUMNS.map(([label, value]) => ({ key: label, header: t(label), cell: value, align: 'end' as const })),
+              ]}
+            />
+          </Panel>
+        </div>
       </details>
       <p className="ui-muted">
         <Link to="/ranking">{t('Ranking')}</Link>
