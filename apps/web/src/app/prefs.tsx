@@ -202,6 +202,9 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
   };
 }
 
+/** Opções do original tiradas da tela no OG-386 (revisão do OG-385): valem o padrão para todos. */
+export const RETIRED_PREFS = ['minimapBandwidth', 'showServerInfo', 'stayDeadInMenus', 'colourTheme', 'preferThemeColours', 'backgroundTheme', 'preferThemeBackground', 'minimapPlayers', 'highlightReturnedFlags', 'emphasizeFlags', 'oldFlagPositions', 'spawnHighlight', 'neighborMarkers', 'boxVisibleArea', 'viewOverBorder', 'repeatMap', 'highlightUnknownMaps', 'statsAlpha', 'mapInfoMode'] as const satisfies readonly (keyof Prefs)[];
+
 const int = (v: unknown, lo: number, hi: number, fallback: number) => (Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi ? (v as number) : fallback);
 const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
 const str = (v: unknown, fallback: string, max = 64) => (typeof v === 'string' ? v.slice(0, max) : fallback);
@@ -210,6 +213,7 @@ const oneOf = <T extends string>(v: unknown, options: readonly T[], fallback: T)
 /**
  * Preferências salvas (navegador ou conta), conferidas campo a campo; o que vier errado volta ao padrão.
  * Campos que deixaram de existir (ex.: `menuFont`, removido no OG-200) são ignorados e somem no próximo salvamento.
+ * As opções legadas tiradas da tela no OG-386 (`RETIRED_PREFS`) ficam sempre no padrão, ignorando o salvo.
  */
 export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Prefs {
   const quick = Array.isArray(saved.quickMessages) ? saved.quickMessages : [];
@@ -219,30 +223,30 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     favoriteColors: saved.favoriteColors === undefined ? fallback.favoriteColors : completeColors(saved.favoriteColors),
     randomColor: bool(saved.randomColor, fallback.randomColor),
     graphicsTheme: str(saved.graphicsTheme, fallback.graphicsTheme),
-    colourTheme: str(saved.colourTheme, fallback.colourTheme),
-    preferThemeColours: bool(saved.preferThemeColours, fallback.preferThemeColours),
+    colourTheme: fallback.colourTheme,
+    preferThemeColours: fallback.preferThemeColours,
     visibleRooms: int(saved.visibleRooms, 1, 20, fallback.visibleRooms),
     continuousTextures: bool(saved.continuousTextures, fallback.continuousTextures),
     showNames: oneOf(saved.showNames, ['never', 'sameRoom', 'always'], fallback.showNames),
     fpsLimit: int(saved.fpsLimit, 0, 10000, fallback.fpsLimit),
     scroll: bool(saved.scroll, fallback.scroll),
     lessTransparency: bool(saved.lessTransparency, fallback.lessTransparency),
-    minimapPlayers: oneOf(saved.minimapPlayers, ['fade', 'hideEarly', 'hideLate'], fallback.minimapPlayers),
-    highlightReturnedFlags: bool(saved.highlightReturnedFlags, fallback.highlightReturnedFlags),
-    emphasizeFlags: oneOf(saved.emphasizeFlags, ['never', 'multiRoom', 'always'], fallback.emphasizeFlags),
-    oldFlagPositions: bool(saved.oldFlagPositions, fallback.oldFlagPositions),
-    spawnHighlight: bool(saved.spawnHighlight, fallback.spawnHighlight),
-    neighborMarkers: oneOf(saved.neighborMarkers, ['never', 'oneRoom', 'always'], fallback.neighborMarkers),
-    boxVisibleArea: bool(saved.boxVisibleArea, fallback.boxVisibleArea),
-    viewOverBorder: oneOf(saved.viewOverBorder, ['never', 'mapDoesntFit', 'mapWraps', 'always'], fallback.viewOverBorder),
-    repeatMap: bool(saved.repeatMap, fallback.repeatMap),
-    highlightUnknownMaps: bool(saved.highlightUnknownMaps, fallback.highlightUnknownMaps),
-    statsAlpha: int(saved.statsAlpha, 0, 255, fallback.statsAlpha),
-    mapInfoMode: bool(saved.mapInfoMode, fallback.mapInfoMode),
-    stayDeadInMenus: bool(saved.stayDeadInMenus, fallback.stayDeadInMenus),
+    minimapPlayers: fallback.minimapPlayers,
+    highlightReturnedFlags: fallback.highlightReturnedFlags,
+    emphasizeFlags: fallback.emphasizeFlags,
+    oldFlagPositions: fallback.oldFlagPositions,
+    spawnHighlight: fallback.spawnHighlight,
+    neighborMarkers: fallback.neighborMarkers,
+    boxVisibleArea: fallback.boxVisibleArea,
+    viewOverBorder: fallback.viewOverBorder,
+    repeatMap: fallback.repeatMap,
+    highlightUnknownMaps: fallback.highlightUnknownMaps,
+    statsAlpha: fallback.statsAlpha,
+    mapInfoMode: fallback.mapInfoMode,
+    stayDeadInMenus: fallback.stayDeadInMenus,
     underlineAccounts: bool(saved.underlineAccounts, fallback.underlineAccounts),
-    backgroundTheme: str(saved.backgroundTheme, fallback.backgroundTheme),
-    preferThemeBackground: bool(saved.preferThemeBackground, fallback.preferThemeBackground),
+    backgroundTheme: fallback.backgroundTheme,
+    preferThemeBackground: fallback.preferThemeBackground,
     menuTheme: oneOf(saved.menuTheme, MENU_THEMES, fallback.menuTheme),
     hudScale: oneOf(saved.hudScale, HUD_SCALES, fallback.hudScale),
     hudStyle: oneOf(saved.hudStyle, HUD_STYLES, fallback.hudStyle),
@@ -256,11 +260,11 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     shareNetStats: bool(saved.shareNetStats, fallback.shareNetStats),
     showInputLatency: bool(saved.showInputLatency, fallback.showInputLatency),
     chordWindowMs: int(saved.chordWindowMs, 0, CHORD_WINDOW_MAX_MS, fallback.chordWindowMs),
-    minimapBandwidth: int(saved.minimapBandwidth, 0, 640, fallback.minimapBandwidth),
+    minimapBandwidth: fallback.minimapBandwidth,
     showFlagMessages: bool(saved.showFlagMessages, fallback.showFlagMessages),
     showKillMessages: bool(saved.showKillMessages, fallback.showKillMessages),
     showStats: oneOf(saved.showStats, ['off', 'teams', 'players'], fallback.showStats),
-    showServerInfo: bool(saved.showServerInfo, fallback.showServerInfo),
+    showServerInfo: fallback.showServerInfo,
     skipMaps: oneOf(saved.skipMaps, ['none', 'dimmed', 'highlighted'], fallback.skipMaps),
     quickMessagesEnabled: bool(saved.quickMessagesEnabled, fallback.quickMessagesEnabled),
     quickMessagesImmediate: bool(saved.quickMessagesImmediate, fallback.quickMessagesImmediate),

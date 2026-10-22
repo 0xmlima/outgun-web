@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { GlibcRand } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
-import { createBotName, finnishName, neededBots, randomName, type BotNeeds } from './bots.js';
+import { createBotName, neededBots, randomName, type BotNeeds } from './bots.js';
 
 /** Saída de src/names.cpp compilado no oráculo (g++ do Docker), `srand(seed)` e 6 nomes seguidos. */
-const GOLDEN: Record<string, string[]> = {"c1": ["Zyyradoi Gaqa", "Teeo Touha", "Ise", "Vae Xaivo", "Bewmliwu", "Uga"], "f1": ["Muli", "Ruiravaa", "Mitämpie", "Kutjie", "Övier", "Pymmes Siyl"], "c2": ["Sine Jroan", "Amsu Zi", "Dimo", "Mlowi", "Opuiso", "Vlurozry"], "f2": ["Jahkea", "Laijo", "Mahneikaako", "Pyjei Hötve", "Mapai Hevyy", "Öiji Pisvaa"], "c3": ["Talhawmu", "Pzoior", "Nozoew Sosnyafl", "Uileulca", "Fawau", "Jae"], "f3": ["Lara Vunhe", "Sipoos", "Toprur", "Vöy", "Intie", "Pointtu"]};
+const GOLDEN: Record<string, string[]> = {"c1": ["Zyyradoi Gaqa", "Teeo Touha", "Ise", "Vae Xaivo", "Bewmliwu", "Uga"], "c2": ["Sine Jroan", "Amsu Zi", "Dimo", "Mlowi", "Opuiso", "Vlurozry"], "c3": ["Talhawmu", "Pzoior", "Nozoew Sosnyafl", "Uileulca", "Fawau", "Jae"]};
 
 describe('RN-BOT-03: nomes como src/names.cpp', () => {
   for (const seed of [1, 2, 3]) {
@@ -12,18 +12,14 @@ describe('RN-BOT-03: nomes como src/names.cpp', () => {
       const rng = new GlibcRand(seed);
       expect(Array.from({ length: 6 }, () => randomName(rng))).toEqual(GOLDEN[`c${seed}`]);
     });
-    it(`finlandês, seed ${seed}`, () => {
-      const rng = new GlibcRand(seed);
-      expect(Array.from({ length: 6 }, () => finnishName(rng, 11))).toEqual(GOLDEN[`f${seed}`]);
-    });
   }
   it('prefixo BOT, sem repetir o nome de um bot presente, até 15 caracteres', () => {
     const reserved = new Set<string>();
-    const first = createBotName(new GlibcRand(1), 'classic', reserved, []);
+    const first = createBotName(new GlibcRand(1), reserved, []);
     expect(first).toBe('BOT Zyyradoi Ga');
-    expect(createBotName(new GlibcRand(1), 'classic', reserved, [first])).not.toBe(first);
-    expect(createBotName(new GlibcRand(1), 'classic', new Set(), ['BOT Zyyradoi Gaqa'])).toBe('BOT Teeo Touha');
-    for (let i = 0; i < 200; i++) expect(createBotName(new GlibcRand(i), i % 2 ? 'fi' : 'classic', new Set(), []).length).toBeLessThanOrEqual(15);
+    expect(createBotName(new GlibcRand(1), reserved, [first])).not.toBe(first);
+    expect(createBotName(new GlibcRand(1), new Set(), ['BOT Zyyradoi Gaqa'])).toBe('BOT Teeo Touha');
+    for (let i = 0; i < 200; i++) expect(createBotName(new GlibcRand(i), new Set(), []).length).toBeLessThanOrEqual(15);
   });
 });
 

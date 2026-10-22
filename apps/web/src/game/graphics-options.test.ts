@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
-import { defaultPrefs, parsePrefs } from '../app/prefs.js';
+import { defaultPrefs, parsePrefs, RETIRED_PREFS } from '../app/prefs.js';
 import { DEFAULT_GRAPHICS, emphasizeFlag, hudScaleValue, minimapFade, showNeighborMarkers } from './graphics-options.js';
 
 describe('opções gráficas avançadas (OG-070)', () => {
@@ -33,8 +33,15 @@ describe('opções gráficas avançadas (OG-070)', () => {
   });
 
   it('valores salvos inválidos voltam ao padrão', () => {
-    const p = parsePrefs({ minimapPlayers: 'x', viewOverBorder: 'always', statsAlpha: 999, scroll: true }, defaultPrefs());
-    expect(p).toMatchObject({ minimapPlayers: 'fade', viewOverBorder: 'always', statsAlpha: 255, scroll: true });
+    const p = parsePrefs({ showNames: 'x', scroll: true }, defaultPrefs());
+    expect(p).toMatchObject({ showNames: 'sameRoom', scroll: true });
+  });
+
+  it('opções legadas tiradas da tela (OG-386): valor salvo é ignorado, vale o padrão', () => {
+    const d = defaultPrefs();
+    const saved = { minimapPlayers: 'hideLate', viewOverBorder: 'always', statsAlpha: 30, mapInfoMode: true, minimapBandwidth: 640, colourTheme: 'x', stayDeadInMenus: false, emphasizeFlags: 'always' };
+    const p = parsePrefs(saved, d);
+    for (const k of RETIRED_PREFS) expect(p[k], k).toEqual(d[k]);
   });
 
   it('escala do HUD (OG-296): automática por padrão, valor inválido volta ao padrão', () => {

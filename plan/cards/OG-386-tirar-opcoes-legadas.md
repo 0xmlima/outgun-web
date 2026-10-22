@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S40 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-385 |
 | Regras de negócio | RN-UI-01, RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -26,9 +26,12 @@ Sai da tela e das preferências (o valor passa a ser o padrão de hoje para todo
 - Nada muda na partida para quem usa os padrões (RN-UI-05): `pnpm visual:check` sem diferença.
 
 ## Critérios de aceite
-- [ ] As opções da lista não aparecem mais em Opções (menu e dentro da partida).
-- [ ] Jogador com valor antigo salvo (navegador ou conta) vê o jogo como com o padrão.
+- [x] As opções da lista não aparecem mais em Opções (menu e dentro da partida).
+- [x] Jogador com valor antigo salvo (navegador ou conta) vê o jogo como com o padrão.
 - [ ] `visual:check` sem diferença na partida com as opções padrão.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Os campos continuam em `Prefs` (o renderer da partida não mudou, RN-UI-05), mas `parsePrefs` sempre devolve o padrão para os de `RETIRED_PREFS`; teste cobre todos.
+- "Tema" ficou (há temas e a opção "sem tema"); saíram tema de cores, fundo e os dois "preferir do tema".
+- Bots: o gerador de nomes finlandeses saiu; `bot_name_lang` é aceito no gamemod e não tem efeito.
+- `visual:check` fica para o fechamento da sprint.

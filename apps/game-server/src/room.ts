@@ -691,9 +691,9 @@ export class Room {
     return res;
   }
 
-  /** Bot com IA (OG-053): cliente virtual que ocupa uma vaga e dá lugar a humanos; sem nome, um de `bot_name_lang`. */
+  /** Bot com IA (OG-053): cliente virtual que ocupa uma vaga e dá lugar a humanos; sem nome, um clássico gerado. */
   private spawnBot(name?: string): JoinResult {
-    const botName = name ?? createBotName(this.botNameRng, this.settings.server.botNameLang, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
+    const botName = name ?? createBotName(this.botNameRng, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
     const bot = new BotClient(this.botHost(), this.botRng, this.now, this.newBotSkill());
     const res = this.join(bot, { name: botName, accountId: null }, { bot: true });
     if (res.ok) bot.attach(res.pid);

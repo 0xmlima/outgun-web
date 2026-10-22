@@ -844,7 +844,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-383](cards/OG-383-aba-rotacoes-por-modo.md) | Aba Rotações por modo: escolher Casual ou Ranqueado e marcar os mapas | E5 | 3 | Must | S40 | OG-378 | Em revisão |
 | [OG-384](cards/OG-384-sem-finlandes-e-italiano.md) | Tirar os idiomas finlandês e italiano | E8 | 1 | Must | S40 | — | Em revisão |
 | [OG-385](cards/OG-385-revisao-das-opcoes.md) | Revisão das opções do jogo: o que fica, o que sai | E8 | 2 | Should | S40 | — | Em revisão |
-| [OG-386](cards/OG-386-tirar-opcoes-legadas.md) | Tirar as opções legadas aprovadas na revisão | E8 | 3 | Should | S40 | OG-385 | Pronto |
+| [OG-386](cards/OG-386-tirar-opcoes-legadas.md) | Tirar as opções legadas aprovadas na revisão | E8 | 3 | Should | S40 | OG-385 | Em revisão |
 
 **Total:** 228 cards, 755 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 159 cards, 460 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
