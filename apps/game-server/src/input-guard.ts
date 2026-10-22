@@ -16,7 +16,8 @@ interface Limit {
 }
 
 const LIMITS: Readonly<Partial<Record<AnyMessage['type'], Limit>>> = {
-  input: { rate: 30, burst: 60 },
+  // 10 envios/s + cada mudança de tecla na hora (D-71)
+  input: { rate: 40, burst: 80 },
   fire: { rate: 20, burst: 40 },
   dropFlag: { rate: 20, burst: 40 },
   suicide: { rate: 2, burst: 6 },

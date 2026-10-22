@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S39 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-369 |
 | Regras de negócio | D-71 |
 | Skills | `outgun-card-workflow` |
@@ -28,10 +28,10 @@ Como jogador competitivo, quero que cada tecla que aperto chegue ao servidor, pa
 - D-71 na seção 12; atualizar `plan/specs/predicao-interpolacao.md` e `entrada-servidor.md`.
 
 ## Critérios de aceite
-- [ ] Duas mudanças no mesmo frame (↑ e depois ↑→) chegam ao servidor e o tick seguinte usa a última.
-- [ ] O boneco previsto reage à tecla no próximo quadro, sem esperar o envio de 10 Hz (tecla→tela do OG-369 cai).
-- [ ] Correções da predição (`stats.corrections`) não aumentam na partida de teste com bots.
-- [ ] Testes de `session.test.ts` e `prediction.test.ts` regravados para o protocolo 5.
+- [x] Duas mudanças no mesmo frame (↑ e depois ↑→) chegam ao servidor e o tick seguinte usa a última.
+- [x] O boneco previsto reage à tecla no próximo quadro, sem esperar o envio de 10 Hz (tecla→tela do OG-369 cai).
+- [ ] Correções da predição (`stats.corrections`) não aumentam na partida de teste com bots (conferir no fechamento).
+- [x] Testes de `session.test.ts` cobrem os reenvios e a predição imediata (sem protocolo novo, ver notas).
 
 ## Notas técnicas
 - O site e o cliente desktop carregam a mesma versão (D-58): basta subir servidor e site juntos; conferir como o servidor trata um cliente com protocolo 4 (aba aberta antes do deploy) e dar a mensagem de "atualize".
@@ -39,4 +39,5 @@ Como jogador competitivo, quero que cada tecla que aperto chegue ao servidor, pa
 - Não muda `packages/sim`.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- **Sem protocolo novo nem número de sequência:** o servidor já aceita reenvios com o mesmo `clientFrame` e aplica o último no tick. Bastou tirar o limite de um reenvio (`resentFrame`) e, na predição, usar o controle atual (e a direção da arma dele) no trecho depois do último envio. Mudança que não pega mais o tick do envio anterior continua saindo no próximo envio, que chega a tempo do tick seguinte: mandá-la antes não anteciparia nada e marcaria um frame já simulado com o controle errado.
+- Replays, espectadores e protocolo 4 intactos; servidor e site podem subir em qualquer ordem. Limite do `input` no servidor: 30/s (rajada 60) → 40/s (rajada 80).

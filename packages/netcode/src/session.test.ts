@@ -132,6 +132,30 @@ describe('ClientSession', () => {
     expect(sent.filter((m) => m.type === 'input')).toHaveLength(2);
   });
 
+  it('reenvia toda mudança que ainda pega o mesmo tick, não só a primeira (D-71)', () => {
+    const { s, sent } = session();
+    s.handle([frame(10, [player(0, 100, 100)])], 1000);
+    s.sendFrame(1040);
+    s.setControls(CONTROL.up, 1045);
+    s.setControls(CONTROL.up | CONTROL.right, 1060); // diagonal: a segunda tecla 15 ms depois
+    const inputs = sent.filter((m): m is Extract<AnyMessage, { type: 'input' }> => m.type === 'input');
+    expect(inputs.map((m) => [m.clientFrame, m.controls])).toEqual([
+      [1, 0],
+      [1, CONTROL.up],
+      [1, CONTROL.up | CONTROL.right],
+    ]);
+  });
+
+  it('predição: tecla depois do último envio já vale no desenho seguinte (D-71)', () => {
+    const { s } = session();
+    s.handle([frame(10, [player(0, 100, 100)])], 1000);
+    s.sendFrame(1000);
+    s.handle([frame(11, [player(0, 100, 100)], 1)], 1100); // envio confirmado: nada pendente
+    s.setControls(CONTROL.right, 1195); // tarde para reenviar: sai só no próximo envio
+    expect(s.extrapolate(1199)?.players[0]?.controls).toBe(CONTROL.right);
+    expect(s.inputLatency.render).toEqual([4]);
+  });
+
   it('mede o atraso só de inputs enviados depois do primeiro frame', () => {
     const { s } = session();
     s.sendFrame(0); // clientFrame 1, antes de qualquer frame (servidor no frame 500)

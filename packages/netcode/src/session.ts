@@ -198,8 +198,6 @@ export class ClientSession {
   private readonly svFrameHistory = new Float64Array(256);
   /** Entradas de `svFrameHistory` já preenchidas (o eco 0 antes do primeiro input não mede nada). */
   private readonly sentValid = new Uint8Array(256);
-  /** Número de frame já reenviado no meio do frame (no máximo um reenvio por número). */
-  private resentFrame = -1;
   private controls = 0;
   /** Momento da tecla da mudança de controles ainda não enviada / ainda não desenhada (OG-369). */
   private changeNotSent: number | null = null;
@@ -792,7 +790,12 @@ export class ClientSession {
 
   // ---------------------------------------------------------------- envio
 
-  /** Controles atuais (bits de `CONTROL`); mudanças no meio do frame podem ser reenviadas já. */
+  /**
+   * Controles atuais (bits de `CONTROL`). Toda mudança que ainda pega o tick do envio anterior é
+   * reenviada na hora (D-71: sem o limite de um reenvio por frame do original); as outras saem no
+   * próximo envio, que chega a tempo do tick seguinte. A predição usa o controle atual já no quadro
+   * seguinte em ambos os casos (`extrapolateWith`).
+   */
   setControls(controls: number, now: number, changedAt = now): void {
     const c = controls & 0x3f;
     if (c === this.controls) return;
@@ -800,8 +803,7 @@ export class ClientSession {
     if (this.changeNotSent === null) this.changeNotSent = changedAt;
     this.changeNotRendered = changedAt;
     // ainda chega no mesmo frame do servidor que o envio anterior? então corrige esse envio (`send_frame(false)`)
-    if (this.world && this.resentFrame !== this.clFrameSent && this.serverFrameNow(now) < (this.svFrameHistory[this.clFrameSent] as number) + 0.5) {
-      this.resentFrame = this.clFrameSent;
+    if (this.world && this.serverFrameNow(now) < (this.svFrameHistory[this.clFrameSent] as number) + 0.5) {
       this.controlHistory[this.clFrameSent] = c;
       this.options.send([message('input', { clientFrame: this.clFrameSent, controls: c, gundir: 0 })]);
       this.controlsSent(now);
@@ -931,8 +933,10 @@ export class ClientSession {
         }
       }
       if (!me.dead) {
-        // direção da arma: a última direção sem strafe ainda não confirmada
-        for (let cf = last; cf !== this.clFrameWorld; cf = u8(cf - 1)) {
+        // direção da arma: a última direção sem strafe ainda não confirmada (a atual, se já passou do último envio)
+        const current = last === this.clFrameSent && !isStrafe(this.controls) ? controlDirection(this.controls) : -1;
+        if (current !== -1) me.gundir = current;
+        else for (let cf = last; cf !== this.clFrameWorld; cf = u8(cf - 1)) {
           const c = this.controlHistory[cf] as number;
           if (isStrafe(c)) continue;
           const d = controlDirection(c);
@@ -952,7 +956,8 @@ export class ClientSession {
       applyPhysics(ctx, cb, PLAYER_RADIUS, 1);
       fd.frame++;
     }
-    if (me) me.controls = this.controlHistory[last] as number;
+    // depois do último envio, o tick que vem usará os controles atuais (D-71): sem esperar o envio
+    if (me) me.controls = this.prediction.enabled && !this.paused && last === this.clFrameSent ? this.controls : (this.controlHistory[last] as number);
     // divergência: frames inteiros e só a sobra fracionária (o original anda até 3 frames num passo
     // só, e a física de um passo de 1,5 frame não é a de 1 + 0,5: a posição pularia a cada frame)
     for (; td > 1; td -= 1) {
