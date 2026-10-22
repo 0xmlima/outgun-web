@@ -933,10 +933,8 @@ export class ClientSession {
         }
       }
       if (!me.dead) {
-        // direção da arma: a última direção sem strafe ainda não confirmada (a atual, se já passou do último envio)
-        const current = last === this.clFrameSent && !isStrafe(this.controls) ? controlDirection(this.controls) : -1;
-        if (current !== -1) me.gundir = current;
-        else for (let cf = last; cf !== this.clFrameWorld; cf = u8(cf - 1)) {
+        // direção da arma: a última direção sem strafe ainda não confirmada
+        for (let cf = last; cf !== this.clFrameWorld; cf = u8(cf - 1)) {
           const c = this.controlHistory[cf] as number;
           if (isStrafe(c)) continue;
           const d = controlDirection(c);
@@ -956,13 +954,15 @@ export class ClientSession {
       applyPhysics(ctx, cb, PLAYER_RADIUS, 1);
       fd.frame++;
     }
-    // depois do último envio, o tick que vem usará os controles atuais (D-71): sem esperar o envio
-    if (me) me.controls = this.prediction.enabled && !this.paused && last === this.clFrameSent ? this.controls : (this.controlHistory[last] as number);
+    if (me) me.controls = this.controlHistory[last] as number;
     // divergência: frames inteiros e só a sobra fracionária (o original anda até 3 frames num passo
     // só, e a física de um passo de 1,5 frame não é a de 1 + 0,5: a posição pularia a cada frame)
     for (; td > 1; td -= 1) {
       applyPhysics(ctx, cb, PLAYER_RADIUS, 1);
       fd.frame++;
+      // o tick do último envio usa os controles dele; os seguintes, os atuais (D-71), que saem no
+      // próximo envio: prever a mudança antes disso desenharia o que o servidor não fará
+      if (me && this.prediction.enabled && !this.paused && last === this.clFrameSent) me.controls = this.controls;
     }
     applyPhysics(ctx, cb, PLAYER_RADIUS, td);
     fd.frame += td;

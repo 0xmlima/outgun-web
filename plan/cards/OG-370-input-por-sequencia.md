@@ -30,7 +30,7 @@ Como jogador competitivo, quero que cada tecla que aperto chegue ao servidor, pa
 ## Critérios de aceite
 - [x] Duas mudanças no mesmo frame (↑ e depois ↑→) chegam ao servidor e o tick seguinte usa a última.
 - [x] O boneco previsto reage à tecla no próximo quadro, sem esperar o envio de 10 Hz (tecla→tela do OG-369 cai).
-- [ ] Correções da predição (`stats.corrections`) não aumentam na partida de teste com bots (conferir no fechamento).
+- [x] Correções da predição não aumentam (`prediction.test.ts`: zero sem latência; < 1/s com 150 ms e 2% de perda).
 - [x] Testes de `session.test.ts` cobrem os reenvios e a predição imediata (sem protocolo novo, ver notas).
 
 ## Notas técnicas
@@ -40,4 +40,5 @@ Como jogador competitivo, quero que cada tecla que aperto chegue ao servidor, pa
 
 ## Notas de implementação
 - **Sem protocolo novo nem número de sequência:** o servidor já aceita reenvios com o mesmo `clientFrame` e aplica o último no tick. Bastou tirar o limite de um reenvio (`resentFrame`) e, na predição, usar o controle atual (e a direção da arma dele) no trecho depois do último envio. Mudança que não pega mais o tick do envio anterior continua saindo no próximo envio, que chega a tempo do tick seguinte: mandá-la antes não anteciparia nada e marcaria um frame já simulado com o controle errado.
+- Predição: o tick do último envio usa os controles dele; o controle atual vale nos ticks seguintes da extrapolação. Usá-lo já no tick do último envio desenhava o que o servidor não faria (o `prediction.test.ts` pegou correções e saltos sem latência nenhuma). Por isso a mudança que perde o tick aparece na tela só no envio seguinte: tecla→tela p95 caiu de 59–77 ms para 33–49 ms (mediana 14–24 → 10–13 ms), sem correção nova. O resto é o tick de 10 Hz (OG-375).
 - Replays, espectadores e protocolo 4 intactos; servidor e site podem subir em qualquer ordem. Limite do `input` no servidor: 30/s (rajada 60) → 40/s (rajada 80).

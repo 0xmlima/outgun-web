@@ -1,57 +1,57 @@
 {
-  "date": "2026-10-22T18:55:31.858Z",
+  "date": "2026-10-22T19:13:17.133Z",
   "fpsLimit": 30,
   "rounds": 40,
   "version": "2.38.0",
   "client": {
     "diagonal": {
       "keyToSend": {
-        "n": 162,
+        "n": 173,
         "p50": 0.3,
-        "p95": 48.3,
-        "max": 54.6
+        "p95": 46.1,
+        "max": 50.5
       },
       "keyToScreen": {
-        "n": 159,
-        "p50": 14.7,
-        "p95": 29.9,
-        "max": 35.1
+        "n": 126,
+        "p50": 21.3,
+        "p95": 55.8,
+        "max": 83.9
       }
     },
     "altDiagonal": {
       "keyToSend": {
-        "n": 205,
+        "n": 206,
         "p50": 0.2,
-        "p95": 47.8,
-        "max": 59.4
+        "p95": 47.2,
+        "max": 50.4
       },
       "keyToScreen": {
-        "n": 195,
-        "p50": 14.9,
-        "p95": 32.3,
-        "max": 46.9
+        "n": 165,
+        "p50": 20.7,
+        "p95": 54.4,
+        "max": 67.7
       }
     },
     "zigzag": {
       "keyToSend": {
-        "n": 352,
+        "n": 341,
         "p50": 0.2,
-        "p95": 47.9,
-        "max": 58.9
+        "p95": 46,
+        "max": 51.7
       },
       "keyToScreen": {
-        "n": 316,
-        "p50": 14.1,
-        "p95": 28.8,
-        "max": 46.9
+        "n": 223,
+        "p50": 19.2,
+        "p95": 38.7,
+        "max": 73
       }
     }
   },
   "server": {
-    "changesApplied": 359,
-    "tickWaitAvgMs": 43.9,
+    "changesApplied": 360,
+    "tickWaitAvgMs": 42.3,
     "tickWaitP50BucketMs": 50,
     "tickWaitP95BucketMs": 100,
-    "overwritten": 330
+    "overwritten": 332
   }
 }

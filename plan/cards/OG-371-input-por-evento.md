@@ -26,7 +26,7 @@ Como jogador, quero que um toque rápido de tecla sempre conte, para não perder
 
 ## Critérios de aceite
 - [x] Tecla de tiro apertada e solta em 5 ms dispara um tiro (teste unitário com eventos sintéticos).
-- [ ] Com limite de 30 FPS, tecla→tela do OG-369 fica em até um quadro (p95 ≤ 35 ms); medido no fechamento. (Tecla→envio deixou de ser a medida certa: pelo OG-370, a mudança que não pega mais o tick espera de propósito o próximo envio.)
+- [ ] Com limite de 30 FPS, tecla→tela do OG-369 fica em até um quadro (p95 ≤ 35 ms). **Não atingido:** p95 39–56 ms (era 70–93); a mediana ficou em 19–21 ms. O que falta é a mudança que perde o tick do envio e espera o próximo (ver OG-370 e OG-375). (Tecla→envio deixou de ser a medida certa: pelo OG-370, a mudança que não pega mais o tick espera de propósito o próximo envio.)
 - [x] Menu aberto, perda de foco e modo foco continuam soltando as teclas.
 
 ## Notas de implementação
