@@ -833,7 +833,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-372](cards/OG-372-tolerancia-de-diagonal-e-strafe.md) | Diagonal e Alt sem virar a arma por engano | E11 | 3 | Must | S39 | OG-371 | Concluído |
 | [OG-373](cards/OG-373-fps-sem-limite-no-cliente-desktop.md) | FPS sem limite de verdade no cliente desktop (Steam) | E11 | 3 | Must | S39 | — | Concluído |
 | [OG-374](cards/OG-374-quadro-de-baixa-latencia.md) | Quadro de baixa latência: menos trabalho por quadro e canvas dessincronizado | E11 | 2 | Could | S40 | OG-369, OG-373 | Pronto |
-| [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S40 | OG-370 | Pronto |
+| [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S40 | OG-370 | Em andamento |
 | [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | — | OG-370 | Backlog |
 | [OG-377](cards/OG-377-mapas-do-painel-na-criacao-de-sala.md) | Mapas do painel em "Criar sala" quando não há rotação Casual no painel | E5 | 1 | Must | S40 | OG-367 | Em revisão |
 | [OG-378](cards/OG-378-rotacoes-do-painel-partem-da-atual.md) | Aba Rotações parte da rotação que está valendo | E5 | 2 | Must | S40 | OG-365 | Em revisão |
@@ -845,8 +845,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-384](cards/OG-384-sem-finlandes-e-italiano.md) | Tirar os idiomas finlandês e italiano | E8 | 1 | Must | S40 | — | Em revisão |
 | [OG-385](cards/OG-385-revisao-das-opcoes.md) | Revisão das opções do jogo: o que fica, o que sai | E8 | 2 | Should | S40 | — | Em revisão |
 | [OG-386](cards/OG-386-tirar-opcoes-legadas.md) | Tirar as opções legadas aprovadas na revisão | E8 | 3 | Should | S40 | OG-385 | Em revisão |
+| [OG-387](cards/OG-387-input-no-subpasso-sala-de-teste.md) | Input no subpasso atrás de opção, com sala de teste no beta | E11 | 3 | Should | — | OG-375 | Backlog |
 
-**Total:** 228 cards, 755 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 159 cards, 460 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 229 cards, 758 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 160 cards, 463 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -940,7 +941,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-71 | **v2** — Envio dos controles | 10 Hz com um reenvio por frame (como o original) / toda mudança enviada na hora, com sequência própria | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-370, OG-371):** toda mudança de controle que ainda pega o tick vai ao servidor na hora (sem o limite de um reenvio por frame); a predição usa o controle atual no quadro seguinte. Sem mudar o protocolo (dispensou o número de sequência, ver OG-370). A física não muda. | PO |
 | D-72 | **v2** — Teclas "quase simultâneas" (diagonal, Alt) | Como chegarem / janela de acorde no cliente | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-372):** janela de 30 ms (opção 0–60 ms) em que a arma não vira; o movimento não espera (strafe provisório); vale também para o direcional digital do gamepad. Sem equivalente no original. | PO |
 | D-73 | **v2** — VSync no cliente desktop | Sempre preso ao monitor / opção para desligar | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-373):** opção "Sincronia vertical" no desktop, aplicada ao reabrir; **padrão desligada** (PO, 2026-10-22: menos atraso na tela para o público competitivo), com limite automático de 240 FPS e "sem limite" explícito; no navegador o limite é a taxa do monitor. | PO |
-| D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto:** spike OG-375 na S40 (sala de teste no beta); decisão do PO com a comunidade. | PO |
+| D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto, com recomendação (OG-375, 2026-10-22):** input no subpasso a 10 Hz: física idêntica com as teclas paradas, some a espera de até 100 ms, banda e CPU iguais; 20 Hz muda a frenagem (~7%) e as curvas (até 17 u em 2 s) e dobra a banda. Sala de teste no OG-387; decisão do PO com a comunidade. | PO |
 | D-75 | **v2** — Registro de eventos no Casual | Só ranqueadas (OG-362) / também Casual | ✅ **Decidido pelo PO em 2026-10-22 (OG-381, 2.39.1):** os eventos são gravados também no Casual e aparecem no relatório; leaderboard, hall da fama e "quem matou quem" do perfil seguem só com ranqueadas. | PO |
 | D-76 | **v2** — Idiomas do jogo | Manter os 4 do original / só pt-BR e inglês | ✅ **Decidido pelo PO em 2026-10-22:** finlandês e italiano saem (OG-384): legado para uma parcela mínima da comunidade de 20 anos atrás, sem os textos novos da v2. Preferência antiga cai no idioma do navegador. | PO |
 
