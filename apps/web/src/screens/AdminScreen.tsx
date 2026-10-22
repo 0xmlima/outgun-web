@@ -7,7 +7,9 @@ import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
-import { Badge } from '../ui/Button.js';
+import { Badge, Button } from '../ui/Button.js';
+import { TextField, ToggleField } from '../ui/Field.js';
+import { Panel } from '../ui/Panel.js';
 import { TextPage } from '../ui/TextPage.js';
 import { decodeMapFile, parseMapFile } from '@outgun/content';
 import {
@@ -590,7 +592,7 @@ function FieldControl({ f, value, disabled, onChange }: { f: PresetField; value:
   if (f.control === 'bool') return <input type="checkbox" aria-label={label} checked={value === '1'} disabled={disabled} onChange={(e) => onChange(e.target.checked ? '1' : '0')} />;
   if (f.control === 'choice') {
     return (
-      <select aria-label={label} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+      <select className="ui-input" aria-label={label} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
         {f.options!.map((o) => (
           <option key={o} value={o}>
             {t(CHOICE_LABELS[o] ?? o)}
@@ -604,6 +606,7 @@ function FieldControl({ f, value, disabled, onChange }: { f: PresetField; value:
   const number = (min?: number, max?: number) => (
     <input
       type="number"
+      className="ui-input"
       aria-label={label}
       value={n}
       disabled={disabled}
@@ -618,7 +621,7 @@ function FieldControl({ f, value, disabled, onChange }: { f: PresetField; value:
     return (
       <>
         {number(0, percent ? undefined : 32)}{' '}
-        <select aria-label={`${label}: ${t('unit')}`} value={percent ? '%' : 'n'} disabled={disabled} onChange={(e) => onChange(n + (e.target.value === '%' ? '%' : ''))}>
+        <select className="ui-input" aria-label={`${label}: ${t('unit')}`} value={percent ? '%' : 'n'} disabled={disabled} onChange={(e) => onChange(n + (e.target.value === '%' ? '%' : ''))}>
           <option value="n">{t('items')}</option>
           <option value="%">{t('% of rooms')}</option>
         </select>
@@ -695,139 +698,150 @@ function PresetsTab({ canEdit }: { canEdit: boolean }) {
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
   const presets = list.data?.presets ?? [];
+  const panelPresets = presets.filter((p) => p.source === 'panel');
   const item = (p: PresetRow) => (
     <li key={p.id}>
-      <button type="button" className={draft?.id === p.id && (draft.saved || draft.readOnly) ? 'active' : ''} onClick={() => open(p)}>
-        {p.id}
+      <button type="button" className={draft?.id === p.id && (draft.saved || draft.readOnly) ? 'admin-preset-item active' : 'admin-preset-item'} onClick={() => open(p)}>
+        <strong>{p.id}</strong>
+        <span>{p.description}</span>
       </button>
-      <small> {p.description}</small>
     </li>
   );
+  const shown = (f: PresetField, v: string) => (f.control === 'bool' ? t(v === '1' ? 'On' : 'Off') : f.control === 'choice' ? t(CHOICE_LABELS[v] ?? v) : v);
+  const title = draft ? (draft.saved || draft.readOnly ? draft.id : t('New preset')) : '';
   return (
     <section className="stats-section">
-      <p className="stats-line">{t('Built-in presets change only with a new release; the Ranked preset only by decision of the product owner.')}</p>
       <Status text={status.text} error={status.error ?? list.error} />
       <div className="admin-presets">
-        <nav aria-label={t('Presets')}>
+        <nav className="admin-preset-list" aria-label={t('Presets')}>
           {canEdit && (
-            <p>
-              <button type="button" onClick={create}>
-                {t('New preset')}
-              </button>
-            </p>
+            <Button variant="primary" block onClick={create}>
+              {t('New preset')}
+            </Button>
           )}
           <h3>{t('From the panel')}</h3>
-          <ul>{presets.filter((p) => p.source === 'panel').map(item)}</ul>
+          {panelPresets.length > 0 ? <ul>{panelPresets.map(item)}</ul> : <p className="admin-muted">{t('No presets created yet.')}</p>}
           <h3>{t('From the game (read only)')}</h3>
           <ul>{presets.filter((p) => p.source === 'code').map(item)}</ul>
+          <p className="admin-muted">{t('Built-in presets change only with a new release; the Ranked preset only by decision of the product owner.')}</p>
         </nav>
-        {draft && (
-          <form className="admin-form admin-preset-editor" onSubmit={save}>
-            <p>
-              <label>
-                {t('Preset')} <input value={draft.id} maxLength={32} disabled={draft.saved || draft.readOnly} onChange={(e) => setDraft({ ...draft, id: e.target.value.toLowerCase() })} />
-              </label>{' '}
-              <label>
-                {t('Description')} <input value={draft.description} maxLength={200} disabled={draft.readOnly} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-              </label>
-            </p>
-            <p>
-              {draft.readOnly && canEdit && (
-                <button type="button" onClick={() => open(presets.find((p) => p.id === draft.id)!, true)}>
-                  {t('Duplicate to edit')}
-                </button>
-              )}{' '}
-              {draft.saved && canEdit && (
-                <button type="button" onClick={() => void remove(draft.id)}>
-                  {t('Remove')}
-                </button>
-              )}{' '}
-              <label>
-                <input
-                  type="checkbox"
+        {!draft ? (
+          <Panel className="admin-preset-editor">
+            <p className="admin-muted">{t('Pick a preset on the left to see its rules, or create a new one.')}</p>
+          </Panel>
+        ) : (
+          <form className="admin-preset-editor" onSubmit={save}>
+            <Panel
+              title={title}
+              actions={
+                <>
+                  {draft.readOnly && canEdit && (
+                    <Button onClick={() => open(presets.find((p) => p.id === draft.id)!, true)}>{t('Duplicate to edit')}</Button>
+                  )}
+                  {draft.saved && canEdit && (
+                    <Button variant="danger" onClick={() => void remove(draft.id)}>
+                      {t('Remove')}
+                    </Button>
+                  )}
+                </>
+              }
+            >
+              <div className="admin-preset-meta">
+                <TextField
+                  label={t('Name')}
+                  value={draft.id}
+                  maxLength={32}
+                  disabled={draft.saved || draft.readOnly}
+                  hint={draft.saved || draft.readOnly ? undefined : t('Lowercase, no spaces: it is how the preset appears in "Create room".')}
+                  onChange={(v) => setDraft({ ...draft, id: v.toLowerCase().replace(/\s+/g, '-') })}
+                />
+                <TextField label={t('Description')} value={draft.description} maxLength={200} disabled={draft.readOnly} onChange={(v) => setDraft({ ...draft, description: v })} />
+              </div>
+              <div className="admin-preset-toolbar">
+                <span className="admin-muted">
+                  {Object.keys(draft.form.values).length === 0 ? t('Same rules as Classic. Turn on "change" in a rule to set it.') : t('$1 rules different from Classic.', String(Object.keys(draft.form.values).length))}
+                </span>
+                <ToggleField
+                  label={t('Text mode (gamemod lines)')}
                   checked={text !== null}
-                  onChange={(e) => {
-                    if (e.target.checked) return setText(linesFromForm(draft.form));
+                  onChange={(on) => {
+                    if (on) return setText(linesFromForm(draft.form));
                     setDraft({ ...draft, form: formFromLines(lines) });
                     setText(null);
                   }}
-                />{' '}
-                {t('Text mode (gamemod lines)')}
-              </label>
-            </p>
-            {text !== null ? (
-              <textarea
-                aria-label={t('Settings (gamemod lines)')}
-                value={text}
-                rows={12}
-                readOnly={draft.readOnly}
-                onChange={(e) => {
-                  setText(e.target.value);
-                  setDraft({ ...draft, form: formFromLines(e.target.value) });
-                }}
-              />
-            ) : (
-              PRESET_FORM_CATEGORIES.map((c) => {
-                const fields = PRESET_FIELDS.filter((f) => f.def.category === c);
-                const changed = fields.filter((f) => f.def.name in draft.form.values).length;
-                return (
-                  <details key={c} className="admin-preset-group" open={changed > 0}>
-                    <summary>
-                      {t(CATEGORY_LABELS[c] ?? c)} {changed > 0 && <Badge tone="accent">{t('$1 changed', String(changed))}</Badge>}
-                    </summary>
-                    <table className="stats-table wide">
-                      <tbody>
+                />
+              </div>
+              {text !== null ? (
+                <textarea
+                  className="ui-input ui-textarea admin-preset-text"
+                  aria-label={t('Settings (gamemod lines)')}
+                  value={text}
+                  rows={14}
+                  readOnly={draft.readOnly}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    setDraft({ ...draft, form: formFromLines(e.target.value) });
+                  }}
+                />
+              ) : (
+                PRESET_FORM_CATEGORIES.map((c) => {
+                  const fields = PRESET_FIELDS.filter((f) => f.def.category === c);
+                  const changed = fields.filter((f) => f.def.name in draft.form.values).length;
+                  return (
+                    <details key={c} className="admin-preset-group" open={changed > 0}>
+                      <summary>
+                        <span>{t(CATEGORY_LABELS[c] ?? c)}</span>
+                        {changed > 0 && <Badge tone="accent">{t('$1 changed', String(changed))}</Badge>}
+                      </summary>
+                      <ul>
                         {fields.map((f) => {
                           const name = f.def.name;
                           const on = name in draft.form.values;
                           const value = draft.form.values[name] ?? defaultFormValue(f);
                           const error = on ? fieldProblem(f, value) : undefined;
+                          const range = rangeText(f, t);
                           return (
-                            <tr key={name}>
-                              <td>
-                                <input type="checkbox" aria-label={t('Change: $1', t(f.label))} checked={on} disabled={draft.readOnly} onChange={(e) => setValue(name, e.target.checked ? defaultFormValue(f) : undefined)} />
-                              </td>
-                              <td className="name">
-                                {t(f.label)} <small><code>{name}</code></small>
-                              </td>
-                              <td>
-                                <FieldControl f={f} value={value} disabled={!on || draft.readOnly} onChange={(v) => setValue(name, v)} />
-                                {error && (
-                                  <small className="error" role="alert">
-                                    {' '}
-                                    {t('Allowed: $1', rangeText(f, t))}
-                                  </small>
-                                )}
-                              </td>
-                              <td>
-                                <small>
-                                  {t('Default: $1', f.control === 'bool' ? t(defaultFormValue(f) === '1' ? 'On' : 'Off') : f.control === 'choice' ? t(CHOICE_LABELS[defaultFormValue(f)] ?? '') : defaultFormValue(f))}
-                                  {rangeText(f, t) && ` · ${rangeText(f, t)}`}
-                                </small>
-                              </td>
-                            </tr>
+                            <li key={name} className={on ? 'admin-rule on' : 'admin-rule'}>
+                              <label className="admin-rule-name">
+                                <input type="checkbox" checked={on} disabled={draft.readOnly} onChange={(e) => setValue(name, e.target.checked ? defaultFormValue(f) : undefined)} />
+                                <span>
+                                  {t(f.label)}
+                                  <code>{name}</code>
+                                </span>
+                              </label>
+                              <div className="admin-rule-control">
+                                {on ? <FieldControl f={f} value={value} disabled={draft.readOnly} onChange={(v) => setValue(name, v)} /> : <span className="admin-muted">{shown(f, value)}</span>}
+                              </div>
+                              <small className={error ? 'admin-rule-meta error' : 'admin-rule-meta'} role={error ? 'alert' : undefined}>
+                                {error ? t('Allowed: $1', range) : on ? t('Default: $1', shown(f, defaultFormValue(f))) + (range ? ` · ${range}` : '') : t('default')}
+                              </small>
+                            </li>
                           );
                         })}
-                      </tbody>
-                    </table>
-                  </details>
-                );
-              })
-            )}
-            {problems.length > 0 && (
-              <ul className="stats-note error" role="alert">
-                {problems.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            )}
-            <h3>{t('Preview (generated lines)')}</h3>
-            <pre className="admin-preset-preview">{lines || t('(no changes: same as Classic)')}</pre>
-            {!draft.readOnly && (
-              <button type="submit" disabled={!draft.id || !draft.description || problems.length > 0 || fieldErrors.length > 0}>
-                {t('Save Casual preset')}
-              </button>
-            )}
+                      </ul>
+                    </details>
+                  );
+                })
+              )}
+              {problems.length > 0 && (
+                <ul className="stats-note error" role="alert">
+                  {problems.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="admin-preset-footer">
+                <div>
+                  <h3>{t('Preview (generated lines)')}</h3>
+                  <pre className="admin-preset-preview">{lines || t('(no changes: same as Classic)')}</pre>
+                </div>
+                {!draft.readOnly && (
+                  <Button type="submit" variant="primary" disabled={!draft.id || !draft.description || problems.length > 0 || fieldErrors.length > 0}>
+                    {t('Save Casual preset')}
+                  </Button>
+                )}
+              </div>
+            </Panel>
           </form>
         )}
       </div>

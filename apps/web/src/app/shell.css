@@ -709,42 +709,172 @@
 /* presets em formulário (OG-382): lista à esquerda, editor à direita */
 .admin-presets {
   display: grid;
-  grid-template-columns: minmax(12rem, 16rem) 1fr;
-  gap: var(--space-4);
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  gap: var(--space-5);
   align-items: start;
 }
-.admin-presets nav ul {
-  margin: 0 0 var(--space-3);
+.admin-muted {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.admin-preset-list {
+  display: grid;
+  gap: var(--space-2);
+}
+.admin-preset-list h3 {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.admin-preset-list ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
-.admin-presets nav button.active {
-  border-color: var(--accent);
-  color: var(--text-accent);
+.admin-preset-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.admin-presets small,
-.admin-preset-editor small {
+.admin-preset-item span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.admin-preset-item:hover {
+  background: var(--surface-2);
+}
+.admin-preset-item.active {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.admin-preset-editor {
+  min-width: 0;
+}
+.admin-preset-meta {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(14rem, 2fr);
+  gap: var(--space-4);
+}
+.admin-preset-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.admin-preset-toolbar .ui-field {
+  margin: 0;
+}
+.admin-preset-text {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+}
+.admin-preset-group {
+  margin: 0 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+.admin-preset-group summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+.admin-preset-group[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+.admin-preset-group ul {
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+}
+.admin-rule {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(9rem, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+}
+.admin-rule:hover {
+  background: var(--surface-2);
+}
+.admin-rule-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+.admin-rule-name span {
+  display: grid;
+}
+.admin-rule:not(.on) .admin-rule-name span {
+  color: var(--text-muted);
+}
+.admin-rule-name code {
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-.admin-preset-editor small.error {
+.admin-rule-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.admin-rule-control .ui-input {
+  width: 7rem;
+  padding-block: var(--space-1);
+}
+.admin-rule-meta {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.admin-rule-meta.error {
   color: var(--text-danger);
 }
-.admin-preset-group {
-  margin: var(--space-2) 0;
+.admin-preset-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
-.admin-preset-group summary {
-  cursor: pointer;
-  font-weight: var(--weight-medium);
+.admin-preset-footer > div {
+  flex: 1 1 20rem;
 }
-.admin-preset-editor input[type='number'] {
-  width: 7rem;
+.admin-preset-footer h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
 }
 .admin-preset-preview {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  background: var(--surface-0);
   font-size: var(--text-sm);
   white-space: pre-wrap;
 }

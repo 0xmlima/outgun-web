@@ -5,6 +5,11 @@
 export const SETTING_TEXTS_PT: Readonly<Record<string, string>> = {
   // editor
   'New preset': 'Novo preset',
+  'No presets created yet.': 'Nenhum preset criado ainda.',
+  'Pick a preset on the left to see its rules, or create a new one.': 'Escolha um preset à esquerda para ver as regras, ou crie um novo.',
+  'Lowercase, no spaces: it is how the preset appears in "Create room".': 'Minúsculas, sem espaço: é assim que o preset aparece em "Criar sala".',
+  'Same rules as Classic. Turn on "change" in a rule to set it.': 'Mesmas regras do Clássico. Marque uma regra para mudar o valor.',
+  '$1 rules different from Classic.': '$1 regras diferentes do Clássico.',
   'From the panel': 'Do painel',
   'From the game (read only)': 'Do jogo (só leitura)',
   'Duplicate to edit': 'Duplicar para editar',
@@ -12,7 +17,6 @@ export const SETTING_TEXTS_PT: Readonly<Record<string, string>> = {
   'Preview (generated lines)': 'Prévia (linhas geradas)',
   '(no changes: same as Classic)': '(sem mudanças: igual ao Clássico)',
   '$1 changed': '$1 alteradas',
-  'Change: $1': 'Alterar: $1',
   'Allowed: $1': 'Aceito: $1',
   'Default: $1': 'Padrão: $1',
   '$1 to $2': '$1 a $2',

@@ -39,3 +39,4 @@ Como moderador, quero montar um preset Casual marcando opções num formulário,
 - Padrão mostrado = o do Clássico (base do preset); linhas que o formulário não representa ficam em `other` e aparecem no modo texto, com o erro de `casualPresetProblems` (rodado no cliente).
 - Valores normalizados na ida e volta (`0.5` → `50%`, `1` → `normal` na colisão).
 - Presets do jogo (inclusive o Ranked) abrem só leitura, com "Duplicar para editar".
+- Ajuste visual pedido pelo PO (2026-10-22, tela "confusa e pouco harmoniosa"): lista em cartões com descrição em 2 linhas, editor num `Panel` com Nome/Descrição do design system, modo texto em interruptor, categorias em blocos com contador e regras em grade (nome · valor · padrão/faixa), regra desmarcada mostra só o valor padrão.
