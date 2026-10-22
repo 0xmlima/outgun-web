@@ -508,8 +508,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       // tolerância de diagonal (OG-372): o tiro vira a arma antes de sair
       chord.windowMs = client.chordWindowMs ?? CHORD_WINDOW_DEFAULT_MS;
       const controls = s.fire && !lastFire ? chord.flush(s.controls) : chord.filter(s.controls, now);
-      // tecla→envio e tecla→tela (OG-369); mudança sem tecla (gamepad) conta do momento da leitura
-      session?.setControls(controls, now, input.lastChangeAt > 0 && now - input.lastChangeAt < 1000 ? input.lastChangeAt : now);
+      // tecla→envio e tecla→tela (OG-369): conta da tecla só na primeira leitura depois dela; o resto
+      // (gamepad, fim da janela da diagonal, que só vira a arma) conta do momento da leitura
+      const changedAt = input.lastChangeAt > keyMeasured ? input.lastChangeAt : now;
+      keyMeasured = input.lastChangeAt;
+      session?.setControls(controls, now, changedAt);
       // fim da janela aberta: lê de novo para virar a arma se o acorde não se completou
       clearTimeout(chordTimer);
       const deadline = chord.deadline();
@@ -520,6 +523,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     // timer, não requestAnimationFrame: o envio tem de seguir o relógio do servidor (`nextSend`)
     let nextSend = performance.now();
     const chord = new ChordFilter();
+    let keyMeasured = 0;
     let chordTimer: ReturnType<typeof setTimeout> | undefined;
     const sendLoop = () => {
       const now = performance.now();
