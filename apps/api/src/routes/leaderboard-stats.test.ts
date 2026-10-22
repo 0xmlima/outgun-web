@@ -84,6 +84,17 @@ describe.skipIf(!pgAdminUrl)('leaderboard de atributos (OG-352)', () => {
     expect((await board('kills', 'player=Caio')).me).toBeNull();
   });
 
+  it('lista geral do mês (OG-358): pesos × percentil nos 6 stats principais', async () => {
+    // 2 elegíveis: 1º lugar = 1, 2º = 0. Ana lidera capturas (empate em 0, pelo nome) e tempo com
+    // bandeira: 25% + 15%; Bia lidera abates, devoluções, K/D e precisão: 20% + 20% + 10% + 10%
+    const r = (await app.inject('/leaderboard/overall?player=Ana')).json();
+    expect(r.entries.map((e: { username: string; value: number }) => [e.username, e.value])).toEqual([['Bia', 60], ['Ana', 40]]);
+    expect(r.entries[0].positions).toMatchObject({ kills: 1, captures: 2, flagsReturned: 1, kd: 1, accuracy: 1, flagCarryingTime: 2 });
+    expect(r.me).toMatchObject({ username: 'Ana', position: 2 });
+    expect(Object.values(r.weights as Record<string, number>).reduce((a, b) => a + b, 0)).toBeCloseTo(1);
+    expect((await app.inject('/leaderboard/stats')).json().overall.map((e: { username: string }) => e.username)).toEqual(['Bia', 'Ana']);
+  });
+
   it('visão geral: os 3 primeiros de cada stat, com os principais marcados', async () => {
     const overview = (await app.inject('/leaderboard/stats')).json();
     expect(overview.stats.filter((s: { main: boolean }) => s.main).map((s: { stat: string }) => s.stat)).toEqual(['kills', 'captures', 'flagsReturned', 'flagCarryingTime', 'kd', 'accuracy']);

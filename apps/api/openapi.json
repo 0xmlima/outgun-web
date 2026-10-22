@@ -1590,7 +1590,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["season", "minimumMatches", "stats"],
+                  "required": ["season", "minimumMatches", "overall", "weights", "stats"],
                   "properties": {
                     "season": {
                       "anyOf": [
@@ -1629,6 +1629,80 @@
                     },
                     "minimumMatches": {
                       "type": "integer"
+                    },
+                    "overall": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "position",
+                              "userId",
+                              "username",
+                              "clanTag",
+                              "clanLabel",
+                              "value",
+                              "matches"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "userId": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "clanTag": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "clanLabel": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "matches": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["positions"],
+                            "properties": {
+                              "positions": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "weights": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
                     },
                     "stats": {
                       "type": "array",
@@ -1731,6 +1805,306 @@
                           }
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leaderboard/overall": {
+      "get": {
+        "summary": "Lista geral do mês (OG-358, RN-LDB-06): índice de 0 a 100 pelos percentis nos 6 stats principais, com pesos; com `player`, a posição dele",
+        "tags": ["ranking"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "season",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "in": "query",
+            "name": "overall",
+            "required": true
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["5x5"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "format",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "query",
+            "name": "player",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["season", "minimumMatches", "weights", "total", "entries", "me"],
+                  "properties": {
+                    "season": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["id", "name", "startsAt", "endsAt", "active"],
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string"
+                            },
+                            "endsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "active": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "minimumMatches": {
+                      "type": "integer"
+                    },
+                    "weights": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "position",
+                              "userId",
+                              "username",
+                              "clanTag",
+                              "clanLabel",
+                              "value",
+                              "matches"
+                            ],
+                            "properties": {
+                              "position": {
+                                "type": "integer"
+                              },
+                              "userId": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "clanTag": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "clanLabel": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "matches": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["positions"],
+                            "properties": {
+                              "positions": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "me": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "position",
+                                "userId",
+                                "username",
+                                "clanTag",
+                                "clanLabel",
+                                "value",
+                                "matches"
+                              ],
+                              "properties": {
+                                "position": {
+                                  "type": "integer"
+                                },
+                                "userId": {
+                                  "type": "string"
+                                },
+                                "username": {
+                                  "type": "string"
+                                },
+                                "clanTag": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "clanLabel": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "value": {
+                                  "type": "number"
+                                },
+                                "matches": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": ["positions"],
+                              "properties": {
+                                "positions": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
                     }
                   }
                 }

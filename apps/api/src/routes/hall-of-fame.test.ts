@@ -95,9 +95,11 @@ describe.skipIf(!pgAdminUrl)('hall da fama (OG-268)', () => {
     const hall = (await app.inject('/hall-of-fame')).json();
     const nov = hall.seasons.find((x: { name: string }) => x.name === 'Temporada 2026-11');
     expect(nov.classic).toBe(false);
-    expect(Object.keys(nov.boards)).toEqual(['stat:kills', 'stat:captures', 'stat:flagsReturned', 'stat:flagCarryingTime', 'stat:kd', 'stat:accuracy', 'clans']);
+    expect(Object.keys(nov.boards)).toEqual(['stat:overall', 'stat:kills', 'stat:captures', 'stat:flagsReturned', 'stat:flagCarryingTime', 'stat:kd', 'stat:accuracy', 'clans']);
     expect(nov.boards['stat:kills'].map((c: { name: string; value: number }) => [c.name, c.value])).toEqual([['Admin', 9], ['Jogador1', 3]]);
     expect(nov.boards['stat:captures'][0]).toMatchObject({ position: 1, name: 'Jogador1', value: 2 });
+    // melhor do mês (OG-358): Admin lidera abates (20%) e K/D (10%); Jogador1, capturas (25%); o resto empata
+    expect(nov.boards['stat:overall'].map((c: { name: string }) => c.name)).toHaveLength(2);
     const titles = (await app.inject('/players/Jogador1')).json().titles;
     expect(titles).toContainEqual({ season: 'Temporada 2026-11', board: 'stat:captures', position: 1 });
     // regravar não duplica

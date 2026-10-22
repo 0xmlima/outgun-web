@@ -12,7 +12,7 @@ import { Badge, Button } from '../ui/Button.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import type { RoomSummary } from './lobby.js';
-import { STAT_LABELS, statValue, type StatOverview } from './leaderboard.js';
+import { OVERALL, STAT_LABELS, statValue, type StatOverview } from './leaderboard.js';
 import { RatingInfo } from './rating-help.js';
 
 /** "Agora no Outgun" acompanha o lobby (heartbeat de 3 s); o resto do portal relê a cada minuto (OG-283). */
@@ -102,7 +102,8 @@ export function MonthRanking() {
   const navigate = useNavigate();
   const board = usePolled<StatOverview>('/leaderboard/stats');
   const me = usePolled<{ skill: { value: number; calibrating: boolean } | null }>(user ? `/players/${encodeURIComponent(user.username)}` : null);
-  const leaders = (board?.stats ?? []).filter((s) => s.main).map((s) => ({ stat: s.stat, top: s.entries[0] }));
+  // melhor do mês (índice geral, OG-358) e o líder de cada stat principal
+  const leaders = [{ stat: OVERALL, top: board?.overall[0] }, ...(board?.stats ?? []).filter((s) => s.main).map((s) => ({ stat: s.stat, top: s.entries[0] }))];
   return (
     <Panel title={board?.season ? t('Leaderboard: $1', board.season.name) : t('Leaderboard')} actions={<Link to="/ranking">{t('Full leaderboard')}</Link>}>
       {board === undefined ? (
@@ -121,7 +122,7 @@ export function MonthRanking() {
               onRowActivate={(l) => l.top && void navigate(`/players/${encodeURIComponent(l.top.username)}`)}
               empty=""
               columns={[
-                { key: 'stat', header: t('Stat'), cell: (l) => t(STAT_LABELS[l.stat] ?? l.stat) },
+                { key: 'stat', header: t('Stat'), cell: (l) => (l.stat === OVERALL ? t('Best of the month') : t(STAT_LABELS[l.stat] ?? l.stat)) },
                 { key: 'name', header: t('Player'), cell: (l) => (l.top ? chatName(l.top.username, l.top.clanLabel) : '—') },
                 { key: 'value', header: '', cell: (l) => (l.top ? statValue(l.stat, l.top.value, prefs.locale) : ''), align: 'end' },
               ]}

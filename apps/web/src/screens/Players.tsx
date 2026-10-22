@@ -13,7 +13,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { useAccount } from '../app/account.js';
-import { StatDetailView, StatOverviewView, STAT_LABELS, statScope } from './leaderboard.js';
+import { OVERALL, OverallDetailView, StatDetailView, StatOverviewView, STAT_LABELS, statScope } from './leaderboard.js';
 import { duration, FormatTabs, PlayerLink, Status, useApi, useFormatParam } from './stats.js';
 
 interface Directory {
@@ -184,11 +184,11 @@ export function LeaderboardScreen() {
                 label={t('Stat')}
                 value={stat}
                 onChange={setStat}
-                options={[{ value: '', label: t('Overview') }, ...Object.entries(STAT_LABELS).map(([id, label]) => ({ value: id, label: t(label) }))]}
+                options={[{ value: '', label: t('Overview') }, { value: OVERALL, label: t('Overall of the month') }, ...Object.entries(STAT_LABELS).map(([id, label]) => ({ value: id, label: t(label) }))]}
               />
             </div>
             <FormatTabs value={format} onChange={setFormat} />
-            {stat ? <StatDetailView stat={stat} scope={scope} me={user?.username} /> : <StatOverviewView scope={scope} onPick={setStat} />}
+            {stat === OVERALL ? <OverallDetailView scope={scope} me={user?.username} /> : stat ? <StatDetailView stat={stat} scope={scope} me={user?.username} /> : <StatOverviewView scope={scope} onPick={setStat} />}
             <p className="ui-muted">{t('Per 10 minutes: totals divided by the time played, so whoever plays less can compete. Raw damage is hits on enemies × 70 and includes overkill.')}</p>
           </>
         )}

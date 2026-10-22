@@ -7,7 +7,7 @@ import type { AppDeps } from '../app.js';
 import { clans, seasonChampions, seasons, type ChampionBoard } from '../db/schema.js';
 import { activeSeason, LEADERBOARD_SINCE } from '../ranking.js';
 import { CLAN_MINIMUM_MATCHES, clanLeaderboard } from '../clan-stats.js';
-import { LEADERBOARD_MINIMUM_MATCHES, LEADERBOARD_STATS, STAT_IDS, statBoard, statLeaders, type StatId } from '../leaderboard.js';
+import { LEADERBOARD_MINIMUM_MATCHES, LEADERBOARD_STATS, OVERALL_WEIGHTS, overallBoard, STAT_IDS, statBoard, statLeaders, type StatId } from '../leaderboard.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -46,6 +46,10 @@ const StatEntrySchema = Type.Object({
   value: Type.Number(),
   matches: Type.Integer(),
 });
+
+const OverallEntrySchema = Type.Intersect([StatEntrySchema, Type.Object({ positions: Type.Record(Type.String(), Type.Integer()) })]);
+/** Peso de cada stat no índice do mês (OG-358). */
+const WeightsSchema = Type.Record(Type.String(), Type.Number());
 
 export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
   const { db } = database;
@@ -122,7 +126,14 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
           summary: `Leaderboard de atributos (OG-352): os 3 primeiros de cada stat na temporada (padrão: a ativa) ou de sempre (overall=true); mínimo de ${LEADERBOARD_MINIMUM_MATCHES} ranqueadas`,
           querystring: Type.Object(StatScope),
           response: {
-            200: Type.Object({ season: Type.Union([Type.Null(), Season]), minimumMatches: Type.Integer(), stats: Type.Array(Type.Object({ stat: StatIdSchema, kind: StatKindSchema, main: Type.Boolean(), entries: Type.Array(StatEntrySchema) })) }),
+            200: Type.Object({
+              season: Type.Union([Type.Null(), Season]),
+              minimumMatches: Type.Integer(),
+              /** Os 3 primeiros do índice do mês (OG-358). */
+              overall: Type.Array(OverallEntrySchema),
+              weights: WeightsSchema,
+              stats: Type.Array(Type.Object({ stat: StatIdSchema, kind: StatKindSchema, main: Type.Boolean(), entries: Type.Array(StatEntrySchema) })),
+            }),
             404: ErrorSchema,
           },
         },
@@ -131,9 +142,38 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         const { overall, format } = request.query;
         const season = await scopeSeason(request.query.season, overall);
         if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
-        const leaders = await statLeaders(db, { seasonId: season?.id ?? null, format: format ?? null }, 3);
+        const scope = { seasonId: season?.id ?? null, format: format ?? null };
+        const leaders = await statLeaders(db, scope, 3);
         const main = new Map(LEADERBOARD_STATS.map((x) => [x.id, x.main]));
-        return { season, minimumMatches: LEADERBOARD_MINIMUM_MATCHES, stats: leaders.map((l) => ({ ...l, main: main.get(l.stat) ?? false })) };
+        const best = (await overallBoard(db, scope, { limit: 3, offset: 0 })).entries;
+        return { season, minimumMatches: LEADERBOARD_MINIMUM_MATCHES, overall: best, weights: OVERALL_WEIGHTS, stats: leaders.map((l) => ({ ...l, main: main.get(l.stat) ?? false })) };
+      },
+    );
+
+    app.get(
+      '/leaderboard/overall',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: 'Lista geral do mês (OG-358, RN-LDB-06): índice de 0 a 100 pelos percentis nos 6 stats principais, com pesos; com `player`, a posição dele',
+          querystring: Type.Object({
+            ...StatScope,
+            player: Type.Optional(Type.String({ minLength: 1, maxLength: 32 })),
+            limit: Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
+            offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
+          }),
+          response: {
+            200: Type.Object({ season: Type.Union([Type.Null(), Season]), minimumMatches: Type.Integer(), weights: WeightsSchema, total: Type.Integer(), entries: Type.Array(OverallEntrySchema), me: Type.Union([Type.Null(), OverallEntrySchema]) }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const { overall, format, player, limit, offset } = request.query;
+        const season = await scopeSeason(request.query.season, overall);
+        if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+        const board = await overallBoard(db, { seasonId: season?.id ?? null, format: format ?? null }, { limit, offset }, player);
+        return { season, minimumMatches: LEADERBOARD_MINIMUM_MATCHES, weights: OVERALL_WEIGHTS, ...board };
       },
     );
 
@@ -199,7 +239,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         return {
           seasons: closed.map((season) => {
             const classic = !season.month || season.month < LEADERBOARD_SINCE;
-            const empty: ChampionBoard[] = classic ? ['overall', '3x3', '4x4', '5x5', 'clans'] : [...LEADERBOARD_STATS.filter((s) => s.main).map((s) => `stat:${s.id}` as const), 'clans'];
+            const empty: ChampionBoard[] = classic ? ['overall', '3x3', '4x4', '5x5', 'clans'] : ['stat:overall', ...LEADERBOARD_STATS.filter((s) => s.main).map((s) => `stat:${s.id}` as const), 'clans'];
             const boards: Record<string, Static<typeof Champions>> = Object.fromEntries(empty.map((b) => [b, []]));
             for (const { c, tag } of rows) {
               if (c.seasonId === season.id) (boards[c.board] ??= []).push({ position: c.position, name: c.name, clanName: c.clanName, clanTag: tag, value: c.value });

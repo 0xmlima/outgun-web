@@ -6,8 +6,8 @@
 import { and, desc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 import { clanLeaderboard } from './clan-stats.js';
-import { statLeaders } from './leaderboard.js';
-import { formatRatings, playerProfiles, ratings, seasonChampions, seasons, seasonStandings } from './db/schema.js';
+import { overallBoard, statLeaders } from './leaderboard.js';
+import { formatRatings, playerProfiles, ratings, seasonChampions, seasons, seasonStandings, type ChampionBoard } from './db/schema.js';
 
 /** `minimum_positive_score_for_ranking` do original: abaixo disso, fora do leaderboard. */
 export const MINIMUM_SCORE = 100;
@@ -104,8 +104,12 @@ export async function closeSeason(tx: Tx, seasonId: number): Promise<void> {
 /** Hall da fama pelo leaderboard (OG-354, RN-LDB-05): os 3 primeiros de cada stat principal no mês e os clãs. */
 async function snapshotStatChampions(tx: Tx, seasonId: number): Promise<void> {
   await tx.delete(seasonChampions).where(eq(seasonChampions.seasonId, seasonId));
-  const leaders = await statLeaders(tx, { seasonId, format: null }, 3, (s) => s.main);
-  const rows = leaders.flatMap((l) => l.entries.map((e) => ({ seasonId, board: `stat:${l.stat}` as const, position: e.position, userId: e.userId, name: e.username, value: e.value })));
+  const scope = { seasonId, format: null };
+  const leaders = await statLeaders(tx, scope, 3, (s) => s.main);
+  // melhor do mês (OG-358): os 3 primeiros do índice geral, no quadro "stat:overall"
+  const best = (await overallBoard(tx, scope, { limit: 3, offset: 0 })).entries;
+  const rows = best.map((e) => ({ seasonId, board: 'stat:overall' as ChampionBoard, position: e.position, userId: e.userId, name: e.username, value: e.value }));
+  rows.push(...leaders.flatMap((l) => l.entries.map((e) => ({ seasonId, board: `stat:${l.stat}` as const, position: e.position, userId: e.userId, name: e.username, value: e.value }))));
   if (rows.length > 0) await tx.insert(seasonChampions).values(rows);
   await snapshotClanChampions(tx, seasonId);
 }

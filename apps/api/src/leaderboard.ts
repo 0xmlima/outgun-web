@@ -147,3 +147,51 @@ export async function statLeaders(db: Db | Tx, scope: BoardScope, top: number, o
   }
   return out;
 }
+
+/**
+ * Peso de cada stat principal no índice do mês (OG-358, D-67, RN-LDB-06): num CTF o objetivo
+ * (capturas, devoluções, bandeira) vale 60% e o combate 40%. Somam 1.
+ */
+export const OVERALL_WEIGHTS: Readonly<Partial<Record<StatId, number>>> = {
+  captures: 0.25,
+  kills: 0.2,
+  flagsReturned: 0.2,
+  flagCarryingTime: 0.15,
+  kd: 0.1,
+  accuracy: 0.1,
+};
+
+export type OverallEntry = Omit<StatEntry, 'userId'> & {
+  userId: string;
+  /** Posição em cada stat que entra no índice. */
+  positions: Partial<Record<StatId, number>>;
+};
+
+/**
+ * Lista geral do mês (OG-358, RN-LDB-06): índice de 0 a 100 = soma dos pesos × percentil em cada stat
+ * principal, entre quem tem o mínimo de partidas (1º lugar = 1, último = 0; sozinho = 1). Os
+ * elegíveis são os mesmos em todos os stats, porque o mínimo é o mesmo. Desempate pelo nome.
+ */
+export async function overallBoard(
+  db: Db | Tx,
+  scope: BoardScope,
+  page: { limit: number; offset: number },
+  player?: string,
+): Promise<{ total: number; entries: OverallEntry[]; me: OverallEntry | null }> {
+  const players = new Map<string, OverallEntry & { score: number }>();
+  for (const [stat, weight] of Object.entries(OVERALL_WEIGHTS) as [StatId, number][]) {
+    const { total, entries } = await statBoard(db, stat, scope, { limit: 100_000, offset: 0 });
+    for (const e of entries) {
+      const p = players.get(e.userId) ?? { ...e, value: 0, score: 0, positions: {} };
+      p.positions[stat] = e.position;
+      p.score += weight * (total <= 1 ? 1 : (total - e.position) / (total - 1));
+      players.set(e.userId, p);
+    }
+  }
+  const all = [...players.values()]
+    .map(({ score, ...p }) => ({ ...p, value: Math.round(score * 1000) / 10 }))
+    .sort((a, b) => b.value - a.value || usernameKey(a.username).localeCompare(usernameKey(b.username)))
+    .map((p, i) => ({ ...p, position: i + 1 }));
+  const key = player ? usernameKey(player) : null;
+  return { total: all.length, entries: all.slice(page.offset, page.offset + page.limit), me: (key && all.find((p) => usernameKey(p.username) === key)) || null };
+}

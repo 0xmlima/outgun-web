@@ -898,5 +898,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'The top 3 of every month in each main stat of the leaderboard and among clans.': 'Os 3 primeiros de cada mês em cada estatística principal do leaderboard e entre os clãs.',
     'classic ranking': 'ranking clássico',
     'in $1': 'em $1',
+    // lista geral do mês (OG-358)
+    'Overall of the month': 'Geral do mês',
+    'index from 0 to 100': 'índice de 0 a 100',
+    'Best of the month': 'Melhor do mês',
+    'Each stat counts by your place among everyone with $1 matches (1st = all its weight, last = none). Weights: $2.': 'Cada estatística conta pela sua posição entre todos com $1 partidas (1º lugar = o peso inteiro, último = nada). Pesos: $2.',
+    'Index': 'Índice',
+    '$1 overall of the month': '$1 no geral do mês',
   },
 };

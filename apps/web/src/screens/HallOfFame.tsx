@@ -34,6 +34,7 @@ type T = ReturnType<typeof usePrefs>['t'];
 const statOf = (b: string) => (b.startsWith('stat:') ? b.slice(5) : null);
 const boardName = (b: string, t: T) => {
   const stat = statOf(b);
+  if (stat === 'overall') return t('Best of the month');
   if (stat) return t(STAT_LABELS[stat] ?? stat);
   return b === 'overall' ? t('Overall') : b === 'clans' ? t('Clans') : b;
 };
@@ -50,7 +51,14 @@ export function TitleBadges({ titles }: { readonly titles: readonly SeasonTitle[
       {titles.map((x) => (
         <Link key={`${x.season}-${x.board}`} to="/hall-da-fama">
           <Badge tone={x.position === 1 ? 'accent' : 'neutral'}>
-            {x.board === 'clans' ? placeName(x.position, t) : `${placeName(x.position, t)} ${statOf(x.board) ? t('in $1', boardName(x.board, t).toLowerCase()) : boardName(x.board, t).toLowerCase()}`} · {x.season}
+            {x.board === 'stat:overall'
+              ? x.position === 1
+                ? t('Best of the month')
+                : t('$1 overall of the month', placeName(x.position, t))
+              : x.board === 'clans'
+                ? placeName(x.position, t)
+                : `${placeName(x.position, t)} ${statOf(x.board) ? t('in $1', boardName(x.board, t).toLowerCase()) : boardName(x.board, t).toLowerCase()}`}{' '}
+            · {x.season}
             {classicBoard(x.board) && ` (${t('classic ranking')})`}
           </Badge>
         </Link>
