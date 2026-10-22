@@ -895,7 +895,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'No data for this match.': 'Sem dados nesta partida.',
     'Row = killer, column = victim.': 'Linha = quem matou, coluna = vítima.',
     'Who killed whom': 'Quem matou quem',
-    'Period': 'Período',
     'Favourite victims': 'Vítimas favoritas',
     'Who kills you most': 'Quem mais te mata',
     'No data yet (counted from Ranked matches since the event log).': 'Sem dados ainda (conta as ranqueadas desde o registro de eventos).',
