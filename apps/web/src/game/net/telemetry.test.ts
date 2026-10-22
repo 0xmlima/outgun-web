@@ -26,6 +26,10 @@ describe('telemetria de rede (OG-108)', () => {
       correctionsPerMin: 6,
       stallSeconds: 3,
       framesPerSecond: 9.75,
+      inputSendP50: null,
+      inputSendP95: null,
+      inputRenderP50: null,
+      inputRenderP95: null,
     });
     // recomeça: sem dados novos, nada a mandar
     expect(t.report()).toBeNull();
