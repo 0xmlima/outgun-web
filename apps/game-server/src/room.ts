@@ -19,9 +19,9 @@ import { RankedLobby } from './ranked-lobby.js';
 import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
-import { matchReport, rankingMinimumsMet, type DeltaReport, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution } from './match-report.js';
+import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
-import { RankingDeltas, teamModifiers, type PlayerRating } from './ranking.js';
+import { teamStrength, type PlayerSkill } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
 import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
@@ -68,8 +68,8 @@ export interface Identity {
   admin?: boolean;
   /** Dono da sala privada (OG-049): pode mudar as regras se o preset não for travado. */
   owner?: boolean;
-  /** Ranking da conta na temporada e participação (OG-084); ausente = não participa, força 1,0. */
-  rating?: PlayerRating;
+  /** Rating de habilidade OpenSkill da conta (OG-350); ausente = conta nova, convidado ou bot (μ inicial). */
+  skill?: PlayerSkill;
   /** Endereço do jogador (ban por IP). */
   ip?: string;
   /** Nível do bot substituto desta conta (OG-266, do ticket Ranked); ausente = intermediário. */
@@ -140,8 +140,6 @@ export interface RoomOptions {
   reconnectSeconds?: number;
   /** Resultado de cada partida para a API (OG-049). */
   reportMatch?: (report: MatchReport) => void;
-  /** Deltas do ranking fora do fim da partida: saída, troca de mapa por voto, reinício (OG-084). */
-  reportDeltas?: (report: DeltaReport) => void;
   /** Relógio de parede (ms) para as datas da partida; padrão `Date.now`. */
   wallClock?: () => number;
   /** Onde gravar os replays (OG-090); ausente = sem gravação. Devolve a URL pública. */
@@ -209,8 +207,6 @@ interface Client {
   idleFrames: number;
   /** Reconexão (OG-047): token para voltar e frame em que a conexão caiu (null = conectado). */
   resumeToken: string;
-  /** Deltas do ranking ainda não enviados (OG-084). */
-  deltas: RankingDeltas;
   disconnectedFrame: number | null;
   /** Saiu de vez de um jogo Ranked e o time está votando o bot substituto (OG-262). */
   departing?: boolean;
@@ -293,13 +289,6 @@ export class Room {
   private readonly swapRequests = new Map<number, number>();
   /** Série em andamento (OG-250): numerada por sala; ao acabar, o jogo seguinte abre a próxima. */
   private series: { no: number; score: SeriesScore } | undefined;
-  private deltaCount = 0;
-  /**
-   * Jogo Ranked em andamento: os deltas de quem sai no meio esperam o fim do jogo, que pode ser
-   * cancelado (OG-345, RN-RKL-26) e aí não contam.
-   */
-  private holdDeltas = false;
-  private heldDeltas: DeltaReport[] = [];
   private readonly createdAt: number;
   private readonly console: ConsoleHost;
   /** Limite do `/report` por jogador (OG-104). */
@@ -388,8 +377,6 @@ export class Room {
       flagReturned: (pid) => this.broadcast(message('flagReturn', { pid })),
       flagCaptured: (pid, flagTeam, assistant) => this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant })),
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
-      scoreFrag: (pid, amount) => this.scoreFrag(pid, amount),
-      scoreNeg: (pid, amount) => this.scoreNeg(pid, amount),
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
       normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' }), this.mapTimeMessage()),
       extraTimePeriodStarted: () => this.broadcast(this.mapTimeMessage()),
@@ -498,7 +485,6 @@ export class Room {
       muted: 0,
       talk: new TalkMeter(),
       kickTimer: 0,
-      deltas: new RankingDeltas(),
       idleFrames: 0,
       resumeToken: randomUUID(),
       disconnectedFrame: null,
@@ -510,7 +496,7 @@ export class Room {
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
     // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
     if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
-    if (identity.rating) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
+    if (identity.accountId) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
     this.sendCasualConfig(pid);
     if (this.lobby) {
       this.lobby.join(pid, this.world.frame);
@@ -520,7 +506,6 @@ export class Room {
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
     if (this.clients.size === 2) {
       this.sim.returnAllFlags();
-      this.flushDeltas(); // `ctf_game_restart` envia os deltas de todos
       this.sim.resetWorld();
       this.world.mapStartFrame = this.world.frame;
       // o original agenda os power-ups depois do reinício (`check_powerup_creation(false)` no fim
@@ -547,7 +532,7 @@ export class Room {
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
       // conta e ranking de quem já estava: o sublinhado de conta também para quem chega depois (OG-277)
-      if (c.identity.rating) out.push(this.playerInfo(other, c));
+      if (c.identity.accountId) out.push(this.playerInfo(other, c));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
       out.push(statsMessage(this.world.players[other] as PlayerState, this.world.time)); // `send_stats`
     }
@@ -609,7 +594,7 @@ export class Room {
     const [pid, c] = found;
     if (c.replaced) {
       c.conn.close(1000, 'replaced');
-      Object.assign(c, { identity: c.replaced.identity, bot: false, replaced: undefined, deltas: new RankingDeltas() });
+      Object.assign(c, { identity: c.replaced.identity, bot: false, replaced: undefined });
       this.broadcast(message('playerName', { pid, name: c.identity.name }));
       this.pause?.brief(this.world.teamOf(pid) as 0 | 1, pid, this.uptimeFrames); // volta com a contagem de 3 s
     } else if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
@@ -649,12 +634,11 @@ export class Room {
     return this.gameOverUntil === null && (!this.lobby || this.lobby.playing);
   }
 
-  /** Saída (`client_disconnected` → `removePlayer`); os deltas do ranking vão antes. */
+  /** Saída (`client_disconnected` → `removePlayer`). */
   leave(pid: number): void {
     const c = this.clients.get(pid);
     if (!c) return;
     if (this.mode === 'ranked' && this.gameOverUntil === null && !c.bot && c.identity.accountId) this.departed.set(c.identity.accountId, this.world.teamOf(pid) as 0 | 1);
-    this.flushDeltas(pid);
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
@@ -812,11 +796,11 @@ export class Room {
     });
   }
 
-  /** `refresh_team_score_modifiers` + `getLessScoredTeam`: modificador, placar, sorteio. */
+  /** `getLessScoredTeam` (RN-TIM-01): o time mais fraco pela soma dos μ (OG-350), depois placar, sorteio. */
   private lessScoredTeam(): 0 | 1 {
-    const [m0, m1] = this.teamModifiers();
-    if (m0 > m1) return 0;
-    if (m1 > m0) return 1;
+    const [s0, s1] = this.teamStrength();
+    if (s0 < s1) return 0;
+    if (s1 < s0) return 1;
     const [red, blue] = [this.world.teams[0].score, this.world.teams[1].score];
     if (red < blue) return 0;
     if (blue < red) return 1;
@@ -1174,7 +1158,6 @@ export class Room {
   private substitute(pid: number): void {
     const c = this.clients.get(pid);
     if (!c?.departing) return;
-    this.flushDeltas(pid); // o que a pessoa fez até aqui é dela; o bot não pontua (sem conta)
     const { identity } = c;
     const bot = new BotClient(this.botHost(), this.botRng, this.now, botSkill(identity.botLevel)); // nível pelo histórico (OG-266)
     Object.assign(c, {
@@ -1184,7 +1167,6 @@ export class Room {
       disconnectedFrame: null,
       replaced: { identity, resumeToken: c.resumeToken },
       identity: { name: `BOT-${identity.name}`, accountId: null, clanTag: identity.clanTag ?? null, clanId: identity.clanId ?? null },
-      deltas: new RankingDeltas(),
       hasInput: false,
       queue: [],
       rs: new RecipientState(),
@@ -1584,7 +1566,6 @@ export class Room {
 
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
-    this.releaseDeltas(true); // os de quem saiu no meio vão antes do resultado
     // a captura final acontece no mesmo frame: o placar vai antes do `gameOver`, que o cliente congela (OG-343)
     this.sendScores();
     this.pause?.reset(); // saldo de pausa por jogo, também na série (D-45)
@@ -1613,70 +1594,30 @@ export class Room {
     return rankingMinimumsMet(players, this.settings.server.rankingMinhumans, this.settings.server.rankingMinplayers);
   }
 
-  /** Modificadores dos times com o ranking de quem está na sala (bots e convidados valem 1,0). */
-  teamModifiers(): [number, number] {
-    const players = [...this.clients].map(([pid, c]) => ({ team: this.world.teamOf(pid) as 0 | 1, score: c.identity.rating?.score ?? 0, neg: c.identity.rating?.neg ?? 0 }));
-    return teamModifiers(players, this.settings.world.respawnBalancingTime >= 5);
+  /** Força de cada time: soma dos μ do OpenSkill (OG-350); sem rating vale o μ inicial. */
+  teamStrength(): [number, number] {
+    return teamStrength([...this.clients].map(([pid, c]) => ({ team: this.world.teamOf(pid) as 0 | 1, mu: c.identity.skill?.mu })));
   }
 
-  /** `broadcast_player_crap`: cor, conta e ranking do jogador. */
+  /** `broadcast_player_crap`: cor, conta e rating de habilidade (posição e valor, OG-350). */
   private playerInfo(pid: number, c: Client): AnyMessage {
-    const r = c.identity.rating;
+    const s = c.identity.skill;
     return message('playerInfo', {
       pid,
       color: c.color,
       loggedIn: c.identity.accountId !== null,
       ranked: this.mode === 'ranked' && this.participates(c),
       admin: c.identity.admin ?? false,
-      rank: r?.rank ?? 0,
-      score: Math.trunc(r?.score ?? 0),
-      negScore: r?.neg ?? 0,
-      rankedPlayers: r?.of ?? 0,
+      rank: s?.rank ?? 0,
+      score: s?.value ?? 0,
+      negScore: 0,
+      rankedPlayers: s?.of ?? 0,
     });
   }
 
+  /** Toda conta humana numa sala Ranked participa (RN-SKL-06): não há opção de ficar de fora. */
   private participates(c: Client | undefined): c is Client {
-    return c !== undefined && !c.bot && c.identity.accountId !== null && c.identity.rating?.participate === true;
-  }
-
-  /** `Server::score_frag` (a sim já somou o frag): delta × modificador do time. */
-  private scoreFrag(pid: number, amount: number): void {
-    const c = this.clients.get(pid);
-    if (!this.participates(c) || !this.rankingEnabled()) return;
-    c.deltas.addFrag(amount, this.teamModifiers()[this.world.teamOf(pid)] as number);
-  }
-
-  /** `Server::score_neg`: sem modificador. */
-  private scoreNeg(pid: number, amount: number): void {
-    const c = this.clients.get(pid);
-    if (!this.participates(c) || !this.rankingEnabled()) return;
-    c.deltas.addNeg(amount);
-  }
-
-  /** `client_report_status` de um jogador (ou de todos): só deltas inteiros diferentes de zero. */
-  flushDeltas(only?: number): void {
-    for (const [pid, c] of this.clients) {
-      if (only !== undefined && pid !== only) continue;
-      if (!this.participates(c)) continue;
-      const d = c.deltas.take();
-      if (!d) continue;
-      const report: DeltaReport = {
-        deltaId: `${this.id}-${this.createdAt.toString(36)}-d${++this.deltaCount}`,
-        roomId: this.id,
-        userId: c.identity.accountId!,
-        scoreDelta: d.score,
-        negDelta: d.neg,
-      };
-      if (this.holdDeltas) this.heldDeltas.push(report);
-      else this.options.reportDeltas?.(report);
-    }
-  }
-
-  /** Fim do jogo Ranked (ou sala fechando): os deltas guardados vão (`send`) ou somem (cancelado). */
-  private releaseDeltas(send: boolean): void {
-    this.holdDeltas = false;
-    if (send) for (const d of this.heldDeltas) this.options.reportDeltas?.(d);
-    this.heldDeltas = [];
+    return c !== undefined && !c.bot && c.identity.accountId !== null;
   }
 
   /** Lado do jogo Ranked sem humano conectado nem no prazo de volta (RN-RKL-26). */
@@ -1688,12 +1629,10 @@ export class Room {
   }
 
   /**
-   * Partida Ranked cancelada (OG-345, D-62): nada vai à API (resultado, deltas, série), sem bot nem
+   * Partida Ranked cancelada (OG-345, D-62): nada vai à API (resultado, rating, série), sem bot nem
    * voto; quem ficou volta ao lobby e o jogo é disputado de novo.
    */
   private cancelGame(): void {
-    this.releaseDeltas(false);
-    for (const c of this.clients.values()) c.deltas.take();
     this.recorder = null; // sem replay
     this.pause?.reset();
     for (const [pid, c] of [...this.clients]) if (c.bot || c.departing || c.conn === OFFLINE) this.leave(pid);
@@ -1712,12 +1651,6 @@ export class Room {
     const endedAt = this.wallClock();
     const startedAt = this.matchStartedAt;
     this.matchCount++;
-    // os deltas vão junto do resultado (e saem dos acumuladores mesmo sem API, como no original)
-    const deltas = new Map<number, { score: number; neg: number }>();
-    for (const [pid, c] of this.clients) {
-      const d = this.participates(c) ? c.deltas.take() : undefined;
-      if (d) deltas.set(pid, d);
-    }
     const serverMatchId = `${this.id}-${this.createdAt.toString(36)}-${this.matchCount}`;
     const replayUrl = this.finishRecording(serverMatchId);
     const series = this.recordSeriesGame(result.winner);
@@ -1728,8 +1661,7 @@ export class Room {
         ...(replayUrl ? { replayUrl } : {}),
         roomId: this.id,
         mode: this.mode,
-        ranked: this.mode === 'ranked' && (this.rankingEnabled() || deltas.size > 0),
-        deltas: (pid) => deltas.get(pid) ?? { score: 0, neg: 0 },
+        ranked: this.rankingEnabled(),
         rules: (({ captureLimit, winScoreDifference, timeLimit, extraTime, extraTimePeriods, suddenDeath }) => ({ captureLimit, winScoreDifference, timeLimit, extraTime, extraTimePeriods, suddenDeath }))(this.settings.world),
         map: this.mapFile(this.mapIndex),
         result,
@@ -1811,12 +1743,10 @@ export class Room {
     this.swapRequests.clear();
     this.nextMap('vote', map);
     this.gameOverUntil = this.world.frame + 1;
-    this.holdDeltas = true;
   }
 
   /** Fim de um jogo da série: placar na tela e volta ao lobby (ou fim da série, D-41). */
   private lobbyGameOver(reason: GameOverReason): void {
-    this.flushDeltas();
     this.lobby!.gameEnded(this.series ? seriesOver(this.series.score) : true, this.world.frame);
     this.gameOverUntil = this.world.frame + Math.round(this.settings.server.gameEndDelay * 10);
     this.broadcast(message('gameOver', { reason, seconds: this.settings.server.gameEndDelay }));
@@ -1926,7 +1856,6 @@ export class Room {
     this.pause?.reset();
     this.applyPendingCasualBots();
     this.dropSubstitutes();
-    this.flushDeltas(); // `ctf_game_restart`; no fim de partida já foram com o resultado
     if (this.pendingRotation && !this.lobby) {
       // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados
       this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
@@ -2121,7 +2050,6 @@ export class Room {
       c.conn.close(1001, 'sala encerrada');
       this.leave(pid);
     }
-    this.releaseDeltas(true);
     this.spectators.close();
   }
 }

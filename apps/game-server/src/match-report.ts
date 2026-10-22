@@ -104,16 +104,6 @@ export interface MatchSeries {
   winner: 0 | 1 | null;
 }
 
-/** Deltas do ranking enviados fora do fim da partida (POST /internal/rating-deltas, OG-084). */
-export interface DeltaReport {
-  /** Idempotência: o mesmo id não é somado duas vezes. */
-  deltaId: string;
-  roomId: string;
-  userId: string;
-  scoreDelta: number;
-  negDelta: number;
-}
-
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -140,8 +130,6 @@ export interface ReportInput {
   /** Quem está no slot de cada resultado (quem já saiu não entra). */
   who: (pid: number) => ReportPlayer | undefined;
   rules: MatchRules;
-  /** Deltas do ranking por slot (OG-084); padrão 0. */
-  deltas?: (pid: number) => { score: number; neg: number };
   format?: RankedFormat;
   series?: MatchSeries;
   substitutions?: readonly Substitution[];
@@ -193,7 +181,6 @@ export function matchReport(input: ReportInput): MatchReport {
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);
       if (!who) return [];
-      const d = input.deltas?.(p.pid) ?? { score: 0, neg: 0 };
       return [
         {
           slot: p.pid,
@@ -206,8 +193,9 @@ export function matchReport(input: ReportInput): MatchReport {
           deaths: p.deaths,
           captures: p.captures,
           playSeconds: Math.round(p.playtime),
-          scoreDelta: input.ranked ? d.score : 0,
-          negDelta: input.ranked ? d.neg : 0,
+          // ranking por score/neg descontinuado (OG-350, D-66): os campos ficam zerados
+          scoreDelta: 0,
+          negDelta: 0,
           ...(who.bot && who.clanId && UUID.test(who.clanId) ? { clanId: who.clanId } : {}),
           stats: { ...stats(p), botKills: who.botKills ?? 0 },
         },

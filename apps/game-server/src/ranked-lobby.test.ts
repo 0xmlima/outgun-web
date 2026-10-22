@@ -269,20 +269,19 @@ describe('sala Ranked 3x3 com lobby (OG-252)', () => {
   describe('partida cancelada sem humanos de um lado (OG-345, RN-RKL-26)', () => {
     const setup = () => {
       const reports: unknown[] = [];
-      const deltas: unknown[] = [];
-      const r = new Room({ id: 'r-2', preset: 'ranked', maps, mapFiles: ['outgun1', '2 versus 2 (duel)'], maxPlayers: 6, seed: 3, ranked: { format: '3x3', bestOf: 3 }, reportMatch: (m) => void reports.push(m), reportDeltas: (d) => void deltas.push(d) });
+      const r = new Room({ id: 'r-2', preset: 'ranked', maps, mapFiles: ['outgun1', '2 versus 2 (duel)'], maxPlayers: 6, seed: 3, ranked: { format: '3x3', bestOf: 3 }, reportMatch: (m) => void reports.push(m) });
       const players = [1, 2, 3, 4, 5, 6].map((n) => join(r, n));
       run(r, 1);
       play(r, players);
       for (const p of players) r.handle(p.pid, [message('clientReady', {})]);
       run(r, 30);
       const side = (team: number) => players.filter((p) => r.world.teamOf(p.pid) === team);
-      return { r, players, side, reports, deltas };
+      return { r, players, side, reports };
     };
     const cancelled = (c: TestConnection) => c.received.some((m) => m.type === 'text' && m.text.startsWith('Partida cancelada'));
 
-    it('um time inteiro cai e ninguém volta no prazo: cancela, sem bot, sem resultado nem deltas; o jogo é disputado de novo', () => {
-      const { r, side, reports, deltas } = setup();
+    it('um time inteiro cai e ninguém volta no prazo: cancela, sem bot nem resultado; o jogo é disputado de novo', () => {
+      const { r, side, reports } = setup();
       for (const p of side(0)) r.disconnect(p.pid, p.conn);
       run(r, RANKED_RECONNECT_FRAMES);
       expect(r.lobby?.phase).toBe('game'); // ainda no prazo
@@ -290,7 +289,7 @@ describe('sala Ranked 3x3 com lobby (OG-252)', () => {
       const stay = side(1)[0]!;
       expect(cancelled(stay.conn)).toBe(true);
       expect([r.lobby?.phase, r.playerCount, r.bots()]).toEqual(['lobby', 3, []]);
-      expect([reports, deltas]).toEqual([[], []]);
+      expect(reports).toEqual([]);
       expect(stay.conn.last('lobbyState')).toMatchObject({ gameNo: 1, seriesRed: 0, seriesBlue: 0 });
     });
 

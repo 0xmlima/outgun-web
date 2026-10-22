@@ -1,4 +1,6 @@
 # Spec: ranking e temporadas
+
+> **Descontinuado na v2 (OG-350, D-66, 2026-10-22):** o servidor não calcula nem envia mais score/neg e a API não soma nada; as tabelas ficam só para leitura (outubro/2026 é a última temporada). Rating de habilidade: OpenSkill (RN-SKL, `apps/api/src/skill.ts`); temporadas: leaderboard de atributos (RN-LDB, `apps/api/src/leaderboard.ts`). O texto abaixo é histórico.
 Card(s): OG-084 · RNs: RN-RNK-01..04, RN-PTS-02, RN-MOD-05, RN-TIM-01
 
 ## Resumo

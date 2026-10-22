@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S37 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-349 |
 | Regras de negócio | RN-RNK-01..04, RN-TIM-01, RN-RKL-19, RN-RKL-22..24, RN-SKL-05, RN-SKL-06 (D-65, D-66) |
 | Skills | `outgun-card-workflow` |
@@ -29,11 +29,14 @@ Como PO, quero desligar o ranking antigo por score/neg sem perder os dados, para
 - RNs antigas marcadas como descontinuadas no PLAN; spec `plan/specs/ranking.md` com aviso no topo.
 
 ## Critérios de aceite
-- [ ] Partida ranqueada não grava mais score/neg; testes do game server e da API atualizados.
-- [ ] Ticket e desempate de time usam o μ; bot substituto usa a posição no OpenSkill.
-- [ ] Sem opção de não participar: Opções, rotas e ticket sem `participate`; quem tinha desligado passa a contar.
-- [ ] Dados antigos intactos no banco (sem migration destrutiva).
-- [ ] Virada de 1º de novembro testada: fecha outubro pelo sistema antigo.
+- [x] Partida ranqueada não grava mais score/neg; testes do game server e da API atualizados.
+- [x] Ticket e desempate de time usam o μ; bot substituto usa a posição no OpenSkill.
+- [x] Sem opção de não participar: Opções, rotas e ticket sem `participate`; quem tinha desligado passa a contar.
+- [x] Dados antigos intactos no banco (sem migration destrutiva).
+- [x] Virada de 1º de novembro testada: fecha outubro pelo sistema antigo.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Game server: saíram `RankingDeltas`, modificador, `flushDeltas`/`releaseDeltas` e o envio a `/internal/rating-deltas` (a rota aceita e ignora, para servidores antigos). O relatório manda `scoreDelta`/`negDelta` zerados.
+- Ticket: `rating` virou `skill` (μ, valor, posição, total). `playerInfo` reaproveita os campos: `score` = valor, `rank`/`rankedPlayers` = posição/total, `negScore` 0. A página 4 do F4 mostra "posição" e "rating" no lugar de "posição/força/score" (tela de informação, não o HUD; conferir no visual:check).
+- `rating_points` também parou de receber (era a série de evolução do score/neg). A evolução no perfil passa ao OpenSkill no OG-351.
+- As rotas de leitura do ranking antigo (`/leaderboard`, `/leaderboard/overall`) continuam até a página nova (OG-353). A virada de 1º/11 fecha outubro pelo código antigo (teste em `seasons.test.ts`).

@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
-import { api } from '../app/api.js';
 import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, HUD_SCALES, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
@@ -168,18 +167,6 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
   const { user } = useAccount();
   const navigate = useNavigate();
   const lists = useManifestLists();
-  const [ranking, setRanking] = useState<boolean | null>(null);
-  useEffect(() => {
-    if (tab !== 'game' || !user) return;
-    let alive = true;
-    void api<{ participate: boolean }>('/account/ranking').then(
-      (r) => alive && setRanking(r.participate),
-      () => undefined,
-    );
-    return () => {
-      alive = false;
-    };
-  }, [tab, user]);
 
   type BoolKey = { [K in keyof Prefs]: Prefs[K] extends boolean ? K : never }[keyof Prefs];
   const toggle = (key: BoolKey, label: string, disabled = false) => (
@@ -221,16 +208,6 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               )}
               <FavoriteColors label={t('Favorite colors')} hint={t('Click a colour to make it your first choice; Ctrl+arrows reorder.')} colors={lists.playerColours} order={prefs.favoriteColors} disabled={prefs.randomColor} onChange={(favoriteColors) => setPrefs({ favoriteColors })} />
               {toggle('randomColor', 'Use random color')}
-              <ToggleField
-                label={t('Take part in the ranking')}
-                checked={user ? (ranking ?? true) : false}
-                disabled={!user || ranking === null}
-                hint={user ? undefined : t('needs an account')}
-                onChange={(next) => {
-                  setRanking(next);
-                  void api('/account/ranking', { method: 'PUT', body: { participate: next } }).catch(() => setRanking(!next));
-                }}
-              />
             </FieldGroup>
           </Panel>
           <Panel title={t('Game options')}>

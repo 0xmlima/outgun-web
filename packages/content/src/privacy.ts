@@ -74,7 +74,7 @@ export const DATA_INVENTORY: readonly DataItem[] = [
     retention: b('30 dias, ou até sair/trocar a senha', '30 days, or until you sign out/change the password'),
   },
   {
-    what: b('Preferências e opções do jogo sincronizadas com a conta; idioma; participação no ranking', 'Game preferences synced to the account; language; ranking participation'),
+    what: b('Preferências e opções do jogo sincronizadas com a conta; idioma', 'Game preferences synced to the account; language'),
     where: ['player_profiles', 'navegador:outgun.prefs'],
     why: b('Levar as suas opções para outro navegador', 'Bringing your options to another browser'),
     retention: b('Até você excluir a conta (no navegador, até limpar os dados do site)', 'Until you delete the account (in the browser, until you clear site data)'),

@@ -27,7 +27,7 @@ export interface TicketClaims {
   /** Dono da sala privada (OG-049): `/set` nas regras não travadas. */
   owner?: boolean;
   /** Ranking da conta na temporada ativa (OG-084): força do time e participação. */
-  rating?: TicketRating;
+  skill?: TicketSkill;
   /** Nível do bot que substitui a conta se ela sair de vez (OG-266, 1..5; só nas salas Ranked). */
   botLevel?: number;
   /**
@@ -43,12 +43,12 @@ export interface TicketClaims {
   jti: string;
 }
 
-export interface TicketRating {
-  score: number;
-  neg: number;
-  /** Participa do ranking (pode desligar nas opções da conta). */
-  participate: boolean;
-  /** Posição no leaderboard (0 = fora dele) e quantos jogadores há nele. */
+/** Rating de habilidade OpenSkill da conta (OG-350, RN-SKL): força do time e `playerInfo`. */
+export interface TicketSkill {
+  mu: number;
+  /** Valor exibido (RN-SKL-04). */
+  value: number;
+  /** Posição entre as contas com rating (1 = melhor) e quantas são. */
   rank: number;
   of: number;
 }

@@ -58,8 +58,8 @@ describe.skipIf(!pgAdminUrl)('perfil e histórico (OG-085)', () => {
     expect(body.user.email).toBeUndefined();
     expect(body.totals.casual).toMatchObject({ matches: 1, wins: 1, losses: 0, draws: 0, frags: 5, kills: 5, captures: 1, assists: 1, shots: 40, hits: 10, playSeconds: 300 });
     expect(body.totals.ranked).toMatchObject({ matches: 1, wins: 0, draws: 1, frags: 7 });
-    expect(body.ranking).toMatchObject({ score: 150, neg: 2, rank: 1, of: 1, matches: 1, minimumScore: 100 });
-    expect(body.ranking.rating).toBeCloseTo(151 / 3);
+    // rating de habilidade (OG-349): a ranqueada empatada já conta; score/neg não somam mais (OG-350)
+    expect(body.skill).toMatchObject({ matches: 1, calibrating: true });
     expect((await app.inject('/players/ninguem')).statusCode).toBe(404);
   });
 

@@ -45,14 +45,5 @@ export async function recordMatchSocial(tx: Tx, matchId: string): Promise<void> 
       deaths = d.deaths + EXCLUDED.deaths,
       captures = d.captures + EXCLUDED.captures,
       play_seconds = d.play_seconds + EXCLUDED.play_seconds`);
-  await tx.execute(sql`
-    INSERT INTO rating_points (user_id, season_id, at, score_delta, neg_delta)
-    SELECT mp.user_id, m.season_id, m.ended_at, mp.score_delta, mp.neg_delta
-    FROM match_players mp JOIN matches m ON m.id = mp.match_id
-    WHERE mp.match_id = ${matchId} AND mp.user_id IS NOT NULL AND m.ranked AND m.season_id IS NOT NULL`);
-}
-
-/** Delta avulso do ranking (quem saiu, troca de mapa) na série de evolução. */
-export async function recordRatingPoint(tx: Tx, userId: string, seasonId: number, scoreDelta: number, negDelta: number): Promise<void> {
-  await tx.execute(sql`INSERT INTO rating_points (user_id, season_id, at, score_delta, neg_delta) VALUES (${userId}, ${seasonId}, now(), ${scoreDelta}, ${negDelta})`);
+  // `rating_points` (evolução do score/neg) não recebe mais nada: ranking descontinuado (OG-350, D-66)
 }

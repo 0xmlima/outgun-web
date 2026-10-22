@@ -12,7 +12,6 @@ import type { SessionUser } from '../auth/sessions.js';
 import { usernameKey } from '../db/keys.js';
 import { feedback, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
-import { playerRating } from '../ranking.js';
 import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
 
@@ -160,44 +159,6 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         const set = { settings, ...(colors ? { favoriteColors: colors } : {}), updatedAt: new Date() };
         await db.insert(playerProfiles).values({ userId: user.id, ...set }).onConflictDoUpdate({ target: playerProfiles.userId, set });
         return { ok: true as const };
-      },
-    );
-
-    app.get(
-      '/ranking',
-      {
-        schema: {
-          tags: ['ranking'],
-          summary: 'Meu ranking na temporada ativa e se participo dele',
-          response: { 200: Type.Object({ score: Type.Number(), neg: Type.Integer(), participate: Type.Boolean(), rank: Type.Integer(), of: Type.Integer() }), 401: ErrorSchema },
-        },
-      },
-      async (request, reply) => {
-        const user = await requireUser(request, reply);
-        if (!user) return reply;
-        return playerRating(db, user.id);
-      },
-    );
-
-    app.put(
-      '/ranking',
-      {
-        schema: {
-          tags: ['ranking'],
-          summary: 'Liga ou desliga a participação no ranking (vale na próxima entrada numa sala)',
-          body: Type.Object({ participate: Type.Boolean() }),
-          response: { 200: Type.Object({ participate: Type.Boolean() }), 401: ErrorSchema },
-        },
-      },
-      async (request, reply) => {
-        const user = await requireUser(request, reply);
-        if (!user) return reply;
-        const participate = request.body.participate;
-        await db
-          .insert(playerProfiles)
-          .values({ userId: user.id, rankingParticipation: participate })
-          .onConflictDoUpdate({ target: playerProfiles.userId, set: { rankingParticipation: participate, updatedAt: new Date() } });
-        return { participate };
       },
     );
 

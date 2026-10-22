@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Ranking por temporada (OG-084, D-02, spec plan/specs/ranking.md): a API só soma os deltas que os
-// game servers calculam; o leaderboard ordena por rating = (score+1)/(neg+1), com mínimo de 100
-// pontos de score para aparecer e desempate por score.
+// Ranking por temporada (OG-084, D-02, spec plan/specs/ranking.md): descontinuado na v2 (OG-350,
+// D-66). As tabelas ficam só para leitura (outubro/2026 é a última temporada); o rating de
+// habilidade está em `skill.ts` e o leaderboard de atributos em `leaderboard.ts`. Daqui ficam as
+// temporadas mensais e a leitura do histórico antigo.
 import { and, desc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 import { clanLeaderboard } from './clan-stats.js';
@@ -21,50 +22,6 @@ export type RankedFormat = '3x3' | '4x4' | '5x5';
 export async function activeSeason(db: Db | Tx): Promise<{ id: number; name: string } | undefined> {
   const [season] = await db.select({ id: seasons.id, name: seasons.name }).from(seasons).where(eq(seasons.active, true));
   return season;
-}
-
-export interface Delta {
-  userId: string;
-  score: number;
-  neg: number;
-  /** Conta uma partida ranqueada para o jogador. */
-  match: boolean;
-}
-
-/**
- * Soma os deltas na temporada (uma linha por conta, criada na primeira partida). Com formato, soma
- * também no rating do formato: o geral é sempre a soma dos formatos mais o acumulado sem formato.
- */
-export async function applyDeltas(tx: Tx, seasonId: number, deltas: readonly Delta[], format?: RankedFormat | null): Promise<void> {
-  for (const d of deltas) {
-    if (d.score === 0 && d.neg === 0 && !d.match) continue;
-    const matches = d.match ? 1 : 0;
-    await tx
-      .insert(ratings)
-      .values({ userId: d.userId, seasonId, score: d.score, neg: d.neg, matches })
-      .onConflictDoUpdate({
-        target: [ratings.userId, ratings.seasonId],
-        set: {
-          score: sql`${ratings.score} + ${d.score}`,
-          neg: sql`${ratings.neg} + ${d.neg}`,
-          matches: sql`${ratings.matches} + ${matches}`,
-          updatedAt: new Date(),
-        },
-      });
-    if (!format) continue;
-    await tx
-      .insert(formatRatings)
-      .values({ userId: d.userId, seasonId, format, score: d.score, neg: d.neg, matches })
-      .onConflictDoUpdate({
-        target: [formatRatings.userId, formatRatings.seasonId, formatRatings.format],
-        set: {
-          score: sql`${formatRatings.score} + ${d.score}`,
-          neg: sql`${formatRatings.neg} + ${d.neg}`,
-          matches: sql`${formatRatings.matches} + ${matches}`,
-          updatedAt: new Date(),
-        },
-      });
-  }
 }
 
 export interface PlayerRating {

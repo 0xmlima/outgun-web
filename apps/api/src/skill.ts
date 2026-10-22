@@ -82,6 +82,17 @@ export async function playerSkillOf(db: Db | Tx, userId: string): Promise<SkillV
   return row ? skillView(row) : null;
 }
 
+/** Rating com a posição entre as contas com rating (1 = melhor), para o ticket (OG-350). */
+export async function playerSkillRank(db: Db | Tx, userId: string): Promise<(SkillView & { rank: number; of: number }) | null> {
+  const me = await playerSkillOf(db, userId);
+  if (!me) return null;
+  const ord = sql`${playerSkill.mu} - 3 * ${playerSkill.sigma}`;
+  const [counts] = await db
+    .select({ of: sql<number>`count(*)::int`, above: sql<number>`count(*) FILTER (WHERE ${ord} > ${me.mu - 3 * me.sigma})::int` })
+    .from(playerSkill);
+  return { ...me, rank: (counts?.above ?? 0) + 1, of: counts?.of ?? 1 };
+}
+
 export interface SkillChange {
   userId: string;
   team: number;

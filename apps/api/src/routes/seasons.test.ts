@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { seasons, seasonStandings, users } from '../db/schema.js';
+import { matches, ratings, seasons, seasonStandings, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { monthStart, rollSeason, seasonMonth } from '../ranking.js';
@@ -65,8 +65,9 @@ describe.skipIf(!pgAdminUrl)('temporadas mensais (OG-267)', () => {
   });
 
   it('no fim do mês fecha a temporada, guarda a classificação e abre a nova; virada repetida não cria outra', async () => {
-    expect((await internal('/internal/matches', rankedMatch('o-1', '2026-10-20T12:00:00Z', '2026-10-20T12:10:00Z', 150, 2))).statusCode).toBe(201);
+    // outubro/2026 é a última temporada do ranking por score/neg (D-66): os dados já estão guardados
     const october = await active();
+    await t.db.insert(ratings).values({ userId: ids.Jogador1!, seasonId: october.id, score: 150, neg: 2, matches: 1 });
     expect(await rollSeason(t.db, new Date('2026-11-01T02:59:00Z'))).toBeUndefined();
     const november = await rollSeason(t.db, new Date('2026-11-01T03:00:30Z'));
     expect(november).toMatchObject({ name: 'Temporada 2026-11' });
@@ -83,18 +84,10 @@ describe.skipIf(!pgAdminUrl)('temporadas mensais (OG-267)', () => {
     expect((await app.inject('/leaderboard')).json()).toMatchObject({ season: { name: 'Temporada 2026-11' }, total: 0 });
   });
 
-  it('partida que começou antes da virada e terminou depois conta na temporada em que começou', async () => {
+  it('partida que começou antes da virada e terminou depois fica na temporada em que começou', async () => {
     const october = (await t.db.select().from(seasons).where(eq(seasons.month, '2026-10')))[0]!;
-    expect((await internal('/internal/matches', rankedMatch('o-2', '2026-11-01T02:55:00Z', '2026-11-01T03:05:00Z', 50, 0))).statusCode).toBe(201);
-    expect((await t.db.select().from(seasonStandings).where(eq(seasonStandings.seasonId, october.id)))[0]).toMatchObject({ score: 200, matches: 2 });
-    expect((await app.inject('/leaderboard')).json().total).toBe(0);
-  });
-
-  it('ranking geral soma score e neg de todas as temporadas', async () => {
-    expect((await internal('/internal/matches', rankedMatch('n-1', '2026-11-05T12:00:00Z', '2026-11-05T12:10:00Z', 40, 3))).statusCode).toBe(201);
-    const overall = (await app.inject('/leaderboard/overall')).json();
-    expect(overall.total).toBe(1);
-    expect(overall.entries[0]).toMatchObject({ username: 'Jogador1', score: 240, neg: 5, matches: 3, position: 1 });
-    expect(overall.entries[0].rating).toBeCloseTo(241 / 6);
+    const res = await internal('/internal/matches', rankedMatch('o-2', '2026-11-01T02:55:00Z', '2026-11-01T03:05:00Z', 0, 0));
+    expect(res.statusCode).toBe(201);
+    expect((await t.db.select({ seasonId: matches.seasonId }).from(matches).where(eq(matches.id, res.json().id)))[0]).toEqual({ seasonId: october.id });
   });
 });
