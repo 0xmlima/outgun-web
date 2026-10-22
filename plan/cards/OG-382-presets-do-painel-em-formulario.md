@@ -19,6 +19,8 @@ Como moderador, quero montar um preset Casual marcando opções num formulário,
 - Pedido do PO em 2026-10-22: a aba Presets tem muito espaço sobrando e só oferece uma caixa de texto livre ("Regras (linhas de gamemod)"); o moderador precisa saber de cor os nomes e faixas das settings.
 - O registro `packages/settings/src/registry.ts` já tem tudo que um formulário precisa: nome, categoria (geral, bots, mapas, jogo, vida, power-ups, física), tipo (bool, inteiro, real, porcentagem...) e faixa. As `ignore` e as que não fazem sentido num preset (porta, IP, nome do servidor, senha) ficam fora.
 
+- **Diretriz do PO (2026-10-22):** a tela de moderação tem de ser simples para qualquer moderador, não só para quem conhece o jogo a fundo: rótulos em português claro, sem exigir nomes de gamemod ou de arquivos, padrões à vista.
+
 ## Escopo
 - Tela nova da aba Presets: lista dos presets à esquerda (do jogo, só leitura, e do painel, editáveis; "Novo" e "Duplicar" a partir de um do jogo); à direita o editor com nome, descrição e as regras agrupadas por categoria em seções recolhíveis.
 - Cada regra: caixa de marcar "alterar" + controle pelo tipo (caixa para bool, número com mín./máx. para inteiro/real/porcentagem); o valor padrão aparece ao lado. Só as marcadas viram linhas do preset.

@@ -19,6 +19,8 @@ Como moderador, quero escolher o modo (Casual ou Ranqueado) e marcar os mapas da
 - Pedido do PO em 2026-10-22, depois de o `purgatory` não aparecer em "Criar sala" nem na votação: a Casual é uma caixa de texto (um mapa por linha) e a Ranqueada uma tabela por formato, uma embaixo da outra.
 - Hoje marcar um mapa num formato sem rotação salva troca a rotação inteira do formato por aquele mapa (a tabela parte vazia); OG-378 faz a aba partir da rotação em uso.
 
+- **Diretriz do PO (2026-10-22):** a tela de moderação tem de ser simples para qualquer moderador, não só para quem conhece o jogo a fundo: rótulos em português claro, sem exigir nomes de gamemod ou de arquivos, padrões à vista.
+
 ## Escopo
 - Seletor no topo: **Casual** | **Ranqueado**.
 - Casual: grade de mapas com miniatura e caixa de marcar (como "Criar sala"), todos os mapas do jogo + os publicados no painel; "marcar todos"/"desmarcar todos"; sem formato.

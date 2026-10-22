@@ -607,7 +607,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
 | S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
 | S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373; 2.39.1: OG-379, OG-381 | |
-| S40 | v2: estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência; mapas do painel em "Criar sala" e rotações do painel a partir da atual; tela de moderação com presets em formulário e rotações por modo; relatório no visual novo | OG-374, OG-375, OG-377, OG-378, OG-380, OG-382, OG-383 | |
+| S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-380, OG-375, OG-374 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
