@@ -74,9 +74,13 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       ['GET', '/admin/rotations', 'moderator'],
       ['POST', '/admin/broadcast', 'admin', { text: 'oi' }],
       ['POST', '/admin/bans', 'admin', { ip: '10.66.0.1', reason: 'x' }],
-      ['PUT', '/admin/presets/festa', 'admin', { description: 'Festa', overrides: 'rocket_damage 140' }],
-      ['DELETE', '/admin/presets/nao-existe', 'admin'],
-      ['PUT', '/admin/rotations/casual', 'admin', { maps: ['outgun1'] }],
+      // presets, rotações e mapas: moderador também (D-70)
+      ['PUT', '/admin/presets/permissao', 'moderator', { description: 'Permissão', overrides: 'rocket_damage 140' }],
+      ['DELETE', '/admin/presets/permissao', 'moderator'],
+      ['PUT', '/admin/rotations/ranked:5x5', 'moderator', { maps: ['outgun1'] }],
+      ['GET', '/admin/maps', 'moderator'],
+      ['PUT', '/admin/maps/permissao', 'moderator', { text: 'P width 1\nP height 1\nP title P\nS 16 12\nflag 0 0 0 1 1\nspawn 0 0 0 8 6\nflag 1 0 0 15 11\nspawn 1 0 0 8 3\n' }],
+      ['DELETE', '/admin/maps/permissao', 'moderator'],
       ['PUT', '/admin/users/Jogador1/role', 'admin', { role: 'player' }],
     ];
     for (const [method, url, role, body] of routes) {

@@ -27,7 +27,7 @@ export function mapNameProblem(name: string): string | undefined {
 export function checkMapText(text: string): { ok: true; map: MapPreview } | { ok: false; errors: string[] } {
   if (text.length === 0) return { ok: false, errors: ['empty file'] };
   if (text.length > MAP_MAX_BYTES) return { ok: false, errors: [`file over ${MAP_MAX_BYTES / 1024} KB`] };
-  if (/[^\u0000-ÿ]/.test(text)) return { ok: false, errors: ['characters outside Latin-1 (save the file as ANSI/Latin-1 or plain ASCII)'] };
+  if (/[\u0100-\uffff]/.test(text)) return { ok: false, errors: ['characters outside Latin-1 (save the file as ANSI/Latin-1 or plain ASCII)'] };
   const r = parseMap(text);
   if (!r.ok) return { ok: false, errors: [...r.errors] };
   return { ok: true, map: { title: r.map.title, author: r.map.author, width: r.map.width, height: r.map.height, crc: r.map.crc } };

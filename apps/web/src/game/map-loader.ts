@@ -35,7 +35,7 @@ export async function loadMap(name: string, source: { text?: string | undefined;
     return Uint8Array.from(text, (c) => c.charCodeAt(0));
   };
   // texto do replay: um caractere por byte (Latin-1); UTF-8 só se tiver algo fora dele
-  if (source.text !== undefined) bytes = /[^\u0000-ÿ]/.test(source.text) ? new TextEncoder().encode(source.text) : Uint8Array.from(source.text, (c) => c.charCodeAt(0));
+  if (source.text !== undefined) bytes = /[\u0100-\uffff]/.test(source.text) ? new TextEncoder().encode(source.text) : Uint8Array.from(source.text, (c) => c.charCodeAt(0));
   else if (GENERATED_MAP.test(name) && source.base) bytes = await fromServer();
   else {
     const entry = (await loadManifest())?.maps[name];
