@@ -607,7 +607,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
 | S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
 | S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373; 2.39.1: OG-379, OG-381 | |
-| S40 | v2: estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência; mapas do painel em "Criar sala" e rotações do painel a partir da atual; relatório no visual novo | OG-374, OG-375, OG-377, OG-378, OG-380 | |
+| S40 | v2: estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência; mapas do painel em "Criar sala" e rotações do painel a partir da atual; tela de moderação com presets em formulário e rotações por modo; relatório no visual novo | OG-374, OG-375, OG-377, OG-378, OG-380, OG-382, OG-383 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -840,8 +840,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-379](cards/OG-379-fim-de-partida-zerado.md) | Fim de partida com os números zerados no Casual | E12 | 2 | Must | S39 | OG-344 | Concluído |
 | [OG-380](cards/OG-380-relatorio-no-visual-v2.md) | Relatório da partida no visual novo, com os marcadores novos à vista | E9 | 3 | Should | S40 | OG-355, OG-364 | Pronto |
 | [OG-381](cards/OG-381-eventos-tambem-no-casual.md) | Registro de eventos também nas partidas Casual | E12 | 3 | Should | S39 | OG-362 | Concluído |
+| [OG-382](cards/OG-382-presets-do-painel-em-formulario.md) | Presets do painel em formulário: regras por categoria, com caixas e campos | E5 | 5 | Should | S40 | OG-365 | Pronto |
+| [OG-383](cards/OG-383-aba-rotacoes-por-modo.md) | Aba Rotações por modo: escolher Casual ou Ranqueado e marcar os mapas | E5 | 3 | Must | S40 | OG-378 | Pronto |
 
-**Total:** 223 cards, 741 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 154 cards, 446 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 225 cards, 749 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 156 cards, 454 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
