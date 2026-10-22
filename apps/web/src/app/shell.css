@@ -622,8 +622,7 @@
   cursor: pointer;
   font-weight: var(--weight-medium);
 }
-.lobby-maps ul,
-.admin-rotation ul {
+.lobby-maps ul {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: var(--space-2) var(--space-3);
@@ -706,19 +705,110 @@
   border-radius: var(--radius-sm);
   background: var(--surface-0);
 }
-/* presets em formulário (OG-382): lista à esquerda, editor à direita */
-.admin-presets {
+/* moderação em tela cheia (OG-388) */
+.admin {
   display: grid;
-  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
-  gap: var(--space-5);
-  align-items: start;
+  gap: var(--space-4);
 }
 .admin-muted {
   margin: 0;
   color: var(--text-muted);
   font-size: var(--text-sm);
 }
+.stats-tabs button .ui-badge {
+  margin-left: var(--space-1);
+}
+/* barra de ferramentas fixa no topo da aba (rotações, papéis) */
+.admin-rotation-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.admin-rotation-bar .stats-tabs,
+.admin-rotation-bar .ui-field {
+  margin: 0;
+}
+.admin-rotation-count {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.admin-rotation-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.admin-rotation,
+.admin-roles {
+  display: grid;
+  gap: var(--space-3);
+}
+/* grade de mapas: cartões com miniatura em cima, quantos couberem na largura */
+.admin-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-map-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  cursor: pointer;
+}
+.admin-map-card:hover {
+  border-color: var(--border-strong);
+}
+.admin-map-card.on {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.admin-map-card input {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+}
+.admin-map-card-name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+.admin-role-select {
+  width: 11rem;
+  padding-block: var(--space-1);
+}
+
+/* presets em formulário (OG-382): lista à esquerda; editor com regras em grade e prévia ao lado */
+.admin-presets {
+  display: grid;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
 .admin-preset-list {
+  position: sticky;
+  top: 0;
   display: grid;
   gap: var(--space-2);
 }
@@ -765,13 +855,56 @@
   border-color: var(--accent);
   background: var(--surface-2);
 }
+.admin-preset-empty {
+  padding: var(--space-6) var(--space-5);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
 .admin-preset-editor {
+  display: grid;
+  gap: var(--space-4);
   min-width: 0;
+}
+.admin-preset-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-4);
+  align-items: end;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.admin-preset-head > .stats-note {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 .admin-preset-meta {
   display: grid;
-  grid-template-columns: minmax(10rem, 1fr) minmax(14rem, 2fr);
+  grid-template-columns: minmax(10rem, 16rem) minmax(16rem, 1fr);
   gap: var(--space-4);
+}
+.admin-preset-meta .ui-field {
+  margin: 0;
+}
+.admin-preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.admin-preset-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  gap: var(--space-4);
+  align-items: start;
+}
+.admin-preset-rules {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
 }
 .admin-preset-toolbar {
   display: flex;
@@ -779,112 +912,124 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin: var(--space-4) 0 var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
 }
-.admin-preset-toolbar .ui-field {
+.admin-preset-toolbar .stats-tabs {
   margin: 0;
+}
+.admin-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  cursor: pointer;
 }
 .admin-preset-text {
   width: 100%;
   font-family: ui-monospace, monospace;
 }
-.admin-preset-group {
-  margin: 0 0 var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-}
-.admin-preset-group summary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  font-weight: var(--weight-medium);
-  cursor: pointer;
-}
-.admin-preset-group[open] summary {
-  border-bottom: 1px solid var(--border);
-}
-.admin-preset-group ul {
+/* regras: um cartão por regra, quantos couberem na largura */
+.admin-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: var(--space-2);
   margin: 0;
-  padding: var(--space-1) 0;
+  padding: 0;
   list-style: none;
 }
 .admin-rule {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(9rem, 1fr) minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-1) var(--space-3);
+  grid-template-rows: auto 1fr auto;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
 }
-.admin-rule:hover {
+.admin-rule.on {
+  border-color: var(--accent);
   background: var(--surface-2);
 }
-.admin-rule-name {
+.admin-rule.invalid {
+  border-color: var(--danger);
+}
+.admin-rule-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
+}
+.admin-rule-head input {
+  margin-top: 0.2em;
+}
+.admin-rule-head label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   cursor: pointer;
 }
-.admin-rule-name span {
-  display: grid;
-}
-.admin-rule:not(.on) .admin-rule-name span {
+.admin-rule:not(.on) .admin-rule-head label {
   color: var(--text-muted);
-}
-.admin-rule-name code {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
 }
 .admin-rule-control {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-height: 2.25rem;
+  padding-left: 1.6rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 .admin-rule-control .ui-input {
-  width: 7rem;
+  width: 7.5rem;
   padding-block: var(--space-1);
 }
 .admin-rule-meta {
+  padding-left: 1.6rem;
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
-.admin-rule-meta.error {
+.admin-rule.invalid .admin-rule-meta {
   color: var(--text-danger);
 }
-.admin-preset-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
+.admin-preset-summary {
+  position: sticky;
+  top: 9rem;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
 }
-.admin-preset-footer > div {
-  flex: 1 1 20rem;
-}
-.admin-preset-footer h3 {
-  margin: 0 0 var(--space-1);
+.admin-preset-summary h3,
+.admin-preset-summary h4 {
+  margin: 0;
   font-size: var(--text-sm);
 }
 .admin-preset-preview {
+  max-height: 50vh;
   margin: 0;
+  overflow: auto;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   white-space: pre-wrap;
+}
+@media (max-width: 80rem) {
+  .admin-preset-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-preset-summary {
+    position: static;
+  }
 }
 .admin-map-name {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
-.lobby-maps label,
-.admin-rotation label {
+.lobby-maps label {
   display: flex;
   align-items: center;
   gap: var(--space-2);

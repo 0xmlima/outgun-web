@@ -648,6 +648,39 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
     );
 
     // --- papéis ---
+    app.get(
+      '/users',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Contas por papel (admin, moderador, jogador) e nome, com clã, criação e último acesso; `busca` filtra pelo nome',
+          querystring: Type.Object({ busca: Type.Optional(Type.String({ maxLength: 32 })), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 500 })) }),
+        },
+      },
+      async (request, reply) => {
+        if (!(await guard(request, reply, 'admin'))) return reply;
+        const { busca, limit = 200 } = request.query;
+        const key = busca?.trim() ? usernameKey(busca.trim()) : '';
+        const rows = await db.execute<{ username: string; role: string; clan_tag: string | null; created_at: Date; last_seen: Date | null }>(sql`
+          SELECT u.username, CASE WHEN u.is_admin THEN 'admin' WHEN u.is_moderator THEN 'moderator' ELSE 'player' END AS role,
+                 u.clan_tag, u.created_at, (SELECT max(s.last_seen_at) FROM sessions s WHERE s.user_id = u.id) AS last_seen
+          FROM users u
+          WHERE ${key} = '' OR u.username_key LIKE ${`%${key.replace(/[\\%_]/g, (c) => `\\${c}`)}%`}
+          ORDER BY (CASE WHEN u.is_admin THEN 0 WHEN u.is_moderator THEN 1 ELSE 2 END), u.username_key
+          LIMIT ${limit}`);
+        const [{ total } = { total: 0 }] = await db.select({ total: count() }).from(users);
+        return {
+          total,
+          users: [...rows].map((r) => ({
+            username: r.username,
+            role: r.role,
+            clanTag: r.clan_tag,
+            createdAt: new Date(r.created_at).toISOString(),
+            lastSeenAt: r.last_seen ? new Date(r.last_seen).toISOString() : null,
+          })),
+        };
+      },
+    );
     app.put(
       '/users/:username/role',
       {

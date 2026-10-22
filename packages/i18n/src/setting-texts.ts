@@ -4,6 +4,22 @@
 
 export const SETTING_TEXTS_PT: Readonly<Record<string, string>> = {
   // editor
+  'e.g. festival': 'ex.: festival',
+  'What changes, in one line (appears in "Create room")': 'O que muda, numa linha (aparece em "Criar sala")',
+  Categories: 'Categorias',
+  'One rule per line, as in the gamemod file. Unknown lines show an error below.': 'Uma regra por linha, como no arquivo gamemod. Linha desconhecida mostra o erro abaixo.',
+  'Same rules as Classic': 'Mesmas regras do Clássico',
+  'Check a rule to change its value; the others stay as in Classic.': 'Marque uma regra para mudar o valor; as outras ficam como no Clássico.',
+  'server default': 'padrão do servidor',
+  'Search account': 'Buscar conta',
+  name: 'nome',
+  '$1 admins': '$1 admins',
+  '$1 moderators': '$1 moderadores',
+  '$1 accounts in total': '$1 contas no total',
+  'No accounts found.': 'Nenhuma conta encontrada.',
+  Created: 'Criada em',
+  'Last seen': 'Último acesso',
+  'Role of $1': 'Papel de $1',
   'New preset': 'Novo preset',
   'No presets created yet.': 'Nenhum preset criado ainda.',
   'Pick a preset on the left to see its rules, or create a new one.': 'Escolha um preset à esquerda para ver as regras, ou crie um novo.',

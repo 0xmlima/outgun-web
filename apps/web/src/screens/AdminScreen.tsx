@@ -8,9 +8,9 @@ import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { TextField, ToggleField } from '../ui/Field.js';
-import { Panel } from '../ui/Panel.js';
-import { TextPage } from '../ui/TextPage.js';
+import { TextField } from '../ui/Field.js';
+import { Page } from '../ui/Page.js';
+import { Table } from '../ui/Table.js';
 import { decodeMapFile, parseMapFile } from '@outgun/content';
 import {
   casualPresetProblems,
@@ -131,7 +131,7 @@ export default function AdminScreen() {
     ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
   ];
   return (
-    <TextPage caption={t('Moderation')} onBack={() => void navigate('/')}>
+    <Page title={t('Moderation')} width="full" onBack={() => void navigate('/')}>
       {user === undefined ? null : !allowed ? (
         <p className="stats-note error">{t('Moderators and admins only.')}</p>
       ) : (
@@ -158,7 +158,7 @@ export default function AdminScreen() {
           {tab === 'roles' && isAdmin && <RolesTab />}
         </div>
       )}
-    </TextPage>
+    </Page>
   );
 }
 
@@ -651,6 +651,7 @@ function PresetsTab({ canEdit }: { canEdit: boolean }) {
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
   const [draft, setDraft] = useState<PresetDraft | null>(null);
   const [text, setText] = useState<string | null>(null);
+  const [category, setCategory] = useState<Category>(PRESET_FORM_CATEGORIES[0]!);
   const open = (p: PresetRow, copy = false) => {
     setText(null);
     setDraft({
@@ -708,75 +709,85 @@ function PresetsTab({ canEdit }: { canEdit: boolean }) {
     </li>
   );
   const shown = (f: PresetField, v: string) => (f.control === 'bool' ? t(v === '1' ? 'On' : 'Off') : f.control === 'choice' ? t(CHOICE_LABELS[v] ?? v) : v);
-  const title = draft ? (draft.saved || draft.readOnly ? draft.id : t('New preset')) : '';
+  const changedIn = (c: Category) => (draft ? PRESET_FIELDS.filter((f) => f.def.category === c && f.def.name in draft.form.values).length : 0);
+  const changedCount = draft ? Object.keys(draft.form.values).length : 0;
+  const canSave = !!draft && !draft.readOnly && !!draft.id && !!draft.description && problems.length === 0 && fieldErrors.length === 0;
   return (
-    <section className="stats-section">
-      <Status text={status.text} error={status.error ?? list.error} />
-      <div className="admin-presets">
-        <nav className="admin-preset-list" aria-label={t('Presets')}>
-          {canEdit && (
-            <Button variant="primary" block onClick={create}>
-              {t('New preset')}
-            </Button>
-          )}
-          <h3>{t('From the panel')}</h3>
-          {panelPresets.length > 0 ? <ul>{panelPresets.map(item)}</ul> : <p className="admin-muted">{t('No presets created yet.')}</p>}
-          <h3>{t('From the game (read only)')}</h3>
-          <ul>{presets.filter((p) => p.source === 'code').map(item)}</ul>
-          <p className="admin-muted">{t('Built-in presets change only with a new release; the Ranked preset only by decision of the product owner.')}</p>
-        </nav>
-        {!draft ? (
-          <Panel className="admin-preset-editor">
-            <p className="admin-muted">{t('Pick a preset on the left to see its rules, or create a new one.')}</p>
-          </Panel>
-        ) : (
-          <form className="admin-preset-editor" onSubmit={save}>
-            <Panel
-              title={title}
-              actions={
-                <>
-                  {draft.readOnly && canEdit && (
-                    <Button onClick={() => open(presets.find((p) => p.id === draft.id)!, true)}>{t('Duplicate to edit')}</Button>
-                  )}
-                  {draft.saved && canEdit && (
-                    <Button variant="danger" onClick={() => void remove(draft.id)}>
-                      {t('Remove')}
-                    </Button>
-                  )}
-                </>
-              }
-            >
-              <div className="admin-preset-meta">
-                <TextField
-                  label={t('Name')}
-                  value={draft.id}
-                  maxLength={32}
-                  disabled={draft.saved || draft.readOnly}
-                  hint={draft.saved || draft.readOnly ? undefined : t('Lowercase, no spaces: it is how the preset appears in "Create room".')}
-                  onChange={(v) => setDraft({ ...draft, id: v.toLowerCase().replace(/\s+/g, '-') })}
-                />
-                <TextField label={t('Description')} value={draft.description} maxLength={200} disabled={draft.readOnly} onChange={(v) => setDraft({ ...draft, description: v })} />
-              </div>
+    <section className="admin-presets">
+      <nav className="admin-preset-list" aria-label={t('Presets')}>
+        {canEdit && (
+          <Button variant="primary" block onClick={create}>
+            {t('New preset')}
+          </Button>
+        )}
+        <h3>{t('From the panel')}</h3>
+        {panelPresets.length > 0 ? <ul>{panelPresets.map(item)}</ul> : <p className="admin-muted">{t('No presets created yet.')}</p>}
+        <h3>{t('From the game (read only)')}</h3>
+        <ul>{presets.filter((p) => p.source === 'code').map(item)}</ul>
+        <p className="admin-muted">{t('Built-in presets change only with a new release; the Ranked preset only by decision of the product owner.')}</p>
+      </nav>
+      {!draft ? (
+        <div className="admin-preset-empty">
+          <Status text={status.text} error={status.error ?? list.error} />
+          <p className="admin-muted">{t('Pick a preset on the left to see its rules, or create a new one.')}</p>
+        </div>
+      ) : (
+        <form className="admin-preset-editor" onSubmit={save}>
+          {/* cabeçalho fixo: nome, descrição e as ações sempre à vista */}
+          <header className="admin-preset-head">
+            <div className="admin-preset-meta">
+              <TextField label={t('Name')} value={draft.id} maxLength={32} disabled={draft.saved || draft.readOnly} placeholder={t('e.g. festival')} onChange={(v) => setDraft({ ...draft, id: v.toLowerCase().replace(/\s+/g, '-') })} />
+              <TextField label={t('Description')} value={draft.description} maxLength={200} disabled={draft.readOnly} placeholder={t('What changes, in one line (appears in "Create room")')} onChange={(v) => setDraft({ ...draft, description: v })} />
+            </div>
+            <div className="admin-preset-actions">
+              {draft.readOnly && canEdit && <Button onClick={() => open(presets.find((p) => p.id === draft.id)!, true)}>{t('Duplicate to edit')}</Button>}
+              {draft.saved && canEdit && (
+                <Button variant="danger" onClick={() => void remove(draft.id)}>
+                  {t('Remove')}
+                </Button>
+              )}
+              {!draft.readOnly && (
+                <Button type="submit" variant="primary" disabled={!canSave}>
+                  {t('Save Casual preset')}
+                </Button>
+              )}
+            </div>
+            <Status text={status.text} error={status.error ?? list.error} />
+          </header>
+          <div className="admin-preset-body">
+            <div className="admin-preset-rules">
               <div className="admin-preset-toolbar">
-                <span className="admin-muted">
-                  {Object.keys(draft.form.values).length === 0 ? t('Same rules as Classic. Turn on "change" in a rule to set it.') : t('$1 rules different from Classic.', String(Object.keys(draft.form.values).length))}
-                </span>
-                <ToggleField
-                  label={t('Text mode (gamemod lines)')}
-                  checked={text !== null}
-                  onChange={(on) => {
-                    if (on) return setText(linesFromForm(draft.form));
-                    setDraft({ ...draft, form: formFromLines(lines) });
-                    setText(null);
-                  }}
-                />
+                {text === null ? (
+                  <p className="stats-tabs" role="tablist" aria-label={t('Categories')}>
+                    {PRESET_FORM_CATEGORIES.map((c) => (
+                      <button key={c} type="button" role="tab" aria-selected={category === c} className={category === c ? 'active' : ''} onClick={() => setCategory(c)}>
+                        {t(CATEGORY_LABELS[c] ?? c)}
+                        {changedIn(c) > 0 && <Badge tone="accent">{String(changedIn(c))}</Badge>}
+                      </button>
+                    ))}
+                  </p>
+                ) : (
+                  <p className="admin-muted">{t('One rule per line, as in the gamemod file. Unknown lines show an error below.')}</p>
+                )}
+                <label className="admin-inline-check">
+                  <input
+                    type="checkbox"
+                    checked={text !== null}
+                    onChange={(e) => {
+                      if (e.target.checked) return setText(linesFromForm(draft.form));
+                      setDraft({ ...draft, form: formFromLines(lines) });
+                      setText(null);
+                    }}
+                  />
+                  {t('Text mode (gamemod lines)')}
+                </label>
               </div>
               {text !== null ? (
                 <textarea
                   className="ui-input ui-textarea admin-preset-text"
                   aria-label={t('Settings (gamemod lines)')}
                   value={text}
-                  rows={14}
+                  rows={20}
                   readOnly={draft.readOnly}
                   onChange={(e) => {
                     setText(e.target.value);
@@ -784,44 +795,30 @@ function PresetsTab({ canEdit }: { canEdit: boolean }) {
                   }}
                 />
               ) : (
-                PRESET_FORM_CATEGORIES.map((c) => {
-                  const fields = PRESET_FIELDS.filter((f) => f.def.category === c);
-                  const changed = fields.filter((f) => f.def.name in draft.form.values).length;
-                  return (
-                    <details key={c} className="admin-preset-group" open={changed > 0}>
-                      <summary>
-                        <span>{t(CATEGORY_LABELS[c] ?? c)}</span>
-                        {changed > 0 && <Badge tone="accent">{t('$1 changed', String(changed))}</Badge>}
-                      </summary>
-                      <ul>
-                        {fields.map((f) => {
-                          const name = f.def.name;
-                          const on = name in draft.form.values;
-                          const value = draft.form.values[name] ?? defaultFormValue(f);
-                          const error = on ? fieldProblem(f, value) : undefined;
-                          const range = rangeText(f, t);
-                          return (
-                            <li key={name} className={on ? 'admin-rule on' : 'admin-rule'}>
-                              <label className="admin-rule-name">
-                                <input type="checkbox" checked={on} disabled={draft.readOnly} onChange={(e) => setValue(name, e.target.checked ? defaultFormValue(f) : undefined)} />
-                                <span>
-                                  {t(f.label)}
-                                  <code>{name}</code>
-                                </span>
-                              </label>
-                              <div className="admin-rule-control">
-                                {on ? <FieldControl f={f} value={value} disabled={draft.readOnly} onChange={(v) => setValue(name, v)} /> : <span className="admin-muted">{shown(f, value)}</span>}
-                              </div>
-                              <small className={error ? 'admin-rule-meta error' : 'admin-rule-meta'} role={error ? 'alert' : undefined}>
-                                {error ? t('Allowed: $1', range) : on ? t('Default: $1', shown(f, defaultFormValue(f))) + (range ? ` · ${range}` : '') : t('default')}
-                              </small>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </details>
-                  );
-                })
+                <ul className="admin-rules">
+                  {PRESET_FIELDS.filter((f) => f.def.category === category).map((f) => {
+                    const name = f.def.name;
+                    const on = name in draft.form.values;
+                    const value = draft.form.values[name] ?? defaultFormValue(f);
+                    const error = on ? fieldProblem(f, value) : undefined;
+                    const range = rangeText(f, t);
+                    const id = `rule-${name}`;
+                    return (
+                      <li key={name} className={`admin-rule${on ? ' on' : ''}${error ? ' invalid' : ''}`}>
+                        <div className="admin-rule-head">
+                          <input id={id} type="checkbox" checked={on} disabled={draft.readOnly} onChange={(e) => setValue(name, e.target.checked ? defaultFormValue(f) : undefined)} />
+                          <label htmlFor={id}>{t(f.label)}</label>
+                        </div>
+                        <div className="admin-rule-control">
+                          {on ? <FieldControl f={f} value={value} disabled={draft.readOnly} onChange={(v) => setValue(name, v)} /> : <span>{t('Default: $1', shown(f, defaultFormValue(f)))}</span>}
+                        </div>
+                        <small className="admin-rule-meta" role={error ? 'alert' : undefined}>
+                          {error ? t('Allowed: $1', range) : on ? `${t('Default: $1', shown(f, defaultFormValue(f)))}${range ? ` · ${range}` : ''}` : <code>{name}</code>}
+                        </small>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
               {problems.length > 0 && (
                 <ul className="stats-note error" role="alert">
@@ -830,21 +827,16 @@ function PresetsTab({ canEdit }: { canEdit: boolean }) {
                   ))}
                 </ul>
               )}
-              <div className="admin-preset-footer">
-                <div>
-                  <h3>{t('Preview (generated lines)')}</h3>
-                  <pre className="admin-preset-preview">{lines || t('(no changes: same as Classic)')}</pre>
-                </div>
-                {!draft.readOnly && (
-                  <Button type="submit" variant="primary" disabled={!draft.id || !draft.description || problems.length > 0 || fieldErrors.length > 0}>
-                    {t('Save Casual preset')}
-                  </Button>
-                )}
-              </div>
-            </Panel>
-          </form>
-        )}
-      </div>
+            </div>
+            <aside className="admin-preset-summary">
+              <h3>{changedCount === 0 ? t('Same rules as Classic') : t('$1 rules different from Classic.', String(changedCount))}</h3>
+              <p className="admin-muted">{t('Check a rule to change its value; the others stay as in Classic.')}</p>
+              <h4>{t('Preview (generated lines)')}</h4>
+              <pre className="admin-preset-preview">{lines || t('(no changes: same as Classic)')}</pre>
+            </aside>
+          </div>
+        </form>
+      )}
     </section>
   );
 }
@@ -1086,98 +1078,132 @@ function RotationsTab({ canEdit }: { canEdit: boolean }) {
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
   return (
-    <section className="stats-section admin-rotation">
-      <Status text={status.text} error={status.error ?? list.error} />
-      <p className="stats-tabs" role="tablist" aria-label={t('Mode')}>
-        {(['casual', 'ranked'] as const).map((m) => (
-          <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
-            {m === 'casual' ? t('Casual') : t('Ranked')}
-          </button>
-        ))}
-      </p>
-      {mode === 'ranked' && (
-        <p className="stats-tabs" role="tablist" aria-label={t('Format')}>
-          {RANKED_FORMATS.map((f) => (
-            <button key={f} type="button" role="tab" aria-selected={format === f} className={format === f ? 'active' : ''} onClick={() => setFormat(f)}>
-              {f.replace('x', '×')}
-              {drafts[`ranked:${f}`] && changed.includes(`ranked:${f}`) ? ' *' : ''}
+    <section className="admin-rotation">
+      {/* barra fixa: modo, formato, contador e ações sempre à vista enquanto rola a grade */}
+      <div className="admin-rotation-bar">
+        <p className="stats-tabs" role="tablist" aria-label={t('Mode')}>
+          {(['casual', 'ranked'] as const).map((m) => (
+            <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
+              {m === 'casual' ? t('Casual') : t('Ranked')}
             </button>
           ))}
         </p>
-      )}
-      <p className="stats-line">
-        {t('$1 of $2 maps checked.', String(marked.length), String(all.length))}
-        {list.data && rotationInUse(list.data, key).fromServer && !drafts[key] && <> {t('(server default)')}</>} {t('Changes apply from the next map change.')}
-      </p>
+        {mode === 'ranked' && (
+          <p className="stats-tabs" role="tablist" aria-label={t('Format')}>
+            {RANKED_FORMATS.map((f) => (
+              <button key={f} type="button" role="tab" aria-selected={format === f} className={format === f ? 'active' : ''} onClick={() => setFormat(f)}>
+                {f.replace('x', '×')}
+                {changed.includes(`ranked:${f}`) ? ' *' : ''}
+              </button>
+            ))}
+          </p>
+        )}
+        <span className="admin-rotation-count">
+          <strong>{t('$1 of $2 maps checked.', String(marked.length), String(all.length))}</strong>
+          {list.data && rotationInUse(list.data, key).fromServer && !drafts[key] && <Badge>{t('server default')}</Badge>}
+        </span>
+        {canEdit && (
+          <span className="admin-rotation-actions">
+            <Button variant="ghost" onClick={() => set([...marked, ...all.filter((m) => !marked.includes(m))])} disabled={marked.length === all.length}>
+              {t('Check all')}
+            </Button>
+            <Button variant="ghost" onClick={() => set([])} disabled={marked.length === 0}>
+              {t('Uncheck all')}
+            </Button>
+            <Button disabled={Object.keys(drafts).length === 0} onClick={() => setDrafts({})}>
+              {t('Undo changes')}
+            </Button>
+            <Button variant="primary" disabled={changed.length === 0 || empty} onClick={() => void save()}>
+              {t('Save')}
+            </Button>
+          </span>
+        )}
+      </div>
+      <Status text={status.text ?? (empty ? t('A rotation needs at least one map.') : undefined)} error={status.error ?? list.error} />
+      <p className="admin-muted">{t('Changes apply from the next map change.')}</p>
       {list.data && list.data.catalog.length === 0 && <p className="stats-note">{t('No game server has reported its maps yet; only the maps already in the rotations are listed.')}</p>}
-      {canEdit && (
-        <p className="admin-form">
-          <button type="button" onClick={() => set([...marked, ...all.filter((m) => !marked.includes(m))])} disabled={marked.length === all.length}>
-            {t('Check all')}
-          </button>{' '}
-          <button type="button" onClick={() => set([])} disabled={marked.length === 0}>
-            {t('Uncheck all')}
-          </button>
-        </p>
-      )}
-      <ul>
+      <ul className="admin-map-grid">
         {all.map((m) => (
           <li key={m}>
-            <label>
+            <label className={marked.includes(m) ? 'admin-map-card on' : 'admin-map-card'}>
               <input type="checkbox" checked={marked.includes(m)} disabled={!canEdit} onChange={() => toggle(m)} />
               <MapPreview name={m} label={m} thumb />
-              {m}
-              {fresh.has(m) && <Badge tone="accent">{t('new')}</Badge>}
+              <span className="admin-map-card-name">
+                {m}
+                {fresh.has(m) && <Badge tone="accent">{t('new')}</Badge>}
+              </span>
             </label>
           </li>
         ))}
       </ul>
-      {canEdit && (
-        <p className="admin-form">
-          <button type="button" disabled={changed.length === 0 || empty} onClick={() => void save()}>
-            {t('Save')}
-          </button>{' '}
-          <button type="button" disabled={Object.keys(drafts).length === 0} onClick={() => setDrafts({})}>
-            {t('Undo changes')}
-          </button>{' '}
-          {empty && t('A rotation needs at least one map.')}
-        </p>
-      )}
     </section>
   );
 }
 
+
+interface UserRow {
+  username: string;
+  role: 'admin' | 'moderator' | 'player';
+  clanTag: string | null;
+  createdAt: string;
+  lastSeenAt: string | null;
+}
+
+const ROLE_TONE = { admin: 'danger', moderator: 'accent', player: 'neutral' } as const;
+
+/** Papéis (OG-388): as contas em lista, admins e moderadores primeiro; o papel muda na própria linha. */
 function RolesTab() {
   const { t } = usePrefs();
-  const [username, setUsername] = useState('');
-  const [role, setRole] = useState<'player' | 'moderator' | 'admin'>('moderator');
+  const { user } = useAccount();
+  const [search, setSearch] = useState('');
+  const list = useLoad<{ total: number; users: UserRow[] }>(`/admin/users${search.trim() ? `?busca=${encodeURIComponent(search.trim())}` : ''}`);
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
-  const submit = (ev: FormEvent) => {
-    ev.preventDefault();
+  const roleName = (r: UserRow['role']) => t(r);
+  const change = (username: string, role: UserRow['role']) =>
     api<{ username: string; role: string }>(`/admin/users/${encodeURIComponent(username)}/role`, { method: 'PUT', body: { role } }).then(
-      (r) => setStatus({ text: t('$1 is now $2.', r.username, r.role) }),
+      (r) => {
+        setStatus({ text: t('$1 is now $2.', r.username, roleName(r.role as UserRow['role'])) });
+        list.reload();
+      },
       (e: unknown) => setStatus({ error: errorText(e) }),
     );
-  };
+  const rows = list.data?.users ?? [];
+  const count = (r: UserRow['role']) => rows.filter((u) => u.role === r).length;
   return (
-    <section className="stats-section">
-      <form className="admin-form" onSubmit={submit}>
-        <label>
-          {t('Account')} <input value={username} maxLength={32} onChange={(e) => setUsername(e.target.value)} />
-        </label>{' '}
-        <label>
-          {t('Role')}{' '}
-          <select value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
-            <option value="player">{t('player')}</option>
-            <option value="moderator">{t('moderator')}</option>
-            <option value="admin">{t('admin')}</option>
-          </select>
-        </label>{' '}
-        <button type="submit" disabled={!username.trim()}>
-          {t('Change role')}
-        </button>
-      </form>
-      <Status text={status.text} error={status.error} />
+    <section className="admin-roles">
+      <div className="admin-rotation-bar">
+        <TextField label={t('Search account')} value={search} maxLength={32} placeholder={t('name')} onChange={setSearch} />
+        <span className="admin-rotation-count">
+          <Badge tone="danger">{t('$1 admins', String(count('admin')))}</Badge>
+          <Badge tone="accent">{t('$1 moderators', String(count('moderator')))}</Badge>
+          {list.data && <span className="admin-muted">{t('$1 accounts in total', String(list.data.total))}</span>}
+        </span>
+      </div>
+      <Status text={status.text} error={status.error ?? list.error} />
+      <Table
+        caption={t('Roles')}
+        rows={rows}
+        rowKey={(u) => u.username}
+        empty={t('No accounts found.')}
+        columns={[
+          { key: 'name', header: t('Account'), cell: (u) => <Link to={`/players/${encodeURIComponent(u.username)}`}>{u.username}</Link> },
+          { key: 'role', header: t('Role'), cell: (u) => <Badge tone={ROLE_TONE[u.role]}>{roleName(u.role)}</Badge> },
+          { key: 'clan', header: t('Clan'), cell: (u) => u.clanTag ?? '—' },
+          { key: 'created', header: t('Created'), cell: (u) => new Date(u.createdAt).toLocaleDateString() },
+          { key: 'seen', header: t('Last seen'), cell: (u) => (u.lastSeenAt ? when(u.lastSeenAt) : '—') },
+          {
+            key: 'change',
+            header: t('Change role'),
+            cell: (u) => (
+              <select className="ui-input admin-role-select" aria-label={t('Role of $1', u.username)} value={u.role} disabled={u.username === user?.username} onChange={(e) => void change(u.username, e.target.value as UserRow['role'])}>
+                <option value="player">{t('player')}</option>
+                <option value="moderator">{t('moderator')}</option>
+                <option value="admin">{t('admin')}</option>
+              </select>
+            ),
+          },
+        ]}
+      />
     </section>
   );
 }

@@ -10,7 +10,8 @@ interface PageProps {
   /** Voltar (botão e Esc). */
   readonly onBack?: () => void;
   readonly backLabel?: string;
-  readonly width?: 'narrow' | 'wide';
+  /** `full`: telas de trabalho (moderação) que aproveitam a largura do monitor. */
+  readonly width?: 'narrow' | 'wide' | 'full';
   /** Linha abaixo do título. */
   readonly subtitle?: ReactNode;
   readonly children: ReactNode;

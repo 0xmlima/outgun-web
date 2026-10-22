@@ -11667,6 +11667,38 @@
         }
       }
     },
+    "/admin/users": {
+      "get": {
+        "summary": "Contas por papel (admin, moderador, jogador) e nome, com clã, criação e último acesso; `busca` filtra pelo nome",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "in": "query",
+            "name": "busca",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/role": {
       "put": {
         "summary": "Muda o papel de uma conta (jogador, moderador, admin)",

@@ -82,6 +82,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       ['PUT', '/admin/maps/permissao', 'moderator', { text: 'P width 1\nP height 1\nP title P\nS 16 12\nflag 0 0 0 1 1\nspawn 0 0 0 8 6\nflag 1 0 0 15 11\nspawn 1 0 0 8 3\n' }],
       ['DELETE', '/admin/maps/permissao', 'moderator'],
       ['PUT', '/admin/users/Jogador1/role', 'admin', { role: 'player' }],
+      ['GET', '/admin/users', 'admin'],
     ];
     for (const [method, url, role, body] of routes) {
       expect((await call(method, url, undefined, body)).statusCode, `${method} ${url} sem sessão`).toBe(401);
@@ -193,6 +194,12 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('DELETE', `/admin/bans/${ban.json().id}`, 'admin')).statusCode).toBe(204);
     expect((await call('PUT', '/admin/users/Admin/role', 'admin', { role: 'player' })).statusCode).toBe(422); // o próprio papel não
     expect((await call('PUT', '/admin/users/Jogador1/role', 'admin', { role: 'moderator' })).json()).toEqual({ username: 'Jogador1', role: 'moderator' });
+    // lista por papel (OG-388): admin, moderador, jogador; busca pelo nome
+    const listed = (await call('GET', '/admin/users', 'admin')).json();
+    const roles = listed.users.map((u: { role: string }) => u.role);
+    expect(roles).toEqual([...roles].sort((a: string, b: string) => ['admin', 'moderator', 'player'].indexOf(a) - ['admin', 'moderator', 'player'].indexOf(b)));
+    expect(listed.users.find((u: { username: string }) => u.username === 'Jogador1')).toMatchObject({ role: 'moderator' });
+    expect((await call('GET', '/admin/users?busca=jogador1', 'admin')).json().users.map((u: { username: string }) => u.username)).toEqual(['Jogador1']);
     expect((await call('GET', '/admin/me', 'player')).json()).toEqual({ role: 'moderator' }); // a sessão do Jogador1 já vale como moderador
     await call('PUT', '/admin/users/Jogador1/role', 'admin', { role: 'player' });
     const actions = (await t.db.select().from(adminActions).orderBy(desc(adminActions.id)).limit((await auditCount()) - before)).map((a) => a.action).reverse();
