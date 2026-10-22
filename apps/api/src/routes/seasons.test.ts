@@ -80,8 +80,7 @@ describe.skipIf(!pgAdminUrl)('temporadas mensais (OG-267)', () => {
     expect(await t.db.select().from(seasonStandings).where(eq(seasonStandings.seasonId, october.id))).toEqual([
       expect.objectContaining({ userId: ids.Jogador1, position: 1, score: 150, neg: 2, matches: 1 }),
     ]);
-    expect((await app.inject(`/leaderboard?season=${october.id}`)).json()).toMatchObject({ total: 1, entries: [{ username: 'Jogador1', position: 1 }] });
-    expect((await app.inject('/leaderboard')).json()).toMatchObject({ season: { name: 'Temporada 2026-11' }, total: 0 });
+    expect((await app.inject('/leaderboard/stats')).json()).toMatchObject({ season: { name: 'Temporada 2026-11' } });
   });
 
   it('partida que começou antes da virada e terminou depois fica na temporada em que começou', async () => {

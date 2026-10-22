@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Tela inicial viva (OG-208): "Agora no Outgun" (jogadores online e salas com gente) e o ranking da
-// temporada do mês (top 5 e a minha posição). Só leitura de endpoints que já existem; atualiza a
+// Tela inicial viva (OG-208): "Agora no Outgun" (jogadores online e salas com gente) e o leaderboard
+// do mês (líder de cada stat principal, OG-353) com o meu rating (OG-351). Só leitura de endpoints que já existem; atualiza a
 // cada 30 s enquanto a aba está visível.
 import { chatName } from '@outgun/protocol';
 import { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import { Badge, Button } from '../ui/Button.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import type { RoomSummary } from './lobby.js';
+import { STAT_LABELS, statValue, type StatOverview } from './leaderboard.js';
 import { RatingInfo } from './rating-help.js';
 
 /** "Agora no Outgun" acompanha o lobby (heartbeat de 3 s); o resto do portal relê a cada minuto (OG-283). */
@@ -94,49 +95,46 @@ export function NowPlaying() {
   );
 }
 
-interface Leaderboard {
-  season: { name: string };
-  total: number;
-  entries: { position: number; username: string; clanTag: string | null; clanLabel: string | null; rating: number }[];
-}
-
+/** Líder do mês em cada stat principal do leaderboard (OG-353, RN-LDB) e o meu rating (OG-351). */
 export function MonthRanking() {
   const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
-  const board = usePolled<Leaderboard>('/leaderboard?limit=5');
-  const mine = usePolled<{ rank: number; of: number }>(user ? '/account/ranking' : null);
-  const rating = (r: number) => r.toLocaleString(prefs.locale, { maximumFractionDigits: 2 });
+  const board = usePolled<StatOverview>('/leaderboard/stats');
+  const me = usePolled<{ skill: { value: number; calibrating: boolean } | null }>(user ? `/players/${encodeURIComponent(user.username)}` : null);
+  const leaders = (board?.stats ?? []).filter((s) => s.main).map((s) => ({ stat: s.stat, top: s.entries[0] }));
   return (
-    <Panel title={board?.season ? t('Ranking: $1', board.season.name) : t('Ranking')} actions={<Link to="/ranking">{t('Full ranking')}</Link>}>
+    <Panel title={board?.season ? t('Leaderboard: $1', board.season.name) : t('Leaderboard')} actions={<Link to="/ranking">{t('Full leaderboard')}</Link>}>
       {board === undefined ? (
         <p className="ui-muted">{t('Loading...')}</p>
       ) : board === null ? (
         <p className="ui-muted">{t('No active season right now.')}</p>
       ) : (
         <div className="ui-stack">
-          {board.entries.length === 0 ? (
-            <p className="ui-muted">{t('Nobody in the ranking yet. Be the first: play Ranked.')}</p>
+          {leaders.every((l) => !l.top) ? (
+            <p className="ui-muted">{t('Nobody in the leaderboard yet. Be the first: play Ranked.')}</p>
           ) : (
-          <Table
-            caption={t('Top 5 of the season')}
-            rows={board.entries}
-            rowKey={(e) => e.username}
-            onRowActivate={(e) => void navigate(`/players/${encodeURIComponent(e.username)}`)}
-            empty=""
-            columns={[
-              { key: 'pos', header: '#', cell: (e) => `${e.position}º`, align: 'end' },
-              { key: 'name', header: t('Player'), cell: (e) => chatName(e.username, e.clanLabel) },
-              { key: 'rating', header: <>{t('Rating')}<RatingInfo /></>, cell: (e) => rating(e.rating), align: 'end' },
-            ]}
-          />
+            <Table
+              caption={t('Leaders of the month')}
+              rows={leaders}
+              rowKey={(l) => l.stat}
+              onRowActivate={(l) => l.top && void navigate(`/players/${encodeURIComponent(l.top.username)}`)}
+              empty=""
+              columns={[
+                { key: 'stat', header: t('Stat'), cell: (l) => t(STAT_LABELS[l.stat] ?? l.stat) },
+                { key: 'name', header: t('Player'), cell: (l) => (l.top ? chatName(l.top.username, l.top.clanLabel) : '—') },
+                { key: 'value', header: '', cell: (l) => (l.top ? statValue(l.stat, l.top.value, prefs.locale) : ''), align: 'end' },
+              ]}
+            />
           )}
           {user &&
-            (mine && mine.rank > 0 ? (
-              <p className="home-rank">{t('You: $1º of $2', String(mine.rank), String(mine.of))}</p>
-            ) : mine !== undefined ? (
+            (me?.skill ? (
+              <p className="home-rank">
+                {me.skill.calibrating ? t('Your rating: $1 (calibrating)', String(me.skill.value)) : t('Your rating: $1', String(me.skill.value))} <RatingInfo />
+              </p>
+            ) : me !== undefined ? (
               <div className="home-rank">
-                <span className="ui-muted">{t('Play Ranked to enter the ranking.')}</span>
+                <span className="ui-muted">{t('Play Ranked to get your rating.')}</span>
                 <Button onClick={() => void navigate('/rooms', { state: { mode: 'ranked' } })}>{t('Ranked rooms')}</Button>
               </div>
             ) : null)}

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Diretório de jogadores (OG-215, RN-SOC-04) em /players: busca por nome ou clã (sem diferença de
-// maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Ranking da temporada em
-// /ranking no visual v2 (substitui a tela do OG-085), com temporadas anteriores e o geral (OG-267),
-// filtrado por formato (OG-258).
+// maiúsculas e acentos, feita pela API), mais ativos da semana e clãs. Em /ranking, o leaderboard de
+// atributos (OG-353), que substituiu o ranking por score/neg (D-66), e o ranking de clãs (OG-274).
 import { chatName } from '@outgun/protocol';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -13,18 +12,13 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
-import { duration, FormatTabs, formatQuery, PlayerLink, Status, useApi, useFormatParam, type Leaderboard } from './stats.js';
-import { RatingInfo } from './rating-help.js';
+import { useAccount } from '../app/account.js';
+import { StatDetailView, StatOverviewView, STAT_LABELS, statScope } from './leaderboard.js';
+import { duration, FormatTabs, PlayerLink, Status, useApi, useFormatParam } from './stats.js';
 
 interface Directory {
   active: { username: string; clanTag: string | null; clanLabel: string | null; matches: number; wins: number; playSeconds: number }[];
   clans: { tag: string; members: number; activeMembers: number; matches: number }[];
-}
-/** Ranking geral (OG-267): soma de todas as temporadas. */
-interface Overall {
-  seasons: number;
-  total: number;
-  entries: Leaderboard['entries'];
 }
 interface Found {
   total: number;
@@ -135,48 +129,39 @@ function SearchResults({ term, onOpen }: { term: string; onOpen: (username: stri
   );
 }
 
-type BoardView = 'current' | 'past' | 'overall' | 'clans';
 interface SeasonRow {
   id: number;
   name: string;
   active: boolean;
 }
 
-/** Ranking (OG-084) com a temporada atual, as anteriores (classificação final) e o geral (OG-267). */
+/**
+ * Leaderboard de atributos (OG-353, D-66, RN-LDB) no lugar do ranking por score/neg: temporada do mês
+ * (a atual ou uma anterior) ou "sempre", filtro de formato, visão geral ou um stat; e os clãs.
+ */
 export function LeaderboardScreen() {
   const { t } = usePrefs();
   const navigate = useNavigate();
-  const [limit, setLimit] = useState(50);
-  const [view, setView] = useState<BoardView>('current');
+  const { user } = useAccount();
+  const [view, setView] = useState<'players' | 'clans'>('players');
   const seasons = useApi<{ seasons: SeasonRow[] }>('/seasons');
-  const past = (seasons.data?.seasons ?? []).filter((s) => !s.active);
-  const [pastId, setPastId] = useState<string>('');
-  const chosen = pastId || String(past[0]?.id ?? '');
+  const [period, setPeriod] = useState('current');
   const [format, setFormat] = useFormatParam();
-  const q = `limit=${limit}${formatQuery(format)}`;
-  const path =
-    view === 'clans' ? '' : view === 'overall' ? `/leaderboard/overall?${q}` : view === 'past' ? (chosen ? `/leaderboard?season=${chosen}&${q}` : '') : `/leaderboard?${q}`;
-  const board = useApi<Leaderboard | Overall>(path || '/leaderboard?limit=1');
-  const b = path ? board.data : null;
-  const name = b && 'season' in b ? `${t('Ranking')} · ${b.season.name}` : view === 'overall' ? `${t('Ranking')} · ${t('All seasons')}` : t('Ranking');
-  const title = view === 'clans' ? `${t('Ranking')} · ${t('Clans')}` : format === 'all' ? name : `${name} · ${format}`;
+  const [stat, setStat] = useState('');
+  const scope = statScope(period, format);
+  const past = (seasons.data?.seasons ?? []).filter((x) => !x.active);
   const subtitle =
     view === 'clans'
       ? t('Clan vs clan matches: win 3 points, draw 1; ties broken by capture difference; at least 3 matches to appear.')
-      : t('Rating = (score + 1) / (neg + 1); at least 100 points of score to appear. Only Ranked matches count.');
+      : t('One ranking for each stat, restarting every month. Only Ranked matches count; at least 5 matches in the period to appear.');
   return (
-    <Page title={title} subtitle={subtitle} onBack={() => void navigate(-1)}>
+    <Page title={t('Leaderboard')} subtitle={subtitle} onBack={() => void navigate(-1)}>
       <Tabs
-        label={t('Ranking')}
+        label={t('Leaderboard')}
         value={view}
-        onChange={(v) => {
-          setView(v);
-          setLimit(50);
-        }}
+        onChange={setView}
         tabs={[
-          { id: 'current', label: t('Current season') },
-          { id: 'past', label: t('Past seasons') },
-          { id: 'overall', label: t('All seasons') },
+          { id: 'players', label: t('Players') },
           { id: 'clans', label: t('Clans') },
         ]}
       >
@@ -184,44 +169,27 @@ export function LeaderboardScreen() {
           <ClanBoard />
         ) : (
           <>
-        <FormatTabs
-          value={format}
-          onChange={(f) => {
-            setFormat(f);
-            setLimit(50);
-          }}
-        />
-        {view === 'past' && past.length > 0 && (
-          <ChoiceField label={t('Season')} value={chosen} onChange={setPastId} options={past.map((s) => ({ value: String(s.id), label: s.name }))} />
-        )}
-        {view === 'past' && seasons.data && past.length === 0 && <p className="ui-muted">{t('No finished season yet.')}</p>}
-        {path && <Status loading={b === undefined} missing={b === null} error={board.error} />}
-        {b && (
-          <Panel title={b && 'seasons' in b ? t('Ranked players in $1 seasons: $2', String(b.seasons), String(b.total)) : t('Ranked players: $1', String(b.total))}>
-            <Table
-              caption={t('Ranking')}
-              rows={b.entries}
-              rowKey={(e) => e.username}
-              onRowActivate={(e) => void navigate(`/players/${encodeURIComponent(e.username)}`)}
-              empty={t('Nobody yet.')}
-              columns={[
-                { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
-                { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={withClan(e.username, e.clanLabel)} username={e.username} /> },
-                { key: 'rating', header: <>{t('rating')}<RatingInfo /></>, cell: (e) => e.rating.toFixed(2), align: 'end' },
-                { key: 'score', header: t('score'), cell: (e) => Math.trunc(e.score), align: 'end' },
-                { key: 'neg', header: t('neg'), cell: (e) => e.neg, align: 'end' },
-                { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
-              ]}
-            />
-            {b.total > b.entries.length && limit < 100 && (
-              <div className="ui-row">
-                <Button variant="ghost" onClick={() => setLimit(100)}>
-                  {t('More')}
-                </Button>
-              </div>
-            )}
-          </Panel>
-        )}
+            <div className="ui-row leaderboard-filters">
+              <ChoiceField
+                label={t('Period')}
+                value={period}
+                onChange={setPeriod}
+                options={[
+                  { value: 'current', label: t('This month') },
+                  ...past.map((x) => ({ value: String(x.id), label: x.name })),
+                  { value: 'all', label: t('All time') },
+                ]}
+              />
+              <ChoiceField
+                label={t('Stat')}
+                value={stat}
+                onChange={setStat}
+                options={[{ value: '', label: t('Overview') }, ...Object.entries(STAT_LABELS).map(([id, label]) => ({ value: id, label: t(label) }))]}
+              />
+            </div>
+            <FormatTabs value={format} onChange={setFormat} />
+            {stat ? <StatDetailView stat={stat} scope={scope} me={user?.username} /> : <StatOverviewView scope={scope} onPick={setStat} />}
+            <p className="ui-muted">{t('Per 10 minutes: totals divided by the time played, so whoever plays less can compete. Raw damage is hits on enemies × 70 and includes overkill.')}</p>
           </>
         )}
       </Tabs>

@@ -143,12 +143,6 @@ export interface SeriesView {
   matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string; withBots?: boolean; shortHanded?: boolean }[];
 }
 
-export interface Leaderboard {
-  season: { id: number; name: string; active: boolean };
-  total: number;
-  entries: { position: number; username: string; clanTag: string | null; clanLabel: string | null; score: number; neg: number; rating: number; matches: number }[];
-}
-
 /** Carrega `path` da API; `null` = não encontrado. `keep` mantém os dados anteriores enquanto troca de filtro. */
 /** Selos de partida Ranked com desconexão permanente (OG-263, RN-RKL-20); nada na partida normal. */
 export function SubstitutionBadges({ withBots, shortHanded }: { withBots?: boolean | undefined; shortHanded?: boolean | undefined }) {

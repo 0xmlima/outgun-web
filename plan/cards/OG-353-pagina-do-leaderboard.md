@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S37 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-352 |
 | Regras de negócio | RN-LDB-01..04, RN-SOC-01 |
 | Skills | `outgun-card-workflow` |
@@ -25,9 +25,11 @@ Como jogador, quero uma página de leaderboard nos moldes da do HLTV, com um ran
 - Design system v2; pt-BR e inglês.
 
 ## Critérios de aceite
-- [ ] Mês atual, mês anterior, "sempre" e os quatro filtros de formato.
-- [ ] Estado vazio no começo do mês ("ninguém com 5 partidas ainda").
-- [ ] Acessível por teclado.
+- [x] Mês atual, mês anterior, "sempre" e os quatro filtros de formato.
+- [x] Estado vazio no começo do mês ("ninguém com 5 partidas ainda").
+- [x] Acessível por teclado.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `/ranking` virou "Leaderboard": abas Jogadores e Clãs; período (este mês, meses anteriores, sempre), estatística (visão geral ou uma) e formato. Visão geral = um quadro por stat com os 3 primeiros e o selo "Hall da fama" nos principais; a lista mostra "Você: Nº de N" ou quantas partidas faltam.
+- Tela inicial: líder do mês em cada stat principal e "Seu rating" (perfil, OG-351) no lugar do top 5 e da posição no ranking antigo.
+- Saíram da API `/leaderboard` e `/leaderboard/overall` (score/neg); `/leaderboard/clans` continua. O "i" do rating não aparece mais no ranking, só no perfil e na tela inicial.
