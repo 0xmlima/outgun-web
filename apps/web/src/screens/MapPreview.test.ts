@@ -13,7 +13,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('prévia dos mapas (OG-368)', () => {
   it('mapa do jogo vem dos assets; o da moderação, da API (uma vez só); gerados e random_map ficam sem', async () => {
-    const fetch = vi.fn(async (_url: string) => bytes());
+    const fetch = vi.fn<(url: string) => Promise<Response>>(async () => bytes());
     vi.stubGlobal('fetch', fetch);
     expect((await previewMap('outgun1'))?.title).toBe('Teste');
     expect((await previewMap('mapa novo'))?.author).toBe('Moderação');
