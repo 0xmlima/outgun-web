@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S39 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-371 |
 | Regras de negócio | D-72 |
 | Skills | `outgun-card-workflow` |
@@ -31,13 +31,14 @@ Como jogador experiente, quero que a diagonal e o Alt (esquiva) respeitem a inte
 - D-72 na seção 12 (comportamento novo, sem equivalente no original).
 
 ## Critérios de aceite
-- [ ] Soltar ↑→ com 25 ms de diferença mantém a arma na diagonal (teste com eventos sintéticos e no servidor).
-- [ ] Seta 15 ms antes do Alt: a arma não vira.
-- [ ] Seta sozinha vira a arma em até 30 ms; com a opção em 0, imediatamente.
-- [ ] Movimento começa no mesmo tick que hoje (OG-369 não piora tecla→envio).
+- [x] Soltar ↑→ com 25 ms de diferença mantém a arma na diagonal (`chord.test.ts`; o servidor não muda, então basta o que sai do cliente).
+- [x] Seta 15 ms antes do Alt: a arma não vira.
+- [x] Seta sozinha vira a arma em até 30 ms; com a opção em 0, imediatamente.
+- [ ] Movimento começa no mesmo tick que hoje (OG-369 não piora tecla→tela); medido no fechamento.
 
 ## Notas técnicas
 - Todo o card é no cliente (`apps/web/src/game/input/` + `session`); o servidor não muda, então bots e replays ficam iguais.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `ChordFilter` entre `input.sample()` e `session.setControls` (host), com timer para reler no fim da janela; a predição recebe os mesmos controles filtrados, então não há correção. Opção "Tolerância de diagonal" na aba Controles (passo de 5 ms, 0 = desligado).
+- A direção "atual" da arma é a última que nossos controles fizeram virar; depois de renascer pode estar velha, e aí a seta vira a arma na hora (como antes).

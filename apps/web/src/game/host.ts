@@ -23,6 +23,7 @@ import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
+import { CHORD_WINDOW_DEFAULT_MS, ChordFilter } from './input/chord.js';
 import { LatencyWindow } from './net/latency.js';
 import { browserName, NetTelemetry, sendNetReport } from './net/telemetry.js';
 import { API_URL } from '../app/api.js';
@@ -77,6 +78,8 @@ export interface ClientOptions {
   readonly fpsLimit: number;
   /** Quadro com tecla→envio e tecla→tela sobre o jogo (OG-369). */
   readonly showInputLatency?: boolean;
+  /** Tolerância de diagonal em ms (OG-372); sem valor, o padrão. */
+  readonly chordWindowMs?: number;
   readonly soundTheme: string;
   readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
   /** Opções gráficas avançadas do original (OG-070). */
@@ -502,13 +505,22 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     /** Lê a entrada: controles (com reenvio no meio do frame) e bordas de tiro e largar bandeira. */
     const readInput = (now: number) => {
       const s = input.sample();
+      // tolerância de diagonal (OG-372): o tiro vira a arma antes de sair
+      chord.windowMs = client.chordWindowMs ?? CHORD_WINDOW_DEFAULT_MS;
+      const controls = s.fire && !lastFire ? chord.flush(s.controls) : chord.filter(s.controls, now);
       // tecla→envio e tecla→tela (OG-369); mudança sem tecla (gamepad) conta do momento da leitura
-      session?.setControls(s.controls, now, input.lastChangeAt > 0 && now - input.lastChangeAt < 1000 ? input.lastChangeAt : now);
+      session?.setControls(controls, now, input.lastChangeAt > 0 && now - input.lastChangeAt < 1000 ? input.lastChangeAt : now);
+      // fim da janela aberta: lê de novo para virar a arma se o acorde não se completou
+      clearTimeout(chordTimer);
+      const deadline = chord.deadline();
+      if (deadline !== null) chordTimer = setTimeout(() => readInput(performance.now()), Math.max(0, deadline - now) + 1);
       if (s.fire !== lastFire) session?.send(message('fire', { on: (lastFire = s.fire) }));
       if (s.dropFlag !== lastDrop) session?.send(message('dropFlag', { on: (lastDrop = s.dropFlag) }));
     };
     // timer, não requestAnimationFrame: o envio tem de seguir o relógio do servidor (`nextSend`)
     let nextSend = performance.now();
+    const chord = new ChordFilter();
+    let chordTimer: ReturnType<typeof setTimeout> | undefined;
     const sendLoop = () => {
       const now = performance.now();
       readInput(now);

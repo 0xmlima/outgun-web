@@ -829,7 +829,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-369](cards/OG-369-telemetria-de-latencia-de-input.md) | Medir a latência do input, da tecla ao servidor | E11 | 3 | Must | S39 | — | Em revisão |
 | [OG-370](cards/OG-370-input-por-sequencia.md) | Toda mudança de controle chega ao servidor a tempo | E11 | 5 | Must | S39 | OG-369 | Em revisão |
 | [OG-371](cards/OG-371-input-por-evento.md) | Teclas lidas no evento, não no quadro | E11 | 3 | Must | S39 | OG-370 | Em revisão |
-| [OG-372](cards/OG-372-tolerancia-de-diagonal-e-strafe.md) | Diagonal e Alt sem virar a arma por engano | E11 | 3 | Must | S39 | OG-371 | Pronto |
+| [OG-372](cards/OG-372-tolerancia-de-diagonal-e-strafe.md) | Diagonal e Alt sem virar a arma por engano | E11 | 3 | Must | S39 | OG-371 | Em revisão |
 | [OG-373](cards/OG-373-fps-sem-limite-no-cliente-desktop.md) | FPS sem limite de verdade no cliente desktop (Steam) | E11 | 3 | Must | S39 | — | Pronto |
 | [OG-374](cards/OG-374-quadro-de-baixa-latencia.md) | Quadro de baixa latência: menos trabalho por quadro e canvas dessincronizado | E11 | 2 | Could | S39 | OG-369, OG-373 | Pronto |
 | [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S39 | OG-370 | Pronto |

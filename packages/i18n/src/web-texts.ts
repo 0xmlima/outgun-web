@@ -93,6 +93,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Frame drops': 'Quedas de frames',
     'Send anonymous network statistics': 'Enviar estatísticas anônimas da rede',
     'Show input latency': 'Mostrar latência das teclas',
+    'Diagonal tolerance': 'Tolerância de diagonal',
+    'Keys pressed or released this close together count as together: the gun does not turn on the way. Movement never waits.': 'Teclas apertadas ou soltas com essa diferença contam como juntas: a arma não vira no meio do caminho. O movimento nunca espera.',
     // beta fechado (OG-106)
     '$1 invites created.': '$1 convites criados.',
     Bug: 'Bug',

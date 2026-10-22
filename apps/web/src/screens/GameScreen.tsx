@@ -34,6 +34,7 @@ function clientOptions(p: Prefs): ClientOptions {
     showNames: p.showNames,
     fpsLimit: p.fpsLimit,
     showInputLatency: p.showInputLatency,
+    chordWindowMs: p.chordWindowMs,
     soundTheme: p.soundTheme,
     quickMessages: { enabled: p.quickMessagesEnabled, immediate: p.quickMessagesImmediate, messages: p.quickMessages },
     // opções gráficas avançadas do original (OG-070)
