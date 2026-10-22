@@ -27,7 +27,7 @@ Como jogador, quero uma lista única do mês que junte os fundamentos do jogo, p
 ## Critérios de aceite
 - [x] Teste do índice com os pesos e o desempate; pesos somam 1.
 - [x] Hall da fama de novembro com o quadro do melhor do mês.
-- [ ] PO confere os pesos.
+- [x] PO confere os pesos.
 
 ## Notas de implementação
 - Pesos numa constante (`OVERALL_WEIGHTS`, `apps/api/src/leaderboard.ts`): mudar é uma linha.

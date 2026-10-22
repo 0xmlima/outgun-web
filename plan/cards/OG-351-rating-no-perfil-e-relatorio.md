@@ -25,7 +25,7 @@ Como jogador, quero ver meu rating no perfil e quanto ganhei ou perdi em cada pa
 - [x] Perfil com e sem rating (conta nova, em calibração, calibrada).
 - [x] Relatório e modal mostram a variação de quem jogou depois da implantação.
 - [x] "i" acessível por teclado e leitor de tela (mesmo `Dialog` do OG-342).
-- [ ] PO aprova o texto.
+- [x] PO aprova o texto.
 
 ## Notas de implementação
 - Perfil: selo "Rating N" (ou "em calibração (n/10)") com o "i" ao lado; o gráfico de evolução mostra o valor após cada ranqueada (`/players/:nome/progress` agora devolve `series: [{at, value}]`, sem as temporadas de score/neg). O campo `ranking` saiu do perfil na API.
