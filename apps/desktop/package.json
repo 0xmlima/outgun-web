@@ -28,6 +28,7 @@
     "copyright": "GPL-2.0-or-later",
     "files": [
       "main.js",
+      "preload.cjs",
       "package.json"
     ],
     "directories": {

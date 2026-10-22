@@ -543,6 +543,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         resolution: devicePixelRatio || 1,
         autoDensity: true,
         antialias: false,
+        // notebooks com duas placas: a mais forte (OG-373)
+        powerPreference: 'high-performance',
         background: '#000000',
       });
       ready = true;

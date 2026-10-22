@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S39 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | D-73 |
 | Skills | `outgun-card-workflow` |
@@ -27,13 +27,15 @@ Como jogador competitivo na Steam, quero que "sem limite" signifique sem limite,
 - D-73 na seção 12; README do desktop atualizado.
 
 ## Critérios de aceite
-- [ ] No cliente desktop com VSync desligado, o contador de FPS passa de 60 num monitor de 60 Hz (medido no Windows pelo script do OG-369 ou `tools/visual-compare/fps.mjs`).
-- [ ] Limites (60, 144, 240...) continuam valendo com VSync desligado.
-- [ ] A página sem o cliente (navegador) não quebra sem `outgunDesktop`.
-- [ ] Novo build na branch beta da Steam (`pnpm steam:upload`) para a comunidade testar.
+- [ ] No cliente desktop com VSync desligado, o contador de FPS passa de 60 num monitor de 60 Hz (conferir no fechamento com o cliente local: `OUTGUN_URL=... npm start`).
+- [x] Limites (60, 144, 240...) continuam valendo com VSync desligado (o `maxFPS` do PixiJS segue igual).
+- [x] A página sem o cliente (navegador) não quebra sem `outgunDesktop` (`desktopBridge()` opcional; clientes antigos sem o preload também).
+- [ ] Novo build na branch beta da Steam (`pnpm steam:upload`) para a comunidade testar — no fechamento, com a ordem do PO.
 
 ## Notas técnicas
 - O jogo é desenhado no máximo a cada quadro; o mundo anda a 10 Hz com extrapolação, então mais FPS reduz a latência de tela e deixa o movimento mais liso, não muda a física.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `apps/desktop/preload.cjs` (CommonJS: preload com sandbox não aceita ESM) + IPC síncrono no `main.js`; o envio só é aceito da origem do jogo. Modo gravado em `userData/outgun-desktop.json`, aplicado ao abrir.
+- Web: "Sincronia vertical (VSync)" em Gráficos só no cliente; "sem limite" vira "taxa do monitor" (com dica) quando o FPS não pode passar do monitor. `powerPreference: 'high-performance'` no PixiJS.
+- Cliente desktop antigo (sem preload) continua funcionando; precisa de instalador/build da Steam novos para ganhar a opção.
