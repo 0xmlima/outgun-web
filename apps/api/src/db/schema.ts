@@ -278,9 +278,12 @@ export const formatRatings = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.seasonId, t.format] }), index('format_ratings_board_idx').on(t.seasonId, t.format)],
 );
 
-/** Hall da fama (OG-268): os 3 primeiros de cada temporada encerrada no geral, por formato e dos clãs. */
+/**
+ * Hall da fama (OG-268): os 3 primeiros de cada temporada encerrada. Até outubro/2026, no geral, por
+ * formato e dos clãs (score/neg); desde novembro, de cada stat principal (`stat:<id>`, OG-354) e dos clãs.
+ */
 export const CHAMPION_BOARDS = ['overall', '3x3', '4x4', '5x5', 'clans'] as const;
-export type ChampionBoard = (typeof CHAMPION_BOARDS)[number];
+export type ChampionBoard = (typeof CHAMPION_BOARDS)[number] | `stat:${string}`;
 export const seasonChampions = pgTable(
   'season_champions',
   {

@@ -7,7 +7,7 @@ import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, typ
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matches, matchPlayers, playerReports, rankedSeries, rooms, users } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
-import { seasonAt } from '../ranking.js';
+import { closeSeason, seasonAt } from '../ranking.js';
 import { applySkill } from '../skill.js';
 import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial } from '../social-stats.js';
@@ -446,6 +446,8 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             const roster = body.skillRoster ?? body.players.flatMap((p) => (p.userId && !p.isBot ? [{ userId: p.userId, team: p.team as 0 | 1 }] : []));
             const winner = body.redScore > body.blueScore ? 0 : body.blueScore > body.redScore ? 1 : null;
             await applySkill(tx, match!.id, roster.filter((r) => known.has(r.userId)), winner);
+            // partida da temporada que já virou (começou antes da virada): hall da fama regravado (OG-354)
+            if (season && !season.active) await closeSeason(tx, season.id);
           }
           return { id: match!.id, duplicate: false as const };
         });

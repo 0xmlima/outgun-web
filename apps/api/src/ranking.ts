@@ -6,6 +6,7 @@
 import { and, desc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 import { clanLeaderboard } from './clan-stats.js';
+import { statLeaders } from './leaderboard.js';
 import { formatRatings, playerProfiles, ratings, seasonChampions, seasons, seasonStandings } from './db/schema.js';
 
 /** `minimum_positive_score_for_ranking` do original: abaixo disso, fora do leaderboard. */
@@ -87,8 +88,30 @@ export function monthStart(month: string): Date {
   return new Date(Date.UTC(y!, m! - 1, 1) + BRASILIA_OFFSET_MS);
 }
 
+/** Primeiro mês do leaderboard de atributos (D-66): dele em diante o hall da fama vem dos stats (OG-354). */
+export const LEADERBOARD_SINCE = '2026-11';
+
+/**
+ * Fecha a temporada: até outubro/2026, a classificação final e o hall da fama do score/neg; desde
+ * novembro, o hall da fama pelo leaderboard. Regravar (partida que chega depois da virada) não duplica.
+ */
+export async function closeSeason(tx: Tx, seasonId: number): Promise<void> {
+  const [season] = await tx.select({ month: seasons.month }).from(seasons).where(eq(seasons.id, seasonId));
+  if (season?.month && season.month >= LEADERBOARD_SINCE) await snapshotStatChampions(tx, seasonId);
+  else await snapshotStandings(tx, seasonId);
+}
+
+/** Hall da fama pelo leaderboard (OG-354, RN-LDB-05): os 3 primeiros de cada stat principal no mês e os clãs. */
+async function snapshotStatChampions(tx: Tx, seasonId: number): Promise<void> {
+  await tx.delete(seasonChampions).where(eq(seasonChampions.seasonId, seasonId));
+  const leaders = await statLeaders(tx, { seasonId, format: null }, 3, (s) => s.main);
+  const rows = leaders.flatMap((l) => l.entries.map((e) => ({ seasonId, board: `stat:${l.stat}` as const, position: e.position, userId: e.userId, name: e.username, value: e.value })));
+  if (rows.length > 0) await tx.insert(seasonChampions).values(rows);
+  await snapshotClanChampions(tx, seasonId);
+}
+
 /** Grava (de novo) a classificação final da temporada: mesma ordem e mínimo do leaderboard. */
-export async function snapshotStandings(tx: Tx, seasonId: number): Promise<void> {
+async function snapshotStandings(tx: Tx, seasonId: number): Promise<void> {
   await tx.delete(seasonStandings).where(eq(seasonStandings.seasonId, seasonId));
   await tx.execute(sql`
     INSERT INTO season_standings (season_id, user_id, position, score, neg, matches)
@@ -119,6 +142,11 @@ async function snapshotChampions(tx: Tx, seasonId: number): Promise<void> {
       FROM format_ratings f JOIN users u ON u.id = f.user_id
       WHERE f.season_id = ${seasonId} AND f.score >= ${MINIMUM_SCORE}
     ) t WHERE position <= 3`);
+  await snapshotClanChampions(tx, seasonId);
+}
+
+/** Os 3 primeiros clãs da temporada (OG-274), nos dois sistemas. */
+async function snapshotClanChampions(tx: Tx, seasonId: number): Promise<void> {
   const clans = await clanLeaderboard(tx, seasonId, 3, 0);
   if (clans.entries.length > 0) {
     await tx.insert(seasonChampions).values(
@@ -147,7 +175,7 @@ export async function rollSeason(db: Db, now = new Date()): Promise<{ id: number
     if (active) {
       const endsAt = new Date(Math.max(start.getTime(), active.startsAt.getTime() + 1));
       await tx.update(seasons).set({ active: false, endsAt }).where(eq(seasons.id, active.id));
-      await snapshotStandings(tx, active.id);
+      await closeSeason(tx, active.id);
     }
     const [season] = await tx
       .insert(seasons)

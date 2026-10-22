@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S37 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-352, OG-350 |
 | Regras de negócio | RN-LDB-05, RN-RKL-22 (D-66) |
 | Skills | `outgun-card-workflow` |
@@ -24,8 +24,9 @@ Como comunidade, quero um hall da fama que registre mês a mês quem dominou cad
 - Primeiro mês gravado assim: novembro de 2026 (virada de 1º de dezembro).
 
 ## Critérios de aceite
-- [ ] Teste da virada: grava os 3 primeiros de cada stat principal com o mínimo de partidas; regravar não duplica.
-- [ ] Perfil mostra selos novos e antigos.
+- [x] Teste da virada: grava os 3 primeiros de cada stat principal com o mínimo de partidas; regravar não duplica.
+- [x] Perfil mostra selos novos e antigos.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `closeSeason` decide pelo mês: até 2026-10 grava a classificação e o hall do score/neg; desde 2026-11 (`LEADERBOARD_SINCE`), os 3 primeiros de cada stat principal (`stat:<id>`, migration 0030 libera o quadro) e os clãs. Partida que chega depois da virada regrava o hall do mês dela.
+- `/hall-of-fame` passou a mandar `classic` e os quadros na ordem de exibição; a tela e os selos mostram "Campeão em capturas · Temporada 2026-11" e marcam os antigos como "ranking clássico".

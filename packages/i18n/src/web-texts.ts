@@ -894,5 +894,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Your rating: $1 (calibrating)': 'Seu rating: $1 (em calibração)',
     'Your rating: $1': 'Seu rating: $1',
     'Play Ranked to get your rating.': 'Jogue Ranqueado para ganhar o seu rating.',
+    // hall da fama pelo leaderboard (OG-354)
+    'The top 3 of every month in each main stat of the leaderboard and among clans.': 'Os 3 primeiros de cada mês em cada estatística principal do leaderboard e entre os clãs.',
+    'classic ranking': 'ranking clássico',
+    'in $1': 'em $1',
   },
 };
