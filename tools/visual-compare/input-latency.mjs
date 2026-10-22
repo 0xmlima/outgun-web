@@ -72,7 +72,14 @@ const children = [
   ),
   start(
     process.execPath,
-    ['apps/web/node_modules/vite/bin/vite.js', 'preview', 'apps/web', '--port', String(WEB_PORT), '--strictPort'],
+    [
+      'apps/web/node_modules/vite/bin/vite.js',
+      'preview',
+      'apps/web',
+      '--port',
+      String(WEB_PORT),
+      '--strictPort',
+    ],
     { CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}` },
     'web',
   ),
@@ -85,7 +92,10 @@ process.on('SIGINT', () => process.exit(130));
 function pct(values, p) {
   if (!values.length) return null;
   const s = [...values].sort((a, b) => a - b);
-  return Math.round(s[Math.min(s.length - 1, Math.max(0, Math.ceil((p / 100) * s.length) - 1))] * 10) / 10;
+  return (
+    Math.round(s[Math.min(s.length - 1, Math.max(0, Math.ceil((p / 100) * s.length) - 1))] * 10) /
+    10
+  );
 }
 const summary = (v) => ({ n: v.length, p50: pct(v, 50), p95: pct(v, 95), max: pct(v, 100) });
 
@@ -136,11 +146,16 @@ try {
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
   await page.evaluateOnNewDocument((fpsLimit) => {
     globalThis.__outgunInputLatency = { send: [], render: [] };
-    localStorage.setItem('outgun.prefs', JSON.stringify({ locale: 'pt-BR', fpsLimit, lagPrediction: true, lagPredictionAmount: 10 }));
+    localStorage.setItem(
+      'outgun.prefs',
+      JSON.stringify({ locale: 'pt-BR', fpsLimit, lagPrediction: true, lagPredictionAmount: 10 }),
+    );
   }, FPS);
   await page.goto(`${WEB}/play?server=${encodeURIComponent(SERVER)}&name=Medidor`);
   await page.waitForSelector('.game[data-status=ready]', { timeout: 30_000 });
-  await page.waitForFunction(() => document.querySelector('[data-me]')?.dataset.me, { timeout: 15_000 });
+  await page.waitForFunction(() => document.querySelector('[data-me]')?.dataset.me, {
+    timeout: 15_000,
+  });
   await wait(2000);
   const waitsBefore = await histogram('outgun_input_tick_wait_seconds');
   const overwrittenBefore = await counter('outgun_input_overwritten_total');

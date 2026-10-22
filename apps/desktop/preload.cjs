@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ponte mínima entre o site e o cliente (OG-373): a página não ganha Node, só a opção de VSync, que
 // o processo principal grava e aplica na próxima abertura (os switches do Chromium só valem no início).
+// preload com sandbox só aceita CommonJS
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('outgunDesktop', {
@@ -8,5 +10,6 @@ contextBridge.exposeInMainWorld('outgunDesktop', {
   frameRate: () => ipcRenderer.sendSync('outgun:frame-rate'),
   /** O modo que está valendo nesta abertura. */
   frameRateActive: () => ipcRenderer.sendSync('outgun:frame-rate-active'),
-  setFrameRate: (mode) => ipcRenderer.send('outgun:set-frame-rate', mode === 'unlocked' ? 'unlocked' : 'vsync'),
+  setFrameRate: (mode) =>
+    ipcRenderer.send('outgun:set-frame-rate', mode === 'unlocked' ? 'unlocked' : 'vsync'),
 });
