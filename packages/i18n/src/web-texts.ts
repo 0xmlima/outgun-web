@@ -905,5 +905,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Each stat counts by your place among everyone with $1 matches (1st = all its weight, last = none). Weights: $2.': 'Cada estatística conta pela sua posição entre todos com $1 partidas (1º lugar = o peso inteiro, último = nada). Pesos: $2.',
     'Index': 'Índice',
     '$1 overall of the month': '$1 no geral do mês',
+    // link da Steam na página de download (OG-359)
+    'Also on Steam': 'Também na Steam',
+    'Outgun is on Steam too: install it from the store and Steam keeps it updated.': 'O Outgun também está na Steam: instale pela loja e a Steam mantém o jogo atualizado.',
+    'Open Outgun on Steam': 'Abrir o Outgun na Steam',
   },
 };

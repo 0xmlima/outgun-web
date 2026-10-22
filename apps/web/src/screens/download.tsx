@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// "Jogar no computador" (OG-325, OG-326, D-58): instalar pelo navegador (OG-323) ou baixar o cliente
-// para Windows, macOS ou Ubuntu (OG-324, OG-326). Todos abrem o próprio site, então a versão é sempre
+// "Jogar no computador" (OG-325, OG-326, D-58): instalar pelo navegador (OG-323), baixar o cliente
+// para Windows, macOS ou Ubuntu (OG-324, OG-326) ou pegar na Steam (OG-328, link no OG-359). Todos abrem o próprio site, então a versão é sempre
 // a mesma da web.
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
@@ -17,6 +17,9 @@ export const DESKTOP_DOWNLOADS: Readonly<Record<Platform, string>> = {
   mac: '/download/Outgun-mac.dmg',
   linux: '/download/Outgun-linux.deb',
 };
+
+/** Página do Outgun na loja da Steam (app 663760, OG-328). */
+export const STEAM_STORE_URL = 'https://store.steampowered.com/app/663760/Outgun/';
 
 /** Sistema de quem visita, para destacar o download certo. */
 function visitorPlatform(): Platform | null {
@@ -107,6 +110,13 @@ export function DownloadScreen() {
             </article>
           ))}
         </div>
+        <h2>{t('Also on Steam')}</h2>
+        <p className="stats-line">{t('Outgun is on Steam too: install it from the store and Steam keeps it updated.')}</p>
+        <p>
+          <a className="ui-button ui-button-secondary ui-button-md" href={STEAM_STORE_URL} target="_blank" rel="noopener noreferrer">
+            {t('Open Outgun on Steam')}
+          </a>
+        </p>
         <h2>{t('Or install from the browser')}</h2>
         <p className="stats-line">{t('In Chrome or Edge: no download, a desktop shortcut and its own window. Takes a few seconds.')}</p>
         {installed ? (

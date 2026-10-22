@@ -604,7 +604,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S34 | v2: rodada de correções do Ranked da comunidade | OG-329, OG-330, OG-331 | |
 | S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338, OG-339, OG-340 | |
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
-| S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358 | |
+| S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -811,11 +811,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-353](cards/OG-353-pagina-do-leaderboard.md) | Página do leaderboard mensal | E9 | 5 | Must | S37 | OG-352 | Em revisão |
 | [OG-354](cards/OG-354-hall-da-fama-pelo-leaderboard.md) | Hall da fama mensal pelo leaderboard | E12 | 3 | Must | S37 | OG-352, OG-350 | Em revisão |
 | [OG-358](cards/OG-358-lista-geral-do-mes.md) | Lista geral do mês (índice dos 6 stats principais) e selo de melhor do mês | E12 | 3 | Must | S37 | OG-352, OG-353, OG-354 | Em revisão |
+| [OG-359](cards/OG-359-link-da-steam-no-download.md) | Link da Steam na página de download | E7 | 1 | Should | S37 | OG-328 | Em revisão |
 | [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | — | OG-352 | Backlog |
 | [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (multi-kill, troca, quem matou quem) | E12 | 8 | Could | — | OG-355 | Backlog |
 | [OG-357](cards/OG-357-balanceamento-de-times-no-lobby.md) | Balanceamento dos times no lobby pelo rating | E12 | 5 | Could | — | OG-349 | Backlog |
 
-**Total:** 200 cards, 676 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 131 cards, 381 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 201 cards, 677 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 132 cards, 382 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
 
 ---
 
