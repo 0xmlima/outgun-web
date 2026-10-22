@@ -11,6 +11,8 @@ export class GameTelemetry implements TickObserver {
   readonly tickDuration = this.registry.histogram('outgun_tick_duration_seconds', 'Duração de um tick de todas as salas do processo (simulação + serialização).', DURATION_BUCKETS);
   readonly roomTickDuration = this.registry.histogram('outgun_room_tick_duration_seconds', 'Duração do tick de uma sala.', DURATION_BUCKETS);
   readonly tickLateness = this.registry.histogram('outgun_tick_lateness_seconds', 'Atraso do início do tick em relação ao horário ideal (10 Hz).', DURATION_BUCKETS);
+  readonly inputWait = this.registry.histogram('outgun_input_tick_wait_seconds', 'Espera de uma mudança de controles entre a chegada e o tick que a aplica (OG-369).', DURATION_BUCKETS);
+  readonly inputOverwritten = this.registry.counter('outgun_input_overwritten_total', 'Mudanças de controles sobrescritas por outra antes do tick (nunca aplicadas sozinhas).');
   readonly bytesSent = this.registry.counter('outgun_ws_sent_bytes_total', 'Bytes enviados pelos WebSockets (jogadores e espectadores).');
   readonly bytesReceived = this.registry.counter('outgun_ws_received_bytes_total', 'Bytes recebidos dos WebSockets.');
   readonly connections = this.registry.counter('outgun_ws_connections_total', 'Conexões por tipo e resultado (accepted, ou o motivo da recusa).');
@@ -47,6 +49,11 @@ export class GameTelemetry implements TickObserver {
   tick(durationMs: number, latenessMs: number): void {
     this.tickDuration.observe(durationMs / 1000);
     this.tickLateness.observe(Math.max(0, latenessMs) / 1000);
+  }
+
+  input(waitsMs: readonly number[], overwritten: number): void {
+    for (const ms of waitsMs) this.inputWait.observe(ms / 1000);
+    if (overwritten) this.inputOverwritten.inc(overwritten);
   }
 
   roomTick(durationMs: number): void {

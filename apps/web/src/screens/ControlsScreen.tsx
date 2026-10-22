@@ -16,9 +16,10 @@ import {
   type Action,
   type Scheme,
 } from '../game/input/bindings.js';
+import { CHORD_WINDOW_MAX_MS } from '../game/input/chord.js';
 import { altName, reservedChord } from '../game/input/shortcuts.js';
 import { Button } from '../ui/Button.js';
-import { ChoiceField, FieldGroup } from '../ui/Field.js';
+import { ChoiceField, FieldGroup, SliderField } from '../ui/Field.js';
 import { Panel } from '../ui/Panel.js';
 
 const SCHEME_LABELS: Record<Scheme, string> = { classic: 'Classic', browser: 'Browser (no Ctrl/Alt)' };
@@ -82,6 +83,16 @@ export function ControlsPanel() {
           value={scheme ?? 'custom'}
           options={[...schemes.map((s) => ({ value: s, label: t(SCHEME_LABELS[s]) })), ...(scheme ? [] : [{ value: 'custom', label: t('Custom') }])]}
           onChange={(next) => next !== 'custom' && setPrefs({ bindings: SCHEMES[next as Scheme] })}
+        />
+        <SliderField
+          label={t('Diagonal tolerance')}
+          value={prefs.chordWindowMs}
+          min={0}
+          max={CHORD_WINDOW_MAX_MS}
+          step={5}
+          format={(v) => (v ? `${v} ms` : t('off'))}
+          hint={t('Keys pressed or released this close together count as together: the gun does not turn on the way. Movement never waits.')}
+          onChange={(v) => setPrefs({ chordWindowMs: v })}
         />
         <ul className="controls-list">
           {ACTIONS.map((action) => (

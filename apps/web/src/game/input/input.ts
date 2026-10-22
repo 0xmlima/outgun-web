@@ -49,7 +49,10 @@ export class GameInput {
   private startWasPressed = false;
   private readonly padWasPressed = new Set<number>();
   private readonly listeners: ((action: PressAction | 'menu') => void)[] = [];
+  private readonly changeListeners: (() => void)[] = [];
   private enabled = true;
+  /** Momento (`performance.now()`) da última tecla do jogo apertada ou solta (OG-369). */
+  lastChangeAt = 0;
 
   constructor(private bindings: Bindings) {
     this.codes = boundCodes(bindings);
@@ -78,6 +81,20 @@ export class GameInput {
     return () => this.listeners.splice(this.listeners.indexOf(listener), 1);
   }
 
+  /**
+   * Uma tecla do jogo foi apertada ou solta (OG-371): quem joga online lê os controles e envia na
+   * hora, sem esperar o próximo quadro. Um toque mais curto que um quadro não se perde.
+   */
+  onChange(listener: () => void): () => void {
+    this.changeListeners.push(listener);
+    return () => this.changeListeners.splice(this.changeListeners.indexOf(listener), 1);
+  }
+
+  private changed(at: number): void {
+    this.lastChangeAt = at;
+    for (const l of [...this.changeListeners]) l();
+  }
+
   private emit(action: PressAction | 'menu'): void {
     for (const l of [...this.listeners]) l(action);
   }
@@ -85,19 +102,23 @@ export class GameInput {
   private readonly onKeyDown = (ev: KeyboardEvent) => {
     if (!this.enabled || ev.key === 'Escape') return;
     if (shouldPrevent(ev, this.codes)) ev.preventDefault();
+    const fresh = !this.pressed.has(ev.code);
     this.pressed.add(ev.code);
+    if (fresh && this.codes.has(ev.code)) this.changed(ev.timeStamp);
     if (!ev.repeat) for (const action of pressedActions(this.bindings, ev)) this.emit(action);
   };
 
   private readonly onKeyUp = (ev: KeyboardEvent) => {
-    this.pressed.delete(ev.code);
+    if (this.pressed.delete(ev.code) && this.enabled && this.codes.has(ev.code)) this.changed(ev.timeStamp);
     // Alt solto sozinho ativa a barra de menus no Windows/Firefox
     if (this.enabled && (ev.code === 'AltLeft' || ev.code === 'AltRight')) ev.preventDefault();
   };
 
   /** Solta tudo (perda de foco: troca de aba, menu aberto). */
   private readonly release = () => {
+    if (!this.pressed.size) return;
     this.pressed.clear();
+    this.changed(performance.now());
   };
 
   /** Controles do frame: teclado + gamepads. */

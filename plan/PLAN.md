@@ -606,6 +606,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
 | S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
+| S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373 | |
+| S40 | v2: estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-374, OG-375 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -825,8 +827,16 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-366](cards/OG-366-envio-de-mapas-pelo-painel.md) | Envio de mapas .txt pelo painel de moderação | E5 | 5 | Should | S38 | OG-365 | Concluído |
 | [OG-367](cards/OG-367-mapas-da-comunidade-no-jogo.md) | Mapas do painel nos servidores, nas rotações e no cliente | E5 | 3 | Should | S38 | OG-366 | Concluído |
 | [OG-368](cards/OG-368-previa-dos-mapas-do-painel.md) | Prévia e miniatura dos mapas, inclusive os do painel | E5 | 3 | Should | S38 | OG-367 | Concluído |
+| [OG-369](cards/OG-369-telemetria-de-latencia-de-input.md) | Medir a latência do input, da tecla ao servidor | E11 | 3 | Must | S39 | — | Concluído |
+| [OG-370](cards/OG-370-input-por-sequencia.md) | Toda mudança de controle chega ao servidor a tempo | E11 | 5 | Must | S39 | OG-369 | Concluído |
+| [OG-371](cards/OG-371-input-por-evento.md) | Teclas lidas no evento, não no quadro | E11 | 3 | Must | S39 | OG-370 | Concluído |
+| [OG-372](cards/OG-372-tolerancia-de-diagonal-e-strafe.md) | Diagonal e Alt sem virar a arma por engano | E11 | 3 | Must | S39 | OG-371 | Concluído |
+| [OG-373](cards/OG-373-fps-sem-limite-no-cliente-desktop.md) | FPS sem limite de verdade no cliente desktop (Steam) | E11 | 3 | Must | S39 | — | Concluído |
+| [OG-374](cards/OG-374-quadro-de-baixa-latencia.md) | Quadro de baixa latência: menos trabalho por quadro e canvas dessincronizado | E11 | 2 | Could | S40 | OG-369, OG-373 | Pronto |
+| [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S40 | OG-370 | Pronto |
+| [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | — | OG-370 | Backlog |
 
-**Total:** 210 cards, 698 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 141 cards, 403 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 218 cards, 730 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 149 cards, 435 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -917,6 +927,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-68 | **v2** — Contadores novos na sim (OG-355) | — | ✅ **Decidido no OG-355 (2026-10-22), a partir do pedido do PO por stats de mais estilos de jogo:** `PlayerStats`/`PlayerResult` ganham `effectiveDamage` (soma de `min(dano, vida antes do acerto)` em inimigos; dano no shield não conta), `killsEnemyBase`/`killsOwnBase`/`killsMidfield` (sala da vítima; base = sala onde nasce uma bandeira do time; base inimiga tem precedência) e `defenses` (abate com bônus de defesa de portador ou de bandeira própria, uma vez por abate; o bônus de ataque não conta). Só contadores: frags, pontuação e física não mudam. Abates em bots entram nas zonas (o `botKills` é só o total). | Dev |
 | D-69 | **v2** — Rotação do painel nas salas Casual | Escolha livre / só da rotação / sempre a rotação | ✅ **Decidido pelo PO em 2026-10-22:** a rotação do painel é sempre respeitada: a sala privada escolhe mapas só entre os da rotação Casual (sem escolha = rotação inteira) e as salas abertas seguem a rotação nova na próxima troca de mapa. Sem rotação no painel, vale a do servidor e a escolha livre. Revisa RN-CFG-03. | PO |
 | D-70 | **v2** — Mapas da comunidade e permissões da moderação | Só por versão nova / moderador envia e admin aprova / moderador publica direto | ✅ **Decidido pelo PO em 2026-10-22:** moderadores enviam mapas .txt (formato do original) pelo painel e publicam direto, com validação pelo parser e auditoria; moderadores também criam/editam presets Casual e rotações (antes só admin). | PO |
+| D-71 | **v2** — Envio dos controles | 10 Hz com um reenvio por frame (como o original) / toda mudança enviada na hora, com sequência própria | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-370, OG-371):** toda mudança de controle que ainda pega o tick vai ao servidor na hora (sem o limite de um reenvio por frame); a predição usa o controle atual no quadro seguinte. Sem mudar o protocolo (dispensou o número de sequência, ver OG-370). A física não muda. | PO |
+| D-72 | **v2** — Teclas "quase simultâneas" (diagonal, Alt) | Como chegarem / janela de acorde no cliente | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-372):** janela de 30 ms (opção 0–60 ms) em que a arma não vira; o movimento não espera (strafe provisório); vale também para o direcional digital do gamepad. Sem equivalente no original. | PO |
+| D-73 | **v2** — VSync no cliente desktop | Sempre preso ao monitor / opção para desligar | ✅ **Decidido pelo PO em 2026-10-22 (S39, OG-373):** opção "Sincronia vertical" no desktop, aplicada ao reabrir; **padrão desligada** (PO, 2026-10-22: menos atraso na tela para o público competitivo), com limite automático de 240 FPS e "sem limite" explícito; no navegador o limite é a taxa do monitor. | PO |
+| D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ⏳ **Em aberto:** spike OG-375 na S40 (sala de teste no beta); decisão do PO com a comunidade. | PO |
 
 ---
 

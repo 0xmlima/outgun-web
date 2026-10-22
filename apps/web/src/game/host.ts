@@ -23,6 +23,9 @@ import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
+import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
+import { CHORD_WINDOW_DEFAULT_MS, ChordFilter } from './input/chord.js';
+import { LatencyWindow } from './net/latency.js';
 import { browserName, NetTelemetry, sendNetReport } from './net/telemetry.js';
 import { API_URL } from '../app/api.js';
 import { SoundEvents, type SoundContext } from './audio/sound-events.js';
@@ -74,10 +77,24 @@ export interface ClientOptions {
   readonly showKillMessages: boolean;
   readonly showNames: 'never' | 'sameRoom' | 'always';
   readonly fpsLimit: number;
+  /** Quadro com tecla→envio e tecla→tela sobre o jogo (OG-369). */
+  readonly showInputLatency?: boolean;
+  /** Tolerância de diagonal em ms (OG-372); sem valor, o padrão. */
+  readonly chordWindowMs?: number;
   readonly soundTheme: string;
   readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
   /** Opções gráficas avançadas do original (OG-070). */
   readonly graphics?: GraphicsOptions;
+}
+
+/** Automático sem VSync: bem acima de quase todo monitor, sem a placa desenhar sem parar (D-73). */
+const FPS_AUTO_UNLOCKED = 240;
+
+/** `maxFPS` do PixiJS para o limite escolhido (0 = sem limite para o PixiJS). */
+function maxFps(limit: number): number {
+  if (limit === FPS_UNLIMITED) return 0;
+  if (limit === 0) return desktopBridge()?.frameRateActive() === 'unlocked' ? FPS_AUTO_UNLOCKED : 0;
+  return limit;
 }
 
 export const DEFAULT_CLIENT: ClientOptions = {
@@ -341,20 +358,39 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     fail(message);
   };
 
-  /** Telemetria de rede (OG-108): amostra por segundo; resumo a cada 5 min, ao sair e ao fechar a aba. */
+  /**
+   * Telemetria de rede (OG-108): amostra por segundo; resumo a cada 5 min, ao sair e ao fechar a aba.
+   * A mesma amostra alimenta o quadro de latência do input (OG-369), que não depende da telemetria.
+   */
   let telemetry: { stop: () => void } | null = null;
+  const latencyBox = document.createElement('div');
+  latencyBox.className = 'input-latency';
+  latencyBox.hidden = true;
+  container.append(latencyBox);
   const startTelemetry = (online: OnlineOptions) => {
-    if (online.telemetry === false) return;
-    const net = new NetTelemetry({ room: online.room, version: import.meta.env.VITE_RELEASE ?? 'dev', browser: browserName(navigator.userAgent) });
+    const net = online.telemetry === false ? null : new NetTelemetry({ room: online.room, version: import.meta.env.VITE_RELEASE ?? 'dev', browser: browserName(navigator.userAgent) });
+    const latency = new LatencyWindow();
     const flush = () => {
-      const report = net.report();
+      const report = net?.report();
       if (report) sendNetReport(API_URL, report);
     };
     let n = 0;
     const timer = setInterval(() => {
       const s = session;
       if (!s || !s.world) return;
-      net.sample({ pingMs: s.pings.get(s.me), lagFrames: s.stats.averageLag, fps: ready ? app.ticker.FPS : 0, framesReceived: s.stats.framesReceived, corrections: s.stats.corrections });
+      const inputSendMs = s.inputLatency.send.splice(0);
+      const inputRenderMs = s.inputLatency.render.splice(0);
+      latency.add(performance.now(), inputSendMs, inputRenderMs);
+      // medição do fechamento (tools/visual-compare/input-latency.mjs): só quando o script cria a lista
+      const probe = (globalThis as { __outgunInputLatency?: { send: number[]; render: number[] } }).__outgunInputLatency;
+      if (probe) {
+        probe.send.push(...inputSendMs);
+        probe.render.push(...inputRenderMs);
+      }
+      latencyBox.hidden = !client.showInputLatency;
+      if (client.showInputLatency) latencyBox.textContent = latency.text();
+      if (!net) return;
+      net.sample({ pingMs: s.pings.get(s.me), lagFrames: s.stats.averageLag, fps: ready ? app.ticker.FPS : 0, framesReceived: s.stats.framesReceived, corrections: s.stats.corrections, inputSendMs, inputRenderMs });
       if (++n % 300 === 0) flush();
     }, 1000);
     addEventListener('pagehide', flush);
@@ -480,12 +516,26 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     /** Lê a entrada: controles (com reenvio no meio do frame) e bordas de tiro e largar bandeira. */
     const readInput = (now: number) => {
       const s = input.sample();
-      session?.setControls(s.controls, now);
+      // tolerância de diagonal (OG-372): o tiro vira a arma antes de sair
+      chord.windowMs = client.chordWindowMs ?? CHORD_WINDOW_DEFAULT_MS;
+      const controls = s.fire && !lastFire ? chord.flush(s.controls) : chord.filter(s.controls, now);
+      // tecla→envio e tecla→tela (OG-369): conta da tecla só na primeira leitura depois dela; o resto
+      // (gamepad, fim da janela da diagonal, que só vira a arma) conta do momento da leitura
+      const changedAt = input.lastChangeAt > keyMeasured ? input.lastChangeAt : now;
+      keyMeasured = input.lastChangeAt;
+      session?.setControls(controls, now, changedAt);
+      // fim da janela aberta: lê de novo para virar a arma se o acorde não se completou
+      clearTimeout(chordTimer);
+      const deadline = chord.deadline();
+      if (deadline !== null) chordTimer = setTimeout(() => readInput(performance.now()), Math.max(0, deadline - now) + 1);
       if (s.fire !== lastFire) session?.send(message('fire', { on: (lastFire = s.fire) }));
       if (s.dropFlag !== lastDrop) session?.send(message('dropFlag', { on: (lastDrop = s.dropFlag) }));
     };
     // timer, não requestAnimationFrame: o envio tem de seguir o relógio do servidor (`nextSend`)
     let nextSend = performance.now();
+    const chord = new ChordFilter();
+    let keyMeasured = 0;
+    let chordTimer: ReturnType<typeof setTimeout> | undefined;
     const sendLoop = () => {
       const now = performance.now();
       readInput(now);
@@ -494,6 +544,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       sendTimer = setTimeout(sendLoop, nextSend - now);
     };
     sendLoop();
+    // tecla apertada ou solta: envia já (OG-371); o timer acima segue com o envio de 10 Hz e o gamepad
+    input.onChange(() => readInput(performance.now()));
     return readInput;
   };
 
@@ -506,6 +558,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         resolution: devicePixelRatio || 1,
         autoDensity: true,
         antialias: false,
+        // notebooks com duas placas: a mais forte (OG-373)
+        powerPreference: 'high-performance',
         background: '#000000',
       });
       ready = true;
@@ -526,7 +580,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
       const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
-      app.ticker.maxFPS = client.fpsLimit;
+      app.ticker.maxFPS = maxFps(client.fpsLimit);
       if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
       // fundo da tela em mosaico (`load_background`): o do tema principal, se preferido e existir, senão o escolhido
@@ -709,7 +763,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         entities.graphics = graphics();
       }
       if (relayout) layout();
-      if (ready) app.ticker.maxFPS = next.fpsLimit;
+      if (ready) app.ticker.maxFPS = maxFps(next.fpsLimit);
       if (themeChanged && sounds) {
         const player = sounds;
         void loadManifest().then((m) => m && player.load(m, next.soundTheme));
@@ -719,6 +773,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     destroy() {
       destroyed = true;
       telemetry?.stop();
+      latencyBox.remove();
       clearTimeout(reconnectTimer);
       if (sendTimer !== null) clearTimeout(sendTimer);
       connection?.close();

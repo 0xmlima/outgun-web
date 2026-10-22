@@ -31,6 +31,20 @@ export function isInstalledApp(): boolean {
   return matchMedia('(display-mode: standalone)').matches || / OutgunDesktop\//.test(navigator.userAgent);
 }
 
+/** Ponte do cliente desktop (OG-373, `apps/desktop/preload.cjs`); ausente no navegador e nos clientes antigos. */
+export interface DesktopBridge {
+  frameRate(): 'vsync' | 'unlocked';
+  frameRateActive(): 'vsync' | 'unlocked';
+  setFrameRate(mode: 'vsync' | 'unlocked'): void;
+}
+
+/** Limite de FPS "sem limite" de verdade (cliente desktop sem VSync, OG-373); 0 é o automático. */
+export const FPS_UNLIMITED = 10_000;
+
+export function desktopBridge(): DesktopBridge | undefined {
+  return typeof window === 'undefined' ? undefined : (window as { outgunDesktop?: DesktopBridge }).outgunDesktop;
+}
+
 export function isDesktopClient(): boolean {
   return typeof navigator !== 'undefined' && / OutgunDesktop\//.test(navigator.userAgent);
 }

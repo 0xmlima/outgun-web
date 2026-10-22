@@ -61,3 +61,7 @@ Registrado em PLAN seção 12 (D-15).
 - Shift + seta direita → direita + correr; Alt sozinho → nada (modificador sem direção é limpo).
 - Ctrl+End com o Ctrl esquerdo segurado → troca de time; End sozinho → nada.
 - Delete com Ctrl segurado → suicídio.
+
+## v2: envio por evento e tolerância de diagonal (S39)
+- **OG-371:** cada tecla do jogo apertada ou solta chama a leitura e o envio na hora (`GameInput.onChange`); o timer de 10 Hz continua com o batimento e o gamepad.
+- **OG-372 (D-72):** `ChordFilter` (`apps/web/src/game/input/chord.ts`). Um estado que viraria a arma (direção nova sem strafe) sai com strafe provisório durante a janela (padrão 30 ms, opção 0–60 em Controles); Alt, soltar tudo ou a mesma direção fecham a janela sem virar; no fim dela a arma vira; o tiro vira a arma antes de sair. Vale para teclado e gamepad. O servidor não muda.

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
+import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
 import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, type EmphasizeFlags, HUD_SCALES, type MinimapPlayers, type NeighborMarkers, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs, type ViewOverBorder } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
@@ -21,7 +22,31 @@ import { ControlsPanel } from './ControlsScreen.js';
 
 /** Limites de FPS oferecidos (o original aceita 1..10000; 60 é o padrão). */
 // 0 = sem limite (o navegador ainda segue a taxa de atualização do monitor)
-const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240];
+/** FPS acima da taxa do monitor: só no cliente desktop com o VSync desligado nesta abertura (OG-373). */
+const fpsUnlocked = desktopBridge()?.frameRateActive() === 'unlocked';
+/** 0 = automático (taxa do monitor; 240 sem VSync); "sem limite" de verdade só sem VSync. */
+const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240, ...(fpsUnlocked ? [FPS_UNLIMITED] : [])];
+
+/** VSync do cliente desktop (OG-373, D-73): gravado pelo cliente e aplicado ao reabrir o jogo. */
+function VsyncField() {
+  const { t } = usePrefs();
+  const bridge = desktopBridge();
+  const [mode, setMode] = useState(() => bridge?.frameRate() ?? 'unlocked');
+  if (!bridge) return null;
+  const pending = mode !== bridge.frameRateActive();
+  return (
+    <ToggleField
+      label={t('Vertical sync (VSync)')}
+      checked={mode === 'vsync'}
+      hint={t(pending ? 'Takes effect when you reopen the game.' : 'Off: more frames and less screen delay, but more heat and possible tearing.')}
+      onChange={(on) => {
+        const next = on ? 'vsync' : 'unlocked';
+        bridge.setFrameRate(next);
+        setMode(next);
+      }}
+    />
+  );
+}
 
 /** Troca de lugar a cor selecionada com a vizinha (`Colorselect::handleKey` com Ctrl). */
 export function moveColor(colors: readonly number[], selected: number, delta: -1 | 1, carry: boolean): { colors: number[]; selected: number } {
@@ -216,6 +241,7 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               <SliderField label={t('Lag prediction amount')} value={prefs.lagPredictionAmount} min={0} max={10} disabled={!prefs.lagPrediction} onChange={(v) => setPrefs({ lagPredictionAmount: v })} />
               <SliderField label={t('Bandwidth for out-of-room players (cps)')} value={prefs.minimapBandwidth} min={0} max={640} step={20} onChange={(v) => setPrefs({ minimapBandwidth: v })} />
               {toggle('shareNetStats', 'Send anonymous network statistics')}
+              {toggle('showInputLatency', 'Show input latency')}
               {toggle('showFlagMessages', 'Show flag messages')}
               {toggle('showKillMessages', 'Show killing messages')}
               {select<ShowStats>('showStats', 'Show stats after the round', [
@@ -352,10 +378,12 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               {toggle('highlightUnknownMaps', 'Highlight maps not in the game')}
               <SliderField label={t('Stats screen alpha')} value={prefs.statsAlpha} min={0} max={255} step={15} onChange={(v) => setPrefs({ statsAlpha: v })} />
               {toggle('mapInfoMode', 'Map info mode')}
+              <VsyncField />
               <ChoiceField
                 label={t('FPS limit')}
                 value={String(FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 0)}
-                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t('unlimited') : String(v) }))}
+                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t(fpsUnlocked ? 'automatic (240)' : 'monitor refresh rate') : v === FPS_UNLIMITED ? t('unlimited') : String(v) }))}
+                hint={fpsUnlocked ? undefined : t(desktopBridge() ? 'Turn off vertical sync to go above the monitor refresh rate.' : 'Browsers draw at most once per monitor refresh. The desktop client (Steam) can go above it.')}
                 onChange={(v) => setPrefs({ fpsLimit: Number(v) })}
               />
             </FieldGroup>

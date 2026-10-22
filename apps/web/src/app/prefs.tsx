@@ -4,6 +4,7 @@
 import { detectLocale, LOCALES, translate, type Locale } from '@outgun/i18n';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DEFAULT_HUD_CUSTOM, HUD_STYLES, parseHudCustom, type HudCustom, type HudStyle } from '../game/hud/hud-style.js';
+import { CHORD_WINDOW_DEFAULT_MS, CHORD_WINDOW_MAX_MS } from '../game/input/chord.js';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
 
 export type ShowNames = 'never' | 'sameRoom' | 'always';
@@ -84,6 +85,10 @@ export interface Prefs {
   readonly lagPredictionAmount: number;
   /** Manda estatísticas anônimas da rede (OG-108). */
   readonly shareNetStats: boolean;
+  /** Quadro de latência das teclas sobre o jogo (OG-369). */
+  readonly showInputLatency: boolean;
+  /** Tolerância de diagonal em ms (OG-372, D-72); 0 desliga. */
+  readonly chordWindowMs: number;
   /** `Bandwidth for out-of-room players (cps)`: 0..640, passo 20; vai ao servidor como cps/20. */
   readonly minimapBandwidth: number;
   readonly showFlagMessages: boolean;
@@ -177,6 +182,8 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     lagPrediction: true,
     lagPredictionAmount: 10,
     shareNetStats: true,
+    showInputLatency: false,
+    chordWindowMs: CHORD_WINDOW_DEFAULT_MS,
     minimapBandwidth: 80,
     showFlagMessages: true,
     showKillMessages: true,
@@ -247,6 +254,8 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     lagPrediction: bool(saved.lagPrediction, fallback.lagPrediction),
     lagPredictionAmount: int(saved.lagPredictionAmount, 0, 10, fallback.lagPredictionAmount),
     shareNetStats: bool(saved.shareNetStats, fallback.shareNetStats),
+    showInputLatency: bool(saved.showInputLatency, fallback.showInputLatency),
+    chordWindowMs: int(saved.chordWindowMs, 0, CHORD_WINDOW_MAX_MS, fallback.chordWindowMs),
     minimapBandwidth: int(saved.minimapBandwidth, 0, 640, fallback.minimapBandwidth),
     showFlagMessages: bool(saved.showFlagMessages, fallback.showFlagMessages),
     showKillMessages: bool(saved.showKillMessages, fallback.showKillMessages),

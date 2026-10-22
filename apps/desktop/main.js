@@ -2,12 +2,51 @@
 // Cliente para Windows (OG-324, D-58): uma janela que carrega o site do jogo. Nada do jogo vem no
 // instalador, então a versão é sempre a do site. Segurança pelo checklist do Electron: sem Node na
 // página, sandbox, navegação só no domínio do jogo e links externos no navegador do sistema.
-import { app, BrowserWindow, Menu, session, shell } from 'electron';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
 
 const GAME_URL = new URL(process.env.OUTGUN_URL ?? 'https://outgunweb.com.br/');
 
 // a trilha começa sem esperar o primeiro clique ou tecla (no navegador, a política de autoplay pede)
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
+// VSync (OG-373, D-73): o Chromium prende o requestAnimationFrame à taxa do monitor; desligado (o
+// padrão: menos atraso na tela), o jogo passa dela e o limite de FPS do jogo vale de verdade (no
+// automático, 240). Os switches só valem no início do processo: a opção fica gravada em userData e
+// vale na próxima abertura.
+const settingsFile = join(app.getPath('userData'), 'outgun-desktop.json');
+/** @returns {{ frameRate: 'vsync' | 'unlocked' }} */
+function readSettings() {
+  try {
+    const saved = JSON.parse(readFileSync(settingsFile, 'utf8'));
+    return { frameRate: saved.frameRate === 'vsync' ? 'vsync' : 'unlocked' };
+  } catch {
+    return { frameRate: 'unlocked' };
+  }
+}
+const settings = readSettings();
+const activeFrameRate = settings.frameRate;
+if (activeFrameRate === 'unlocked') {
+  app.commandLine.appendSwitch('disable-frame-rate-limit');
+  app.commandLine.appendSwitch('disable-gpu-vsync');
+}
+ipcMain.on('outgun:frame-rate', (event) => {
+  event.returnValue = settings.frameRate;
+});
+ipcMain.on('outgun:frame-rate-active', (event) => {
+  event.returnValue = activeFrameRate;
+});
+ipcMain.on('outgun:set-frame-rate', (event, mode) => {
+  if (!sameOrigin(event.senderFrame?.url ?? '')) return;
+  settings.frameRate = mode === 'unlocked' ? 'unlocked' : 'vsync';
+  try {
+    writeFileSync(settingsFile, JSON.stringify(settings));
+  } catch {
+    // sem disco gravável a opção vale só até fechar
+  }
+});
 
 const sameOrigin = (url) => {
   try {
@@ -41,6 +80,8 @@ function createWindow() {
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: false,
+      // só a opção de VSync (OG-373); sem Node na página
+      preload: fileURLToPath(new URL('preload.cjs', import.meta.url)),
     },
   });
   // o site reconhece o cliente (página de download: "você já está no cliente")
