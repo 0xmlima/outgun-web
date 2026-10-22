@@ -605,6 +605,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S35 | v2: segunda rodada de correções do Ranked da comunidade | OG-332, OG-333, OG-334, OG-335, OG-336, OG-337, OG-338, OG-339, OG-340 | |
 | S36 | v2: melhorias do Ranked e do fim de partida | OG-341, OG-342, OG-343, OG-344, OG-345, OG-346, OG-347, OG-348 | |
 | S37 | v2: rating de habilidade com OpenSkill e leaderboard mensal no lugar do ranking por score/neg; link da Steam, menu inicial enxuto e notificações | OG-349, OG-350, OG-351, OG-352, OG-353, OG-354, OG-358, OG-359, OG-360, OG-361 | |
+| S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem) | OG-355, OG-362, OG-363, OG-364 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -814,11 +815,14 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-359](cards/OG-359-link-da-steam-no-download.md) | Link da Steam na página de download | E7 | 1 | Should | S37 | OG-328 | Concluído |
 | [OG-360](cards/OG-360-menu-inicial-enxuto.md) | Menu inicial enxuto (opções no menu superior) | E8 | 2 | Should | S37 | — | Concluído |
 | [OG-361](cards/OG-361-notificacoes.md) | Notificações: sino no topo e aviso (toast) das não lidas | E9 | 5 | Should | S37 | — | Concluído |
-| [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | — | OG-352 | Backlog |
-| [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (multi-kill, troca, quem matou quem) | E12 | 8 | Could | — | OG-355 | Backlog |
+| [OG-362](cards/OG-362-registro-de-eventos.md) | Registro dos eventos de cada ranqueada | E12 | 3 | Should | S38 | OG-355 | Pronto |
+| [OG-363](cards/OG-363-multi-kill-troca-primeiro-abate.md) | Multi-kill, troca e primeiro abate no leaderboard | E12 | 3 | Should | S38 | OG-362 | Pronto |
+| [OG-364](cards/OG-364-quem-matou-quem.md) | Quem matou quem: abates por vítima no relatório e no perfil | E9 | 2 | Could | S38 | OG-362 | Pronto |
+| [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | S38 | OG-352 | Pronto |
+| [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (quebrado em OG-362 a OG-364) | E12 | ~~8~~ | Could | S38 | OG-355 | Quebrado |
 | [OG-357](cards/OG-357-balanceamento-de-times-no-lobby.md) | Balanceamento dos times no lobby pelo rating | E12 | 5 | Could | — | OG-349 | Backlog |
 
-**Total:** 203 cards, 684 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 134 cards, 389 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma).
+**Total:** 206 cards, 684 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 137 cards, 389 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
