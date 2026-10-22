@@ -706,6 +706,48 @@
   border-radius: var(--radius-sm);
   background: var(--surface-0);
 }
+/* presets em formulário (OG-382): lista à esquerda, editor à direita */
+.admin-presets {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+.admin-presets nav ul {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+.admin-presets nav button.active {
+  border-color: var(--accent);
+  color: var(--text-accent);
+}
+.admin-presets small,
+.admin-preset-editor small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.admin-preset-editor small.error {
+  color: var(--text-danger);
+}
+.admin-preset-group {
+  margin: var(--space-2) 0;
+}
+.admin-preset-group summary {
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+}
+.admin-preset-editor input[type='number'] {
+  width: 7rem;
+}
+.admin-preset-preview {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+}
 .admin-map-name {
   display: flex;
   align-items: center;

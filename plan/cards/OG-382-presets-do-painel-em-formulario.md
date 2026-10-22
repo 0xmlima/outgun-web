@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S40 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-365 |
 | Regras de negócio | D-69 |
 | Skills | `outgun-card-workflow` |
@@ -29,10 +29,13 @@ Como moderador, quero montar um preset Casual marcando opções num formulário,
 - Pré-visualização do resultado (linhas geradas) antes de salvar.
 
 ## Critérios de aceite
-- [ ] Criar um preset só por caixas e campos e abrir uma sala Casual com ele aplica as regras.
-- [ ] Editar um preset salvo carrega as regras marcadas com os valores certos.
-- [ ] Valor fora da faixa é barrado no formulário com a faixa à vista.
-- [ ] Teste do mapeamento formulário ⇄ linhas de gamemod (ida e volta).
+- [x] Criar um preset só por caixas e campos e abrir uma sala Casual com ele aplica as regras.
+- [x] Editar um preset salvo carrega as regras marcadas com os valores certos.
+- [x] Valor fora da faixa é barrado no formulário com a faixa à vista.
+- [x] Teste do mapeamento formulário ⇄ linhas de gamemod (ida e volta).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `@outgun/settings/preset-form`: `PRESET_FIELDS` (categorias de preset + `max_players`, sem `ignore`/strings), rótulo em inglês com unidade (pt-BR em `i18n/setting-texts.ts`), `formFromLines`/`linesFromForm` e `fieldProblem` (o próprio `applySetting`, mesma mensagem do servidor). Teste de ida e volta com os presets Casual do jogo.
+- Padrão mostrado = o do Clássico (base do preset); linhas que o formulário não representa ficam em `other` e aparecem no modo texto, com o erro de `casualPresetProblems` (rodado no cliente).
+- Valores normalizados na ida e volta (`0.5` → `50%`, `1` → `normal` na colisão).
+- Presets do jogo (inclusive o Ranked) abrem só leitura, com "Duplicar para editar".

@@ -2,9 +2,11 @@
 // Textos novos da versão web (plataforma, modos de jogo D-10). A chave é o texto em inglês, como no
 // resto do jogo. Somente Latin-1 (as fontes originais não têm outros glifos).
 import type { Locale } from './index.js';
+import { SETTING_TEXTS_PT } from './setting-texts.js';
 
 export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>> = {
   'pt-BR': {
+    ...SETTING_TEXTS_PT,
     Casual: 'Casual',
     Ranked: 'Ranqueado',
     'Casual: power-ups on, guests welcome, does not count for the ranking.': 'Casual: com power-ups, aberto a convidados, não conta para o ranking.',
