@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
-import { matchEventPlayers, users } from '../db/schema.js';
+import { matchEventPlayers, matchPlayers, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
@@ -67,6 +67,10 @@ describe.skipIf(!pgAdminUrl)('eventos da ranqueada (OG-362)', () => {
     expect(r.events).toEqual(log().events);
     expect(r.players.map((p: { name: string; username: string | null }) => [p.name, p.username])).toEqual([['Jogador1', 'Jogador1'], ['Jogador2', 'Jogador2'], ['Convidado', null]]);
     expect(await t.db.select().from(matchEventPlayers).where(eq(matchEventPlayers.matchId, first.json().id))).toHaveLength(3);
+    // OG-363: os stats de momento vão para quem está nos eventos e no fim da partida
+    const stats = await t.db.select({ name: matchPlayers.name, stats: matchPlayers.stats }).from(matchPlayers).where(eq(matchPlayers.matchId, first.json().id));
+    expect(stats.find((p) => p.name === 'Jogador2')!.stats).toMatchObject({ multiKills: 0, trades: 0, firstKills: 1 });
+    expect(stats.find((p) => p.name === 'Jogador1')!.stats).toMatchObject({ firstKills: 0 });
   });
 
   it('partida sem registro devolve null; eventos só na ranqueada e com jogadores válidos', async () => {

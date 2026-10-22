@@ -74,6 +74,9 @@ export const STAT_LABELS: Record<string, string> = {
   killsOwnBase: 'Kills in your base',
   killsMidfield: 'Kills in midfield',
   defenses: 'Defenses',
+  multiKills: 'Multi-kills',
+  trades: 'Trades',
+  firstKills: 'First kills',
 };
 
 /** Como cada forma de ranquear é explicada ao lado do nome (RN-LDB-02). */

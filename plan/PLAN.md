@@ -816,7 +816,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-360](cards/OG-360-menu-inicial-enxuto.md) | Menu inicial enxuto (opções no menu superior) | E8 | 2 | Should | S37 | — | Concluído |
 | [OG-361](cards/OG-361-notificacoes.md) | Notificações: sino no topo e aviso (toast) das não lidas | E9 | 5 | Should | S37 | — | Concluído |
 | [OG-362](cards/OG-362-registro-de-eventos.md) | Registro dos eventos de cada ranqueada | E12 | 3 | Should | S38 | OG-355 | Em revisão |
-| [OG-363](cards/OG-363-multi-kill-troca-primeiro-abate.md) | Multi-kill, troca e primeiro abate no leaderboard | E12 | 3 | Should | S38 | OG-362 | Pronto |
+| [OG-363](cards/OG-363-multi-kill-troca-primeiro-abate.md) | Multi-kill, troca e primeiro abate no leaderboard | E12 | 3 | Should | S38 | OG-362 | Em revisão |
 | [OG-364](cards/OG-364-quem-matou-quem.md) | Quem matou quem: abates por vítima no relatório e no perfil | E9 | 2 | Could | S38 | OG-362 | Pronto |
 | [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | S38 | OG-352 | Em revisão |
 | [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (quebrado em OG-362 a OG-364) | E12 | ~~8~~ | Could | S38 | OG-355 | Quebrado |

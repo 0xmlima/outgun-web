@@ -100,7 +100,7 @@ describe.skipIf(!pgAdminUrl)('leaderboard de atributos (OG-352)', () => {
   it('visão geral: os 3 primeiros de cada stat, com os principais marcados', async () => {
     const overview = (await app.inject('/leaderboard/stats')).json();
     expect(overview.stats.filter((s: { main: boolean }) => s.main).map((s: { stat: string }) => s.stat)).toEqual(['kills', 'captures', 'flagsReturned', 'flagCarryingTime', 'kd', 'accuracy']);
-    expect(overview.stats).toHaveLength(18);
+    expect(overview.stats).toHaveLength(21);
     expect(overview.stats[0].entries.map((e: { username: string }) => e.username)).toEqual(['Bia', 'Ana']);
     expect((await app.inject('/leaderboard/stats/nada')).statusCode).toBe(400);
   });

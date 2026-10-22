@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S38 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-362 |
 | Regras de negócio | RN-LDB-02, RN-LDB-03 |
 | Skills | `outgun-card-workflow` |
@@ -27,9 +27,10 @@ Como jogador, quero ser reconhecido por jogadas que dependem do momento: abates 
 - Textos pt-BR e inglês.
 
 ## Critérios de aceite
-- [ ] Testes com sequências de eventos montadas à mão para cada stat (limites das janelas inclusive).
-- [ ] Leaderboard mostra os três stats com a data de início.
+- [x] Testes com sequências de eventos montadas à mão para cada stat (limites das janelas inclusive).
+- [x] Leaderboard mostra os três stats com a data de início.
 - [ ] PO aprova as janelas de tempo e a definição de primeiro abate.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Proposta ao PO: **multi-kill** = sequência de 2+ abates com até 4 s entre um e o próximo (a sequência conta 1, seja dupla ou quádrupla); **troca** = matar em até 3 s o inimigo que matou um aliado (outro que não você); **primeiro abate** = o primeiro abate da partida e o primeiro depois de cada captura. Janelas em `apps/api/src/match-moments.ts`.
+- Calculados na API ao gravar a partida (dos eventos do OG-362) e somados ao `stats` de quem está nos eventos e no fim da partida; quem saiu no meio não leva. Leaderboard: 3 stats por 10 min com "desde DD/MM"; texto explicativo dos stats novos abaixo do leaderboard.

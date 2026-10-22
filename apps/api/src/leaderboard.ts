@@ -38,6 +38,10 @@ export const LEADERBOARD_STATS = [
   { id: 'killsOwnBase', kind: 'rate', main: false, field: 'killsOwnBase' },
   { id: 'killsMidfield', kind: 'rate', main: false, field: 'killsMidfield' },
   { id: 'defenses', kind: 'rate', main: false, field: 'defenses' },
+  // OG-363: dos eventos da ranqueada (OG-362)
+  { id: 'multiKills', kind: 'rate', main: false, field: 'multiKills' },
+  { id: 'trades', kind: 'rate', main: false, field: 'trades' },
+  { id: 'firstKills', kind: 'rate', main: false, field: 'firstKills' },
 ] as const satisfies readonly { id: string; kind: StatKind; main: boolean; field?: string }[];
 
 export type StatId = (typeof LEADERBOARD_STATS)[number]['id'];
@@ -71,7 +75,10 @@ const SUMS = `
   sum(${num('killsEnemyBase')}) AS kills_enemy_base,
   sum(${num('killsOwnBase')}) AS kills_own_base,
   sum(${num('killsMidfield')}) AS kills_midfield,
-  sum(${num('defenses')}) AS defenses`;
+  sum(${num('defenses')}) AS defenses,
+  sum(${num('multiKills')}) AS multi_kills,
+  sum(${num('trades')}) AS trades,
+  sum(${num('firstKills')}) AS first_kills`;
 
 const perTenMinutes = (col: string) => ({ value: `${col} * 600 / play`, total: col });
 /** Valor do ranking e total bruto (desempate) de cada stat, sobre as colunas de `per`. */
@@ -95,6 +102,9 @@ const EXPRESSIONS: Record<StatId, { value: string; total: string }> = {
   killsOwnBase: perTenMinutes('kills_own_base'),
   killsMidfield: perTenMinutes('kills_midfield'),
   defenses: perTenMinutes('defenses'),
+  multiKills: perTenMinutes('multi_kills'),
+  trades: perTenMinutes('trades'),
+  firstKills: perTenMinutes('first_kills'),
 };
 
 /** Campo que o stat exige na partida (contadores novos, RN-LDB-03); undefined = todo o histórico. */

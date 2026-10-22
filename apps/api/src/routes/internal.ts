@@ -7,6 +7,7 @@ import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, typ
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matchEventPlayers, matchEvents, matches, matchPlayers, playerReports, rankedSeries, rooms, users, type MatchEvent } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
+import { momentStats } from '../match-moments.js';
 import { closeSeason, seasonAt } from '../ranking.js';
 import { applySkill } from '../skill.js';
 import { awardMilestones } from '../milestones.js';
@@ -445,6 +446,17 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               substitutions: body.substitutions ?? [],
             })
             .returning({ id: matches.id });
+          // multi-kill, troca e primeiro abate (OG-363): de quem está nos eventos e no fim da partida
+          const moments = body.events ? momentStats(body.events.events as MatchEvent[], body.events.players.map((p) => p.team)) : null;
+          const momentsOf = (p: (typeof body.players)[number]) => {
+            if (!moments) return {};
+            const sum = { multiKills: 0, trades: 0, firstKills: 0 };
+            body.events!.players.forEach((e, i) => {
+              if (e.slot !== p.slot || e.name !== p.name || e.team !== p.team || (e.userId ?? null) !== (p.userId ?? null)) return;
+              for (const k of ['multiKills', 'trades', 'firstKills'] as const) sum[k] += moments[i]![k];
+            });
+            return sum;
+          };
           if (body.players.length > 0) {
             await tx.insert(matchPlayers).values(
               body.players.map((p) => ({
@@ -462,7 +474,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
                 scoreDelta: p.scoreDelta,
                 negDelta: p.negDelta,
                 clanId: playerClan(p),
-                stats: p.stats,
+                stats: { ...p.stats, ...momentsOf(p) },
               })),
             );
           }
