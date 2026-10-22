@@ -8,6 +8,7 @@ import type { AppDeps } from '../app.js';
 import { clans, formatRatings, ratings, seasonChampions, seasons, seasonStandings, users, type ChampionBoard } from '../db/schema.js';
 import { activeSeason, formatRatingExpr, MINIMUM_SCORE, ratingExpr } from '../ranking.js';
 import { CLAN_MINIMUM_MATCHES, clanLeaderboard } from '../clan-stats.js';
+import { LEADERBOARD_MINIMUM_MATCHES, LEADERBOARD_STATS, STAT_IDS, statBoard, statLeaders, type StatId } from '../leaderboard.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -43,6 +44,19 @@ const Entry = Type.Object({
   score: Type.Number(),
   neg: Type.Integer(),
   rating: Type.Number(),
+  matches: Type.Integer(),
+});
+
+const StatIdSchema = Type.Unsafe<StatId>({ type: 'string', enum: STAT_IDS });
+const StatKindSchema = Type.Union([Type.Literal('rate'), Type.Literal('ratio'), Type.Literal('record'), Type.Literal('average')]);
+const StatEntrySchema = Type.Object({
+  position: Type.Integer(),
+  userId: Type.String(),
+  username: Type.String(),
+  clanTag: Type.Union([Type.String(), Type.Null()]),
+  clanLabel: Type.Union([Type.String(), Type.Null()]),
+  /** Valor na forma de ranquear do stat (por 10 min, razão, recorde ou média). */
+  value: Type.Number(),
   matches: Type.Integer(),
 });
 
@@ -204,6 +218,74 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         }
         const board = await clanLeaderboard(db, out?.id ?? null, limit, offset);
         return { season: out, minimumMatches: CLAN_MINIMUM_MATCHES, ...board };
+      },
+    );
+
+    // --- leaderboard de atributos (OG-352, D-66, RN-LDB) ---
+
+    /** Temporada pedida (padrão: a ativa) ou null com `overall`; undefined se não existe. */
+    async function scopeSeason(season: number | undefined, overall: boolean) {
+      if (overall) return null;
+      const id = season ?? (await activeSeason(db))?.id;
+      const [row] = id ? await db.select().from(seasons).where(eq(seasons.id, id)) : [];
+      return row ? { id: row.id, name: row.name, startsAt: row.startsAt.toISOString(), endsAt: row.endsAt?.toISOString() ?? null, active: row.active } : undefined;
+    }
+    const StatScope = {
+      season: Type.Optional(Type.Integer({ minimum: 1 })),
+      overall: Type.Boolean({ default: false }),
+      format: Type.Optional(RankedFormatSchema),
+    };
+
+    app.get(
+      '/leaderboard/stats',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: `Leaderboard de atributos (OG-352): os 3 primeiros de cada stat na temporada (padrão: a ativa) ou de sempre (overall=true); mínimo de ${LEADERBOARD_MINIMUM_MATCHES} ranqueadas`,
+          querystring: Type.Object(StatScope),
+          response: {
+            200: Type.Object({ season: Type.Union([Type.Null(), Season]), minimumMatches: Type.Integer(), stats: Type.Array(Type.Object({ stat: StatIdSchema, kind: StatKindSchema, main: Type.Boolean(), entries: Type.Array(StatEntrySchema) })) }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const { overall, format } = request.query;
+        const season = await scopeSeason(request.query.season, overall);
+        if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+        const leaders = await statLeaders(db, { seasonId: season?.id ?? null, format: format ?? null }, 3);
+        const main = new Map(LEADERBOARD_STATS.map((x) => [x.id, x.main]));
+        return { season, minimumMatches: LEADERBOARD_MINIMUM_MATCHES, stats: leaders.map((l) => ({ ...l, main: main.get(l.stat) ?? false })) };
+      },
+    );
+
+    app.get(
+      '/leaderboard/stats/:stat',
+      {
+        schema: {
+          tags: ['ranking'],
+          summary: 'Um stat do leaderboard de atributos (OG-352, RN-LDB-02): lista paginada e, com `player`, a posição dele',
+          params: Type.Object({ stat: StatIdSchema }),
+          querystring: Type.Object({
+            ...StatScope,
+            player: Type.Optional(Type.String({ minLength: 1, maxLength: 32 })),
+            limit: Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
+            offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
+          }),
+          response: {
+            200: Type.Object({ season: Type.Union([Type.Null(), Season]), stat: StatIdSchema, kind: StatKindSchema, minimumMatches: Type.Integer(), total: Type.Integer(), entries: Type.Array(StatEntrySchema), me: Type.Union([Type.Null(), StatEntrySchema]) }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const { overall, format, player, limit, offset } = request.query;
+        const { stat } = request.params;
+        const season = await scopeSeason(request.query.season, overall);
+        if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+        const board = await statBoard(db, stat, { seasonId: season?.id ?? null, format: format ?? null }, { limit, offset }, player);
+        const kind = LEADERBOARD_STATS.find((x) => x.id === stat)!.kind;
+        return { season, stat, kind, minimumMatches: LEADERBOARD_MINIMUM_MATCHES, ...board };
       },
     );
 

@@ -807,7 +807,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-349](cards/OG-349-rating-openskill.md) | Rating de habilidade com OpenSkill (Plackett–Luce) | E12 | 5 | Must | S37 | — | Em revisão |
 | [OG-350](cards/OG-350-descontinuar-ranking-score-neg.md) | Descontinuar o ranking por score/neg | E12 | 5 | Must | S37 | OG-349 | Pronto |
 | [OG-351](cards/OG-351-rating-no-perfil-e-relatorio.md) | Rating do OpenSkill no perfil e no relatório da partida | E9 | 5 | Must | S37 | OG-349 | Pronto |
-| [OG-352](cards/OG-352-leaderboard-de-atributos-api.md) | Leaderboard de atributos: API | E12 | 3 | Must | S37 | — | Pronto |
+| [OG-352](cards/OG-352-leaderboard-de-atributos-api.md) | Leaderboard de atributos: API | E12 | 3 | Must | S37 | — | Em revisão |
 | [OG-353](cards/OG-353-pagina-do-leaderboard.md) | Página do leaderboard mensal | E9 | 5 | Must | S37 | OG-352 | Pronto |
 | [OG-354](cards/OG-354-hall-da-fama-pelo-leaderboard.md) | Hall da fama mensal pelo leaderboard | E12 | 3 | Must | S37 | OG-352, OG-350 | Pronto |
 | [OG-355](cards/OG-355-contadores-dano-zona-defesa.md) | Contadores novos: dano efetivo, abates por zona e defesas | E12 | 5 | Should | — | OG-352 | Backlog |
