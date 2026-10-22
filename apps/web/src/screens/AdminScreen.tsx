@@ -2,15 +2,17 @@
 // Painel admin (OG-087): salas ao vivo com os jogadores (kick, ban, mute, mensagem), denúncias,
 // clãs (OG-275), bans, auditoria e, para admin, presets Casual, rotações e papéis. Quem não é moderador nem admin
 // vê só um aviso (a API recusa as rotas de qualquer jeito).
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
+import { decodeMapFile, parseMapFile } from '@outgun/content';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
+import { MapDrawing, MapPreview } from './MapPreview.js';
 
-type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'invites' | 'roles';
 
 interface RosterEntry {
   uid: number;
@@ -107,6 +109,7 @@ export default function AdminScreen() {
     ['bans', t('Bans')],
     ['audit', t('Audit log')],
     ['presets', t('Presets')],
+    ['maps', t('Maps')],
     ['rotations', t('Map rotations')],
     ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
   ];
@@ -131,8 +134,10 @@ export default function AdminScreen() {
           {tab === 'clans' && <ClansTab />}
           {tab === 'bans' && <BansTab isAdmin={isAdmin} />}
           {tab === 'audit' && <AuditTab />}
-          {tab === 'presets' && <PresetsTab isAdmin={isAdmin} />}
-          {tab === 'rotations' && <RotationsTab isAdmin={isAdmin} />}
+          {/* presets e rotações: moderador também edita (D-70) */}
+          {tab === 'presets' && <PresetsTab canEdit={allowed} />}
+          {tab === 'maps' && <MapsTab />}
+          {tab === 'rotations' && <RotationsTab canEdit={allowed} />}
           {tab === 'roles' && isAdmin && <RolesTab />}
         </div>
       )}
@@ -542,7 +547,7 @@ function AuditTab() {
   );
 }
 
-function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
+function PresetsTab({ canEdit }: { canEdit: boolean }) {
   const { t } = usePrefs();
   const list = useLoad<{ presets: PresetRow[] }>('/admin/presets');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
@@ -592,7 +597,7 @@ function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
                 </td>
                 <td>{p.source === 'code' ? t('game') : p.version}</td>
                 <td>
-                  {isAdmin && p.source === 'panel' && (
+                  {canEdit && p.source === 'panel' && (
                     <>
                       <button type="button" onClick={() => setForm({ id: p.id, description: p.description, overrides: p.overrides })}>
                         {t('Edit')}
@@ -608,7 +613,7 @@ function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
           </tbody>
         </table>
       )}
-      {isAdmin && (
+      {canEdit && (
         <form className="admin-form" onSubmit={save}>
           <label>
             {t('Preset')} <input value={form.id} maxLength={32} onChange={(e) => setForm({ ...form, id: e.target.value.toLowerCase() })} />
@@ -629,13 +634,163 @@ function PresetsTab({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+interface PanelMapRow {
+  name: string;
+  title: string;
+  author: string;
+  width: number;
+  height: number;
+  crc: number;
+  version: number;
+  active: boolean;
+  updatedBy: string | null;
+}
+
+/**
+ * Texto de um .txt de mapa: UTF-8 se for válido, senão Latin-1 (o "ANSI" dos arquivos da comunidade);
+ * a API guarda em Latin-1, como os mapas do jogo.
+ */
+export function mapFileText(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return decodeMapFile(bytes); // byte a byte (o TextDecoder 'latin1' do navegador é o windows-1252)
+  }
+}
+
+/** Mapas .txt da moderação (OG-366, D-70): conferir (erros do parser ou prévia), publicar e desativar. */
+function MapsTab() {
+  const { t } = usePrefs();
+  const list = useLoad<{ maps: PanelMapRow[] }>('/admin/maps');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const [form, setForm] = useState({ name: '', text: '' });
+  const [check, setCheck] = useState<{ ok: boolean; errors: string[]; preview?: { title: string; author: string; width: number; height: number } | null } | null>(null);
+  // prévia do arquivo antes de publicar (OG-368): desenhada do texto, com o mesmo parser
+  const draft = useMemo(() => {
+    const r = form.text ? parseMapFile(`${form.name}.txt`, Uint8Array.from(form.text, (c) => c.charCodeAt(0) & 0xff)) : null;
+    return r?.ok ? r.map : null;
+  }, [form]);
+  const pick = (file: File | undefined) => {
+    if (!file) return;
+    setCheck(null);
+    void file.arrayBuffer().then((buf) => setForm({ name: file.name.replace(/\.txt$/i, '').slice(0, 64), text: mapFileText(new Uint8Array(buf)) }));
+  };
+  const verify = () =>
+    api<NonNullable<typeof check>>('/admin/maps/check', { body: form }).then(setCheck, (e: unknown) => setStatus({ error: errorText(e) }));
+  const publish = () =>
+    api<{ version: number }>(`/admin/maps/${encodeURIComponent(form.name)}`, { method: 'PUT', body: { text: form.text } }).then(
+      (r) => {
+        setStatus({ text: t('Map published (version $1).', String(r.version)) });
+        setCheck(null);
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  const remove = (name: string) =>
+    api(`/admin/maps/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(
+      () => {
+        setStatus({ text: t('Map deactivated.') });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  return (
+    <section className="stats-section">
+      <p className="stats-line">{t('Send a map .txt in the Outgun format. Once published it can go into the rotations and private rooms, without a new release.')}</p>
+      <Status text={status.text} error={status.error ?? list.error} />
+      {list.data && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Map')}</th>
+              <th>{t('Title')}</th>
+              <th>{t('Author')}</th>
+              <th>{t('Size')}</th>
+              <th>{t('Version')}</th>
+              <th>{t('By')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.maps.map((m) => (
+              <tr key={m.name}>
+                <td className="name">
+                  <span className="admin-map-name">
+                    {m.active && <MapPreview name={m.name} label={m.title} thumb />}
+                    {m.name}
+                  </span>
+                </td>
+                <td className="name">{m.title}</td>
+                <td className="name">{m.author || '-'}</td>
+                <td>
+                  {m.width}×{m.height}
+                </td>
+                <td>{m.active ? m.version : t('inactive')}</td>
+                <td className="name">{m.updatedBy ?? '-'}</td>
+                <td>
+                  {m.active && (
+                    <button type="button" onClick={() => void remove(m.name)}>
+                      {t('Deactivate')}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <form
+        className="admin-form"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          void verify();
+        }}
+      >
+        <label>
+          {t('Map file (.txt)')} <input type="file" accept=".txt,text/plain" onChange={(e) => pick(e.target.files?.[0])} />
+        </label>{' '}
+        <label>
+          {t('Map')}{' '}
+          <input
+            value={form.name}
+            maxLength={64}
+            onChange={(e) => {
+              setCheck(null);
+              setForm({ ...form, name: e.target.value });
+            }}
+          />
+        </label>{' '}
+        <button type="submit" disabled={!form.name || !form.text}>
+          {t('Check')}
+        </button>
+        {check && !check.ok && (
+          <ul className="stats-note error" role="alert">
+            {check.errors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        )}
+        {check?.ok && draft && <MapDrawing map={draft} label={check.preview?.title ?? form.name} />}
+        {check?.ok && check.preview && (
+          <p className="stats-note" role="status">
+            {t('$1 by $2, $3×$4 rooms.', check.preview.title, check.preview.author || '-', String(check.preview.width), String(check.preview.height))}{' '}
+            <button type="button" onClick={() => void publish()}>
+              {t('Publish map')}
+            </button>
+          </p>
+        )}
+      </form>
+    </section>
+  );
+}
+
 interface RotationRow {
   key: string;
   maps: string[];
   version: number;
 }
 
-function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
+function RotationsTab({ canEdit }: { canEdit: boolean }) {
   const { t } = usePrefs();
   const list = useLoad<{ rotations: RotationRow[]; catalog: string[] }>('/admin/rotations');
   const [status, setStatus] = useState<{ text?: string; error?: string }>({});
@@ -669,9 +824,9 @@ function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
       <div className="admin-form">
         <label className="admin-block">
           {t('Casual rotation (one map per line; empty = server default)')}
-          <textarea value={casual} rows={6} readOnly={!isAdmin} onChange={(e) => setCasualDraft(e.target.value)} />
+          <textarea value={casual} rows={6} readOnly={!canEdit} onChange={(e) => setCasualDraft(e.target.value)} />
         </label>
-        {isAdmin && (
+        {canEdit && (
           <button type="button" disabled={!casual.trim()} onClick={() => void saveCasual()}>
             {t('Save')}
           </button>
@@ -691,17 +846,22 @@ function RotationsTab({ isAdmin }: { isAdmin: boolean }) {
         <tbody>
           {rows.map((map) => (
             <tr key={map}>
-              <td>{map}</td>
+              <td>
+                <span className="admin-map-name">
+                  <MapPreview name={map} label={map} thumb />
+                  {map}
+                </span>
+              </td>
               {RANKED_FORMATS.map((f) => (
                 <td key={f}>
-                  <input type="checkbox" aria-label={`${map} ${f}`} checked={formatMaps(f).includes(map)} disabled={!isAdmin} onChange={() => toggle(f, map)} />
+                  <input type="checkbox" aria-label={`${map} ${f}`} checked={formatMaps(f).includes(map)} disabled={!canEdit} onChange={() => toggle(f, map)} />
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
-      {isAdmin && (
+      {canEdit && (
         <p className="admin-form">
           <button type="button" disabled={changed.length === 0 || changed.some((f) => formatMaps(f).length === 0)} onClick={() => void saveFormats()}>
             {t('Save')}

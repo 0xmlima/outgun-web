@@ -46,8 +46,10 @@ describe.skipIf(!pgAdminUrl)('leaderboard de atributos (OG-352)', () => {
       slot, userId: ids[name], name, team, isBot: false, frags: kills, kills, deaths, captures: stats.captures ?? 0, playSeconds, scoreDelta: 0, negDelta: 0, stats,
     });
     for (let i = 0; i < 5; i++) {
-      await send([line(0, 'Ana', 0, 600, 6, 2, { botKills: 1, hits: 10, shots: 40, flagCarryingTime: 30, consecutiveKills: i, lifetime: 500 })], true, '3x3');
-      await send([line(0, 'Bia', 1, 300, 4, 0, { hits: 10, shots: 20, flagsReturned: 1, consecutiveKills: 2, lifetime: 280 })]);
+      // contadores do OG-355: Ana em todas; Bia só nas 3 últimas (abaixo do mínimo para os stats novos)
+      const fresh = { effectiveDamage: 300, killsEnemyBase: 2, killsOwnBase: 1, killsMidfield: 3, defenses: 1 };
+      await send([line(0, 'Ana', 0, 600, 6, 2, { botKills: 1, hits: 10, shots: 40, flagCarryingTime: 30, consecutiveKills: i, lifetime: 500, ...fresh })], true, '3x3');
+      await send([line(0, 'Bia', 1, 300, 4, 0, { hits: 10, shots: 20, flagsReturned: 1, consecutiveKills: 2, lifetime: 280, ...(i >= 2 ? fresh : {}) })]);
     }
     for (let i = 0; i < 4; i++) await send([line(0, 'Caio', 0, 600, 30, 0, { hits: 50, shots: 50 })]);
     // Casual não conta
@@ -98,8 +100,18 @@ describe.skipIf(!pgAdminUrl)('leaderboard de atributos (OG-352)', () => {
   it('visão geral: os 3 primeiros de cada stat, com os principais marcados', async () => {
     const overview = (await app.inject('/leaderboard/stats')).json();
     expect(overview.stats.filter((s: { main: boolean }) => s.main).map((s: { stat: string }) => s.stat)).toEqual(['kills', 'captures', 'flagsReturned', 'flagCarryingTime', 'kd', 'accuracy']);
-    expect(overview.stats).toHaveLength(13);
+    expect(overview.stats).toHaveLength(21);
     expect(overview.stats[0].entries.map((e: { username: string }) => e.username)).toEqual(['Bia', 'Ana']);
     expect((await app.inject('/leaderboard/stats/nada')).statusCode).toBe(400);
+  });
+
+  it('stats novos (OG-355, RN-LDB-03): só partidas com o campo, com a data de início', async () => {
+    expect(await values('effectiveDamage')).toEqual([['Ana', 300]]);
+    expect(await values('defenses')).toEqual([['Ana', 1]]);
+    expect(await values('killsMidfield')).toEqual([['Ana', 3]]);
+    expect(typeof (await board('effectiveDamage')).since).toBe('string');
+    expect((await board('kills')).since).toBeNull();
+    const overview = (await app.inject('/leaderboard/stats')).json();
+    expect(overview.stats.find((s: { stat: string }) => s.stat === 'killsEnemyBase').since).toEqual(expect.any(String));
   });
 });

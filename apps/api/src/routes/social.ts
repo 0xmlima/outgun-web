@@ -28,6 +28,13 @@ const Mate = Type.Object({
   wins: Type.Integer(),
   losses: Type.Integer(),
 });
+/** Adversário no "quem matou quem" (OG-364): abates de um sobre o outro. */
+const Duel = Type.Object({
+  username: Type.String(),
+  clanTag: Type.Union([Type.String(), Type.Null()]),
+  clanLabel: Type.Union([Type.String(), Type.Null()]),
+  kills: Type.Integer(),
+});
 const PeriodTotals = Type.Object({
   matches: Type.Integer(),
   wins: Type.Integer(),
@@ -154,6 +161,63 @@ export function socialRoutes({ database }: AppDeps, { sessions }: Services): Fas
         });
       },
     );
+
+    app.get(
+      '/players/:name/kills',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Quem matou quem (OG-364): vítimas favoritas e quem mais mata o jogador nas ranqueadas com eventos, no mês ou sempre',
+          params: Name,
+          querystring: Type.Object({ period: Type.Union([Type.Literal('month'), Type.Literal('all')], { default: 'month' }) }),
+          response: {
+            200: Type.Object({ hidden: Type.Boolean(), victims: Type.Array(Duel), killers: Type.Array(Duel) }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const t = await target(request.params.name);
+        if (!t) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
+        const owner = await isOwner(request, t);
+        const { period } = request.query;
+        return cached(`kills:${t.id}:${period}`, owner, async () => {
+          // histórico escondido (D-39): só o dono vê
+          if (t.hideHistory && !owner) return { hidden: true, victims: [], killers: [] };
+          const [victims, killers] = await Promise.all([duels(t.id, 'killer', period), duels(t.id, 'victim', period)]);
+          return { hidden: false, victims, killers };
+        });
+      },
+    );
+
+    /**
+     * Abates entre o jogador e cada adversário com conta (bots e convidados não entram, RN-SOC-02),
+     * dos eventos das ranqueadas (OG-362); `as` = o papel do jogador. Quem esconde companheiros fica fora.
+     */
+    async function duels(userId: string, as: 'killer' | 'victim', period: 'month' | 'all') {
+      const [me, other] = as === 'killer' ? ['killer', 'victim'] : ['victim', 'killer'];
+      const rows = await db.execute<{ username: string; clan_tag: string | null; clan_label: string | null; kills: number }>(sql`
+        WITH k AS (
+          SELECT e.match_id, (ev ->> 2)::int AS killer, (ev ->> 3)::int AS victim
+          FROM match_events e
+          JOIN matches m ON m.id = e.match_id
+          CROSS JOIN LATERAL jsonb_array_elements(e.events) ev
+          WHERE ev ->> 1 = 'kill'
+            AND e.match_id IN (SELECT match_id FROM match_event_players WHERE user_id = ${userId})
+            ${period === 'month' ? sql`AND m.ended_at >= date_trunc('month', now())` : sql``}
+        )
+        SELECT u.username, u.clan_tag, u.clan_label, count(*)::int AS kills
+        FROM k
+        JOIN match_event_players me ON me.match_id = k.match_id AND me.idx = ${sql.raw(`k.${me}`)} AND me.user_id = ${userId}
+        JOIN match_event_players mo ON mo.match_id = k.match_id AND mo.idx = ${sql.raw(`k.${other}`)} AND mo.user_id IS NOT NULL AND mo.user_id <> ${userId} AND mo.team <> me.team
+        JOIN users u ON u.id = mo.user_id
+        LEFT JOIN player_profiles pr ON pr.user_id = mo.user_id
+        WHERE NOT coalesce(pr.hide_companions, false)
+        GROUP BY u.id, u.username, u.clan_tag, u.clan_label, u.username_key
+        ORDER BY kills DESC, u.username_key
+        LIMIT ${LIST_SIZE}`);
+      return rows.map((r) => ({ username: r.username, clanTag: r.clan_tag, clanLabel: r.clan_label, kills: r.kills }));
+    }
 
     app.get(
       '/players/:name/progress',

@@ -19,6 +19,7 @@ import { RankedLobby } from './ranked-lobby.js';
 import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
+import { MatchEventRecorder, type EventFlag } from './match-events.js';
 import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { teamStrength, type PlayerSkill } from './ranking.js';
@@ -124,6 +125,8 @@ export interface RoomOptions {
    */
   randomSlots?: readonly (RandomMapParams | null)[] | undefined;
   generatedMaps?: GeneratedMaps | undefined;
+  /** Texto dos mapas da moderação (OG-367), para o replay levar o mapa. */
+  mapText?: ((file: string) => string | undefined) | undefined;
   /** Relógio em ms para medir quando os inputs chegam dentro do frame (padrão `performance.now`). */
   now?: () => number;
   /** Auditoria das ações de admin (OG-046): o servidor manda para a API. */
@@ -283,6 +286,11 @@ export class Room {
   private substitutes = 0;
   /** Desconexões permanentes deste jogo, para o relatório (OG-263). */
   private substitutions: Substitution[] = [];
+  /** Eventos do jogo Ranked (OG-362): só vão no relatório da ranqueada. */
+  private readonly events = new MatchEventRecorder((pid) => {
+    const c = this.clients.get(pid);
+    return c ? { slot: pid, ...(c.identity.accountId ? { userId: c.identity.accountId } : {}), name: c.identity.name, team: this.world.teamOf(pid) as 0 | 1, bot: c.bot } : null;
+  });
   /** Contas que saíram no meio do jogo Ranked: recebem o resultado do time no rating (OG-349, RN-SKL-03). */
   private readonly departed = new Map<string, 0 | 1>();
   /** Pedidos de troca de lado no lobby (OG-253): quem pediu → com quem. */
@@ -369,13 +377,27 @@ export class Room {
       kill: (attacker, target, cause, carried, carrierDefended, flagDefended) => {
         const killer = this.clients.get(attacker & 31);
         if (killer && (attacker & 31) !== target && this.clients.get(target)?.bot) killer.botKills++;
+        const victim = this.world.players[target];
+        if (this.mode === 'ranked' && victim) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended }));
       },
       suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
-      flagTaken: (pid, flag) => this.broadcast(message('flagTake', { pid, flag: FLAG_TYPE[flag] })),
-      flagDropped: (pid, flag, captureDrop) => this.broadcast(message('flagDrop', { pid, flag: FLAG_TYPE[flag], captureDrop })),
-      flagReturned: (pid) => this.broadcast(message('flagReturn', { pid })),
-      flagCaptured: (pid, flagTeam, assistant) => this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant })),
+      flagTaken: (pid, flag) => {
+        this.flagEvent('take', pid, this.flagOf(pid, flag));
+        this.broadcast(message('flagTake', { pid, flag: FLAG_TYPE[flag] }));
+      },
+      flagDropped: (pid, flag, captureDrop) => {
+        if (!captureDrop) this.flagEvent('drop', pid, this.flagOf(pid, flag));
+        this.broadcast(message('flagDrop', { pid, flag: FLAG_TYPE[flag], captureDrop }));
+      },
+      flagReturned: (pid) => {
+        this.flagEvent('return', pid, this.world.teamOf(pid) as EventFlag);
+        this.broadcast(message('flagReturn', { pid }));
+      },
+      flagCaptured: (pid, flagTeam, assistant) => {
+        this.flagEvent('capture', pid, flagTeam as EventFlag);
+        this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant }));
+      },
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
       normalTimeOut: (sd) => this.broadcast(message('timeEvent', { kind: sd ? 'normalTimeOutSuddenDeath' : 'normalTimeOut' }), this.mapTimeMessage()),
@@ -1490,7 +1512,8 @@ export class Room {
   /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
   private startRecording(): void {
     const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
-    const mapText = this.options.generatedMaps?.text(this.mapFile(this.mapIndex));
+    const file = this.mapFile(this.mapIndex);
+    const mapText = this.options.generatedMaps?.text(file) ?? this.options.mapText?.(file);
     this.recorder = new ReplayRecorder(
       {
         roomId: this.id,
@@ -1498,7 +1521,7 @@ export class Room {
         preset: this.preset.id,
         map: this.mapFile(this.mapIndex),
         mapTitle: this.world.map.title,
-        // mapa gerado (OG-015): o texto vai no replay, porque não existe em maps/
+        // mapa gerado (OG-015) ou da moderação (OG-367): o texto vai no replay, porque não existe em maps/
         ...(mapText !== undefined ? { mapText } : {}),
         maxPlayers: this.world.maxPlayers,
         startedAt: new Date(this.wallClock()).toISOString(),
@@ -1562,6 +1585,17 @@ export class Room {
       this.sentScores[team] = t.score;
       this.broadcast(message('scoreUpdate', { team: team === 0 ? 'red' : 'blue', score: t.score }));
     });
+  }
+
+  /** Ação de bandeira no registro do jogo Ranked (OG-362). */
+  private flagEvent(kind: 'take' | 'drop' | 'return' | 'capture', pid: number, flag: EventFlag): void {
+    if (this.mode === 'ranked') this.events.flag(this.world.mapTime(), kind, pid, flag);
+  }
+
+  /** Bandeira (0 vermelha, 1 azul, 2 selvagem) que o jogador pegou ou largou. */
+  private flagOf(pid: number, flag: CarriedFlag): EventFlag {
+    const team = this.world.teamOf(pid);
+    return flag === CarriedFlag.Wild ? 2 : ((flag === CarriedFlag.Own ? team : 1 - team) as EventFlag);
   }
 
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
@@ -1634,6 +1668,7 @@ export class Room {
    */
   private cancelGame(): void {
     this.recorder = null; // sem replay
+    this.events.reset();
     this.pause?.reset();
     for (const [pid, c] of [...this.clients]) if (c.bot || c.departing || c.conn === OFFLINE) this.leave(pid);
     this.substitutes = 0;
@@ -1672,6 +1707,7 @@ export class Room {
         ...(series ? { series } : {}),
         substitutions: this.substitutions,
         skillRoster: this.skillRoster(),
+        events: this.events.log(),
       }),
     );
   }
@@ -1886,6 +1922,7 @@ export class Room {
     }
     this.matchStartedAt = this.wallClock();
     this.departed.clear();
+    this.events.reset();
     for (const c of this.clients.values()) c.botKills = 0;
     Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
     const map = entry.map;

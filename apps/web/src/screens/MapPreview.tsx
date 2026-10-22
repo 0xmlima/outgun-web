@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Prévia do mapa em SVG (OG-214), com o mesmo desenho do `tools/map-preview`: chão e paredes com as
-// cores aproximadas das texturas padrão e as bandeiras dos times. Mapas gerados na hora (OG-015) não
-// estão nos assets: sem prévia.
+// cores aproximadas das texturas padrão e as bandeiras dos times. Os mapas do jogo vêm dos assets; os
+// publicados pela moderação, da API (OG-368). Mapas gerados na hora (OG-015) ficam sem prévia.
 import { parseMapFile } from '@outgun/content';
 import type { GameMap, Wall } from '@outgun/sim';
 import { useEffect, useState } from 'react';
+import { API_URL } from '../app/api.js';
 import { ASSETS, loadManifest } from '../assets.js';
 
 const ROOM_W = 472;
@@ -39,17 +40,31 @@ function Shape({ wall, fill }: { wall: Wall; fill: string }) {
   return <path d={`M ${cx} ${cy} L ${ox0} ${oy0} A ${wall.ro} ${wall.ro} 0 ${large} 1 ${ox1} ${oy1} Z`} fill={fill} />;
 }
 
+const cache = new Map<string, Promise<GameMap | null>>();
+
+/** Mapa para a prévia: dos assets do jogo ou, fora deles, publicado pela moderação (API); com cache. */
+export function previewMap(name: string): Promise<GameMap | null> {
+  let hit = cache.get(name);
+  if (!hit) {
+    hit = (async () => {
+      if (/^mapgen_\d+$/.test(name) || name === 'random' || name.startsWith('random_map')) return null;
+      const entry = (await loadManifest())?.maps[name];
+      const res = await fetch(entry ? ASSETS + entry.file : `${API_URL}/maps/${encodeURIComponent(name)}`);
+      if (!res.ok) return null;
+      const result = parseMapFile(name, new Uint8Array(await res.arrayBuffer()));
+      return result.ok ? result.map : null;
+    })().catch(() => null);
+    cache.set(name, hit);
+  }
+  return hit;
+}
+
 function useMap(name: string): GameMap | null {
   const [map, setMap] = useState<GameMap | null>(null);
   useEffect(() => {
     let alive = true;
-    void (async () => {
-      const entry = (await loadManifest())?.maps[name];
-      if (!entry) return;
-      const bytes = new Uint8Array(await (await fetch(ASSETS + entry.file)).arrayBuffer());
-      const result = parseMapFile(name, bytes);
-      if (alive && result.ok) setMap(result.map);
-    })().catch(() => undefined);
+    setMap(null);
+    void previewMap(name).then((m) => alive && setMap(m));
     return () => {
       alive = false;
     };
@@ -57,9 +72,14 @@ function useMap(name: string): GameMap | null {
   return map;
 }
 
-export function MapPreview({ name, label }: { readonly name: string; readonly label: string }) {
+/** Prévia pelo nome do mapa; `thumb` = miniatura (listas de escolha de mapas). */
+export function MapPreview({ name, label, thumb = false }: { readonly name: string; readonly label: string; readonly thumb?: boolean }) {
   const map = useMap(name);
-  if (!map) return null;
+  return map ? <MapDrawing map={map} label={label} thumb={thumb} /> : thumb ? <span className="map-thumb map-thumb-empty" aria-hidden /> : null;
+}
+
+/** Desenho de um mapa já carregado (também a prévia do arquivo antes de publicar, OG-368). */
+export function MapDrawing({ map, label, thumb = false }: { readonly map: GameMap; readonly label: string; readonly thumb?: boolean }) {
   const rooms = [];
   for (let x = 0; x < map.width; x++) {
     for (let y = 0; y < map.height; y++) {
@@ -83,7 +103,7 @@ export function MapPreview({ name, label }: { readonly name: string; readonly la
     ...map.wildFlags.map((f) => ({ f, color: TEAM[2]! })),
   ];
   return (
-    <svg className="map-preview" viewBox={`0 0 ${map.width * ROOM_W} ${map.height * ROOM_H}`} role="img" aria-label={label}>
+    <svg className={thumb ? 'map-thumb' : 'map-preview'} viewBox={`0 0 ${map.width * ROOM_W} ${map.height * ROOM_H}`} role="img" aria-label={label}>
       {rooms}
       {flags.map(({ f, color }, i) => (
         <circle key={i} cx={f.room.x * ROOM_W + f.x} cy={f.room.y * ROOM_H + f.y} r={Math.max(15, 12 * Math.max(map.width, map.height))} fill={color} stroke="#fff" strokeWidth={4} />

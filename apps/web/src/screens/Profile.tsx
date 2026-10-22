@@ -72,6 +72,8 @@ export function ProfileScreen() {
   const [format, setFormat] = useFormatParam();
   const profile = useApi<Profile>(format === 'all' ? base : `${base}?format=${format}`, true);
   const social = useApi<Social>(`${base}/social`);
+  const [duelPeriod, setDuelPeriod] = useState<'month' | 'all'>('month');
+  const duels = useApi<Duels>(`${base}/kills?period=${duelPeriod}`);
   const progress = useApi<Progress>(`${base}/progress`);
   const history = useApi<{ total: number; hidden: boolean; matches: HistoryEntry[] }>(
     `${base}/matches?limit=${limit}${historyMode === 'all' ? '' : `&mode=${historyMode}`}${historyMode === 'casual' ? '' : formatQuery(format)}`,
@@ -298,6 +300,28 @@ export function ProfileScreen() {
       <div className="report-grid">
         <Panel title={t('Teammates')}>{s?.hidden ? privateNote : <MateTable caption={t('Teammates')} rows={s?.companions ?? []} />}</Panel>
         <Panel title={t('Rivals')}>{s?.hidden ? privateNote : <MateTable caption={t('Rivals')} rows={s?.rivals ?? []} />}</Panel>
+        <Panel title={t('Who killed whom')}>
+          <Tabs
+            label={t('Period')}
+            tabs={[
+              { id: 'month', label: t('This month') },
+              { id: 'all', label: t('All time') },
+            ]}
+            value={duelPeriod}
+            onChange={setDuelPeriod}
+          >
+            {duels.data?.hidden ? (
+              privateNote
+            ) : duels.data ? (
+              <div className="report-grid">
+                <DuelTable caption={t('Favourite victims')} rows={duels.data.victims} />
+                <DuelTable caption={t('Who kills you most')} rows={duels.data.killers} />
+              </div>
+            ) : (
+              <Status loading={duels.data === undefined} missing={false} error={duels.error} />
+            )}
+          </Tabs>
+        </Panel>
         {s?.clan && (
           <Panel title={`${t('Clan')} · ${s.clan.tag}`} actions={<Link to={`/clans/${encodeURIComponent(s.clan.tag)}`}>{t('Clan page')}</Link>}>
             <ul className="profile-clan">
@@ -323,6 +347,37 @@ function MatchResult({ m }: { m: HistoryEntry }) {
     <Badge tone={tone}>
       {mine > theirs ? t('Win') : mine < theirs ? t('Loss') : t('Draw')} {mine}–{theirs}
     </Badge>
+  );
+}
+
+/** Quem matou quem (OG-364): abates entre o jogador e cada adversário nas ranqueadas com eventos. */
+interface Duel {
+  username: string;
+  clanTag: string | null;
+  clanLabel: string | null;
+  kills: number;
+}
+interface Duels {
+  hidden: boolean;
+  victims: Duel[];
+  killers: Duel[];
+}
+
+function DuelTable({ caption, rows }: { caption: string; rows: Duel[] }) {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  return (
+    <Table
+      caption={caption}
+      rows={rows}
+      rowKey={(r) => r.username}
+      onRowActivate={(r) => void navigate(`/players/${encodeURIComponent(r.username)}`)}
+      empty={t('No data yet (counted from Ranked matches since the event log).')}
+      columns={[
+        { key: 'name', header: caption, cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
+        { key: 'kills', header: t('Kills'), cell: (r) => r.kills, align: 'end' },
+      ]}
+    />
   );
 }
 

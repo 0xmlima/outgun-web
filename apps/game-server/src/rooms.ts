@@ -27,6 +27,8 @@ export interface RoomSpec {
   ranked?: RankedRoomFormat;
   /** Bots da sala privada Casual escolhidos pelo dono (OG-289). */
   casualBots?: CasualBots;
+  /** Mapas que a sala Casual escolheu (D-69): quando a rotação muda, ficam os que seguem nela. */
+  chosenMaps?: readonly string[];
 }
 
 interface Entry {
@@ -34,6 +36,7 @@ interface Entry {
   name: string;
   persistent: boolean;
   emptySince: number | null;
+  chosenMaps: readonly string[] | null;
 }
 
 export interface ManagerOptions {
@@ -43,7 +46,7 @@ export interface ManagerOptions {
   /** Semente das salas (testes); padrão: aleatória por sala. */
   seed?: () => number;
   /** Auditoria, filtro do chat e log, iguais para todas as salas (OG-046). */
-  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'onMisbehavior' | 'reportPlayer' | 'generatedMaps' | 'reconnectSeconds' | 'reportMatch' | 'maxSpectators' | 'gamemod' | 'botsFill' | 'replays'>;
+  roomDefaults?: Pick<RoomOptions, 'audit' | 'chatFilter' | 'log' | 'onMisbehavior' | 'reportPlayer' | 'generatedMaps' | 'mapText' | 'reconnectSeconds' | 'reportMatch' | 'maxSpectators' | 'gamemod' | 'botsFill' | 'replays'>;
   /** Quantas salas o processo hospeda no máximo (as abertas sob demanda; padrão: sem limite). */
   maxRooms?: number;
   /** Recebe a duração de cada tick e os erros das salas (métricas, OG-102). */
@@ -104,7 +107,7 @@ export class RoomManager {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
     const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, ...(spec.ranked ? { ranked: spec.ranked } : {}), ...(spec.casualBots ? { casualBots: spec.casualBots } : {}), seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
-    this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null });
+    this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null, chosenMaps: spec.chosenMaps ?? null });
     return room;
   }
 
@@ -157,6 +160,11 @@ export class RoomManager {
 
   get(id: string): Room | undefined {
     return this.rooms.get(id)?.room;
+  }
+
+  /** Mapas escolhidos pela sala (D-69); null = segue a rotação inteira. */
+  chosenMaps(id: string): readonly string[] | null {
+    return this.rooms.get(id)?.chosenMaps ?? null;
   }
 
   list(): Room[] {

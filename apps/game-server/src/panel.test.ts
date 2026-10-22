@@ -127,4 +127,20 @@ describe('painel admin no game server (OG-087)', () => {
     expect(ranked('r-4x4', '4x4')!.world.maxPlayers).toBe(8);
     expect(rotations.ranked).toEqual(['outgun1']);
   });
+
+  it('rotação Casual do painel (D-69): sala privada escolhe só da rotação e segue a mudança na próxima troca', () => {
+    const { manager, rotations, panel } = setup();
+    const spawn = makeSpawner(manager, { mapsDir, rotations });
+    const pending = (room: object) => (room as { pendingRotation: { file: string }[] | null }).pendingRotation?.map((e) => e.file) ?? null;
+    const files = (room: object) => (room as { rotation: { file: string }[] }).rotation.map((e) => e.file);
+    panel.onReply(reply([], { rotations: { casual: ['outgun1', '2 versus 2 (duel)'] } }));
+    // mapa fora da rotação sai; nenhum na rotação = a rotação inteira
+    const own = spawn('p-1', { name: 'p1', mode: 'casual', preset: 'classic', maxPlayers: 8, persistent: false, maps: ['2 versus 2 (duel)', 'outgun1', 'coliseu'] })!;
+    expect(files(own)).toEqual(['2 versus 2 (duel)', 'outgun1']);
+    const none = spawn('p-2', { name: 'p2', mode: 'casual', preset: 'classic', maxPlayers: 8, persistent: false, maps: ['coliseu'] })!;
+    expect(files(none)).toEqual(['outgun1', '2 versus 2 (duel)']);
+    // a rotação muda: quem escolheu fica com a interseção; quem não escolheu (ou ficou sem nenhum) segue a nova
+    panel.onReply(reply([], { version: 'v2', rotations: { casual: ['outgun1', 'coliseu'] } }));
+    expect([pending(own), pending(none)]).toEqual([['outgun1'], ['outgun1', 'coliseu']]);
+  });
 });

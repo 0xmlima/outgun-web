@@ -190,6 +190,7 @@ export function LeaderboardScreen() {
             <FormatTabs value={format} onChange={setFormat} />
             {stat === OVERALL ? <OverallDetailView scope={scope} me={user?.username} /> : stat ? <StatDetailView stat={stat} scope={scope} me={user?.username} /> : <StatOverviewView scope={scope} onPick={setStat} />}
             <p className="ui-muted">{t('Per 10 minutes: totals divided by the time played, so whoever plays less can compete. Raw damage is hits on enemies × 70 and includes overkill.')}</p>
+            <p className="ui-muted">{t('Effective damage leaves out overkill. Base = the room where a team flag starts; defenses = kills next to an ally carrier or your own flag. Multi-kill = 2 or more kills up to 4 s apart; trade = killing, within 3 s, the enemy who just killed an ally; first kill = the first of the match and after each capture. These stats count from the date shown.')}</p>
           </>
         )}
       </Tabs>

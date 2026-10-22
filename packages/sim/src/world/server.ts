@@ -168,6 +168,13 @@ export class ServerSim {
     return a.roomX === b.roomX && a.roomY === b.roomY;
   }
 
+  /** Zona de um abate para o time do atacante (OG-355): base = sala onde nasce uma bandeira do time. */
+  private killZone(pos: Position, atteam: number): 'killsEnemyBase' | 'killsOwnBase' | 'killsMidfield' {
+    const base = (team: number) => this.world.flagsOf(team).some((f) => this.sameRoom(f.home, pos));
+    if (base(1 - atteam)) return 'killsEnemyBase';
+    return base(atteam) ? 'killsOwnBase' : 'killsMidfield';
+  }
+
   /** `ServerWorld::damagePlayer` (src/world.cpp:2274). */
   damagePlayer(target: number, attacker: number, damage: number, type: DamageType): void {
     const t = this.player(target);
@@ -188,6 +195,7 @@ export class ServerSim {
         } else sound('shieldd');
       }
     } else {
+      if (attacker < this.world.maxPlayers && this.teamOf(attacker) !== this.teamOf(target)) this.player(attacker).stats.effectiveDamage += Math.max(0, Math.min(damage, t.health));
       t.health -= damage;
       if (type !== DamageType.collision) t.nextShootFrame = this.frame + iround(this.settings.world.hitStunTime * 10);
     }
@@ -220,6 +228,10 @@ export class ServerSim {
           }
           if (!carrierDefended && !flagDefended && world.teams[tateam].flags.some(onGroundHere)) this.scoreFrag(attacker, FRAG_POINTS.flagDefense);
         }
+      }
+      if (!sameTeam) {
+        a.stats[this.killZone(t.pos, atteam)]++;
+        if (carrierDefended || flagDefended) a.stats.defenses++;
       }
       if (t.stats.carriedFlag !== CarriedFlag.None) {
         if (!sameTeam) {

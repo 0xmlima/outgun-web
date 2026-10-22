@@ -51,6 +51,14 @@ export function isRotationEntry(entry: string, map: (file: string) => GameMap | 
 /** Rotações oficiais: Casual e Ranked sempre; as dos formatos (OG-251) caem na `ranked` se faltarem. */
 export type Rotations = Record<'casual' | 'ranked', readonly string[]> & Partial<Record<RotationKey, readonly string[]>>;
 
+/** Rotações que vieram do painel (D-69); sem a Casual aqui, a sala privada escolhe livremente. */
+export const panelRotationKeys = new Set<RotationKey>();
+
+/** Mapas escolhidos que estão na rotação (D-69); vazio = a sala usa a rotação inteira. */
+export function withinRotation(chosen: readonly string[], rotation: readonly string[]): string[] {
+  return chosen.filter((m) => rotation.includes(m));
+}
+
 /** Rotação que uma sala nova usa (a do formato, se houver). */
 export function rotationFor(rotations: Rotations, mode: 'casual' | 'ranked', format?: RankedFormat): readonly string[] {
   return rotations[rotationKey(mode, format)] ?? rotations[mode];

@@ -456,6 +456,37 @@ export const skillChanges = pgTable(
   (t) => [primaryKey({ columns: [t.matchId, t.userId] }), index('skill_changes_user_idx').on(t.userId)],
 );
 
+/**
+ * Eventos de uma ranqueada (OG-362), em ordem; o 1º campo é o momento em décimos de segundo e os
+ * jogadores são índices em `match_event_players` (−1 = ninguém). Abate: `[t, 'kill', matador,
+ * vítima, salaX, salaY, vítima com bandeira (0/1), causa]`; bandeira: `[t, 'take' | 'drop' |
+ * 'return' | 'capture', jogador, bandeira (0 vermelha, 1 azul, 2 selvagem)]`.
+ */
+export type MatchEvent = [number, 'kill', number, number, number, number, 0 | 1, string] | [number, 'take' | 'drop' | 'return' | 'capture', number, number];
+export const matchEvents = pgTable('match_events', {
+  matchId: uuid('match_id')
+    .primaryKey()
+    .references(() => matches.id, { onDelete: 'cascade' }),
+  events: jsonb('events').$type<MatchEvent[]>().notNull().default([]),
+});
+
+/** Quem aparece nos eventos (OG-362); o slot pode ter mais de um jogador na partida. */
+export const matchEventPlayers = pgTable(
+  'match_event_players',
+  {
+    matchId: uuid('match_id')
+      .notNull()
+      .references(() => matches.id, { onDelete: 'cascade' }),
+    idx: smallint('idx').notNull(),
+    slot: smallint('slot').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    team: smallint('team').notNull(),
+    isBot: boolean('is_bot').notNull().default(false),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.idx] }), index('match_event_players_user_idx').on(t.userId)],
+);
+
 /** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã. */
 export type NotificationKind = 'clan_invite' | 'clan_request';
 export const notifications = pgTable(
@@ -584,6 +615,37 @@ export const casualPresetVersions = pgTable(
   (t) => [primaryKey({ columns: [t.presetId, t.version] })],
 );
 
+/** Mapas .txt enviados pela moderação (OG-366, D-70); texto em Latin-1, como os arquivos do jogo. */
+export const panelMaps = pgTable('panel_maps', {
+  name: text('name').primaryKey(),
+  text: text('text').notNull(),
+  title: text('title').notNull(),
+  author: text('author').notNull().default(''),
+  width: smallint('width').notNull(),
+  height: smallint('height').notNull(),
+  crc: integer('crc').notNull(),
+  version: integer('version').notNull().default(1),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+  deletedAt: tstz('deleted_at'),
+});
+
+export const panelMapVersions = pgTable(
+  'panel_map_versions',
+  {
+    name: text('name')
+      .notNull()
+      .references(() => panelMaps.name, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    text: text('text').notNull(),
+    crc: integer('crc').notNull(),
+    deleted: boolean('deleted').notNull().default(false),
+    changedBy: uuid('changed_by').references(() => users.id, { onDelete: 'set null' }),
+    changedAt: tstz('changed_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.name, t.version] })],
+);
+
 export const mapRotations = pgTable('map_rotations', {
   /** casual | ranked | ranked:3x3 | ranked:4x4 | ranked:5x5 (OG-251, `RotationKey`). */
   key: text('key').$type<RotationKey>().primaryKey(),
@@ -707,11 +769,15 @@ export const allTables = {
   player_skill: playerSkill,
   skill_changes: skillChanges,
   notifications,
+  match_events: matchEvents,
+  match_event_players: matchEventPlayers,
   bans,
   admin_actions: adminActions,
   player_reports: playerReports,
   admin_commands: adminCommands,
   casual_presets: casualPresets,
+  panel_maps: panelMaps,
+  panel_map_versions: panelMapVersions,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
   ranked_series: rankedSeries,

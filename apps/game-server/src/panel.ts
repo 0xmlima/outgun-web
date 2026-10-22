@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Painel admin no game server (OG-087): os comandos chegam na resposta do heartbeat, são executados
 // na sala e a confirmação volta no heartbeat seguinte; a configuração (presets Casual e rotações
-// por modo) é aplicada quando a versão muda. Rotação nova vale nas salas da plataforma (fixas) a
-// partir da próxima troca de mapa e em toda sala aberta depois; salas privadas mantêm a sua.
+// por modo) é aplicada quando a versão muda. Rotação nova vale em toda sala do modo a partir da
+// próxima troca de mapa (D-69): a sala Casual que escolheu mapas fica com os que seguem na rotação.
 import type { GameMap } from '@outgun/sim';
 import type { CommandAck, HeartbeatReply, PanelHandlers } from './platform.js';
 import { setPanelPresets } from './presets.js';
 import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
-import { isRotationEntry, resolveRotation, type Rotations } from './maps.js';
+import { isRotationEntry, panelRotationKeys, resolveRotation, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
+import type { PanelMaps } from './panel-maps.js';
 import type { RoomManager } from './rooms.js';
 
 export interface PanelOptions {
@@ -18,12 +19,15 @@ export interface PanelOptions {
   map: (file: string) => GameMap | undefined;
   /** Para as entradas `random_map` (OG-015). */
   generatedMaps?: GeneratedMaps;
+  /** Mapas da moderação (OG-367): baixados antes de aplicar as rotações que os usam. */
+  panelMaps?: PanelMaps;
   log?: (line: string, fields?: Record<string, unknown>) => void;
 }
 
 export class AdminPanelLink implements PanelHandlers {
   private acks: CommandAck[] = [];
   private configVersion = '';
+  private downloading = false;
 
   constructor(private readonly options: PanelOptions) {}
 
@@ -44,7 +48,21 @@ export class AdminPanelLink implements PanelHandlers {
       this.acks.push({ id: cmd.id, ...result });
       this.options.log?.('comando do painel', { room: cmd.roomId, kind: cmd.kind, actor: cmd.actor, ok: result.ok, ...(result.target ? { target: result.target.name } : {}) });
     }
-    if (reply.config.version !== this.configVersion) this.applyConfig(reply.config);
+    if (reply.config.version === this.configVersion || this.downloading) return;
+    const store = this.options.panelMaps;
+    const maps = reply.config.maps ?? [];
+    if (!store || !store.needs(maps)) {
+      void store?.sync(maps); // só tira os que saíram: nada a baixar
+      return this.applyConfig(reply.config);
+    }
+    // mapas novos da moderação: baixa antes, para a rotação que os usa já encontrá-los
+    this.downloading = true;
+    void store.sync(maps).then((failed) => {
+      this.downloading = false;
+      if (failed.length > 0) this.options.log?.('mapas da moderação não baixados: tenta no próximo heartbeat', { maps: failed });
+      this.applyConfig(reply.config);
+      if (failed.length > 0) this.configVersion = '';
+    });
   }
 
   private applyConfig(config: HeartbeatReply['config']): void {
@@ -60,11 +78,14 @@ export class AdminPanelLink implements PanelHandlers {
         continue;
       }
       this.options.rotations[key] = files;
-      // salas da plataforma e todas as Ranked (sempre com a rotação oficial do formato, RN-MOD-04)
+      panelRotationKeys.add(key);
+      // toda sala do modo (Ranked sempre com a rotação oficial do formato, RN-MOD-04; Casual que
+      // escolheu mapas fica com os que seguem na rotação, ou a rotação inteira se não sobrar nenhum)
       for (const h of this.options.manager.hosted()) {
         const room = this.options.manager.get(h.id);
-        if (!room || (!h.persistent && h.mode !== 'ranked') || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue;
-        room.setRotation(resolveRotation(files, this.options.map, this.options.generatedMaps));
+        if (!room || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue;
+        const chosen = h.mode === 'casual' ? withinRotation(this.options.manager.chosenMaps(h.id) ?? [], files) : [];
+        room.setRotation(resolveRotation(chosen.length > 0 ? chosen : files, this.options.map, this.options.generatedMaps));
       }
     }
     this.options.log?.('configuração do painel aplicada', { version: config.version, presets: config.presets.length });

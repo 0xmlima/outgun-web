@@ -624,8 +624,8 @@
 }
 .lobby-maps ul {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-  gap: var(--space-1) var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-2) var(--space-3);
   margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
@@ -696,6 +696,24 @@
   max-height: 20rem;
   margin-bottom: var(--space-3);
   border-radius: var(--radius-sm);
+}
+/* Miniatura do mapa nas listas de escolha (OG-368) */
+.map-thumb {
+  display: block;
+  width: 6rem;
+  height: 4.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+}
+.admin-map-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.lobby-maps label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 .report-timeline {
   display: grid;

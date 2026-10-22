@@ -74,9 +74,13 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       ['GET', '/admin/rotations', 'moderator'],
       ['POST', '/admin/broadcast', 'admin', { text: 'oi' }],
       ['POST', '/admin/bans', 'admin', { ip: '10.66.0.1', reason: 'x' }],
-      ['PUT', '/admin/presets/festa', 'admin', { description: 'Festa', overrides: 'rocket_damage 140' }],
-      ['DELETE', '/admin/presets/nao-existe', 'admin'],
-      ['PUT', '/admin/rotations/casual', 'admin', { maps: ['outgun1'] }],
+      // presets, rotações e mapas: moderador também (D-70)
+      ['PUT', '/admin/presets/permissao', 'moderator', { description: 'Permissão', overrides: 'rocket_damage 140' }],
+      ['DELETE', '/admin/presets/permissao', 'moderator'],
+      ['PUT', '/admin/rotations/ranked:5x5', 'moderator', { maps: ['outgun1'] }],
+      ['GET', '/admin/maps', 'moderator'],
+      ['PUT', '/admin/maps/permissao', 'moderator', { text: 'P width 1\nP height 1\nP title P\nS 16 12\nflag 0 0 0 1 1\nspawn 0 0 0 8 6\nflag 1 0 0 15 11\nspawn 1 0 0 8 3\n' }],
+      ['DELETE', '/admin/maps/permissao', 'moderator'],
       ['PUT', '/admin/users/Jogador1/role', 'admin', { role: 'player' }],
     ];
     for (const [method, url, role, body] of routes) {
@@ -137,7 +141,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       [2, 'rocket_damage 250'],
     ]);
     expect((await heartbeat()).json().config.presets).toContainEqual({ id: 'sniper', description: 'Sniper: dano alto', overrides: 'rocket_damage 250' });
-    expect((await app.inject('/presets')).json().presets.map((p: { id: string }) => p.id)).toEqual(['classic', 'duel', 'insta', 'chaos', 'carnage', 'festa', 'sniper']);
+    expect((await app.inject('/presets')).json().presets.map((p: { id: string }) => p.id)).toEqual(['classic', 'duel', 'insta', 'chaos', 'carnage', 'sniper']);
 
     // sala privada com o preset do painel
     const room = await call('POST', '/rooms', 'player', { name: 'Tiro', preset: 'sniper' });
@@ -156,7 +160,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['  '] })).json()).toMatchObject({ error: 'empty_rotation' });
     expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['outgun1', 'nao existe'] })).json()).toMatchObject({ error: 'unknown_map', message: 'unknown maps: nao existe' });
     expect((await call('PUT', '/admin/rotations/ranked:6x6', 'admin', { maps: ['outgun1'] })).statusCode).toBe(400);
-    expect((await call('PUT', '/admin/rotations/ranked:4x4', 'mod', { maps: ['The Blunt'] })).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/rotations/ranked:4x4', 'player', { maps: ['The Blunt'] })).statusCode).toBe(403);
     const before = await auditCount();
     expect((await call('PUT', '/admin/rotations/ranked:4x4', 'admin', { maps: ['The Blunt', 'outgun1', 'random_map 3 3'] })).json()).toMatchObject({ key: 'ranked:4x4', version: 1 });
     expect((await call('PUT', '/admin/rotations/ranked:3x3', 'admin', { maps: ['outgun1'] })).json()).toMatchObject({ key: 'ranked:3x3', version: 1 });
@@ -188,5 +192,48 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     const audit = (await call('GET', '/admin/audit?limit=3', 'mod')).json().entries;
     expect(audit.map((e: { action: string }) => e.action)).toEqual(['role', 'role', 'unban']);
     expect(await t.db.select({ n: count() }).from(adminCommands)).toBeTruthy();
+  });
+
+  it('moderador edita presets e a rotação Casual; sala privada só escolhe mapas da rotação (OG-365, D-69, D-70)', async () => {
+    await t.db.update(gameServers).set({ maps: ['outgun1', 'gun dance', 'The Blunt'] }).where(eq(gameServers.id, 'gs-1'));
+    expect((await call('PUT', '/admin/presets/festival', 'player', { description: 'Festival', overrides: '' })).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/presets/festival', 'mod', { description: 'Festival: tudo liberado', overrides: 'rocket_damage 100' })).json()).toEqual({ id: 'festival', version: 1 });
+    expect(await lastAudit()).toMatchObject({ action: 'preset', details: { preset: 'festival' } });
+    // sem rotação Casual no painel: escolha livre
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: null });
+    expect((await call('POST', '/rooms', 'player', { name: 'Livre', preset: 'festival', maps: ['The Blunt'] })).statusCode).toBe(201);
+    expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] })).json()).toMatchObject({ key: 'casual', version: 1 });
+    expect((await app.inject('/rotation')).json()).toEqual({ maps: ['outgun1', 'gun dance'] });
+    expect((await call('POST', '/rooms', 'player', { name: 'Fora', preset: 'festival', maps: ['The Blunt', 'outgun1'] })).json()).toMatchObject({ error: 'map_not_in_rotation', message: 'not in the casual rotation: The Blunt' });
+    const ok = await call('POST', '/rooms', 'player', { name: 'Dentro', preset: 'festival', maps: ['gun dance'] });
+    expect([ok.statusCode, ok.json().room.preset]).toEqual([201, 'festival']);
+    await t.db.update(gameServers).set({ maps: [] }).where(eq(gameServers.id, 'gs-1'));
+  });
+
+  it('mapas .txt da moderação (OG-366, D-70): conferidos pelo parser, publicados, na rotação e servidos em Latin-1', async () => {
+    const text = 'P width 1\nP height 1\nP title Teste\nP author Moderação\nS 16 12\nflag 0 0 0 1 1\nspawn 0 0 0 8 6\nflag 1 0 0 15 11\nspawn 1 0 0 8 3\n';
+    await t.db.update(gameServers).set({ maps: ['outgun1', 'gun dance'] }).where(eq(gameServers.id, 'gs-1'));
+    expect((await call('POST', '/admin/maps/check', 'player', { name: 'teste', text })).statusCode).toBe(403);
+    expect((await call('POST', '/admin/maps/check', 'mod', { name: 'teste', text })).json()).toEqual({ ok: true, errors: [], preview: { title: 'Teste', author: 'Moderação', width: 1, height: 1, crc: expect.any(Number) } });
+    expect((await call('POST', '/admin/maps/check', 'mod', { name: 'teste', text: 'P width 1\nP height x\n' })).json()).toEqual({ ok: false, errors: ['Invalid map line: P height x'] });
+    expect((await call('PUT', '/admin/maps/outgun1', 'mod', { text })).json()).toMatchObject({ error: 'builtin_map' });
+    expect((await call('PUT', '/admin/maps/mapgen_1', 'mod', { text })).statusCode).toBe(422);
+    expect((await call('PUT', '/admin/maps/teste', 'mod', { text: 'P width 1\nP height x\n' })).json()).toMatchObject({ error: 'invalid_map', problems: ['Invalid map line: P height x'] });
+    const saved = await call('PUT', '/admin/maps/teste', 'mod', { text });
+    expect(saved.json()).toMatchObject({ name: 'teste', version: 1, title: 'Teste' });
+    expect(await lastAudit()).toMatchObject({ action: 'map', details: { map: 'teste', version: 1 } });
+    expect((await call('PUT', '/admin/maps/teste', 'mod', { text: text.replace('8 3', '8 4') })).json().version).toBe(2);
+    // servido em Latin-1, com o CRC; entra no catálogo e na rotação
+    const served = await app.inject('/maps/teste');
+    const crc = (await call('GET', '/admin/maps', 'mod')).json().maps.find((m: { name: string }) => m.name === 'teste').crc;
+    expect([served.statusCode, served.headers['x-map-crc'], served.rawPayload.toString('latin1')]).toEqual([200, String(crc), text.replace('8 3', '8 4')]);
+    expect((await call('GET', '/admin/rotations', 'mod')).json().catalog).toContain('teste');
+    expect((await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'teste'] })).statusCode).toBe(200);
+    expect((await call('DELETE', '/admin/maps/teste', 'mod')).json()).toMatchObject({ error: 'map_in_rotation' });
+    await call('PUT', '/admin/rotations/casual', 'mod', { maps: ['outgun1', 'gun dance'] });
+    expect((await call('DELETE', '/admin/maps/teste', 'mod')).statusCode).toBe(204);
+    expect((await app.inject('/maps/teste')).statusCode).toBe(404);
+    expect((await call('GET', '/admin/maps/teste/versions', 'mod')).json().versions.map((v: { version: number; deleted: boolean }) => [v.version, v.deleted])).toEqual([[3, true], [2, false], [1, false]]);
+    await t.db.update(gameServers).set({ maps: [] }).where(eq(gameServers.id, 'gs-1'));
   });
 });

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { GameMap } from '@outgun/sim';
 import { formatPlayers, isRankedFormat, isSeriesBestOf } from '@outgun/settings';
 import type { RoomSpawn } from '@outgun/tickets';
-import { loadMaps, resolveRotation, rotationFor, type Rotations } from './maps.js';
+import { loadMaps, panelRotationKeys, resolveRotation, rotationFor, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
 import { findPreset } from './presets.js';
 import type { Room } from './room.js';
@@ -22,6 +22,8 @@ export interface SpawnerOptions {
   log?: (line: string) => void;
   /** Mapas gerados para as entradas `random_map` (OG-015). */
   generatedMaps?: GeneratedMaps;
+  /** Busca de mapas por nome; padrão: só a pasta (a do `main` inclui os da moderação, OG-367). */
+  map?: (name: string) => GameMap | undefined;
 }
 
 /** Mapas da pasta por nome, com cache (nomes com barra ou inexistentes dão undefined). */
@@ -41,7 +43,7 @@ export function mapLoader(mapsDir: string): (name: string) => GameMap | undefine
 }
 
 export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id: string, spec: RoomSpawn) => Room | undefined {
-  const map = mapLoader(options.mapsDir);
+  const map = options.map ?? mapLoader(options.mapsDir);
 
   return (id, spec) => {
     const preset = findPreset(spec.preset);
@@ -53,9 +55,10 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       options.log?.(`sala ${id} recusada: limite de ${manager.maxRooms} salas`);
       return undefined;
     }
-    // Ranked sempre com a rotação oficial; Casual pode trazer a sua (mapas desconhecidos saem);
-    // as duas aceitam `random_map L A ...` (OG-015)
-    const wanted = spec.mode === 'casual' && spec.maps ? resolveRotation(spec.maps, map, options.generatedMaps) : [];
+    // Ranked sempre com a rotação oficial; Casual pode trazer a sua (mapas desconhecidos saem), só
+    // entre os da rotação do painel quando há uma (D-69); as duas aceitam `random_map L A ...` (OG-015)
+    const chosen = spec.mode === 'casual' && spec.maps ? (panelRotationKeys.has('casual') ? withinRotation(spec.maps, options.rotations.casual) : spec.maps) : [];
+    const wanted = resolveRotation(chosen, map, options.generatedMaps);
     const slots = wanted.length > 0 ? wanted : resolveRotation(rotationFor(options.rotations, spec.mode, ranked?.format), map, options.generatedMaps);
     if (slots.length === 0) return undefined;
     const files = slots.map((s) => s.file);
@@ -70,6 +73,7 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       persistent: spec.persistent,
       ...(ranked ? { ranked: { format: ranked.format, bestOf: ranked.bestOf } } : {}),
       ...(spec.mode === 'casual' && spec.casualBots ? { casualBots: { bots: spec.casualBots.bots, level: spec.casualBots.level } } : {}),
+      ...(wanted.length > 0 ? { chosenMaps: chosen } : {}),
     });
     options.log?.(`sala ${id} aberta (${spec.mode}, ${preset.id}, ${files.length} mapas${ranked ? `, ${ranked.format} md${ranked.bestOf}` : ''})`);
     return room;

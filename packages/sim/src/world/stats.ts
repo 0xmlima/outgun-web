@@ -66,6 +66,12 @@ export interface PlayerResult {
   flagsDropped: number;
   flagsReturned: number;
   carriersKilled: number;
+  /** Contadores do OG-355 (D-68): ver `PlayerStats`. */
+  effectiveDamage: number;
+  killsEnemyBase: number;
+  killsOwnBase: number;
+  killsMidfield: number;
+  defenses: number;
   /** Segundos com bandeira. */
   flagCarryingTime: number;
   shots: number;
@@ -149,6 +155,11 @@ function playerResult(pl: PlayerState, time: number): PlayerResult {
     flagsDropped: s.flagsDropped,
     flagsReturned: s.flagsReturned,
     carriersKilled: s.carriersKilled,
+    effectiveDamage: s.effectiveDamage,
+    killsEnemyBase: s.killsEnemyBase,
+    killsOwnBase: s.killsOwnBase,
+    killsMidfield: s.killsMidfield,
+    defenses: s.defenses,
     flagCarryingTime: flagCarryingTime(s, time),
     shots: s.shots,
     hits: s.hits,

@@ -9,6 +9,7 @@ import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
 import type { RemoteCommand } from './room.js';
 import type { MatchReport } from './match-report.js';
+import type { PanelMapRef } from './panel-maps.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -64,6 +65,8 @@ export interface PanelConfig {
   version: string;
   presets: { id: string; description: string; overrides: string }[];
   rotations: Partial<Record<RotationKey, string[]>>;
+  /** Mapas publicados pela moderação (OG-367); ausente = API antiga. */
+  maps?: PanelMapRef[];
 }
 
 export interface HeartbeatReply {

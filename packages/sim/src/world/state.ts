@@ -63,6 +63,14 @@ export interface PlayerStats {
   flagsDropped: number;
   flagsReturned: number;
   carriersKilled: number;
+  /** Dano em inimigos sem o excesso: soma de `min(dano, vida antes do acerto)` (OG-355, D-68). */
+  effectiveDamage: number;
+  /** Abates por zona da vítima; base = sala onde nasce uma bandeira do time (OG-355). */
+  killsEnemyBase: number;
+  killsOwnBase: number;
+  killsMidfield: number;
+  /** Abates com bônus de defesa de portador ou de bandeira (OG-355). */
+  defenses: number;
   shots: number;
   hits: number;
   shotsTaken: number;
@@ -95,6 +103,11 @@ export function newStats(): PlayerStats {
     flagsDropped: 0,
     flagsReturned: 0,
     carriersKilled: 0,
+    effectiveDamage: 0,
+    killsEnemyBase: 0,
+    killsOwnBase: 0,
+    killsMidfield: 0,
+    defenses: 0,
     shots: 0,
     hits: 0,
     shotsTaken: 0,

@@ -28,6 +28,7 @@ import { wordSet } from './chat.js';
 import { PlatformClient } from './platform.js';
 import { makeSpawner, mapLoader } from './spawn.js';
 import { AdminPanelLink } from './panel.js';
+import { PanelMaps } from './panel-maps.js';
 import { ReplayStore } from './replay.js';
 import { createLogger, ErrorReporter } from '@outgun/observability';
 import { GameTelemetry } from './telemetry.js';
@@ -36,6 +37,12 @@ const repo = fileURLToPath(new URL('../../..', import.meta.url));
 const env = process.env;
 // mapas aleatórios da rotação (OG-015): blocos de paredes de mapgen/ do jogo (MAPGEN_DIR)
 const generatedMaps = new GeneratedMaps(env.MAPGEN_DIR ?? `${repo}_legacy/mapgen`);
+// mapas publicados pela moderação (OG-367): o texto vem da API (Latin-1) quando o heartbeat os lista
+const apiUrl = (env.API_URL ?? 'http://localhost:7800').replace(/\/$/, '');
+const panelMaps = new PanelMaps(async (name) => {
+  const res = await fetch(`${apiUrl}/maps/${encodeURIComponent(name)}`);
+  return res.ok ? Buffer.from(await res.arrayBuffer()).toString('latin1') : undefined;
+});
 const production = env.NODE_ENV === 'production';
 const logger = createLogger({ service: 'game-server', level: env.LOG_LEVEL ?? 'info', ...(env.RELEASE ? { version: env.RELEASE } : {}) });
 const reporter = new ErrorReporter({ dsn: env.SENTRY_DSN, service: 'game-server', environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV, release: env.RELEASE });
@@ -51,7 +58,7 @@ process.on('unhandledRejection', (error) => {
 // as métricas dependem do gerenciador, criado depois dos callbacks que contam erros
 const metrics: { telemetry?: GameTelemetry } = {};
 const platform = new PlatformClient(
-  env.API_URL ?? 'http://localhost:7800',
+  apiUrl,
   // `{instance}` em GS_ID (ex. gs-gru.{instance}): uma entrada no registro por máquina, segredo do grupo
   (env.GS_ID ?? 'dev').replace('{instance}', env.INSTANCE_ID ?? env.FLY_MACHINE_ID ?? ''),
   env.GS_SECRET ?? (production ? '' : 'outgun-dev-secret-0000'),
@@ -107,6 +114,7 @@ const manager = new RoomManager({
     maxSpectators: Number(env.MAX_SPECTATORS ?? 16),
     ...(env.GAMEMOD ? { gamemod: env.GAMEMOD.split('|').join('\n') } : {}),
     generatedMaps,
+    mapText: (file) => panelMaps.text(file),
   },
 });
 const rotation = (env.ROTATION ?? 'outgun1').split(',');
@@ -115,7 +123,8 @@ const rotation = (env.ROTATION ?? 'outgun1').split(',');
 const rotations: Rotations = { casual: rotation, ranked: env.RANKED_ROTATION ? env.RANKED_ROTATION.split(',') : rotation };
 const mapsDir = env.MAPS_DIR ?? `${repo}_legacy/maps`;
 // `random_map L A ...` na rotação (OG-015): mapas gerados com os blocos de mapgen/
-const mapFile = mapLoader(mapsDir);
+const folderMap = mapLoader(mapsDir);
+const mapFile = (name: string) => folderMap(name) ?? panelMaps.map(name);
 const fixedRoom = (id: string, name: string, preset: string, maxPlayers: number) => {
   const slots = resolveRotation(rotation, mapFile, generatedMaps);
   if (slots.length === 0) throw new Error(`rotação sem mapas válidos: ${rotation.join(', ')}`);
@@ -147,6 +156,7 @@ const server = await startServer({
   spawnRoom: makeSpawner(manager, {
     rotations,
     mapsDir,
+    map: mapFile,
     generatedMaps,
     log: (line) => logger.info(line),
   }),
@@ -162,6 +172,7 @@ const server = await startServer({
   telemetry,
   logger,
   generatedMaps,
+  panelMaps,
   ...(instanceId ? { instanceId } : {}),
   ...(env.METRICS_TOKEN ? { metricsToken: env.METRICS_TOKEN } : {}),
   ...(env.MAX_CONNECTIONS_PER_IP ? { maxConnectionsPerIp: Number(env.MAX_CONNECTIONS_PER_IP) } : {}),
@@ -172,7 +183,7 @@ if (production && !env.METRICS_TOKEN) logger.warn('METRICS_TOKEN vazio: /metrics
 logger.info({ port: server.port }, `game-server na porta ${server.port}; depuração em http://localhost:${server.port}/dev`);
 // o heartbeat lê este objeto a cada envio: na drenagem, maxRooms 0 tira o servidor da escolha da API
 const serverInfo = { wsBaseUrl: publicWsUrl, region: env.REGION ?? env.FLY_REGION ?? 'local', maxRooms: manager.maxRooms, maps: listMaps(mapsDir) };
-const panel = new AdminPanelLink({ manager, rotations, map: mapFile, generatedMaps, log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
+const panel = new AdminPanelLink({ manager, rotations, map: mapFile, generatedMaps, panelMaps, log: (msg, fields) => logger.info({ component: 'painel', ...fields }, msg) });
 if (env.HEARTBEAT !== '0') platform.startHeartbeat(serverInfo, () => manager.hosted(), 3000, panel);
 
 let stopping = false;

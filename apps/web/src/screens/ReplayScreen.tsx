@@ -3,7 +3,8 @@
 // barra de tempo, a velocidade e um link compartilhável que guarda o ponto atual. Espectador ao vivo
 // (OG-092): `/spectate?src=wss://.../rooms/ID/spectate` (ou `?sala=ID` no servidor padrão) toca o stream
 // da sala com o atraso de `spectating_delay`.
-import { GENERATED_MAP, serverHttpBase } from '../game/host.js';
+import { serverHttpBase } from '../game/host.js';
+import { fetchMapText, serverOnlyMap } from '../game/map-loader.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
@@ -170,14 +171,9 @@ export function SpectateScreen() {
           init: [],
           frames: [],
         };
-        // mapa gerado na hora (OG-015): o texto vem do game server antes de começar
+        // mapa gerado na hora (OG-015) ou da moderação (OG-367): o texto vem do game server antes de começar
         const current = replay;
-        mapText = GENERATED_MAP.test(start.map)
-          ? fetch(`${serverHttpBase(src)}/maps/${start.map}.txt`).then(
-              (res) => (res.ok ? res.text() : undefined),
-              () => undefined,
-            )
-          : Promise.resolve(undefined);
+        mapText = serverOnlyMap(start.map).then((remote) => (remote ? fetchMapText(serverHttpBase(src), start.map) : undefined));
         void mapText.then((text) => {
           if (text !== undefined) current.header.mapText = text;
         });

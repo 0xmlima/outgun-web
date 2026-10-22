@@ -3,12 +3,12 @@
 // privada Casual (OG-086, RN-CFG-03) e de sala de lobby Ranked (OG-252, RN-RKL-05/06, D-44).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { formatPlayers, isSeriesBestOf, PRESETS, settingsOf } from '@outgun/settings';
-import { findPreset, panelPresets } from '../platform-config.js';
-import { and, asc, eq } from 'drizzle-orm';
+import { casualRotation, findPreset, panelPresets } from '../platform-config.js';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { hashPassword } from '../auth/password.js';
-import { gameServers, rooms } from '../db/schema.js';
+import { gameServers, panelMaps, rooms } from '../db/schema.js';
 import { onlineServers, pickServer, roomListed, roomOnline } from '../registry.js';
 import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 
@@ -144,6 +144,34 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
       }),
     );
 
+    app.get(
+      '/rotation',
+      {
+        schema: {
+          tags: ['salas'],
+          summary: 'Rotação Casual do painel (D-69): os mapas que a sala privada pode escolher; null = sem rotação no painel (escolha livre)',
+          response: { 200: Type.Object({ maps: Type.Union([Type.Null(), Type.Array(Type.String())]) }) },
+        },
+      },
+      async () => ({ maps: await casualRotation(db) }),
+    );
+
+    app.get(
+      '/maps/:name',
+      {
+        schema: {
+          tags: ['salas'],
+          summary: 'Texto de um mapa publicado pela moderação (OG-366), em Latin-1, para os game servers e o cliente',
+          params: Type.Object({ name: Type.String({ minLength: 1, maxLength: 64 }) }),
+        },
+      },
+      async (request, reply) => {
+        const [m] = await db.select({ text: panelMaps.text, crc: panelMaps.crc }).from(panelMaps).where(and(eq(panelMaps.name, request.params.name), isNull(panelMaps.deletedAt)));
+        if (!m) return reply.code(404).send({ error: 'map_not_found', message: 'map not found' });
+        return reply.header('content-type', 'text/plain; charset=iso-8859-1').header('x-map-crc', String(m.crc)).header('cache-control', 'public, max-age=60').send(Buffer.from(m.text, 'latin1'));
+      },
+    );
+
     app.post(
       '/rooms',
       {
@@ -178,6 +206,10 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
         // Não existe sala privada Ranked (RN-MOD-04): só presets Casual.
         const preset = await findPreset(db, body.preset);
         if (!preset || preset.mode !== 'casual') return reply.code(422).send({ error: 'invalid_preset', message: 'private rooms take a casual preset' });
+        // rotação do painel sempre respeitada (D-69): a sala escolhe só entre os mapas dela
+        const rotation = await casualRotation(db);
+        const outside = rotation && body.maps ? body.maps.filter((m) => !rotation.includes(m)) : [];
+        if (outside.length > 0) return reply.code(422).send({ error: 'map_not_in_rotation', message: `not in the casual rotation: ${outside.join(', ')}` });
         if (!(await rateLimit.allow(`create-room:${user.id}`, config.limits.roomsPerHourPerUser, HOUR))) {
           return reply.code(429).send({ error: 'rate_limited', message: 'too many rooms, try later' });
         }
