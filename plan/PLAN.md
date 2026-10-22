@@ -822,7 +822,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-356](cards/OG-356-registro-de-eventos-da-partida.md) | Registro de eventos da partida (quebrado em OG-362 a OG-364) | E12 | ~~8~~ | Could | S38 | OG-355 | Quebrado |
 | [OG-357](cards/OG-357-balanceamento-de-times-no-lobby.md) | Balanceamento dos times no lobby pelo rating | E12 | 5 | Could | — | OG-349 | Backlog |
 | [OG-365](cards/OG-365-presets-e-rotacao-na-criacao-de-sala.md) | Presets do painel e rotação oficial na criação de sala | E5 | 3 | Must | S38 | OG-087 | Em revisão |
-| [OG-366](cards/OG-366-envio-de-mapas-pelo-painel.md) | Envio de mapas .txt pelo painel de moderação | E5 | 5 | Should | S38 | OG-365 | Pronto |
+| [OG-366](cards/OG-366-envio-de-mapas-pelo-painel.md) | Envio de mapas .txt pelo painel de moderação | E5 | 5 | Should | S38 | OG-365 | Em revisão |
 | [OG-367](cards/OG-367-mapas-da-comunidade-no-jogo.md) | Mapas do painel nos servidores, nas rotações e no cliente | E5 | 3 | Should | S38 | OG-366 | Pronto |
 
 **Total:** 209 cards, 695 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 140 cards, 400 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).

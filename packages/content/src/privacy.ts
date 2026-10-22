@@ -41,6 +41,8 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   notifications: 'personal',
   match_events: 'none',
   match_event_players: 'personal',
+  panel_maps: 'none',
+  panel_map_versions: 'none',
   clans: 'none',
   clan_members: 'personal',
   clan_requests: 'personal',

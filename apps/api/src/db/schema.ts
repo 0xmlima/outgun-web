@@ -615,6 +615,37 @@ export const casualPresetVersions = pgTable(
   (t) => [primaryKey({ columns: [t.presetId, t.version] })],
 );
 
+/** Mapas .txt enviados pela moderação (OG-366, D-70); texto em Latin-1, como os arquivos do jogo. */
+export const panelMaps = pgTable('panel_maps', {
+  name: text('name').primaryKey(),
+  text: text('text').notNull(),
+  title: text('title').notNull(),
+  author: text('author').notNull().default(''),
+  width: smallint('width').notNull(),
+  height: smallint('height').notNull(),
+  crc: integer('crc').notNull(),
+  version: integer('version').notNull().default(1),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+  deletedAt: tstz('deleted_at'),
+});
+
+export const panelMapVersions = pgTable(
+  'panel_map_versions',
+  {
+    name: text('name')
+      .notNull()
+      .references(() => panelMaps.name, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    text: text('text').notNull(),
+    crc: integer('crc').notNull(),
+    deleted: boolean('deleted').notNull().default(false),
+    changedBy: uuid('changed_by').references(() => users.id, { onDelete: 'set null' }),
+    changedAt: tstz('changed_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.name, t.version] })],
+);
+
 export const mapRotations = pgTable('map_rotations', {
   /** casual | ranked | ranked:3x3 | ranked:4x4 | ranked:5x5 (OG-251, `RotationKey`). */
   key: text('key').$type<RotationKey>().primaryKey(),
@@ -745,6 +776,8 @@ export const allTables = {
   player_reports: playerReports,
   admin_commands: adminCommands,
   casual_presets: casualPresets,
+  panel_maps: panelMaps,
+  panel_map_versions: panelMapVersions,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
   ranked_series: rankedSeries,

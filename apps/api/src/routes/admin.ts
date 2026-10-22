@@ -12,7 +12,8 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, gameServers, mapRotations, playerReports, rooms, users } from '../db/schema.js';
+import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, gameServers, mapRotations, panelMaps, panelMapVersions, playerReports, rooms, users } from '../db/schema.js';
+import { checkMapText, mapNameProblem } from '../panel-maps.js';
 import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
@@ -347,9 +348,110 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       return { versions: rows.map(({ v, by }) => ({ version: v.version, description: v.description, overrides: v.overrides, deleted: v.deleted, changedBy: by, changedAt: v.changedAt.toISOString() })) };
     });
 
+    // --- mapas da moderação (OG-366, D-70): .txt do formato do original, publicados na hora ---
+    /** Mapas da pasta dos game servers (os do jogo; vazio = nenhum servidor informou ainda). */
+    const builtinMaps = async () => [...new Set((await db.select({ maps: gameServers.maps }).from(gameServers)).flatMap((s) => s.maps))];
+    const activePanelMaps = async () => (await db.select({ name: panelMaps.name }).from(panelMaps).where(isNull(panelMaps.deletedAt))).map((m) => m.name);
+    const MapName = Type.String({ minLength: 1, maxLength: 64 });
+    const MapText = Type.String({ minLength: 1, maxLength: 64 * 1024 });
+
+    app.get('/maps', { schema: { tags: ['admin'], summary: 'Mapas enviados pela moderação (OG-366)' } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'moderator'))) return reply;
+      const rows = await db
+        .select({ m: panelMaps, by: users.username })
+        .from(panelMaps)
+        .leftJoin(users, eq(users.id, panelMaps.updatedBy))
+        .orderBy(panelMaps.name);
+      return {
+        maps: rows.map(({ m, by }) => ({ name: m.name, title: m.title, author: m.author, width: m.width, height: m.height, crc: m.crc, version: m.version, active: m.deletedAt === null, updatedBy: by, updatedAt: m.updatedAt.toISOString() })),
+      };
+    });
+
+    app.post(
+      '/maps/check',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Confere um mapa .txt sem publicar: erros do parser ou a prévia (título, autor, tamanho)',
+          body: Type.Object({ name: MapName, text: MapText }),
+        },
+      },
+      async (request, reply) => {
+        if (!(await guard(request, reply, 'moderator'))) return reply;
+        const problem = mapNameProblem(request.body.name);
+        const checked = checkMapText(request.body.text);
+        const errors = [...(problem ? [problem] : []), ...(checked.ok ? [] : checked.errors)];
+        if ((await builtinMaps()).includes(request.body.name)) errors.unshift('name: already a map of the game');
+        return errors.length > 0 ? { ok: false, errors } : { ok: true, errors: [], preview: checked.ok ? checked.map : null };
+      },
+    );
+
+    app.put(
+      '/maps/:name',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Publica (ou atualiza, versionado) um mapa .txt da moderação; vale nas rotações e salas',
+          params: Type.Object({ name: MapName }),
+          body: Type.Object({ text: MapText }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const { name } = request.params;
+        const problem = mapNameProblem(name);
+        if (problem) return reply.code(422).send({ error: 'invalid_map', message: problem, problems: [problem] });
+        if ((await builtinMaps()).includes(name)) return reply.code(409).send({ error: 'builtin_map', message: 'this name is already a map of the game' });
+        const checked = checkMapText(request.body.text);
+        if (!checked.ok) return reply.code(422).send({ error: 'invalid_map', message: checked.errors.join('; '), problems: checked.errors });
+        const { map } = checked;
+        const version = await db.transaction(async (tx) => {
+          const [current] = await tx.select({ version: panelMaps.version }).from(panelMaps).where(eq(panelMaps.name, name));
+          const v = current ? current.version + 1 : 1;
+          const values = { text: request.body.text, ...map, version: v, updatedBy: user.id, updatedAt: new Date(), deletedAt: null };
+          await tx.insert(panelMaps).values({ name, ...values }).onConflictDoUpdate({ target: panelMaps.name, set: values });
+          await tx.insert(panelMapVersions).values({ name, version: v, text: request.body.text, crc: map.crc, changedBy: user.id });
+          return v;
+        });
+        await audit(user, 'map', { reason: map.title, details: { map: name, version, crc: map.crc, author: map.author } });
+        return { name, version, ...map };
+      },
+    );
+
+    app.delete('/maps/:name', { schema: { tags: ['admin'], summary: 'Desativa um mapa da moderação (recusado enquanto estiver numa rotação)', params: Type.Object({ name: MapName }) } }, async (request, reply) => {
+      const user = await guard(request, reply, 'moderator');
+      if (!user) return reply;
+      const [current] = await db.select().from(panelMaps).where(and(eq(panelMaps.name, request.params.name), isNull(panelMaps.deletedAt)));
+      if (!current) return reply.code(404).send({ error: 'not_found', message: 'no such panel map' });
+      const inUse = (await db.select({ key: mapRotations.key, maps: mapRotations.maps }).from(mapRotations)).filter((r) => r.maps.includes(current.name)).map((r) => r.key);
+      if (inUse.length > 0) return reply.code(409).send({ error: 'map_in_rotation', message: `remove it from the rotations first: ${inUse.join(', ')}` });
+      const version = current.version + 1;
+      await db.transaction(async (tx) => {
+        await tx.update(panelMaps).set({ deletedAt: new Date(), version, updatedBy: user.id, updatedAt: new Date() }).where(eq(panelMaps.name, current.name));
+        await tx.insert(panelMapVersions).values({ name: current.name, version, text: current.text, crc: current.crc, deleted: true, changedBy: user.id });
+      });
+      await audit(user, 'map-delete', { details: { map: current.name, version } });
+      return reply.code(204).send(null);
+    });
+
+    app.get('/maps/:name/versions', { schema: { tags: ['admin'], summary: 'Histórico de um mapa da moderação', params: Type.Object({ name: MapName }) } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'moderator'))) return reply;
+      const rows = await db
+        .select({ v: panelMapVersions, by: users.username })
+        .from(panelMapVersions)
+        .leftJoin(users, eq(users.id, panelMapVersions.changedBy))
+        .where(eq(panelMapVersions.name, request.params.name))
+        .orderBy(desc(panelMapVersions.version));
+      return { versions: rows.map(({ v, by }) => ({ version: v.version, crc: v.crc, deleted: v.deleted, changedBy: by, changedAt: v.changedAt.toISOString() })) };
+    });
+
     // --- rotações (uma do Casual e uma por formato do Ranked, OG-251) ---
-    /** Mapas que os game servers informaram (vazio = nenhum servidor informou ainda). */
-    const mapCatalog = async () => [...new Set((await db.select({ maps: gameServers.maps }).from(gameServers)).flatMap((s) => s.maps))].sort((a, b) => a.localeCompare(b));
+    /** Mapas que as rotações aceitam: os dos game servers e os da moderação (vazio = nenhum servidor informou ainda). */
+    const mapCatalog = async () => {
+      const builtin = await builtinMaps();
+      return builtin.length === 0 ? [] : [...new Set([...builtin, ...(await activePanelMaps())])].sort((a, b) => a.localeCompare(b));
+    };
 
     app.get('/rotations', { schema: { tags: ['admin'], summary: 'Rotações de mapas do painel (sem linha = a do servidor) e os mapas que os servidores têm' } }, async (request, reply) => {
       if (!(await guard(request, reply, 'moderator'))) return reply;

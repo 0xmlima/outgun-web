@@ -10,7 +10,7 @@ import { usePrefs } from '../app/prefs.js';
 import { TextPage } from '../ui/TextPage.js';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
 
-type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'rotations' | 'invites' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'invites' | 'roles';
 
 interface RosterEntry {
   uid: number;
@@ -107,6 +107,7 @@ export default function AdminScreen() {
     ['bans', t('Bans')],
     ['audit', t('Audit log')],
     ['presets', t('Presets')],
+    ['maps', t('Maps')],
     ['rotations', t('Map rotations')],
     ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
   ];
@@ -133,6 +134,7 @@ export default function AdminScreen() {
           {tab === 'audit' && <AuditTab />}
           {/* presets e rotações: moderador também edita (D-70) */}
           {tab === 'presets' && <PresetsTab canEdit={allowed} />}
+          {tab === 'maps' && <MapsTab />}
           {tab === 'rotations' && <RotationsTab canEdit={allowed} />}
           {tab === 'roles' && isAdmin && <RolesTab />}
         </div>
@@ -626,6 +628,145 @@ function PresetsTab({ canEdit }: { canEdit: boolean }) {
           </button>
         </form>
       )}
+    </section>
+  );
+}
+
+interface PanelMapRow {
+  name: string;
+  title: string;
+  author: string;
+  width: number;
+  height: number;
+  crc: number;
+  version: number;
+  active: boolean;
+  updatedBy: string | null;
+}
+
+/**
+ * Texto de um .txt de mapa: UTF-8 se for válido, senão Latin-1 (o "ANSI" dos arquivos da comunidade);
+ * a API guarda em Latin-1, como os mapas do jogo.
+ */
+export function mapFileText(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder('latin1').decode(bytes);
+  }
+}
+
+/** Mapas .txt da moderação (OG-366, D-70): conferir (erros do parser ou prévia), publicar e desativar. */
+function MapsTab() {
+  const { t } = usePrefs();
+  const list = useLoad<{ maps: PanelMapRow[] }>('/admin/maps');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const [form, setForm] = useState({ name: '', text: '' });
+  const [check, setCheck] = useState<{ ok: boolean; errors: string[]; preview?: { title: string; author: string; width: number; height: number } | null } | null>(null);
+  const pick = (file: File | undefined) => {
+    if (!file) return;
+    setCheck(null);
+    void file.arrayBuffer().then((buf) => setForm({ name: file.name.replace(/\.txt$/i, '').slice(0, 64), text: mapFileText(new Uint8Array(buf)) }));
+  };
+  const verify = () =>
+    api<NonNullable<typeof check>>('/admin/maps/check', { body: form }).then(setCheck, (e: unknown) => setStatus({ error: errorText(e) }));
+  const publish = () =>
+    api<{ version: number }>(`/admin/maps/${encodeURIComponent(form.name)}`, { method: 'PUT', body: { text: form.text } }).then(
+      (r) => {
+        setStatus({ text: t('Map published (version $1).', String(r.version)) });
+        setCheck(null);
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  const remove = (name: string) =>
+    api(`/admin/maps/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(
+      () => {
+        setStatus({ text: t('Map deactivated.') });
+        list.reload();
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  return (
+    <section className="stats-section">
+      <p className="stats-line">{t('Send a map .txt in the Outgun format. Once published it can go into the rotations and private rooms, without a new release.')}</p>
+      <Status text={status.text} error={status.error ?? list.error} />
+      {list.data && (
+        <table className="stats-table wide">
+          <thead>
+            <tr>
+              <th>{t('Map')}</th>
+              <th>{t('Title')}</th>
+              <th>{t('Author')}</th>
+              <th>{t('Size')}</th>
+              <th>{t('Version')}</th>
+              <th>{t('By')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.maps.map((m) => (
+              <tr key={m.name}>
+                <td className="name">{m.name}</td>
+                <td className="name">{m.title}</td>
+                <td className="name">{m.author || '-'}</td>
+                <td>
+                  {m.width}×{m.height}
+                </td>
+                <td>{m.active ? m.version : t('inactive')}</td>
+                <td className="name">{m.updatedBy ?? '-'}</td>
+                <td>
+                  {m.active && (
+                    <button type="button" onClick={() => void remove(m.name)}>
+                      {t('Deactivate')}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <form
+        className="admin-form"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          void verify();
+        }}
+      >
+        <label>
+          {t('Map file (.txt)')} <input type="file" accept=".txt,text/plain" onChange={(e) => pick(e.target.files?.[0])} />
+        </label>{' '}
+        <label>
+          {t('Map')}{' '}
+          <input
+            value={form.name}
+            maxLength={64}
+            onChange={(e) => {
+              setCheck(null);
+              setForm({ ...form, name: e.target.value });
+            }}
+          />
+        </label>{' '}
+        <button type="submit" disabled={!form.name || !form.text}>
+          {t('Check')}
+        </button>
+        {check && !check.ok && (
+          <ul className="stats-note error" role="alert">
+            {check.errors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        )}
+        {check?.ok && check.preview && (
+          <p className="stats-note" role="status">
+            {t('$1 by $2, $3×$4 rooms.', check.preview.title, check.preview.author || '-', String(check.preview.width), String(check.preview.height))}{' '}
+            <button type="button" onClick={() => void publish()}>
+              {t('Publish map')}
+            </button>
+          </p>
+        )}
+      </form>
     </section>
   );
 }
