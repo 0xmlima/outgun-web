@@ -31,4 +31,4 @@ Como jogador, quero que o jogo guarde o que aconteceu em cada momento da partida
 ## Notas de implementação
 - Game server: `MatchEventRecorder` (`apps/game-server/src/match-events.ts`), tuplas compactas `[t, tipo, ...]` com t em décimos de mapa; jogadores por índice numa lista (slot reaproveitado vira outra entrada); teto de 5000 eventos; reset no começo do jogo e no cancelamento. Largada por captura não vira evento (a captura já registra).
 - API: migration 0032, `match_events` (jsonb) + `match_event_players` (conta com `ON DELETE SET NULL`; nome vira "(anon)" na exclusão); `GET /matches/:id/events` (`events` null = sem registro). Inventário de privacidade atualizado.
-- Tamanho numa partida de 20 min: medido no fechamento da sprint.
+- Tamanho: abate ≈ 35 B e bandeira ≈ 20 B em JSON; uma 6x6 de 20 min com ~250 abates e ~150 ações de bandeira dá ~12 KB; o teto (5000 eventos) dá ~180 KB. É estimativa pelo formato. A medição real (`pg_column_size(events)`) fica para a primeira ranqueada no beta.
