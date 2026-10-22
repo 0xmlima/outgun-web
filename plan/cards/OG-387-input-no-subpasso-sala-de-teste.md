@@ -1,11 +1,11 @@
-# OG-387 — Input no subpasso atrás de opção, com sala de teste no beta
+# OG-387 — Opção de criar sala privada a 20 Hz (padrão continua 10 Hz)
 
 | Campo | Valor |
 |---|---|
 | Épico | E11 |
 | Tipo | Feature |
-| Prioridade | Should |
-| Estimativa | 3 pts |
+| Prioridade | Could |
+| Estimativa | 5 pts |
 | Sprint | — |
 | Status | Backlog |
 | Dependências | OG-375 |
@@ -13,19 +13,22 @@
 | Skills | `outgun-card-workflow` |
 
 ## História
-Como jogador, quero sentir numa sala de teste o servidor aplicando minhas teclas no instante em que chegam, para a comunidade opinar antes de virar padrão.
+Como dono de uma sala privada, quero poder escolher um servidor a 20 Hz, para experimentar, sabendo que o jogo normal continua igual.
 
 ## Contexto
-- Recomendação do spike OG-375: a 10 Hz, partir o frame no instante em que a mudança de controles chegou (passo calibrado: drag `1 - d·h`, atrito e aceleração `× h`). Com as teclas paradas a física é idêntica à de hoje; some a espera de 0 a 100 ms do servidor.
+- Decisão do PO (2026-10-22, D-74): a física do jogo **não muda**. Casual, Ranqueado e as salas persistentes ficam a 10 Hz. 20 Hz só como opção explícita ao criar uma sala privada, desligada por padrão.
+- O spike OG-375 mediu o 20 Hz em meio passo: frenagem ~7% mais longa, curvas desviam até 17 u em 2 s, banda por jogador 2×. A sensação muda, por isso fica restrito à sala de quem escolher.
 
 ## Escopo
-- `packages/sim`: `applyPlayerAcceleration` com fração (padrão 1 = idêntico ao de hoje); o tick recebe, por jogador, os instantes das mudanças de controle do frame.
-- Game server: opção da sala (desligada por padrão) que guarda o instante de chegada de cada input e aplica no subpasso; uma sala de teste Casual fixa no beta com a opção ligada.
-- Testes da sim: com a opção desligada, as trajetórias e os replays atuais não mudam.
+- "Criar sala": caixa "Servidor a 20 Hz (experimental: a física muda um pouco)", desmarcada; a sala mostra o selo "20 Hz" na lista e no HUD.
+- `packages/sim`: passo com fração (`applyPlayerAcceleration` e o resto do frame), com fração 1 **bit a bit igual** ao de hoje.
+- Game server: taxa por sala (10 ou 20 Hz); cliente: extrapolação, envio de input e replays aceitam a taxa da sala.
+- Ranqueado, Casual público e salas persistentes nunca aceitam 20 Hz.
 
 ## Critérios de aceite
-- [ ] Sala de teste no beta com a opção; salas normais e ranqueadas sem mudança.
-- [ ] Teste: sem mudança de tecla no frame, a posição é a mesma do 10 Hz atual.
+- [ ] Sem marcar a opção, nada muda: testes de paridade, replays e trajetórias atuais iguais (fração 1).
+- [ ] Sala privada criada com 20 Hz roda a 20 Hz; as outras salas do mesmo servidor seguem a 10 Hz.
+- [ ] Opção ausente no Ranqueado e no Casual público.
 
 ## Notas de implementação
 (preenchido durante a execução)

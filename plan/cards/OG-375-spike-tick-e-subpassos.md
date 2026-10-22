@@ -31,7 +31,7 @@ Como PO, quero saber quanto o jogo ganharia com um servidor mais rápido que 10 
 ## Critérios de aceite
 - [x] Tabela de desvios por manobra para as três opções.
 - [x] CPU e banda medidos; cabe na VM Always Free do beta (sem Pay As You Go).
-- [ ] Sala de teste com a opção escolhida disponível no beta para a comunidade. → **movido para o OG-387** (depende da escolha do PO na D-74; a sim muda e isso vira decisão registrada).
+- [ ] Sala de teste com a opção escolhida disponível no beta para a comunidade. → **não se aplica:** o PO decidiu não mexer na física (D-74); 20 Hz só como opção de sala privada (OG-387, Backlog).
 - [x] D-74 registrada "em aberto" com a recomendação.
 
 ## Notas técnicas
@@ -64,4 +64,5 @@ Banda para o humano: 1.3 KB/s a 10 Hz → ~2.6 KB/s a 20 Hz (frames dobram; subp
 ### Leitura
 - **20 Hz em meio passo (1 e 3):** a física muda em tudo. Mesmo calibrado para manter a velocidade máxima, a frenagem fica 12 u mais longa (~7%) e a curva desvia 17 u em 2 s (mais de um raio de jogador). É a "sensação" que muda; a ingênua ainda perde 2,6% da velocidade máxima. Custo: CPU 2× (sobra: ~1 ms de 50 ms por sala) e banda 2× por jogador (~2,6 KB/s).
 - **Input no subpasso (2):** com as teclas paradas, a física é **idêntica** à de hoje. Só o frame em que a tecla muda é partido no instante da chegada; o desvio da tabela é exatamente a espera que some (a tecla vale meio frame antes, em média). Banda igual, CPU igual.
-- **Recomendação:** opção 2 (10 Hz, input aplicado no instante em que chegou, frame partido com o passo calibrado). Tira a espera de 0 a 100 ms do servidor sem mexer na sensação de quem só corre; a previsão do cliente passa a bater mais com o servidor (menos correção). Próximo passo: OG-387 (protótipo atrás de opção + sala de teste no beta), com a D-74 decidida pelo PO e pela comunidade.
+- **Recomendação:** opção 2 (10 Hz, input aplicado no instante em que chegou, frame partido com o passo calibrado). Tira a espera de 0 a 100 ms do servidor sem mexer na sensação de quem só corre; a previsão do cliente passa a bater mais com o servidor (menos correção). 
+- **Decisão do PO (2026-10-22):** a física não muda; o spike não alterou código do jogo (só `tools/dev/tick-spike.mjs` e documentos). 20 Hz fica para o OG-387, como opção de sala privada, padrão 10 Hz.
