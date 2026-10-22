@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S38 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-352 |
 | Regras de negócio | RN-LDB-03 |
 | Skills | `outgun-card-workflow` |
@@ -28,8 +28,11 @@ Como jogador, quero stats que mostrem o dano que eu realmente causei e onde eu j
 - Leaderboard: os stats novos entram em `LEADERBOARD_STATS` (`apps/api/src/leaderboard.ts`), fora dos principais (o índice do mês e o hall da fama não mudam); a data de início sai da primeira partida com o campo.
 
 ## Critérios de aceite
-- [ ] Testes da sim para cada contador; resultado da partida e relatório com os campos novos.
-- [ ] Leaderboard mostra a data de início dos stats novos.
+- [x] Testes da sim para cada contador; resultado da partida e relatório com os campos novos.
+- [x] Leaderboard mostra a data de início dos stats novos.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Mudança da sim registrada na D-68; os campos novos vão no `stats` do relatório (já era o `PlayerResult` inteiro), sem migration.
+- Leaderboard: 5 stats novos por 10 min (`effectiveDamage`, `killsEnemyBase`, `killsOwnBase`, `killsMidfield`, `defenses`); cada um só soma partidas que têm o campo (tempo jogado inclusive), e `since` = primeira ranqueada com ele.
+- Relatório da partida: 5 colunas novas, com "—" nas partidas antigas. A F4 (HUD) não mudou.
+- Pendente: abates em bots entram nas zonas (não há `botKills` por zona); revisar se o PO quiser.

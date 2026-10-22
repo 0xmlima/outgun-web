@@ -7,7 +7,7 @@ import type { AppDeps } from '../app.js';
 import { clans, seasonChampions, seasons, type ChampionBoard } from '../db/schema.js';
 import { activeSeason, LEADERBOARD_SINCE } from '../ranking.js';
 import { CLAN_MINIMUM_MATCHES, clanLeaderboard } from '../clan-stats.js';
-import { LEADERBOARD_MINIMUM_MATCHES, LEADERBOARD_STATS, OVERALL_WEIGHTS, overallBoard, STAT_IDS, statBoard, statLeaders, type StatId } from '../leaderboard.js';
+import { LEADERBOARD_MINIMUM_MATCHES, LEADERBOARD_STATS, OVERALL_WEIGHTS, overallBoard, STAT_IDS, statBoard, statLeaders, statSince, type StatId } from '../leaderboard.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -36,6 +36,8 @@ const Champions = Type.Array(Champion);
 
 const StatIdSchema = Type.Unsafe<StatId>({ type: 'string', enum: STAT_IDS });
 const StatKindSchema = Type.Union([Type.Literal('rate'), Type.Literal('ratio'), Type.Literal('record'), Type.Literal('average')]);
+/** Primeira ranqueada com o campo de um stat novo (RN-LDB-03); null = stat de sempre. */
+const Since = Type.Union([Type.Null(), Type.String({ format: 'date-time' })]);
 const StatEntrySchema = Type.Object({
   position: Type.Integer(),
   userId: Type.String(),
@@ -132,7 +134,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
               /** Os 3 primeiros do índice do mês (OG-358). */
               overall: Type.Array(OverallEntrySchema),
               weights: WeightsSchema,
-              stats: Type.Array(Type.Object({ stat: StatIdSchema, kind: StatKindSchema, main: Type.Boolean(), entries: Type.Array(StatEntrySchema) })),
+              stats: Type.Array(Type.Object({ stat: StatIdSchema, kind: StatKindSchema, main: Type.Boolean(), since: Since, entries: Type.Array(StatEntrySchema) })),
             }),
             404: ErrorSchema,
           },
@@ -191,7 +193,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
             offset: Type.Integer({ minimum: 0, maximum: 100_000, default: 0 }),
           }),
           response: {
-            200: Type.Object({ season: Type.Union([Type.Null(), Season]), stat: StatIdSchema, kind: StatKindSchema, minimumMatches: Type.Integer(), total: Type.Integer(), entries: Type.Array(StatEntrySchema), me: Type.Union([Type.Null(), StatEntrySchema]) }),
+            200: Type.Object({ season: Type.Union([Type.Null(), Season]), stat: StatIdSchema, kind: StatKindSchema, since: Since, minimumMatches: Type.Integer(), total: Type.Integer(), entries: Type.Array(StatEntrySchema), me: Type.Union([Type.Null(), StatEntrySchema]) }),
             404: ErrorSchema,
           },
         },
@@ -203,7 +205,7 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
         const board = await statBoard(db, stat, { seasonId: season?.id ?? null, format: format ?? null }, { limit, offset }, player);
         const kind = LEADERBOARD_STATS.find((x) => x.id === stat)!.kind;
-        return { season, stat, kind, minimumMatches: LEADERBOARD_MINIMUM_MATCHES, ...board };
+        return { season, stat, kind, since: await statSince(db, stat), minimumMatches: LEADERBOARD_MINIMUM_MATCHES, ...board };
       },
     );
 

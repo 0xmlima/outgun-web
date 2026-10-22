@@ -36,13 +36,15 @@ export interface StatOverview {
   /** Os 3 primeiros da lista geral do mês (OG-358) e o peso de cada stat nela. */
   overall: OverallEntry[];
   weights: Record<string, number>;
-  stats: { stat: string; kind: StatKind; main: boolean; entries: StatEntry[] }[];
+  /** `since`: primeira partida com o campo de um stat novo (RN-LDB-03); null = stat de sempre. */
+  stats: { stat: string; kind: StatKind; main: boolean; since: string | null; entries: StatEntry[] }[];
 }
 
 interface StatBoard {
   season: SeasonRef | null;
   stat: string;
   kind: StatKind;
+  since: string | null;
   minimumMatches: number;
   total: number;
   entries: StatEntry[];
@@ -67,6 +69,11 @@ export const STAT_LABELS: Record<string, string> = {
   damage: 'Raw damage',
   killStreak: 'Best kill streak',
   averageLifetime: 'Average lifetime',
+  effectiveDamage: 'Effective damage',
+  killsEnemyBase: 'Kills in the enemy base',
+  killsOwnBase: 'Kills in your base',
+  killsMidfield: 'Kills in midfield',
+  defenses: 'Defenses',
 };
 
 /** Como cada forma de ranquear é explicada ao lado do nome (RN-LDB-02). */
@@ -82,8 +89,13 @@ export function statValue(stat: string, value: number, locale: string): string {
   if (stat === OVERALL) return value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   if (stat === 'accuracy') return `${Math.round(value * 100)}%`;
   if (stat === 'averageLifetime' || stat === 'flagCarryingTime') return clock(value);
-  if (stat === 'killStreak' || stat === 'damage') return String(Math.round(value));
+  if (stat === 'killStreak' || stat === 'damage' || stat === 'effectiveDamage') return String(Math.round(value));
   return value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** "desde DD/MM" dos stats que só contam a partir da implantação (RN-LDB-03). */
+export function sinceNote(since: string | null, locale: string, t: (key: string, ...args: string[]) => string): string {
+  return since ? ` · ${t('since $1', new Date(since).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' }))}` : '';
 }
 
 /** Parâmetros de período e formato para a API: `current` (temporada ativa), `all` ou o id de uma temporada. */
@@ -140,6 +152,7 @@ export function StatOverviewView({ scope, onPick }: { scope: URLSearchParams; on
         >
           <p className="ui-muted leaderboard-kind">
             {t(KIND_NOTES[s.kind])}
+            {sinceNote(s.since, prefs.locale, t)}
             {s.main && (
               <>
                 {' '}
@@ -178,7 +191,7 @@ export function StatDetailView({ stat, scope, me }: { stat: string; scope: URLSe
   const b = board.data;
   if (!b) return <Status loading={b === undefined} missing={b === null} error={board.error} />;
   return (
-    <Panel title={`${t(STAT_LABELS[stat] ?? stat)} · ${t(KIND_NOTES[b.kind])}`}>
+    <Panel title={`${t(STAT_LABELS[stat] ?? stat)} · ${t(KIND_NOTES[b.kind])}${sinceNote(b.since, prefs.locale, t)}`}>
       {me && (
         <p className="home-rank">
           {b.me ? t('You: $1º of $2 ($3)', String(b.me.position), String(b.total), statValue(stat, b.me.value, prefs.locale)) : t('You need $1 Ranked matches in the period to appear.', String(b.minimumMatches))}

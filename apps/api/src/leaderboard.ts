@@ -32,7 +32,13 @@ export const LEADERBOARD_STATS = [
   { id: 'damage', kind: 'rate', main: false },
   { id: 'killStreak', kind: 'record', main: false },
   { id: 'averageLifetime', kind: 'average', main: false },
-] as const satisfies readonly { id: string; kind: StatKind; main: boolean }[];
+  // OG-355 (RN-LDB-03): contadores novos; só partidas com o campo, e a página mostra "desde DD/MM"
+  { id: 'effectiveDamage', kind: 'rate', main: false, field: 'effectiveDamage' },
+  { id: 'killsEnemyBase', kind: 'rate', main: false, field: 'killsEnemyBase' },
+  { id: 'killsOwnBase', kind: 'rate', main: false, field: 'killsOwnBase' },
+  { id: 'killsMidfield', kind: 'rate', main: false, field: 'killsMidfield' },
+  { id: 'defenses', kind: 'rate', main: false, field: 'defenses' },
+] as const satisfies readonly { id: string; kind: StatKind; main: boolean; field?: string }[];
 
 export type StatId = (typeof LEADERBOARD_STATS)[number]['id'];
 export const STAT_IDS = LEADERBOARD_STATS.map((s) => s.id) as [StatId, ...StatId[]];
@@ -60,7 +66,12 @@ const SUMS = `
   sum(${num('hits')}) AS hits,
   sum(${num('shots')}) AS shots,
   sum(${num('lifetime')}) AS lifetime,
-  max(${num('consecutiveKills')}) AS kill_streak`;
+  max(${num('consecutiveKills')}) AS kill_streak,
+  sum(${num('effectiveDamage')}) AS effective_damage,
+  sum(${num('killsEnemyBase')}) AS kills_enemy_base,
+  sum(${num('killsOwnBase')}) AS kills_own_base,
+  sum(${num('killsMidfield')}) AS kills_midfield,
+  sum(${num('defenses')}) AS defenses`;
 
 const perTenMinutes = (col: string) => ({ value: `${col} * 600 / play`, total: col });
 /** Valor do ranking e total bruto (desempate) de cada stat, sobre as colunas de `per`. */
@@ -79,7 +90,28 @@ const EXPRESSIONS: Record<StatId, { value: string; total: string }> = {
   killStreak: { value: 'kill_streak', total: 'kills' },
   // como o `average_lifetime` do original: tempo vivo / (mortes + 1), somado no período
   averageLifetime: { value: 'lifetime / (deaths + matches)', total: 'lifetime' },
+  effectiveDamage: perTenMinutes('effective_damage'),
+  killsEnemyBase: perTenMinutes('kills_enemy_base'),
+  killsOwnBase: perTenMinutes('kills_own_base'),
+  killsMidfield: perTenMinutes('kills_midfield'),
+  defenses: perTenMinutes('defenses'),
 };
+
+/** Campo que o stat exige na partida (contadores novos, RN-LDB-03); undefined = todo o histórico. */
+function statField(stat: StatId): string | undefined {
+  const s = LEADERBOARD_STATS.find((x) => x.id === stat);
+  return s && 'field' in s ? s.field : undefined;
+}
+
+/** Data da primeira ranqueada com o campo do stat ("desde DD/MM"); null = stat de sempre ou ainda sem partidas. */
+export async function statSince(db: Db | Tx, stat: StatId): Promise<string | null> {
+  const field = statField(stat);
+  if (!field) return null;
+  const [row] = await db.execute<{ since: string | null }>(
+    sql`SELECT min(m.ended_at)::text AS since FROM match_players mp JOIN matches m ON m.id = mp.match_id WHERE m.ranked AND (mp.stats ->> ${field}) IS NOT NULL`,
+  );
+  return row?.since ? new Date(row.since).toISOString() : null;
+}
 
 export type StatEntry = {
   position: number;
@@ -104,6 +136,7 @@ function ranked(stat: StatId, scope: BoardScope): SQL {
       sql`m.ranked AND NOT mp.is_bot AND mp.user_id IS NOT NULL`,
       ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
       ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
+      ...(statField(stat) ? [sql`(mp.stats ->> ${statField(stat)}) IS NOT NULL`] : []),
     ],
     sql` AND `,
   );
@@ -139,11 +172,16 @@ export async function statBoard(
 }
 
 /** Os `top` primeiros de cada stat (visão geral da página e hall da fama). */
-export async function statLeaders(db: Db | Tx, scope: BoardScope, top: number, only?: (s: (typeof LEADERBOARD_STATS)[number]) => boolean): Promise<{ stat: StatId; kind: StatKind; entries: StatEntry[] }[]> {
+export async function statLeaders(
+  db: Db | Tx,
+  scope: BoardScope,
+  top: number,
+  only?: (s: (typeof LEADERBOARD_STATS)[number]) => boolean,
+): Promise<{ stat: StatId; kind: StatKind; since: string | null; entries: StatEntry[] }[]> {
   const out = [];
   for (const s of LEADERBOARD_STATS.filter(only ?? (() => true))) {
     const { entries } = await statBoard(db, s.id, scope, { limit: top, offset: 0 });
-    out.push({ stat: s.id, kind: s.kind, entries });
+    out.push({ stat: s.id, kind: s.kind, since: await statSince(db, s.id), entries });
   }
   return out;
 }

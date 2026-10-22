@@ -217,6 +217,68 @@ describe('frags (RN-PTS-01)', () => {
   });
 });
 
+describe('contadores do leaderboard (OG-355, D-68)', () => {
+  it('dano efetivo: só a vida que o inimigo tinha, nada em aliado nem no shield', () => {
+    const t = setup();
+    const a = t.add(0);
+    t.add(1);
+    const e = t.add(8);
+    e.health = 30;
+    t.sim.damagePlayer(8, 0, 20, DamageType.rocket);
+    t.sim.damagePlayer(8, 0, 20, DamageType.rocket); // morre com 10 de vida: conta 10
+    t.sim.damagePlayer(1, 0, 20, DamageType.rocket);
+    expect(a.stats.effectiveDamage).toBe(30);
+    const u = setup();
+    const b = u.add(0);
+    const s = u.add(8);
+    s.shield = 3;
+    u.sim.damagePlayer(8, 0, 20, DamageType.rocket);
+    expect(b.stats.effectiveDamage).toBe(0);
+  });
+
+  it('abates por zona da vítima: base inimiga, própria base e meio; aliado não conta', () => {
+    const t = setup();
+    const a = t.add(0);
+    t.add(1, 0);
+    t.add(8, 2);
+    t.add(9, 0);
+    t.add(10, 1);
+    t.kill(8, 0);
+    t.kill(9, 0);
+    t.kill(10, 0);
+    t.kill(1, 0);
+    expect([a.stats.killsEnemyBase, a.stats.killsOwnBase, a.stats.killsMidfield]).toEqual([1, 1, 1]);
+  });
+
+  it('defesas: portador ou bandeira própria na sala contam uma vez; ataque não conta', () => {
+    const t = setup(undefined, true);
+    const a = t.add(0);
+    t.add(1);
+    t.add(8);
+    t.add(9);
+    t.add(10);
+    t.give(1, 2);
+    t.kill(8, 0); // portador aliado
+    t.lieInRoom(0);
+    t.kill(9, 0); // portador e bandeira própria: uma defesa só
+    const u = setup();
+    const b = u.add(0);
+    u.add(8);
+    u.lieInRoom(1);
+    u.kill(8, 0); // bandeira inimiga no chão: ataque
+    expect([a.stats.defenses, b.stats.defenses]).toEqual([2, 0]);
+  });
+
+  it('o resultado da partida leva os contadores novos', () => {
+    const t = setup();
+    t.add(0);
+    t.add(8, 2);
+    t.kill(8, 0);
+    const p = finishMatch(t.world, 'timeOut', 100).players.find((x) => x.pid === 0)!;
+    expect([p.effectiveDamage > 0, p.killsEnemyBase, p.killsOwnBase, p.killsMidfield, p.defenses]).toEqual([true, 1, 0, 0, 0]);
+  });
+});
+
 describe('pontos negativos (RN-PTS-02)', () => {
   it('morrer: +1; morrer com bandeira: +1 extra', () => {
     const t = setup();

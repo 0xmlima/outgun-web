@@ -27,6 +27,12 @@ const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
   ['Flags dropped', (p) => p.stats.flagsDropped ?? 0],
   ['Flags returned', (p) => p.stats.flagsReturned ?? 0],
   ['Carriers killed', (p) => p.stats.carriersKilled ?? 0],
+  // OG-355: ausentes nas partidas anteriores à implantação
+  ['Effective damage', (p) => (p.stats.effectiveDamage === undefined ? '—' : Math.round(p.stats.effectiveDamage))],
+  ['Kills (enemy base)', (p) => p.stats.killsEnemyBase ?? '—'],
+  ['Kills (own base)', (p) => p.stats.killsOwnBase ?? '—'],
+  ['Kills (midfield)', (p) => p.stats.killsMidfield ?? '—'],
+  ['Defenses', (p) => p.stats.defenses ?? '—'],
   ['Carry time', (p) => clock(p.stats.flagCarryingTime ?? 0)],
   ['Cons. kills', (p) => p.stats.consecutiveKills ?? 0],
   ['Cons. deaths', (p) => p.stats.consecutiveDeaths ?? 0],
