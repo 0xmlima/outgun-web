@@ -1,6 +1,6 @@
 {
   "name": "@outgun/protocol",
-  "version": "2.41.2",
+  "version": "2.42.0",
   "private": true,
   "description": "Protocolo binário cliente/servidor do Outgun Web (card OG-041).",
   "license": "GPL-2.0-or-later",

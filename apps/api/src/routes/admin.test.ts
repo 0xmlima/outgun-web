@@ -31,7 +31,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     await migrateUp(t.sql);
     await seed(t.db);
     await t.db.update(users).set({ isModerator: true }).where(eq(users.username, 'Jogador2'));
-    const config = { ...loadConfig({ INTERNAL_SECRETS: `gs-1:${SECRET}` }), databaseUrl: t.url };
+    const config = { ...loadConfig({ INTERNAL_SECRETS: `gs-1:${SECRET}`, NAME_FILTER: 'palavrao' }), databaseUrl: t.url };
     app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false });
     cookies.admin = await login('Admin');
     cookies.mod = await login('Jogador2');
@@ -70,6 +70,7 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
       ['GET', '/admin/reports', 'moderator'],
       ['GET', '/admin/bans', 'moderator'],
       ['GET', '/admin/audit', 'moderator'],
+      ['GET', '/admin/bots', 'moderator'],
       ['GET', '/admin/presets', 'moderator'],
       ['GET', '/admin/rotations', 'moderator'],
       ['POST', '/admin/broadcast', 'admin', { text: 'oi' }],
@@ -152,6 +153,32 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('DELETE', '/admin/presets/sniper', 'admin')).statusCode).toBe(204);
     expect((await heartbeat()).json().config.presets.map((p: { id: string }) => p.id)).not.toContain('sniper');
     expect((await call('GET', '/admin/presets/sniper/versions', 'mod')).json().versions[0]).toMatchObject({ version: 3, deleted: true, changedBy: 'Admin' });
+  });
+
+  it('aba Bots (OG-403): prefixos e nomes validados, auditados e só os ativos no heartbeat', async () => {
+    expect((await call('GET', '/admin/bots', 'mod')).json()).toMatchObject({ prefixes: [{ text: 'BOT-', active: true }], names: [] });
+    expect((await call('PUT', '/admin/bots', 'player', { prefixes: [], names: [] })).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/bots', 'mod', { prefixes: [{ text: 'LONGO-DEMAIS', active: true }], names: [] })).json()).toMatchObject({ error: 'invalid_bot_name' });
+    expect((await call('PUT', '/admin/bots', 'mod', { prefixes: [], names: [{ text: 'Um nome comprido demais', active: true }] })).json()).toMatchObject({ error: 'invalid_bot_name' });
+    expect((await call('PUT', '/admin/bots', 'mod', { prefixes: [], names: [{ text: 'xPalavrãox', active: true }] })).json()).toMatchObject({ error: 'name_not_allowed' });
+    const saved = await call('PUT', '/admin/bots', 'mod', {
+      prefixes: [{ text: 'BOT ', active: true }, { text: '', active: true }, { text: 'xX', active: false }],
+      names: [{ text: '  Ana  ', active: true }, { text: 'ana', active: true }, { text: 'Bia', active: false }],
+    });
+    expect(saved.json()).toMatchObject({ prefixes: [{ text: 'BOT ' }, { text: '' }, { text: 'xX' }], names: [{ text: 'Ana' }, { text: 'Bia' }], version: 2 });
+    expect((await heartbeat()).json().config.bots).toEqual({ prefixes: ['BOT ', ''], names: ['Ana'] });
+    expect((await call('GET', '/admin/audit', 'mod')).json().entries.some((a: { action: string }) => a.action === 'bot_names')).toBe(true);
+  });
+
+  it('chat dos bots (OG-404): padrão do jogo, editado pela moderação e entregue no heartbeat', async () => {
+    const before = (await call('GET', '/admin/bots', 'mod')).json().chat;
+    expect(before).toMatchObject({ enabled: true, perMinute: 6, events: { they_captured: { speaker: 'team' } } });
+    const chat = { ...before, perMinute: 3, events: { ...before.events, win: { chance: 0, speaker: 'any', messages: ['  gg  ', ''] } } };
+    expect((await call('PUT', '/admin/bots/chat', 'player', chat)).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/bots/chat', 'mod', { ...chat, events: { ...chat.events, win: { chance: 101, speaker: 'any', messages: [] } } })).statusCode).toBe(400);
+    expect((await call('PUT', '/admin/bots/chat', 'mod', chat)).json()).toMatchObject({ perMinute: 3, events: { win: { chance: 0, messages: ['gg'] } } });
+    const sent = (await heartbeat()).json().config.botChat;
+    expect(sent).toMatchObject({ perMinute: 3, events: { win: { chance: 0, messages: ['gg'] }, loss: before.events.loss } });
   });
 
   it('heartbeat traz as rotações padrão do servidor e o painel parte delas (OG-378)', async () => {

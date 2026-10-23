@@ -1,0 +1,191 @@
+{
+ "card": "OG-376",
+ "data": "2026-10-23",
+ "como": "Docker node:24-alpine, tc netem no loopback: delay 40ms 3ms + perda; tools/load/transport-loss.mjs, 45 s por rodada",
+ "rodadas": [
+  {
+   "mode": "tcp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 44,
+    "p99": 44,
+    "max": 44,
+    "over200ms": 0
+   },
+   "inputs": {
+    "n": 884,
+    "p50": 41,
+    "p95": 44,
+    "p99": 44,
+    "max": 74,
+    "over200ms": 0
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 0
+  },
+  {
+   "mode": "udp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 44,
+    "p99": 45,
+    "max": 45,
+    "over200ms": 0
+   },
+   "inputs": {
+    "n": 880,
+    "p50": 41,
+    "p95": 44,
+    "p99": 44,
+    "max": 45,
+    "over200ms": 0
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 0
+  },
+  {
+   "mode": "tcp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 44,
+    "p99": 222,
+    "max": 229,
+    "over200ms": 7
+   },
+   "inputs": {
+    "n": 884,
+    "p50": 41,
+    "p95": 71,
+    "p99": 179,
+    "max": 486,
+    "over200ms": 8
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 1
+  },
+  {
+   "mode": "udp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 44,
+    "p99": 141,
+    "max": 144,
+    "over200ms": 0
+   },
+   "inputs": {
+    "n": 882,
+    "p50": 41,
+    "p95": 44,
+    "p99": 45,
+    "max": 94,
+    "over200ms": 0
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 1
+  },
+  {
+   "mode": "tcp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 96,
+    "p99": 223,
+    "max": 227,
+    "over200ms": 8
+   },
+   "inputs": {
+    "n": 882,
+    "p50": 41,
+    "p95": 81,
+    "p99": 175,
+    "max": 211,
+    "over200ms": 2
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 2
+  },
+  {
+   "mode": "udp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 44,
+    "p99": 141,
+    "max": 144,
+    "over200ms": 0
+   },
+   "inputs": {
+    "n": 882,
+    "p50": 41,
+    "p95": 44,
+    "p99": 93,
+    "max": 95,
+    "over200ms": 0
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 2
+  },
+  {
+   "mode": "tcp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 122,
+    "p99": 229,
+    "max": 422,
+    "over200ms": 17
+   },
+   "inputs": {
+    "n": 883,
+    "p50": 42,
+    "p95": 122,
+    "p99": 177,
+    "max": 268,
+    "over200ms": 5
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 3
+  },
+  {
+   "mode": "udp",
+   "seconds": 45,
+   "frames": {
+    "n": 445,
+    "p50": 41,
+    "p95": 44,
+    "p99": 143,
+    "max": 145,
+    "over200ms": 0
+   },
+   "inputs": {
+    "n": 881,
+    "p50": 41,
+    "p95": 44,
+    "p99": 94,
+    "max": 142,
+    "over200ms": 0
+   },
+   "framesNeverArrived": 0,
+   "inputsNeverArrived": 0,
+   "perda": 3
+  }
+ ]
+}

@@ -20,6 +20,7 @@ import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { RankedRoomsPanel, WatchButton } from './ranked-rooms.js';
 import { MapPreview } from './MapPreview.js';
+import { fallbackMs, useLive, useLiveConnected } from '../app/live.js';
 
 type Mode = 'casual' | 'ranked';
 
@@ -134,6 +135,10 @@ export function LobbyScreen() {
   const [search, setSearch] = useState('');
   const [hideFull, setHideFull] = useState(false);
   const name = joinName(user, prefs.playerName);
+  // portal ao vivo (OG-284): sala mudou, relê na hora; a consulta fica de reserva
+  const [changed, setChanged] = useState(0);
+  useLive('rooms', () => setChanged((n) => n + 1));
+  const every = fallbackMs(REFRESH_MS, useLiveConnected());
 
   useEffect(() => {
     if (mode !== 'casual') return;
@@ -148,12 +153,12 @@ export function LobbyScreen() {
         () => alive && setError(t('Could not reach the server.')),
       );
     void load();
-    const id = setInterval(() => void load(), REFRESH_MS);
+    const id = setInterval(() => void load(), every);
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, [mode, t]);
+  }, [mode, t, every, changed]);
 
   const fail = (e: unknown) => {
     const code = e instanceof ApiError ? e.code : 'unknown';

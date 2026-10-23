@@ -1,0 +1,9 @@
+{
+  "card": "OG-284",
+  "data": "2026-10-23",
+  "onde": "MacBook de referência, API local (node dist/main.js), LIVE_PER_IP=5000, script tools/load/live.mjs",
+  "rodadas": [
+    { "pedidas": 1000, "abertas": 1000, "recusadas": 0, "rssAntesMiB": 290, "rssDepoisMiB": 302, "porConexaoKiB": 12 },
+    { "pedidas": 2500, "abertas": 2000, "recusadas": 500, "observacao": "LIVE_MAX_CONNECTIONS=2000 (padrão): as demais recebem 503 e ficam nas consultas periódicas" }
+  ]
+}

@@ -3,7 +3,7 @@
 // duas descrições têm as mesmas colunas.
 import { sql } from 'drizzle-orm';
 import type { ClanTagStyle } from '@outgun/protocol';
-import type { RotationKey } from '@outgun/settings';
+import type { BotNameEntry, RotationKey } from '@outgun/settings';
 import {
   bigserial,
   boolean,
@@ -664,6 +664,18 @@ export const mapRotations = pgTable('map_rotations', {
   updatedAt: tstz('updated_at').notNull().defaultNow(),
 });
 
+/** Aba Bots da moderação (OG-403): prefixos e nomes possíveis dos bots (uma linha, id = 1). */
+export const botSettings = pgTable('bot_settings', {
+  id: smallint('id').primaryKey().default(1),
+  prefixes: jsonb('prefixes').$type<BotNameEntry[]>().notNull().default([]),
+  names: jsonb('names').$type<BotNameEntry[]>().notNull().default([]),
+  /** Chat dos bots (OG-404); `{}` = o padrão do jogo. */
+  chat: jsonb('chat').$type<Record<string, unknown>>().notNull().default({}),
+  version: integer('version').notNull().default(1),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+});
+
 export const reportStatus = pgEnum('report_status', ['open', 'dismissed', 'actioned']);
 
 /** Denúncias do `/report` (OG-104), atendidas no painel admin (OG-087). */
@@ -789,6 +801,7 @@ export const allTables = {
   panel_map_versions: panelMapVersions,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
+  bot_settings: botSettings,
   ranked_series: rankedSeries,
   beta_invites: betaInvites,
   beta_invite_uses: betaInviteUses,

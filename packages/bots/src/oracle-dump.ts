@@ -143,6 +143,8 @@ export function viewFromDump(map: GameMap, b: DumpBefore): BotView {
     p.defending = !!d.defending;
     p.defendingAfterDeath = !!d.defendingAfterDeath;
     p.name = d.name ?? '';
+    // o original reconhece bots pelo prefixo do nome
+    p.bot = p.name.startsWith('BOT ');
     p.controls = d.controls ?? 0;
     p.accelerationMode = d.accelerationMode === 1 ? 'gun' : 'world';
     p.gundir = d.gundir ?? 0;

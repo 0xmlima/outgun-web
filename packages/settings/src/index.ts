@@ -7,3 +7,5 @@ export * from './types.js';
 export * from './console.js';
 export * from './ranked.js';
 export * from './preset-form.js';
+export * from './bot-names.js';
+export * from './bot-chat.js';

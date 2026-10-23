@@ -64,6 +64,9 @@ services:
       TRUST_PROXY: '1'
       MAILER: ${MAILER:-log}
       RELEASE: ${TAG}
+      # vigia (OG-313): disco e hora do último backup bom; alertas para ALERT_EMAIL (no .env)
+      BACKUP_STATUS_DIR: /backup-status
+    volumes: ['./backup-status:/backup-status:ro']
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_started }
@@ -99,10 +102,11 @@ services:
     environment:
       DATABASE_URL: postgres://outgun:${POSTGRES_PASSWORD}@postgres:5432/outgun
       BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_STATUS_DIR: /backup-status
     # um backup por dia (o primeiro uma hora depois de subir)
     entrypoint:
       ['sh', '-c', 'sleep 3600; while true; do sh /usr/local/bin/backup.sh; sleep 86400; done']
-    volumes: [./backups:/backup]
+    volumes: [./backups:/backup, ./backup-status:/backup-status]
     depends_on:
       postgres: { condition: service_healthy }
 

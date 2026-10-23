@@ -5,19 +5,24 @@
 // nome/tag/descrição ou dissolve. Toda ação grava em admin_actions; os
 // comandos para as salas vão aos game servers na resposta do heartbeat.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { casualPresetProblems, PRESETS, ROTATION_KEYS } from '@outgun/settings';
+import { checkName } from '@outgun/protocol';
+import { BOT_NAMES_MAX, BOT_PREFIX_MAX_LENGTH, BOT_PREFIXES_MAX, botChatConfig, casualPresetProblems, cleanBotPrefix, cleanBotText, PRESETS, ROTATION_KEYS, type BotNameEntry } from '@outgun/settings';
 import { and, count, desc, eq, gt, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { createInvites } from '../beta.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { adminActions, adminCommands, bans, betaInvites, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, gameServers, mapRotations, panelMaps, panelMapVersions, playerReports, rooms, users } from '../db/schema.js';
+import { adminActions, adminCommands, bans, betaInvites, botSettings, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, gameServers, mapRotations, panelMaps, panelMapVersions, playerReports, rooms, users } from '../db/schema.js';
+import { nameBlocked } from '../name-filter.js';
 import { checkMapText, mapNameProblem } from '../panel-maps.js';
+import { botChat, botNamesConfig } from '../platform-config.js';
+import { BotChatSchema } from './internal.js';
 import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
 import { ErrorSchema, RoomId } from './schemas.js';
+import { securityEvent } from '../security.js';
 
 export type Role = 'moderator' | 'admin';
 
@@ -499,6 +504,61 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       },
     );
 
+    // --- aba Bots (OG-403): prefixos e nomes possíveis dos bots ---
+    const BotEntry = Type.Object({ text: Type.String({ maxLength: 64 }), active: Type.Boolean() });
+    app.get('/bots', { schema: { tags: ['admin'], summary: 'Prefixos e nomes possíveis dos bots (OG-403)' } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'moderator'))) return reply;
+      const [row] = await db.select({ version: botSettings.version, updatedAt: botSettings.updatedAt }).from(botSettings).where(eq(botSettings.id, 1));
+      return { ...(await botNamesConfig(db)), chat: await botChat(db), version: row?.version ?? 0, updatedAt: row?.updatedAt.toISOString() ?? null };
+    });
+    app.put(
+      '/bots',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Troca os prefixos e os nomes possíveis dos bots; vale nos bots que entrarem depois',
+          body: Type.Object({ prefixes: Type.Array(BotEntry, { maxItems: BOT_PREFIXES_MAX }), names: Type.Array(BotEntry, { maxItems: BOT_NAMES_MAX }) }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const dedupe = (list: BotNameEntry[]) => list.filter((e, i) => list.findIndex((x) => x.text.toLowerCase() === e.text.toLowerCase()) === i);
+        const prefixes = dedupe(request.body.prefixes.map((e) => ({ text: cleanBotPrefix(e.text), active: e.active })));
+        const names = dedupe(request.body.names.map((e) => ({ text: cleanBotText(e.text), active: e.active })).filter((e) => e.text !== ''));
+        const badPrefix = prefixes.filter((e) => e.text.trim().length > BOT_PREFIX_MAX_LENGTH || (e.text !== '' && !checkName(e.text.trim())));
+        const badName = names.filter((e) => !checkName(e.text));
+        if (badPrefix.length + badName.length > 0) {
+          return reply.code(422).send({ error: 'invalid_bot_name', message: `invalid: ${[...badPrefix, ...badName].map((e) => JSON.stringify(e.text)).join(', ')}` });
+        }
+        const blocked = [...prefixes, ...names].filter((e) => e.text.trim() !== '' && nameBlocked(e.text, deps.config.nameFilter));
+        if (blocked.length > 0) return reply.code(422).send({ error: 'name_not_allowed', message: `not allowed: ${blocked.map((e) => JSON.stringify(e.text)).join(', ')}` });
+        const [row] = await db
+          .insert(botSettings)
+          .values({ id: 1, prefixes, names, updatedBy: user.id })
+          .onConflictDoUpdate({ target: botSettings.id, set: { prefixes, names, version: sql`${botSettings.version} + 1`, updatedBy: user.id, updatedAt: new Date() } })
+          .returning();
+        await audit(user, 'bot_names', { details: { prefixes: prefixes.length, names: names.length, version: row!.version } });
+        return { prefixes, names, version: row!.version, updatedAt: row!.updatedAt.toISOString() };
+      },
+    );
+
+    app.put(
+      '/bots/chat',
+      { schema: { tags: ['admin'], summary: 'Troca o chat dos bots (OG-404): ligado, teto por minuto e, por acontecimento, chance, quem fala e mensagens', body: BotChatSchema } },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const chat = botChatConfig(request.body);
+        await db
+          .insert(botSettings)
+          .values({ id: 1, chat: chat as unknown as Record<string, unknown>, updatedBy: user.id })
+          .onConflictDoUpdate({ target: botSettings.id, set: { chat: chat as unknown as Record<string, unknown>, version: sql`${botSettings.version} + 1`, updatedBy: user.id, updatedAt: new Date() } });
+        await audit(user, 'bot_chat', { details: { enabled: chat.enabled, perMinute: chat.perMinute } });
+        return chat;
+      },
+    );
+
     // --- beta fechado (OG-106): convites e feedback ---
     app.get('/invites', { schema: { tags: ['admin'], summary: 'Convites do beta' } }, async (request, reply) => {
       if (!(await guard(request, reply, 'admin'))) return reply;
@@ -699,7 +759,9 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         if (target.id === user.id) return reply.code(422).send({ error: 'own_role', message: 'you cannot change your own role' });
         const role = request.body.role;
         await db.update(users).set({ isAdmin: role === 'admin', isModerator: role === 'moderator', updatedAt: new Date() }).where(eq(users.id, target.id));
-        await audit(user, 'role', { targetUserId: target.id, targetName: target.username, reason: role, details: { from: target.isAdmin ? 'admin' : target.isModerator ? 'moderator' : 'player', to: role } });
+        const from = target.isAdmin ? 'admin' : target.isModerator ? 'moderator' : 'player';
+        await audit(user, 'role', { targetUserId: target.id, targetName: target.username, reason: role, details: { from, to: role } });
+        securityEvent(request.log, 'authz_change', { user: target.username, ip: request.ip, detail: `${from},${role},by ${user.username}` });
         return { username: target.username, role };
       },
     );

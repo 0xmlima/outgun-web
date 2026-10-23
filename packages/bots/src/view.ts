@@ -9,6 +9,8 @@ import { PlayerState, WorldState, type GameMap, type RoomCoords, type WorldCoord
 export class BotPlayer extends PlayerState {
   used = false;
   name = '';
+  /** É um bot (do servidor, OG-403; antes, o prefixo "BOT " do nome). */
+  bot = false;
   /** Na tela do cliente (mesma sala) no último frame recebido. */
   onscreen = false;
   /** Frame da última posição recebida (inclusive a do minimapa); −1e10 = nunca. */
@@ -65,6 +67,7 @@ export class BotPlayer extends PlayerState {
       posUpdated: this.posUpdated,
       onscreen: this.onscreen,
       name: this.name,
+      bot: this.bot,
     });
     return c;
   }

@@ -223,7 +223,7 @@ function ClanBoard() {
   const { t } = usePrefs();
   const navigate = useNavigate();
   const [scope, setScope] = useState<'season' | 'overall'>('season');
-  const board = useApi<{ season: { name: string } | null; total: number; entries: ClanStanding[] }>(`/leaderboard/clans?limit=100${scope === 'overall' ? '&overall=true' : ''}`, true);
+  const board = useApi<{ season: { name: string } | null; total: number; entries: ClanStanding[] }>(`/leaderboard/clans?limit=100${scope === 'overall' ? '&overall=true' : ''}`, true, 'matches');
   const b = board.data;
   return (
     <>

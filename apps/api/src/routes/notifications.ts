@@ -9,6 +9,7 @@ import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
 import { clanMembers, notifications, type NotificationData, type NotificationKind } from '../db/schema.js';
+import { liveBus } from '../live.js';
 import { ErrorSchema } from './schemas.js';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -20,6 +21,7 @@ export const NOTIFICATIONS_LIMIT = 30;
 export async function notify(tx: Db | Tx, userIds: readonly string[], kind: NotificationKind, data: NotificationData): Promise<void> {
   if (userIds.length === 0) return;
   await tx.insert(notifications).values(userIds.map((userId) => ({ userId, kind, data })));
+  liveBus.publish('notifications', userIds); // portal ao vivo (OG-284)
 }
 
 /** Líder e admins do clã: quem responde aos pedidos de entrada. */

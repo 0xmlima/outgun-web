@@ -26,6 +26,7 @@ export function errorField(code: string): Field | undefined {
     case 'username_taken':
     case 'invalid_username':
     case 'username_cooldown':
+    case 'name_not_allowed':
       return 'username';
     case 'email_taken':
     case 'invalid_email':
@@ -55,6 +56,8 @@ function useErrorText(): (error: unknown) => string {
         return t('This e-mail is already in use. Forgot your password?');
       case 'invalid_username':
         return t('Invalid username: up to 15 characters, no spaces at the ends.');
+      case 'name_not_allowed':
+        return t('This name is not allowed.');
       case 'invalid_email':
         return t('Invalid e-mail.');
       case 'invite_required':

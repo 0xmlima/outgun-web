@@ -128,6 +128,8 @@ export class ClientSession {
   readonly clanTags = new Map<number, string>();
   /** Pids ocupados (vale também antes de o mapa carregar). */
   readonly present = new Set<number>();
+  /** Pids que são bots (`playerJoined.bot`): a IA não depende mais do prefixo do nome (OG-403). */
+  readonly bots = new Set<number>();
   readonly frags = new Map<number, number>();
   /** Cor pessoal de cada jogador 0..15 (`welcome`, `playerJoined`, `playerInfo`, `teamChange`). */
   readonly colors = new Map<number, number>();
@@ -442,6 +444,8 @@ export class ClientSession {
         this.clanTags.delete(m.pid);
         this.setName(m.pid, m.name);
         this.colors.set(m.pid, m.color);
+        if (m.bot) this.bots.add(m.pid);
+        else this.bots.delete(m.pid);
         this.ensurePlayer(m.pid);
         break;
       case 'playerName':
@@ -458,6 +462,7 @@ export class ClientSession {
         this.playerInfo.delete(m.pid);
         this.names.delete(m.pid);
         this.plainNames.delete(m.pid);
+        this.bots.delete(m.pid);
         this.clanTags.delete(m.pid);
         this.present.delete(m.pid);
         this.posUpdated.delete(m.pid);

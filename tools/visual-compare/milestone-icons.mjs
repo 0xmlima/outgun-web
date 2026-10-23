@@ -48,7 +48,10 @@ try {
       await page.setContent(
         `<html><body style="margin:0">${milestoneIconSvg(spec, { locked })}</body></html>`,
       );
-      const file = join(OUT, `${steamAchievementName(id)}_${locked ? 'UNACHIEVED' : 'ACHIEVED'}.png`);
+      const file = join(
+        OUT,
+        `${steamAchievementName(id)}_${locked ? 'UNACHIEVED' : 'ACHIEVED'}.png`,
+      );
       await page.screenshot({ path: file, clip: { x: 0, y: 0, width: 256, height: 256 } });
     }
   }
@@ -81,13 +84,20 @@ try {
   const defs = [
     // cabeçalhos iguais aos do modelo que o Steamworks exporta
     '"api_name (required, unique; the name your game passes to the API)",setid (optional; the id of a set that already exists),"permission (one of Client, GameServer, OfficialGameServer)",spoiler (true or false),archived (true or false),"progress_stat_name (optional; the name of a stat that already exists, blank for no progress bar)","progress_stat_min (number, no lower than the stat\'s own min)","progress_stat_max (number, above min and no higher than the stat\'s own max)"',
-    ...[...MILESTONES, ...SECRET_MILESTONES].map((m) => `${steamAchievementName(m.id)},,Client,${m.group === 'secret'},false,,0,0`),
+    ...[...MILESTONES, ...SECRET_MILESTONES].map(
+      (m) => `${steamAchievementName(m.id)},,Client,${m.group === 'secret'},false,,0,0`,
+    ),
   ];
   const loc = [
     'api_name (required; must match an api_name from the definitions CSV),field (name or description),brazilian,english',
     ...[...MILESTONES, ...SECRET_MILESTONES].flatMap((m) => [
       [steamAchievementName(m.id), 'name', csv(m.name['pt-BR']), csv(m.name.en)].join(','),
-      [steamAchievementName(m.id), 'description', csv(m.description['pt-BR']), csv(m.description.en)].join(','),
+      [
+        steamAchievementName(m.id),
+        'description',
+        csv(m.description['pt-BR']),
+        csv(m.description.en),
+      ].join(','),
     ]),
   ];
   writeFileSync(join(dirname(OUT), 'achievements-definitions.csv'), defs.join('\r\n') + '\r\n');

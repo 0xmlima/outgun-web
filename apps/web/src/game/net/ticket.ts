@@ -43,6 +43,8 @@ export function joinErrorText(code: string): string {
       return 'This name belongs to an account. Sign in or choose another.';
     case 'invalid_name':
       return 'Invalid name.';
+    case 'name_not_allowed':
+      return 'This name is not allowed.';
     case 'banned':
       return 'You are banned from this room.';
     case 'password_required':

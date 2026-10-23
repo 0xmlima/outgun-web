@@ -25,7 +25,7 @@ import { TextLines, TextPage } from '../ui/TextPage.js';
 function RecentMatches({ username }: { readonly username: string }) {
   const { t, prefs } = usePrefs();
   const navigate = useNavigate();
-  const history = useApi<{ matches: HistoryEntry[] }>(`/players/${encodeURIComponent(username)}/matches?limit=5`);
+  const history = useApi<{ matches: HistoryEntry[] }>(`/players/${encodeURIComponent(username)}/matches?limit=5`, false, 'matches');
   return (
     <Panel title={t('Your recent matches')} actions={<Link to={`/players/${encodeURIComponent(username)}`}>{t('Profile')}</Link>}>
       {history.data === undefined && !history.error ? (

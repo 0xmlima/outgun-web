@@ -113,7 +113,7 @@ export function statScope(period: string, format: string): URLSearchParams {
 /** Visão geral: um quadro por stat com os 3 primeiros; clicar abre a lista completa. */
 export function StatOverviewView({ scope, onPick }: { scope: URLSearchParams; onPick: (stat: string) => void }) {
   const { t, prefs } = usePrefs();
-  const board = useApi<StatOverview>(`/leaderboard/stats?${scope.toString()}`, true);
+  const board = useApi<StatOverview>(`/leaderboard/stats?${scope.toString()}`, true, 'matches');
   const b = board.data;
   if (!b) return <Status loading={b === undefined} missing={b === null} error={board.error} />;
   return (
@@ -190,7 +190,7 @@ export function StatDetailView({ stat, scope, me }: { stat: string; scope: URLSe
   const q = new URLSearchParams(scope);
   q.set('limit', String(limit));
   if (me) q.set('player', me);
-  const board = useApi<StatBoard>(`/leaderboard/stats/${encodeURIComponent(stat)}?${q.toString()}`, true);
+  const board = useApi<StatBoard>(`/leaderboard/stats/${encodeURIComponent(stat)}?${q.toString()}`, true, 'matches');
   const b = board.data;
   if (!b) return <Status loading={b === undefined} missing={b === null} error={board.error} />;
   return (
@@ -243,7 +243,7 @@ export function OverallDetailView({ scope, me }: { scope: URLSearchParams; me: s
   const q = new URLSearchParams(scope);
   q.set('limit', String(limit));
   if (me) q.set('player', me);
-  const board = useApi<OverallBoard>(`/leaderboard/overall?${q.toString()}`, true);
+  const board = useApi<OverallBoard>(`/leaderboard/overall?${q.toString()}`, true, 'matches');
   const b = board.data;
   if (!b) return <Status loading={b === undefined} missing={b === null} error={board.error} />;
   const stats = Object.keys(b.weights);

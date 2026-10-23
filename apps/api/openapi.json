@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.41.2",
+    "version": "2.42.0",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -7528,6 +7528,17 @@
         }
       }
     },
+    "/live": {
+      "get": {
+        "summary": "Avisos ao vivo do portal (SSE): rooms, matches e, com sessão, notifications",
+        "tags": ["portal"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/names/check": {
       "get": {
         "summary": "Nome válido? Livre? Como aparece para um convidado?",
@@ -9593,7 +9604,7 @@
                     },
                     "config": {
                       "type": "object",
-                      "required": ["version", "presets", "rotations", "maps"],
+                      "required": ["version", "presets", "rotations", "maps", "bots", "botChat"],
                       "properties": {
                         "version": {
                           "type": "string"
@@ -9662,6 +9673,80 @@
                               },
                               "crc": {
                                 "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "bots": {
+                          "type": "object",
+                          "required": ["prefixes", "names"],
+                          "properties": {
+                            "prefixes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "names": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "botChat": {
+                          "type": "object",
+                          "required": ["enabled", "perMinute", "events"],
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "perMinute": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 30
+                            },
+                            "events": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "required": ["chance", "speaker", "messages"],
+                                "properties": {
+                                  "chance": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  "speaker": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": ["involved"]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": ["team"]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": ["enemy"]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": ["any"]
+                                      }
+                                    ]
+                                  },
+                                  "messages": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "maxItems": 40
+                                  }
+                                }
                               }
                             }
                           }
@@ -11474,6 +11559,147 @@
             "required": true
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/bots": {
+      "get": {
+        "summary": "Prefixos e nomes possíveis dos bots (OG-403)",
+        "tags": ["admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "put": {
+        "summary": "Troca os prefixos e os nomes possíveis dos bots; vale nos bots que entrarem depois",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prefixes", "names"],
+                "properties": {
+                  "prefixes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["text", "active"],
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "maxLength": 64
+                        },
+                        "active": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "maxItems": 30
+                  },
+                  "names": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["text", "active"],
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "maxLength": 64
+                        },
+                        "active": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "maxItems": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/admin/bots/chat": {
+      "put": {
+        "summary": "Troca o chat dos bots (OG-404): ligado, teto por minuto e, por acontecimento, chance, quem fala e mensagens",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["enabled", "perMinute", "events"],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "perMinute": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 30
+                  },
+                  "events": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "required": ["chance", "speaker", "messages"],
+                      "properties": {
+                        "chance": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "speaker": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["involved"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["team"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["enemy"]
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["any"]
+                            }
+                          ]
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "maxItems": 40
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Default Response"

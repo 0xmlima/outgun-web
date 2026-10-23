@@ -238,6 +238,7 @@ export class BotClient implements Connection {
       }
       bp.used = true;
       bp.name = s.names.get(pid) ?? '';
+      bp.bot = s.bots.has(pid);
       bp.team = world.teamOf(pid);
       bp.dead = src.dead;
       bp.onscreen = s.onscreen.has(pid);
@@ -327,7 +328,7 @@ export class BotClient implements Connection {
       sender.defendingAfterDeath = msg === 'a';
       description = `${sender.name} prefers attacking${sender.defendingAfterDeath ? ' until dead, then defending' : ''}`;
     } else return;
-    const firstBot = view.players.find((p) => p.used && p.team === myTeam && p.name.startsWith('BOT '));
+    const firstBot = view.players.find((p) => p.used && p.team === myTeam && p.bot);
     if (!firstBot || firstBot.pid === s.me) this.toServer([message('chat', { text: `.Roger - ${description}`, teamOnly: true })]);
   }
 }

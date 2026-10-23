@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Configuração da plataforma editada no painel admin (OG-087) e entregue aos game servers na
-// resposta do heartbeat: presets Casual criados no painel e rotações de mapas por modo. Os presets
+// resposta do heartbeat: presets Casual criados no painel, rotações de mapas por modo e os nomes dos
+// bots (OG-403). Os presets
 // do código (Clássico, Ranked etc.) só mudam com uma versão nova do jogo — o Ranked, travado, só por
 // decisão do PO (RN-MOD-04).
-import { PRESETS, type Preset, type RotationKey } from '@outgun/settings';
+import { activeBotNames, botChatConfig, PRESETS, type BotChatConfig, type BotNames, type BotNamesConfig, type Preset, type RotationKey } from '@outgun/settings';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import type { Db } from './db/client.js';
-import { adminCommands, bans, casualPresets, mapRotations, panelMaps, users } from './db/schema.js';
+import { adminCommands, bans, botSettings, casualPresets, mapRotations, panelMaps, users } from './db/schema.js';
 
 export interface PlatformConfig {
   /** Muda quando qualquer preset ou rotação muda (o game server só reaplica se mudar). */
@@ -16,6 +17,10 @@ export interface PlatformConfig {
   rotations: Partial<Record<RotationKey, string[]>>;
   /** Mapas publicados pela moderação (OG-367): o game server baixa o texto que não tem. */
   maps: { name: string; crc: number }[];
+  /** Nomes e prefixos ativos dos bots (OG-403). */
+  bots: BotNames;
+  /** Chat dos bots (OG-404), já completado com o padrão. */
+  botChat: BotChatConfig;
 }
 
 /** Presets Casual do painel ainda ativos. */
@@ -35,13 +40,27 @@ export async function casualRotation(db: Db): Promise<string[] | null> {
   return row?.maps ?? null;
 }
 
+/** Cadastros da aba Bots (OG-403); sem linha, vazios (o game server usa o gerador). */
+export async function botNamesConfig(db: Db): Promise<BotNamesConfig> {
+  const [row] = await db.select({ prefixes: botSettings.prefixes, names: botSettings.names }).from(botSettings).where(eq(botSettings.id, 1));
+  return { prefixes: row?.prefixes ?? [], names: row?.names ?? [] };
+}
+
+/** Chat dos bots da aba Bots (OG-404), completado com o padrão do jogo. */
+export async function botChat(db: Db): Promise<BotChatConfig> {
+  const [row] = await db.select({ chat: botSettings.chat }).from(botSettings).where(eq(botSettings.id, 1));
+  return botChatConfig(row?.chat);
+}
+
 export async function platformConfig(db: Db): Promise<PlatformConfig> {
   const presets = (await panelPresets(db)).map(({ id, description, overrides }) => ({ id, description, overrides }));
   const rotations: PlatformConfig['rotations'] = {};
   for (const r of await db.select().from(mapRotations)) rotations[r.key] = r.maps;
   const maps = await db.select({ name: panelMaps.name, crc: panelMaps.crc }).from(panelMaps).where(isNull(panelMaps.deletedAt)).orderBy(asc(panelMaps.name));
-  const version = createHash('sha256').update(JSON.stringify({ presets, rotations, maps })).digest('hex').slice(0, 16);
-  return { version, presets, rotations, maps };
+  const bots = activeBotNames(await botNamesConfig(db));
+  const chat = await botChat(db);
+  const version = createHash('sha256').update(JSON.stringify({ presets, rotations, maps, bots, chat })).digest('hex').slice(0, 16);
+  return { version, presets, rotations, maps, bots, botChat: chat };
 }
 
 export interface CommandForServer {

@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 1 pt |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S42 |
+| Status | Concluído |
 | Dependências | [OG-275](OG-275-clas-moderacao.md) |
 | Regras de negócio | RN-CLA-08, RN-NOM-01 |
 | Skills | `outgun-card-workflow` |
@@ -23,7 +23,8 @@ Como moderador, quero que o mesmo filtro de nomes proibidos dos clãs valha para
 - Mensagem "Este nome não é permitido." no cliente.
 
 ## Critérios de aceite
-- [ ] Testes: cadastro e troca de nome recusados com palavra da lista (sem diferença de maiúsculas e acentos).
+- [x] Testes: cadastro e troca de nome recusados com palavra da lista (sem diferença de maiúsculas e acentos).
 
 ## Notas de implementação
+- Erro `name_not_allowed` (400) no cadastro, na troca de nome e no nome de convidado (`/rooms/.../join`); `/names/check` responde `registrable: false` e `guestName: null`. Mensagem "Este nome não é permitido." no cadastro, na conta e ao entrar como convidado. A lista é a mesma `NAME_FILTER` dos clãs.
 (preenchido durante a execução)

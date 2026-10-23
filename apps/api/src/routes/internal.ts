@@ -3,7 +3,7 @@
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
 import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TOptional, type TString } from '@fastify/type-provider-typebox';
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
-import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
+import { BOT_CHAT_MESSAGE_MAX_LENGTH, BOT_CHAT_MESSAGES_MAX, BOT_CHAT_PER_MINUTE_MAX, PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matchEventPlayers, matchEvents, matches, matchPlayers, playerReports, rankedSeries, rooms, users, type MatchEvent } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
@@ -16,6 +16,7 @@ import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
 import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
+import { liveBus } from '../live.js';
 
 const Heartbeat = Type.Object({
   server: Type.Object({
@@ -95,6 +96,20 @@ const Command = Type.Object({
   actor: Type.String(),
 });
 
+/** Chat dos bots (OG-404): o mesmo formato na moderação e no heartbeat. */
+export const BotChatSchema = Type.Object({
+  enabled: Type.Boolean(),
+  perMinute: Type.Integer({ minimum: 0, maximum: BOT_CHAT_PER_MINUTE_MAX }),
+  events: Type.Record(
+    Type.String(),
+    Type.Object({
+      chance: Type.Integer({ minimum: 0, maximum: 100 }),
+      speaker: Type.Union([Type.Literal('involved'), Type.Literal('team'), Type.Literal('enemy'), Type.Literal('any')]),
+      messages: Type.Array(Type.String({ maxLength: BOT_CHAT_MESSAGE_MAX_LENGTH }), { maxItems: BOT_CHAT_MESSAGES_MAX }),
+    }),
+  ),
+});
+
 const HeartbeatReply = Type.Object({
   updated: Type.Integer(),
   /** Comandos do painel para salas deste servidor. */
@@ -106,6 +121,10 @@ const HeartbeatReply = Type.Object({
     rotations: Type.Object(Object.fromEntries(ROTATION_KEYS.map((k) => [k, Type.Optional(Type.Array(Type.String()))])) as Record<RotationKey, TOptional<TArray<TString>>>),
     /** Mapas publicados pela moderação (OG-367): nome e CRC; o texto sai de `GET /maps/:name`. */
     maps: Type.Array(Type.Object({ name: Type.String(), crc: Type.Integer() })),
+    /** Nomes e prefixos ativos dos bots (OG-403). */
+    bots: Type.Object({ prefixes: Type.Array(Type.String()), names: Type.Array(Type.String()) }),
+    /** Chat dos bots (OG-404). */
+    botChat: BotChatSchema,
   }),
 });
 
@@ -270,6 +289,8 @@ const security = [{ gameServerHmac: [] }];
 const ABANDONED_MS = 60 * 60_000;
 
 export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyncTypebox {
+  /** Retrato das salas de cada servidor no último heartbeat: mudou, avisa o portal ao vivo (OG-284). */
+  const roomSignatures = new Map<string, string>();
   return async (app) => {
     app.addHook('preHandler', async (request, reply) => {
       const result = verifyInternalRequest(
@@ -356,6 +377,11 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             .delete(rooms)
             .where(and(eq(rooms.serverId, serverId), eq(rooms.persistent, false), isNotNull(rooms.format), lt(rooms.lastHeartbeatAt, new Date(now.getTime() - ONLINE_MS + 1))));
         });
+        const signature = JSON.stringify(hosted.map((r) => [r.id, r.name, r.mode, r.players, r.map, r.phase ?? '', (r.roster ?? []).map((x) => `${x.name}/${x.team}`).join(',')]));
+        if (roomSignatures.get(serverId) !== signature) {
+          roomSignatures.set(serverId, signature);
+          liveBus.publish('rooms');
+        }
         await applyAcks(database.db, serverId, request.body.acks ?? [], now);
         const commands = await takeCommands(database.db, serverId, now);
         return { updated: request.body.rooms.length, commands, config: await platformConfig(database.db) };
@@ -507,6 +533,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           }
           return { id: match!.id, duplicate: false as const };
         });
+        if (!result.duplicate) liveBus.publish('matches'); // ranking, perfis e últimas partidas (OG-284)
         return reply.code(result.duplicate ? 200 : 201).send(result);
       },
     );

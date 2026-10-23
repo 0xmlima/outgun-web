@@ -1600,3 +1600,27 @@
 .milestone-icon-sm {
   margin-right: var(--space-1);
 }
+
+/* aba Bots da moderação (OG-403): prefixos e nomes lado a lado */
+.admin-bots {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.admin-bots h3 {
+  margin: 0;
+}
+@media (max-width: 64rem) {
+  .admin-bots {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.admin-chat-chance {
+  width: 4.5rem;
+}
+.admin-chat-messages {
+  width: 100%;
+  min-width: 16rem;
+  resize: vertical;
+}

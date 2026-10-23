@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Painel admin no game server (OG-087): os comandos chegam na resposta do heartbeat, são executados
 // na sala e a confirmação volta no heartbeat seguinte; a configuração (presets Casual e rotações
-// por modo) é aplicada quando a versão muda. Rotação nova vale em toda sala do modo a partir da
+// por modo, nomes e prefixos dos bots) é aplicada quando a versão muda. Rotação nova vale em toda sala do modo a partir da
 // próxima troca de mapa (D-69): a sala Casual que escolheu mapas fica com os que seguem na rotação.
 import type { GameMap } from '@outgun/sim';
 import type { CommandAck, HeartbeatReply, PanelHandlers } from './platform.js';
+import { botChatConfig } from '@outgun/settings';
+import { setPanelBotChat } from './bot-chat.js';
+import { setPanelBotNames } from './bots.js';
 import { setPanelPresets } from './presets.js';
 import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
 import { isRotationEntry, panelRotationKeys, resolveRotation, withinRotation, type Rotations } from './maps.js';
@@ -68,6 +71,8 @@ export class AdminPanelLink implements PanelHandlers {
   private applyConfig(config: HeartbeatReply['config']): void {
     this.configVersion = config.version;
     setPanelPresets(config.presets);
+    if (config.bots) setPanelBotNames(config.bots);
+    if (config.botChat) setPanelBotChat(botChatConfig(config.botChat));
     for (const key of ROTATION_KEYS) {
       const wanted = config.rotations[key];
       if (!wanted) continue;

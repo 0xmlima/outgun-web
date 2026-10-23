@@ -2,6 +2,7 @@
 // População de bots (OG-054, RN-BOT-01/03): `Server::init_bots` e `create_bot_name`
 // (src/server.cpp:884-971) e os geradores de nomes de src/names.cpp. Spec: plan/specs/bots-populacao.md.
 import { MAX_NAME_LENGTH } from '@outgun/protocol';
+import { DEFAULT_BOT_PREFIX, type BotNames } from '@outgun/settings';
 import type { Rng } from '@outgun/sim';
 
 export interface BotNeeds {
@@ -29,21 +30,40 @@ export function neededBots(n: BotNeeds): number {
   return needed;
 }
 
-const BOT_PREFIX = 'BOT ';
+/** Nomes e prefixos da moderação (OG-403), trocados pelo painel; vazios = o gerador do original. */
+let panelBotNames: BotNames = { prefixes: [], names: [] };
+export function setPanelBotNames(names: BotNames): void {
+  panelBotNames = names;
+}
 
 /**
- * `create_bot_name`: "BOT " + nome gerado (só o clássico: os finlandeses saíram no OG-386, e
- * `bot_name_lang` ficou sem efeito) que não esteja em `reserved` (todos os já
- * gerados na sala, `reservedBotNames`) nem seja o de um bot presente; o novo nome entra em `reserved`.
+ * Nome de um bot que entra. Com nomes da moderação (OG-403): sorteia um prefixo ativo (sem nenhum,
+ * o padrão "BOT ") e um nome que caiba com ele e não esteja na sala nem em `reserved`; sem nome
+ * livre, cai no gerador. `create_bot_name` do original: prefixo + nome gerado (só o clássico: os
+ * finlandeses saíram no OG-386) que não esteja em `reserved` (todos os já gerados na sala,
+ * `reservedBotNames`) nem seja o de um bot presente; o novo nome entra em `reserved`.
  */
-export function createBotName(rng: Rng, reserved: Set<string>, inUse: Iterable<string>): string {
+export function createBotName(rng: Rng, reserved: Set<string>, inUse: Iterable<string>, names: BotNames = panelBotNames): string {
+  const prefixes = names.prefixes.length > 0 ? names.prefixes : [DEFAULT_BOT_PREFIX];
+  // um só prefixo não gasta sorteio (o gerador segue a sequência do original)
+  const prefix = prefixes.length === 1 ? prefixes[0]! : prefixes[rng.rand() % prefixes.length]!;
+  const present = [...inUse];
+  const busy = [...reserved, ...present].map((n) => n.toLowerCase());
+  const fits = (name: string) => (prefix + name).trim().length <= MAX_NAME_LENGTH;
+  // livre: não reservado na sala e não é o fim do nome de ninguém presente ("xX Fulano" ocupa "Fulano")
+  const free = names.names.filter((n) => fits(n) && !busy.some((b) => b === n.toLowerCase() || b.endsWith(n.toLowerCase())));
+  if (free.length > 0) {
+    const name = free[rng.rand() % free.length]!;
+    reserved.add(name.toLowerCase());
+    return (prefix + name).trim();
+  }
   const blackList = new Set(reserved);
-  for (const name of inUse) if (name.startsWith(BOT_PREFIX)) blackList.add(name.slice(BOT_PREFIX.length));
+  for (const name of present) if (name.startsWith(prefix)) blackList.add(name.slice(prefix.length));
   let name: string;
   do name = randomName(rng);
   while (blackList.has(name));
   reserved.add(name);
-  return (BOT_PREFIX + name).slice(0, MAX_NAME_LENGTH).trim();
+  return (prefix + name).slice(0, MAX_NAME_LENGTH).trim();
 }
 
 // --- names.cpp: nomes "clássicos" (sílabas) ---

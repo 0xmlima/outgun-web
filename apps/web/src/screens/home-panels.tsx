@@ -3,10 +3,11 @@
 // do mês (líder de cada stat principal, OG-353) com o meu rating (OG-351). Só leitura de endpoints que já existem; atualiza a
 // cada 30 s enquanto a aba está visível.
 import { chatName } from '@outgun/protocol';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
+import { fallbackMs, useLive, useLiveConnected, type LiveTopic } from '../app/live.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { Panel } from '../ui/Panel.js';
@@ -19,9 +20,19 @@ import { RatingInfo } from './rating-help.js';
 export const LIVE_POLL_MS = 4000;
 export const POLL_MS = 60_000;
 
-/** GET periódico que pausa com a aba escondida; `undefined` = carregando, `null` = erro/ausente. */
-export function usePolled<T>(path: string | null, everyMs = POLL_MS): T | null | undefined {
+/**
+ * GET periódico que pausa com a aba escondida; `undefined` = carregando, `null` = erro/ausente. Com
+ * `topic`, relê na hora a cada aviso do portal ao vivo (OG-284) e a consulta fica de reserva.
+ */
+export function usePolled<T>(path: string | null, everyMs = POLL_MS, topic: LiveTopic | null = null): T | null | undefined {
   const [data, setData] = useState<T | null | undefined>(undefined);
+  const current = useRef(path);
+  current.current = path;
+  useLive(topic, () => {
+    const at = current.current;
+    if (at) api<T>(at).then((d) => current.current === at && setData(d), () => undefined);
+  });
+  const every = fallbackMs(everyMs, useLiveConnected() && topic !== null);
   useEffect(() => {
     if (!path) return setData(null);
     let alive = true;
@@ -33,14 +44,14 @@ export function usePolled<T>(path: string | null, everyMs = POLL_MS): T | null |
       );
     };
     load();
-    const id = setInterval(load, everyMs);
+    const id = setInterval(load, every);
     addEventListener('visibilitychange', load);
     return () => {
       alive = false;
       clearInterval(id);
       removeEventListener('visibilitychange', load);
     };
-  }, [path, everyMs]);
+  }, [path, every]);
   return data;
 }
 
@@ -59,7 +70,7 @@ export function liveRooms(rooms: readonly RoomSummary[], max = 3): { online: num
 export function NowPlaying() {
   const { t } = usePrefs();
   const navigate = useNavigate();
-  const data = usePolled<{ rooms: RoomSummary[] }>('/rooms', LIVE_POLL_MS);
+  const data = usePolled<{ rooms: RoomSummary[] }>('/rooms', LIVE_POLL_MS, 'rooms');
   const { online, busy } = liveRooms(data?.rooms ?? []);
   return (
     <Panel title={t('Now on Outgun')} actions={<Link to="/rooms">{t('Rooms')}</Link>}>
@@ -100,8 +111,8 @@ export function MonthRanking() {
   const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const navigate = useNavigate();
-  const board = usePolled<StatOverview>('/leaderboard/stats');
-  const me = usePolled<{ skill: { value: number; calibrating: boolean } | null }>(user ? `/players/${encodeURIComponent(user.username)}` : null);
+  const board = usePolled<StatOverview>('/leaderboard/stats', POLL_MS, 'matches');
+  const me = usePolled<{ skill: { value: number; calibrating: boolean } | null }>(user ? `/players/${encodeURIComponent(user.username)}` : null, POLL_MS, 'matches');
   // melhor do mês (índice geral, OG-358) e o líder de cada stat principal
   const leaders = [{ stat: OVERALL, top: board?.overall[0] }, ...(board?.stats ?? []).filter((s) => s.main).map((s) => ({ stat: s.stat, top: s.entries[0] }))];
   return (

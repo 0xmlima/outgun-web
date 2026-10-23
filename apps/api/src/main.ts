@@ -24,6 +24,9 @@ const app = await buildApp({ config, database, redis, lifecycle });
 await app.listen({ port: config.port, host: config.host });
 await checkSeason();
 const seasonTimer = setInterval(() => void checkSeason(), 60_000);
+// vigia (OG-313): disco e backup a cada 15 min, se a pasta de status do backup estiver montada
+const statusDir = config.backupStatusDir;
+const watchTimer = statusDir ? setInterval(() => void app.security.check(statusDir), 15 * 60_000) : undefined;
 if (process.env.NODE_ENV === 'production' && !config.metricsToken) app.log.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 
 /**
@@ -36,6 +39,7 @@ const shutdown = async (graceS: number) => {
   stopping = true;
   lifecycle.stopping = true;
   clearInterval(seasonTimer);
+  clearInterval(watchTimer);
   if (graceS > 0) await new Promise((r) => setTimeout(r, graceS * 1000));
   await app.close();
   redis?.disconnect();

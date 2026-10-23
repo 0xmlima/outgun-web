@@ -609,6 +609,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373; 2.39.1: OG-379, OG-381 | |
 | S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; enxugar o legado (sem finlandês e italiano, revisão das opções); depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-384, OG-385, OG-386, OG-388, OG-389, OG-380, OG-375, OG-374 | |
 | S41 | v2: marcos — ~50 novos a partir dos stats e eventos (vitórias, tempo, bandeira, defesa, combate, armas, ranked por formato, mapas, dupla), 14 secretos raros (dois do 7x1 e a virada histórica), marcos de humor, perfil no jogo por grupo com progresso e raridade, ícones e conquistas da Steam espelhando os marcos | OG-390, OG-391, OG-398, OG-399, OG-392, OG-395, OG-393, OG-394, OG-396, OG-397; 2.41.1: OG-400, OG-401; 2.41.2: OG-402 | |
+| S42 | v2: salas com cara de jogo real — nomes e prefixo dos bots no painel e bots que falam no chat conforme a partida; filtro de nomes nos jogadores; portal ao vivo; logs de segurança e alertas; estudo do WebTransport | OG-276, OG-403, OG-404, OG-313, OG-284, OG-376 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -735,7 +736,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-273](cards/OG-273-clas-estatisticas.md) | Estatísticas do clã | E13 | 3 | Should | S19 | OG-270, OG-259 | Concluído |
 | [OG-274](cards/OG-274-ranking-clas.md) | Ranking de clãs | E13 | 3 | Should | S19 | OG-273, OG-267 | Concluído |
 | [OG-275](cards/OG-275-clas-moderacao.md) | Moderação de clãs no painel admin | E13 | 2 | Should | S16 | OG-270 | Concluído |
-| [OG-276](cards/OG-276-filtro-nomes-jogadores.md) | Filtro de nomes proibidos também nos nomes de jogador | E13 | 1 | Should | — | OG-275 | Backlog |
+| [OG-276](cards/OG-276-filtro-nomes-jogadores.md) | Filtro de nomes proibidos também nos nomes de jogador | E13 | 1 | Should | S42 | OG-275 | Concluído |
 | [OG-277](cards/OG-277-sublinhado-conta-quem-entra-depois.md) | Quem entra depois não vê o sublinhado de conta dos que já estavam | E8 | 1 | Should | S21 | — | Concluído |
 | [OG-278](cards/OG-278-erro-pixi-alphamode-resize.md) | Erro do Pixi (`alphaMode`) ao redimensionar a janela na partida | E8 | 2 | Should | S21 | — | Concluído |
 | [OG-279](cards/OG-279-serie-com-vencedor.md) | Conferir série com vencedor (md3 2-1) de ponta a ponta | E12 | 1 | Should | S21 | — | Concluído |
@@ -743,7 +744,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-281](cards/OG-281-espectador-player-nao-iniciado.md) | Espectador ao vivo às vezes abre com "player não iniciado" | E8 | 1 | Should | S21 | — | Concluído |
 | [OG-282](cards/OG-282-online-sem-bots.md) | "Agora no Outgun" conta bots como jogadores online | E8 | 1 | Should | S21 | — | Concluído |
 | [OG-283](cards/OG-283-atualizacao-automatica.md) | Telas do portal paradas: atualização automática mais frequente | E8 | 1 | Should | S21 | — | Concluído |
-| [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | — | OG-283 | Backlog |
+| [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | S42 | OG-283 | Concluído |
 | [OG-285](cards/OG-285-opcoes-nao-salvam.md) | Opções não ficam salvas (cor favorita, mensagens rápidas) | E8 | 2 | Must | S21 | — | Concluído |
 | [OG-286](cards/OG-286-powerups-somem-troca-sala.md) | Power-ups somem ao entrar numa sala | E11 | 1 | Must | S22 | — | Concluído |
 | [OG-287](cards/OG-287-explosao-deathbringer.md) | Deathbringer sem explosão (anel e som) para os jogadores | E11 | 1 | Must | S22 | — | Concluído |
@@ -772,7 +773,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-310](cards/OG-310-contas-dos-provedores-e-dns.md) | Contas dos provedores com MFA, DNS protegido e segredos arrumados | E14 | 1 | Must | — | — | Backlog |
 | [OG-311](cards/OG-311-borda-hsts-websocket-divulgacao.md) | Borda: HSTS em tudo, origem do WebSocket e canal de divulgação de falhas | E14 | 2 | Should | S29 | — | Concluído |
 | [OG-312](cards/OG-312-containers-endurecidos-e-rede.md) | Containers endurecidos, limites de memória e rede segmentada | E14 | 3 | Should | — | OG-308 | Backlog |
-| [OG-313](cards/OG-313-logs-de-seguranca-e-alertas.md) | Logs de eventos de segurança e alertas ao PO | E14 | 3 | Should | — | OG-307 | Backlog |
+| [OG-313](cards/OG-313-logs-de-seguranca-e-alertas.md) | Logs de eventos de segurança e alertas ao PO | E14 | 3 | Should | S42 | OG-307 | Concluído |
 | [OG-314](cards/OG-314-mfa-para-admins.md) | Segundo fator (TOTP) para contas admin e moderador | E14 | 5 | Should | — | — | Backlog |
 | [OG-315](cards/OG-315-modo-foco-telas-visiveis.md) | Modo foco mostra as telas do F1–F5, o menu e os avisos | E8 | 1 | Must | S29 | — | Concluído |
 | [OG-316](cards/OG-316-lobby-ranked-tema-dos-menus.md) | Lobby do Ranked com o tema dos menus (Campo ou Placar) | E8 | 1 | Should | S29 | — | Concluído |
@@ -835,7 +836,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-373](cards/OG-373-fps-sem-limite-no-cliente-desktop.md) | FPS sem limite de verdade no cliente desktop (Steam) | E11 | 3 | Must | S39 | — | Concluído |
 | [OG-374](cards/OG-374-quadro-de-baixa-latencia.md) | Quadro de baixa latência: menos trabalho por quadro e canvas dessincronizado | E11 | 2 | Could | S40 | OG-369, OG-373 | Concluído |
 | [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S40 | OG-370 | Concluído |
-| [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | — | OG-370 | Backlog |
+| [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | S42 | OG-370 | Concluído |
 | [OG-377](cards/OG-377-mapas-do-painel-na-criacao-de-sala.md) | Mapas do painel em "Criar sala" quando não há rotação Casual no painel | E5 | 1 | Must | S40 | OG-367 | Concluído |
 | [OG-378](cards/OG-378-rotacoes-do-painel-partem-da-atual.md) | Aba Rotações parte da rotação que está valendo | E5 | 2 | Must | S40 | OG-365 | Concluído |
 | [OG-379](cards/OG-379-fim-de-partida-zerado.md) | Fim de partida com os números zerados no Casual | E12 | 2 | Must | S39 | OG-344 | Concluído |
@@ -862,8 +863,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-400](cards/OG-400-fps-travado-em-60-na-steam.md) | FPS travado em 60 no cliente da Steam | E12 | 2 | Must | S41 | OG-373, OG-374, OG-396 | Concluído |
 | [OG-401](cards/OG-401-resolucao-do-monitor-no-windows.md) | Resolução do monitor no cliente para Windows | E12 | 5 | Should | S41 | OG-337, OG-400 | Concluído |
 | [OG-402](cards/OG-402-pioneiro-ate-31-de-outubro.md) | Pioneiro para quem jogar até 31 de outubro | E9 | 1 | Must | S41 | OG-390 | Concluído |
+| [OG-403](cards/OG-403-bots-nomes-e-prefixo-no-painel.md) | Bots no painel de moderação: cadastro de nomes e de prefixos | E13 | 3 | Should | S42 | OG-377 | Concluído |
+| [OG-404](cards/OG-404-bots-falam-no-chat.md) | Bots falam no chat conforme o que acontece na partida | E13 | 5 | Should | S42 | OG-403, OG-362 | Concluído |
+| [OG-405](cards/OG-405-webtransport-no-game-server.md) | WebTransport no game server, com o WebSocket de reserva | E11 | 5 | Should | — | OG-376 | Backlog |
+| [OG-406](cards/OG-406-cliente-webtransport-com-reserva.md) | Cliente escolhe WebTransport e cai no WebSocket sem o jogador perceber | E11 | 3 | Should | — | OG-405 | Backlog |
 
-**Total:** 244 cards, 810 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 175 cards, 515 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 248 cards, 826 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 179 cards, 531 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
