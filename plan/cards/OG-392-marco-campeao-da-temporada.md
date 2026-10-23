@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-390, OG-268 |
 | Regras de negócio | RN-SOC-03 |
 | Skills | `outgun-card-workflow` |
@@ -23,6 +23,8 @@ Como jogador que terminou uma temporada no pódio, quero um marco por isso, para
 - Concedido no fechamento da temporada e no retroativo (`cli.js milestones`).
 
 ## Critérios de aceite
-- [ ] Teste: fechar uma temporada concede o marco aos 3 primeiros e a ninguém mais; rodar de novo não duplica.
+- [x] Teste: fechar uma temporada concede o marco aos 3 primeiros e a ninguém mais; rodar de novo não duplica.
 
 ## Notas de implementação
+- `awardSeasonMilestones` no fim do `closeSeason` (fechamento e regravação) e no retroativo; concede também o Vice (OG-399, 2º lugar). Quadro dos clãs não conta.
+- O marco fica mesmo se uma regravação do hall da fama tirar o jogador do pódio (ON CONFLICT DO NOTHING).

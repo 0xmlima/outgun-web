@@ -159,11 +159,31 @@ export async function awardMilestones(tx: Db | Tx, userIds: readonly string[], o
   return added;
 }
 
+/**
+ * Marcos fora da partida (OG-392): pódio do hall da fama de temporadas encerradas (quadros de
+ * jogador, não o dos clãs). Campeão = top 3; Vice (OG-399) = 2º lugar. Data = fim da temporada.
+ * Uma temporada só (ao fechar) ou todas (retroativo); devolve quantos foram gravados.
+ */
+export async function awardSeasonMilestones(tx: Db | Tx, seasonId?: number): Promise<number> {
+  const only = seasonId === undefined ? sql`` : sql`AND s.id = ${seasonId}`;
+  const res = await tx.execute<{ milestone: string }>(sql`
+    INSERT INTO player_milestones (user_id, milestone, achieved_at, match_id)
+    SELECT DISTINCT ON (c.user_id, x.milestone) c.user_id, x.milestone, coalesce(s.ends_at, now()), NULL::uuid
+    FROM season_champions c JOIN seasons s ON s.id = c.season_id
+    CROSS JOIN LATERAL (VALUES ('season_champion'), (CASE WHEN c.position = 2 THEN 'humor_runner_up' END)) x(milestone)
+    WHERE c.user_id IS NOT NULL AND c.board <> 'clans' AND c.position <= 3 AND x.milestone IS NOT NULL AND NOT s.active ${only}
+    ORDER BY c.user_id, x.milestone, s.ends_at
+    ON CONFLICT (user_id, milestone) DO NOTHING
+    RETURNING milestone`);
+  return res.length;
+}
+
 /** Preenchimento retroativo: todas as contas com partidas, em lotes. */
 export async function backfillMilestones(db: Db, o: { beta: boolean }, batch = 200): Promise<{ users: number; added: number }> {
   const ids = (await db.execute<{ user_id: string }>(sql`SELECT DISTINCT user_id FROM match_players WHERE user_id IS NOT NULL ORDER BY user_id`)).map((r) => r.user_id);
   let added = 0;
   for (let i = 0; i < ids.length; i += batch) added += await awardMilestones(db, ids.slice(i, i + batch), o);
+  added += await awardSeasonMilestones(db);
   return { users: ids.length, added };
 }
 

@@ -137,6 +137,7 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'win_4x4', group: 'ranked', name: b('Quarteto', 'Quartet'), description: b('Venceu uma ranqueada 4x4', 'Won a 4v4 ranked match') },
   { id: 'win_5x5', group: 'ranked', name: b('Quinteto', 'Quintet'), description: b('Venceu uma ranqueada 5x5', 'Won a 5v5 ranked match') },
   { id: 'series_bo5', group: 'ranked', name: b('Série longa', 'Long series'), description: b('Venceu uma série md5', 'Won a best-of-5 series') },
+  { id: 'season_champion', group: 'ranked', name: b('Campeão da temporada', 'Season champion'), description: b('Ficou entre os 3 primeiros do hall da fama de uma temporada', "Finished in the top 3 of a season's hall of fame") },
   { id: 'comeback', group: 'ranked', name: b('Virada', 'Comeback'), description: b('Venceu uma ranqueada depois de estar 2 capturas atrás', 'Won a ranked match after being 2 captures behind') },
   // social
   { id: 'beta', group: 'social', name: b('Pioneiro', 'Pioneer'), description: b('Jogou o beta', 'Played the beta') },
