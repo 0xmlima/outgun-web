@@ -1,4 +1,4 @@
-# OG-403 — Bots no painel de moderação: nomes e prefixo
+# OG-403 — Bots no painel de moderação: cadastro de nomes e de prefixos
 
 | Campo | Valor |
 |---|---|
@@ -13,19 +13,23 @@
 | Skills | `outgun-card-workflow` |
 
 ## História
-Como moderador, quero cadastrar os nomes e o prefixo dos bots, para que as salas pareçam cheias de jogadores de verdade.
+Como moderador, quero cadastrar os nomes e os prefixos dos bots, para que as salas pareçam cheias de jogadores de verdade.
 
 ## Contexto
 - Pedido do PO em 2026-10-23 (S42): "buscar uma simulação de jogo real".
 - Hoje o nome sai de `createBotName` (`apps/game-server/src/bots.ts`: prefixo fixo `BOT `, sílabas de `names.cpp`). A IA reconhece outro bot pelo nome (`player.name.substring(0, 4) === 'BOT '` em `packages/bots/src/situation.ts`), então trocar o prefixo exige marcar o bot por uma flag, não pelo nome.
 
 ## Escopo
-- Aba **Bots** na moderação (tela cheia, no padrão da S40): lista de nomes (adicionar, remover, colar vários de uma vez) e prefixo (padrão `BOT-`; pode ficar vazio). Nomes passam pelo `nameBlocked` (OG-276) e pelo limite de tamanho do nome.
+- Aba **Bots** na moderação (tela cheia, no padrão da S40), com dois cadastros (pedido do PO em 2026-10-23):
+  - **Prefixos:** lista de prefixos possíveis (ex.: `BOT-`, `[BR]`, `xX`), cada um com adicionar, editar, remover e ligar/desligar; opção "sem prefixo" como mais uma entrada da lista. Cada bot que entra sorteia um prefixo ativo.
+  - **Nomes possíveis:** lista de nomes com adicionar, editar, remover, colar vários de uma vez (um por linha) e busca; cada bot sorteia um nome ativo que não esteja em uso na sala.
+  - Nomes e prefixos passam pelo `nameBlocked` (OG-276) e o nome final (prefixo + nome) respeita o limite de tamanho do nome; listas vazias → comportamento atual (`BOT ` + nome gerado).
 - Gravado na API (configuração única) e entregue aos game servers como as rotações (OG-383); vale nos bots que entrarem depois.
-- Game server: nome sorteado da lista sem repetir na sala e sem colidir com jogador presente; lista esgotada → gerador atual. A IA identifica bots por flag.
+- Game server: prefixo e nome sorteados das listas, sem repetir nome na sala e sem colidir com jogador presente; nomes esgotados → gerador atual. A IA identifica bots por flag, não pelo nome.
 
 ## Critérios de aceite
-- [ ] Moderador cadastra nomes e prefixo, e o próximo bot que entra usa um deles.
+- [ ] Moderador cadastra prefixos e nomes, e o próximo bot que entra usa um prefixo e um nome das listas.
+- [ ] Prefixo ou nome desligado não é sorteado; "sem prefixo" ativo pode sair no sorteio.
 - [ ] Nome proibido ou longo demais é recusado com mensagem.
 - [ ] Prefixo trocado (ou vazio) não muda o comportamento da IA (teste).
 - [ ] Ranked sem mudança (lá não há bots).
