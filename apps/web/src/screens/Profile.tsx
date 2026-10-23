@@ -17,6 +17,7 @@ import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { TitleBadges } from './HallOfFame.js';
 import { useManifestLists } from './options.js';
+import { MilestonesPanel } from './milestones-panel.js';
 import { RatingInfo } from './rating-help.js';
 import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, SubstitutionBadges, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
 
@@ -112,7 +113,6 @@ export function ProfileScreen() {
   ];
   const pr = progress.data;
   const skill = p.skill;
-  const won = new Map(p.milestones.map((m) => [m.id, m]));
   const s = social.data;
   const privateNote = <p className="ui-muted">{t('This player keeps it private.')}</p>;
 
@@ -202,27 +202,7 @@ export function ProfileScreen() {
         {pr?.hidden ? privateNote : pr && pr.series.length > 1 ? <RatingChart series={pr.series} locale={prefs.locale} /> : <p className="ui-muted">{t('No ranked matches yet.')}</p>}
       </Panel>
 
-      <Panel title={`${t('Milestones')} · ${won.size}/${MILESTONES.length}`}>
-        <ul className="profile-milestones">
-          {MILESTONES.map((m) => {
-            const got = won.get(m.id);
-            const text = milestoneText(m.id, prefs.locale);
-            return (
-              <li key={m.id} className={got ? 'won' : 'locked'}>
-                <strong>{text.name}</strong>
-                <span className="ui-muted">{text.description}</span>
-                {got ? (
-                  <span className="profile-milestone-date">
-                    {got.matchId ? <Link to={`/matches/${got.matchId}`}>{date(got.achievedAt, prefs.locale)}</Link> : date(got.achievedAt, prefs.locale)}
-                  </span>
-                ) : (
-                  <span className="ui-muted">{t('Locked')}</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </Panel>
+      <MilestonesPanel p={p} />
 
       <Panel title={t('Recent matches')}>
         <Tabs

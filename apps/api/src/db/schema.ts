@@ -489,8 +489,16 @@ export const matchEventPlayers = pgTable(
   (t) => [primaryKey({ columns: [t.matchId, t.idx] }), index('match_event_players_user_idx').on(t.userId)],
 );
 
-/** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã. */
-export type NotificationKind = 'clan_invite' | 'clan_request';
+/** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã; marcos novos de uma partida (OG-394). */
+export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone';
+/** Clã (tag e nome) e quem convidou ou pediu; nos marcos, os ids e o texto dos secretos (o cliente não tem o catálogo deles). */
+export interface NotificationData {
+  clanTag?: string;
+  clanName?: string;
+  from?: string;
+  milestones?: string[];
+  secretNames?: Record<string, { 'pt-BR': string; en: string }>;
+}
 export const notifications = pgTable(
   'notifications',
   {
@@ -499,8 +507,7 @@ export const notifications = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     kind: text('kind').$type<NotificationKind>().notNull(),
-    /** Clã (tag e nome) e quem convidou ou pediu. */
-    data: jsonb('data').$type<{ clanTag?: string; clanName?: string; from?: string }>().notNull().default({}),
+    data: jsonb('data').$type<NotificationData>().notNull().default({}),
     createdAt: tstz('created_at').notNull().defaultNow(),
     readAt: tstz('read_at'),
   },

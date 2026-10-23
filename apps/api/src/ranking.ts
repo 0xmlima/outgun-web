@@ -7,6 +7,7 @@ import { and, desc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 import { clanLeaderboard } from './clan-stats.js';
 import { overallBoard, statLeaders } from './leaderboard.js';
+import { awardSeasonMilestones } from './milestones.js';
 import { formatRatings, playerProfiles, ratings, seasonChampions, seasons, seasonStandings, type ChampionBoard } from './db/schema.js';
 
 /** `minimum_positive_score_for_ranking` do original: abaixo disso, fora do leaderboard. */
@@ -99,6 +100,8 @@ export async function closeSeason(tx: Tx, seasonId: number): Promise<void> {
   const [season] = await tx.select({ month: seasons.month }).from(seasons).where(eq(seasons.id, seasonId));
   if (season?.month && season.month >= LEADERBOARD_SINCE) await snapshotStatChampions(tx, seasonId);
   else await snapshotStandings(tx, seasonId);
+  // Campeão da temporada e Vice (OG-392/399); a temporada já não está ativa aqui
+  await awardSeasonMilestones(tx, seasonId);
 }
 
 /** Hall da fama pelo leaderboard (OG-354, RN-LDB-05): os 3 primeiros de cada stat principal no mês e os clãs. */

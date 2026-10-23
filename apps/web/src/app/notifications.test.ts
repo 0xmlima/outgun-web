@@ -14,4 +14,15 @@ describe('notificações (OG-361)', () => {
     expect(notificationText(request, t)).toBe('Bia pediu para entrar em (LB) Lobos');
     expect([notificationPath(invite), notificationPath(request)]).toEqual(['/clans/inbox', '/clans/LB']);
   });
+
+  it('marcos novos (OG-394): nomes no idioma, "+N" depois de 3 e destaque do secreto', () => {
+    const one: AppNotification = { ...base, kind: 'milestone', data: { milestones: ['hat_trick'] } };
+    const many: AppNotification = { ...base, kind: 'milestone', data: { milestones: ['wins_1', 'hat_trick', 'shutout', 'multi_kill', 'carry_60'] } };
+    const secret: AppNotification = { ...base, kind: 'milestone', data: { milestones: ['secret_ace'], secretNames: { secret_ace: { 'pt-BR': 'Ás', en: 'Ace' } } } };
+    expect(notificationText(one, t, 'pt-BR')).toBe('Marco novo: Hat-trick');
+    expect(notificationText(many, t, 'pt-BR')).toBe('Marcos novos: Primeira vitória, Hat-trick, Sem chance +2');
+    expect(notificationText(secret, t, 'pt-BR')).toBe('Marco secreto desbloqueado! Ás');
+    expect([notificationPath(one, 'Bia'), notificationPath(one)]).toEqual(['/players/Bia', '/']);
+  });
 });
+

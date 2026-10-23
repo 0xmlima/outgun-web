@@ -114,18 +114,21 @@ describe.skipIf(!pgAdminUrl)('API social (OG-211)', () => {
   it('marcos (OG-213): concedidos ao gravar a partida, no perfil e na partida; retroativo idempotente', async () => {
     const j1 = (await app.inject('/players/Jogador1')).json();
     const first = (await app.inject('/players/Jogador1/matches?limit=100')).json().matches.at(-1).id;
-    expect(j1.milestones).toEqual([{ id: 'first_match', achievedAt: expect.any(String), matchId: first }]);
+    // só a estreia aqui; os marcos novos (OG-390+) têm os testes deles
+    expect(j1.milestones.filter((x: { id: string }) => x.id === 'first_match')).toEqual([{ id: 'first_match', achievedAt: expect.any(String), matchId: first }]);
     expect(j1.lastMatchAt).toEqual(expect.any(String));
     const m = (await app.inject(`/matches/${first}`)).json();
-    expect(m.milestones).toEqual([
+    expect(m.milestones.filter((x: { milestone: string }) => x.milestone === 'first_match')).toEqual([
       { username: 'Jogador1', milestone: 'first_match' },
       { username: 'Jogador2', milestone: 'first_match' },
       { username: 'Jogador3', milestone: 'first_match' },
     ]);
     await t.db.delete(playerMilestones);
-    expect(await backfillMilestones(t.db, { beta: true })).toEqual({ users: 3, added: 6 });
+    const again = await backfillMilestones(t.db, { beta: true });
+    expect(again.users).toBe(3);
+    expect(again.added).toBeGreaterThanOrEqual(6); // estreia e beta das 3 contas, mais os marcos novos
     expect(await backfillMilestones(t.db, { beta: true })).toEqual({ users: 3, added: 0 });
-    expect((await app.inject('/players/Jogador3')).json().milestones.map((x: { id: string }) => x.id).sort()).toEqual(['beta', 'first_match']);
+    expect((await app.inject('/players/Jogador3')).json().milestones.map((x: { id: string }) => x.id)).toEqual(expect.arrayContaining(['beta', 'first_match']));
   });
 
   it('diretório: mais ativos em 7 dias e clãs', async () => {

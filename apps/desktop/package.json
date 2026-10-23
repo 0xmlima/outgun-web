@@ -1,6 +1,6 @@
 {
   "name": "@outgun/desktop",
-  "version": "2.40.0",
+  "version": "2.41.0",
   "private": true,
   "description": "Cliente para Windows, macOS e Ubuntu (OG-324, OG-326, D-58): uma janela do Electron que carrega o site do jogo.",
   "license": "GPL-2.0-or-later",
@@ -52,7 +52,8 @@
       "identity": "-",
       "hardenedRuntime": false,
       "notarize": false,
-      "artifactName": "Outgun-mac-${version}.${ext}"
+      "artifactName": "Outgun-mac-${version}.${ext}",
+      "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/steamworks.js/dist/osx/*"
     },
     "dmg": {
       "title": "Outgun"
@@ -81,6 +82,12 @@
         "libasound2t64 | libasound2",
         "libgbm1"
       ]
-    }
+    },
+    "asarUnpack": [
+      "node_modules/steamworks.js/dist/**"
+    ]
+  },
+  "dependencies": {
+    "steamworks.js": "0.4.0"
   }
 }

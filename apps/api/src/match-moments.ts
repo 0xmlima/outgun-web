@@ -2,10 +2,11 @@
 // Stats que dependem do momento (OG-363, RN-LDB-03), a partir dos eventos da ranqueada (OG-362):
 // multi-kill, troca e primeiro abate. Só abates em inimigos contam. Calculados ao gravar a partida e
 // somados aos `stats` de cada jogador, onde o leaderboard os lê.
+import { MULTI_KILL_WINDOW } from '@outgun/content';
 import type { MatchEvent } from './db/schema.js';
 
 /** Janelas em décimos de segundo (propostas ao PO na revisão do OG-363). */
-export const MULTI_KILL_WINDOW = 40;
+export { MULTI_KILL_WINDOW };
 export const TRADE_WINDOW = 30;
 
 export interface MomentStats {

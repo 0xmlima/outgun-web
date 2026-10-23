@@ -36,6 +36,15 @@ export interface DesktopBridge {
   frameRate(): 'vsync' | 'unlocked';
   frameRateActive(): 'vsync' | 'unlocked';
   setFrameRate(mode: 'vsync' | 'unlocked'): void;
+  /** Conquistas da Steam (OG-396); ausentes antes da 2.41. */
+  steamAvailable?(): boolean;
+  syncSteamAchievements?(ids: readonly string[]): void;
+}
+
+/** Manda ao app da Steam os marcos da conta (OG-396, D-77); fora da Steam não faz nada. */
+export function syncSteamAchievements(ids: readonly string[]): void {
+  const bridge = desktopBridge();
+  if (ids.length > 0 && bridge?.steamAvailable?.()) bridge.syncSteamAchievements?.(ids);
 }
 
 /** Limite de FPS "sem limite" de verdade (cliente desktop sem VSync, OG-373); 0 é o automático. */

@@ -3,6 +3,7 @@
 // instalador, então a versão é sempre a do site. Segurança pelo checklist do Electron: sem Node na
 // página, sandbox, navegação só no domínio do jogo e links externos no navegador do sistema.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
@@ -116,6 +117,39 @@ function createWindow() {
   });
   void win.loadURL(GAME_URL.href);
 }
+
+// Conquistas da Steam (OG-396, D-77): o marco da conta é a fonte de verdade e o app só desbloqueia na
+// Steam o que a conta já tem (o site manda os ids). Só quando a Steam abriu o jogo (ela põe o
+// SteamAppId no ambiente); fora dela, ou se o SDK falhar, nada muda.
+const STEAM_APP_ID = 663760;
+const MILESTONE_ID = /^[a-z0-9_]{1,64}$/;
+/** @type {typeof import('steamworks.js/client.d') | null} */
+let steam = null;
+if (Number(process.env.SteamAppId ?? process.env.SteamGameId) === STEAM_APP_ID) {
+  try {
+    steam = createRequire(import.meta.url)('steamworks.js').init(STEAM_APP_ID);
+  } catch (error) {
+    console.error('Steam indisponível:', error);
+  }
+}
+ipcMain.on('outgun:steam-available', (event) => {
+  event.returnValue = steam !== null && sameOrigin(event.senderFrame?.url ?? '');
+});
+ipcMain.on('outgun:steam-sync', (event, ids) => {
+  if (!steam || !sameOrigin(event.senderFrame?.url ?? '') || !Array.isArray(ids)) return;
+  let changed = false;
+  for (const id of ids.slice(0, 200)) {
+    if (typeof id !== 'string' || !MILESTONE_ID.test(id)) continue;
+    const name = id.toUpperCase();
+    try {
+      // conquista que não existe no Steamworks (ainda não cadastrada) devolve false: ignorada
+      if (!steam.achievement.isActivated(name) && steam.achievement.activate(name)) changed = true;
+    } catch {
+      // idem
+    }
+  }
+  if (changed) steam.stats.store();
+});
 
 if (!app.requestSingleInstanceLock()) app.quit();
 else {

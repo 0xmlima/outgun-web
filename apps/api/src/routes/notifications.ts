@@ -8,7 +8,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
-import { clanMembers, notifications, type NotificationKind } from '../db/schema.js';
+import { clanMembers, notifications, type NotificationData, type NotificationKind } from '../db/schema.js';
 import { ErrorSchema } from './schemas.js';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -17,7 +17,7 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 export const NOTIFICATIONS_LIMIT = 30;
 
 /** Cria uma notificação para cada conta. */
-export async function notify(tx: Db | Tx, userIds: readonly string[], kind: NotificationKind, data: { clanTag?: string; clanName?: string; from?: string }): Promise<void> {
+export async function notify(tx: Db | Tx, userIds: readonly string[], kind: NotificationKind, data: NotificationData): Promise<void> {
   if (userIds.length === 0) return;
   await tx.insert(notifications).values(userIds.map((userId) => ({ userId, kind, data })));
 }
@@ -33,8 +33,15 @@ export async function clanStaff(tx: Db | Tx, clanId: string): Promise<string[]> 
 
 const Notification = Type.Object({
   id: Type.String(),
-  kind: Type.Union([Type.Literal('clan_invite'), Type.Literal('clan_request')]),
-  data: Type.Object({ clanTag: Type.Optional(Type.String()), clanName: Type.Optional(Type.String()), from: Type.Optional(Type.String()) }),
+  kind: Type.Union([Type.Literal('clan_invite'), Type.Literal('clan_request'), Type.Literal('milestone')]),
+  data: Type.Object({
+    clanTag: Type.Optional(Type.String()),
+    clanName: Type.Optional(Type.String()),
+    from: Type.Optional(Type.String()),
+    /** Marcos novos da partida (OG-394) e o texto dos secretos entre eles. */
+    milestones: Type.Optional(Type.Array(Type.String())),
+    secretNames: Type.Optional(Type.Record(Type.String(), Type.Object({ 'pt-BR': Type.String(), en: Type.String() }))),
+  }),
   createdAt: Type.String(),
   read: Type.Boolean(),
 });
