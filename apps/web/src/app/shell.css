@@ -1637,3 +1637,17 @@
   gap: var(--space-4);
   align-items: center;
 }
+
+/* número de jogador na conta (OG-410) */
+.account-number {
+  max-width: 10rem;
+}
+
+/* número do jogador no perfil (OG-410): como no boneco, branco com contorno */
+.profile-number {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 2px solid var(--text);
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}

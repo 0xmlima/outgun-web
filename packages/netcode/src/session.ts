@@ -141,6 +141,8 @@ export class ClientSession {
   readonly teamIdentity: [TeamIdentityView | null, TeamIdentityView | null] = [null, null];
   /** Muda a cada `teamIdentity`: o cliente refaz cores e texturas. */
   teamIdentityVersion = 0;
+  /** Número de cada jogador (`playerNumber`, OG-410). */
+  readonly numbers = new Map<number, number>();
   readonly frags = new Map<number, number>();
   /** Cor pessoal de cada jogador 0..15 (`welcome`, `playerJoined`, `playerInfo`, `teamChange`). */
   readonly colors = new Map<number, number>();
@@ -455,12 +457,16 @@ export class ClientSession {
         this.clanTags.delete(m.pid);
         this.setName(m.pid, m.name);
         this.colors.set(m.pid, m.color);
+        this.numbers.delete(m.pid);
         if (m.bot) this.bots.add(m.pid);
         else this.bots.delete(m.pid);
         this.ensurePlayer(m.pid);
         break;
       case 'playerName':
         this.setName(m.pid, m.name);
+        break;
+      case 'playerNumber':
+        this.numbers.set(m.pid, m.number);
         break;
       case 'teamIdentity':
         if (m.team === 0 || m.team === 1) {
@@ -480,6 +486,7 @@ export class ClientSession {
         this.names.delete(m.pid);
         this.plainNames.delete(m.pid);
         this.bots.delete(m.pid);
+        this.numbers.delete(m.pid);
         this.clanTags.delete(m.pid);
         this.present.delete(m.pid);
         this.posUpdated.delete(m.pid);

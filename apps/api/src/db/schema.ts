@@ -58,6 +58,13 @@ export const users = pgTable(
     termsVersion: text('terms_version'),
     termsAcceptedAt: tstz('terms_accepted_at'),
     usernameChangedAt: tstz('username_changed_at'),
+    /** Número no boneco (OG-410, RN-NUM-01): único, 2..99. */
+    playerNumber: smallint('player_number'),
+    numberChangedAt: tstz('number_changed_at'),
+    /** Aviso de que o número vai ser liberado (7 dias antes dos 60 sem jogar). */
+    numberWarnedAt: tstz('number_warned_at'),
+    /** Líder do mês anterior usando o 1 (opcional, D-79). */
+    useNumberOne: boolean('use_number_one').notNull().default(false),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
@@ -502,7 +509,7 @@ export const matchEventPlayers = pgTable(
 );
 
 /** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã; marcos novos de uma partida (OG-394). */
-export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone';
+export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released';
 /** Clã (tag e nome) e quem convidou ou pediu; nos marcos, os ids e o texto dos secretos (o cliente não tem o catálogo deles). */
 export interface NotificationData {
   clanTag?: string;
@@ -510,6 +517,8 @@ export interface NotificationData {
   from?: string;
   milestones?: string[];
   secretNames?: Record<string, { 'pt-BR': string; en: string }>;
+  /** Número a expirar ou liberado (OG-410). */
+  number?: number;
 }
 export const notifications = pgTable(
   'notifications',

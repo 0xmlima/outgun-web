@@ -11,7 +11,7 @@ import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { FieldGroup, TextField, ToggleField } from '../ui/Field.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
-import { Form, FormMessageLine, Page } from '../ui/Page.js';
+import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 
 const MIN_PASSWORD = 8;
@@ -359,8 +359,73 @@ export function AccountScreen() {
     <Page title={t('Account')} subtitle={`${user.clanTag ? `${user.clanTag} ` : ''}${user.username} · ${user.email}`} width="narrow" onBack={() => void navigate('/')} backLabel={t('Back')}>
       <MenuList label={t('Account')} items={items} autoFocus />
       <FormMessageLine message={general} />
+      <NumberPanel />
       <PrivacyPanel />
     </Page>
+  );
+}
+
+interface NumberState {
+  number: number | null;
+  canChangeAt: string | null;
+  numberOneEligible: boolean;
+  usingNumberOne: boolean;
+  free: number[];
+}
+
+/**
+ * Número de jogador (OG-410, D-79): 2 a 99, único, no centro do boneco; troca a cada 30 dias e é
+ * liberado depois de 60 dias sem jogar. O líder do mês anterior pode usar o 1.
+ */
+function NumberPanel() {
+  const { t, prefs } = usePrefs();
+  const [state, setState] = useState<NumberState | null>(null);
+  const [message, setMessage] = useState<FormMessage | null>(null);
+  useEffect(() => {
+    void api<NumberState>('/account/number').then(setState, () => undefined);
+  }, []);
+  if (!state) return null;
+  const choose = (number: number | null) =>
+    api<NumberState>('/account/number', { method: 'PUT', body: { number } }).then(
+      (s) => {
+        setState(s);
+        setMessage({ text: number === null ? t('Number removed.') : t('Your number is now $1.', String(number)), error: false });
+      },
+      (e: unknown) => {
+        const code = e instanceof ApiError ? e.code : '';
+        setMessage({ text: code === 'number_taken' ? t('Someone just took this number. Pick another.') : code === 'number_cooldown' ? t('You can change your number once every 30 days.') : t('Something went wrong. Try again.'), error: true });
+      },
+    );
+  const options = [...new Set([...(state.number ? [state.number] : []), ...state.free])].sort((a, b) => a - b);
+  const locked = state.canChangeAt !== null && state.number !== null;
+  return (
+    <Panel title={t('Player number')}>
+      <div className="ui-stack">
+        <div className="ui-field">
+          <label className="ui-field-label" htmlFor="player-number">
+            {t('Number on your player')}
+          </label>
+          <select id="player-number" className="ui-input account-number" value={String(state.number ?? 0)} disabled={locked} onChange={(e) => void choose(e.target.value === '0' ? null : Number(e.target.value))}>
+            <option value="0">{t('no number')}</option>
+            {options.map((n) => (
+              <option key={n} value={String(n)}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <p className="ui-field-hint">{locked ? t('You can change it again on $1.', new Date(state.canChangeAt!).toLocaleDateString(prefs.locale)) : t('From 2 to 99, one per player. Change once every 30 days; freed after 60 days without playing.')}</p>
+        </div>
+        {state.numberOneEligible && (
+          <ToggleField
+            label={t('Use number 1 (leader of last month)')}
+            checked={state.usingNumberOne}
+            hint={t('Only this month; your own number stays yours.')}
+            onChange={(use) => void api<NumberState>('/account/number-one', { method: 'PUT', body: { use } }).then(setState, () => undefined)}
+          />
+        )}
+        <FormMessageLine message={message} />
+      </div>
+    </Panel>
   );
 }
 

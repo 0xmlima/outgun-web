@@ -50,6 +50,9 @@ interface Effect {
 
 const random = Math.random;
 
+/** Raio do boneco na tela abaixo do qual o número não aparece (OG-410). */
+const NUMBER_MIN_RADIUS = 9;
+
 export class EntityRenderer {
   readonly stage = new Container();
   private readonly clip = new Graphics();
@@ -392,6 +395,7 @@ export class EntityRenderer {
       this.effects.push({ kind: 'turbo', pos: p.pos, time: t, team: p.team, alpha: p.alpha / 255, player: { ...p, hitfx: 0, power: false } });
     }
     this.drawPlayerBody(p, p.pos, t, p.alpha, false);
+    if (p.number && p.alpha >= 200) this.drawNumber(p);
     if (p.deathbringer && t > (this.nextSmoke.get(p.pid) ?? 0)) {
       this.nextSmoke.set(p.pid, t + 0.01);
       this.addSmoke(p.pos, p.team, p.alpha, t, false);
@@ -501,6 +505,21 @@ export class EntityRenderer {
           g.circle(rx + lx, ry + ly, radius + r + 0.5).stroke({ color: team === 0 ? hex([b, 0, 0]) : hex([0, 0, b]), width: 1.2 });
         }
       }
+  }
+
+  /**
+   * Número no centro do boneco (OG-410, RN-NUM-01): branco com contorno na cor escura do time, para
+   * ler sobre qualquer cor pessoal; some com o zoom muito afastado (vira borrão).
+   */
+  private drawNumber(p: PlayerView): void {
+    if (!this.font || this.pf(PLAYER_RADIUS) < NUMBER_MIN_RADIUS) return;
+    const text = String(p.number);
+    const dark = this.c(p.team === 0 ? 'team_red_dark' : 'team_blue_dark');
+    const scale = Math.min(1, (this.pf(PLAYER_RADIUS) * 1.1) / this.font.height);
+    for (const [x, y] of this.at(p.pos)) {
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) this.list.text(this.font.family, text, x + dx, y + dy, dark, scale).anchor.set(0.5, 0.5);
+      this.list.text(this.font.family, text, x, y, '#ffffff', scale).anchor.set(0.5, 0.5);
+    }
   }
 
   private drawName(p: PlayerView): void {

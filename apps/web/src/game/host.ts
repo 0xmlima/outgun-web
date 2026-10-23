@@ -677,6 +677,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             const frame = entityFrameFromWorld(fd, {
               me: s.me,
               name: (pid) => s.names.get(pid) ?? '',
+              number: (pid) => s.numbers.get(pid),
               color: (pid) => s.colors.get(pid) ?? 16,
               hitfx: (pid) => {
                 const until = s.hitUntil.get(pid) ?? 0;

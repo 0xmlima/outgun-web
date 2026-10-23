@@ -17,6 +17,7 @@ import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
 import { previousPodium } from '../ranking.js';
+import { ticketNumber } from '../player-numbers.js';
 
 const MINUTE = 60_000;
 
@@ -99,6 +100,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const clanTeam = member?.primary && member.secondary ? { tag: member.tag, name: member.name, primary: member.primary, secondary: member.secondary } : undefined;
     const skill = user ? await playerSkillRank(db, user.id) : null;
     const medal = user ? await previousPodium(db, user.id) : null;
+    const number = user ? await ticketNumber(db, user.id) : null;
     const jti = randomUUID();
     const ticket = signTicket(
       {
@@ -119,6 +121,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         ...(user && room.mode === 'ranked' ? { botLevel: botLevelFrom({ ...(await recentRanked(db, user.id)), rank: skill?.rank ?? 0, of: skill?.of ?? 0 }) } : {}),
         // pódio do mês anterior (OG-411): a cor da medalha
         ...(medal ? { medal } : {}),
+        // número no boneco (OG-410)
+        ...(number ? { number } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
         ...(device ? { dev: device } : {}),
       },

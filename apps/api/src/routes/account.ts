@@ -16,6 +16,8 @@ import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
 import { securityEvent } from '../security.js';
+import { numberState, setNumber } from '../player-numbers.js';
+import { previousPodium } from '../ranking.js';
 
 /** Nome que substitui o do jogador nas partidas de uma conta excluída. */
 export const ANONYMOUS_NAME = '(anon)';
@@ -121,6 +123,49 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         if (!result) return reply.code(409).send({ error: 'username_taken', message: 'username already in use' });
         securityEvent(request.log, 'user_updated', { user: result.username, ip: request.ip, detail: `username,${user.username}` });
         return { user: toPublic(result) };
+      },
+    );
+
+    // número de jogador (OG-410, D-79): 2..99 único, troca a cada 30 dias; o 1 opcional do líder do mês
+    const NumberState = Type.Object({
+      number: Type.Union([Type.Integer(), Type.Null()]),
+      canChangeAt: Type.Union([Type.String(), Type.Null()]),
+      numberOneEligible: Type.Boolean(),
+      usingNumberOne: Type.Boolean(),
+      free: Type.Array(Type.Integer()),
+    });
+    app.get('/number', { schema: { tags: ['contas'], summary: 'Meu número de jogador, os livres e o 1 do líder do mês (OG-410)', response: { 200: NumberState, 401: ErrorSchema } } }, async (request, reply) => {
+      const user = await requireUser(request, reply);
+      if (!user) return reply;
+      return numberState(db, user.id);
+    });
+    app.put(
+      '/number',
+      {
+        schema: {
+          tags: ['contas'],
+          summary: 'Escolhe (ou tira, com null) o número de 2 a 99; troca a cada 30 dias',
+          body: Type.Object({ number: Type.Union([Type.Integer({ minimum: 2, maximum: 99 }), Type.Null()]) }),
+          response: { 200: NumberState, 400: ErrorSchema, 401: ErrorSchema, 409: ErrorSchema, 429: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const r = await setNumber(db, user.id, request.body.number);
+        if (!r.ok) return reply.code(r.error === 'number_taken' ? 409 : r.error === 'number_cooldown' ? 429 : 400).send({ error: r.error, message: r.error.replace('_', ' ') });
+        return numberState(db, user.id);
+      },
+    );
+    app.put(
+      '/number-one',
+      { schema: { tags: ['contas'], summary: 'Líder do mês anterior: usar (ou não) o número 1', body: Type.Object({ use: Type.Boolean() }), response: { 200: NumberState, 401: ErrorSchema, 403: ErrorSchema } } },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        if (request.body.use && (await previousPodium(db, user.id)) !== 1) return reply.code(403).send({ error: 'not_number_one', message: 'only last month leader uses number 1' });
+        await db.update(users).set({ useNumberOne: request.body.use }).where(eq(users.id, user.id));
+        return numberState(db, user.id);
       },
     );
 

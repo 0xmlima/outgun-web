@@ -81,6 +81,8 @@ export interface Identity {
   botLevel?: number;
   /** Pódio do "Melhor do mês" anterior (1..3, OG-411): pode usar a cor da medalha. */
   medal?: number;
+  /** Número no boneco (OG-410). */
+  number?: number;
   /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
   device?: string;
 }
@@ -551,6 +553,7 @@ export class Room {
     this.refreshIdentities(true);
     // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
     if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
+    if (identity.number) this.broadcast(message('playerNumber', { pid, number: identity.number }));
     if (identity.accountId) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
     this.sendCasualConfig(pid);
     if (this.lobby) {
@@ -586,6 +589,7 @@ export class Room {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
+      if (other !== pid && c.identity.number) out.push(message('playerNumber', { pid: other, number: c.identity.number }));
       // conta e ranking de quem já estava: o sublinhado de conta também para quem chega depois (OG-277)
       if (c.identity.accountId) out.push(this.playerInfo(other, c));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));

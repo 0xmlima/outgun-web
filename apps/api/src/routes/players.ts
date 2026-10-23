@@ -13,6 +13,7 @@ import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 import { previousPodium } from '../ranking.js';
 import { MatchTeamSchema } from './internal.js';
+import { ticketNumber } from '../player-numbers.js';
 
 /** Texto nos dois idiomas (marcos secretos, OG-393). */
 const Bilingual = Type.Object({ 'pt-BR': Type.String(), en: Type.String() });
@@ -113,6 +114,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               favoriteColors: Type.Array(Type.Integer()),
               /** Pódio (1..3) do "Melhor do mês" da temporada anterior (OG-411): cor da medalha; null = nenhum. */
               medal: Type.Union([Type.Integer({ minimum: 1, maximum: 3 }), Type.Null()]),
+              /** Número no boneco (OG-410); null = sem número. */
+              number: Type.Union([Type.Integer(), Type.Null()]),
               lastMatchAt: Type.Union([Type.String(), Type.Null()]),
               /** Marcos conquistados (OG-213); a partida some se o histórico estiver escondido. */
               milestones: Type.Array(Type.Object({ id: Type.String(), achievedAt: Type.String(), matchId: Type.Union([Type.String(), Type.Null()]) })),
@@ -178,6 +181,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           totals,
           favoriteColors: profile?.favoriteColors ?? [],
           medal: await previousPodium(db, user.id),
+          number: await ticketNumber(db, user.id),
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
           milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
           milestoneProgress: await milestoneProgressOf(db, user.id),

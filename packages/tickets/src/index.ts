@@ -34,6 +34,8 @@ export interface TicketClaims {
   botLevel?: number;
   /** Pódio (1..3) do "Melhor do mês" do mês anterior (OG-411): libera a cor da medalha. */
   medal?: number;
+  /** Número no boneco (OG-410): 2..99 da conta, ou 1 para o líder do mês anterior que o usa. */
+  number?: number;
   /**
    * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.

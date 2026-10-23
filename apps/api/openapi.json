@@ -2713,6 +2713,8 @@
                     "skill",
                     "totals",
                     "favoriteColors",
+                    "medal",
+                    "number",
                     "lastMatchAt",
                     "milestones",
                     "milestoneProgress",
@@ -2921,6 +2923,28 @@
                       "items": {
                         "type": "integer"
                       }
+                    },
+                    "medal": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "number": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "lastMatchAt": {
                       "anyOf": [
@@ -3441,6 +3465,7 @@
                     "gameNo",
                     "series",
                     "clans",
+                    "teams",
                     "skill"
                   ],
                   "properties": {
@@ -3878,6 +3903,48 @@
                                 }
                               }
                             }
+                          }
+                        }
+                      ]
+                    },
+                    "teams": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": ["tag", "name", "color"],
+                                "properties": {
+                                  "tag": {
+                                    "type": "string",
+                                    "maxLength": 8
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 24
+                                  },
+                                  "color": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         }
                       ]
@@ -5034,6 +5101,7 @@
                         "tagStyle",
                         "tagLabel",
                         "description",
+                        "colors",
                         "createdAt",
                         "members",
                         "titles"
@@ -5054,6 +5122,25 @@
                         },
                         "description": {
                           "type": "string"
+                        },
+                        "colors": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string"
+                                },
+                                "secondary": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -5207,6 +5294,7 @@
                         "tagStyle",
                         "tagLabel",
                         "description",
+                        "colors",
                         "createdAt",
                         "members",
                         "titles"
@@ -5227,6 +5315,25 @@
                         },
                         "description": {
                           "type": "string"
+                        },
+                        "colors": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string"
+                                },
+                                "secondary": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -5309,7 +5416,7 @@
         }
       },
       "patch": {
-        "summary": "Edita o clã: nome e descrição (líder e admins), tag e estilo da tag (só o líder)",
+        "summary": "Edita o clã: nome, descrição e cores (líder e admins), tag e estilo da tag (só o líder)",
         "tags": ["clãs"],
         "requestBody": {
           "required": true,
@@ -5333,6 +5440,27 @@
                   "description": {
                     "type": "string",
                     "maxLength": 500
+                  },
+                  "colors": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["primary", "secondary"],
+                        "properties": {
+                          "primary": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                          },
+                          "secondary": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }
@@ -5368,6 +5496,7 @@
                         "tagStyle",
                         "tagLabel",
                         "description",
+                        "colors",
                         "createdAt",
                         "members",
                         "titles"
@@ -5388,6 +5517,25 @@
                         },
                         "description": {
                           "type": "string"
+                        },
+                        "colors": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string"
+                                },
+                                "secondary": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -6063,6 +6211,7 @@
                         "tagStyle",
                         "tagLabel",
                         "description",
+                        "colors",
                         "createdAt",
                         "members",
                         "titles"
@@ -6083,6 +6232,25 @@
                         },
                         "description": {
                           "type": "string"
+                        },
+                        "colors": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string"
+                                },
+                                "secondary": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -6254,6 +6422,7 @@
                         "tagStyle",
                         "tagLabel",
                         "description",
+                        "colors",
                         "createdAt",
                         "members",
                         "titles"
@@ -6274,6 +6443,25 @@
                         },
                         "description": {
                           "type": "string"
+                        },
+                        "colors": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string"
+                                },
+                                "secondary": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -7383,6 +7571,14 @@
                               {
                                 "type": "string",
                                 "enum": ["milestone"]
+                              },
+                              {
+                                "type": "string",
+                                "enum": ["number_expiring"]
+                              },
+                              {
+                                "type": "string",
+                                "enum": ["number_released"]
                               }
                             ]
                           },
@@ -7418,6 +7614,9 @@
                                     }
                                   }
                                 }
+                              },
+                              "number": {
+                                "type": "integer"
                               }
                             }
                           },
@@ -8912,6 +9111,355 @@
         }
       }
     },
+    "/account/number": {
+      "get": {
+        "summary": "Meu número de jogador, os livres e o 1 do líder do mês (OG-410)",
+        "tags": ["contas"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "number",
+                    "canChangeAt",
+                    "numberOneEligible",
+                    "usingNumberOne",
+                    "free"
+                  ],
+                  "properties": {
+                    "number": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canChangeAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "numberOneEligible": {
+                      "type": "boolean"
+                    },
+                    "usingNumberOne": {
+                      "type": "boolean"
+                    },
+                    "free": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Escolhe (ou tira, com null) o número de 2 a 99; troca a cada 30 dias",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["number"],
+                "properties": {
+                  "number": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 99
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "number",
+                    "canChangeAt",
+                    "numberOneEligible",
+                    "usingNumberOne",
+                    "free"
+                  ],
+                  "properties": {
+                    "number": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canChangeAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "numberOneEligible": {
+                      "type": "boolean"
+                    },
+                    "usingNumberOne": {
+                      "type": "boolean"
+                    },
+                    "free": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/number-one": {
+      "put": {
+        "summary": "Líder do mês anterior: usar (ou não) o número 1",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["use"],
+                "properties": {
+                  "use": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "number",
+                    "canChangeAt",
+                    "numberOneEligible",
+                    "usingNumberOne",
+                    "free"
+                  ],
+                  "properties": {
+                    "number": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canChangeAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "numberOneEligible": {
+                      "type": "boolean"
+                    },
+                    "usingNumberOne": {
+                      "type": "boolean"
+                    },
+                    "free": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/account/settings": {
       "get": {
         "summary": "Opções do jogador guardadas na conta (OG-068); vazio se nunca gravou",
@@ -10244,6 +10792,43 @@
                       }
                     },
                     "maxItems": 32
+                  },
+                  "teams": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "required": ["tag", "name", "color"],
+                          "properties": {
+                            "tag": {
+                              "type": "string",
+                              "maxLength": 8
+                            },
+                            "name": {
+                              "type": "string",
+                              "maxLength": 24
+                            },
+                            "color": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
                   },
                   "events": {
                     "type": "object",

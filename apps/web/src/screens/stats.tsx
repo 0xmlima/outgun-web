@@ -36,6 +36,9 @@ export interface Profile {
   skill: Skill | null;
   totals: Record<Mode, Totals>;
   favoriteColors: number[];
+  /** Número no boneco (OG-410) e pódio do mês anterior (OG-411). */
+  number?: number | null;
+  medal?: number | null;
   lastMatchAt: string | null;
   milestones: { id: string; achievedAt: string; matchId: string | null }[];
   /** Progresso, raridade e secretos desbloqueados (OG-393, RN-SOC-06). */
