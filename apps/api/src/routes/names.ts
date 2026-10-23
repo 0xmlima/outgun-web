@@ -5,8 +5,9 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { checkName, checkRegisteredName, guestName } from '@outgun/protocol';
 import type { AppDeps } from '../app.js';
 import { nameOwner } from '../auth/names.js';
+import { nameBlocked } from '../name-filter.js';
 
-export function nameRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
+export function nameRoutes({ database, config }: AppDeps): FastifyPluginAsyncTypebox {
   return async (app) => {
     app.get(
       '/names/check',
@@ -29,11 +30,13 @@ export function nameRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         const { name } = request.query;
         const valid = checkName(name);
         const taken = valid && (await nameOwner(database.db, name)) !== undefined;
+        // nome proibido (OG-276): nem cadastro nem convidado
+        const allowed = !nameBlocked(name, config.nameFilter);
         return {
           valid,
-          registrable: checkRegisteredName(name) && !taken,
+          registrable: checkRegisteredName(name) && !taken && allowed,
           taken,
-          guestName: valid && !taken ? guestName(name) : null,
+          guestName: valid && !taken && allowed ? guestName(name) : null,
         };
       },
     );

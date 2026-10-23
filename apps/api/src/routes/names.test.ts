@@ -23,7 +23,7 @@ describe.skipIf(!pgAdminUrl)('nomes de conta (OG-082)', () => {
   beforeAll(async () => {
     t = await createTestDatabase();
     await migrateUp(t.sql);
-    const config = { ...loadConfig({ REGISTER_PER_HOUR: '1000' }), databaseUrl: t.url };
+    const config = { ...loadConfig({ REGISTER_PER_HOUR: '1000', NAME_FILTER: 'palavrao' }), databaseUrl: t.url };
     app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false });
   });
   afterAll(async () => {
@@ -47,6 +47,14 @@ describe.skipIf(!pgAdminUrl)('nomes de conta (OG-082)', () => {
     expect((await register('José')).statusCode).toBe(201);
     for (const name of ['JOSE', 'jose', 'Jose!', 'Jösé']) expect((await register(name)).json().error, name).toBe('username_taken');
     expect((await register('Jo Se')).statusCode).toBe(201);
+  });
+
+  it('nome proibido (OG-276): cadastro, troca de nome e convidado recusados, sem diferença de maiúsculas e acentos', async () => {
+    expect((await register('xXPalavrãoXx')).json().error).toBe('name_not_allowed');
+    const cookie = cookieOf(await register('Livre'));
+    expect((await send('POST', '/account/username', { username: 'PALAVRAO', password: PASSWORD }, cookie)).json().error).toBe('name_not_allowed');
+    const check = (await app.inject({ method: 'GET', url: `/names/check?name=${encodeURIComponent('o palavrão')}` })).json();
+    expect(check).toMatchObject({ registrable: false, guestName: null });
   });
 
   it('nome sem letra nem dígito não pode ser registrado (como no auth.txt)', async () => {

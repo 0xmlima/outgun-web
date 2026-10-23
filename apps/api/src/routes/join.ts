@@ -15,6 +15,7 @@ import { playerSkillRank } from '../skill.js';
 import { botLevelFrom, recentRanked } from '../bot-level.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
+import { nameBlocked } from '../name-filter.js';
 
 const MINUTE = 60_000;
 
@@ -50,6 +51,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     let name: string;
     if (user) name = user.username;
     else {
+      if (nameBlocked(body.name ?? '', deps.config.nameFilter)) return fail(400, 'name_not_allowed', 'this name is not allowed');
       const guest = await checkGuestName(db, body.name?.trim() ?? '');
       if (!guest.ok) {
         return guest.reason === 'invalid'

@@ -14,6 +14,7 @@ import { feedback, matchEventPlayers, matchPlayers, matches, playerProfiles, pla
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
 import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
+import { nameBlocked } from '../name-filter.js';
 
 /** Nome que substitui o do jogador nas partidas de uma conta excluída. */
 export const ANONYMOUS_NAME = '(anon)';
@@ -88,6 +89,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         if (!user) return reply;
         const { username } = request.body;
         if (!checkRegisteredName(username)) return reply.code(400).send({ error: 'invalid_username', message: 'invalid username' });
+        if (nameBlocked(username, deps.config.nameFilter)) return reply.code(400).send({ error: 'name_not_allowed', message: 'this name is not allowed' });
         if (!(await checkPassword(request, reply, user, request.body.password))) return reply;
         const [row] = await db.select().from(users).where(eq(users.id, user.id));
         const newKey = usernameKey(username);

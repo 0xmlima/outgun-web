@@ -43,7 +43,7 @@ export interface ApiConfig {
   ticketSigningKeys: string;
   /** Endereço do game server quando a sala ainda não mandou heartbeat ({id} = sala). Nunca em produção. */
   devRoomWsUrl: string | undefined;
-  /** Palavras proibidas em nomes de clã (OG-275), já normalizadas; NAME_FILTER=a,b,c. */
+  /** Palavras proibidas em nomes de clã (OG-275) e de jogador (OG-276), já normalizadas; NAME_FILTER=a,b,c. */
   nameFilter: string[];
   limits: {
     /** Falhas de senha por nome de usuário antes da espera (RN-PLT-06). */

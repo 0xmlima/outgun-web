@@ -14,6 +14,7 @@ import { emailKey, usernameKey } from '../db/keys.js';
 import { betaInvites, betaInviteUses, passwordResets, playerProfiles, users } from '../db/schema.js';
 import { mailLocale, passwordResetMail, welcomeMail } from '../mail/templates.js';
 import { ErrorSchema } from './schemas.js';
+import { nameBlocked } from '../name-filter.js';
 
 export const RESET_TTL_MS = 30 * 60_000;
 const HOUR = 60 * 60_000;
@@ -88,6 +89,7 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           return fail(reply, 429, 'rate_limited', 'too many accounts created from this address, try later');
         }
         if (!checkRegisteredName(username)) return fail(reply, 400, 'invalid_username', 'invalid username');
+        if (nameBlocked(username, deps.config.nameFilter)) return fail(reply, 400, 'name_not_allowed', 'this name is not allowed');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return fail(reply, 400, 'invalid_email', 'invalid e-mail');
         if (!validPassword(password)) return fail(reply, 400, 'invalid_password', 'invalid password');
         if (isCommonPassword(password, username, email)) return fail(reply, 400, 'weak_password', 'this password is too common');
