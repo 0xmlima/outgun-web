@@ -71,13 +71,15 @@ export function ProfileScreen() {
   const [limit, setLimit] = useState(10);
   // filtro de formato (OG-258): números do Ranked e partidas; o Casual não tem formato
   const [format, setFormat] = useFormatParam();
-  const profile = useApi<Profile>(format === 'all' ? base : `${base}?format=${format}`, true);
+  const profile = useApi<Profile>(format === 'all' ? base : `${base}?format=${format}`, true, 'matches');
   const social = useApi<Social>(`${base}/social`);
   const [duelPeriod, setDuelPeriod] = useState<'month' | 'all'>('month');
   const duels = useApi<Duels>(`${base}/kills?period=${duelPeriod}`);
   const progress = useApi<Progress>(`${base}/progress`);
   const history = useApi<{ total: number; hidden: boolean; matches: HistoryEntry[] }>(
     `${base}/matches?limit=${limit}${historyMode === 'all' ? '' : `&mode=${historyMode}`}${historyMode === 'casual' ? '' : formatQuery(format)}`,
+    false,
+    'matches',
   );
   const colours = useManifestLists().playerColours;
   const p = profile.data;

@@ -3,9 +3,10 @@
 // ranking em Players.tsx (OG-215), relatório de partida em MatchReport.tsx (OG-214).
 import type { Bilingual } from '@outgun/content';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { api, ApiError } from '../app/api.js';
+import { fallbackMs, useLive, useLiveConnected, type LiveTopic } from '../app/live.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge } from '../ui/Button.js';
 import { Tabs } from '../ui/Tabs.js';
@@ -160,11 +161,25 @@ export function SubstitutionBadges({ withBots, shortHanded }: { withBots?: boole
   );
 }
 
-/** Releitura das telas do portal (OG-283): a cada minuto e ao voltar para a aba, trocando o dado no lugar. */
+/**
+ * Releitura das telas do portal (OG-283): a cada minuto e ao voltar para a aba, trocando o dado no
+ * lugar; com `topic`, também a cada aviso do portal ao vivo (OG-284).
+ */
 export const API_REFRESH_MS = 60_000;
 
-export function useApi<T>(path: string, keep = false): { data: T | null | undefined; error: string | null } {
+export function useApi<T>(path: string, keep = false, topic: LiveTopic | null = null): { data: T | null | undefined; error: string | null } {
   const [state, setState] = useState<{ data: T | null | undefined; error: string | null }>({ data: undefined, error: null });
+  // aviso ao vivo: relê no lugar, sem apagar a tela
+  const current = useRef(path);
+  current.current = path;
+  useLive(topic, () => {
+    const at = current.current;
+    api<T>(at).then(
+      (data) => current.current === at && setState({ data, error: null }),
+      () => undefined,
+    );
+  });
+  const every = fallbackMs(API_REFRESH_MS, useLiveConnected() && topic !== null);
   useEffect(() => {
     let alive = true;
     if (!keep) setState({ data: undefined, error: null });
@@ -180,14 +195,14 @@ export function useApi<T>(path: string, keep = false): { data: T | null | undefi
         () => undefined,
       );
     };
-    const id = setInterval(refresh, API_REFRESH_MS);
+    const id = setInterval(refresh, every);
     addEventListener('visibilitychange', refresh);
     return () => {
       alive = false;
       clearInterval(id);
       removeEventListener('visibilitychange', refresh);
     };
-  }, [path, keep]);
+  }, [path, keep, every]);
   return state;
 }
 

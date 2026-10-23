@@ -16,6 +16,7 @@ import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
 import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
 import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
+import { liveBus } from '../live.js';
 
 const Heartbeat = Type.Object({
   server: Type.Object({
@@ -288,6 +289,8 @@ const security = [{ gameServerHmac: [] }];
 const ABANDONED_MS = 60 * 60_000;
 
 export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyncTypebox {
+  /** Retrato das salas de cada servidor no último heartbeat: mudou, avisa o portal ao vivo (OG-284). */
+  const roomSignatures = new Map<string, string>();
   return async (app) => {
     app.addHook('preHandler', async (request, reply) => {
       const result = verifyInternalRequest(
@@ -374,6 +377,11 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             .delete(rooms)
             .where(and(eq(rooms.serverId, serverId), eq(rooms.persistent, false), isNotNull(rooms.format), lt(rooms.lastHeartbeatAt, new Date(now.getTime() - ONLINE_MS + 1))));
         });
+        const signature = JSON.stringify(hosted.map((r) => [r.id, r.name, r.mode, r.players, r.map, r.phase ?? '', (r.roster ?? []).map((x) => `${x.name}/${x.team}`).join(',')]));
+        if (roomSignatures.get(serverId) !== signature) {
+          roomSignatures.set(serverId, signature);
+          liveBus.publish('rooms');
+        }
         await applyAcks(database.db, serverId, request.body.acks ?? [], now);
         const commands = await takeCommands(database.db, serverId, now);
         return { updated: request.body.rooms.length, commands, config: await platformConfig(database.db) };
@@ -525,6 +533,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           }
           return { id: match!.id, duplicate: false as const };
         });
+        if (!result.duplicate) liveBus.publish('matches'); // ranking, perfis e últimas partidas (OG-284)
         return reply.code(result.duplicate ? 200 : 201).send(result);
       },
     );

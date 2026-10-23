@@ -744,7 +744,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-281](cards/OG-281-espectador-player-nao-iniciado.md) | Espectador ao vivo às vezes abre com "player não iniciado" | E8 | 1 | Should | S21 | — | Concluído |
 | [OG-282](cards/OG-282-online-sem-bots.md) | "Agora no Outgun" conta bots como jogadores online | E8 | 1 | Should | S21 | — | Concluído |
 | [OG-283](cards/OG-283-atualizacao-automatica.md) | Telas do portal paradas: atualização automática mais frequente | E8 | 1 | Should | S21 | — | Concluído |
-| [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | S42 | OG-283 | Pronto |
+| [OG-284](cards/OG-284-portal-ao-vivo.md) | Portal ao vivo: novidades empurradas pelo servidor | E9 | 5 | Could | S42 | OG-283 | Em revisão |
 | [OG-285](cards/OG-285-opcoes-nao-salvam.md) | Opções não ficam salvas (cor favorita, mensagens rápidas) | E8 | 2 | Must | S21 | — | Concluído |
 | [OG-286](cards/OG-286-powerups-somem-troca-sala.md) | Power-ups somem ao entrar numa sala | E11 | 1 | Must | S22 | — | Concluído |
 | [OG-287](cards/OG-287-explosao-deathbringer.md) | Deathbringer sem explosão (anel e som) para os jogadores | E11 | 1 | Must | S22 | — | Concluído |

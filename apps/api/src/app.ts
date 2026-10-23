@@ -15,6 +15,7 @@ import { LogMailer, MailpitMailer, MemoryMailer, ResendMailer, type Mailer } fro
 import { accountRoutes } from './routes/account.js';
 import { clanRoutes } from './routes/clans.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { liveRoutes } from './routes/live.js';
 import { adminRoutes } from './routes/admin.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { telemetryRoutes } from './routes/telemetry.js';
@@ -198,6 +199,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(socialRoutes(deps, services));
   await app.register(clanRoutes(deps, services));
   await app.register(notificationRoutes(deps, services));
+  await app.register(liveRoutes(deps, services));
   await app.register(nameRoutes(deps));
   await app.register(joinRoutes(deps, services));
   await app.register(authRoutes(deps, services), { prefix: '/auth' });

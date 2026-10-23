@@ -11,6 +11,7 @@ import { desktopBridge, syncSteamAchievements } from './install.js';
 import { usePrefs } from './prefs.js';
 import { Icon } from '../ui/icons.js';
 import { useToast } from '../ui/Toast.js';
+import { fallbackMs, reconnectLive, useLive, useLiveConnected } from './live.js';
 
 /** Releitura das notificações enquanto a aba está visível. */
 export const NOTIFICATIONS_POLL_MS = 30_000;
@@ -75,17 +76,22 @@ export function NotificationsProvider({ children }: { readonly children: ReactNo
   const load = useCallback(() => {
     api<{ unread: number; items: AppNotification[] }>('/notifications').then(setState, () => undefined);
   }, []);
+  // portal ao vivo (OG-284): notificação nova chega na hora; a consulta fica de reserva
+  useLive(user ? 'notifications' : null, load);
+  const every = fallbackMs(NOTIFICATIONS_POLL_MS, useLiveConnected());
+  // o canal sabe de quem são as notificações pela sessão: troca de conta reabre
+  useEffect(() => reconnectLive(), [user?.username]);
   useEffect(() => {
     if (!user) return setState({ unread: 0, items: [] });
     load();
     const refresh = () => document.visibilityState === 'visible' && load();
-    const id = setInterval(refresh, NOTIFICATIONS_POLL_MS);
+    const id = setInterval(refresh, every);
     addEventListener('visibilitychange', refresh);
     return () => {
       clearInterval(id);
       removeEventListener('visibilitychange', refresh);
     };
-  }, [user, load]);
+  }, [user, load, every]);
 
   const markRead = useCallback(
     (id: string) => {

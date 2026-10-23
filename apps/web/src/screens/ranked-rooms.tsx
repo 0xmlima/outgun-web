@@ -15,6 +15,7 @@ import { ChoiceField, TextField } from '../ui/Field.js';
 import { Form, FormMessageLine, Page } from '../ui/Page.js';
 import { Table } from '../ui/Table.js';
 import { REFRESH_MS, type RoomSummary } from './lobby.js';
+import { fallbackMs, useLive, useLiveConnected } from '../app/live.js';
 
 export type LobbyPhase = 'lobby' | 'vote' | 'ready' | 'countdown' | 'game' | 'finished';
 
@@ -95,6 +96,10 @@ export function RankedRoomsPanel({ pings }: { pings: ReadonlyMap<string, number>
   const [password, setPassword] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  // portal ao vivo (OG-284): sala mudou, relê na hora; a consulta fica de reserva
+  const [changed, setChanged] = useState(0);
+  useLive('rooms', () => setChanged((n) => n + 1));
+  const every = fallbackMs(REFRESH_MS, useLiveConnected());
 
   useEffect(() => {
     let alive = true;
@@ -108,12 +113,12 @@ export function RankedRoomsPanel({ pings }: { pings: ReadonlyMap<string, number>
         () => alive && setError(t('Could not reach the server.')),
       );
     void load();
-    const id = setInterval(() => void load(), REFRESH_MS);
+    const id = setInterval(() => void load(), every);
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, [format, t]);
+  }, [format, t, every, changed]);
 
   const play = (room: RankedRoom, pass?: string) => void navigate(`/play?sala=${encodeURIComponent(room.id)}`, pass ? { state: { password: pass } } : undefined);
   const enter = (room: RankedRoom) => {
