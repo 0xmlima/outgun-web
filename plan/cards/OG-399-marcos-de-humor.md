@@ -5,7 +5,7 @@
 | Épico | E9 |
 | Tipo | Feature |
 | Prioridade | Should |
-| Estimativa | 3 pts |
+| Estimativa | 4 pts |
 | Sprint | S41 |
 | Status | Pronto |
 | Dependências | OG-391, OG-398 |
@@ -19,11 +19,13 @@ Como jogador, quero marcos em tom de humor, com o vocabulário do futebol brasil
 - Pedido e aprovado pelo PO em 2026-10-23. A ranqueada vai até 8 capturas (`packages/settings/src/presets.ts`), então o placar passa por 1 a 7 antes do fim; o momento sai dos eventos de captura (OG-362).
 
 ## Escopo
-- Grupo novo `humor` no perfil (OG-393); os três marcados como secretos ficam no grupo `secret` e seguem a RN-SOC-06.
+- Grupo novo `humor` no perfil (OG-393); os marcados como secretos ficam no grupo `secret` e seguem a RN-SOC-06.
 - Marcos (id estável · nome pt/en · condição):
   - `secret_seven_one` E lá vem eles de novo / Here they come again · **secreto** · numa ranqueada, seu time chegou a estar perdendo de 7 a 1 (alusão ao 7x1 da Copa de 2014).
   - `secret_seven_one_comeback` Revanche do Mineirão / Mineirão revenge · **secreto** · venceu uma ranqueada depois de estar perdendo de 7 a 1. Quem ganha este ganha também o anterior.
   - `secret_choked` Amarelou / Choked · **secreto** · perdeu uma série md5 depois de estar 2 a 0.
+  - `secret_series_comeback` Virada histórica / Historic comeback · **secreto** · perdeu os dois primeiros jogos de uma série md5 e venceu por 3 a 2.
+  - `humor_today_yes` Hoje não, hoje não... hoje sim? / Not today, not today... today? · numa partida, pegou a bandeira e morreu com ela 3 vezes seguidas e capturou na 4ª tentativa (alusão ao meme). Se a calibração mostrar que é raro, vira secreto.
   - `humor_customer` Freguês / Regular customer · morreu 10 vezes para o mesmo jogador numa partida.
   - `humor_butterfingers` Mão de alface / Butterfingers · pegou e largou a bandeira 5 vezes numa partida, sem capturar.
   - `humor_ball_hog` Fominha / Ball hog · fez todas as capturas do time numa vitória (mínimo de 4).
@@ -33,7 +35,7 @@ Como jogador, quero marcos em tom de humor, com o vocabulário do futebol brasil
 - Mesmas regras contra farm do OG-398 (4+ contas na partida) e calibração no `milestones-calibrate`.
 
 ## Critérios de aceite
-- [ ] Testes de cada marco, inclusive 1 a 7 que vira 8 a 7 (concede os dois secretos) e 1 a 6 que não concede nada.
+- [ ] Testes de cada marco, inclusive 3 mortes com a bandeira e captura na 4ª (concede) contra captura na 3ª (não concede), 1 a 7 que vira 8 a 7 (concede os dois secretos) e 1 a 6 que não concede nada.
 - [ ] Calibração do beta no card; os dois do 7x1 devem sair raríssimos (esperado 0 hoje).
 
 ## Notas técnicas
