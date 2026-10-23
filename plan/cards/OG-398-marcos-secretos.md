@@ -46,4 +46,4 @@ Como jogador, quero marcos secretos e raros para descobrir jogando, para ter his
 - Secretos em `packages/content/src/secret-milestones.ts`, fora do `index.ts`: só a API importa (`@outgun/content/secret`), para nome e condição não irem no JavaScript do cliente. O OG-393 recebe da API o texto de quem desbloqueou.
 - Ás: todos os índices do outro time (3+) numa vida e em até 20 s (`ACE_WINDOW`). No apagar das luzes usa o `mapTime` do relatório (segundos truncados).
 - `firstDiscoverers` e `cli.js milestones-calibrate` prontos; até o OG-393, relatório e perfil mostram o id cru de um secreto.
-- Pendente: rodar a calibração no beta (critério 2) antes do deploy.
+- Calibração no beta (2026-10-23, 11 contas ativas em 30 dias): os 14 secretos em 0%; nada a endurecer. Retroativo: 97 marcos em 11 contas.

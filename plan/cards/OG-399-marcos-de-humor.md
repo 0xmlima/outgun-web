@@ -45,4 +45,4 @@ Como jogador, quero marcos em tom de humor, com o vocabulário do futebol brasil
 - Visíveis no grupo `humor` do catálogo; os quatro secretos (7x1, revanche, amarelou, virada histórica) no módulo dos secretos (OG-398).
 - "Perdendo de 7 a 1" = o placar passou por 1 a 7 em algum momento (inclusive vindo de 0 a 7). Mão de alface usa `stats.flagsDropped`, sem depender de eventos.
 - Vice está no catálogo, mas é concedido no fechamento da temporada, junto do OG-392.
-- Pendente: calibração no beta (critério 2).
+- Calibração no beta (2026-10-23, 11 contas): punching_bag 55% e butterfingers 27% (humor visível, não precisa ser raro); os demais em 0%.
