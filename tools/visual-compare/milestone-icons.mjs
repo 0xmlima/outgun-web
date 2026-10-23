@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ícones das conquistas da Steam (OG-395/397): um PNG 256×256 desbloqueado e um bloqueado (cinza) por
 // marco, públicos e secretos, a partir do SVG de `@outgun/content` (o mesmo do perfil), e a tabela
-// para o cadastro no Steamworks (`achievements.md` ao lado da pasta). Falha se faltar símbolo.
+// para o cadastro no Steamworks (`achievements.md` e os CSVs da importação em lote, ao lado da pasta). Falha se faltar símbolo.
 // Uso: corepack pnpm --filter @outgun/content build && node tools/visual-compare/milestone-icons.mjs [pasta]
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -48,7 +48,7 @@ try {
       await page.setContent(
         `<html><body style="margin:0">${milestoneIconSvg(spec, { locked })}</body></html>`,
       );
-      const file = join(OUT, `${steamAchievementName(id)}${locked ? '_locked' : ''}.png`);
+      const file = join(OUT, `${steamAchievementName(id)}_${locked ? 'UNACHIEVED' : 'ACHIEVED'}.png`);
       await page.screenshot({ path: file, clip: { x: 0, y: 0, width: 256, height: 256 } });
     }
   }
@@ -56,7 +56,7 @@ try {
   const cell = (x) => String(x).replace(/\|/g, '\\|');
   const rows = [...MILESTONES, ...SECRET_MILESTONES].map((m) => {
     const name = steamAchievementName(m.id);
-    return `| ${name} | ${cell(m.name.en)} | ${cell(m.description.en)} | ${cell(m.name['pt-BR'])} | ${cell(m.description['pt-BR'])} | ${m.group === 'secret' ? 'sim' : ''} | ${name}.png / ${name}_locked.png |`;
+    return `| ${name} | ${cell(m.name.en)} | ${cell(m.description.en)} | ${cell(m.name['pt-BR'])} | ${cell(m.description['pt-BR'])} | ${m.group === 'secret' ? 'sim' : ''} | ${name}_ACHIEVED.png / ${name}_UNACHIEVED.png |`;
   });
   const table = join(dirname(OUT), 'achievements.md');
   writeFileSync(
@@ -76,6 +76,23 @@ try {
     ].join('\n'),
   );
   console.log(`tabela em ${table}`);
+  // importação em lote do Steamworks (Stats & Achievements > Bulk Import/Export, editor novo)
+  const csv = (x) => `"${String(x).replace(/"/g, '""')}"`;
+  const defs = [
+    // cabeçalhos iguais aos do modelo que o Steamworks exporta
+    '"api_name (required, unique; the name your game passes to the API)",setid (optional; the id of a set that already exists),"permission (one of Client, GameServer, OfficialGameServer)",spoiler (true or false),archived (true or false),"progress_stat_name (optional; the name of a stat that already exists, blank for no progress bar)","progress_stat_min (number, no lower than the stat\'s own min)","progress_stat_max (number, above min and no higher than the stat\'s own max)"',
+    ...[...MILESTONES, ...SECRET_MILESTONES].map((m) => `${steamAchievementName(m.id)},,Client,${m.group === 'secret'},false,,0,0`),
+  ];
+  const loc = [
+    'api_name (required; must match an api_name from the definitions CSV),field (name or description),brazilian,english',
+    ...[...MILESTONES, ...SECRET_MILESTONES].flatMap((m) => [
+      [steamAchievementName(m.id), 'name', csv(m.name['pt-BR']), csv(m.name.en)].join(','),
+      [steamAchievementName(m.id), 'description', csv(m.description['pt-BR']), csv(m.description.en)].join(','),
+    ]),
+  ];
+  writeFileSync(join(dirname(OUT), 'achievements-definitions.csv'), defs.join('\r\n') + '\r\n');
+  writeFileSync(join(dirname(OUT), 'achievements-localization.csv'), loc.join('\r\n') + '\r\n');
+  console.log('CSVs do Steamworks em', dirname(OUT));
 } finally {
   await browser.close();
 }

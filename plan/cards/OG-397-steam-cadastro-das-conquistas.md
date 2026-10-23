@@ -23,9 +23,9 @@ Como PO, quero as conquistas cadastradas no Steamworks com nomes, descrições e
 - Cadastro no Steamworks pelo PO ou pelo agente no Chrome, na sessão do PO e com a ordem dele; publicar as mudanças do Steamworks e subir o build na `beta` (`pnpm steam:upload`).
 
 ## Critérios de aceite
-- [ ] Todas as conquistas do catálogo cadastradas e publicadas; os secretos como *hidden*.
+- [ ] Todas as conquistas do catálogo cadastradas e publicadas; os secretos como *hidden*. (cadastradas em 2026-10-23; falta publicar)
 - [ ] Teste do PO pela Steam (branch `beta`) desbloqueando ao menos uma conquista.
 
 ## Notas de implementação
 - Tabela gerada: `apps/desktop/steam/achievements.md` (81 conquistas, 14 *hidden*), pelo mesmo script dos ícones. Os nomes dos secretos estão nela e no código-fonte (repositório privado).
-- Falta (com a ordem do PO): cadastrar no Steamworks, publicar e subir o build na `beta`.
+- 2026-10-23: cadastradas pelo editor novo (Bulk Import/Export) com `achievements-definitions.csv`, `achievements-localization.csv` (brazilian + english; idioma das conquistas ativado) e os PNGs `_ACHIEVED`/`_UNACHIEVED`: 81 de 100, 14 como *spoiler*. Falta publicar (aba Publish) e subir o build na `beta`.
