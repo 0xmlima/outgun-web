@@ -61,6 +61,12 @@
   --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow-2: 0 8px 24px rgb(0 0 0 / 45%);
 
+  /* camadas (OG-412), de baixo para cima: barras fixas das abas, o topo com o sino e os avisos */
+  --layer-raised: 2;
+  --layer-header: 30;
+  --layer-popover: 31;
+  --layer-toast: 40;
+
   /* tipografia: escala fixa em rem; a fonte-base cresce com a tela (legível de 360 px a 4K) */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-size-root: clamp(16px, 0.35vw + 10px, 22px);

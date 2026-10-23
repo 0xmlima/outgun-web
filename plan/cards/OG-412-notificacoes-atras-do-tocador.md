@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S43 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-361 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,7 +24,8 @@ Como jogador, quero que a lista de notificações e os avisos fiquem sempre por 
 - Conferir nas telas com o tocador aberto (início, salas, perfil, moderação) e no cliente desktop.
 
 ## Critérios de aceite
-- [ ] Painel do sino por cima do tocador e de todos os painéis, em qualquer tela.
-- [ ] Avisos (toasts) por cima do tocador.
+- [x] Painel do sino por cima do tocador e de todos os painéis, em qualquer tela.
+- [x] Avisos (toasts) por cima do tocador.
 
 ## Notas de implementação
+- Causa: o `backdrop-filter` do `.app-topbar` cria uma camada própria sem `z-index`; o tocador (`position: relative`) e os painéis da página vêm depois no HTML e pintavam por cima, e o `z-index: 20` do painel do sino só valia dentro do topo. Agora o topo tem `--layer-header` e o painel, `--layer-popover`; avisos em `--layer-toast`; barras fixas das abas em `--layer-raised` (tokens em `ui/tokens.css`). A partida e o editor do HUD ficam fora do Shell (sem o topo).

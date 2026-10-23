@@ -15,6 +15,10 @@
 }
 
 .app-topbar {
+  /* o blur cria uma camada própria: sem z-index, o tocador e os painéis da página passavam por cima
+     do painel do sino (OG-412) */
+  position: relative;
+  z-index: var(--layer-header);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -117,7 +121,7 @@
   position: absolute;
   top: calc(100% + var(--space-2));
   right: 0;
-  z-index: 20;
+  z-index: var(--layer-popover);
   width: min(22rem, 90vw);
   max-height: 26rem;
   overflow-y: auto;
@@ -912,7 +916,7 @@
 .admin-bar {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: var(--layer-raised);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -1058,7 +1062,7 @@
 .admin-preset-head {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: var(--layer-raised);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2) var(--space-4);
