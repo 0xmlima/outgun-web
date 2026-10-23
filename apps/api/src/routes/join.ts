@@ -10,7 +10,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { checkGuestName } from '../auth/names.js';
 import { verifyPassword } from '../auth/password.js';
-import { bans, clanMembers, gameServers, rooms } from '../db/schema.js';
+import { bans, clanMembers, clans, gameServers, rooms } from '../db/schema.js';
 import { playerSkillRank } from '../skill.js';
 import { botLevelFrom, recentRanked } from '../bot-level.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
@@ -87,9 +87,16 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const place = await placeRoom(db, room, deps.config.devRoomWsUrl, body.region);
     if (!place.ok) return fail(503, 'room_offline', 'no game server available');
 
-    // clã cadastrado (OG-253): no lobby Ranked o clã entra do mesmo lado
-    const [member] = user && room.mode === 'ranked' ? await db.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id)) : [];
+    // clã cadastrado: no lobby Ranked entra do mesmo lado (OG-253); com cores, o lado pode virar o clã (OG-408)
+    const [member] = user
+      ? await db
+          .select({ clanId: clanMembers.clanId, tag: clans.tag, name: clans.name, primary: clans.primaryColor, secondary: clans.secondaryColor })
+          .from(clanMembers)
+          .innerJoin(clans, eq(clans.id, clanMembers.clanId))
+          .where(eq(clanMembers.userId, user.id))
+      : [];
     const clanId = member?.clanId;
+    const clanTeam = member?.primary && member.secondary ? { tag: member.tag, name: member.name, primary: member.primary, secondary: member.secondary } : undefined;
     const skill = user ? await playerSkillRank(db, user.id) : null;
     const medal = user ? await previousPodium(db, user.id) : null;
     const jti = randomUUID();
@@ -101,6 +108,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         // a tag como o clã quer que apareça: "(Dk)", "Dk." (OG-338)
         clan: user?.clanLabel ?? null,
         ...(clanId ? { clanId } : {}),
+        ...(clanTeam ? { clanTeam } : {}),
         acct: user !== undefined,
         admin: user?.isAdmin ?? false,
         ranked: room.mode === 'ranked',

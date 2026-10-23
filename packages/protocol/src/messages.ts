@@ -912,6 +912,15 @@ export const MESSAGES = {
     'Só para o dono e admins numa sala Casual (a chegada habilita a configuração no cliente): bots e nível em vigor e se há mudança pendente para a próxima partida.',
     { bots: u8, level: u8, pending: bool },
   ),
+  // --- identidade do clã na partida (OG-408, D-78): sem equivalente no original ---
+  teamIdentity: msg(
+    131,
+    's2c',
+    'event',
+    '— (web, OG-408)',
+    'Um lado virou o clã nesta rodada (≥ 2 humanos do mesmo clã e nenhum de outro clã): tag e nome do clã e a cor do lado (`#RRGGBB`; vazia = a cor padrão do lado). Tag vazia = o lado voltou a ser vermelho/azul. No `welcome` de quem entra e a cada rodada que muda.',
+    { team: u8, tag: str(8), name: str(24), color: str(7) },
+  ),
 } as const;
 
 export type MessageName = keyof typeof MESSAGES;

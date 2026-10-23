@@ -17,8 +17,10 @@ export interface TicketClaims {
   /** Nome em jogo (convidado já com o sufixo `*`). */
   name: string;
   clan: string | null;
-  /** Id do clã cadastrado (OG-253; só nas salas Ranked): agrupa o clã do mesmo lado no lobby. */
+  /** Id do clã cadastrado (OG-253): agrupa o clã do mesmo lado no lobby Ranked; desde o OG-408 vai também no Casual. */
   clanId?: string;
+  /** Clã com cores (OG-408): tag sem decoração, nome e as cores, para o lado virar o clã na partida. */
+  clanTeam?: { tag: string; name: string; primary: string; secondary: string };
   /** Tem conta (requisito do Ranked, RN-MOD-03). */
   acct: boolean;
   admin: boolean;
