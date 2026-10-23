@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S41 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-395, OG-396 |
 | Regras de negócio | RN-SOC-07 |
 | Skills | `outgun-card-workflow` |
@@ -23,9 +23,9 @@ Como PO, quero as conquistas cadastradas no Steamworks com nomes, descrições e
 - Cadastro no Steamworks pelo PO ou pelo agente no Chrome, na sessão do PO e com a ordem dele; publicar as mudanças do Steamworks e subir o build na `beta` (`pnpm steam:upload`).
 
 ## Critérios de aceite
-- [ ] Todas as conquistas do catálogo cadastradas e publicadas; os secretos como *hidden*. (cadastradas em 2026-10-23; falta publicar)
+- [x] Todas as conquistas do catálogo cadastradas e publicadas; os secretos como *hidden*.
 - [ ] Teste do PO pela Steam (branch `beta`) desbloqueando ao menos uma conquista.
 
 ## Notas de implementação
 - Tabela gerada: `apps/desktop/steam/achievements.md` (81 conquistas, 14 *hidden*), pelo mesmo script dos ícones. Os nomes dos secretos estão nela e no código-fonte (repositório privado).
-- 2026-10-23: cadastradas pelo editor novo (Bulk Import/Export) com `achievements-definitions.csv`, `achievements-localization.csv` (brazilian + english; idioma das conquistas ativado) e os PNGs `_ACHIEVED`/`_UNACHIEVED`: 81 de 100, 14 como *spoiler*. Falta publicar (aba Publish) e subir o build na `beta`.
+- 2026-10-23: cadastradas pelo editor novo (Bulk Import/Export) com `achievements-definitions.csv`, `achievements-localization.csv` (brazilian + english; idioma das conquistas ativado) e os PNGs `_ACHIEVED`/`_UNACHIEVED`: 81 de 100, 14 como *spoiler*. Publicadas pelo PO; build **26149786** na `beta` (run 39889459668 da `s41`; descrição ainda diz 2.40.0, a versão sobe na aprovação).

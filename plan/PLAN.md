@@ -856,7 +856,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-394](cards/OG-394-aviso-de-marco-novo.md) | Aviso de marco novo: no relatório da partida e um toast ao voltar ao menu | E9 | 2 | Should | S41 | OG-390 | Em revisão |
 | [OG-395](cards/OG-395-icones-dos-marcos.md) | Ícones dos marcos gerados por script (perfil e Steam) | E9 | 3 | Must | S41 | — | Em revisão |
 | [OG-396](cards/OG-396-steam-conquistas-no-app.md) | Steam: conquistas no app desktop, espelhando os marcos da conta | E9 | 5 | Should | S41 | OG-390, D-77 | Em revisão |
-| [OG-397](cards/OG-397-steam-cadastro-das-conquistas.md) | Steam: tabela das conquistas e cadastro no Steamworks | E9 | 2 | Should | S41 | OG-395, OG-396 | Em andamento |
+| [OG-397](cards/OG-397-steam-cadastro-das-conquistas.md) | Steam: tabela das conquistas e cadastro no Steamworks | E9 | 2 | Should | S41 | OG-395, OG-396 | Em revisão |
 | [OG-398](cards/OG-398-marcos-secretos.md) | Marcos secretos: os 10 raros, anti-farm, primeiro a descobrir e calibração | E9 | 5 | Must | S41 | OG-391 | Em revisão |
 | [OG-399](cards/OG-399-marcos-de-humor.md) | Marcos de humor (7x1, freguês, mão de alface...) e a virada do 7x1 | E9 | 4 | Should | S41 | OG-391, OG-398 | Em revisão |
 
