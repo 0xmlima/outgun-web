@@ -6,7 +6,8 @@
 // OG-390 também mortes, tempo jogado, placar sofrido e os stats da partida (jsonb inteiro); desde o
 // OG-391, modo, formato, mapa, dia, companheiros, série e os eventos. Os eventos são pesados: ao fim
 // de cada partida só os dela (os marcos de evento são de uma partida só); o retroativo lê todos.
-import { milestonesFrom, type MilestoneEvent, type MilestoneMatch } from '@outgun/content';
+import { MILESTONES, milestonesFrom, type MilestoneEvent, type MilestoneMatch } from '@outgun/content';
+import { SECRET_MILESTONES, secretMilestonesFrom } from '@outgun/content/secret';
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 
@@ -43,6 +44,10 @@ async function histories(tx: Db | Tx, userIds: readonly string[], scope: EventSc
     mates: string[] | null;
     series_id: string | null;
     best_of: number | null;
+    accounts: number;
+    hour: number;
+    short_handed: boolean;
+    map_time: number | null;
   }>(sql`
     SELECT mp.user_id, m.id AS match_id, m.ended_at,
       sign(CASE WHEN mp.team = 0 THEN m.red_score - m.blue_score ELSE m.blue_score - m.red_score END)::int AS res,
@@ -58,6 +63,10 @@ async function histories(tx: Db | Tx, userIds: readonly string[], scope: EventSc
       coalesce(least(rs.red_wins, rs.blue_wins) = 0, false) AS sweep,
       m.ranked, m.format, m.map, mp.team, m.series_id, rs.best_of,
       to_char(m.ended_at AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') AS day,
+      extract(hour FROM m.ended_at AT TIME ZONE 'America/Sao_Paulo')::int AS hour,
+      (m.details ->> 'mapTime')::int AS map_time,
+      (SELECT count(DISTINCT o.user_id)::int FROM match_players o WHERE o.match_id = m.id AND NOT o.is_bot AND o.user_id IS NOT NULL) AS accounts,
+      EXISTS (SELECT 1 FROM jsonb_array_elements(m.substitutions) s WHERE s ->> 'kind' = 'short' AND (s ->> 'team')::int = mp.team) AS short_handed,
       (SELECT array_agg(DISTINCT o.user_id::text) FROM match_players o
         WHERE o.match_id = m.id AND o.team = mp.team AND NOT o.is_bot AND o.user_id IS NOT NULL AND o.user_id <> mp.user_id) AS mates
     FROM match_players mp JOIN matches m ON m.id = mp.match_id
@@ -94,6 +103,11 @@ async function histories(tx: Db | Tx, userIds: readonly string[], scope: EventSc
       team: Number(r.team),
       mates: r.mates ?? [],
       ...(r.series_id && r.best_of ? { series: { id: r.series_id, bestOf: Number(r.best_of) } } : {}),
+      accounts: Number(r.accounts),
+      hour: Number(r.hour),
+      shortHanded: r.short_handed,
+      // `mapTime` em segundos (truncado); os eventos em décimos
+      ...(r.map_time !== null ? { endTime: Number(r.map_time) * 10 } : {}),
       ...(ev && me.length > 0 ? { events: { me, teams: Array.from(ev.players, (p) => p?.team ?? -1), log: ev.log } } : {}),
       ...(r.opponent ? { clanWar: { opponent: r.opponent, conceded: Number(r.conceded), seriesWon: r.series_won, sweep: r.series_won && r.sweep } } : {}),
     });
@@ -127,7 +141,7 @@ export async function awardMilestones(tx: Db | Tx, userIds: readonly string[], o
   const all = await histories(tx, [...new Set(userIds)], o.events ?? 'all');
   let added = 0;
   for (const [userId, list] of all) {
-    const got = milestonesFrom(list, o);
+    const got = [...milestonesFrom(list, o), ...secretMilestonesFrom(list)];
     if (got.length === 0) continue;
     const res = await tx.execute<{ milestone: string }>(sql`
       INSERT INTO player_milestones (user_id, milestone, achieved_at, match_id)
@@ -149,3 +163,34 @@ export async function backfillMilestones(db: Db, o: { beta: boolean }, batch = 2
   for (let i = 0; i < ids.length; i += batch) added += await awardMilestones(db, ids.slice(i, i + batch), o);
   return { users: ids.length, added };
 }
+
+/** Quem descobriu primeiro cada secreto (RN-SOC-06): menor data, desempate pelo nome. */
+export async function firstDiscoverers(db: Db): Promise<Map<string, string>> {
+  const rows = await db.execute<{ milestone: string; username: string }>(sql`
+    SELECT DISTINCT ON (pm.milestone) pm.milestone, u.username
+    FROM player_milestones pm JOIN users u ON u.id = pm.user_id
+    WHERE starts_with(pm.milestone, 'secret_')
+    ORDER BY pm.milestone, pm.achieved_at, u.username`);
+  return new Map(rows.map((r) => [r.milestone, r.username]));
+}
+
+/**
+ * Calibração (OG-398): quantas contas teriam cada marco pelo histórico, sem gravar, e a fração das
+ * contas que jogaram nos últimos 30 dias. Secretos devem ficar em ~1% ou menos.
+ */
+export async function calibrateMilestones(db: Db, o: { beta: boolean }, batch = 200): Promise<{ active: number; rows: { id: string; users: number; share: number }[] }> {
+  const ids = (await db.execute<{ user_id: string }>(sql`SELECT DISTINCT user_id FROM match_players WHERE user_id IS NOT NULL ORDER BY user_id`)).map((r) => r.user_id);
+  const [act] = await db.execute<{ n: number }>(sql`
+    SELECT count(DISTINCT mp.user_id)::int AS n FROM match_players mp JOIN matches m ON m.id = mp.match_id
+    WHERE mp.user_id IS NOT NULL AND m.ended_at > now() - interval '30 days'`);
+  const active = Math.max(1, Number(act?.n ?? 0));
+  const counts = new Map<string, number>();
+  for (let i = 0; i < ids.length; i += batch) {
+    for (const list of (await histories(db, ids.slice(i, i + batch), 'all')).values()) {
+      for (const a of [...milestonesFrom(list, o), ...secretMilestonesFrom(list)]) counts.set(a.id, (counts.get(a.id) ?? 0) + 1);
+    }
+  }
+  const rows = [...MILESTONES, ...SECRET_MILESTONES].map((m) => ({ id: m.id, users: counts.get(m.id) ?? 0, share: (counts.get(m.id) ?? 0) / active }));
+  return { active, rows };
+}
+

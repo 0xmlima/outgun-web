@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-391 |
 | Regras de negócio | RN-SOC-06 |
 | Skills | `outgun-card-workflow` |
@@ -35,11 +35,15 @@ Como jogador, quero marcos secretos e raros para descobrir jogando, para ter his
 - `cli.js milestones-calibrate`: conta, no banco, quantos jogadores teriam cada secreto (e % das contas ativas nos últimos 30 dias). Rodar no beta antes do deploy; limite que passar de ~1% é endurecido com o PO.
 
 ## Critérios de aceite
-- [ ] Teste de cada secreto com eventos mínimos, inclusive o caso que quase vale (ex.: Ás com um adversário vivo).
+- [x] Teste de cada secreto com eventos mínimos, inclusive o caso que quase vale (ex.: Ás com um adversário vivo).
 - [ ] Relatório da calibração do beta no card, com a % de cada secreto.
-- [ ] Partida com 3 contas não concede secreto.
+- [x] Partida com 3 contas não concede secreto.
 
 ## Notas técnicas
 - Empate técnico só existe se o foguete continuar voando depois da morte do atirador; se a calibração der zero, levar ao PO.
 
 ## Notas de implementação
+- Secretos em `packages/content/src/secret-milestones.ts`, fora do `index.ts`: só a API importa (`@outgun/content/secret`), para nome e condição não irem no JavaScript do cliente. O OG-393 recebe da API o texto de quem desbloqueou.
+- Ás: todos os índices do outro time (3+) numa vida e em até 20 s (`ACE_WINDOW`). No apagar das luzes usa o `mapTime` do relatório (segundos truncados).
+- `firstDiscoverers` e `cli.js milestones-calibrate` prontos; até o OG-393, relatório e perfil mostram o id cru de um secreto.
+- Pendente: rodar a calibração no beta (critério 2) antes do deploy.

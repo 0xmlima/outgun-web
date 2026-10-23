@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Utilitários: node dist/cli.js migrate up|down [N]|status, seed, openapi [arquivo], season start NOME, ticket-key [kid],
-// invite [usos] [observação] (convite do beta), role NOME admin|moderator|player, milestones (marcos retroativos).
+// invite [usos] [observação] (convite do beta), role NOME admin|moderator|player, milestones (marcos retroativos), milestones-calibrate (contas por marco, sem gravar).
 import { writeFileSync } from 'node:fs';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
@@ -8,7 +8,7 @@ import { connect } from './db/client.js';
 import { appliedVersions, loadMigrations, migrateDown, migrateUp } from './db/migrate.js';
 import { ensureAppRole } from './db/app-role.js';
 import { seed } from './db/seed.js';
-import { backfillMilestones } from './milestones.js';
+import { backfillMilestones, calibrateMilestones } from './milestones.js';
 import { startSeason } from './ranking.js';
 import { createInvites } from './beta.js';
 import { usernameKey } from './db/keys.js';
@@ -70,6 +70,11 @@ try {
     // Marcos retroativos (OG-213): idempotente, pode rodar de novo a qualquer momento.
     const r = await backfillMilestones(database.db, { beta: config.beta });
     console.log(`marcos: ${r.added} novos em ${r.users} contas`);
+  } else if (command === 'milestones-calibrate') {
+    // Calibração dos marcos (OG-398): quantas contas teriam cada um, sem gravar nada.
+    const r = await calibrateMilestones(database.db, { beta: config.beta });
+    console.log(`contas ativas (30 dias): ${r.active}`);
+    for (const row of r.rows) console.log(`${row.id.padEnd(28)} ${String(row.users).padStart(6)}  ${(row.share * 100).toFixed(2)}%`);
   } else if (command === 'invite') {
     // Convite do beta fechado (OG-106) sem passar pelo painel: o primeiro admin se cadastra com ele.
     const [code] = await createInvites(database.db, { count: 1, maxUses: Number(arg1 ?? 1) || 1, note: arg2 ?? 'cli' });

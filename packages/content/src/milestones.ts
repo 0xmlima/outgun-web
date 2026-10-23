@@ -37,6 +37,12 @@ export interface MilestoneMatch {
   series?: { id: string; bestOf: number };
   /** Eventos da partida (OG-362; Casual desde a 2.39.1). Ausente = partida sem registro. */
   events?: MilestoneEvents;
+  /** Secretos (OG-398): contas na partida (sem bots), hora do fim em America/Sao_Paulo, time da
+   * conta desfalcado por queda (vaga vazia) e o fim da partida em décimos de segundo. */
+  accounts?: number;
+  hour?: number;
+  shortHanded?: boolean;
+  endTime?: number;
   /** Partida clã x clã (OG-259, RN-RKL-14) do ponto de vista do clã da conta. */
   clanWar?: ClanWarMatch;
 }

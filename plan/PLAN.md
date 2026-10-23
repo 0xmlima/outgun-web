@@ -857,7 +857,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-395](cards/OG-395-icones-dos-marcos.md) | Ícones dos marcos gerados por script (perfil e Steam) | E9 | 3 | Must | S41 | — | Pronto |
 | [OG-396](cards/OG-396-steam-conquistas-no-app.md) | Steam: conquistas no app desktop, espelhando os marcos da conta | E9 | 5 | Should | S41 | OG-390, D-77 | Pronto |
 | [OG-397](cards/OG-397-steam-cadastro-das-conquistas.md) | Steam: tabela das conquistas e cadastro no Steamworks | E9 | 2 | Should | S41 | OG-395, OG-396 | Pronto |
-| [OG-398](cards/OG-398-marcos-secretos.md) | Marcos secretos: os 10 raros, anti-farm, primeiro a descobrir e calibração | E9 | 5 | Must | S41 | OG-391 | Pronto |
+| [OG-398](cards/OG-398-marcos-secretos.md) | Marcos secretos: os 10 raros, anti-farm, primeiro a descobrir e calibração | E9 | 5 | Must | S41 | OG-391 | Em revisão |
 | [OG-399](cards/OG-399-marcos-de-humor.md) | Marcos de humor (7x1, freguês, mão de alface...) e a virada do 7x1 | E9 | 4 | Should | S41 | OG-391, OG-398 | Pronto |
 
 **Total:** 241 cards, 802 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 172 cards, 507 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
