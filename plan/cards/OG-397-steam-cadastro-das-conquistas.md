@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | OG-395, OG-396 |
 | Regras de negócio | RN-SOC-07 |
 | Skills | `outgun-card-workflow` |
@@ -27,3 +27,5 @@ Como PO, quero as conquistas cadastradas no Steamworks com nomes, descrições e
 - [ ] Teste do PO pela Steam (branch `beta`) desbloqueando ao menos uma conquista.
 
 ## Notas de implementação
+- Tabela gerada: `apps/desktop/steam/achievements.md` (81 conquistas, 14 *hidden*), pelo mesmo script dos ícones. Os nomes dos secretos estão nela e no código-fonte (repositório privado).
+- Falta (com a ordem do PO): cadastrar no Steamworks, publicar e subir o build na `beta`.

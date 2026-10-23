@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ícones das conquistas da Steam (OG-395/397): um PNG 256×256 desbloqueado e um bloqueado (cinza) por
-// marco, públicos e secretos, a partir do SVG de `@outgun/content` (o mesmo do perfil). Falha se
-// algum marco ficar sem símbolo.
+// marco, públicos e secretos, a partir do SVG de `@outgun/content` (o mesmo do perfil), e a tabela
+// para o cadastro no Steamworks (`achievements.md` ao lado da pasta). Falha se faltar símbolo.
 // Uso: corepack pnpm --filter @outgun/content build && node tools/visual-compare/milestone-icons.mjs [pasta]
-import { mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { MILESTONE_ICON_SYMBOLS, MILESTONES, milestoneIconSpec, milestoneIconSvg, steamAchievementName } from '../../packages/content/dist/index.js';
 import { SECRET_ICON_SYMBOLS, SECRET_MILESTONES } from '../../packages/content/dist/secret.js';
@@ -36,6 +36,29 @@ try {
     }
   }
   console.log(`${all.length} marcos, ${all.length * 2} PNGs em ${OUT}`);
+  const cell = (x) => String(x).replace(/\|/g, '\\|');
+  const rows = [...MILESTONES, ...SECRET_MILESTONES].map((m) => {
+    const name = steamAchievementName(m.id);
+    return `| ${name} | ${cell(m.name.en)} | ${cell(m.description.en)} | ${cell(m.name['pt-BR'])} | ${cell(m.description['pt-BR'])} | ${m.group === 'secret' ? 'sim' : ''} | ${name}.png / ${name}_locked.png |`;
+  });
+  const table = join(dirname(OUT), 'achievements.md');
+  writeFileSync(
+    table,
+    [
+      '# Conquistas da Steam (OG-397)',
+      '',
+      'Gerado por `node tools/visual-compare/milestone-icons.mjs` a partir do catálogo de marcos (`@outgun/content`); não editar à mão.',
+      'Cadastro no Steamworks (app 663760, Stats & Achievements): API name, nome e descrição em `english` e `brazilian`, *hidden* nos secretos, ícone desbloqueado e bloqueado da pasta `achievements/`.',
+      '',
+      `${rows.length} conquistas.`,
+      '',
+      '| API name | Name (english) | Description (english) | Nome (brazilian) | Descrição (brazilian) | Hidden | Ícones |',
+      '|---|---|---|---|---|---|---|',
+      ...rows,
+      '',
+    ].join('\n'),
+  );
+  console.log(`tabela em ${table}`);
 } finally {
   await browser.close();
 }
