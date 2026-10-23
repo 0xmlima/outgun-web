@@ -7,6 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useNavigate } from 'react-router';
 import { useAccount } from './account.js';
 import { api } from './api.js';
+import { desktopBridge, syncSteamAchievements } from './install.js';
 import { usePrefs } from './prefs.js';
 import { Icon } from '../ui/icons.js';
 import { useToast } from '../ui/Toast.js';
@@ -62,6 +63,15 @@ export function NotificationsProvider({ children }: { readonly children: ReactNo
   // avisos já mostrados nesta sessão: a mesma notificação não volta a cada releitura
   const shown = useRef(new Set<string>());
 
+  // conquistas da Steam (OG-396): ao entrar, todos os marcos da conta (o retroativo sai de graça)
+  useEffect(() => {
+    if (!user || !desktopBridge()?.steamAvailable?.()) return;
+    api<{ milestones: { id: string }[] }>(`/players/${encodeURIComponent(user.username)}`).then(
+      (p) => syncSteamAchievements(p.milestones.map((m) => m.id)),
+      () => undefined,
+    );
+  }, [user]);
+
   const load = useCallback(() => {
     api<{ unread: number; items: AppNotification[] }>('/notifications').then(setState, () => undefined);
   }, []);
@@ -96,6 +106,7 @@ export function NotificationsProvider({ children }: { readonly children: ReactNo
       // marco novo: aviso que some sozinho e já conta como lido (fica no sino); o resto espera fechar
       if (n.kind === 'milestone') {
         toast(notificationText(n, t, prefs.locale), 'accent');
+        syncSteamAchievements(n.data.milestones ?? []);
         markRead(n.id);
       } else toast(notificationText(n, t, prefs.locale), 'accent', { sticky: true, onClose: () => markRead(n.id) });
     }

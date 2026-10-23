@@ -81,6 +81,12 @@
         "libasound2t64 | libasound2",
         "libgbm1"
       ]
-    }
+    },
+    "asarUnpack": [
+      "node_modules/steamworks.js/dist/**"
+    ]
+  },
+  "dependencies": {
+    "steamworks.js": "0.4.0"
   }
 }

@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-390, D-77 |
 | Regras de negócio | RN-SOC-07 |
 | Skills | `outgun-card-workflow` |
@@ -27,6 +27,10 @@ Como jogador do Outgun na Steam, quero que meus marcos virem conquistas da Steam
 
 ## Critérios de aceite
 - [ ] Pela Steam (branch `beta`), entrar numa conta com marcos desbloqueia as conquistas correspondentes; abrir sem Steam funciona como hoje.
-- [ ] Marco que não existe na Steam (ainda não cadastrado) é ignorado sem erro.
+- [x] Marco que não existe na Steam (ainda não cadastrado) é ignorado sem erro.
 
 ## Notas de implementação
+- `steamworks.js` 0.4.0 (MIT) em `dependencies` do app, binários fora do asar (`asarUnpack`). Inicia só com `SteamAppId`/`SteamGameId` = 663760 no ambiente (a Steam põe ao abrir o jogo).
+- Preload: `steamAvailable()` e `syncSteamAchievements(ids)`; o main valida a origem e o formato dos ids, desbloqueia o que falta e chama `stats.store()` uma vez.
+- Site: ao entrar na conta manda todos os marcos (retroativo) e, a cada notificação de marco novo (OG-394), os da partida.
+- Critério 1 (teste pela Steam na `beta`) fica para o PO, depois do cadastro (OG-397).
