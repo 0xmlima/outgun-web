@@ -2715,6 +2715,9 @@
                     "favoriteColors",
                     "lastMatchAt",
                     "milestones",
+                    "milestoneProgress",
+                    "milestoneRarity",
+                    "secrets",
                     "titles"
                   ],
                   "properties": {
@@ -2950,6 +2953,73 @@
                                 "type": "null"
                               }
                             ]
+                          }
+                        }
+                      }
+                    },
+                    "milestoneProgress": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "milestoneRarity": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "secrets": {
+                      "type": "object",
+                      "required": ["total", "unlocked"],
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "unlocked": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["id", "name", "description", "firstBy"],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "object",
+                                "required": ["pt-BR", "en"],
+                                "properties": {
+                                  "pt-BR": {
+                                    "type": "string"
+                                  },
+                                  "en": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "description": {
+                                "type": "object",
+                                "required": ["pt-BR", "en"],
+                                "properties": {
+                                  "pt-BR": {
+                                    "type": "string"
+                                  },
+                                  "en": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "firstBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -3588,6 +3658,18 @@
                           },
                           "milestone": {
                             "type": "string"
+                          },
+                          "secretName": {
+                            "type": "object",
+                            "required": ["pt-BR", "en"],
+                            "properties": {
+                              "pt-BR": {
+                                "type": "string"
+                              },
+                              "en": {
+                                "type": "string"
+                              }
+                            }
                           }
                         }
                       }
@@ -7297,6 +7379,10 @@
                               {
                                 "type": "string",
                                 "enum": ["clan_request"]
+                              },
+                              {
+                                "type": "string",
+                                "enum": ["milestone"]
                               }
                             ]
                           },
@@ -7311,6 +7397,27 @@
                               },
                               "from": {
                                 "type": "string"
+                              },
+                              "milestones": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "secretNames": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "object",
+                                  "required": ["pt-BR", "en"],
+                                  "properties": {
+                                    "pt-BR": {
+                                      "type": "string"
+                                    },
+                                    "en": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
                               }
                             }
                           },

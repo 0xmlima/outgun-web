@@ -17,5 +17,8 @@ contextBridge.exposeInMainWorld('outgunDesktop', {
   steamAvailable: () => ipcRenderer.sendSync('outgun:steam-available'),
   /** Ids dos marcos da conta; o app desbloqueia na Steam os que faltarem. */
   syncSteamAchievements: (ids) =>
-    ipcRenderer.send('outgun:steam-sync', Array.isArray(ids) ? ids.filter((x) => typeof x === 'string') : []),
+    ipcRenderer.send(
+      'outgun:steam-sync',
+      Array.isArray(ids) ? ids.filter((x) => typeof x === 'string') : [],
+    ),
 });
