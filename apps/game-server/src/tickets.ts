@@ -47,7 +47,10 @@ export class JwksKeys {
 export interface TicketAuthOptions {
   /** Chaves públicas atuais (do JWKS). */
   keys?: () => ReadonlyMap<string, KeyObject>;
-  /** Aceita `dev:Nome` como convidado (desenvolvimento e testes). */
+  /**
+   * Aceita `dev:Nome` como convidado (desenvolvimento e testes). Para as capturas da UI da partida
+   * (RN-UI-05), aceita também `dev:Nome|clan=TAG:#primária:#secundária|n=10|medal=1` (OG-408..411).
+   */
   devTickets: boolean;
 }
 
@@ -62,8 +65,14 @@ export class TicketAuth {
   identify(ticket: string, room: string, now = Date.now()): IdentifyResult {
     if (ticket.startsWith('dev:')) {
       if (!this.options.devTickets) return { ok: false, reason: 'dev tickets disabled' };
-      const name = ticket.slice(4).trim().slice(0, 32) || 'Convidado';
-      return { ok: true, identity: { name: guestName(name), accountId: null } };
+      const [raw = '', ...opts] = ticket.slice(4).split('|');
+      const name = raw.trim().slice(0, 32) || 'Convidado';
+      const opt = Object.fromEntries(opts.map((o) => o.split('=') as [string, string]));
+      const [tag, primary, secondary] = (opt.clan ?? '').split(':');
+      const clan = tag && primary && secondary ? { clanId: `dev-${tag}`, clanTag: tag, clanTeam: { id: `dev-${tag}`, tag, name: tag, primary, secondary } } : {};
+      const number = Number(opt.n);
+      const medal = Number(opt.medal);
+      return { ok: true, identity: { name: guestName(name), accountId: null, ...clan, ...(number >= 1 && number <= 99 ? { number } : {}), ...(medal >= 1 && medal <= 3 ? { medal } : {}) } };
     }
     const keys = this.options.keys?.();
     if (!keys) return { ok: false, reason: 'no keys' };

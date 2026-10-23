@@ -11,6 +11,7 @@ import type { GameHost } from '../game/host.js';
 import { MAP_SORTS, mapScreen, playerScreen, serverScreen, teamScreen, type InfoScreen, type MapSort } from '../game/hud/info-screens.js';
 import { BitmapText } from '../ui/BitmapText.js';
 import { TextLines } from '../ui/TextPage.js';
+import { teamColourOverrides } from '../game/render/team-palette.js';
 
 export type InfoKind = 'help' | 'maps' | 'teams' | 'players' | 'server';
 
@@ -25,6 +26,13 @@ interface Props {
 }
 
 /** "Stats screen alpha" (OG-070): opacidade do fundo das telas F1–F5 (255 = opaco). */
+/** Faixa e texto do lado na cor do clã (OG-409); sem cor, o CSS fica com o vermelho/azul de sempre. */
+function clanTones(side: 'red' | 'blue', colour: string | null | undefined): Record<string, string> {
+  if (!colour) return {};
+  const o = teamColourOverrides(side === 'red' ? 0 : 1, colour);
+  return { [`--info-${side}-bg`]: o[`team_${side}_dark`]!, [`--info-${side}-text`]: o[`team_${side}_light`]! };
+}
+
 function statsBackground(alpha: number): CSSProperties {
   return { background: `rgba(0, 0, 0, ${(alpha / 255).toFixed(3)})` };
 }
@@ -135,7 +143,16 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
     return rows;
   };
   return (
-    <section className={`info-screen ${kind}`} aria-label={screen.title} style={statsBackground(prefs.statsAlpha)}>
+    <section
+      className={`info-screen ${kind}`}
+      aria-label={screen.title}
+      style={{
+        ...statsBackground(prefs.statsAlpha),
+        // cor do clã de cada lado (OG-409)
+        ...clanTones('red', session.teamIdentity[0]?.color),
+        ...clanTones('blue', session.teamIdentity[1]?.color),
+      } as CSSProperties}
+    >
       <h2>
         <BitmapText text={screen.title} />
       </h2>

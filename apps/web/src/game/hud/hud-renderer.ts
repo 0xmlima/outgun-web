@@ -478,7 +478,8 @@ export class HudRenderer {
     }
     const map = s.map;
     const r = minimapRect(place, map.width, map.height);
-    const key = `${map.title}|${map.crc}|${r.w}x${r.h}|${place.w}|${this.resolution}`;
+    // as cores dos lados entram na chave: o lado que vira o clã repinta as bases (OG-409)
+    const key = `${map.title}|${map.crc}|${r.w}x${r.h}|${place.w}|${this.resolution}|${this.c('team_red_dark')}${this.c('team_blue_dark')}${this.teamCol(0)}${this.teamCol(1)}`;
     if (key !== this.minimapKey) {
       this.minimapKey = key;
       this.minimapTexture?.destroy(true);

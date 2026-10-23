@@ -328,10 +328,10 @@ body {
   padding: calc(var(--px) * 2px) calc(var(--px) * 4px);
 }
 .info-screen caption.tone-red {
-  background: #600000;
+  background: var(--info-red-bg, #600000);
 }
 .info-screen caption.tone-blue {
-  background: #000060;
+  background: var(--info-blue-bg, #000060);
 }
 .info-screen th,
 .info-screen td {
@@ -350,11 +350,12 @@ body {
 .info-screen p {
   margin: calc(var(--px) * 4px) 0 0;
 }
+/* lado que virou o clã (OG-409): as variáveis só existem com a cor do clã */
 .info-screen .tone-red {
-  color: #ff6060;
+  color: var(--info-red-text, #ff6060);
 }
 .info-screen .tone-blue {
-  color: #8080ff;
+  color: var(--info-blue-text, #8080ff);
 }
 .info-screen .tone-highlight {
   color: #00ff00;

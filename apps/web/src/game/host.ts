@@ -329,10 +329,15 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   /** Troca o mapa desenhado (início da partida e cada troca de mapa do servidor). */
   /** Base HTTP do game server da partida (mapas gerados, OG-015). */
   let serverBase: string | undefined;
+  let shownMap: { name: string; theme: RoomTheme } | null = null;
+  let mapToken = 0;
   const showMap = async (name: string, theme: RoomTheme): Promise<GameMap | null> => {
+    shownMap = { name, theme };
+    // só o pedido mais recente vale: duas trocas de cor seguidas não deixam o desenho antigo por cima
+    const token = ++mapToken;
     const { map, bytes } = await loadMap(name, { base: serverBase });
     const source = await createRoomSource(map, name, bytes, theme);
-    if (destroyed) {
+    if (destroyed || token !== mapToken) {
       source.destroy();
       return null;
     }
@@ -662,6 +667,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           if (applyTeamColours(theme.colours as Record<string, string>, baseTheme.colours, colours)) {
             const target = entities;
             void loadEntitySprites(manifest, opts.theme, theme.colours).then((s) => !destroyed && entities === target && target.setSprites(s));
+            // as bases das salas são pintadas com as cores da carga do mapa: redesenha com as novas
+            if (shownMap) void showMap(shownMap.name, shownMap.theme);
           }
         }
         if (session && entities && world?.layout && worldMap && session.world?.map === worldMap) {
