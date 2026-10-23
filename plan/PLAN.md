@@ -610,7 +610,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; enxugar o legado (sem finlandês e italiano, revisão das opções); depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-384, OG-385, OG-386, OG-388, OG-389, OG-380, OG-375, OG-374 | |
 | S41 | v2: marcos — ~50 novos a partir dos stats e eventos (vitórias, tempo, bandeira, defesa, combate, armas, ranked por formato, mapas, dupla), 14 secretos raros (dois do 7x1 e a virada histórica), marcos de humor, perfil no jogo por grupo com progresso e raridade, ícones e conquistas da Steam espelhando os marcos | OG-390, OG-391, OG-398, OG-399, OG-392, OG-395, OG-393, OG-394, OG-396, OG-397; 2.41.1: OG-400, OG-401; 2.41.2: OG-402 | |
 | S42 | v2: salas com cara de jogo real — nomes e prefixo dos bots no painel e bots que falam no chat conforme a partida; filtro de nomes nos jogadores; portal ao vivo; logs de segurança e alertas; estudo do WebTransport | OG-276, OG-403, OG-404, OG-313, OG-284, OG-376 | |
-| S43 | v2: personalização — cores do clã (o lado vira o clã: "CLÃ x AZUL"), números de jogador como na F1 (o 1 para o líder do mês) e 32 cores pessoais com dourado, prateado e bronze para o top 3 | OG-411, OG-407, OG-408, OG-409, OG-410 | |
+| S43 | v2: personalização — cores do clã (o lado vira o clã: "CLÃ x AZUL"), números de jogador como na F1 (o 1 para o líder do mês) e 32 cores pessoais com dourado, prateado e bronze para o top 3 | OG-412, OG-411, OG-407, OG-408, OG-409, OG-410 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -873,8 +873,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-409](cards/OG-409-time-com-a-cor-do-cla.md) | Time com a cor e o nome do clã na tela (cliente) | E9 | 5 | Should | S43 | OG-408 | Pronto |
 | [OG-410](cards/OG-410-numeros-de-jogador.md) | Números de jogador (2 a 99, o 1 para o líder do mês) | E9 | 5 | Should | S43 | OG-358 | Pronto |
 | [OG-411](cards/OG-411-mais-cores-pessoais.md) | 32 cores pessoais e as medalhas do top 3 | E9 | 3 | Should | S43 | OG-358 | Pronto |
+| [OG-412](cards/OG-412-notificacoes-atras-do-tocador.md) | Notificações atrás do tocador de música | E8 | 1 | Must | S43 | OG-361 | Pronto |
 
-**Total:** 253 cards, 845 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 184 cards, 550 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 254 cards, 846 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 185 cards, 551 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
