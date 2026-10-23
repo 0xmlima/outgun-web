@@ -9127,6 +9127,7 @@
                     "canChangeAt",
                     "numberOneEligible",
                     "usingNumberOne",
+                    "style",
                     "free"
                   ],
                   "properties": {
@@ -9155,6 +9156,9 @@
                     },
                     "usingNumberOne": {
                       "type": "boolean"
+                    },
+                    "style": {
+                      "type": "integer"
                     },
                     "free": {
                       "type": "array",
@@ -9228,6 +9232,7 @@
                     "canChangeAt",
                     "numberOneEligible",
                     "usingNumberOne",
+                    "style",
                     "free"
                   ],
                   "properties": {
@@ -9256,6 +9261,9 @@
                     },
                     "usingNumberOne": {
                       "type": "boolean"
+                    },
+                    "style": {
+                      "type": "integer"
                     },
                     "free": {
                       "type": "array",
@@ -9347,6 +9355,106 @@
         }
       }
     },
+    "/account/number-style": {
+      "put": {
+        "summary": "Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil",
+        "tags": ["contas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["style"],
+                "properties": {
+                  "style": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "number",
+                    "canChangeAt",
+                    "numberOneEligible",
+                    "usingNumberOne",
+                    "style",
+                    "free"
+                  ],
+                  "properties": {
+                    "number": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canChangeAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "numberOneEligible": {
+                      "type": "boolean"
+                    },
+                    "usingNumberOne": {
+                      "type": "boolean"
+                    },
+                    "style": {
+                      "type": "integer"
+                    },
+                    "free": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/account/number-one": {
       "put": {
         "summary": "Líder do mês anterior: usar (ou não) o número 1",
@@ -9379,6 +9487,7 @@
                     "canChangeAt",
                     "numberOneEligible",
                     "usingNumberOne",
+                    "style",
                     "free"
                   ],
                   "properties": {
@@ -9407,6 +9516,9 @@
                     },
                     "usingNumberOne": {
                       "type": "boolean"
+                    },
+                    "style": {
+                      "type": "integer"
                     },
                     "free": {
                       "type": "array",

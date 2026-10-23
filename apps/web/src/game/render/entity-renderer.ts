@@ -38,6 +38,7 @@ import { pfScale, roomOffsetsX, roomOffsetsY, type RoomLayout } from './layout.j
 import type { EntitySprites } from './sprites.js';
 import { colour, type RoomTheme } from './theme.js';
 import { ALL_COLORS, colourKey, isMedalColor } from '@outgun/protocol';
+import { lightColour, NUMBER_BOX, NUMBER_STYLES, paintNumber } from './number-styles.js';
 
 interface Effect {
   readonly kind: EffectKind | 'smoke' | 'turbo';
@@ -52,6 +53,8 @@ const random = Math.random;
 
 /** Raio do boneco na tela abaixo do qual o número não aparece (OG-410). */
 const NUMBER_MIN_RADIUS = 9;
+/** Lado da textura de cada número (OG-413): nítida até o zoom máximo. */
+const NUMBER_TEXTURE = 128;
 
 export class EntityRenderer {
   readonly stage = new Container();
@@ -87,6 +90,9 @@ export class EntityRenderer {
   addEffect(kind: EffectKind, pos: WorldCoords, team: number, time: number): void {
     this.effects.push({ kind, pos, time, team, alpha: 1 });
   }
+
+  /** Texturas dos números (OG-413), por estilo, número e contraste. */
+  private readonly numberTextures = new Map<string, Texture>();
 
   /** Texturas refeitas com as cores do clã (OG-409). */
   setSprites(sprites: EntitySprites): void {
@@ -395,7 +401,7 @@ export class EntityRenderer {
       this.effects.push({ kind: 'turbo', pos: p.pos, time: t, team: p.team, alpha: p.alpha / 255, player: { ...p, hitfx: 0, power: false } });
     }
     this.drawPlayerBody(p, p.pos, t, p.alpha, false);
-    if (p.number && p.alpha >= 200) this.drawNumber(p);
+    if (p.number) this.drawNumber(p);
     if (p.deathbringer && t > (this.nextSmoke.get(p.pid) ?? 0)) {
       this.nextSmoke.set(p.pid, t + 0.01);
       this.addSmoke(p.pos, p.team, p.alpha, t, false);
@@ -508,18 +514,28 @@ export class EntityRenderer {
   }
 
   /**
-   * Número no centro do boneco (OG-410, RN-NUM-01): branco com contorno na cor escura do time, para
-   * ler sobre qualquer cor pessoal; some com o zoom muito afastado (vira borrão).
+   * Número no centro do boneco (OG-410, RN-NUM-01) no estilo escolhido (OG-413), com contraste
+   * automático; a textura de cada (estilo, número, claro/escuro) é montada uma vez. Some com o
+   * zoom muito afastado (vira borrão).
    */
   private drawNumber(p: PlayerView): void {
-    if (!this.font || this.pf(PLAYER_RADIUS) < NUMBER_MIN_RADIUS) return;
-    const text = String(p.number);
-    const dark = this.c(p.team === 0 ? 'team_red_dark' : 'team_blue_dark');
-    const scale = Math.min(1, (this.pf(PLAYER_RADIUS) * 1.1) / this.font.height);
-    for (const [x, y] of this.at(p.pos)) {
-      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) this.list.text(this.font.family, text, x + dx, y + dy, dark, scale).anchor.set(0.5, 0.5);
-      this.list.text(this.font.family, text, x, y, '#ffffff', scale).anchor.set(0.5, 0.5);
+    const R = this.pf(PLAYER_RADIUS);
+    if (R < NUMBER_MIN_RADIUS) return;
+    const style = NUMBER_STYLES[p.numberStyle ?? 0] ?? NUMBER_STYLES[0]!;
+    const personal = p.color < ALL_COLORS ? this.c(colourKey(p.color)) : '#808080';
+    const light = lightColour(personal);
+    const key = `${style.id}|${p.number}|${light ? 1 : 0}`;
+    let tex = this.numberTextures.get(key);
+    if (!tex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = NUMBER_TEXTURE;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(NUMBER_TEXTURE / 2, NUMBER_TEXTURE / 2);
+      paintNumber(ctx, String(p.number), style, light, NUMBER_TEXTURE / NUMBER_BOX);
+      this.numberTextures.set(key, (tex = Texture.from(canvas)));
     }
+    const size = R * 1.15 * NUMBER_BOX;
+    for (const [x, y] of this.at(p.pos)) this.list.sprite(tex, x, y, size, 0, p.alpha / 255);
   }
 
   private drawName(p: PlayerView): void {
@@ -534,6 +550,7 @@ export class EntityRenderer {
   }
 
   destroy(): void {
+    for (const t of this.numberTextures.values()) t.destroy(true);
     this.list.destroy();
     this.carrierTexture?.texture.destroy(true);
     this.stage.destroy({ children: true });

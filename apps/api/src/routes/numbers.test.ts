@@ -73,8 +73,11 @@ describe.skipIf(!pgAdminUrl)('números de jogador (OG-410)', () => {
     const [season] = await t.db.insert(seasons).values({ name: 'Temporada 0', startsAt: new Date(Date.now() - 40 * DAY), endsAt: new Date(Date.now() - 10 * DAY), active: false }).returning({ id: seasons.id });
     await t.db.insert(seasonChampions).values({ seasonId: season!.id, board: 'stat:overall', position: 1, userId: ids.Caio!, name: 'Caio', value: 99 });
     await setNumber(t.db, ids.Caio!, 30);
-    expect(await ticketNumber(t.db, ids.Caio!)).toBe(30);
+    expect(await ticketNumber(t.db, ids.Caio!)).toEqual({ number: 30, style: 0 });
     expect((await put('Caio', '/account/number-one', { use: true })).json()).toMatchObject({ usingNumberOne: true, number: 30 });
-    expect(await ticketNumber(t.db, ids.Caio!)).toBe(1);
+    expect(await ticketNumber(t.db, ids.Caio!)).toEqual({ number: 1, style: 0 });
+    expect((await put('Caio', '/account/number-style', { style: 2 })).json()).toMatchObject({ style: 2 });
+    expect((await put('Caio', '/account/number-style', { style: 4 })).statusCode).toBe(400);
+    expect(await ticketNumber(t.db, ids.Caio!)).toEqual({ number: 1, style: 2 });
   });
 });

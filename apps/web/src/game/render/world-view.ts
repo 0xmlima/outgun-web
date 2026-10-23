@@ -12,6 +12,7 @@ export interface WorldViewOptions {
   readonly name: (pid: number) => string;
   /** Número do jogador (OG-410); sem número, undefined. */
   readonly number?: (pid: number) => number | undefined;
+  readonly numberStyle?: (pid: number) => number | undefined;
   /** Cor pessoal 0..15 (16 = desconhecida). */
   readonly color: (pid: number) => number;
   /** Fim do pisca de acerto, no tempo do quadro (s); 0 = sem acerto. */
@@ -46,7 +47,7 @@ export function entityFrameFromWorld(w: WorldState, o: WorldViewOptions): Entity
       team: pl.team,
       color: o.color(pl.pid),
       name: o.name(pl.pid),
-      ...((n) => (n ? { number: n } : {}))(o.number?.(pl.pid)),
+      ...((n) => (n ? { number: n, numberStyle: o.numberStyle?.(pl.pid) ?? 0 } : {}))(o.number?.(pl.pid)),
       pos: coords(pl.pos),
       gundir: pl.gundir,
       dead: pl.dead,

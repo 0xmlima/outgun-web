@@ -2,7 +2,7 @@
 // Telas de conta (OG-081): entrar, criar conta, recuperar e redefinir a senha, conta (troca de senha,
 // exportação e exclusão de dados). No design system v2 (OG-202): formulários web de verdade, com
 // autocomplete para os gerenciadores de senha e o erro junto do campo.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
 import { useAccount, type AccountUser } from '../app/account.js';
 import { TERMS_VERSION } from '@outgun/content';
@@ -13,6 +13,8 @@ import { FieldGroup, TextField, ToggleField } from '../ui/Field.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
 import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
+import { lightColour, loadNumberFonts, NUMBER_STYLES, paintNumber } from '../game/render/number-styles.js';
+import { PLAYER_COLOURS } from '../ui/icons.js';
 
 const MIN_PASSWORD = 8;
 
@@ -370,7 +372,42 @@ interface NumberState {
   canChangeAt: string | null;
   numberOneEligible: boolean;
   usingNumberOne: boolean;
+  style: number;
   free: number[];
+}
+
+/** Prévia do número no boneco (OG-413), desenhada como na partida: anel do time e miolo da cor favorita. */
+function NumberPreview({ number, style }: { number: number; style: number }) {
+  const { prefs } = usePrefs();
+  const ref = useRef<HTMLCanvasElement>(null);
+  const colour = PLAYER_COLOURS[prefs.favoriteColors[0] ?? 0] ?? PLAYER_COLOURS[0]!;
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    let alive = true;
+    void loadNumberFonts().then(() => {
+      if (!alive) return;
+      const x = c.getContext('2d')!;
+      const k = 2;
+      x.clearRect(0, 0, c.width, c.height);
+      x.fillStyle = '#FF0000';
+      x.beginPath();
+      x.arc(c.width / 2, c.height / 2, 15 * k, 0, 7);
+      x.fill();
+      x.fillStyle = colour;
+      x.beginPath();
+      x.arc(c.width / 2, c.height / 2, 10 * k, 0, 7);
+      x.fill();
+      x.save();
+      x.translate(c.width / 2, c.height / 2);
+      paintNumber(x, String(number), NUMBER_STYLES[style]!, lightColour(colour), 17 * k);
+      x.restore();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [number, style, colour]);
+  return <canvas ref={ref} width={80} height={80} aria-hidden="true" />;
 }
 
 /**
@@ -414,6 +451,19 @@ function NumberPanel() {
             ))}
           </select>
           <p className="ui-field-hint">{locked ? t('You can change it again on $1.', new Date(state.canChangeAt!).toLocaleDateString(prefs.locale)) : t('From 2 to 99, one per player. Change once every 30 days; freed after 60 days without playing.')}</p>
+        </div>
+        <div className="ui-field">
+          <span className="ui-field-label" id="number-style">
+            {t('Number style')}
+          </span>
+          <div className="account-number-styles" role="radiogroup" aria-labelledby="number-style">
+            {NUMBER_STYLES.map((s, i) => (
+              <button key={s.id} type="button" role="radio" aria-checked={state.style === i} className={state.style === i ? 'number-style selected' : 'number-style'} onClick={() => void api<NumberState>('/account/number-style', { method: 'PUT', body: { style: i } }).then(setState, () => undefined)}>
+                <NumberPreview number={state.usingNumberOne ? 1 : (state.number ?? 10)} style={i} />
+                <span>{t(s.label)}</span>
+              </button>
+            ))}
+          </div>
         </div>
         {state.numberOneEligible && (
           <ToggleField

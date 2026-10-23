@@ -181,7 +181,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           totals,
           favoriteColors: profile?.favoriteColors ?? [],
           medal: await previousPodium(db, user.id),
-          number: await ticketNumber(db, user.id),
+          number: (await ticketNumber(db, user.id))?.number ?? null,
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
           milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
           milestoneProgress: await milestoneProgressOf(db, user.id),

@@ -39,6 +39,7 @@ import { loadRoomTheme, type RoomTheme } from './render/theme.js';
 import { applyTeamColours } from './render/team-palette.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
+import { loadNumberFonts } from './render/number-styles.js';
 
 export { GENERATED_MAP, loadMap } from './map-loader.js';
 
@@ -609,7 +610,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       const playing = Boolean(opts.online || opts.demoPlayers);
       if (playing) {
         // a Inter do HUD Moderno precisa estar carregada antes do primeiro atlas (lição do OG-205)
-        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), opts.online ? loadInter() : null]);
+        // as fontes dos números (OG-413) antes do primeiro quadro: o canvas não espera a fonte
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), opts.online ? loadInter() : null, loadNumberFonts()]);
         if (destroyed) return;
         gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);
@@ -685,6 +687,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
               me: s.me,
               name: (pid) => s.names.get(pid) ?? '',
               number: (pid) => s.numbers.get(pid),
+              numberStyle: (pid) => s.numberStyles.get(pid),
               color: (pid) => s.colors.get(pid) ?? 16,
               hitfx: (pid) => {
                 const until = s.hitUntil.get(pid) ?? 0;

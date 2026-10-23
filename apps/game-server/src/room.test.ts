@@ -362,6 +362,18 @@ describe('Room: o lado vira o clã (OG-408, D-78)', () => {
   });
 });
 
+describe('Room: número e estilo do número (OG-410, OG-413)', () => {
+  it('quem entra anuncia o número e o estilo; quem chega depois recebe os dos outros', () => {
+    const r = room();
+    const conn = new TestConnection();
+    const a = r.join(conn, { name: 'Ana', accountId: null, number: 44, numberStyle: 2 });
+    if (!a.ok) throw new Error(a.text);
+    const b = join(r, 'Bia');
+    r.tick();
+    expect(b.conn.of('playerNumber')).toContainEqual(expect.objectContaining({ pid: a.pid, number: 44, style: 2 }));
+  });
+});
+
 describe('Room: rotação e votação de mapas (OG-045)', () => {
   const rot = loadMaps(MAPS, ['outgun1', 'coliseu', 'sisso']);
   const make = () => new Room({ id: 'r', preset: 'classic', maps: rot, mapFiles: ['outgun1', 'coliseu', 'sisso'], maxPlayers: 8, seed: 7 });

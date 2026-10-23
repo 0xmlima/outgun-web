@@ -1,0 +1,23 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Fontes dos números de jogador (OG-413): arte do boneco, não da interface (a interface segue só com
+   a Inter, D-35). Fontes OFL servidas pelo próprio site. */
+@font-face {
+  font-family: 'og-bloco';
+  font-display: block;
+  src: url('@fontsource/russo-one/files/russo-one-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'og-corrida';
+  font-display: block;
+  src: url('@fontsource/saira-condensed/files/saira-condensed-latin-900-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'og-contorno';
+  font-display: block;
+  src: url('@fontsource/chakra-petch/files/chakra-petch-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'og-estencil';
+  font-display: block;
+  src: url('@fontsource/saira-stencil-one/files/saira-stencil-one-latin-400-normal.woff2') format('woff2');
+}

@@ -36,6 +36,8 @@ export interface TicketClaims {
   medal?: number;
   /** Número no boneco (OG-410): 2..99 da conta, ou 1 para o líder do mês anterior que o usa. */
   number?: number;
+  /** Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil. */
+  numberStyle?: number;
   /**
    * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.

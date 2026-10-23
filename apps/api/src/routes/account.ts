@@ -132,6 +132,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
       canChangeAt: Type.Union([Type.String(), Type.Null()]),
       numberOneEligible: Type.Boolean(),
       usingNumberOne: Type.Boolean(),
+      style: Type.Integer(),
       free: Type.Array(Type.Integer()),
     });
     app.get('/number', { schema: { tags: ['contas'], summary: 'Meu número de jogador, os livres e o 1 do líder do mês (OG-410)', response: { 200: NumberState, 401: ErrorSchema } } }, async (request, reply) => {
@@ -154,6 +155,16 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         if (!user) return reply;
         const r = await setNumber(db, user.id, request.body.number);
         if (!r.ok) return reply.code(r.error === 'number_taken' ? 409 : r.error === 'number_cooldown' ? 429 : 400).send({ error: r.error, message: r.error.replace('_', ' ') });
+        return numberState(db, user.id);
+      },
+    );
+    app.put(
+      '/number-style',
+      { schema: { tags: ['contas'], summary: 'Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil', body: Type.Object({ style: Type.Integer({ minimum: 0, maximum: 3 }) }), response: { 200: NumberState, 401: ErrorSchema } } },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        await db.update(users).set({ numberStyle: request.body.style }).where(eq(users.id, user.id));
         return numberState(db, user.id);
       },
     );

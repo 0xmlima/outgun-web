@@ -47,12 +47,12 @@ const SCENARIOS = [
   {
     name: 'dk-x-dt',
     red: [
-      [`Bia|clan=${DK}|n=7`, [20]],
-      [`Caio|clan=${DK}|n=99`, [3]],
+      [`Bia|clan=${DK}|n=7|style=3`, [20]],
+      [`Caio|clan=${DK}|n=99|style=2`, [3]],
     ],
     blue: [
       [`Ana|clan=${DT}|n=10|medal=1`, [32]],
-      [`Duda|clan=${DT}`, [26]],
+      [`Duda|clan=${DT}|n=44|style=1`, [26]],
     ],
   },
   {
@@ -62,8 +62,8 @@ const SCENARIOS = [
       [`Caio|clan=${DK}`, [0]],
     ],
     blue: [
-      ['Ana|n=10', [17]],
-      ['Duda', [5]],
+      ['Ana|n=10|style=1', [17]],
+      ['Duda|n=23|style=2', [22]],
     ],
   },
   {
@@ -73,8 +73,8 @@ const SCENARIOS = [
       [`Caio|clan=${DK}`, [2]],
     ],
     blue: [
-      [`Ana|clan=${XG}|n=1`, [30]],
-      [`Duda|clan=${XG}`, [19]],
+      [`Ana|clan=${XG}|n=1|style=2`, [30]],
+      [`Duda|clan=${XG}|n=88|style=3`, [19]],
     ],
   },
 ];
@@ -111,7 +111,10 @@ for (const sc of SCENARIOS.filter((x) => !process.env.ONLY || x.name.includes(pr
         String(WEB_PORT),
         '--strictPort',
       ],
-      { CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}` },
+      {
+        CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}`,
+        API_URL: 'http://127.0.0.1:9',
+      } /* sem API: o cliente usa o ticket de desenvolvimento, mesmo com uma API local no ar */,
     ),
   ];
   const browsers = [];
@@ -131,6 +134,8 @@ for (const sc of SCENARIOS.filter((x) => !process.env.ONLY || x.name.includes(pr
       });
       const [page] = await browser.pages();
       page.on('pageerror', (e) => errors.push(`${sc.name}: ${e.message}`));
+      if (process.env.VERBOSE)
+        page.on('console', (m) => m.type() === 'error' && console.error(`console: ${m.text()}`));
       await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
       await page.evaluateOnNewDocument(
         (favoriteColors) =>

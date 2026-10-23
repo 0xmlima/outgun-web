@@ -143,6 +143,8 @@ export class ClientSession {
   teamIdentityVersion = 0;
   /** Número de cada jogador (`playerNumber`, OG-410). */
   readonly numbers = new Map<number, number>();
+  /** Estilo do número de cada jogador (OG-413). */
+  readonly numberStyles = new Map<number, number>();
   readonly frags = new Map<number, number>();
   /** Cor pessoal de cada jogador 0..15 (`welcome`, `playerJoined`, `playerInfo`, `teamChange`). */
   readonly colors = new Map<number, number>();
@@ -467,6 +469,7 @@ export class ClientSession {
         break;
       case 'playerNumber':
         this.numbers.set(m.pid, m.number);
+        this.numberStyles.set(m.pid, m.style);
         break;
       case 'teamIdentity':
         if (m.team === 0 || m.team === 1) {
@@ -562,7 +565,8 @@ export class ClientSession {
     const { from, to } = m;
     const swap = m.swappedColor !== 255;
     const world = this.world;
-    const maps: Map<number, unknown>[] = [this.names, this.plainNames, this.clanTags, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil];
+    // o número e o estilo (OG-410/413) também mudam de lugar com o jogador
+    const maps: Map<number, unknown>[] = [this.names, this.plainNames, this.clanTags, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil, this.numbers, this.numberStyles];
     for (const map of maps) {
       const a = map.get(from);
       const b = map.get(to);
@@ -571,10 +575,12 @@ export class ClientSession {
       if (a !== undefined) map.set(to, a);
       if (swap && b !== undefined) map.set(from, b);
     }
-    const onA = this.onscreen.delete(from);
-    const onB = this.onscreen.delete(to);
-    if (onA) this.onscreen.add(to);
-    if (swap && onB) this.onscreen.add(from);
+    for (const set of [this.onscreen, this.bots]) {
+      const onA = set.delete(from);
+      const onB = set.delete(to);
+      if (onA) set.add(to);
+      if (swap && onB) set.add(from);
+    }
     if (!swap) this.present.delete(from);
     this.present.add(to);
     if (world) {

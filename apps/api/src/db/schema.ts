@@ -65,6 +65,8 @@ export const users = pgTable(
     numberWarnedAt: tstz('number_warned_at'),
     /** Líder do mês anterior usando o 1 (opcional, D-79). */
     useNumberOne: boolean('use_number_one').notNull().default(false),
+    /** Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil. */
+    numberStyle: smallint('number_style').notNull().default(0),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },

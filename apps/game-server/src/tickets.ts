@@ -49,7 +49,7 @@ export interface TicketAuthOptions {
   keys?: () => ReadonlyMap<string, KeyObject>;
   /**
    * Aceita `dev:Nome` como convidado (desenvolvimento e testes). Para as capturas da UI da partida
-   * (RN-UI-05), aceita também `dev:Nome|clan=TAG:#primária:#secundária|n=10|medal=1` (OG-408..411).
+   * (RN-UI-05), aceita também `dev:Nome|clan=TAG:#primária:#secundária|n=10|style=1|medal=1` (OG-408..413).
    */
   devTickets: boolean;
 }
@@ -72,7 +72,8 @@ export class TicketAuth {
       const clan = tag && primary && secondary ? { clanId: `dev-${tag}`, clanTag: tag, clanTeam: { id: `dev-${tag}`, tag, name: tag, primary, secondary } } : {};
       const number = Number(opt.n);
       const medal = Number(opt.medal);
-      return { ok: true, identity: { name: guestName(name), accountId: null, ...clan, ...(number >= 1 && number <= 99 ? { number } : {}), ...(medal >= 1 && medal <= 3 ? { medal } : {}) } };
+      const numberStyle = Number(opt.style);
+      return { ok: true, identity: { name: guestName(name), accountId: null, ...clan, ...(number >= 1 && number <= 99 ? { number } : {}), ...(numberStyle >= 1 && numberStyle <= 3 ? { numberStyle } : {}), ...(medal >= 1 && medal <= 3 ? { medal } : {}) } };
     }
     const keys = this.options.keys?.();
     if (!keys) return { ok: false, reason: 'no keys' };
@@ -82,7 +83,7 @@ export class TicketAuth {
     const c = result.claims;
     return {
       ok: true,
-      identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, ...(c.clanId ? { clanId: c.clanId } : {}), ...(c.clanId && c.clanTeam ? { clanTeam: { id: c.clanId, ...c.clanTeam } } : {}), admin: c.admin, ...(c.owner ? { owner: true } : {}), ...(c.skill ? { skill: c.skill } : {}), ...(c.botLevel ? { botLevel: c.botLevel } : {}), ...(c.medal ? { medal: c.medal } : {}), ...(c.number ? { number: c.number } : {}), ...(c.dev ? { device: c.dev } : {}) },
+      identity: { name: c.name, accountId: c.acct ? c.sub : null, clanTag: c.clan, ...(c.clanId ? { clanId: c.clanId } : {}), ...(c.clanId && c.clanTeam ? { clanTeam: { id: c.clanId, ...c.clanTeam } } : {}), admin: c.admin, ...(c.owner ? { owner: true } : {}), ...(c.skill ? { skill: c.skill } : {}), ...(c.botLevel ? { botLevel: c.botLevel } : {}), ...(c.medal ? { medal: c.medal } : {}), ...(c.number ? { number: c.number } : {}), ...(c.numberStyle ? { numberStyle: c.numberStyle } : {}), ...(c.dev ? { device: c.dev } : {}) },
       ...(c.spawn ? { spawn: c.spawn } : {}),
       jti: c.jti,
     };

@@ -1651,3 +1651,24 @@
   border-radius: var(--radius-sm);
   font-variant-numeric: tabular-nums;
 }
+
+/* estilos do número (OG-413): prévia de cada um no boneco */
+.account-number-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.number-style {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text);
+  cursor: pointer;
+}
+.number-style.selected {
+  border-color: var(--accent);
+}

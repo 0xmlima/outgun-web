@@ -305,6 +305,13 @@ describe('troca de time', () => {
     expect([s.names.get(2), s.names.get(0)]).toEqual(['Eu', 'Outro']);
     expect([s.colors.get(2), s.colors.get(0)]).toEqual([1, 9]);
   });
+  it('o número, o estilo e a marcação de bot vão junto (OG-403/410/413)', () => {
+    const { s } = session();
+    s.handle([message('playerNumber', { pid: 0, number: 44, style: 1 }), message('playerJoined', { pid: 2, name: 'Robô', color: 3, bot: true })], 1000);
+    s.handle([message('teamChange', { from: 0, to: 2, color: 1, swappedColor: 9 })], 1100);
+    expect([s.numbers.get(2), s.numberStyles.get(2), s.numbers.get(0)]).toEqual([44, 1, undefined]);
+    expect([s.bots.has(0), s.bots.has(2)]).toEqual([true, false]);
+  });
 });
 
 describe('geometria do mapa toroidal', () => {

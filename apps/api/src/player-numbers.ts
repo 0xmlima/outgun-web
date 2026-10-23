@@ -27,14 +27,16 @@ export interface NumberState {
   /** Líder do mês anterior: pode usar o 1. */
   numberOneEligible: boolean;
   usingNumberOne: boolean;
+  /** Estilo do número (OG-413). */
+  style: number;
   free: number[];
 }
 
 export async function numberState(db: Db, userId: string, now = new Date()): Promise<NumberState> {
-  const [u] = await db.select({ n: users.playerNumber, at: users.numberChangedAt, one: users.useNumberOne }).from(users).where(eq(users.id, userId));
+  const [u] = await db.select({ n: users.playerNumber, at: users.numberChangedAt, one: users.useNumberOne, style: users.numberStyle }).from(users).where(eq(users.id, userId));
   const until = u?.at ? new Date(u.at.getTime() + NUMBER_CHANGE_COOLDOWN_MS) : null;
   const eligible = (await previousPodium(db, userId)) === 1;
-  return { number: u?.n ?? null, canChangeAt: until && until > now ? until.toISOString() : null, numberOneEligible: eligible, usingNumberOne: eligible && (u?.one ?? false), free: await freeNumbers(db) };
+  return { number: u?.n ?? null, canChangeAt: until && until > now ? until.toISOString() : null, numberOneEligible: eligible, usingNumberOne: eligible && (u?.one ?? false), style: u?.style ?? 0, free: await freeNumbers(db) };
 }
 
 export type NumberChange = { ok: true } | { ok: false; error: 'invalid_number' | 'number_taken' | 'number_cooldown' };
@@ -55,11 +57,14 @@ export async function setNumber(db: Db, userId: string, number: number | null, n
   }
 }
 
-/** O número que vai no ticket: 1 para o líder do mês que o usa, senão o dele. */
-export async function ticketNumber(db: Db, userId: string): Promise<number | null> {
-  const [u] = await db.select({ n: users.playerNumber, one: users.useNumberOne }).from(users).where(eq(users.id, userId));
-  if (u?.one && (await previousPodium(db, userId)) === 1) return 1;
-  return u?.n ?? null;
+/** Estilos do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil. */
+export const NUMBER_STYLES = 4;
+
+/** O número que vai no ticket (1 para o líder do mês que o usa, senão o dele) e o estilo. */
+export async function ticketNumber(db: Db, userId: string): Promise<{ number: number; style: number } | null> {
+  const [u] = await db.select({ n: users.playerNumber, one: users.useNumberOne, style: users.numberStyle }).from(users).where(eq(users.id, userId));
+  const number = u?.one && (await previousPodium(db, userId)) === 1 ? 1 : (u?.n ?? null);
+  return number ? { number, style: u?.style ?? 0 } : null;
 }
 
 /**

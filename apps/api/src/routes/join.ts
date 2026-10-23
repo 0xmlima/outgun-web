@@ -122,7 +122,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         // pódio do mês anterior (OG-411): a cor da medalha
         ...(medal ? { medal } : {}),
         // número no boneco (OG-410)
-        ...(number ? { number } : {}),
+        ...(number ? { number: number.number, ...(number.style ? { numberStyle: number.style } : {}) } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
         ...(device ? { dev: device } : {}),
       },

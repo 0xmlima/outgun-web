@@ -922,9 +922,10 @@ export const MESSAGES = {
     { team: u8, tag: str(8), name: str(24), color: str(7) },
   ),
   // --- números de jogador (OG-410, D-79): sem equivalente no original ---
-  playerNumber: msg(132, 's2c', 'event', '— (web, OG-410)', 'Número do jogador (1 a 99), no centro do boneco. Logo depois do `playerJoined`; sem número (convidado, bot), não vem.', {
+  playerNumber: msg(132, 's2c', 'event', '— (web, OG-410)', 'Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.', {
     pid,
     number: u8,
+    style: u8,
   }),
 } as const;
 
