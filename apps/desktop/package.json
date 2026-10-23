@@ -1,6 +1,6 @@
 {
   "name": "@outgun/desktop",
-  "version": "2.41.0",
+  "version": "2.41.1",
   "private": true,
   "description": "Cliente para Windows, macOS e Ubuntu (OG-324, OG-326, D-58): uma janela do Electron que carrega o site do jogo.",
   "license": "GPL-2.0-or-later",
@@ -28,6 +28,7 @@
     "copyright": "GPL-2.0-or-later",
     "files": [
       "main.js",
+      "display-win.js",
       "preload.cjs",
       "package.json"
     ],
@@ -53,7 +54,11 @@
       "hardenedRuntime": false,
       "notarize": false,
       "artifactName": "Outgun-mac-${version}.${ext}",
-      "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/steamworks.js/dist/osx/*"
+      "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/steamworks.js/dist/osx/*",
+      "files": [
+        "!node_modules/koffi{,/**}",
+        "!node_modules/@koromix{,/**}"
+      ]
     },
     "dmg": {
       "title": "Outgun"
@@ -65,7 +70,11 @@
       "synopsis": "Capture a bandeira com os amigos",
       "executableName": "outgun",
       "artifactName": "Outgun-linux-${version}.${ext}",
-      "syncDesktopName": true
+      "syncDesktopName": true,
+      "files": [
+        "!node_modules/koffi{,/**}",
+        "!node_modules/@koromix{,/**}"
+      ]
     },
     "deb": {
       "packageCategory": "games",
@@ -84,10 +93,12 @@
       ]
     },
     "asarUnpack": [
-      "node_modules/steamworks.js/dist/**"
+      "node_modules/steamworks.js/dist/**",
+      "node_modules/@koromix/**"
     ]
   },
   "dependencies": {
+    "koffi": "3.3.2",
     "steamworks.js": "0.4.0"
   }
 }

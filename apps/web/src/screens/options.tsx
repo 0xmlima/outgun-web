@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
-import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
+import { desktopBridge, type DisplayModes, FPS_UNLIMITED, fpsUnlocked } from '../app/install.js';
 import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, HUD_SCALES, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
@@ -20,31 +20,51 @@ import { Panel } from '../ui/Panel.js';
 import { Tabs } from '../ui/Tabs.js';
 import { ControlsPanel } from './ControlsScreen.js';
 
-/** Limites de FPS oferecidos (o original aceita 1..10000; 60 é o padrão). */
-// 0 = sem limite (o navegador ainda segue a taxa de atualização do monitor)
-/** FPS acima da taxa do monitor: só no cliente desktop com o VSync desligado nesta abertura (OG-373). */
-const fpsUnlocked = desktopBridge()?.frameRateActive() === 'unlocked';
-/** 0 = automático (taxa do monitor; 240 sem VSync); "sem limite" de verdade só sem VSync. */
-const FPS_LIMITS = [0, 30, 50, 60, 75, 100, 120, 144, 200, 240, ...(fpsUnlocked ? [FPS_UNLIMITED] : [])];
+/**
+ * Limites de FPS (OG-400, "liberar geral"): no cliente desktop o FPS é sempre livre e nunca fica
+ * abaixo de 240 (automático); no navegador quem manda é a taxa do monitor, então não há o que escolher.
+ */
+const FPS_LIMITS = fpsUnlocked() ? [0, 360, 480, FPS_UNLIMITED] : [0];
 
-/** VSync do cliente desktop (OG-373, D-73): gravado pelo cliente e aplicado ao reabrir o jogo. */
-function VsyncField() {
+/** "1920x1080@144" → "1920 × 1080 · 144 Hz". */
+const modeLabel = (mode: string) => mode.replace(/^(\d+)x(\d+)@(\d+)$/, '$1 × $2 · $3 Hz');
+
+/**
+ * Resolução do monitor (OG-401, cliente para Windows): o modo vale em tela cheia e o Windows volta à
+ * resolução normal ao trocar de janela ou sair do jogo. Escolher não aplica: cada troca apaga a tela
+ * por um instante, então só o botão aplica.
+ */
+function DisplayModeField() {
   const { t } = usePrefs();
   const bridge = desktopBridge();
-  const [mode, setMode] = useState(() => bridge?.frameRate() ?? 'unlocked');
-  if (!bridge) return null;
-  const pending = mode !== bridge.frameRateActive();
+  const [info, setInfo] = useState<DisplayModes | null>(() => bridge?.displayModes?.() ?? null);
+  const [choice, setChoice] = useState(() => info?.current ?? 'system');
+  if (!bridge?.setDisplayMode || !info || info.modes.length === 0) return null;
+  const applied = info.current ?? 'system';
+  const system = info.system ? `${t('system')} (${modeLabel(info.system)})` : t('system');
   return (
-    <ToggleField
-      label={t('Vertical sync (VSync)')}
-      checked={mode === 'vsync'}
-      hint={t(pending ? 'Takes effect when you reopen the game.' : 'Off: more frames and less screen delay, but more heat and possible tearing.')}
-      onChange={(on) => {
-        const next = on ? 'vsync' : 'unlocked';
-        bridge.setFrameRate(next);
-        setMode(next);
-      }}
-    />
+    <>
+      <ChoiceField
+        label={t('Monitor resolution')}
+        value={choice}
+        options={[{ value: 'system', label: system }, ...info.modes.map((m) => ({ value: m, label: modeLabel(m) }))]}
+        hint={info.launch ? t('The launch option --resolution=$1 is in use; this choice applies without it.', info.launch) : t('Full screen only (F11). Alt+Tab and leaving the game bring back the normal resolution.')}
+        onChange={setChoice}
+      />
+      {choice !== applied && (
+        <div className="options-hud-edit">
+          <Button
+            onClick={() => {
+              bridge.setDisplayMode?.(choice === 'system' ? null : choice);
+              setInfo(bridge.displayModes?.() ?? null);
+            }}
+          >
+            {t('Apply resolution')}
+          </Button>
+          <span>{t('The screen may go black for a moment.')}</span>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -342,12 +362,12 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               {toggle('scroll', 'Scrolling')}
               {toggle('lessTransparency', 'Less transparency effects')}
               {toggle('continuousTextures', 'Continuous textures between rooms')}
-              <VsyncField />
+              <DisplayModeField />
               <ChoiceField
                 label={t('FPS limit')}
                 value={String(FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 0)}
-                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t(fpsUnlocked ? 'automatic (240)' : 'monitor refresh rate') : v === FPS_UNLIMITED ? t('unlimited') : String(v) }))}
-                hint={fpsUnlocked ? undefined : t(desktopBridge() ? 'Turn off vertical sync to go above the monitor refresh rate.' : 'Browsers draw at most once per monitor refresh. The desktop client (Steam) can go above it.')}
+                options={FPS_LIMITS.map((v) => ({ value: String(v), label: v === 0 ? t(fpsUnlocked() ? 'automatic (240)' : 'monitor refresh rate') : v === FPS_UNLIMITED ? t('unlimited') : String(v) }))}
+                hint={fpsUnlocked() ? undefined : t(desktopBridge() ? 'Reopen the game to unlock the FPS.' : 'Browsers draw at most once per monitor refresh. The desktop client (Steam) can go above it.')}
                 onChange={(v) => setPrefs({ fpsLimit: Number(v) })}
               />
             </FieldGroup>
