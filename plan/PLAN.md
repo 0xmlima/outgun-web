@@ -836,7 +836,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-373](cards/OG-373-fps-sem-limite-no-cliente-desktop.md) | FPS sem limite de verdade no cliente desktop (Steam) | E11 | 3 | Must | S39 | — | Concluído |
 | [OG-374](cards/OG-374-quadro-de-baixa-latencia.md) | Quadro de baixa latência: menos trabalho por quadro e canvas dessincronizado | E11 | 2 | Could | S40 | OG-369, OG-373 | Concluído |
 | [OG-375](cards/OG-375-spike-tick-e-subpassos.md) | Spike: tick de 20 Hz ou subpassos, sem mudar a sensação da física | E11 | 5 | Should | S40 | OG-370 | Concluído |
-| [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | S42 | OG-370 | Pronto |
+| [OG-376](cards/OG-376-webtransport.md) | Transporte por datagramas (WebTransport) para conexões com perda | E11 | 8 | Could | S42 | OG-370 | Em revisão |
 | [OG-377](cards/OG-377-mapas-do-painel-na-criacao-de-sala.md) | Mapas do painel em "Criar sala" quando não há rotação Casual no painel | E5 | 1 | Must | S40 | OG-367 | Concluído |
 | [OG-378](cards/OG-378-rotacoes-do-painel-partem-da-atual.md) | Aba Rotações parte da rotação que está valendo | E5 | 2 | Must | S40 | OG-365 | Concluído |
 | [OG-379](cards/OG-379-fim-de-partida-zerado.md) | Fim de partida com os números zerados no Casual | E12 | 2 | Must | S39 | OG-344 | Concluído |
@@ -865,8 +865,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-402](cards/OG-402-pioneiro-ate-31-de-outubro.md) | Pioneiro para quem jogar até 31 de outubro | E9 | 1 | Must | S41 | OG-390 | Concluído |
 | [OG-403](cards/OG-403-bots-nomes-e-prefixo-no-painel.md) | Bots no painel de moderação: cadastro de nomes e de prefixos | E13 | 3 | Should | S42 | OG-377 | Em revisão |
 | [OG-404](cards/OG-404-bots-falam-no-chat.md) | Bots falam no chat conforme o que acontece na partida | E13 | 5 | Should | S42 | OG-403, OG-362 | Em revisão |
+| [OG-405](cards/OG-405-webtransport-no-game-server.md) | WebTransport no game server, com o WebSocket de reserva | E11 | 5 | Should | — | OG-376 | Backlog |
+| [OG-406](cards/OG-406-cliente-webtransport-com-reserva.md) | Cliente escolhe WebTransport e cai no WebSocket sem o jogador perceber | E11 | 3 | Should | — | OG-405 | Backlog |
 
-**Total:** 246 cards, 818 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 177 cards, 523 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 248 cards, 826 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 179 cards, 531 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 

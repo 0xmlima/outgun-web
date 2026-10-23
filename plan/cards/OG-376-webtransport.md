@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 8 pts |
 | Sprint | S42 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-370 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,7 +24,8 @@ Como jogador com Wi-Fi ou conexão instável, quero que um pacote perdido não c
 - Medir com perda simulada (1–3%) o atraso p95 dos frames e dos inputs.
 
 ## Critérios de aceite
-- [ ] Relatório com viabilidade, custo de operação e ganho medido; card de implementação se valer.
+- [x] Relatório com viabilidade, custo de operação e ganho medido; card de implementação se valer.
 
 ## Notas de implementação
+- Relatório em `plan/reports/OG-376-webtransport.md`: com 3% de perda, quadros p95 122 ms (TCP) contra 44 ms (datagramas), máximo 422 contra 145, 17 quadros acima de 200 ms em 45 s contra 0. Vale implementar: OG-405 (servidor e infra) e OG-406 (cliente com reserva em WebSocket), no Backlog.
 (preenchido durante a execução)
