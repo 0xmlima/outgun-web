@@ -608,6 +608,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S38 | v2: stats novos do leaderboard (dano efetivo, zonas, defesas) e registro de eventos (multi-kill, troca, primeiro abate, quem matou quem); presets e rotação do painel na criação de sala e mapas .txt enviados pela moderação | OG-355, OG-362, OG-363, OG-364, OG-365, OG-366, OG-367, OG-368 | |
 | S39 | v2: jogabilidade e resposta aos comandos — latência do input medida, toda tecla chega ao servidor a tempo (envio por evento), diagonal e Alt sem virar a arma, FPS sem limite no desktop/Steam (VSync desligado por padrão) | OG-369, OG-370, OG-371, OG-372, OG-373; 2.39.1: OG-379, OG-381 | |
 | S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; enxugar o legado (sem finlandês e italiano, revisão das opções); depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-384, OG-385, OG-386, OG-388, OG-389, OG-380, OG-375, OG-374 | |
+| S41 | v2: marcos — ~50 novos a partir dos stats e eventos (vitórias, tempo, bandeira, defesa, combate, armas, ranked por formato, mapas, dupla), 10 secretos raros, perfil no jogo por grupo com progresso e raridade, ícones e conquistas da Steam espelhando os marcos | OG-390, OG-391, OG-398, OG-392, OG-395, OG-393, OG-394, OG-396, OG-397 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -848,8 +849,17 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-387](cards/OG-387-input-no-subpasso-sala-de-teste.md) | Opção de criar sala privada a 20 Hz (padrão continua 10 Hz) | E11 | 3 | Should | — | OG-375 | Backlog |
 | [OG-388](cards/OG-388-moderacao-tela-cheia-e-papeis.md) | Moderação em tela cheia: presets e rotações aproveitando a largura, papéis em lista | E5 | 3 | Must | S40 | OG-382, OG-383 | Concluído |
 | [OG-389](cards/OG-389-demais-abas-da-moderacao.md) | Demais abas da moderação no visual v2, na largura toda | E5 | 3 | Must | S40 | OG-388 | Concluído |
+| [OG-390](cards/OG-390-marcos-dos-stats.md) | Marcos novos a partir dos stats da partida (vitórias, tempo, bandeira, defesa, combate) | E9 | 5 | Must | S41 | OG-355, OG-364 | Pronto |
+| [OG-391](cards/OG-391-marcos-de-eventos-e-contexto.md) | Marcos de eventos e de contexto (armas, virada, ranked por formato, mapas, dupla, dias seguidos) | E9 | 5 | Must | S41 | OG-390, OG-362 | Pronto |
+| [OG-392](cards/OG-392-marco-campeao-da-temporada.md) | Marco fora da partida: Campeão da temporada (top 3 do hall da fama) | E9 | 2 | Should | S41 | OG-390, OG-268 | Pronto |
+| [OG-393](cards/OG-393-perfil-marcos-por-grupo-e-progresso.md) | Perfil no jogo: marcos por grupo, com ícone, progresso, raridade e secretos | E9 | 5 | Must | S41 | OG-390, OG-395 | Pronto |
+| [OG-394](cards/OG-394-aviso-de-marco-novo.md) | Aviso de marco novo: no relatório da partida e um toast ao voltar ao menu | E9 | 2 | Should | S41 | OG-390 | Pronto |
+| [OG-395](cards/OG-395-icones-dos-marcos.md) | Ícones dos marcos gerados por script (perfil e Steam) | E9 | 3 | Must | S41 | — | Pronto |
+| [OG-396](cards/OG-396-steam-conquistas-no-app.md) | Steam: conquistas no app desktop, espelhando os marcos da conta | E9 | 5 | Should | S41 | OG-390, D-77 | Pronto |
+| [OG-397](cards/OG-397-steam-cadastro-das-conquistas.md) | Steam: tabela das conquistas e cadastro no Steamworks | E9 | 2 | Should | S41 | OG-395, OG-396 | Pronto |
+| [OG-398](cards/OG-398-marcos-secretos.md) | Marcos secretos: os 10 raros, anti-farm, primeiro a descobrir e calibração | E9 | 5 | Must | S41 | OG-391 | Pronto |
 
-**Total:** 231 cards, 764 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 162 cards, 469 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 240 cards, 798 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 171 cards, 503 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -946,6 +956,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-74 | **v2** — Taxa do servidor acima de 10 Hz | Manter 10 Hz / 20 Hz em meio passo / input no subpasso | ✅ **Decidido pelo PO em 2026-10-22:** a física **não muda**: todas as salas (Casual, Ranqueado, persistentes) seguem a 10 Hz, como hoje ("o jogo está muito bom e cheio de elogios"). No máximo, uma opção de **criar sala privada a 20 Hz**, desligada por padrão e sem efeito em nenhuma outra sala (OG-387, Backlog). Medições no OG-375. | PO |
 | D-75 | **v2** — Registro de eventos no Casual | Só ranqueadas (OG-362) / também Casual | ✅ **Decidido pelo PO em 2026-10-22 (OG-381, 2.39.1):** os eventos são gravados também no Casual e aparecem no relatório; leaderboard, hall da fama e "quem matou quem" do perfil seguem só com ranqueadas. | PO |
 | D-76 | **v2** — Idiomas do jogo | Manter os 4 do original / só pt-BR e inglês | ✅ **Decidido pelo PO em 2026-10-22:** finlandês e italiano saem (OG-384): legado para uma parcela mínima da comunidade de 20 anos atrás, sem os textos novos da v2. Preferência antiga cai no idioma do navegador. | PO |
+| D-77 | **v2** — Como as conquistas chegam à Steam | Espelho pelo app desktop (`steamworks.js`, conquista = marco da conta) / Web API do servidor (vincular SteamID, chave de publisher) | ⏳ **Recomendação:** espelho pelo app: sem vínculo de SteamID nem chave no servidor e retroativo de graça; uma conta Steam que use duas contas do Outgun soma as conquistas das duas. | PO |
 
 ---
 
@@ -1025,9 +1036,11 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-UI-04 | "Jogar agora" fica a um clique da tela inicial. |
 | RN-SOC-01 | Perfis, relatórios de partida e ranking têm URL estável no cliente (`/players/:nome`, `/matches/:id`, `/ranking`) e são páginas web com rolagem, não menus. |
 | RN-SOC-02 | O perfil mostra números por modo (Ranked/Casual) e por período, companheiros e rivais frequentes e partidas recentes; bots e convidados não entram como companheiros/rivais. |
-| RN-SOC-03 | Marcos são concedidos automaticamente por feitos em partidas com conta, com data de conquista, inclusive retroativamente. |
+| RN-SOC-03 | Marcos são concedidos automaticamente por feitos em partidas com conta, com data de conquista, inclusive retroativamente. Feitos fora da partida (pódio do hall da fama, OG-392) também valem, com a data do feito. Ids de marco são estáveis e nunca renomeados. |
 | RN-SOC-04 | Jogadores podem ser buscados por nome ou clã, sem diferença de maiúsculas e acentos. |
 | RN-SOC-05 | Páginas sociais só mostram dados públicos; e-mail e dados sensíveis nunca aparecem. O jogador pode esconder companheiros/rivais e histórico (D-39). |
+| RN-SOC-06 | Marcos **secretos** (OG-398) não mostram nome nem condição a quem não os tem (nem na API); quem desbloqueia vê tudo, e o perfil mostra quem descobriu cada um primeiro. Só valem partidas com 4+ jogadores com conta, sem contar kills em bots, e cada um é calibrado para no máximo ~1% dos jogadores ativos. |
+| RN-SOC-07 | Conquistas da Steam (OG-396/397) espelham os marcos da conta: o marco do jogo é a fonte de verdade, o app desktop só desbloqueia na Steam o que a conta já tem (D-77); secretos são *hidden* na Steam. |
 | RN-MUS-01 | O menu abre com o tema ("Outgun Main Theme", `Outgun epic.mp3`) na primeira vez em que a sessão do navegador toca música; depois rotaciona as demais faixas em ordem aleatória, com crossfade. A tela inicial tem um tocador com a faixa atual (título, artista, álbum e ano das tags ID3), pausar, próxima faixa e mudo. |
 | RN-MUS-02 | Partidas casuais tocam as demais faixas de `songs/` em ordem aleatória, sem repetir até todas tocarem; "Outgun Epic" nunca toca em partida. Outros modos seguem a D-37. |
 | RN-MUS-03 | Música e efeitos têm volumes separados; a música começa só após um gesto do jogador (política de autoplay). |
