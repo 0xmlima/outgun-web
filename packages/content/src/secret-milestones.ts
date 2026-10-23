@@ -2,7 +2,7 @@
 // Marcos secretos (OG-398, RN-SOC-06). Ficam fora do `index.ts` de propósito: o cliente importa o
 // catálogo de `@outgun/content` e não pode receber nome nem condição de um secreto que o jogador
 // não tem. Só a API importa este módulo (`@outgun/content/secret`) e manda o texto de quem desbloqueou.
-import { enemyKill, kills, type MilestoneEvents } from './milestone-events.js';
+import { enemyKill, kills, scoreline, type MilestoneEvents } from './milestone-events.js';
 import type { Achieved, Milestone, MilestoneMatch } from './milestones.js';
 import type { Bilingual } from './privacy.js';
 
@@ -31,7 +31,16 @@ export const SECRET_MILESTONES: readonly Milestone[] = [
   { id: 'secret_kingslayer', group: 'secret', name: b('Caçador de reis', 'Kingslayer'), description: b('Matou 3 portadores de bandeira em 10 segundos', 'Killed 3 flag carriers within 10 seconds') },
   { id: 'secret_roadkill', group: 'secret', name: b('Atropelamento', 'Roadkill'), description: b('Matou um adversário por colisão', 'Killed an opponent by collision') },
   { id: 'secret_night_owl', group: 'secret', name: b('Coruja', 'Night owl'), description: b('Terminou uma partida entre 3h e 5h da manhã (horário de Brasília)', 'Finished a match between 3 and 5 a.m. (Brasília time)') },
+  // humor (OG-399)
+  { id: 'secret_seven_one', group: 'secret', name: b('E lá vem eles de novo', 'Here they come again'), description: b('Numa ranqueada, seu time chegou a estar perdendo de 7 a 1', 'In a ranked match, your team was losing 7 to 1') },
+  { id: 'secret_seven_one_comeback', group: 'secret', name: b('Revanche do Mineirão', 'Mineirão revenge'), description: b('Venceu uma ranqueada depois de estar perdendo de 7 a 1', 'Won a ranked match after losing 7 to 1') },
+  { id: 'secret_choked', group: 'secret', name: b('Amarelou', 'Choked'), description: b('Perdeu uma série md5 depois de estar 2 a 0', 'Lost a best-of-5 series after leading 2 to 0') },
+  { id: 'secret_series_comeback', group: 'secret', name: b('Virada histórica', 'Historic comeback'), description: b('Perdeu os dois primeiros jogos de uma série md5 e venceu por 3 a 2', 'Lost the first two games of a best-of-5 series and won 3 to 2') },
 ];
+
+/** Placar do 7x1 (OG-399): time da conta com 1, adversário com 7. */
+export const SEVEN_ONE = { own: 1, other: 7 } as const;
+const sevenOne = (e: MilestoneEvents, team: number) => scoreline(e, team).some((s) => s.own === SEVEN_ONE.own && s.other === SEVEN_ONE.other);
 
 const myKills = (e: MilestoneEvents) => {
   const me = new Set(e.me);
@@ -108,15 +117,37 @@ const SECRET_FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
   secret_buzzer: (m) => m.result > 0 && m.events !== undefined && m.team !== undefined && m.endTime !== undefined && buzzer(m.events, m.team, m.endTime),
   secret_kingslayer: (m) => m.events !== undefined && kingslayer(m.events),
   secret_roadkill: (m) => m.events !== undefined && myKills(m.events).some((k) => k.cause === 'collision'),
+  secret_seven_one: (m) => m.ranked === true && m.events !== undefined && m.team !== undefined && sevenOne(m.events, m.team),
+  secret_seven_one_comeback: (m) => m.ranked === true && m.result > 0 && m.events !== undefined && m.team !== undefined && sevenOne(m.events, m.team),
   secret_night_owl: (m) => m.hour !== undefined && m.hour >= NIGHT_OWL_HOURS[0] && m.hour < NIGHT_OWL_HOURS[1],
 };
 
 /** Secretos que o histórico concede; só em partidas com `SECRET_MIN_ACCOUNTS` contas ou mais. */
 export function secretMilestonesFrom(matches: readonly MilestoneMatch[]): Achieved[] {
   const found = new Map<string, Achieved>();
+  const give = (id: string, m: MilestoneMatch) => {
+    if (!found.has(id)) found.set(id, { id, matchId: m.matchId, endedAt: m.endedAt });
+  };
+  // séries md5 (OG-399): placar jogo a jogo do ponto de vista da conta
+  const series = new Map<string, { results: number[]; done: boolean }>();
   for (const m of matches) {
     if ((m.accounts ?? 0) < SECRET_MIN_ACCOUNTS) continue;
-    for (const [id, feat] of Object.entries(SECRET_FEATS)) if (!found.has(id) && feat(m)) found.set(id, { id, matchId: m.matchId, endedAt: m.endedAt });
+    if (m.series && m.series.bestOf === 5) {
+      const s = series.get(m.series.id) ?? { results: [], done: false };
+      series.set(m.series.id, s);
+      if (!s.done && m.result !== 0) {
+        s.results.push(m.result);
+        const wins = s.results.filter((r) => r > 0).length;
+        const losses = s.results.length - wins;
+        if (wins === 3 || losses === 3) {
+          s.done = true;
+          const [a, b2] = s.results;
+          if (losses === 3 && a! > 0 && b2! > 0) give('secret_choked', m);
+          if (wins === 3 && a! < 0 && b2! < 0) give('secret_series_comeback', m);
+        }
+      }
+    }
+    for (const [id, feat] of Object.entries(SECRET_FEATS)) if (!found.has(id) && feat(m)) give(id, m);
   }
   const order = new Map(SECRET_MILESTONES.map((x, i) => [x.id, i]));
   return [...found.values()].sort((x, y) => (order.get(x.id) ?? 0) - (order.get(y.id) ?? 0));

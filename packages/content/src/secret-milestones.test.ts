@@ -86,4 +86,34 @@ describe('marcos secretos (OG-398)', () => {
   it('anti-farm: com menos contas que o mínimo, nenhum secreto', () => {
     expect(secretMilestonesFrom([match({ accounts: SECRET_MIN_ACCOUNTS - 1, hour: 4, captures: 3, deaths: 0 })])).toEqual([]);
   });
+
+  describe('7x1 e séries (OG-399)', () => {
+    // capturas: índice 2 (adversário) e 0 (a conta); `flag` não importa aqui
+    const caps = (seq: string) => ev(...[...seq].map((c, i) => [i * 10, 'capture', c === 'o' ? 0 : 2, 0] as const));
+
+    it('e lá vem eles de novo: ranqueada que passou por 1 a 7; a revanche só se virou', () => {
+      const sete = caps('xoxxxxxx'); // 1 a 7
+      expect(has('secret_seven_one', { ranked: true, events: sete })).toBe(true);
+      expect(has('secret_seven_one_comeback', { ranked: true, events: sete })).toBe(false);
+      expect(has('secret_seven_one', { ranked: false, events: sete })).toBe(false);
+      expect(has('secret_seven_one', { ranked: true, events: caps('xoxxxxx') })).toBe(false); // 1 a 6
+      expect(has('secret_seven_one', { ranked: true, events: caps('xxxxxxxx') })).toBe(false); // 0 a 8
+      expect(has('secret_seven_one', { ranked: true, events: caps('xxxxxxxo') })).toBe(true); // 0 a 7, depois 1 a 7
+    });
+
+    it('revanche do mineirão: de 1 a 7 para 8 a 7 concede os dois', () => {
+      const ids = secretMilestonesFrom([match({ ranked: true, result: 1, events: caps('oxxxxxxxooooooo') })]).map((a) => a.id);
+      expect(ids).toEqual(expect.arrayContaining(['secret_seven_one', 'secret_seven_one_comeback']));
+    });
+
+    const bo5 = (res: (1 | -1)[]) => secretMilestonesFrom(res.map((result, i) => match({ matchId: `g${i}`, result, series: { id: 's', bestOf: 5 } }))).map((a) => [a.id, a.matchId]);
+
+    it('amarelou: 2 a 0 e perdeu a série; virada histórica: 0 a 2 e venceu', () => {
+      expect(bo5([1, 1, -1, -1, -1])).toEqual([['secret_choked', 'g4']]);
+      expect(bo5([-1, -1, 1, 1, 1])).toEqual([['secret_series_comeback', 'g4']]);
+      expect(bo5([1, -1, -1, 1, -1])).toEqual([]);
+      expect(bo5([-1, 1, 1, -1, 1])).toEqual([]);
+    });
+  });
 });
+

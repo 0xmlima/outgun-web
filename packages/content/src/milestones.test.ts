@@ -222,4 +222,35 @@ describe('marcos (OG-213)', () => {
       expect([g.wild_flag, g.triple_kill, g.comeback]).toEqual([undefined, undefined, undefined]);
     });
   });
+
+  describe('humor (OG-399)', () => {
+    const TEAMS = [0, 0, 1, 1];
+    const f = (t: number, kind: 'take' | 'drop' | 'capture') => [t, kind, 0, 1] as const;
+    const die = (t: number, killer: number) => [t, 'kill', killer, 0, 0, 0, 0, 'rocket'] as const;
+    const ev = (...log: MilestoneEvent[]): MilestoneEvents => ({ me: [0], teams: TEAMS, log });
+    const one = (o: Partial<MilestoneMatch>) => got([match(0, { accounts: 4, ...o })]);
+
+    it('hoje não, hoje não... hoje sim?: 3 mortes com a bandeira e captura na 4ª', () => {
+      const tries = (n: number) => ev(...Array.from({ length: n }, (_, i) => [f(i * 10, 'take'), f(i * 10 + 5, 'drop')]).flat(), f(100, 'take'), f(110, 'capture'));
+      expect(one({ events: tries(3) }).humor_today_yes).toBe('m0');
+      expect(one({ events: tries(2) }).humor_today_yes).toBeUndefined();
+    });
+
+    it('freguês: 10 mortes para o mesmo jogador', () => {
+      expect(one({ events: ev(...Array.from({ length: 10 }, (_, i) => die(i, 2))) }).humor_customer).toBe('m0');
+      expect(one({ events: ev(...Array.from({ length: 10 }, (_, i) => die(i, 2 + (i % 2)))) }).humor_customer).toBeUndefined();
+    });
+
+    it('mão de alface, fominha, saco de pancada e só passeando', () => {
+      expect([one({ stats: { flagsDropped: 5 } }).humor_butterfingers, one({ stats: { flagsDropped: 5 }, captures: 1 }).humor_butterfingers]).toEqual(['m0', undefined]);
+      expect([one({ result: 1, captures: 4, scored: 4 }).humor_ball_hog, one({ result: 1, captures: 4, scored: 5 }).humor_ball_hog, one({ result: 1, captures: 3, scored: 3 }).humor_ball_hog]).toEqual(['m0', undefined, undefined]);
+      expect([one({ deaths: 30 }).humor_punching_bag, one({ deaths: 29 }).humor_punching_bag]).toEqual(['m0', undefined]);
+      expect([one({ playSeconds: 600, stats: {} }).humor_sightseeing, one({ playSeconds: 600, stats: { defenses: 1 } }).humor_sightseeing, one({ playSeconds: 599, stats: {} }).humor_sightseeing]).toEqual(['m0', undefined, undefined]);
+    });
+
+    it('com menos de 4 contas, nenhum de humor', () => {
+      expect(one({ accounts: 3, deaths: 30 }).humor_punching_bag).toBeUndefined();
+    });
+  });
 });
+

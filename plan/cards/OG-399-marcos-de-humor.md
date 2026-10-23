@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 4 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-391, OG-398 |
 | Regras de negócio | RN-SOC-03, RN-SOC-06 |
 | Skills | `outgun-card-workflow` |
@@ -35,10 +35,14 @@ Como jogador, quero marcos em tom de humor, com o vocabulário do futebol brasil
 - Mesmas regras contra farm do OG-398 (4+ contas na partida) e calibração no `milestones-calibrate`.
 
 ## Critérios de aceite
-- [ ] Testes de cada marco, inclusive 3 mortes com a bandeira e captura na 4ª (concede) contra captura na 3ª (não concede), 1 a 7 que vira 8 a 7 (concede os dois secretos) e 1 a 6 que não concede nada.
+- [x] Testes de cada marco, inclusive 3 mortes com a bandeira e captura na 4ª (concede) contra captura na 3ª (não concede), 1 a 7 que vira 8 a 7 (concede os dois secretos) e 1 a 6 que não concede nada.
 - [ ] Calibração do beta no card; os dois do 7x1 devem sair raríssimos (esperado 0 hoje).
 
 ## Notas técnicas
 - Ficaram de fora por ora: Café com leite (morrer para bots briga com o anti-farm), Pé frio (histórico por companheiro) e Morreu na praia (posição da base por mapa).
 
 ## Notas de implementação
+- Visíveis no grupo `humor` do catálogo; os quatro secretos (7x1, revanche, amarelou, virada histórica) no módulo dos secretos (OG-398).
+- "Perdendo de 7 a 1" = o placar passou por 1 a 7 em algum momento (inclusive vindo de 0 a 7). Mão de alface usa `stats.flagsDropped`, sem depender de eventos.
+- Vice está no catálogo, mas é concedido no fechamento da temporada, junto do OG-392.
+- Pendente: calibração no beta (critério 2).

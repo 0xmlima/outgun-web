@@ -34,6 +34,7 @@ async function histories(tx: Db | Tx, userIds: readonly string[], scope: EventSc
     stats: Record<string, number> | null;
     opponent: string | null;
     conceded: number;
+    scored: number;
     series_won: boolean;
     sweep: boolean;
     ranked: boolean;
@@ -59,6 +60,7 @@ async function histories(tx: Db | Tx, userIds: readonly string[], scope: EventSc
       -- clã x clã (OG-259): adversário, capturas sofridas e a série md3/md5 fechada neste jogo
       CASE WHEN m.clan_war THEN coalesce(CASE WHEN mp.team = 0 THEN m.blue_clan_id ELSE m.red_clan_id END::text, m.id::text) END AS opponent,
       CASE WHEN mp.team = 0 THEN m.blue_score ELSE m.red_score END AS conceded,
+      CASE WHEN mp.team = 0 THEN m.red_score ELSE m.blue_score END AS scored,
       coalesce(m.clan_war AND rs.best_of >= 3 AND rs.finished_at IS NOT NULL AND m.game_no = rs.games AND rs.winner = mp.team, false) AS series_won,
       coalesce(least(rs.red_wins, rs.blue_wins) = 0, false) AS sweep,
       m.ranked, m.format, m.map, mp.team, m.series_id, rs.best_of,
@@ -95,6 +97,7 @@ async function histories(tx: Db | Tx, userIds: readonly string[], scope: EventSc
       deaths: Number(r.deaths),
       playSeconds: Number(r.play_seconds),
       conceded: Number(r.conceded),
+      scored: Number(r.scored),
       ...(r.stats ? { stats: r.stats } : {}),
       ranked: r.ranked,
       ...(r.format ? { format: r.format } : {}),

@@ -2,7 +2,7 @@
 // Marcos do jogador (OG-213, RN-SOC-03): catálogo versionado e o cálculo a partir do histórico de
 // partidas com conta. Puro: a API lê as partidas, chama `milestonesFrom` e grava o que faltar (o
 // mesmo cálculo serve ao fim de cada partida e ao preenchimento retroativo, por isso é idempotente).
-import { capturedWildFlag, longestKillChain, worstDeficit, type MilestoneEvents } from './milestone-events.js';
+import { capturedWildFlag, kills, longestKillChain, worstDeficit, type MilestoneEvents } from './milestone-events.js';
 import type { Bilingual } from './privacy.js';
 
 /** Partida de uma conta, na ordem em que terminou. Kills em bots já descontados. */
@@ -19,6 +19,8 @@ export interface MilestoneMatch {
   deaths?: number;
   playSeconds?: number;
   conceded?: number;
+  /** Placar do time da conta (OG-399). */
+  scored?: number;
   /** Stats da partida (`match_players.stats`, OG-355/363); `botKills` sem desconto. Ausente = partida antiga. */
   stats?: Readonly<Record<string, number>>;
   /** Contexto da partida (OG-391). */
@@ -139,6 +141,14 @@ export const MILESTONES: readonly Milestone[] = [
   // social
   { id: 'beta', group: 'social', name: b('Pioneiro', 'Pioneer'), description: b('Jogou o beta', 'Played the beta') },
   { id: 'duo_50', group: 'social', name: b('Dupla dinâmica', 'Dynamic duo'), description: b('50 partidas no mesmo time do mesmo jogador', '50 matches on the same team as the same player') },
+  // humor (OG-399)
+  { id: 'humor_today_yes', group: 'humor', name: b('Hoje não, hoje não... hoje sim?', 'Not today, not today... today?'), description: b('Morreu com a bandeira 3 vezes seguidas e capturou na 4ª tentativa', 'Died carrying the flag 3 times in a row, then captured on the 4th try') },
+  { id: 'humor_customer', group: 'humor', name: b('Freguês', 'Regular customer'), description: b('Morreu 10 vezes para o mesmo jogador numa partida', 'Died 10 times to the same player in a match') },
+  { id: 'humor_butterfingers', group: 'humor', name: b('Mão de alface', 'Butterfingers'), description: b('Largou a bandeira 5 vezes numa partida sem capturar nenhuma', 'Dropped the flag 5 times in a match without a single capture') },
+  { id: 'humor_ball_hog', group: 'humor', name: b('Fominha', 'Ball hog'), description: b('Fez todas as capturas do time numa vitória (mínimo de 4)', "Scored all of the team's captures in a win (at least 4)") },
+  { id: 'humor_punching_bag', group: 'humor', name: b('Saco de pancada', 'Punching bag'), description: b('Morreu 30 vezes numa partida', 'Died 30 times in a match') },
+  { id: 'humor_sightseeing', group: 'humor', name: b('Só passeando', 'Just sightseeing'), description: b('10 minutos ou mais numa partida sem kills, capturas nem defesas', '10 minutes or more in a match without kills, captures or defenses') },
+  { id: 'humor_runner_up', group: 'humor', name: b('Vice', 'Runner-up'), description: b('Ficou em 2º lugar no hall da fama de uma temporada', "Finished 2nd in a season's hall of fame") },
   // clã x clã (OG-259)
   { id: 'clan_war', group: 'clan', name: b('Guerra de clãs', 'Clan war'), description: b('Jogou a primeira partida clã x clã', 'Played the first clan vs clan match') },
   { id: 'clan_war_win', group: 'clan', name: b('Primeira conquista', 'First conquest'), description: b('Venceu a primeira partida clã x clã', 'Won the first clan vs clan match') },
@@ -239,6 +249,42 @@ const FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
   comeback: (m) => m.ranked === true && m.result > 0 && m.events !== undefined && m.team !== undefined && worstDeficit(m.events, m.team) >= COMEBACK_DEFICIT,
 };
 
+/** Humor (OG-399): mesmas regras contra farm dos secretos (contas na partida). */
+export const HUMOR_MIN_ACCOUNTS = 4;
+const humor = (f: (m: MilestoneMatch) => boolean) => (m: MilestoneMatch) => (m.accounts ?? 0) >= HUMOR_MIN_ACCOUNTS && f(m);
+
+/** Morreu com a bandeira 3 vezes seguidas (pegou e largou) e capturou na tentativa seguinte. */
+function todayYes(e: MilestoneEvents): boolean {
+  const me = new Set(e.me);
+  let fails = 0;
+  for (const x of e.log) {
+    if (x[1] === 'kill' || !me.has(x[2])) continue;
+    if (x[1] === 'drop') fails++;
+    else if (x[1] === 'capture') {
+      if (fails >= 3) return true;
+      fails = 0;
+    }
+  }
+  return false;
+}
+
+/** Mais mortes da conta para um mesmo jogador. */
+function worstNemesis(e: MilestoneEvents): number {
+  const me = new Set(e.me);
+  const by = new Map<number, number>();
+  for (const k of kills(e)) if (me.has(k.victim) && k.killer >= 0 && !me.has(k.killer)) by.set(k.killer, (by.get(k.killer) ?? 0) + 1);
+  return Math.max(0, ...by.values());
+}
+
+const HUMOR_FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
+  humor_today_yes: humor((m) => m.events !== undefined && todayYes(m.events)),
+  humor_customer: humor((m) => m.events !== undefined && worstNemesis(m.events) >= 10),
+  humor_butterfingers: humor((m) => m.stats !== undefined && stat(m, 'flagsDropped') >= 5 && m.captures === 0),
+  humor_ball_hog: humor((m) => m.result > 0 && m.captures >= 4 && m.captures === m.scored),
+  humor_punching_bag: humor((m) => (m.deaths ?? 0) >= 30),
+  humor_sightseeing: humor((m) => (m.playSeconds ?? 0) >= 600 && m.stats !== undefined && m.kills === 0 && stat(m, 'botKills') === 0 && m.captures === 0 && stat(m, 'defenses') === 0),
+};
+
 /** Placar de cada série md3/md5 do ponto de vista da conta, jogo a jogo. */
 interface SeriesState {
   wins: number;
@@ -266,7 +312,7 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
   for (const m of matches) {
     for (const k of Object.keys(COUNTERS) as MilestoneCounter[]) sums[k] += COUNTERS[k](m);
     for (const [id, t] of Object.entries(MILESTONE_TOTALS)) if (sums[t.counter] >= t.target) give(id, m);
-    for (const [id, feat] of Object.entries(FEATS)) if (feat(m)) give(id, m);
+    for (const [id, feat] of [...Object.entries(FEATS), ...Object.entries(HUMOR_FEATS)]) if (feat(m)) give(id, m);
     streak = m.result > 0 ? streak + 1 : 0;
     if (streak >= 10) give('win_streak_10', m);
     if (o.beta) give('beta', m);
