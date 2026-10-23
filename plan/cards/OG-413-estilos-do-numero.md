@@ -33,6 +33,6 @@ Como jogador, quero escolher o estilo do meu número, como as placas da F1, e qu
 
 ## Notas de implementação
 - Prancha aprovada pelo PO em 2026-10-23 ("número vazando um pouco do boneco fica incrível"). `apps/web/src/game/render/number-styles.ts` (estilos, contraste automático, `paintNumber`) usado na partida (textura por estilo/número/contraste) e na prévia da Conta; fontes OFL em `ui/tokens.css` (`@fontsource`, créditos no CREDITS.md).
-- `number_style` na migração 0040 (ainda não aplicada no beta), `PUT /account/number-style`, `numberStyle` no ticket e `style` na `playerNumber` (132).
+- `number_style` na migração 0041 (no começo foi editada dentro da 0040, que já estava aplicada no banco local do PO: o `dev:all` quebrou no seed; regra: migração aplicada não se edita), `PUT /account/number-style`, `numberStyle` no ticket e `style` na `playerNumber` (132).
 - Achado nas capturas: a troca de time (Ctrl+End) não levava número, estilo nem a marcação de bot (OG-403) para a vaga nova no cliente; corrigido em `ClientSession.onTeamChange` com teste.
 - `hud-check` e `clan-shots` apontam o `/api` do preview para uma porta vazia: com uma API local na 7800, o cliente não caía no ticket de desenvolvimento.
