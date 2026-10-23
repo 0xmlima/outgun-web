@@ -31,11 +31,22 @@ export function isInstalledApp(): boolean {
   return matchMedia('(display-mode: standalone)').matches || / OutgunDesktop\//.test(navigator.userAgent);
 }
 
+/** Modos do monitor principal no Windows (OG-401): lista, escolha gravada, opção de inicialização e o do sistema. */
+export interface DisplayModes {
+  readonly modes: readonly string[];
+  readonly current: string | null;
+  readonly launch: string | null;
+  readonly system: string | null;
+}
+
 /** Ponte do cliente desktop (OG-373, `apps/desktop/preload.cjs`); ausente no navegador e nos clientes antigos. */
 export interface DesktopBridge {
   frameRate(): 'vsync' | 'unlocked';
   frameRateActive(): 'vsync' | 'unlocked';
   setFrameRate(mode: 'vsync' | 'unlocked'): void;
+  /** Resolução do monitor (OG-401, só Windows; ausente antes da 2.41.1): "1920x1080@144". */
+  displayModes?(): DisplayModes | null;
+  setDisplayMode?(mode: string | null): void;
   /** Conquistas da Steam (OG-396); ausentes antes da 2.41. */
   steamAvailable?(): boolean;
   syncSteamAchievements?(ids: readonly string[]): void;

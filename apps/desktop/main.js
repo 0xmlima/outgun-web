@@ -2,9 +2,19 @@
 // Cliente para Windows (OG-324, D-58): uma janela que carrega o site do jogo. Nada do jogo vem no
 // instalador, então a versão é sempre a do site. Segurança pelo checklist do Electron: sem Node na
 // página, sandbox, navegação só no domínio do jogo e links externos no navegador do sistema.
+import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, screen, session, shell } from 'electron';
+import {
+  applyMode,
+  formatMode,
+  listModes,
+  parseMode,
+  restoreMode,
+  systemMode,
+} from './display-win.js';
 
 const GAME_URL = new URL(process.env.OUTGUN_URL ?? 'https://outgunweb.com.br/');
 
@@ -40,6 +50,85 @@ const openOutside = (url) => {
 /** @type {BrowserWindow | null} */
 let win = null;
 
+// Resolução do monitor (OG-401, só Windows): o modo escolhido em Opções (gravado em userData) ou o da
+// opção de inicialização `--resolution=1920x1080@144` (vale por cima; `--resolution=system` desliga).
+// Vale só em tela cheia, com a janela no monitor principal e em foco; Alt+Tab, minimizar, sair da
+// tela cheia ou fechar devolvem a resolução do sistema, e voltar ao jogo aplica de novo.
+const settingsFile = join(app.getPath('userData'), 'outgun-desktop.json');
+/** @type {{ displayMode?: string | null }} */
+const settings = (() => {
+  try {
+    const saved = JSON.parse(readFileSync(settingsFile, 'utf8'));
+    return { displayMode: typeof saved.displayMode === 'string' ? saved.displayMode : null };
+  } catch {
+    return { displayMode: null };
+  }
+})();
+const launchMode = app.commandLine.getSwitchValue('resolution') || null;
+/** @type {string[] | null} */
+let modes = null;
+const displayModes = () => (modes ??= listModes().map(formatMode));
+/** O modo que vale agora: o da inicialização, senão o das Opções; só se o monitor o tiver. */
+function wantedMode() {
+  const text = launchMode ?? settings.displayMode;
+  return text && text !== 'system' && displayModes().includes(text) ? text : null;
+}
+/** @type {string | null} */
+let appliedMode = null;
+function syncDisplay() {
+  if (process.platform !== 'win32') return;
+  const onPrimary =
+    win !== null &&
+    !win.isDestroyed() &&
+    screen.getDisplayMatching(win.getBounds()).id === screen.getPrimaryDisplay().id;
+  const active =
+    onPrimary && win.isFullScreen() && win.isFocused() && !win.isMinimized() ? wantedMode() : null;
+  if (active === appliedMode) return;
+  if (active) {
+    const mode = parseMode(active);
+    appliedMode = mode && applyMode(mode) ? active : null;
+  } else {
+    restoreMode();
+    appliedMode = null;
+  }
+}
+// a troca de modo também mexe no foco e no tamanho da janela: espera os eventos assentarem
+/** @type {ReturnType<typeof setTimeout> | undefined} */
+let syncTimer;
+function scheduleSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncDisplay, 300);
+}
+function releaseDisplay() {
+  clearTimeout(syncTimer);
+  if (appliedMode) restoreMode();
+  appliedMode = null;
+}
+app.on('will-quit', releaseDisplay);
+process.on('exit', releaseDisplay);
+ipcMain.on('outgun:display-modes', (event) => {
+  event.returnValue =
+    process.platform === 'win32' && sameOrigin(event.senderFrame?.url ?? '')
+      ? {
+          modes: displayModes(),
+          current: settings.displayMode ?? null,
+          launch: launchMode,
+          system: ((m) => (m ? formatMode(m) : null))(systemMode()),
+        }
+      : null;
+});
+ipcMain.on('outgun:set-display-mode', (event, mode) => {
+  if (process.platform !== 'win32' || !sameOrigin(event.senderFrame?.url ?? '')) return;
+  settings.displayMode = typeof mode === 'string' && displayModes().includes(mode) ? mode : null;
+  try {
+    writeFileSync(settingsFile, JSON.stringify(settings));
+  } catch {
+    // sem disco gravável a escolha vale só até fechar
+  }
+  // troca na hora, direto do modo atual para o novo
+  scheduleSync();
+});
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,
@@ -57,7 +146,7 @@ function createWindow() {
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: false,
-      // só a opção de VSync (OG-373); sem Node na página
+      // só o modo do FPS, a resolução do monitor e as conquistas; sem Node na página
       preload: fileURLToPath(new URL('preload.cjs', import.meta.url)),
     },
   });
@@ -88,8 +177,20 @@ function createWindow() {
       win?.setFullScreen(!win.isFullScreen());
     }
   });
+  for (const event of [
+    'ready-to-show',
+    'focus',
+    'blur',
+    'minimize',
+    'restore',
+    'enter-full-screen',
+    'leave-full-screen',
+  ]) {
+    win.on(/** @type {any} */ (event), scheduleSync);
+  }
   win.on('closed', () => {
     win = null;
+    releaseDisplay();
   });
   void win.loadURL(GAME_URL.href);
 }
@@ -157,6 +258,12 @@ else {
       (_wc, permission) => permission === 'fullscreen',
     );
     createWindow();
+    // modo novo do monitor: a janela em tela cheia acompanha o tamanho da tela (OG-401)
+    screen.on('display-metrics-changed', (_event, display) => {
+      if (appliedMode && win?.isFullScreen() && display.id === screen.getPrimaryDisplay().id) {
+        win.setBounds(display.bounds);
+      }
+    });
   });
   app.on('web-contents-created', (_event, contents) => {
     contents.on('will-attach-webview', (event) => event.preventDefault());

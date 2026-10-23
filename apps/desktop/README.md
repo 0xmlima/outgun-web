@@ -20,7 +20,9 @@ npm run dist:win                            # dist/Outgun-Setup-<versão>.exe (W
 
 **FPS livre (OG-373, OG-400):** o cliente sempre liga `disable-frame-rate-limit` e
 `disable-gpu-vsync` (sem opção de VSync; quem limita é o jogo, no mínimo 240 FPS). O `preload.cjs`
-expõe ao site só `window.outgunDesktop` (modo de quadros e conquistas da Steam). Mudou `main.js` ou `preload.cjs`: gere instaladores e build da Steam novos.
+expõe ao site só `window.outgunDesktop` (modo de quadros e conquistas da Steam). **Resolução do monitor (OG-401, só Windows):** `display-win.js` troca o modo do monitor principal
+pelo user32 (koffi) em tela cheia e devolve o do sistema ao perder o foco ou fechar; escolha em
+Opções → Gráficos ou `--resolution=1920x1080@144` na inicialização. Mudou `main.js`, `display-win.js` ou `preload.cjs`: gere instaladores e build da Steam novos.
 
 Os instaladores oficiais saem do GitHub Actions (workflow "Cliente desktop", que roda a cada push
 que muda esta pasta, um job por sistema). Baixe os artefatos e envie ao servidor:

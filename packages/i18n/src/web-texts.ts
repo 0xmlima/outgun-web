@@ -99,6 +99,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'monitor refresh rate': 'taxa do monitor',
     'automatic (240)': 'automático (240)',
     'Reopen the game to unlock the FPS.': 'Reabra o jogo para liberar o FPS.',
+    'Monitor resolution': 'Resolução do monitor',
+    system: 'do sistema',
+    'Full screen only (F11). Alt+Tab and leaving the game bring back the normal resolution.': 'Só em tela cheia (F11). Alt+Tab e sair do jogo voltam à resolução normal.',
+    'The launch option --resolution=$1 is in use; this choice applies without it.': 'A opção de inicialização --resolution=$1 está valendo; esta escolha vale sem ela.',
+    'Apply resolution': 'Aplicar resolução',
+    'The screen may go black for a moment.': 'A tela pode ficar preta por um instante.',
     'Browsers draw at most once per monitor refresh. The desktop client (Steam) can go above it.': 'O navegador desenha no máximo uma vez por atualização do monitor. O cliente desktop (Steam) passa disso.',
     'Keys pressed or released this close together count as together: the gun does not turn on the way. Movement never waits.': 'Teclas apertadas ou soltas com essa diferença contam como juntas: a arma não vira no meio do caminho. O movimento nunca espera.',
     // beta fechado (OG-106)

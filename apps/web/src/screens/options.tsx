@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
 import { useAccount } from '../app/account.js';
-import { desktopBridge, FPS_UNLIMITED, fpsUnlocked } from '../app/install.js';
+import { desktopBridge, type DisplayModes, FPS_UNLIMITED, fpsUnlocked } from '../app/install.js';
 import { BOT_LEVEL_CHOICES, CASUAL_MAX_BOTS, HUD_SCALES, type Prefs, QUICK_MESSAGE_LENGTH, type ShowNames, type ShowStats, type SkipMaps, usePrefs } from '../app/prefs.js';
 import { useSaveStatus } from '../app/prefs-sync.js';
 import { IS_MAC } from '../game/input/shortcuts.js';
@@ -25,6 +25,48 @@ import { ControlsPanel } from './ControlsScreen.js';
  * abaixo de 240 (automático); no navegador quem manda é a taxa do monitor, então não há o que escolher.
  */
 const FPS_LIMITS = fpsUnlocked() ? [0, 360, 480, FPS_UNLIMITED] : [0];
+
+/** "1920x1080@144" → "1920 × 1080 · 144 Hz". */
+const modeLabel = (mode: string) => mode.replace(/^(\d+)x(\d+)@(\d+)$/, '$1 × $2 · $3 Hz');
+
+/**
+ * Resolução do monitor (OG-401, cliente para Windows): o modo vale em tela cheia e o Windows volta à
+ * resolução normal ao trocar de janela ou sair do jogo. Escolher não aplica: cada troca apaga a tela
+ * por um instante, então só o botão aplica.
+ */
+function DisplayModeField() {
+  const { t } = usePrefs();
+  const bridge = desktopBridge();
+  const [info, setInfo] = useState<DisplayModes | null>(() => bridge?.displayModes?.() ?? null);
+  const [choice, setChoice] = useState(() => info?.current ?? 'system');
+  if (!bridge?.setDisplayMode || !info || info.modes.length === 0) return null;
+  const applied = info.current ?? 'system';
+  const system = info.system ? `${t('system')} (${modeLabel(info.system)})` : t('system');
+  return (
+    <>
+      <ChoiceField
+        label={t('Monitor resolution')}
+        value={choice}
+        options={[{ value: 'system', label: system }, ...info.modes.map((m) => ({ value: m, label: modeLabel(m) }))]}
+        hint={info.launch ? t('The launch option --resolution=$1 is in use; this choice applies without it.', info.launch) : t('Full screen only (F11). Alt+Tab and leaving the game bring back the normal resolution.')}
+        onChange={setChoice}
+      />
+      {choice !== applied && (
+        <div className="options-hud-edit">
+          <Button
+            onClick={() => {
+              bridge.setDisplayMode?.(choice === 'system' ? null : choice);
+              setInfo(bridge.displayModes?.() ?? null);
+            }}
+          >
+            {t('Apply resolution')}
+          </Button>
+          <span>{t('The screen may go black for a moment.')}</span>
+        </div>
+      )}
+    </>
+  );
+}
 
 /** Troca de lugar a cor selecionada com a vizinha (`Colorselect::handleKey` com Ctrl). */
 export function moveColor(colors: readonly number[], selected: number, delta: -1 | 1, carry: boolean): { colors: number[]; selected: number } {
@@ -320,6 +362,7 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               {toggle('scroll', 'Scrolling')}
               {toggle('lessTransparency', 'Less transparency effects')}
               {toggle('continuousTextures', 'Continuous textures between rooms')}
+              <DisplayModeField />
               <ChoiceField
                 label={t('FPS limit')}
                 value={String(FPS_LIMITS.includes(prefs.fpsLimit) ? prefs.fpsLimit : 0)}
