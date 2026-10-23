@@ -19,7 +19,7 @@ Como jogador, quero ver no meu perfil dentro do jogo todos os marcos organizados
 - O perfil (`apps/web/src/screens/Profile.tsx`, o mesmo no site, no app instalável e na Steam) mostra uma grade única "Marcos · 4/20". Com ~70 marcos, a grade única não serve.
 
 ## Escopo
-- Seções por grupo (Progresso, Bandeira, Defesa, Combate, Ranked, Social, Clã, **Secretos**), com o total "N/M" no topo e por grupo.
+- Seções por grupo (Progresso, Bandeira, Defesa, Combate, Ranked, Social, Clã, Humor, **Secretos**), com o total "N/M" no topo e por grupo.
 - Card do marco: ícone (OG-395; cinza quando bloqueado), nome, condição, data (link para a partida) e **% de jogadores que têm** (API: contagem por marco ÷ contas com partida, em cache).
 - Marcos de total bloqueados mostram a barra de progresso ("47/100 kills"); a API devolve o valor atual de cada contador.
 - Secretos: bloqueado = "Marco secreto · ???", sem condição nem dica; desbloqueado = nome, condição, data, % e "Descoberto primeiro por <jogador>". O topo da seção mostra "N segredos a descobrir".

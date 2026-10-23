@@ -28,7 +28,7 @@ Como jogador, quero marcos para tudo o que faço bem numa partida (vencer, defen
   - `defenses_match_10` Muralha / Wall · 10 defesas numa partida; `defenses_250` Guardião / Guardian · 250 defesas; `carriers_match_5` Caça-portador / Carrier hunter · 5 portadores mortos numa partida; `shutout` Sem chance / No chance · venceu sem sofrer captura (qualquer partida).
   - `streak_10` Em chamas / On fire · 10 kills sem morrer; `streak_20` Imparável / Unstoppable force · 20; `kills_match_30` Massacre · 30 kills numa partida; `flawless` Intocável / Untouchable · 10+ kills e 0 mortes; `accuracy_70` Atirador de elite / Marksman · 70% de precisão (mínimo de 30 tiros).
   - `multi_kill` Dobradinha / Double kill · primeiro multi-kill; `trades_50` Vingador / Avenger · 50 trocas; `first_kills_50` Abre-alas / Opener · 50 primeiros abates; `assists_100` Parceiro / Partner · 100 assistências; `enemy_base_kills_100` Invasor / Invader · 100 kills na base inimiga.
-- Cada marco ganha um **grupo** (`progress`, `flag`, `defense`, `combat`, `ranked`, `social`, `clan`, `secret`) e, nos de total, o **alvo** e o campo somado, para o OG-393 mostrar progresso.
+- Cada marco ganha um **grupo** (`progress`, `flag`, `defense`, `combat`, `ranked`, `social`, `clan`, `humor`, `secret`) e, nos de total, o **alvo** e o campo somado, para o OG-393 mostrar progresso.
 - Retroativo: `cli.js milestones` depois do deploy (partidas sem o stat contam 0).
 
 ## Critérios de aceite
