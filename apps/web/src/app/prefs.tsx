@@ -41,6 +41,8 @@ export interface Prefs {
   readonly continuousTextures: boolean;
   /** `Show player names` (D-26: padrão "na mesma sala"). */
   readonly showNames: ShowNames;
+  /** Números no centro dos bonecos (OG-410); desligado, ninguém aparece com número na minha tela. */
+  readonly showNumbers: boolean;
   /** `FPS limit` (0 = sem limite; 1..10000). */
   readonly fpsLimit: number;
   // OG-070: opções gráficas avançadas (padrões do client.cfg distribuído)
@@ -156,6 +158,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     visibleRooms: 1,
     continuousTextures: true,
     showNames: 'sameRoom',
+    showNumbers: true,
     fpsLimit: 0,
     scroll: false,
     lessTransparency: false,
@@ -232,6 +235,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     visibleRooms: int(saved.visibleRooms, 1, 20, fallback.visibleRooms),
     continuousTextures: bool(saved.continuousTextures, fallback.continuousTextures),
     showNames: oneOf(saved.showNames, ['never', 'sameRoom', 'always'], fallback.showNames),
+    showNumbers: bool(saved.showNumbers, fallback.showNumbers),
     fpsLimit: int(saved.fpsLimit, 0, 10000, fallback.fpsLimit),
     scroll: bool(saved.scroll, fallback.scroll),
     lessTransparency: bool(saved.lessTransparency, fallback.lessTransparency),

@@ -22,6 +22,7 @@ import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme } from './render/theme.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
+import { loadNumberFonts } from './render/number-styles.js';
 
 /** Estado mostrado pela tela (barra, velocidade, quem segue). */
 export interface ReplayStatus {
@@ -238,7 +239,8 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
         if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
         const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
         app.renderer.background.color = theme.colours.screen_background ?? '#000000';
-        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font)]);
+        // fontes dos números (OG-413) antes da primeira textura de número
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), loadNumberFonts()]);
         return { theme, sprites, font };
       })();
       await setup;
@@ -267,6 +269,9 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
           const frame = entityFrameFromWorld(fd, {
             me: follow,
             name: (pid) => s.names.get(pid) ?? '',
+            // números e estilos no replay e no espectador (OG-410/413)
+            number: (pid) => s.numbers.get(pid),
+            numberStyle: (pid) => s.numberStyles.get(pid),
             color: (pid) => s.colors.get(pid) ?? 16,
             hitfx: () => 0,
             respawnIn: 0,

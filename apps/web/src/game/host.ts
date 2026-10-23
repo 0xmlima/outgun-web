@@ -78,6 +78,8 @@ export interface ClientOptions {
   readonly showFlagMessages: boolean;
   readonly showKillMessages: boolean;
   readonly showNames: 'never' | 'sameRoom' | 'always';
+  /** Números nos bonecos (OG-410). */
+  readonly showNumbers?: boolean;
   readonly fpsLimit: number;
   /** Quadro com tecla→envio e tecla→tela sobre o jogo (OG-369). */
   readonly showInputLatency?: boolean;
@@ -617,6 +619,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         entities = new EntityRenderer(theme, sprites, font);
         entities.graphics = graphics();
         entities.showNames = client.showNames;
+        entities.showNumbers = client.showNumbers ?? true;
         app.stage.addChild(entities.stage);
         if (opts.online && font) {
           hud = new HudRenderer(theme, font, opts.translate, app.renderer.resolution);
@@ -797,6 +800,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       onlineHud?.setOptions(next);
       if (entities) {
         entities.showNames = next.showNames;
+        entities.showNumbers = next.showNumbers ?? true;
         entities.graphics = graphics();
       }
       if (relayout) layout();

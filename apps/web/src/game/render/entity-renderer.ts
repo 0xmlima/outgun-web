@@ -71,6 +71,8 @@ export class EntityRenderer {
   private topLeft!: WorldCoords;
   /** `Show player names` (`Menu_graphics::showName`, OG-068). */
   showNames: 'never' | 'sameRoom' | 'always' = 'sameRoom';
+  /** Números nos bonecos (OG-410): o jogador pode desligar nos Gráficos. */
+  showNumbers = true;
   /** Opções gráficas avançadas (OG-070). */
   graphics: GraphicsOptions = DEFAULT_GRAPHICS;
 
@@ -401,7 +403,7 @@ export class EntityRenderer {
       this.effects.push({ kind: 'turbo', pos: p.pos, time: t, team: p.team, alpha: p.alpha / 255, player: { ...p, hitfx: 0, power: false } });
     }
     this.drawPlayerBody(p, p.pos, t, p.alpha, false);
-    if (p.number) this.drawNumber(p);
+    if (p.number && this.showNumbers) this.drawNumber(p);
     if (p.deathbringer && t > (this.nextSmoke.get(p.pid) ?? 0)) {
       this.nextSmoke.set(p.pid, t + 0.01);
       this.addSmoke(p.pos, p.team, p.alpha, t, false);

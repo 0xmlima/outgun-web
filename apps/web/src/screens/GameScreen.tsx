@@ -32,6 +32,7 @@ function clientOptions(p: Prefs): ClientOptions {
     showFlagMessages: p.showFlagMessages,
     showKillMessages: p.showKillMessages,
     showNames: p.showNames,
+    showNumbers: p.showNumbers,
     fpsLimit: p.fpsLimit,
     showInputLatency: p.showInputLatency,
     chordWindowMs: p.chordWindowMs,

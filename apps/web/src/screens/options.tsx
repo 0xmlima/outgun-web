@@ -386,6 +386,7 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
                 ['always', 'always'],
               ])}
               <SliderField label={t('Rooms on screen in each direction in game')} value={prefs.visibleRooms} min={1} max={20} onChange={(v) => setPrefs({ visibleRooms: v })} />
+              {toggle('showNumbers', 'Show player numbers')}
               {toggle('scroll', 'Scrolling')}
               {toggle('lessTransparency', 'Less transparency effects')}
               {toggle('continuousTextures', 'Continuous textures between rooms')}

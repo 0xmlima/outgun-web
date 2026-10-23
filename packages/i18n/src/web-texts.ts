@@ -237,6 +237,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'You can change your number once every 30 days.': 'Você pode trocar de número uma vez a cada 30 dias.',
     'Player number': 'Número de jogador',
     'Number style': 'Estilo do número',
+    'Show player numbers': 'Mostrar os números dos jogadores',
     Block: 'Bloco',
     Race: 'Corrida',
     Outline: 'Contorno',

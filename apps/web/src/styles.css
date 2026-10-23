@@ -478,17 +478,18 @@ body {
   margin: 0 0 var(--space-3);
   font-size: var(--text-lg);
 }
+/* --ranked-team: cor do clã quando o lado vira o clã (OG-408) */
 .ranked-team.red {
-  border-top: 4px solid var(--text-team-red);
+  border-top: 4px solid var(--ranked-team, var(--text-team-red));
 }
 .ranked-team.red h2 {
-  color: var(--text-team-red);
+  color: var(--ranked-team, var(--text-team-red));
 }
 .ranked-team.blue {
-  border-top: 4px solid var(--text-team-blue);
+  border-top: 4px solid var(--ranked-team, var(--text-team-blue));
 }
 .ranked-team.blue h2 {
-  color: var(--text-team-blue);
+  color: var(--ranked-team, var(--text-team-blue));
 }
 .ranked-team ul,
 .ranked-maps,

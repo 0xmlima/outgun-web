@@ -611,10 +611,13 @@ export class Room {
   }
 
   /**
-   * Recalcula o clã de cada lado (OG-408) e avisa o que mudou. Na virada da rodada sempre; no meio,
-   * só enquanto a rodada nem começou de verdade (0 x 0 nos primeiros 30 s: a sala enchendo).
+   * Recalcula o clã de cada lado (OG-408) e avisa o que mudou. Na virada da rodada sempre; no Casual,
+   * também enquanto a rodada nem começou de verdade (0 x 0 nos primeiros 30 s: a sala enchendo); no
+   * Ranked, a cada mudança do lobby (os lados já estão montados antes do jogo).
    */
   private refreshIdentities(onlyIfFresh = false): void {
+    // no Ranked, durante o jogo, nada muda (queda e bot substituto não desfazem o clã): só no lobby
+    if (onlyIfFresh && this.lobby) return;
     if (onlyIfFresh && !(this.world.mapTime() < 300 && this.world.teams[0].score === 0 && this.world.teams[1].score === 0)) return;
     const players = [...this.clients].map(([pid, c]) => ({ team: this.world.teamOf(pid), bot: c.bot, clan: c.identity.clanTeam ?? null }));
     const next = teamIdentities(players);
@@ -1869,6 +1872,8 @@ export class Room {
     }
     if (this.lobbyDirty) {
       this.lobbyDirty = false;
+      // Ranked (D-78): os lados são conhecidos no lobby; a identidade já chega pronta ao jogo
+      if (!this.lobby?.playing) this.refreshIdentities();
       this.broadcast(this.lobbyStateMessage());
     }
   }

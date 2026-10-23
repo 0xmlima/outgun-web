@@ -34,3 +34,4 @@ Como jogador, quero um número só meu no boneco, como na Fórmula 1, para ser r
 - `apps/api/src/player-numbers.ts` + `GET/PUT /account/number` e `PUT /account/number-one` (migração 0040: `player_number` com índice único, `number_changed_at`, `number_warned_at`, `use_number_one`; notificações `number_expiring`/`number_released`). Liberação conferida a cada hora pelo `main.ts`.
 - Ticket leva `number` (1 para o líder que optou); mensagem `playerNumber` (132) depois do `playerJoined` e no `welcome`. Desenho: branco com contorno na cor escura do time, escala do raio do boneco; some com o boneco menor que 9 px.
 - Conta: lista com os livres e o aviso da próxima troca; perfil mostra o número. "Ordem de chegada" no próprio índice único (teste de corrida).
+- Pedido do PO (2026-10-23): opção "Mostrar os números dos jogadores" em Gráficos (padrão ligada; só a tela de quem desliga). Números também no replay e no espectador.

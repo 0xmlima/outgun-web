@@ -4,7 +4,7 @@
 // a contagem; chat da sala embaixo. Tudo vem do `lobbyState` (game server, OG-252..254); as ações vão
 // como `lobbyReady`/`lobbyVote`/`lobbySide`/`lobbySwapAnswer`.
 import type { MessageOf } from '@outgun/protocol';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { usePrefs } from '../app/prefs.js';
 import type { GameHost } from '../game/host.js';
 import { Badge, Button } from '../ui/Button.js';
@@ -70,12 +70,16 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
     if (homeIn === 0) onFinished();
   }, [homeIn, onFinished]);
 
+  // lado que vira o clã (OG-408, D-78): no Ranked já se sabe no lobby
+  const identity = (s: 0 | 1) => host?.session()?.teamIdentity[s] ?? null;
   const team = (s: 0 | 1) => {
     const list = side(s);
     const empty = Math.max(0, lobby.teamSize - list.length);
+    const id = identity(s);
+    const label = id?.tag ?? (s === 0 ? t('Red team') : t('Blue team'));
     return (
-      <section className={`ranked-team ${s === 0 ? 'red' : 'blue'}`} aria-label={s === 0 ? t('Red team') : t('Blue team')}>
-        <h2>{s === 0 ? t('Red team') : t('Blue team')}</h2>
+      <section className={`ranked-team ${s === 0 ? 'red' : 'blue'}`} aria-label={label} style={id?.color ? ({ '--ranked-team': id.color } as CSSProperties) : undefined}>
+        <h2>{label}</h2>
         <ul>
           {list.map((m) => (
             <li key={m.pid} className={m.pid === me ? 'me' : undefined}>
