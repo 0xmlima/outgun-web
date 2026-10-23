@@ -98,7 +98,7 @@ export interface MatchPage {
   details: MatchDetails;
   players: PlayerLine[];
   replayUrl: string | null;
-  milestones?: { username: string; milestone: string }[];
+  milestones?: { username: string; milestone: string; secretName?: Bilingual }[];
   /** Sala com formato (OG-257): formato, número do jogo e a série. */
   format?: string | null;
   gameNo?: number | null;

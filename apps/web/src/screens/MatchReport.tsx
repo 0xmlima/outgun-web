@@ -3,6 +3,7 @@
 // regras, tabela por time com destaque do melhor jogador, linha do tempo das capturas, replay e
 // links para os perfis e os marcos conquistados na partida (OG-213). As estatísticas completas (as mesmas da F4 e do `save_stats` do original)
 // ficam em "Estatísticas detalhadas".
+import { milestoneIconSvg, publicMilestoneIcon, secretMilestoneIcon } from '@outgun/content';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../app/api.js';
@@ -368,8 +369,10 @@ export function MatchScreen() {
               <li key={username}>
                 <PlayerLink name={username} username={username} />{' '}
                 {m.milestones!.filter((x) => x.username === username).map((x) => (
-                  <Badge key={x.milestone} tone="accent">
-                    {milestoneText(x.milestone, prefs.locale).name}
+                  <Badge key={x.milestone} tone={x.secretName ? 'warning' : 'accent'}>
+                    <span className="milestone-icon-sm" aria-hidden="true" dangerouslySetInnerHTML={{ __html: milestoneIconSvg(x.secretName ? secretMilestoneIcon(true) : (publicMilestoneIcon(x.milestone) ?? secretMilestoneIcon(true))) }} />
+                    {/* secreto (OG-394): o nome vem da API, com destaque */}
+                    {x.secretName ? `${t('Secret milestone')}: ${x.secretName[prefs.locale === 'pt-BR' ? 'pt-BR' : 'en']}` : milestoneText(x.milestone, prefs.locale).name}
                   </Badge>
                 ))}
               </li>

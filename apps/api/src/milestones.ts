@@ -10,6 +10,7 @@ import { MILESTONES, milestoneProgress, milestonesFrom, type Bilingual, type Mil
 import { SECRET_MILESTONES, secretMilestonesFrom } from '@outgun/content/secret';
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
+import { notify } from './routes/notifications.js';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
@@ -140,7 +141,7 @@ async function eventsOf(tx: Db | Tx, matchIds: readonly string[]): Promise<Map<s
 }
 
 /** Concede os marcos que faltam às contas; devolve quantos foram gravados agora. */
-export async function awardMilestones(tx: Db | Tx, userIds: readonly string[], o: { beta: boolean; events?: EventScope }): Promise<number> {
+export async function awardMilestones(tx: Db | Tx, userIds: readonly string[], o: { beta: boolean; events?: EventScope; notify?: boolean }): Promise<number> {
   const all = await histories(tx, [...new Set(userIds)], o.events ?? 'all');
   let added = 0;
   for (const [userId, list] of all) {
@@ -155,6 +156,12 @@ export async function awardMilestones(tx: Db | Tx, userIds: readonly string[], o
       ON CONFLICT (user_id, milestone) DO NOTHING
       RETURNING milestone`);
     added += res.length;
+    // aviso no menu (OG-394): só ao fim de uma partida, nunca no retroativo
+    if (o.notify && res.length > 0) {
+      const ids = res.map((r) => r.milestone);
+      const secretNames = Object.fromEntries(SECRET_MILESTONES.filter((m) => ids.includes(m.id)).map((m) => [m.id, m.name]));
+      await notify(tx, [userId], 'milestone', { milestones: ids, ...(Object.keys(secretNames).length > 0 ? { secretNames } : {}) });
+    }
   }
   return added;
 }

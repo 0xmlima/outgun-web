@@ -7,7 +7,7 @@ import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from 'drizzle-orm
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
 import { clans, matchEventPlayers, matchEvents, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
-import { isSecretMilestone } from '@outgun/content/secret';
+import { isSecretMilestone, SECRET_MILESTONES } from '@outgun/content/secret';
 import { milestoneProgressOf, milestoneRarity, SECRET_TOTAL, unlockedSecrets } from '../milestones.js';
 import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
@@ -278,7 +278,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               /** Replay da partida, quando houver (OG-090; o game server apaga após a retenção). */
               replayUrl: Type.Union([Type.Null(), Type.String()]),
               /** Marcos conquistados nesta partida (OG-213). */
-              milestones: Type.Array(Type.Object({ username: Type.String(), milestone: Type.String() })),
+              milestones: Type.Array(Type.Object({ username: Type.String(), milestone: Type.String(), secretName: Type.Optional(Bilingual) })),
               /** Formato, número do jogo e a série, nas partidas de sala com formato (OG-257). */
               format: Type.Union([Type.Null(), RankedFormatSchema]),
               gameNo: Type.Union([Type.Null(), Type.Integer()]),
@@ -309,12 +309,18 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
             playSeconds: p.playSeconds, scoreDelta: p.scoreDelta, negDelta: p.negDelta, stats: p.stats,
           })),
           replayUrl: m.replayUrl,
-          milestones: await db
-            .select({ username: users.username, milestone: playerMilestones.milestone })
-            .from(playerMilestones)
-            .innerJoin(users, eq(users.id, playerMilestones.userId))
-            .where(eq(playerMilestones.matchId, m.id))
-            .orderBy(asc(users.usernameKey)),
+          // secretos (OG-394): o nome vai junto, o cliente não tem o catálogo deles
+          milestones: (
+            await db
+              .select({ username: users.username, milestone: playerMilestones.milestone })
+              .from(playerMilestones)
+              .innerJoin(users, eq(users.id, playerMilestones.userId))
+              .where(eq(playerMilestones.matchId, m.id))
+              .orderBy(asc(users.usernameKey))
+          ).map((x) => {
+            const secret = SECRET_MILESTONES.find((s) => s.id === x.milestone);
+            return secret ? { ...x, secretName: secret.name } : x;
+          }),
           format: m.format,
           gameNo: m.gameNo,
           series: m.seriesId ? await seriesView(m.seriesId) : null,

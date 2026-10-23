@@ -1590,3 +1590,13 @@
 .milestone-rarity {
   font-size: var(--text-xs);
 }
+.milestone-icon-sm,
+.milestone-icon-sm svg {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  vertical-align: middle;
+}
+.milestone-icon-sm {
+  margin-right: var(--space-1);
+}

@@ -496,7 +496,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
             }
           }
           await recordMatchSocial(tx, match!.id);
-          await awardMilestones(tx, [...known], { beta: config.beta, events: [match!.id] });
+          await awardMilestones(tx, [...known], { beta: config.beta, events: [match!.id], notify: true });
           // Rating de habilidade (OG-349, RN-SKL-02/03): pelo placar final, com quem saiu no meio
           if (body.ranked) {
             const roster = body.skillRoster ?? body.players.flatMap((p) => (p.userId && !p.isBot ? [{ userId: p.userId, team: p.team as 0 | 1 }] : []));

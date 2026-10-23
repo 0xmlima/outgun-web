@@ -853,7 +853,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-391](cards/OG-391-marcos-de-eventos-e-contexto.md) | Marcos de eventos e de contexto (armas, virada, ranked por formato, mapas, dupla, dias seguidos) | E9 | 5 | Must | S41 | OG-390, OG-362 | Em revisão |
 | [OG-392](cards/OG-392-marco-campeao-da-temporada.md) | Marco fora da partida: Campeão da temporada (top 3 do hall da fama) | E9 | 2 | Should | S41 | OG-390, OG-268 | Em revisão |
 | [OG-393](cards/OG-393-perfil-marcos-por-grupo-e-progresso.md) | Perfil no jogo: marcos por grupo, com ícone, progresso, raridade e secretos | E9 | 5 | Must | S41 | OG-390, OG-395 | Em revisão |
-| [OG-394](cards/OG-394-aviso-de-marco-novo.md) | Aviso de marco novo: no relatório da partida e um toast ao voltar ao menu | E9 | 2 | Should | S41 | OG-390 | Pronto |
+| [OG-394](cards/OG-394-aviso-de-marco-novo.md) | Aviso de marco novo: no relatório da partida e um toast ao voltar ao menu | E9 | 2 | Should | S41 | OG-390 | Em revisão |
 | [OG-395](cards/OG-395-icones-dos-marcos.md) | Ícones dos marcos gerados por script (perfil e Steam) | E9 | 3 | Must | S41 | — | Em revisão |
 | [OG-396](cards/OG-396-steam-conquistas-no-app.md) | Steam: conquistas no app desktop, espelhando os marcos da conta | E9 | 5 | Should | S41 | OG-390, D-77 | Pronto |
 | [OG-397](cards/OG-397-steam-cadastro-das-conquistas.md) | Steam: tabela das conquistas e cadastro no Steamworks | E9 | 2 | Should | S41 | OG-395, OG-396 | Pronto |

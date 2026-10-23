@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Notificações da conta (OG-361): o sino no topo do site com as não lidas e a lista, e um aviso fixo
 // (toast, à direita) para cada não lida que chega; fechar o aviso marca a notificação como lida.
+// Marcos novos de uma partida (OG-394) chegam pelo mesmo caminho, fora da partida (só no Shell).
+import { MILESTONES, type Bilingual } from '@outgun/content';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useAccount } from './account.js';
@@ -14,8 +16,8 @@ export const NOTIFICATIONS_POLL_MS = 30_000;
 
 export interface AppNotification {
   id: string;
-  kind: 'clan_invite' | 'clan_request';
-  data: { clanTag?: string; clanName?: string; from?: string };
+  kind: 'clan_invite' | 'clan_request' | 'milestone';
+  data: { clanTag?: string; clanName?: string; from?: string; milestones?: string[]; secretNames?: Record<string, Bilingual> };
   createdAt: string;
   read: boolean;
 }
@@ -31,17 +33,29 @@ const NotificationsContext = createContext<Notifications>({ unread: 0, items: []
 
 type T = ReturnType<typeof usePrefs>['t'];
 
+/** Marcos mostrados pelo nome no aviso; o resto vira "+N". */
+export const MILESTONE_NAMES_SHOWN = 3;
+
 /** Texto da notificação. */
-export function notificationText(n: AppNotification, t: T): string {
+export function notificationText(n: AppNotification, t: T, locale = 'en'): string {
+  if (n.kind === 'milestone') {
+    const l = locale === 'pt-BR' ? 'pt-BR' : 'en';
+    const ids = n.data.milestones ?? [];
+    const names = ids.map((id) => n.data.secretNames?.[id]?.[l] ?? MILESTONES.find((m) => m.id === id)?.name[l] ?? id);
+    const shown = names.slice(0, MILESTONE_NAMES_SHOWN).join(', ') + (names.length > MILESTONE_NAMES_SHOWN ? ` +${names.length - MILESTONE_NAMES_SHOWN}` : '');
+    const secret = ids.some((id) => n.data.secretNames?.[id]);
+    return secret ? t('Secret milestone unlocked! $1', shown) : names.length === 1 ? t('New milestone: $1', shown) : t('New milestones: $1', shown);
+  }
   const clan = n.data.clanTag ? `(${n.data.clanTag}) ${n.data.clanName ?? ''}`.trim() : '';
   return n.kind === 'clan_invite' ? t('$1 invited you to the clan $2', n.data.from ?? '?', clan) : t('$1 asked to join $2', n.data.from ?? '?', clan);
 }
 
 /** Para onde a notificação leva: a caixa de convites ou a página do clã (onde a liderança aprova). */
-export const notificationPath = (n: AppNotification) => (n.kind === 'clan_invite' || !n.data.clanTag ? '/clans/inbox' : `/clans/${encodeURIComponent(n.data.clanTag)}`);
+export const notificationPath = (n: AppNotification, username?: string) =>
+  n.kind === 'milestone' ? (username ? `/players/${encodeURIComponent(username)}` : '/') : n.kind === 'clan_invite' || !n.data.clanTag ? '/clans/inbox' : `/clans/${encodeURIComponent(n.data.clanTag)}`;
 
 export function NotificationsProvider({ children }: { readonly children: ReactNode }) {
-  const { t } = usePrefs();
+  const { t, prefs } = usePrefs();
   const { user } = useAccount();
   const toast = useToast();
   const [state, setState] = useState<{ unread: number; items: AppNotification[] }>({ unread: 0, items: [] });
@@ -79,9 +93,13 @@ export function NotificationsProvider({ children }: { readonly children: ReactNo
     for (const n of state.items) {
       if (n.read || shown.current.has(n.id)) continue;
       shown.current.add(n.id);
-      toast(notificationText(n, t), 'accent', { sticky: true, onClose: () => markRead(n.id) });
+      // marco novo: aviso que some sozinho e já conta como lido (fica no sino); o resto espera fechar
+      if (n.kind === 'milestone') {
+        toast(notificationText(n, t, prefs.locale), 'accent');
+        markRead(n.id);
+      } else toast(notificationText(n, t, prefs.locale), 'accent', { sticky: true, onClose: () => markRead(n.id) });
     }
-  }, [state.items, t, toast, markRead]);
+  }, [state.items, t, prefs.locale, toast, markRead]);
 
   return <NotificationsContext value={{ ...state, markRead, markAll }}>{children}</NotificationsContext>;
 }
@@ -91,6 +109,7 @@ export const useNotifications = () => useContext(NotificationsContext);
 /** Sino ao lado do nome, no topo: contador das não lidas e a lista das últimas. */
 export function NotificationBell() {
   const { t, prefs } = usePrefs();
+  const { user } = useAccount();
   const navigate = useNavigate();
   const { unread, items, markRead, markAll } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -135,10 +154,10 @@ export function NotificationBell() {
                     onClick={() => {
                       markRead(n.id);
                       setOpen(false);
-                      void navigate(notificationPath(n));
+                      void navigate(notificationPath(n, user?.username));
                     }}
                   >
-                    <span>{notificationText(n, t)}</span>
+                    <span>{notificationText(n, t, prefs.locale)}</span>
                     <span className="ui-muted">{new Date(n.createdAt).toLocaleDateString(prefs.locale, { day: '2-digit', month: 'short' })}</span>
                   </button>
                 </li>
