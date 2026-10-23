@@ -1,6 +1,6 @@
 {
   "name": "@outgun/load",
-  "version": "2.41.1",
+  "version": "2.41.2",
   "private": true,
   "description": "Teste de carga do game server com clientes headless pelo protocolo (OG-101).",
   "license": "GPL-2.0-or-later",

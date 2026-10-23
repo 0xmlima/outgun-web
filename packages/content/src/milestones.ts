@@ -294,8 +294,16 @@ interface SeriesState {
 }
 
 /**
+ * Fim do período do Pioneiro (marco `beta`): quem jogar uma partida até 31/10/2026 (horário de São
+ * Paulo) ganha o marco, com a data da primeira partida. Para estender, mude a data aqui e rode o
+ * retroativo (`node dist/cli.js milestones`) no servidor.
+ */
+export const PIONEER_UNTIL = '2026-11-01T03:00:00.000Z';
+
+/**
  * Marcos que o histórico `matches` (ordem de término) concede, com a partida da conquista.
- * `beta`: as partidas foram jogadas durante o beta (marco na primeira delas).
+ * Pioneiro (`beta`): na primeira partida terminada antes de `PIONEER_UNTIL`, ou em qualquer uma
+ * com `o.beta` (servidor com BETA=1).
  */
 export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: boolean } = {}): Achieved[] {
   const found = new Map<string, Achieved>();
@@ -316,7 +324,7 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
     for (const [id, feat] of [...Object.entries(FEATS), ...Object.entries(HUMOR_FEATS)]) if (feat(m)) give(id, m);
     streak = m.result > 0 ? streak + 1 : 0;
     if (streak >= 10) give('win_streak_10', m);
-    if (o.beta) give('beta', m);
+    if (o.beta || Date.parse(m.endedAt) < Date.parse(PIONEER_UNTIL)) give('beta', m);
     if (m.map) {
       maps.add(mapKey(m.map));
       for (const [id, n] of Object.entries(MAPS_TARGETS)) if (maps.size >= n) give(id, m);
