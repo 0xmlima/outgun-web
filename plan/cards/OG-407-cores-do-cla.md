@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S43 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-275 |
 | Regras de negócio | RN-CLA-09, D-78 |
 | Skills | `outgun-card-workflow` |
@@ -21,11 +21,12 @@ Como líder de clã, quero escolher a cor primária e a secundária do meu clã,
 
 ## Escopo
 - Página do clã (líder e admins do clã): cor primária e secundária escolhidas numa paleta curada (cores de time legíveis sobre os fundos dos temas), com prévia do boneco e da bandeira.
-- Recusa cor parecida demais (diferença percebida, não igualdade) com o vermelho e o azul padrão do lado oposto e primária igual à secundária.
+- Recusa primária e secundária parecidas demais entre si (CIEDE2000 < 22), para a secundária servir de reserva. A colisão com a cor do outro lado (vermelho/azul padrão ou outro clã) é resolvida na partida (OG-408); assim um clã pode escolher vermelho ou azul.
 - API: campos no clã, auditoria da troca; perfil público do clã mostra as cores.
 
 ## Critérios de aceite
-- [ ] Líder escolhe primária e secundária; membro comum não edita.
-- [ ] Cor parecida com o vermelho ou o azul padrão, ou primária = secundária, é recusada com mensagem (teste).
+- [x] Líder (e admins do clã) escolhem primária e secundária; membro comum não edita.
+- [x] Par parecido demais ou cor fora da paleta é recusado com mensagem (teste).
 
 ## Notas de implementação
+- Paleta `CLAN_COLORS` (18 cores) e `colourDistance`/`clanColoursProblem` em `packages/protocol/src/colors.ts` (o servidor do jogo usa a mesma distância no OG-408, limite `TEAM_COLOUR_MIN_DISTANCE` = 22). Colunas `primary_color`/`secondary_color` (migração 0038), `PATCH /clans/:tag` com `colors` (null tira); página do clã mostra as duas bandeiras. Sem auditoria à parte (a edição do clã nunca teve).

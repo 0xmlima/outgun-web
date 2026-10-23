@@ -373,6 +373,9 @@ export const clans = pgTable(
     /** Como a tag aparece junto do nome (OG-338): `CLAN_TAG_STYLES`. */
     tagStyle: text('tag_style').$type<ClanTagStyle>().notNull().default('paren'),
     description: text('description').notNull().default(''),
+    /** Cores do clã na partida (OG-407, RN-CLA-09): `#RRGGBB` da paleta `CLAN_COLORS`; nulas = sem cores. */
+    primaryColor: text('primary_color'),
+    secondaryColor: text('secondary_color'),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },

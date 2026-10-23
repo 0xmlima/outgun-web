@@ -1628,3 +1628,12 @@
   min-width: 16rem;
   resize: vertical;
 }
+
+/* cores do clã (OG-407): paleta em fileira e prévia do boneco e da bandeira */
+.clan-colors {
+  flex-wrap: wrap;
+}
+.clan-colors-preview {
+  gap: var(--space-4);
+  align-items: center;
+}

@@ -868,7 +868,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-404](cards/OG-404-bots-falam-no-chat.md) | Bots falam no chat conforme o que acontece na partida | E13 | 5 | Should | S42 | OG-403, OG-362 | Concluído |
 | [OG-405](cards/OG-405-webtransport-no-game-server.md) | WebTransport no game server, com o WebSocket de reserva | E11 | 5 | Should | — | OG-376 | Backlog |
 | [OG-406](cards/OG-406-cliente-webtransport-com-reserva.md) | Cliente escolhe WebTransport e cai no WebSocket sem o jogador perceber | E11 | 3 | Should | — | OG-405 | Backlog |
-| [OG-407](cards/OG-407-cores-do-cla.md) | Cores primária e secundária do clã | E9 | 3 | Should | S43 | OG-275 | Pronto |
+| [OG-407](cards/OG-407-cores-do-cla.md) | Cores primária e secundária do clã | E9 | 3 | Should | S43 | OG-275 | Em revisão |
 | [OG-408](cards/OG-408-identidade-do-time-na-partida.md) | Identidade do clã na partida: quando o lado vira o clã (servidor) | E9 | 3 | Should | S43 | OG-407 | Pronto |
 | [OG-409](cards/OG-409-time-com-a-cor-do-cla.md) | Time com a cor e o nome do clã na tela (cliente) | E9 | 5 | Should | S43 | OG-408 | Pronto |
 | [OG-410](cards/OG-410-numeros-de-jogador.md) | Números de jogador (2 a 99, o 1 para o líder do mês) | E9 | 5 | Should | S43 | OG-358 | Pronto |
