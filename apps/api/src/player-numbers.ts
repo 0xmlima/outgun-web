@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Números de jogador (OG-410, D-79, RN-NUM-01): únicos de 2 a 99, por ordem de chegada; troca a cada
-// 30 dias; quem fica 60 dias sem jogar perde o número (aviso 7 dias antes). O 1 é do líder do
+// Números de jogador (OG-410, D-79, RN-NUM-01): únicos de 2 a 99, por ordem de chegada; espera entre
+// trocas em NUMBER_COOLDOWN_DAYS (desligada por padrão desde a 2.43.1, pedido do PO); quem fica 60 dias sem jogar perde o número (aviso 7 dias antes). O 1 é do líder do
 // "Melhor do mês" da temporada anterior, de uso opcional, sem perder o número dele.
 import { and, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
@@ -10,7 +10,8 @@ import { notify } from './routes/notifications.js';
 
 export const NUMBER_MIN = 2;
 export const NUMBER_MAX = 99;
-export const NUMBER_CHANGE_COOLDOWN_MS = 30 * 24 * 60 * 60_000;
+/** Espera entre trocas de número: NUMBER_COOLDOWN_DAYS (0 = sem espera, o padrão desde a 2.43.1). */
+export const numberCooldownMs = () => Math.max(0, Number(process.env.NUMBER_COOLDOWN_DAYS ?? 0) || 0) * 24 * 60 * 60_000;
 export const NUMBER_IDLE_MS = 60 * 24 * 60 * 60_000;
 export const NUMBER_WARNING_MS = 7 * 24 * 60 * 60_000;
 
@@ -34,7 +35,7 @@ export interface NumberState {
 
 export async function numberState(db: Db, userId: string, now = new Date()): Promise<NumberState> {
   const [u] = await db.select({ n: users.playerNumber, at: users.numberChangedAt, one: users.useNumberOne, style: users.numberStyle }).from(users).where(eq(users.id, userId));
-  const until = u?.at ? new Date(u.at.getTime() + NUMBER_CHANGE_COOLDOWN_MS) : null;
+  const until = u?.at && numberCooldownMs() > 0 ? new Date(u.at.getTime() + numberCooldownMs()) : null;
   const eligible = (await previousPodium(db, userId)) === 1;
   return { number: u?.n ?? null, canChangeAt: until && until > now ? until.toISOString() : null, numberOneEligible: eligible, usingNumberOne: eligible && (u?.one ?? false), style: u?.style ?? 0, free: await freeNumbers(db) };
 }
@@ -46,7 +47,7 @@ export async function setNumber(db: Db, userId: string, number: number | null, n
   if (number !== null && (!Number.isInteger(number) || number < NUMBER_MIN || number > NUMBER_MAX)) return { ok: false, error: 'invalid_number' };
   const [u] = await db.select({ n: users.playerNumber, at: users.numberChangedAt }).from(users).where(eq(users.id, userId));
   if (u?.n === number) return { ok: true };
-  if (u?.n && u.at && now.getTime() - u.at.getTime() < NUMBER_CHANGE_COOLDOWN_MS) return { ok: false, error: 'number_cooldown' };
+  if (u?.n && u.at && now.getTime() - u.at.getTime() < numberCooldownMs()) return { ok: false, error: 'number_cooldown' };
   try {
     await db.update(users).set({ playerNumber: number, numberChangedAt: number === null ? u?.at ?? null : now, numberWarnedAt: null }).where(eq(users.id, userId));
     return { ok: true };

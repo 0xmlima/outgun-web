@@ -245,7 +245,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Number on your player': 'Número no seu boneco',
     'no number': 'sem número',
     'You can change it again on $1.': 'Você pode trocar de novo em $1.',
-    'From 2 to 99, one per player. Change once every 30 days; freed after 60 days without playing.': 'De 2 a 99, um por jogador. Troca uma vez a cada 30 dias; é liberado depois de 60 dias sem jogar.',
+    'From 2 to 99, one per player; freed after 60 days without playing.': 'De 2 a 99, um por jogador; é liberado depois de 60 dias sem jogar.',
     'Use number 1 (leader of last month)': 'Usar o número 1 (líder do mês passado)',
     'Only this month; your own number stays yours.': 'Só neste mês; o seu número continua seu.',
     'When at least 2 players of the clan are on one side and nobody from another clan, that side plays with the clan colors and tag (from the next round).': 'Quando há pelo menos 2 jogadores do clã num lado e ninguém de outro clã, esse lado joga com as cores e a tag do clã (a partir da rodada seguinte).',

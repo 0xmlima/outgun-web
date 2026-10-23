@@ -450,7 +450,7 @@ function NumberPanel() {
               </option>
             ))}
           </select>
-          <p className="ui-field-hint">{locked ? t('You can change it again on $1.', new Date(state.canChangeAt!).toLocaleDateString(prefs.locale)) : t('From 2 to 99, one per player. Change once every 30 days; freed after 60 days without playing.')}</p>
+          <p className="ui-field-hint">{locked ? t('You can change it again on $1.', new Date(state.canChangeAt!).toLocaleDateString(prefs.locale)) : t('From 2 to 99, one per player; freed after 60 days without playing.')}</p>
         </div>
         <div className="ui-field">
           <span className="ui-field-label" id="number-style">

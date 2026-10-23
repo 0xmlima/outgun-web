@@ -51,10 +51,14 @@ describe.skipIf(!pgAdminUrl)('números de jogador (OG-410)', () => {
     expect((await app.inject({ method: 'GET', url: '/account/number', headers: { cookie: cookies.Ana! } })).json().free).not.toContain(10);
   });
 
-  it('troca só a cada 30 dias', async () => {
+  it('sem espera por padrão (2.43.1); com NUMBER_COOLDOWN_DAYS=30, troca só a cada 30 dias', async () => {
+    expect((await put('Ana', '/account/number', { number: 12 })).json()).toMatchObject({ number: 12, canChangeAt: null });
+    expect((await put('Ana', '/account/number', { number: 10 })).json()).toMatchObject({ number: 10 });
+    process.env.NUMBER_COOLDOWN_DAYS = '30';
     expect((await put('Ana', '/account/number', { number: 11 })).json().error).toBe('number_cooldown');
     await t.db.update(users).set({ numberChangedAt: new Date(Date.now() - 31 * DAY) }).where(eq(users.id, ids.Ana!));
     expect((await put('Ana', '/account/number', { number: 11 })).json()).toMatchObject({ number: 11 });
+    delete process.env.NUMBER_COOLDOWN_DAYS;
   });
 
   it('60 dias sem jogar: aviso 7 dias antes e depois o número fica livre, com notificação', async () => {
