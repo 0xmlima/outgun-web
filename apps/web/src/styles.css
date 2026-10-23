@@ -328,10 +328,10 @@ body {
   padding: calc(var(--px) * 2px) calc(var(--px) * 4px);
 }
 .info-screen caption.tone-red {
-  background: #600000;
+  background: var(--info-red-bg, #600000);
 }
 .info-screen caption.tone-blue {
-  background: #000060;
+  background: var(--info-blue-bg, #000060);
 }
 .info-screen th,
 .info-screen td {
@@ -350,11 +350,12 @@ body {
 .info-screen p {
   margin: calc(var(--px) * 4px) 0 0;
 }
+/* lado que virou o clã (OG-409): as variáveis só existem com a cor do clã */
 .info-screen .tone-red {
-  color: #ff6060;
+  color: var(--info-red-text, #ff6060);
 }
 .info-screen .tone-blue {
-  color: #8080ff;
+  color: var(--info-blue-text, #8080ff);
 }
 .info-screen .tone-highlight {
   color: #00ff00;
@@ -477,17 +478,18 @@ body {
   margin: 0 0 var(--space-3);
   font-size: var(--text-lg);
 }
+/* --ranked-team: cor do clã quando o lado vira o clã (OG-408) */
 .ranked-team.red {
-  border-top: 4px solid var(--text-team-red);
+  border-top: 4px solid var(--ranked-team, var(--text-team-red));
 }
 .ranked-team.red h2 {
-  color: var(--text-team-red);
+  color: var(--ranked-team, var(--text-team-red));
 }
 .ranked-team.blue {
-  border-top: 4px solid var(--text-team-blue);
+  border-top: 4px solid var(--ranked-team, var(--text-team-blue));
 }
 .ranked-team.blue h2 {
-  color: var(--text-team-blue);
+  color: var(--ranked-team, var(--text-team-blue));
 }
 .ranked-team ul,
 .ranked-maps,

@@ -333,6 +333,47 @@ describe('Room: times (OG-044)', () => {
   });
 });
 
+describe('Room: o lado vira o clã (OG-408, D-78)', () => {
+  const DK = { id: 'dk', tag: 'DK', name: 'Dark Knights', primary: '#1E9E3A', secondary: '#E6E6E6' };
+  const joinClan = (r: Room, name: string, clan?: typeof DK) => {
+    const conn = new TestConnection();
+    const res = r.join(conn, { name, accountId: null, ...(clan ? { clanId: clan.id, clanTeam: clan } : {}) });
+    if (!res.ok) throw new Error(res.text);
+    r.handle(res.pid, [message('clientReady', {})]);
+    return { conn, pid: res.pid };
+  };
+  it('2 do clã no mesmo lado com a sala enchendo: vira o clã; quem chega depois vê no welcome; no meio da rodada não desfaz', () => {
+    const r = room();
+    const a = joinClan(r, 'Ana', DK);
+    joinClan(r, 'Bia');
+    const c = joinClan(r, 'Caio', DK);
+    expect(r.world.teamOf(a.pid)).toBe(r.world.teamOf(c.pid)); // times alternados: Ana e Caio juntos
+    const team = r.world.teamOf(a.pid);
+    r.tick(); // as mensagens saem no tick
+    expect(a.conn.of('teamIdentity').at(-1)).toMatchObject({ team, tag: 'DK', name: 'Dark Knights', color: '#1E9E3A' });
+    const late = joinClan(r, 'Duda');
+    r.tick();
+    expect(late.conn.of('teamIdentity')).toEqual([expect.objectContaining({ team, tag: 'DK' })]);
+    for (let i = 0; i < 320; i++) r.tick(); // passou dos 30 s: a rodada começou de verdade
+    const before = a.conn.of('teamIdentity').length;
+    r.leave(c.pid);
+    r.tick();
+    expect(a.conn.of('teamIdentity')).toHaveLength(before); // só muda na próxima rodada
+  });
+});
+
+describe('Room: número e estilo do número (OG-410, OG-413)', () => {
+  it('quem entra anuncia o número e o estilo; quem chega depois recebe os dos outros', () => {
+    const r = room();
+    const conn = new TestConnection();
+    const a = r.join(conn, { name: 'Ana', accountId: null, number: 44, numberStyle: 2 });
+    if (!a.ok) throw new Error(a.text);
+    const b = join(r, 'Bia');
+    r.tick();
+    expect(b.conn.of('playerNumber')).toContainEqual(expect.objectContaining({ pid: a.pid, number: 44, style: 2 }));
+  });
+});
+
 describe('Room: rotação e votação de mapas (OG-045)', () => {
   const rot = loadMaps(MAPS, ['outgun1', 'coliseu', 'sisso']);
   const make = () => new Room({ id: 'r', preset: 'classic', maps: rot, mapFiles: ['outgun1', 'coliseu', 'sisso'], maxPlayers: 8, seed: 7 });

@@ -58,6 +58,15 @@ export const users = pgTable(
     termsVersion: text('terms_version'),
     termsAcceptedAt: tstz('terms_accepted_at'),
     usernameChangedAt: tstz('username_changed_at'),
+    /** Número no boneco (OG-410, RN-NUM-01): único, 2..99. */
+    playerNumber: smallint('player_number'),
+    numberChangedAt: tstz('number_changed_at'),
+    /** Aviso de que o número vai ser liberado (7 dias antes dos 60 sem jogar). */
+    numberWarnedAt: tstz('number_warned_at'),
+    /** Líder do mês anterior usando o 1 (opcional, D-79). */
+    useNumberOne: boolean('use_number_one').notNull().default(false),
+    /** Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil. */
+    numberStyle: smallint('number_style').notNull().default(0),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
@@ -184,6 +193,13 @@ export const gameServers = pgTable('game_servers', {
   rotations: jsonb('rotations').$type<Partial<Record<RotationKey, string[]>>>().notNull().default({}),
 });
 
+/** Lado que virou o clã na partida (OG-409). */
+export interface MatchTeam {
+  tag: string;
+  name: string;
+  color: string | null;
+}
+
 export const matches = pgTable(
   'matches',
   {
@@ -213,6 +229,8 @@ export const matches = pgTable(
     /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bots substitutos, vagas vazias e quando. */
     substituteBots: smallint('substitute_bots').notNull().default(0),
     shortHanded: smallint('short_handed').notNull().default(0),
+    /** O clã que cada lado foi (OG-409): [vermelho, azul]; nulo = vermelho x azul. */
+    teamIdentity: jsonb('team_identity').$type<[MatchTeam | null, MatchTeam | null]>(),
     substitutions: jsonb('substitutions').$type<{ kind: 'bot' | 'short'; team: 0 | 1; atSeconds: number }[]>().notNull().default([]),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },
@@ -373,6 +391,9 @@ export const clans = pgTable(
     /** Como a tag aparece junto do nome (OG-338): `CLAN_TAG_STYLES`. */
     tagStyle: text('tag_style').$type<ClanTagStyle>().notNull().default('paren'),
     description: text('description').notNull().default(''),
+    /** Cores do clã na partida (OG-407, RN-CLA-09): `#RRGGBB` da paleta `CLAN_COLORS`; nulas = sem cores. */
+    primaryColor: text('primary_color'),
+    secondaryColor: text('secondary_color'),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
@@ -490,7 +511,7 @@ export const matchEventPlayers = pgTable(
 );
 
 /** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã; marcos novos de uma partida (OG-394). */
-export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone';
+export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released';
 /** Clã (tag e nome) e quem convidou ou pediu; nos marcos, os ids e o texto dos secretos (o cliente não tem o catálogo deles). */
 export interface NotificationData {
   clanTag?: string;
@@ -498,6 +519,8 @@ export interface NotificationData {
   from?: string;
   milestones?: string[];
   secretNames?: Record<string, { 'pt-BR': string; en: string }>;
+  /** Número a expirar ou liberado (OG-410). */
+  number?: number;
 }
 export const notifications = pgTable(
   'notifications',

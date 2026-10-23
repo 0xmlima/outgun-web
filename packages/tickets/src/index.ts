@@ -17,8 +17,10 @@ export interface TicketClaims {
   /** Nome em jogo (convidado já com o sufixo `*`). */
   name: string;
   clan: string | null;
-  /** Id do clã cadastrado (OG-253; só nas salas Ranked): agrupa o clã do mesmo lado no lobby. */
+  /** Id do clã cadastrado (OG-253): agrupa o clã do mesmo lado no lobby Ranked; desde o OG-408 vai também no Casual. */
   clanId?: string;
+  /** Clã com cores (OG-408): tag sem decoração, nome e as cores, para o lado virar o clã na partida. */
+  clanTeam?: { tag: string; name: string; primary: string; secondary: string };
   /** Tem conta (requisito do Ranked, RN-MOD-03). */
   acct: boolean;
   admin: boolean;
@@ -30,6 +32,12 @@ export interface TicketClaims {
   skill?: TicketSkill;
   /** Nível do bot que substitui a conta se ela sair de vez (OG-266, 1..5; só nas salas Ranked). */
   botLevel?: number;
+  /** Pódio (1..3) do "Melhor do mês" do mês anterior (OG-411): libera a cor da medalha. */
+  medal?: number;
+  /** Número no boneco (OG-410): 2..99 da conta, ou 1 para o líder do mês anterior que o usa. */
+  number?: number;
+  /** Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil. */
+  numberStyle?: number;
   /**
    * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.

@@ -2,6 +2,7 @@
 // Tema gráfico das salas: cores (de fábrica + `colours.txt` do tema) e texturas de chão e parede
 // (src/graphics.cpp:2870-2922, plan/specs/render-salas.md).
 import { ASSETS, loadImage, type Manifest } from '../../assets.js';
+import { EXTRA_COLOUR_DEFAULTS } from '@outgun/protocol';
 
 /** IDs 0..7 das texturas de chão (RN-MAP-04). */
 export const FLOOR_TEXTURES = [
@@ -51,7 +52,8 @@ export function themeColours(
   defaults: Readonly<Record<string, string>>,
   themeColours: Readonly<Record<string, string>> | undefined,
 ): Record<string, string> {
-  return { ...defaults, ...themeColours };
+  // as cores novas (OG-411) valem também nos temas do original, que só definem as 16
+  return { ...EXTRA_COLOUR_DEFAULTS, ...defaults, ...themeColours };
 }
 
 /**

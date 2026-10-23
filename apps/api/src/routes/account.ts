@@ -4,7 +4,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
-import { checkRegisteredName } from '@outgun/protocol';
+import { ALL_COLORS, checkRegisteredName } from '@outgun/protocol';
 import { isCommonPassword } from '../auth/common-passwords.js';
 import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/names.js';
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
@@ -16,6 +16,8 @@ import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
 import { securityEvent } from '../security.js';
+import { numberState, setNumber } from '../player-numbers.js';
+import { previousPodium } from '../ranking.js';
 
 /** Nome que substitui o do jogador nas partidas de uma conta excluída. */
 export const ANONYMOUS_NAME = '(anon)';
@@ -124,6 +126,60 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
       },
     );
 
+    // número de jogador (OG-410, D-79): 2..99 único, troca a cada 30 dias; o 1 opcional do líder do mês
+    const NumberState = Type.Object({
+      number: Type.Union([Type.Integer(), Type.Null()]),
+      canChangeAt: Type.Union([Type.String(), Type.Null()]),
+      numberOneEligible: Type.Boolean(),
+      usingNumberOne: Type.Boolean(),
+      style: Type.Integer(),
+      free: Type.Array(Type.Integer()),
+    });
+    app.get('/number', { schema: { tags: ['contas'], summary: 'Meu número de jogador, os livres e o 1 do líder do mês (OG-410)', response: { 200: NumberState, 401: ErrorSchema } } }, async (request, reply) => {
+      const user = await requireUser(request, reply);
+      if (!user) return reply;
+      return numberState(db, user.id);
+    });
+    app.put(
+      '/number',
+      {
+        schema: {
+          tags: ['contas'],
+          summary: 'Escolhe (ou tira, com null) o número de 2 a 99; troca a cada 30 dias',
+          body: Type.Object({ number: Type.Union([Type.Integer({ minimum: 2, maximum: 99 }), Type.Null()]) }),
+          response: { 200: NumberState, 400: ErrorSchema, 401: ErrorSchema, 409: ErrorSchema, 429: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const r = await setNumber(db, user.id, request.body.number);
+        if (!r.ok) return reply.code(r.error === 'number_taken' ? 409 : r.error === 'number_cooldown' ? 429 : 400).send({ error: r.error, message: r.error.replace('_', ' ') });
+        return numberState(db, user.id);
+      },
+    );
+    app.put(
+      '/number-style',
+      { schema: { tags: ['contas'], summary: 'Estilo do número (OG-413): 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil', body: Type.Object({ style: Type.Integer({ minimum: 0, maximum: 3 }) }), response: { 200: NumberState, 401: ErrorSchema } } },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        await db.update(users).set({ numberStyle: request.body.style }).where(eq(users.id, user.id));
+        return numberState(db, user.id);
+      },
+    );
+    app.put(
+      '/number-one',
+      { schema: { tags: ['contas'], summary: 'Líder do mês anterior: usar (ou não) o número 1', body: Type.Object({ use: Type.Boolean() }), response: { 200: NumberState, 401: ErrorSchema, 403: ErrorSchema } } },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        if (request.body.use && (await previousPodium(db, user.id)) !== 1) return reply.code(403).send({ error: 'not_number_one', message: 'only last month leader uses number 1' });
+        await db.update(users).set({ useNumberOne: request.body.use }).where(eq(users.id, user.id));
+        return numberState(db, user.id);
+      },
+    );
+
     app.get(
       '/settings',
       {
@@ -159,7 +215,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         if (JSON.stringify(settings).length > 16 * 1024) return reply.code(413).send({ error: 'too_large', message: 'settings too large' });
         // as favoritas também ficam na coluna própria (lista de 0..15)
         const colors = Array.isArray(settings.favoriteColors)
-          ? settings.favoriteColors.filter((c): c is number => Number.isInteger(c) && (c as number) >= 0 && (c as number) < 16).slice(0, 16)
+          ? settings.favoriteColors.filter((c): c is number => Number.isInteger(c) && (c as number) >= 0 && (c as number) < ALL_COLORS).slice(0, ALL_COLORS)
           : undefined;
         const set = { settings, ...(colors ? { favoriteColors: colors } : {}), updatedAt: new Date() };
         await db.insert(playerProfiles).values({ userId: user.id, ...set }).onConflictDoUpdate({ target: playerProfiles.userId, set });

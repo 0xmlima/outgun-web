@@ -35,7 +35,7 @@ export async function clanStaff(tx: Db | Tx, clanId: string): Promise<string[]> 
 
 const Notification = Type.Object({
   id: Type.String(),
-  kind: Type.Union([Type.Literal('clan_invite'), Type.Literal('clan_request'), Type.Literal('milestone')]),
+  kind: Type.Union([Type.Literal('clan_invite'), Type.Literal('clan_request'), Type.Literal('milestone'), Type.Literal('number_expiring'), Type.Literal('number_released')]),
   data: Type.Object({
     clanTag: Type.Optional(Type.String()),
     clanName: Type.Optional(Type.String()),
@@ -43,6 +43,8 @@ const Notification = Type.Object({
     /** Marcos novos da partida (OG-394) e o texto dos secretos entre eles. */
     milestones: Type.Optional(Type.Array(Type.String())),
     secretNames: Type.Optional(Type.Record(Type.String(), Type.Object({ 'pt-BR': Type.String(), en: Type.String() }))),
+    /** Número a expirar ou liberado (OG-410). */
+    number: Type.Optional(Type.Integer()),
   }),
   createdAt: Type.String(),
   read: Type.Boolean(),

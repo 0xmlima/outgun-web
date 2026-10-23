@@ -37,6 +37,8 @@ import {
 import { pfScale, roomOffsetsX, roomOffsetsY, type RoomLayout } from './layout.js';
 import type { EntitySprites } from './sprites.js';
 import { colour, type RoomTheme } from './theme.js';
+import { ALL_COLORS, colourKey, isMedalColor } from '@outgun/protocol';
+import { lightColour, NUMBER_BOX, NUMBER_STYLES, paintNumber } from './number-styles.js';
 
 interface Effect {
   readonly kind: EffectKind | 'smoke' | 'turbo';
@@ -48,6 +50,11 @@ interface Effect {
 }
 
 const random = Math.random;
+
+/** Raio do boneco na tela abaixo do qual o número não aparece (OG-410). */
+const NUMBER_MIN_RADIUS = 9;
+/** Lado da textura de cada número (OG-413): nítida até o zoom máximo. */
+const NUMBER_TEXTURE = 128;
 
 export class EntityRenderer {
   readonly stage = new Container();
@@ -64,12 +71,14 @@ export class EntityRenderer {
   private topLeft!: WorldCoords;
   /** `Show player names` (`Menu_graphics::showName`, OG-068). */
   showNames: 'never' | 'sameRoom' | 'always' = 'sameRoom';
+  /** Números nos bonecos (OG-410): o jogador pode desligar nos Gráficos. */
+  showNumbers = true;
   /** Opções gráficas avançadas (OG-070). */
   graphics: GraphicsOptions = DEFAULT_GRAPHICS;
 
   constructor(
     private readonly theme: RoomTheme,
-    private readonly sprites: EntitySprites,
+    private sprites: EntitySprites,
     /** Fonte bitmap instalada no PixiJS para nomes e contagens; `null` = sem texto. */
     private readonly font: { family: string; height: number } | null,
   ) {
@@ -82,6 +91,14 @@ export class EntityRenderer {
   /** Efeito criado por evento (foguete acertou jogador ou parede). */
   addEffect(kind: EffectKind, pos: WorldCoords, team: number, time: number): void {
     this.effects.push({ kind, pos, time, team, alpha: 1 });
+  }
+
+  /** Texturas dos números (OG-413), por estilo, número e contraste. */
+  private readonly numberTextures = new Map<string, Texture>();
+
+  /** Texturas refeitas com as cores do clã (OG-409). */
+  setSprites(sprites: EntitySprites): void {
+    this.sprites = sprites;
   }
 
   private c(name: string): string {
@@ -336,7 +353,7 @@ export class EntityRenderer {
     if (alpha <= 0) return;
     const L = this.list;
     let pc1 = this.c(p.team === 0 ? 'team_red_basic' : 'team_blue_basic');
-    let pc2 = p.color >= 16 ? this.c('player_unknown') : this.c(`player${String(p.color + 1).padStart(2, '0')}`);
+    let pc2 = p.color >= ALL_COLORS ? this.c('player_unknown') : this.c(colourKey(p.color));
     const hit = trail ? null : hitColour(this.c('player_hit'), p.hitfx, t);
     const power = !trail && p.power && powerBlink(t);
     if (hit) pc1 = pc2 = hit;
@@ -345,7 +362,7 @@ export class EntityRenderer {
       pc2 = this.c('player_power_personal');
     }
     let sprite: Texture | null = null;
-    if (p.gundir >= 0 && p.color < 16) sprite = power && this.sprites.playerPower ? this.sprites.playerPower : (this.sprites.player?.[p.team]?.[p.color] ?? null);
+    if (p.gundir >= 0 && p.color < ALL_COLORS) sprite = power && this.sprites.playerPower ? this.sprites.playerPower : (this.sprites.player?.(p.team, p.color) ?? null);
     for (const [x, y] of this.at(pos)) {
       if (sprite) {
         const s = L.sprite(sprite, x, y, this.pfd(PLAYER_SPRITE_SIZE), gunAngle(p.gundir), alpha / 255);
@@ -357,6 +374,8 @@ export class EntityRenderer {
       const R = this.pf(PLAYER_RADIUS);
       g.circle(x, y, R).fill({ color: pc1, alpha: a });
       g.circle(x, y, (R * 2) / 3).fill({ color: pc2, alpha: a });
+      // medalha (OG-411): brilho metálico na metade de cima do miolo
+      if (isMedalColor(p.color) && !hit && !power) g.ellipse(x, y - R / 4, R / 2.4, R / 4.5).fill({ color: 0xffffff, alpha: 0.45 * a });
       if (p.gundir >= 0) {
         const ang = gunAngle(p.gundir);
         const gdx = Math.cos(ang);
@@ -384,6 +403,7 @@ export class EntityRenderer {
       this.effects.push({ kind: 'turbo', pos: p.pos, time: t, team: p.team, alpha: p.alpha / 255, player: { ...p, hitfx: 0, power: false } });
     }
     this.drawPlayerBody(p, p.pos, t, p.alpha, false);
+    if (p.number && this.showNumbers) this.drawNumber(p);
     if (p.deathbringer && t > (this.nextSmoke.get(p.pid) ?? 0)) {
       this.nextSmoke.set(p.pid, t + 0.01);
       this.addSmoke(p.pos, p.team, p.alpha, t, false);
@@ -495,6 +515,31 @@ export class EntityRenderer {
       }
   }
 
+  /**
+   * Número no centro do boneco (OG-410, RN-NUM-01) no estilo escolhido (OG-413), com contraste
+   * automático; a textura de cada (estilo, número, claro/escuro) é montada uma vez. Some com o
+   * zoom muito afastado (vira borrão).
+   */
+  private drawNumber(p: PlayerView): void {
+    const R = this.pf(PLAYER_RADIUS);
+    if (R < NUMBER_MIN_RADIUS) return;
+    const style = NUMBER_STYLES[p.numberStyle ?? 0] ?? NUMBER_STYLES[0]!;
+    const personal = p.color < ALL_COLORS ? this.c(colourKey(p.color)) : '#808080';
+    const light = lightColour(personal);
+    const key = `${style.id}|${p.number}|${light ? 1 : 0}`;
+    let tex = this.numberTextures.get(key);
+    if (!tex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = NUMBER_TEXTURE;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(NUMBER_TEXTURE / 2, NUMBER_TEXTURE / 2);
+      paintNumber(ctx, String(p.number), style, light, NUMBER_TEXTURE / NUMBER_BOX);
+      this.numberTextures.set(key, (tex = Texture.from(canvas)));
+    }
+    const size = R * 1.15 * NUMBER_BOX;
+    for (const [x, y] of this.at(p.pos)) this.list.sprite(tex, x, y, size, 0, p.alpha / 255);
+  }
+
   private drawName(p: PlayerView): void {
     if (!this.font) return;
     const dark = this.c(p.team === 0 ? 'team_red_dark' : 'team_blue_dark');
@@ -507,6 +552,7 @@ export class EntityRenderer {
   }
 
   destroy(): void {
+    for (const t of this.numberTextures.values()) t.destroy(true);
     this.list.destroy();
     this.carrierTexture?.texture.destroy(true);
     this.stage.destroy({ children: true });

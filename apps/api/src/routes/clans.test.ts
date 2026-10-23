@@ -10,6 +10,7 @@ import { clanMembers } from '../db/schema.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
 import { leaveClan } from './clans.js';
+import { CLAN_COLORS } from '@outgun/protocol';
 
 const ORIGIN = 'http://localhost:5173';
 const PASSWORD = 'senha-boa-123';
@@ -109,6 +110,17 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await me('Sozinho')).clanLabel).toBe('Dk.');
     expect((await call('DELETE', '/clans/Dk', undefined, 'Sozinho')).statusCode).toBe(204);
     expect((await me('Sozinho')).clanLabel).toBeNull();
+  });
+
+  it('cores do clã (OG-407): líder e admins escolhem da paleta; par parecido ou fora da paleta recusado; null tira', async () => {
+    const red = CLAN_COLORS.red!;
+    const white = CLAN_COLORS.white!;
+    expect((await call('PATCH', '/clans/NX', { colors: { primary: red, secondary: white } }, 'Memb1')).statusCode).toBe(403);
+    expect((await call('PATCH', '/clans/NX', { colors: { primary: CLAN_COLORS.blue!, secondary: CLAN_COLORS.purple! } }, 'Lider')).json().error).toBe('clan_colors_too_similar');
+    expect((await call('PATCH', '/clans/NX', { colors: { primary: '#123456', secondary: white } }, 'Lider')).json().error).toBe('invalid_clan_color');
+    expect((await call('PATCH', '/clans/NX', { colors: { primary: red.toLowerCase(), secondary: white } }, 'Adm1')).json().clan.colors).toEqual({ primary: red, secondary: white });
+    expect((await clan('NX')).colors).toEqual({ primary: red, secondary: white });
+    expect((await call('PATCH', '/clans/NX', { colors: null }, 'Lider')).json().clan.colors).toBeNull();
   });
 
   it('expulsar: admin só expulsa membro comum; ninguém expulsa o líder', async () => {

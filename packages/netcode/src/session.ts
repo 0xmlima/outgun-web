@@ -109,6 +109,13 @@ function clonePlayer(src: PlayerState): PlayerState {
   return p;
 }
 
+/** Lado que virou o clã (OG-408): tag, nome e a cor (null = a padrão do lado). */
+export interface TeamIdentityView {
+  tag: string;
+  name: string;
+  color: string | null;
+}
+
 export class ClientSession {
   /** Meu pid; −1 antes do `welcome`. */
   me = -1;
@@ -130,6 +137,14 @@ export class ClientSession {
   readonly present = new Set<number>();
   /** Pids que são bots (`playerJoined.bot`): a IA não depende mais do prefixo do nome (OG-403). */
   readonly bots = new Set<number>();
+  /** O clã que cada lado é nesta rodada (`teamIdentity`, OG-408); null = vermelho/azul. */
+  readonly teamIdentity: [TeamIdentityView | null, TeamIdentityView | null] = [null, null];
+  /** Muda a cada `teamIdentity`: o cliente refaz cores e texturas. */
+  teamIdentityVersion = 0;
+  /** Número de cada jogador (`playerNumber`, OG-410). */
+  readonly numbers = new Map<number, number>();
+  /** Estilo do número de cada jogador (OG-413). */
+  readonly numberStyles = new Map<number, number>();
   readonly frags = new Map<number, number>();
   /** Cor pessoal de cada jogador 0..15 (`welcome`, `playerJoined`, `playerInfo`, `teamChange`). */
   readonly colors = new Map<number, number>();
@@ -444,12 +459,23 @@ export class ClientSession {
         this.clanTags.delete(m.pid);
         this.setName(m.pid, m.name);
         this.colors.set(m.pid, m.color);
+        this.numbers.delete(m.pid);
         if (m.bot) this.bots.add(m.pid);
         else this.bots.delete(m.pid);
         this.ensurePlayer(m.pid);
         break;
       case 'playerName':
         this.setName(m.pid, m.name);
+        break;
+      case 'playerNumber':
+        this.numbers.set(m.pid, m.number);
+        this.numberStyles.set(m.pid, m.style);
+        break;
+      case 'teamIdentity':
+        if (m.team === 0 || m.team === 1) {
+          this.teamIdentity[m.team] = m.tag ? { tag: m.tag, name: m.name, color: m.color || null } : null;
+          this.teamIdentityVersion++;
+        }
         break;
       case 'playerClan':
         this.clanTags.set(m.pid, m.tag);
@@ -463,6 +489,7 @@ export class ClientSession {
         this.names.delete(m.pid);
         this.plainNames.delete(m.pid);
         this.bots.delete(m.pid);
+        this.numbers.delete(m.pid);
         this.clanTags.delete(m.pid);
         this.present.delete(m.pid);
         this.posUpdated.delete(m.pid);
@@ -538,7 +565,8 @@ export class ClientSession {
     const { from, to } = m;
     const swap = m.swappedColor !== 255;
     const world = this.world;
-    const maps: Map<number, unknown>[] = [this.names, this.plainNames, this.clanTags, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil];
+    // o número e o estilo (OG-410/413) também mudam de lugar com o jogador
+    const maps: Map<number, unknown>[] = [this.names, this.plainNames, this.clanTags, this.frags, this.colors, this.posUpdated, this.pings, this.hitUntil, this.numbers, this.numberStyles];
     for (const map of maps) {
       const a = map.get(from);
       const b = map.get(to);
@@ -547,10 +575,12 @@ export class ClientSession {
       if (a !== undefined) map.set(to, a);
       if (swap && b !== undefined) map.set(from, b);
     }
-    const onA = this.onscreen.delete(from);
-    const onB = this.onscreen.delete(to);
-    if (onA) this.onscreen.add(to);
-    if (swap && onB) this.onscreen.add(from);
+    for (const set of [this.onscreen, this.bots]) {
+      const onA = set.delete(from);
+      const onB = set.delete(to);
+      if (onA) set.add(to);
+      if (swap && onB) set.add(from);
+    }
     if (!swap) this.present.delete(from);
     this.present.add(to);
     if (world) {

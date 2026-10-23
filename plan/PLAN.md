@@ -610,6 +610,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S40 | v2: tela de moderação simples para qualquer moderador (mapas do painel em "Criar sala", rotações a partir da atual e por modo, presets em formulário) primeiro; enxugar o legado (sem finlandês e italiano, revisão das opções); depois relatório no visual novo, estudo do servidor acima de 10 Hz (D-74) e quadro de baixa latência | OG-377, OG-378, OG-383, OG-382, OG-384, OG-385, OG-386, OG-388, OG-389, OG-380, OG-375, OG-374 | |
 | S41 | v2: marcos — ~50 novos a partir dos stats e eventos (vitórias, tempo, bandeira, defesa, combate, armas, ranked por formato, mapas, dupla), 14 secretos raros (dois do 7x1 e a virada histórica), marcos de humor, perfil no jogo por grupo com progresso e raridade, ícones e conquistas da Steam espelhando os marcos | OG-390, OG-391, OG-398, OG-399, OG-392, OG-395, OG-393, OG-394, OG-396, OG-397; 2.41.1: OG-400, OG-401; 2.41.2: OG-402 | |
 | S42 | v2: salas com cara de jogo real — nomes e prefixo dos bots no painel e bots que falam no chat conforme a partida; filtro de nomes nos jogadores; portal ao vivo; logs de segurança e alertas; estudo do WebTransport | OG-276, OG-403, OG-404, OG-313, OG-284, OG-376 | |
+| S43 | v2: personalização — cores do clã (o lado vira o clã: "CLÃ x AZUL"), números de jogador como na F1 (o 1 para o líder do mês) e 32 cores pessoais com dourado, prateado e bronze para o top 3 | OG-412, OG-411, OG-407, OG-408, OG-409, OG-410, OG-413 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -867,8 +868,16 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-404](cards/OG-404-bots-falam-no-chat.md) | Bots falam no chat conforme o que acontece na partida | E13 | 5 | Should | S42 | OG-403, OG-362 | Concluído |
 | [OG-405](cards/OG-405-webtransport-no-game-server.md) | WebTransport no game server, com o WebSocket de reserva | E11 | 5 | Should | — | OG-376 | Backlog |
 | [OG-406](cards/OG-406-cliente-webtransport-com-reserva.md) | Cliente escolhe WebTransport e cai no WebSocket sem o jogador perceber | E11 | 3 | Should | — | OG-405 | Backlog |
+| [OG-407](cards/OG-407-cores-do-cla.md) | Cores primária e secundária do clã | E9 | 3 | Should | S43 | OG-275 | Concluído |
+| [OG-408](cards/OG-408-identidade-do-time-na-partida.md) | Identidade do clã na partida: quando o lado vira o clã (servidor) | E9 | 3 | Should | S43 | OG-407 | Concluído |
+| [OG-409](cards/OG-409-time-com-a-cor-do-cla.md) | Time com a cor e o nome do clã na tela (cliente) | E9 | 5 | Should | S43 | OG-408 | Concluído |
+| [OG-410](cards/OG-410-numeros-de-jogador.md) | Números de jogador (2 a 99, o 1 para o líder do mês) | E9 | 5 | Should | S43 | OG-358 | Concluído |
+| [OG-411](cards/OG-411-mais-cores-pessoais.md) | 32 cores pessoais e as medalhas do top 3 | E9 | 3 | Should | S43 | OG-358 | Concluído |
+| [OG-412](cards/OG-412-notificacoes-atras-do-tocador.md) | Notificações atrás do tocador de música | E8 | 1 | Must | S43 | OG-361 | Concluído |
+| [OG-413](cards/OG-413-estilos-do-numero.md) | Estilos do número do jogador | E9 | 3 | Should | S43 | OG-410 | Concluído |
+| [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | — | OG-409 | Backlog |
 
-**Total:** 248 cards, 826 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 179 cards, 531 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 256 cards, 851 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 187 cards, 556 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -966,6 +975,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-75 | **v2** — Registro de eventos no Casual | Só ranqueadas (OG-362) / também Casual | ✅ **Decidido pelo PO em 2026-10-22 (OG-381, 2.39.1):** os eventos são gravados também no Casual e aparecem no relatório; leaderboard, hall da fama e "quem matou quem" do perfil seguem só com ranqueadas. | PO |
 | D-76 | **v2** — Idiomas do jogo | Manter os 4 do original / só pt-BR e inglês | ✅ **Decidido pelo PO em 2026-10-22:** finlandês e italiano saem (OG-384): legado para uma parcela mínima da comunidade de 20 anos atrás, sem os textos novos da v2. Preferência antiga cai no idioma do navegador. | PO |
 | D-77 | **v2** — Como as conquistas chegam à Steam | Espelho pelo app desktop (`steamworks.js`, conquista = marco da conta) / Web API do servidor (vincular SteamID, chave de publisher) | ✅ **Decidido pelo PO em 2026-10-23:** espelho pelo app (OG-396): sem vínculo de SteamID nem chave no servidor e retroativo de graça; uma conta Steam que use duas contas do Outgun soma as conquistas das duas. | PO |
+| D-78 | **v2** — Quando o lado da partida vira o clã | Só com o lado inteiro do clã / com 2 humanos do clã, sem outro clã no lado | ✅ **Decidido pelo PO em 2026-10-23 (S43):** bots e humanos sem clã não contam; ≥ 2 humanos do mesmo clã num lado e nenhum humano de outro clã, e o lado vira o clã (tag e cor). Ex.: 3x3 com 2 do DK + 1 sem clã de um lado e 2 do DT + 1 bot do outro: DK x DT. Dois clãs no mesmo lado: cor padrão. Casual: decidido no início de cada rodada (e enquanto a sala enche: 0 x 0 nos primeiros 30 s) e fixo até ela acabar; mudanças no meio valem na próxima. Ranked: decidido no lobby, com os lados já montados, e fixo o jogo todo (queda e bot substituto não desfazem). Ajustado pelo PO em 2026-10-23. Cor: primária; parecida com a do outro lado → secundária; as duas → cor padrão. Casual e Ranked. | PO |
+| D-79 | **v2** — Números de jogador e medalhas | — | ✅ **Decidido pelo PO em 2026-10-23 (S43):** números únicos de 2 a 99, troca a cada 30 dias, liberados depois de 60 dias sem jogar; o 1 é do líder do "Melhor do mês" (índice geral) do mês anterior e o uso é opcional; dourado, prateado e bronze para o top 3 desse índice no mês seguinte; paleta pessoal de 32 cores (sem cor livre). | PO |
 
 ---
 
@@ -1075,6 +1086,8 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-CLA-06 | Estatísticas do clã contam as partidas clã x clã (RN-RKL-14) e os números dos membros enquanto eram do clã; vale o clã do momento da partida. |
 | RN-CLA-07 | Há ranking de clãs por temporada e geral, baseado nas partidas clã x clã (critério na D-47). |
 | RN-CLA-08 | Nome, tag e descrição de clã passam pelo filtro de nomes; moderadores podem forçar troca ou dissolver, com auditoria. |
+| RN-CLA-09 | O clã tem cor primária e secundária (paleta curada). Na partida, um lado com ≥ 2 humanos do mesmo clã e nenhum humano de outro clã (bots e humanos sem clã não contam) vira o clã a partir da rodada seguinte: tudo o que era da cor do lado passa à cor do clã e o nome do lado vira a tag (D-78). |
+| RN-NUM-01 | Número de jogador único de 2 a 99, no centro do boneco; troca a cada 30 dias e liberado depois de 60 dias sem jogar. O 1 é do líder do "Melhor do mês" do mês anterior, de uso opcional (D-79). |
 | RN-RKL-22 | Temporadas são **mensais**: viram automaticamente no dia 1 às 00:00 (Brasília) e guardam a classificação final (D-48). **D-66:** desde novembro/2026 a temporada é o leaderboard mensal (RN-LDB). |
 | RN-RKL-23 | Há um ranking **geral** de todas as temporadas (soma de score e neg), também por formato. **Descontinuada (D-66):** dados guardados; o "sempre" do leaderboard (RN-LDB-01) ocupa o lugar. |
 | RN-RKL-24 | **Hall da fama:** os 3 primeiros de cada temporada encerrada no geral, em cada formato e entre os clãs, com selo no perfil e na página do clã. **D-66:** desde novembro/2026, pelos stats do leaderboard (RN-LDB-05). |

@@ -7,6 +7,7 @@ import { connect } from './db/client.js';
 import { migrateUp } from './db/migrate.js';
 import { rollSeason } from './ranking.js';
 import { connectRedis } from './redis.js';
+import { releaseIdleNumbers } from './player-numbers.js';
 
 const config = loadConfig();
 const database = connect(config.databaseUrl);
@@ -26,6 +27,12 @@ await checkSeason();
 const seasonTimer = setInterval(() => void checkSeason(), 60_000);
 // vigia (OG-313): disco e backup a cada 15 min, se a pasta de status do backup estiver montada
 const statusDir = config.backupStatusDir;
+// números de quem parou de jogar (OG-410): confere a cada hora (idempotente)
+const releaseNumbers = () => releaseIdleNumbers(database.db).then(
+  (r) => (r.warned || r.released) && app.log.info(r, 'números de jogador: avisos e liberações'),
+  (err: unknown) => app.log.error({ err }, 'falha ao liberar números'),
+);
+const numbersTimer = setInterval(() => void releaseNumbers(), 60 * 60_000);
 const watchTimer = statusDir ? setInterval(() => void app.security.check(statusDir), 15 * 60_000) : undefined;
 if (process.env.NODE_ENV === 'production' && !config.metricsToken) app.log.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 
@@ -40,6 +47,7 @@ const shutdown = async (graceS: number) => {
   lifecycle.stopping = true;
   clearInterval(seasonTimer);
   clearInterval(watchTimer);
+  clearInterval(numbersTimer);
   if (graceS > 0) await new Promise((r) => setTimeout(r, graceS * 1000));
   await app.close();
   redis?.disconnect();

@@ -78,6 +78,7 @@ export class OnlineHud {
       timeLimit: Math.trunc(w.timeLimit / 600),
       extraTime: Math.trunc(w.extraTime / 600),
       mapCount: s.mapList.length,
+      teamTag: (team) => s.teamIdentity[team]?.tag ?? null,
     };
   }
 
@@ -106,7 +107,7 @@ export class OnlineHud {
     if (!p || p.phase === 'none') return null;
     const t = this.t;
     const ctx = this.context();
-    const team = (n: number) => t(n === 0 ? 'Red' : 'Blue');
+    const team = (n: number) => this.session.teamIdentity[n as 0 | 1]?.tag ?? t(n === 0 ? 'Red' : 'Blue');
     const name = p.by !== 255 ? ctx.name(p.by) : '';
     const footer = t('Pause left - Red: $1 s ($2) Blue: $3 s ($4)', String(p.redSeconds), String(p.redRequests), String(p.blueSeconds), String(p.blueRequests));
     if (p.phase === 'resuming') return { title: t('Resuming in $1', String(p.seconds)), detail: '', options: null, footer, hint: null };
@@ -310,6 +311,7 @@ export class OnlineHud {
       map: fx.map,
       time,
       maxPlayers: fx.maxPlayers,
+      teamNames: [this.session.teamIdentity[0]?.tag ?? null, this.session.teamIdentity[1]?.tag ?? null],
       players: ordered,
       flags,
       oldFlags,

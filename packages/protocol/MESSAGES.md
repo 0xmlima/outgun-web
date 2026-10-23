@@ -103,6 +103,8 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 128 | [`substituteVote`](#substitutevote) | cliente → servidor | event | — (web, OG-262) | Voto do time desfalcado: bot no lugar (bot) ou seguir com um a menos. |
 | 129 | [`casualBots`](#casualbots) | cliente → servidor | event | — (web, OG-289) | Dono da sala privada ou admin: quantidade de bots e nível (1–5; 0 = variável) para a próxima partida; com `restart`, reinicia já. |
 | 130 | [`casualConfig`](#casualconfig) | servidor → cliente | event | — (web, OG-289) | Só para o dono e admins numa sala Casual (a chegada habilita a configuração no cliente): bots e nível em vigor e se há mudança pendente para a próxima partida. |
+| 131 | [`teamIdentity`](#teamidentity) | servidor → cliente | event | — (web, OG-408) | Um lado virou o clã nesta rodada (≥ 2 humanos do mesmo clã e nenhum de outro clã): tag e nome do clã e a cor do lado (`#RRGGBB`; vazia = a cor padrão do lado). Tag vazia = o lado voltou a ser vermelho/azul. No `welcome` de quem entra e a cada rodada que muda. |
+| 132 | [`playerNumber`](#playernumber) | servidor → cliente | event | — (web, OG-410) | Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem. |
 
 ## Campos
 
@@ -240,7 +242,7 @@ Código 20. Troca de nome (convidados; contas usam o nome da conta).
 
 Código 21. Cores preferidas, em ordem.
 
-- `colors`: lista (até 16) de u8
+- `colors`: lista (até 35) de u8
 
 ### minimapBandwidth
 
@@ -801,6 +803,23 @@ Código 130. Só para o dono e admins numa sala Casual (a chegada habilita a con
 - `bots`: u8
 - `level`: u8
 - `pending`: bool (u8 0/1)
+
+### teamIdentity
+
+Código 131. Um lado virou o clã nesta rodada (≥ 2 humanos do mesmo clã e nenhum de outro clã): tag e nome do clã e a cor do lado (`#RRGGBB`; vazia = a cor padrão do lado). Tag vazia = o lado voltou a ser vermelho/azul. No `welcome` de quem entra e a cada rodada que muda.
+
+- `team`: u8
+- `tag`: string (UTF-8, até 8 bytes)
+- `name`: string (UTF-8, até 24 bytes)
+- `color`: string (UTF-8, até 7 bytes)
+
+### playerNumber
+
+Código 132. Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.
+
+- `pid`: pid (u8, 0..31)
+- `number`: u8
+- `style`: u8
 
 ## Mensagens do original que não existem aqui
 

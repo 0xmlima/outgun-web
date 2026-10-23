@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { DEFAULT_HUD_CUSTOM, HUD_STYLES, parseHudCustom, type HudCustom, type HudStyle } from '../game/hud/hud-style.js';
 import { CHORD_WINDOW_DEFAULT_MS, CHORD_WINDOW_MAX_MS } from '../game/input/chord.js';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
+import { ALL_COLORS, PERSONAL_COLORS } from '@outgun/protocol';
 
 export type ShowNames = 'never' | 'sameRoom' | 'always';
 export type ShowStats = 'off' | 'teams' | 'players';
@@ -40,6 +41,8 @@ export interface Prefs {
   readonly continuousTextures: boolean;
   /** `Show player names` (D-26: padrão "na mesma sala"). */
   readonly showNames: ShowNames;
+  /** Números no centro dos bonecos (OG-410); desligado, ninguém aparece com número na minha tela. */
+  readonly showNumbers: boolean;
   /** `FPS limit` (0 = sem limite; 1..10000). */
   readonly fpsLimit: number;
   // OG-070: opções gráficas avançadas (padrões do client.cfg distribuído)
@@ -119,11 +122,14 @@ const STORAGE_KEY = 'outgun.prefs';
 export const QUICK_MESSAGES = 10;
 export const QUICK_MESSAGE_LENGTH = 30;
 
-/** As 16 cores: as válidas da lista salva primeiro (sem repetir), depois as que faltam. */
+/**
+ * As 32 cores da paleta (OG-411): as válidas da lista salva primeiro (sem repetir), depois as que
+ * faltam. Uma medalha salva fica onde está (o servidor só a aceita de quem tem direito).
+ */
 export function completeColors(saved: unknown): number[] {
-  const list = Array.isArray(saved) ? saved.filter((c): c is number => Number.isInteger(c) && c >= 0 && c < 16) : [];
+  const list = Array.isArray(saved) ? saved.filter((c): c is number => Number.isInteger(c) && c >= 0 && c < ALL_COLORS) : [];
   const out = [...new Set(list)];
-  for (let c = 0; c < 16; c++) if (!out.includes(c)) out.push(c);
+  for (let c = 0; c < PERSONAL_COLORS; c++) if (!out.includes(c)) out.push(c);
   return out;
 }
 
@@ -152,6 +158,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     visibleRooms: 1,
     continuousTextures: true,
     showNames: 'sameRoom',
+    showNumbers: true,
     fpsLimit: 0,
     scroll: false,
     lessTransparency: false,
@@ -228,6 +235,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     visibleRooms: int(saved.visibleRooms, 1, 20, fallback.visibleRooms),
     continuousTextures: bool(saved.continuousTextures, fallback.continuousTextures),
     showNames: oneOf(saved.showNames, ['never', 'sameRoom', 'always'], fallback.showNames),
+    showNumbers: bool(saved.showNumbers, fallback.showNumbers),
     fpsLimit: int(saved.fpsLimit, 0, 10000, fallback.fpsLimit),
     scroll: bool(saved.scroll, fallback.scroll),
     lessTransparency: bool(saved.lessTransparency, fallback.lessTransparency),

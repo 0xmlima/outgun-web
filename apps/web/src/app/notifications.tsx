@@ -18,8 +18,8 @@ export const NOTIFICATIONS_POLL_MS = 30_000;
 
 export interface AppNotification {
   id: string;
-  kind: 'clan_invite' | 'clan_request' | 'milestone';
-  data: { clanTag?: string; clanName?: string; from?: string; milestones?: string[]; secretNames?: Record<string, Bilingual> };
+  kind: 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released';
+  data: { clanTag?: string; clanName?: string; from?: string; milestones?: string[]; secretNames?: Record<string, Bilingual>; number?: number };
   createdAt: string;
   read: boolean;
 }
@@ -48,13 +48,16 @@ export function notificationText(n: AppNotification, t: T, locale = 'en'): strin
     const secret = ids.some((id) => n.data.secretNames?.[id]);
     return secret ? t('Secret milestone unlocked! $1', shown) : names.length === 1 ? t('New milestone: $1', shown) : t('New milestones: $1', shown);
   }
+  // número de jogador (OG-410)
+  if (n.kind === 'number_expiring') return t('Your number $1 is freed in 7 days if you do not play.', String(n.data.number ?? '?'));
+  if (n.kind === 'number_released') return t('Your number $1 was freed after 60 days without playing.', String(n.data.number ?? '?'));
   const clan = n.data.clanTag ? `(${n.data.clanTag}) ${n.data.clanName ?? ''}`.trim() : '';
   return n.kind === 'clan_invite' ? t('$1 invited you to the clan $2', n.data.from ?? '?', clan) : t('$1 asked to join $2', n.data.from ?? '?', clan);
 }
 
 /** Para onde a notificação leva: a caixa de convites ou a página do clã (onde a liderança aprova). */
 export const notificationPath = (n: AppNotification, username?: string) =>
-  n.kind === 'milestone' ? (username ? `/players/${encodeURIComponent(username)}` : '/') : n.kind === 'clan_invite' || !n.data.clanTag ? '/clans/inbox' : `/clans/${encodeURIComponent(n.data.clanTag)}`;
+  n.kind === 'milestone' ? (username ? `/players/${encodeURIComponent(username)}` : '/') : n.kind === 'number_expiring' || n.kind === 'number_released' ? '/account' : n.kind === 'clan_invite' || !n.data.clanTag ? '/clans/inbox' : `/clans/${encodeURIComponent(n.data.clanTag)}`;
 
 export function NotificationsProvider({ children }: { readonly children: ReactNode }) {
   const { t, prefs } = usePrefs();

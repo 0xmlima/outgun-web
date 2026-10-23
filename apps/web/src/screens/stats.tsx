@@ -36,6 +36,9 @@ export interface Profile {
   skill: Skill | null;
   totals: Record<Mode, Totals>;
   favoriteColors: number[];
+  /** Número no boneco (OG-410) e pódio do mês anterior (OG-411). */
+  number?: number | null;
+  medal?: number | null;
   lastMatchAt: string | null;
   milestones: { id: string; achievedAt: string; matchId: string | null }[];
   /** Progresso, raridade e secretos desbloqueados (OG-393, RN-SOC-06). */
@@ -96,6 +99,8 @@ export interface MatchDetails {
 
 export interface MatchPage {
   match: MatchSummary & { startedAt: string; roomId: string | null };
+  /** O clã que cada lado foi na rodada (OG-409); null = vermelho x azul. */
+  teams?: readonly ({ tag: string; name: string; color: string | null } | null)[] | null;
   details: MatchDetails;
   players: PlayerLine[];
   replayUrl: string | null;

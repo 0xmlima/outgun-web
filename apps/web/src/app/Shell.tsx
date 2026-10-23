@@ -93,7 +93,7 @@ function AccountChip() {
     );
   return (
     <Link className="app-account app-account-user" to="/account" aria-label={`${t('Account')}: ${user.username}`}>
-      <PlayerAvatar colour={PLAYER_COLOURS[prefs.favoriteColors[0] ?? 0] ?? PLAYER_COLOURS[0]} />
+      <PlayerAvatar colour={PLAYER_COLOURS[prefs.favoriteColors[0] ?? 0] ?? PLAYER_COLOURS[0]!} />
       <span className="app-account-name">
         {user.clanTag && <span className="app-clan">{user.clanTag}</span>}
         {user.username}

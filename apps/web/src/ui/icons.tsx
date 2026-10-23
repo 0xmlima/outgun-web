@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ícones dos menus (OG-291): 24×24, traço de 2 px e pontas retas, desenhados com as formas da partida
 // (o círculo do jogador com o cano, a bandeira com mastro, as salas do minimapa). Herdam a cor do texto.
+import { ALL_COLORS, colourKey, EXTRA_COLOUR_DEFAULTS } from '@outgun/protocol';
 
 const PATHS = {
   play: <path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none" />,
@@ -85,11 +86,12 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   );
 }
 
-/** As 16 cores de jogador de fábrica (`player01`..`player16`, src/colour_def.inc). */
-export const PLAYER_COLOURS = [
+/** As cores de jogador de fábrica: as 16 do original (src/colour_def.inc), as 16 novas e as medalhas (OG-411). */
+export const PLAYER_COLOURS: readonly string[] = [
   '#00FF00', '#FFFF00', '#FFFFFF', '#FF08FF', '#00FFFF', '#FFA000', '#FF5544', '#4455FF',
   '#008000', '#A0A0A0', '#00A0A0', '#800080', '#A06000', '#000080', '#800000', '#666666',
-] as const;
+  ...Array.from({ length: ALL_COLORS - 16 }, (_, i) => EXTRA_COLOUR_DEFAULTS[colourKey(16 + i)]!),
+];
 
 /** O jogador como aparece na partida: miolo na cor pessoal, anel (e cano) na cor do time. */
 export function PlayerAvatar({ colour, ring = 'var(--avatar-ring, var(--accent))', size = 28 }: { colour: string; ring?: string; size?: number }) {

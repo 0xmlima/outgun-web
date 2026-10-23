@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Hall da fama (OG-268, RN-RKL-24): guardado na virada da temporada junto da classificação final;
 // quadros com menos de 3 classificados mostram só os que houver; selos no perfil e no clã.
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
@@ -74,6 +74,15 @@ describe.skipIf(!pgAdminUrl)('hall da fama (OG-268)', () => {
     ]);
     const page = (await app.inject('/clans/nn')).json();
     expect(page.clan.titles).toEqual([{ season: 'Temporada 1', board: 'clans', position: 1 }]);
+  });
+
+  it('OG-411: o pódio do "Melhor do mês" da temporada anterior aparece no perfil (cor da medalha)', async () => {
+    const [last] = await t.db.select({ id: seasonChampions.seasonId }).from(seasonChampions).orderBy(desc(seasonChampions.seasonId)).limit(1);
+    const [u] = await t.db.select({ id: users.id, name: users.username }).from(users).where(eq(users.username, 'Jogador2'));
+    await t.db.insert(seasonChampions).values({ seasonId: last!.id, board: 'stat:overall', position: 2, userId: u!.id, name: u!.name, value: 50 }).onConflictDoNothing();
+    const champ = (await t.db.select().from(seasonChampions).where(eq(seasonChampions.board, 'stat:overall'))).find((c) => c.seasonId === last!.id && c.position === 2)!;
+    expect((await app.inject({ method: 'GET', url: `/players/${encodeURIComponent(champ.name)}` })).json().medal).toBe(2);
+    expect((await app.inject({ method: 'GET', url: '/players/Admin' })).json().medal ?? null).not.toBe(2);
   });
 
   it('desde novembro/2026: os 3 primeiros de cada stat principal do leaderboard (OG-354)', async () => {

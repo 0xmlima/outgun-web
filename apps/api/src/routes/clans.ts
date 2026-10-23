@@ -5,7 +5,7 @@
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, type ClanTagStyle } from '@outgun/protocol';
+import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, type ClanTagStyle, clanColoursProblem } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
@@ -37,6 +37,8 @@ const ClanSchema = Type.Object({
   /** A tag decorada pelo estilo, "(Dk)", "Dk." (OG-338). */
   tagLabel: Type.String(),
   description: Type.String(),
+  /** Cores do clã na partida (OG-407); null = sem cores. */
+  colors: Type.Union([Type.Object({ primary: Type.String(), secondary: Type.String() }), Type.Null()]),
   createdAt: Type.String(),
   members: Type.Array(Type.Object({ username: Type.String(), role: RoleSchema, joinedAt: Type.String() })),
   /** Pódios no hall da fama (OG-268). */
@@ -101,6 +103,8 @@ export interface ClanFields {
   readonly tag?: string | undefined;
   readonly tagStyle?: ClanTagStyle | undefined;
   readonly description?: string | undefined;
+  /** Par de cores (OG-407); null tira as cores. */
+  readonly colors?: { primary: string; secondary: string } | null | undefined;
 }
 
 /**
@@ -111,6 +115,11 @@ export interface ClanFields {
 export async function checkClanFields(tx: Tx, f: ClanFields, filter: readonly string[], clanId?: string) {
   if (f.name !== undefined && !checkClanName(f.name)) throw new ClanError(400, 'invalid_clan_name');
   if (f.tag !== undefined && !checkClanTag(f.tag)) throw new ClanError(400, 'invalid_clan_tag');
+  // cores do clã (OG-407): da paleta e bem diferentes entre si, para a secundária servir de reserva
+  if (f.colors) {
+    const problem = clanColoursProblem(f.colors.primary, f.colors.secondary);
+    if (problem) throw new ClanError(400, problem === 'too_similar' ? 'clan_colors_too_similar' : 'invalid_clan_color');
+  }
   for (const text of [f.name, f.tag, f.description]) if (text !== undefined && nameBlocked(text, filter)) throw new ClanError(400, 'name_not_allowed');
   if (f.name !== undefined) {
     const [row] = await tx.select({ id: clans.id }).from(clans).where(eq(clans.nameKey, clanKey(f.name)));
@@ -130,6 +139,7 @@ export async function updateClan(tx: Tx, clanId: string, f: ClanFields) {
       ...(f.tag !== undefined ? { tag: f.tag, tagKey: clanKey(f.tag) } : {}),
       ...(f.tagStyle !== undefined ? { tagStyle: f.tagStyle } : {}),
       ...(f.description !== undefined ? { description: f.description } : {}),
+      ...(f.colors !== undefined ? { primaryColor: f.colors?.primary ?? null, secondaryColor: f.colors?.secondary ?? null } : {}),
       updatedAt: new Date(),
     })
     .where(eq(clans.id, clanId));
@@ -233,6 +243,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       tagStyle: clan.tagStyle,
       tagLabel: clanLabel(clan.tag, clan.tagStyle),
       description: clan.description,
+      colors: clan.primaryColor && clan.secondaryColor ? { primary: clan.primaryColor, secondary: clan.secondaryColor } : null,
       createdAt: clan.createdAt.toISOString(),
       members: members.map((m) => ({ username: m.username, role: m.role, joinedAt: m.joinedAt.toISOString() })),
       titles: await titlesWhere(db, eq(seasonChampions.clanId, clan.id)),
@@ -363,13 +374,15 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       {
         schema: {
           tags: ['clãs'],
-          summary: 'Edita o clã: nome e descrição (líder e admins), tag e estilo da tag (só o líder)',
+          summary: 'Edita o clã: nome, descrição e cores (líder e admins), tag e estilo da tag (só o líder)',
           params: TagParams,
           body: Type.Object({
             name: Type.Optional(Type.String({ maxLength: MAX_CLAN_NAME })),
             tag: Type.Optional(Type.String({ maxLength: 2 })),
             tagStyle: Type.Optional(TagStyleSchema),
             description: Type.Optional(Type.String({ maxLength: MAX_CLAN_DESCRIPTION })),
+            /** Cores do clã na partida (OG-407); null tira. */
+            colors: Type.Optional(Type.Union([Type.Object({ primary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), secondary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }) }), Type.Null()])),
           }),
           response: { 200: Type.Object({ clan: ClanSchema }), 400: ErrorSchema, 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
         },
@@ -378,14 +391,15 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
         const user = await requireUser(request, reply);
         if (!user) return reply;
         const { name, tag, tagStyle, description } = request.body;
+        const colors = request.body.colors && { primary: request.body.colors.primary.toUpperCase(), secondary: request.body.colors.secondary.toUpperCase() };
         const done = await run(reply, async (tx) => {
           const clan = await lockClan(tx, request.params.tag);
           const role = await roleIn(tx, clan.id, user.id);
           if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
           if (tag !== undefined && tag !== clan.tag && role !== 'leader') throw new ClanError(403, 'clan_forbidden');
           if (tagStyle !== undefined && tagStyle !== clan.tagStyle && role !== 'leader') throw new ClanError(403, 'clan_forbidden');
-          await checkClanFields(tx, { name, tag, description }, config.nameFilter, clan.id);
-          await updateClan(tx, clan.id, { name, tag, tagStyle, description });
+          await checkClanFields(tx, { name, tag, description, colors }, config.nameFilter, clan.id);
+          await updateClan(tx, clan.id, { name, tag, tagStyle, description, colors });
           return tag ?? clan.tag;
         });
         if (!done) return reply;

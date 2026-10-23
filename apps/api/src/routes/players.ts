@@ -11,6 +11,9 @@ import { isSecretMilestone, SECRET_MILESTONES } from '@outgun/content/secret';
 import { milestoneProgressOf, milestoneRarity, SECRET_TOTAL, unlockedSecrets } from '../milestones.js';
 import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
+import { previousPodium } from '../ranking.js';
+import { MatchTeamSchema } from './internal.js';
+import { ticketNumber } from '../player-numbers.js';
 
 /** Texto nos dois idiomas (marcos secretos, OG-393). */
 const Bilingual = Type.Object({ 'pt-BR': Type.String(), en: Type.String() });
@@ -109,6 +112,10 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               totals: Type.Object({ ranked: Totals, casual: Totals }),
               /** Cores favoritas (índices da paleta) e data da última partida (null se escondeu o histórico). */
               favoriteColors: Type.Array(Type.Integer()),
+              /** Pódio (1..3) do "Melhor do mês" da temporada anterior (OG-411): cor da medalha; null = nenhum. */
+              medal: Type.Union([Type.Integer({ minimum: 1, maximum: 3 }), Type.Null()]),
+              /** Número no boneco (OG-410); null = sem número. */
+              number: Type.Union([Type.Integer(), Type.Null()]),
               lastMatchAt: Type.Union([Type.String(), Type.Null()]),
               /** Marcos conquistados (OG-213); a partida some se o histórico estiver escondido. */
               milestones: Type.Array(Type.Object({ id: Type.String(), achievedAt: Type.String(), matchId: Type.Union([Type.String(), Type.Null()]) })),
@@ -173,6 +180,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           skill: await playerSkillOf(db, user.id),
           totals,
           favoriteColors: profile?.favoriteColors ?? [],
+          medal: await previousPodium(db, user.id),
+          number: (await ticketNumber(db, user.id))?.number ?? null,
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
           milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
           milestoneProgress: await milestoneProgressOf(db, user.id),
@@ -285,6 +294,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               series: Type.Union([Type.Null(), SeriesView]),
               /** Clãs de cada lado numa partida clã x clã (OG-259); null se não for ou se um deles foi apagado. */
               clans: Type.Union([Type.Null(), Type.Object({ red: ClanRef, blue: ClanRef })]),
+              /** O clã que cada lado foi na rodada (OG-409): tag, nome e cor; null = vermelho x azul. */
+              teams: Type.Union([Type.Null(), Type.Array(Type.Union([MatchTeamSchema, Type.Null()]))]),
               /** Variação do rating de habilidade de cada conta (OG-349); vazio antes da implantação e no Casual. */
               skill: Type.Array(SkillChangeLine),
             }),
@@ -325,6 +336,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           gameNo: m.gameNo,
           series: m.seriesId ? await seriesView(m.seriesId) : null,
           clans: await warClans(m),
+          teams: m.teamIdentity ?? null,
           skill: await skillLines(m.id),
         };
       },

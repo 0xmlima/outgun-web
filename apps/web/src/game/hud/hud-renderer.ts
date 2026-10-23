@@ -12,6 +12,7 @@ import { HudFaces, type FaceWeight, type HudFace } from './hud-faces.js';
 import type { Place } from './modern-layout.js';
 import { FOG_MAX_ALPHA, minimapPoint, minimapRect, minimapRoom, paintMinimap } from './minimap.js';
 import { scaleBy, type FontMetrics, type ScreenLayout } from './screen-layout.js';
+import { ALL_COLORS, colourKey } from '@outgun/protocol';
 
 /** Fonte do jogo e a de contorno (OG-013). */
 export class GameFont implements FontMetrics {
@@ -75,6 +76,8 @@ export interface HudState {
   readonly time: number;
   readonly maxPlayers: number;
   readonly players: readonly HudPlayer[];
+  /** Tag do clã que cada lado é nesta rodada (OG-409); null = "Red Team"/"Blue Team". */
+  readonly teamNames?: readonly [string | null, string | null];
   readonly flags: readonly HudFlag[];
   /** Bandeiras carregadas por quem saiu da vista há pouco (posição antiga). */
   readonly oldFlags: readonly { team: 0 | 1 | 2; pos: WorldCoords; unknownFor: number }[];
@@ -133,7 +136,7 @@ export interface VoteTarget {
   bot: boolean;
 }
 
-const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
+const PLAYER_COLOURS = Array.from({ length: ALL_COLORS }, (_, i) => colourKey(i));
 
 /** Nome no placar: até 15 caracteres (ou o que couber); com a tag do clã (OG-206) o que passar vira "...". */
 export function scoreboardName(name: string, max = 15): string {
@@ -299,9 +302,10 @@ export class HudRenderer {
     if (go && (go.reason === 'captureLimit' || go.reason === 'vote')) {
       const team = go.red > go.blue ? 0 : go.blue > go.red ? 1 : -1;
       const col = team === -1 ? this.c('game_draw') : this.teamLight(team);
-      const caption = team === 0 ? 'RED TEAM WINS' : team === 1 ? 'BLUE TEAM WINS' : 'GAME TIED';
+      const tag = team === -1 ? null : (s.teamNames?.[team] ?? null);
+      const caption = tag ? this.t('$1 WINS', tag) : this.t(team === 0 ? 'RED TEAM WINS' : team === 1 ? 'BLUE TEAM WINS' : 'GAME TIED');
       const [a, b] = team === 1 ? [go.blue, go.red] : [go.red, go.blue];
-      this.text(this.t(caption), cx, py(ROOM_HEIGHT / 2 - 40), col, { centre: true });
+      this.text(caption, cx, py(ROOM_HEIGHT / 2 - 40), col, { centre: true });
       this.text(this.t('SCORE $1 - $2', String(a), String(b)), cx, py(ROOM_HEIGHT / 2 - 20), col, { centre: true });
     }
     if (s.hidden.waitingMap !== null) {
@@ -436,7 +440,7 @@ export class HudRenderer {
       this.vline(bx2, by, by + rows * rowH, lc);
       const capCol = this.c(i === 0 ? 'scoreboard_caption_redteam' : 'scoreboard_caption_blueteam');
       const rightText = s.showPings ? this.t('pings') : this.t('$1 capt', String(s.scores[i]).padStart(3, ' '));
-      this.text(this.t(i === 0 ? 'Red Team' : 'Blue Team'), textX, by + vpad, capCol);
+      this.text(s.teamNames?.[i as 0 | 1] ?? this.t(i === 0 ? 'Red Team' : 'Blue Team'), textX, by + vpad, capCol);
       this.text(rightText, right - this.fw(rightText), by + vpad, capCol);
     }
     const line = [1, 1];
@@ -474,7 +478,8 @@ export class HudRenderer {
     }
     const map = s.map;
     const r = minimapRect(place, map.width, map.height);
-    const key = `${map.title}|${map.crc}|${r.w}x${r.h}|${place.w}|${this.resolution}`;
+    // as cores dos lados entram na chave: o lado que vira o clã repinta as bases (OG-409)
+    const key = `${map.title}|${map.crc}|${r.w}x${r.h}|${place.w}|${this.resolution}|${this.c('team_red_dark')}${this.c('team_blue_dark')}${this.teamCol(0)}${this.teamCol(1)}`;
     if (key !== this.minimapKey) {
       this.minimapKey = key;
       this.minimapTexture?.destroy(true);
@@ -828,7 +833,7 @@ export class HudRenderer {
       const cx = x + pad + team * (colW + pad);
       this.box(cx, ty, colW, teamH, this.c(team ? 'team_blue_dark' : 'team_red_dark'));
       this.box(cx, ty, colW, Math.max(2, Math.round(3 * k)), this.c(team ? 'team_blue_basic' : 'team_red_basic'));
-      this.ftext(teamFace, this.t(team ? 'Blue Team' : 'Red Team'), cx + Math.round(8 * k), ty + Math.round((teamH - teamFace.height) / 2), '#ffffff');
+      this.ftext(teamFace, s.teamNames?.[team] ?? this.t(team ? 'Blue Team' : 'Red Team'), cx + Math.round(8 * k), ty + Math.round((teamH - teamFace.height) / 2), '#ffffff');
       this.ftext(scoreFace, String(s.scores[team]), cx + colW - Math.round(8 * k), ty + Math.round((teamH - scoreFace.height) / 2), '#ffffff', 'right');
       const fragsX = cx + Math.round(colW * 0.72);
       const pingX = cx + colW - Math.round(8 * k);

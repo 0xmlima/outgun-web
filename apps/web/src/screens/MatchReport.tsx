@@ -235,7 +235,13 @@ export function MatchScreen() {
   const best = bestPlayer(m.players);
   const top = highlights(m.players);
   const seconds = (Date.parse(m.match.endedAt) - Date.parse(m.match.startedAt)) / 1000;
-  const winner = redScore > blueScore ? t('Red team wins') : blueScore > redScore ? t('Blue team wins') : t('Draw');
+  // lado que virou o clã (OG-409): tag no lugar de vermelho/azul, na cor do clã
+  const side = (team: 0 | 1) => m.teams?.[team] ?? null;
+  const short = (team: 0 | 1) => side(team)?.tag ?? t(team === 0 ? 'Red' : 'Blue');
+  const long = (team: 0 | 1) => side(team)?.tag ?? t(team === 0 ? 'Red team' : 'Blue team');
+  const tint = (team: 0 | 1) => (side(team)?.color ? { color: side(team)!.color! } : undefined);
+  const winner =
+    redScore === blueScore ? t('Draw') : side(redScore > blueScore ? 0 : 1) ? t('$1 wins', short(redScore > blueScore ? 0 : 1)) : redScore > blueScore ? t('Red team wins') : t('Blue team wins');
   const timeline = captureTimeline(d.captures ?? [], d.baseScore);
   const ranked = m.match.ranked;
   // rating de habilidade (OG-351): variação de cada conta e chance prevista de cada time
@@ -244,7 +250,7 @@ export function MatchScreen() {
 
   const teamTable = (team: 0 | 1) => (
     <Table
-      caption={team === 0 ? t('Red team') : t('Blue team')}
+      caption={long(team)}
       rows={m.players.filter((p) => p.team === team)}
       rowKey={(p) => String(p.slot)}
       columns={[
@@ -283,11 +289,15 @@ export function MatchScreen() {
       onBack={() => void navigate(-1)}
     >
       <section className="report-score" aria-label={t('Score')}>
-        <span className="report-team red">{t('Red')}</span>
+        <span className="report-team red" style={tint(0)}>
+          {short(0)}
+        </span>
         <span className="report-points">
           {redScore} – {blueScore}
         </span>
-        <span className="report-team blue">{t('Blue')}</span>
+        <span className="report-team blue" style={tint(1)}>
+          {short(1)}
+        </span>
         <Badge tone={redScore === blueScore ? 'neutral' : 'success'}>{winner}</Badge>
         <SubstitutionBadges withBots={m.match.withBots} shortHanded={m.match.shortHanded} />
         {m.match.clanWar && (
@@ -395,10 +405,10 @@ export function MatchScreen() {
           </ul>
         </Panel>
       )}
-      <Panel title={`${t('Red team')} · ${redScore}`} className="report-team-panel red">
+      <Panel title={`${long(0)} · ${redScore}`} className="report-team-panel red">
         {teamTable(0)}
       </Panel>
-      <Panel title={`${t('Blue team')} · ${blueScore}`} className="report-team-panel blue">
+      <Panel title={`${long(1)} · ${blueScore}`} className="report-team-panel blue">
         {teamTable(1)}
       </Panel>
       <p className="ui-muted">{t('Kills by zone: enemy base · midfield · own base.')}</p>
@@ -413,8 +423,8 @@ export function MatchScreen() {
                 rowKey={([label]) => label}
                 columns={[
                   { key: 'stat', header: t('Team'), cell: ([label]) => t(label) },
-                  { key: 'red', header: <span className="report-name red">{t('Red')}</span>, cell: ([, value]) => value(d.teams![0] ?? {}), align: 'end' },
-                  { key: 'blue', header: <span className="report-name blue">{t('Blue')}</span>, cell: ([, value]) => value(d.teams![1] ?? {}), align: 'end' },
+                  { key: 'red', header: <span className="report-name red" style={tint(0)}>{short(0)}</span>, cell: ([, value]) => value(d.teams![0] ?? {}), align: 'end' },
+                  { key: 'blue', header: <span className="report-name blue" style={tint(1)}>{short(1)}</span>, cell: ([, value]) => value(d.teams![1] ?? {}), align: 'end' },
                 ]}
               />
             </Panel>

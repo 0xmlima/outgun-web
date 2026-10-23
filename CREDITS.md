@@ -28,6 +28,7 @@ Allegro, HawkNL e Pthreads-win32. O port web não usa essas bibliotecas; elas ap
 ## Fonte da interface
 
 - **Inter** (OG-200, D-35), de Rasmus Andersson e colaboradores — <https://rsms.me/inter/>. Licença **SIL Open Font License 1.1** (OFL-1.1); distribuída pelo pacote `@fontsource-variable/inter`, servida pelo próprio site (subconjunto latino). A OFL permite incluir a fonte em qualquer software; ela não pode ser vendida sozinha.
+- **Russo One** (Jovanny Lemonad), **Saira Condensed** e **Saira Stencil One** (Omnibus-Type) e **Chakra Petch** (Cadson Demak): fontes dos estilos do número de jogador (OG-413). Licença **SIL Open Font License 1.1** (OFL-1.1); distribuídas pelos pacotes `@fontsource/*` e servidas pelo próprio site.
 
 ## Música
 

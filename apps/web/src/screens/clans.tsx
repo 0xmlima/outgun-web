@@ -7,8 +7,9 @@ import { useAccount, type AccountUser } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { CLAN_TAG_STYLES, chatName, clanLabel, type ClanTagStyle } from '@outgun/protocol';
-import { ChoiceField, TextAreaField, TextField } from '../ui/Field.js';
+import { CLAN_COLORS, CLAN_TAG_STYLES, chatName, clanColoursProblem, clanLabel, type ClanTagStyle } from '@outgun/protocol';
+import { ChoiceField, TextAreaField, TextField, ToggleField } from '../ui/Field.js';
+import { Icon, PlayerAvatar } from '../ui/icons.js';
 import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
@@ -205,6 +206,8 @@ interface ClanPage {
   readonly tagStyle: ClanTagStyle;
   readonly tagLabel: string;
   readonly description: string;
+  /** Cores do clã na partida (OG-407); null = sem cores. */
+  readonly colors?: { readonly primary: string; readonly secondary: string } | null;
   readonly createdAt: string;
   readonly members: readonly ClanMember[];
   /** Pódios no hall da fama (OG-268). */
@@ -248,6 +251,10 @@ function useClanErrorText(): (e: unknown) => string {
         return t('Your role in the clan does not allow this.');
       case 'name_not_allowed':
         return t('This name is not allowed.');
+      case 'clan_colors_too_similar':
+        return t('Pick a secondary color clearly different from the primary.');
+      case 'invalid_clan_color':
+        return t('Pick the colors from the palette.');
       default:
         return t('Something went wrong. Try again.');
     }
@@ -431,6 +438,16 @@ export function ClanScreen() {
           <TitleBadges titles={clan.titles} />
         </div>
       )}
+      {clan.colors && (
+        <div className="ui-row clan-colors-preview" title={t('Clan colors in the match')}>
+          {[clan.colors.primary, clan.colors.secondary].map((c, i) => (
+            <span key={i} style={{ color: c }} aria-hidden="true">
+              <Icon name="flag" size={24} />
+            </span>
+          ))}
+          <span className="ui-muted">{t('Clan colors in the match')}</span>
+        </div>
+      )}
       {clan.description && (
         <Panel>
           <p className="clan-description">{clan.description}</p>
@@ -550,10 +567,11 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
   const [tag, setTag] = useState(clan.tag);
   const [tagStyle, setTagStyle] = useState<ClanTagStyle>(clan.tagStyle);
   const [description, setDescription] = useState(clan.description);
+  const [colors, setColors] = useState(clan.colors ?? null);
   const [invitee, setInvitee] = useState('');
   const pending = useApi<{ invites: Pending[]; requests: Pending[] }>(`${base}/pending?v=${tick}`);
   const save = () => {
-    const body = { name: name.trim(), description, ...(leader ? { tag: tag.trim(), tagStyle } : {}) };
+    const body = { name: name.trim(), description, colors, ...(leader ? { tag: tag.trim(), tagStyle } : {}) };
     void act(base, { method: 'PATCH', body }, () => {
       toast(t('Saved.'), 'success');
       void navigate(clanPath(body.tag ?? clan.tag), { replace: true });
@@ -619,8 +637,76 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
           <TextField label={t('Tag')} value={tag} onChange={setTag} maxLength={2} disabled={!leader} hint={leader ? undefined : t('Only the leader changes the tag.')} />
           <TagStyleField tag={tag} value={tagStyle} onChange={setTagStyle} disabled={!leader} hint={leader ? undefined : t('Only the leader changes the tag.')} />
           <TextAreaField label={t('Description')} value={description} onChange={setDescription} maxLength={500} rows={4} />
+          <ClanColorsField value={colors} onChange={setColors} />
         </Form>
       </Panel>
+    </div>
+  );
+}
+
+const CLAN_COLOR_NAMES: Readonly<Record<string, string>> = {
+  red: 'Red',
+  orange: 'Orange',
+  yellow: 'Yellow',
+  gold: 'Gold',
+  lime: 'Lime',
+  green: 'Green',
+  teal: 'Teal',
+  cyan: 'Cyan',
+  blue: 'Blue',
+  navy: 'Navy',
+  purple: 'Purple',
+  magenta: 'Magenta',
+  pink: 'Pink',
+  wine: 'Wine',
+  brown: 'Brown',
+  black: 'Black',
+  white: 'White',
+  silver: 'Silver',
+};
+
+/** Uma fileira de cores da paleta do clã (OG-407). */
+function ClanSwatches({ label, value, onChange }: { label: string; value: string; onChange: (c: string) => void }) {
+  const { t } = usePrefs();
+  return (
+    <div className="ui-field">
+      <span className="ui-field-label">{label}</span>
+      <div className="options-colors clan-colors" role="radiogroup" aria-label={label}>
+        {Object.entries(CLAN_COLORS).map(([key, hex]) => (
+          <button key={key} type="button" role="radio" aria-checked={hex === value} aria-label={t(CLAN_COLOR_NAMES[key] ?? key)} title={t(CLAN_COLOR_NAMES[key] ?? key)} className={hex === value ? 'swatch selected' : 'swatch'} style={{ background: hex }} onClick={() => onChange(hex)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Cores do clã na partida (OG-407, RN-CLA-09): primária e secundária (a reserva quando a primária
+ * fica parecida com a do outro lado). Prévia do boneco e da bandeira nas duas.
+ */
+function ClanColorsField({ value, onChange }: { value: { primary: string; secondary: string } | null; onChange: (v: { primary: string; secondary: string } | null) => void }) {
+  const { t } = usePrefs();
+  const on = value !== null;
+  const v = value ?? { primary: CLAN_COLORS.green!, secondary: CLAN_COLORS.white! };
+  const similar = on && clanColoursProblem(v.primary, v.secondary) === 'too_similar';
+  return (
+    <div className="ui-stack">
+      <ToggleField label={t('Clan colors in the match')} checked={on} onChange={(c) => onChange(c ? v : null)} hint={t('When at least 2 players of the clan are on one side and nobody from another clan, that side plays with the clan colors and tag (from the next round).')} />
+      {on && (
+        <>
+          <ClanSwatches label={t('Primary color')} value={v.primary} onChange={(primary) => onChange({ ...v, primary })} />
+          <ClanSwatches label={t('Secondary color (used when the primary looks like the other side)')} value={v.secondary} onChange={(secondary) => onChange({ ...v, secondary })} />
+          <div className="ui-row clan-colors-preview" aria-hidden="true">
+            {[v.primary, v.secondary].map((c, i) => (
+              <span key={i} className="ui-row" style={{ color: c }}>
+                <PlayerAvatar colour="#FFFFFF" ring={c} size={36} />
+                <Icon name="flag" size={28} />
+              </span>
+            ))}
+          </div>
+          {similar && <p className="ui-field-error">{t('Pick a secondary color clearly different from the primary.')}</p>}
+        </>
+      )}
     </div>
   );
 }

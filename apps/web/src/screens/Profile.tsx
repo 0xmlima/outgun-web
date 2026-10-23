@@ -16,7 +16,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { TitleBadges } from './HallOfFame.js';
-import { useManifestLists } from './options.js';
+import { useManifestLists, swatchBackground } from './options.js';
 import { MilestonesPanel } from './milestones-panel.js';
 import { RatingInfo } from './rating-help.js';
 import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, SubstitutionBadges, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
@@ -91,7 +91,7 @@ export function ProfileScreen() {
     );
   }
   const owner = me?.username === p.user.username;
-  const colour = p.favoriteColors[0] !== undefined ? colours[p.favoriteColors[0]] : undefined;
+  const colour = p.favoriteColors[0] !== undefined ? swatchBackground(p.favoriteColors[0], colours[p.favoriteColors[0]]) : undefined;
   const subtitle = [
     t('Member since $1', new Date(p.user.createdAt).toLocaleDateString(prefs.locale, { dateStyle: 'medium' })),
     p.lastMatchAt ? t('last match $1', date(p.lastMatchAt, prefs.locale)) : null,
@@ -124,6 +124,7 @@ export function ProfileScreen() {
         <span className="profile-name">
           {colour && <span className="profile-colour" style={{ background: colour }} aria-hidden="true" />}
           {withClan(p.user.username, p.user.clanLabel)}
+          {p.number ? <span className="profile-number" title={t('Player number')}>{p.number}</span> : null}
         </span>
       }
       subtitle={subtitle}

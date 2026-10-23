@@ -109,4 +109,13 @@ describe('RN-TIM-05: cores pessoais', () => {
     for (let i = 1; i < 16; i++) all.add(pool.assign(0, NO_COLOR, []));
     expect(all.size).toBe(16);
   });
+  it('OG-411: as cores novas como favoritas; o sorteio usa as 16 do original primeiro e nunca a medalha', () => {
+    const pool = new ColorPool(new GlibcRand(1));
+    expect(pool.assign(0, NO_COLOR, [20, 3])).toBe(20);
+    expect(pool.assign(0, NO_COLOR, [32])).toBe(32);
+    const drawn = Array.from({ length: 17 }, () => pool.assign(0, NO_COLOR, []));
+    expect(drawn.slice(0, 16).every((c) => c < 16)).toBe(true); // as 16 clássicas primeiro
+    expect(drawn[16]).toBe(16); // depois a primeira nova livre (a 20 já é de alguém)
+    expect(drawn.every((c) => c < 32)).toBe(true);
+  });
 });

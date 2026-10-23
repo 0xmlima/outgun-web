@@ -3,7 +3,7 @@
 // original (src/server.cpp) para um único mapa em rotação. Times, votação, chat e validação de
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
-import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { chatName, encodeFrame, isMedalColor, medalColor, message, PERSONAL_COLORS, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { applyGamemod, formatPlayers, newSeries, recordSeriesGame, seriesOver, seriesWinner, settingsOf, type GameMode, type GameSettings, type Preset, type RankedRoomFormat, type SeriesScore } from '@outgun/settings';
 import { findPreset } from './presets.js';
 import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
@@ -21,12 +21,13 @@ import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
 import { MatchEventRecorder, type EventFlag } from './match-events.js';
-import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution } from './match-report.js';
+import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution, type ReportTeam } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { teamStrength, type PlayerSkill } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
 import { InputGuard, isNewerOrSame } from './input-guard.js';
 import { announce, initialRotation, mapVotes, nextMap, shouldExit, type VoteAnnouncer, type Voter } from './map-vote.js';
+import { teamIdentities, type ClanOfPlayer, type TeamIdentity } from './team-identity.js';
 import { balanceMoves, botToRebalance, botToRemove, ColorPool, freeSlot, joinTeam, lobbyJoinTeam, NO_COLOR, shuffleSwaps, teamChangeFor, type Slot } from './teams.js';
 import {
   CarriedFlag,
@@ -66,6 +67,8 @@ export interface Identity {
   clanTag?: string | null;
   /** Id do clã cadastrado (OG-253): mesmo clã entra do mesmo lado no lobby Ranked. */
   clanId?: string | null;
+  /** Clã com cores (OG-408): para o lado virar o clã na partida. */
+  clanTeam?: ClanOfPlayer;
   /** Administrador da plataforma (moderação, OG-046). */
   admin?: boolean;
   /** Dono da sala privada (OG-049): pode mudar as regras se o preset não for travado. */
@@ -76,6 +79,12 @@ export interface Identity {
   ip?: string;
   /** Nível do bot substituto desta conta (OG-266, do ticket Ranked); ausente = intermediário. */
   botLevel?: number;
+  /** Pódio do "Melhor do mês" anterior (1..3, OG-411): pode usar a cor da medalha. */
+  medal?: number;
+  /** Número no boneco (OG-410). */
+  number?: number;
+  /** Estilo do número (OG-413): 0..3. */
+  numberStyle?: number;
   /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
   device?: string;
 }
@@ -334,6 +343,8 @@ export class Room {
   /** Bots que falam no chat (OG-404): só no Casual. */
   private readonly chatter: BotChatter | null;
   private readonly chatTally = new BotChatTally();
+  /** O clã que cada lado é nesta rodada (OG-408, D-78); null = vermelho/azul. */
+  private identities: [TeamIdentity | null, TeamIdentity | null] = [null, null];
   /** Bots pedidos pelo dono para a próxima partida (OG-289). */
   private pendingCasualBots: CasualBots | null = null;
   /** Regras de bandeira já anunciadas (`flagModeMask`). */
@@ -541,8 +552,10 @@ export class Room {
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
     if (!opts.bot) this.chatter?.event('player_join', { name: identity.name });
+    this.refreshIdentities(true);
     // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
     if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
+    if (identity.number) this.broadcast(message('playerNumber', { pid, number: identity.number, style: identity.numberStyle ?? 0 }));
     if (identity.accountId) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
     this.sendCasualConfig(pid);
     if (this.lobby) {
@@ -578,6 +591,7 @@ export class Room {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
+      if (other !== pid && c.identity.number) out.push(message('playerNumber', { pid: other, number: c.identity.number, style: c.identity.numberStyle ?? 0 }));
       // conta e ranking de quem já estava: o sublinhado de conta também para quem chega depois (OG-277)
       if (c.identity.accountId) out.push(this.playerInfo(other, c));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
@@ -587,7 +601,31 @@ export class Room {
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
     out.push(message('flagModes', this.sim.flagModes())); // `send_flag_modes` na entrada
     if (this.pause) out.push(this.pauseStateMessage()); // quem entra ou volta vê a pausa e o saldo (OG-264)
+    for (const team of [0, 1] as const) if (this.identities[team]) out.push(this.identityMessage(team));
     return out;
+  }
+
+  private identityMessage(team: 0 | 1): AnyMessage {
+    const id = this.identities[team];
+    return message('teamIdentity', { team, tag: id?.tag ?? '', name: id?.name ?? '', color: id?.color ?? '' });
+  }
+
+  /**
+   * Recalcula o clã de cada lado (OG-408) e avisa o que mudou. Na virada da rodada sempre; no Casual,
+   * também enquanto a rodada nem começou de verdade (0 x 0 nos primeiros 30 s: a sala enchendo); no
+   * Ranked, a cada mudança do lobby (os lados já estão montados antes do jogo).
+   */
+  private refreshIdentities(onlyIfFresh = false): void {
+    // no Ranked, durante o jogo, nada muda (queda e bot substituto não desfazem o clã): só no lobby
+    if (onlyIfFresh && this.lobby) return;
+    if (onlyIfFresh && !(this.world.mapTime() < 300 && this.world.teams[0].score === 0 && this.world.teams[1].score === 0)) return;
+    const players = [...this.clients].map(([pid, c]) => ({ team: this.world.teamOf(pid), bot: c.bot, clan: c.identity.clanTeam ?? null }));
+    const next = teamIdentities(players);
+    for (const team of [0, 1] as const) {
+      if (JSON.stringify(next[team]) === JSON.stringify(this.identities[team])) continue;
+      this.identities[team] = next[team];
+      this.broadcast(this.identityMessage(team));
+    }
   }
 
   private flagUpdate(team: number): AnyMessage {
@@ -693,6 +731,7 @@ export class Room {
     else if (!c.departing) this.chatter?.event('player_leave', { name: c.identity.name });
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
+    this.refreshIdentities(true);
     this.pause?.undrop(pid, this.uptimeFrames); // prazo esgotado, saída ou expulsão: não espera mais por ele
     this.pause?.removeVoter(pid);
     for (const viewers of this.rocketViewers) viewers?.delete(pid);
@@ -868,6 +907,7 @@ export class Room {
     const order = [...this.clients].filter(([, c]) => c.wantChangeTeams).map(([pid]) => pid);
     randomShuffle(order, this.sim.rng);
     for (const pid of order) this.checkPlayerChangeTeams(pid);
+    if (order.length > 0) this.refreshIdentities(true);
   }
 
   /** `check_player_change_teams` (RN-TIM-02). */
@@ -1036,7 +1076,8 @@ export class Room {
           }
           break;
         case 'favoriteColors': {
-          client.favColors = m.colors.filter((c) => c < 16);
+          // paleta comum e, para o pódio do mês anterior, a medalha dele (OG-411)
+          client.favColors = m.colors.filter((c) => c < PERSONAL_COLORS || (isMedalColor(c) && c === medalColor(client.identity.medal ?? 0)));
           const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
           if (color !== client.color) {
             client.color = color;
@@ -1129,6 +1170,7 @@ export class Room {
         // fim de um jogo da série: o placar já foi mostrado; a sala volta ao lobby ou fecha (D-41)
         if (this.lobby.phase === 'finished') this.finished = true;
       } else {
+        this.refreshIdentities(); // rodada nova: os lados viram (ou deixam de ser) o clã (D-78)
         this.sim.startGame();
         this.broadcast(message('startGame', {}), this.mapTimeMessage());
         this.startRecording();
@@ -1793,6 +1835,7 @@ export class Room {
         substitutions: this.substitutions,
         skillRoster: this.skillRoster(),
         events: this.events.log(),
+        teams: [0, 1].map((t) => { const id = this.identities[t as 0 | 1]; return id ? { tag: id.tag, name: id.name, color: id.color } : null; }) as [ReportTeam | null, ReportTeam | null],
       }),
     );
   }
@@ -1829,6 +1872,8 @@ export class Room {
     }
     if (this.lobbyDirty) {
       this.lobbyDirty = false;
+      // Ranked (D-78): os lados são conhecidos no lobby; a identidade já chega pronta ao jogo
+      if (!this.lobby?.playing) this.refreshIdentities();
       this.broadcast(this.lobbyStateMessage());
     }
   }

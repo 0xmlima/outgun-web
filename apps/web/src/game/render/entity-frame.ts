@@ -10,6 +10,10 @@ export interface PlayerView {
   /** Cor pessoal 0..15; 16 = desconhecida (`player_unknown`). */
   readonly color: number;
   readonly name: string;
+  /** Número no centro do boneco (OG-410). */
+  readonly number?: number;
+  /** Estilo do número (OG-413). */
+  readonly numberStyle?: number;
   readonly pos: WorldCoords;
   /** Direção da arma em oitavos (0 = direita, sentido horário); −1 = sem direção. */
   readonly gundir: number;

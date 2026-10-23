@@ -167,6 +167,32 @@ describe('sala Ranked 3x3 com lobby (OG-252)', () => {
     expect(alive(r)).toBe(6);
   });
 
+  it('o lado vira o clã já no lobby (D-78) e fica assim o jogo todo, mesmo com queda', () => {
+    const r = room();
+    const DK = { id: 'dk', tag: 'DK', name: 'Dark Knights', primary: '#1E9E3A', secondary: '#E6E6E6' };
+    const players = [1, 2, 3, 4, 5, 6].map((n) => {
+      const conn = new TestConnection();
+      const clan = n <= 3 ? { clanId: DK.id, clanTeam: DK } : {};
+      const res = r.join(conn, { name: `J${n}`, accountId: `00000000-0000-4000-8000-00000000000${n}`, ...clan });
+      if (!res.ok) throw new Error(res.text);
+      r.handle(res.pid, [message('clientReady', {})]);
+      return { conn, pid: res.pid };
+    });
+    const ids = (c: TestConnection) => c.received.filter((m) => m.type === 'teamIdentity');
+    run(r, 1);
+    const side = r.world.teamOf(players[0]!.pid);
+    expect(ids(players[5]!.conn).at(-1)).toMatchObject({ team: side, tag: 'DK', color: '#1E9E3A' });
+    for (const p of players) r.handle(p.pid, [message('lobbyVote', { map: 1 })]);
+    run(r, 1);
+    for (const p of players) r.handle(p.pid, [message('lobbyReady', { ready: true })]);
+    run(r, COUNTDOWN_FRAMES + 3);
+    expect(r.lobby?.phase).toBe('game');
+    const before = ids(players[5]!.conn).length;
+    r.leave(players[1]!.pid); // um do DK cai no começo do jogo: o lado segue DK
+    run(r, 5);
+    expect(ids(players[5]!.conn)).toHaveLength(before);
+  });
+
   it('quem sai no lobby libera a vaga; quem cai fora do jogo também', () => {
     const r = room();
     const a = join(r, 1);

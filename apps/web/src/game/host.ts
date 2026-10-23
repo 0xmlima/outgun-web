@@ -36,8 +36,10 @@ import { DEFAULT_GRAPHICS, hudScaleValue, type GraphicsOptions } from './graphic
 import { createRoomSource } from './render/room-source.js';
 import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme, type RoomTheme } from './render/theme.js';
+import { applyTeamColours } from './render/team-palette.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
+import { loadNumberFonts } from './render/number-styles.js';
 
 export { GENERATED_MAP, loadMap } from './map-loader.js';
 
@@ -76,6 +78,8 @@ export interface ClientOptions {
   readonly showFlagMessages: boolean;
   readonly showKillMessages: boolean;
   readonly showNames: 'never' | 'sameRoom' | 'always';
+  /** Números nos bonecos (OG-410). */
+  readonly showNumbers?: boolean;
   readonly fpsLimit: number;
   /** Quadro com tecla→envio e tecla→tela sobre o jogo (OG-369). */
   readonly showInputLatency?: boolean;
@@ -328,10 +332,15 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   /** Troca o mapa desenhado (início da partida e cada troca de mapa do servidor). */
   /** Base HTTP do game server da partida (mapas gerados, OG-015). */
   let serverBase: string | undefined;
+  let shownMap: { name: string; theme: RoomTheme } | null = null;
+  let mapToken = 0;
   const showMap = async (name: string, theme: RoomTheme): Promise<GameMap | null> => {
+    shownMap = { name, theme };
+    // só o pedido mais recente vale: duas trocas de cor seguidas não deixam o desenho antigo por cima
+    const token = ++mapToken;
     const { map, bytes } = await loadMap(name, { base: serverBase });
     const source = await createRoomSource(map, name, bytes, theme);
-    if (destroyed) {
+    if (destroyed || token !== mapToken) {
       source.destroy();
       return null;
     }
@@ -578,7 +587,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       });
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
-      const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+      const baseTheme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+      // cópia viva das cores: o lado que vira o clã troca as dele (OG-409); `baseTheme` guarda as do tema
+      const theme: RoomTheme = { ...baseTheme, colours: { ...baseTheme.colours } };
+      let seenIdentity = -1;
       app.ticker.maxFPS = maxFps(client.fpsLimit);
       if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
@@ -600,12 +612,14 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       const playing = Boolean(opts.online || opts.demoPlayers);
       if (playing) {
         // a Inter do HUD Moderno precisa estar carregada antes do primeiro atlas (lição do OG-205)
-        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), opts.online ? loadInter() : null]);
+        // as fontes dos números (OG-413) antes do primeiro quadro: o canvas não espera a fonte
+        const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), opts.online ? loadInter() : null, loadNumberFonts()]);
         if (destroyed) return;
         gameFont = font;
         entities = new EntityRenderer(theme, sprites, font);
         entities.graphics = graphics();
         entities.showNames = client.showNames;
+        entities.showNumbers = client.showNumbers ?? true;
         app.stage.addChild(entities.stage);
         if (opts.online && font) {
           hud = new HudRenderer(theme, font, opts.translate, app.renderer.resolution);
@@ -652,6 +666,16 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           entities.render(frame, world.layout, topLeft);
           report(frame);
         }
+        if (session && entities && session.teamIdentityVersion !== seenIdentity) {
+          seenIdentity = session.teamIdentityVersion;
+          const colours = [session.teamIdentity[0]?.color ?? null, session.teamIdentity[1]?.color ?? null] as const;
+          if (applyTeamColours(theme.colours as Record<string, string>, baseTheme.colours, colours)) {
+            const target = entities;
+            void loadEntitySprites(manifest, opts.theme, theme.colours).then((s) => !destroyed && entities === target && target.setSprites(s));
+            // as bases das salas são pintadas com as cores da carga do mapa: redesenha com as novas
+            if (shownMap) void showMap(shownMap.name, shownMap.theme);
+          }
+        }
         if (session && entities && world?.layout && worldMap && session.world?.map === worldMap) {
           const now = performance.now();
           readInput?.(now);
@@ -665,6 +689,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             const frame = entityFrameFromWorld(fd, {
               me: s.me,
               name: (pid) => s.names.get(pid) ?? '',
+              number: (pid) => s.numbers.get(pid),
+              numberStyle: (pid) => s.numberStyles.get(pid),
               color: (pid) => s.colors.get(pid) ?? 16,
               hitfx: (pid) => {
                 const until = s.hitUntil.get(pid) ?? 0;
@@ -774,6 +800,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       onlineHud?.setOptions(next);
       if (entities) {
         entities.showNames = next.showNames;
+        entities.showNumbers = next.showNumbers ?? true;
         entities.graphics = graphics();
       }
       if (relayout) layout();

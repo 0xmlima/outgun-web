@@ -15,6 +15,10 @@
 }
 
 .app-topbar {
+  /* o blur cria uma camada própria: sem z-index, o tocador e os painéis da página passavam por cima
+     do painel do sino (OG-412) */
+  position: relative;
+  z-index: var(--layer-header);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -117,7 +121,7 @@
   position: absolute;
   top: calc(100% + var(--space-2));
   right: 0;
-  z-index: 20;
+  z-index: var(--layer-popover);
   width: min(22rem, 90vw);
   max-height: 26rem;
   overflow-y: auto;
@@ -912,7 +916,7 @@
 .admin-bar {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: var(--layer-raised);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -1058,7 +1062,7 @@
 .admin-preset-head {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: var(--layer-raised);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2) var(--space-4);
@@ -1623,4 +1627,48 @@
   width: 100%;
   min-width: 16rem;
   resize: vertical;
+}
+
+/* cores do clã (OG-407): paleta em fileira e prévia do boneco e da bandeira */
+.clan-colors {
+  flex-wrap: wrap;
+}
+.clan-colors-preview {
+  gap: var(--space-4);
+  align-items: center;
+}
+
+/* número de jogador na conta (OG-410) */
+.account-number {
+  max-width: 10rem;
+}
+
+/* número do jogador no perfil (OG-410): como no boneco, branco com contorno */
+.profile-number {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 2px solid var(--text);
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* estilos do número (OG-413): prévia de cada um no boneco */
+.account-number-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.number-style {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text);
+  cursor: pointer;
+}
+.number-style.selected {
+  border-color: var(--accent);
 }

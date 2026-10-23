@@ -63,6 +63,8 @@ export interface MatchReport {
   skillRoster?: SkillRosterEntry[];
   /** Eventos da ranqueada (OG-362); ausente nas outras partidas. */
   events?: MatchEventLog;
+  /** O clã que cada lado foi na rodada (OG-409); ausente = vermelho x azul. */
+  teams?: [ReportTeam | null, ReportTeam | null];
   players: {
     slot: number;
     userId?: string;
@@ -119,6 +121,14 @@ export function rankingMinimumsMet(players: readonly ReportPlayer[], minHumans: 
   return humans.size >= minHumans && players.length >= minPlayers;
 }
 
+/** Lado que virou o clã (OG-408/409), para o relatório da partida. */
+export interface ReportTeam {
+  tag: string;
+  name: string;
+  /** `#RRGGBB`; null = a cor padrão do lado. */
+  color: string | null;
+}
+
 export interface ReportInput {
   serverMatchId: string;
   replayUrl?: string;
@@ -140,6 +150,7 @@ export interface ReportInput {
   skillRoster?: readonly SkillRosterEntry[];
   /** Eventos do jogo (OG-362); só vão no relatório ranqueado. */
   events?: MatchEventLog;
+  teams?: [ReportTeam | null, ReportTeam | null];
 }
 
 function stats(p: PlayerResult): Record<string, number> {
@@ -184,6 +195,7 @@ export function matchReport(input: ReportInput): MatchReport {
     ...(input.substitutions?.length ? { substitutions: input.substitutions.slice(0, 10) } : {}),
     // eventos também no Casual (OG-381, D-75): relatório; leaderboard e perfil seguem só com ranqueadas
     ...(input.events ? { events: input.events } : {}),
+    ...(input.teams && (input.teams[0] || input.teams[1]) ? { teams: input.teams } : {}),
     ...(input.ranked && input.skillRoster ? { skillRoster: input.skillRoster.filter((r) => UUID.test(r.userId)).slice(0, 32) } : {}),
     players: result.players.flatMap((p) => {
       const who = input.who(p.pid);

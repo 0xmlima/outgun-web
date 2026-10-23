@@ -65,7 +65,7 @@ export function teamScreen(s: ClientSession, t: T): InfoScreen {
   const sh = (label: string, f: (x: { movement: number; shots: number; hits: number; shotsTaken: number }) => string) =>
     row(label, shots[0] ? f(shots[0]) : '0', shots[1] ? f(shots[1]) : '0');
   const stats: Table = {
-    header: ['', t('Red Team'), t('Blue Team')],
+    header: ['', s.teamIdentity?.[0]?.tag ?? t('Red Team'), s.teamIdentity?.[1]?.tag ?? t('Blue Team')],
     rows: [
       row('Captures', String(s.teamScores[0]), String(s.teamScores[1])),
       per('Kills', (x) => x.kills),
@@ -110,7 +110,7 @@ export function playerScreen(s: ClientSession, page: number, t: T): InfoScreen {
   const tables: Table[] = ([0, 1] as const).map((team) => {
     const pids = order.filter((pid) => teamOf(s, pid) === team);
     return {
-      caption: `${t(team === 0 ? 'Red Team' : 'Blue Team')} (${pids.length})`,
+      caption: `${s.teamIdentity?.[team]?.tag ?? t(team === 0 ? 'Red Team' : 'Blue Team')} (${pids.length})`,
       captionTone: team === 0 ? 'red' : 'blue',
       header: ['', '', ...PLAYER_PAGES[page]!.map((h) => t(h))],
       rows: pids.map((pid): Row => {

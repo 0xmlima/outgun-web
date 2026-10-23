@@ -141,6 +141,8 @@ const children = [
     ],
     {
       CSP_CONNECT_SRC: `${SERVER} http://localhost:${GS_PORT}`,
+      // sem API: o cliente usa o ticket de desenvolvimento mesmo com uma API local na 7800
+      API_URL: 'http://127.0.0.1:9',
     },
     'web',
   ),
