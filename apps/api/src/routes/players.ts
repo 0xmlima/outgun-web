@@ -7,9 +7,13 @@ import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from 'drizzle-orm
 import type { AppDeps, Services } from '../app.js';
 import { usernameKey } from '../db/keys.js';
 import { clans, matchEventPlayers, matchEvents, matches, matchPlayers, playerMilestones, playerProfiles, rankedSeries, seasonChampions, seasons, users } from '../db/schema.js';
+import { isSecretMilestone } from '@outgun/content/secret';
+import { milestoneProgressOf, milestoneRarity, SECRET_TOTAL, unlockedSecrets } from '../milestones.js';
 import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 
+/** Texto nos dois idiomas (marcos secretos, OG-393). */
+const Bilingual = Type.Object({ 'pt-BR': Type.String(), en: Type.String() });
 const Totals = Type.Object({
   matches: Type.Integer(),
   wins: Type.Integer(),
@@ -108,6 +112,17 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               lastMatchAt: Type.Union([Type.String(), Type.Null()]),
               /** Marcos conquistados (OG-213); a partida some se o histórico estiver escondido. */
               milestones: Type.Array(Type.Object({ id: Type.String(), achievedAt: Type.String(), matchId: Type.Union([Type.String(), Type.Null()]) })),
+              /** Valor atual de cada marco com alvo (OG-393), para a barra de progresso. */
+              milestoneProgress: Type.Record(Type.String(), Type.Number()),
+              /** Fração das contas que tem cada marco (OG-393): públicos e só os secretos desta conta. */
+              milestoneRarity: Type.Record(Type.String(), Type.Number()),
+              /** Secretos (RN-SOC-06): quantos existem e o texto só dos que esta conta desbloqueou. */
+              secrets: Type.Object({
+                total: Type.Integer(),
+                unlocked: Type.Array(
+                  Type.Object({ id: Type.String(), name: Bilingual, description: Bilingual, firstBy: Type.Union([Type.String(), Type.Null()]) }),
+                ),
+              }),
               /** Pódios no hall da fama (OG-268), da temporada mais recente para a mais antiga. */
               titles: Type.Array(Title),
             }),
@@ -160,6 +175,9 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           favoriteColors: profile?.favoriteColors ?? [],
           lastMatchAt: last?.at ? new Date(last.at).toISOString() : null,
           milestones: milestones.map((x) => ({ id: x.id, achievedAt: x.achievedAt.toISOString(), matchId: showHistory ? x.matchId : null })),
+          milestoneProgress: await milestoneProgressOf(db, user.id),
+          milestoneRarity: Object.fromEntries([...(await milestoneRarity(db))].filter(([id]) => !isSecretMilestone(id) || milestones.some((x) => x.id === id))),
+          secrets: { total: SECRET_TOTAL, unlocked: await unlockedSecrets(db, milestones.map((x) => x.id)) },
           titles: await titles(eq(seasonChampions.userId, user.id)),
         };
       },

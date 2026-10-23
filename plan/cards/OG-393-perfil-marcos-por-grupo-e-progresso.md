@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-390, OG-395 |
 | Regras de negócio | RN-SOC-03, RN-SOC-06 |
 | Skills | `outgun-card-workflow` |
@@ -28,6 +28,9 @@ Como jogador, quero ver no meu perfil dentro do jogo todos os marcos organizados
 
 ## Critérios de aceite
 - [ ] O perfil dentro do jogo (app desktop) e no navegador mostra os grupos, o progresso dos marcos de total e a raridade.
-- [ ] Um secreto bloqueado não vaza nome nem condição na resposta da API nem no HTML.
+- [x] Um secreto bloqueado não vaza nome nem condição na resposta da API nem no HTML.
 
 ## Notas de implementação
+- Perfil ganhou `milestoneProgress`, `milestoneRarity` (públicos + só os secretos da conta) e `secrets` (total e texto dos desbloqueados, com `firstBy`). Raridade = contas com o marco ÷ contas com partida, em cache de 10 min.
+- Painel em `apps/web/src/screens/milestones-panel.tsx`; horas mostradas em h. O cliente não importa `@outgun/content/secret`.
+- Critério 1 (ver no app e no navegador) fica para o PO conferir.

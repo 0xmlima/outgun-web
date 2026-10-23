@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { MULTI_KILL_WINDOW, WILD_FLAG, type MilestoneEvent, type MilestoneEvents } from './milestone-events.js';
-import { ACCURACY_MIN_SHOTS, ELITE_ACCURACY_MIN_SHOTS, MILESTONE_TOTALS, MILESTONES, milestonesFrom, type MilestoneMatch } from './milestones.js';
+import { ACCURACY_MIN_SHOTS, ELITE_ACCURACY_MIN_SHOTS, MILESTONE_TOTALS, MILESTONES, milestoneProgress, milestonesFrom, milestoneTarget, type MilestoneMatch } from './milestones.js';
 
 const match = (i: number, o: Partial<MilestoneMatch> = {}): MilestoneMatch => ({
   matchId: `m${i}`,
@@ -251,6 +251,14 @@ describe('marcos (OG-213)', () => {
     it('com menos de 4 contas, nenhum de humor', () => {
       expect(one({ accounts: 3, deaths: 30 }).humor_punching_bag).toBeUndefined();
     });
+  });
+
+  it('progresso (OG-393): totais, mapas, companheiro mais frequente e maior sequência de dias', () => {
+    const day = (d: number) => `2026-10-${String(d).padStart(2, '0')}`;
+    const list = [1, 2, 3, 5].map((d, i) => match(i, { kills: 10, result: 1, map: i < 2 ? 'a' : `mapgen_${i}`, mates: ['x'], day: day(d) }));
+    const p = milestoneProgress(list);
+    expect([p.kills_100, p.wins_100, p.maps_10, p.duo_50, p.days_7]).toEqual([40, 4, 2, 4, 3]);
+    expect([milestoneTarget('kills_100'), milestoneTarget('maps_25'), milestoneTarget('days_7'), milestoneTarget('hat_trick')]).toEqual([100, 25, 7, undefined]);
   });
 });
 

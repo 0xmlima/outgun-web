@@ -364,5 +364,40 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
   return [...found.values()].sort((x, y) => (order.get(x.id) ?? 0) - (order.get(y.id) ?? 0));
 }
 
+/** Alvo dos marcos com progresso (OG-393): totais, mapas, dupla e dias seguidos. */
+export function milestoneTarget(id: string): number | undefined {
+  return MILESTONE_TOTALS[id]?.target ?? (MAPS_TARGETS as Record<string, number>)[id] ?? (id === 'duo_50' ? DUO_MATCHES : id === 'days_7' ? DAYS_STREAK : undefined);
+}
+
+/**
+ * Progresso de cada marco com alvo (OG-393): o valor atual (totais somados, mapas distintos,
+ * partidas com o companheiro mais frequente e a maior sequência de dias). Sem os eventos.
+ */
+export function milestoneProgress(matches: readonly MilestoneMatch[]): Record<string, number> {
+  const sums = Object.fromEntries(Object.keys(COUNTERS).map((k) => [k, 0])) as Record<MilestoneCounter, number>;
+  const maps = new Set<string>();
+  const mates = new Map<string, number>();
+  let lastDay: number | null = null;
+  let days = 0;
+  let bestDays = 0;
+  for (const m of matches) {
+    for (const k of Object.keys(COUNTERS) as MilestoneCounter[]) sums[k] += COUNTERS[k](m);
+    if (m.map) maps.add(mapKey(m.map));
+    for (const mate of m.mates ?? []) mates.set(mate, (mates.get(mate) ?? 0) + 1);
+    if (m.day) {
+      const d = dayNumber(m.day);
+      if (lastDay === null || d - lastDay > 1) days = 1;
+      else if (d - lastDay === 1) days++;
+      lastDay = d;
+      bestDays = Math.max(bestDays, days);
+    }
+  }
+  const out: Record<string, number> = Object.fromEntries(Object.entries(MILESTONE_TOTALS).map(([id, t]) => [id, sums[t.counter]]));
+  for (const id of Object.keys(MAPS_TARGETS)) out[id] = maps.size;
+  out.duo_50 = Math.max(0, ...mates.values());
+  out.days_7 = bestDays;
+  return out;
+}
+
 /** API name da conquista da Steam (OG-396/397): o id em maiúsculas (`matches_10` → `MATCHES_10`). */
 export const steamAchievementName = (id: string): string => id.toUpperCase();

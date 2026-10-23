@@ -6,7 +6,7 @@
 // OG-390 também mortes, tempo jogado, placar sofrido e os stats da partida (jsonb inteiro); desde o
 // OG-391, modo, formato, mapa, dia, companheiros, série e os eventos. Os eventos são pesados: ao fim
 // de cada partida só os dela (os marcos de evento são de uma partida só); o retroativo lê todos.
-import { MILESTONES, milestonesFrom, type MilestoneEvent, type MilestoneMatch } from '@outgun/content';
+import { MILESTONES, milestoneProgress, milestonesFrom, type Bilingual, type MilestoneEvent, type MilestoneMatch } from '@outgun/content';
 import { SECRET_MILESTONES, secretMilestonesFrom } from '@outgun/content/secret';
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
@@ -217,3 +217,29 @@ export async function calibrateMilestones(db: Db, o: { beta: boolean }, batch = 
   return { active, rows };
 }
 
+/** Progresso de uma conta em cada marco com alvo (OG-393). Sem eventos: só os totais e o contexto. */
+export async function milestoneProgressOf(db: Db, userId: string): Promise<Record<string, number>> {
+  return milestoneProgress((await histories(db, [userId], [])).get(userId) ?? []);
+}
+
+/** Fração das contas com partida que tem cada marco (OG-393); guardada por alguns minutos. */
+const RARITY_TTL_MS = 10 * 60_000;
+let rarityCache: { at: number; shares: Map<string, number> } | null = null;
+export async function milestoneRarity(db: Db, now = Date.now()): Promise<Map<string, number>> {
+  if (rarityCache && now - rarityCache.at < RARITY_TTL_MS) return rarityCache.shares;
+  const [all] = await db.execute<{ n: number }>(sql`SELECT count(DISTINCT user_id)::int AS n FROM match_players WHERE user_id IS NOT NULL`);
+  const rows = await db.execute<{ milestone: string; n: number }>(sql`SELECT milestone, count(*)::int AS n FROM player_milestones GROUP BY milestone`);
+  const total = Math.max(1, Number(all?.n ?? 0));
+  rarityCache = { at: now, shares: new Map(rows.map((r) => [r.milestone, Number(r.n) / total])) };
+  return rarityCache.shares;
+}
+
+/** Texto dos secretos que a conta tem (RN-SOC-06), com quem descobriu primeiro. */
+export async function unlockedSecrets(db: Db, ids: readonly string[]): Promise<{ id: string; name: Bilingual; description: Bilingual; firstBy: string | null }[]> {
+  const mine = SECRET_MILESTONES.filter((m) => ids.includes(m.id));
+  if (mine.length === 0) return [];
+  const first = await firstDiscoverers(db);
+  return mine.map((m) => ({ id: m.id, name: m.name, description: m.description, firstBy: first.get(m.id) ?? null }));
+}
+
+export const SECRET_TOTAL = SECRET_MILESTONES.length;

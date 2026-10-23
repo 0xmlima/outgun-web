@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Tipos e utilitários das páginas de estatísticas (OG-085): perfil em Profile.tsx (OG-212), diretório e
 // ranking em Players.tsx (OG-215), relatório de partida em MatchReport.tsx (OG-214).
+import type { Bilingual } from '@outgun/content';
 import { RANKED_FORMATS, type RankedFormat } from '@outgun/settings';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -36,6 +37,10 @@ export interface Profile {
   favoriteColors: number[];
   lastMatchAt: string | null;
   milestones: { id: string; achievedAt: string; matchId: string | null }[];
+  /** Progresso, raridade e secretos desbloqueados (OG-393, RN-SOC-06). */
+  milestoneProgress?: Record<string, number>;
+  milestoneRarity?: Record<string, number>;
+  secrets?: { total: number; unlocked: { id: string; name: Bilingual; description: Bilingual; firstBy: string | null }[] };
   /** Pódios no hall da fama (OG-268). */
   titles?: { season: string; board: string; position: number }[];
 }
