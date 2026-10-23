@@ -184,6 +184,13 @@ export const gameServers = pgTable('game_servers', {
   rotations: jsonb('rotations').$type<Partial<Record<RotationKey, string[]>>>().notNull().default({}),
 });
 
+/** Lado que virou o clã na partida (OG-409). */
+export interface MatchTeam {
+  tag: string;
+  name: string;
+  color: string | null;
+}
+
 export const matches = pgTable(
   'matches',
   {
@@ -213,6 +220,8 @@ export const matches = pgTable(
     /** Desconexões permanentes no Ranked (OG-263, RN-RKL-20): bots substitutos, vagas vazias e quando. */
     substituteBots: smallint('substitute_bots').notNull().default(0),
     shortHanded: smallint('short_handed').notNull().default(0),
+    /** O clã que cada lado foi (OG-409): [vermelho, azul]; nulo = vermelho x azul. */
+    teamIdentity: jsonb('team_identity').$type<[MatchTeam | null, MatchTeam | null]>(),
     substitutions: jsonb('substitutions').$type<{ kind: 'bot' | 'short'; team: 0 | 1; atSeconds: number }[]>().notNull().default([]),
     createdAt: tstz('created_at').notNull().defaultNow(),
   },

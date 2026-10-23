@@ -109,6 +109,13 @@ function clonePlayer(src: PlayerState): PlayerState {
   return p;
 }
 
+/** Lado que virou o clã (OG-408): tag, nome e a cor (null = a padrão do lado). */
+export interface TeamIdentityView {
+  tag: string;
+  name: string;
+  color: string | null;
+}
+
 export class ClientSession {
   /** Meu pid; −1 antes do `welcome`. */
   me = -1;
@@ -130,6 +137,10 @@ export class ClientSession {
   readonly present = new Set<number>();
   /** Pids que são bots (`playerJoined.bot`): a IA não depende mais do prefixo do nome (OG-403). */
   readonly bots = new Set<number>();
+  /** O clã que cada lado é nesta rodada (`teamIdentity`, OG-408); null = vermelho/azul. */
+  readonly teamIdentity: [TeamIdentityView | null, TeamIdentityView | null] = [null, null];
+  /** Muda a cada `teamIdentity`: o cliente refaz cores e texturas. */
+  teamIdentityVersion = 0;
   readonly frags = new Map<number, number>();
   /** Cor pessoal de cada jogador 0..15 (`welcome`, `playerJoined`, `playerInfo`, `teamChange`). */
   readonly colors = new Map<number, number>();
@@ -450,6 +461,12 @@ export class ClientSession {
         break;
       case 'playerName':
         this.setName(m.pid, m.name);
+        break;
+      case 'teamIdentity':
+        if (m.team === 0 || m.team === 1) {
+          this.teamIdentity[m.team] = m.tag ? { tag: m.tag, name: m.name, color: m.color || null } : null;
+          this.teamIdentityVersion++;
+        }
         break;
       case 'playerClan':
         this.clanTags.set(m.pid, m.tag);

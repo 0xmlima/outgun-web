@@ -133,6 +133,25 @@ export interface FeedContext {
   readonly extraTime?: number;
   /** Mapas na rotação (0 = lista ainda não chegou). */
   readonly mapCount: number;
+  /** Tag do clã que o lado é nesta rodada (OG-409); null = vermelho/azul. */
+  readonly teamTag?: (team: 0 | 1) => string | null;
+}
+
+/**
+ * Troca a palavra do lado ("$RRED", "$BAZUL"...) pela tag do clã em textos já traduzidos (OG-409).
+ * Só no modelo, antes dos nomes dos jogadores entrarem (eles também usam $R/$B).
+ */
+/** Marcador de argumento (o tradutor troca `$1` por vazio sem argumento): volta com `fillMarks`. */
+const mark = (i: number) => `\uE000${i}\uE001`;
+const fillMarks = (text: string, args: readonly string[]) => text.replace(/\uE000(\d+)\uE001/g, (_, i: string) => args[Number(i)] ?? '');
+
+export function brandTeams(template: string, tag: (team: 0 | 1) => string | null): string {
+  const red = tag(0);
+  const blue = tag(1);
+  let out = template;
+  if (red) out = out.replace(/\$R[^\s$!.,:-]+/g, `$R${escapeFormatted(red)}`);
+  if (blue) out = out.replace(/\$B[^\s$!.,:-]+/g, `$B${escapeFormatted(blue)}`);
+  return out;
 }
 
 /** Mensagens recentes (`chatbuffer`) e as regras do original para gerá-las a partir dos eventos. */
@@ -179,8 +198,10 @@ export class MessageFeed {
       if (carried === 'wild') return 'wild';
       return (team === 0 && carried === 'own') || (team === 1 && carried === 'enemy') ? 'red' : 'blue';
     };
+    // modelo traduzido com a tag do clã no lugar da cor (OG-409), depois os nomes
+    const teamT = (template: string, ...args: string[]) => (c.teamTag ? fillMarks(brandTeams(t(template, ...args.map((_, i) => mark(i))), c.teamTag), args) : t(template, ...args));
     const flagText = (prefix: string, which: string, pid: number) =>
-      t(`$1 ${prefix} THE ${which === 'wild' ? '$GWILD' : which === 'red' ? '$RRED' : '$BBLUE'} FLAG$>!`, name(pid));
+      teamT(`$1 ${prefix} THE ${which === 'wild' ? '$GWILD' : which === 'red' ? '$RRED' : '$BBLUE'} FLAG$>!`, name(pid));
     const info = (code: string) => this.push('info', code, c.time);
     const killInfo = (code: string) => this.showKillMessages && info(code);
     const flagInfo = (code: string) => this.showFlagMessages && info(code);
@@ -236,7 +257,7 @@ export class MessageFeed {
         if (!m.captureDrop) flagInfo(flagText('DROPPED', flag(m.pid, m.flag), m.pid));
         break;
       case 'flagReturn':
-        flagInfo(t(c.teamOf(m.pid) === 0 ? '$1 RETURNED THE $RRED FLAG$>!' : '$1 RETURNED THE $BBLUE FLAG$>!', name(m.pid)));
+        flagInfo(teamT(c.teamOf(m.pid) === 0 ? '$1 RETURNED THE $RRED FLAG$>!' : '$1 RETURNED THE $BBLUE FLAG$>!', name(m.pid)));
         break;
       case 'capture': {
         const which = m.flagTeam === 'wild' ? 'wild' : c.teamOf(m.pid) === 0 ? 'blue' : 'red';
@@ -279,7 +300,11 @@ export class MessageFeed {
       }
       case 'teamChange':
         if (m.swappedColor !== 255) info(t('$1 and $2 swapped teams.', name(m.from), name(m.to)));
-        else info(t(c.teamOf(m.from) === 1 ? '$1 moved to red team.' : '$1 moved to blue team.', name(m.from)));
+        else {
+          const to = (c.teamOf(m.from) === 1 ? 0 : 1) as 0 | 1;
+          const tag = c.teamTag?.(to);
+          info(tag ? t('$1 moved to $2.', name(m.from), escapeFormatted(tag)) : t(to === 0 ? '$1 moved to red team.' : '$1 moved to blue team.', name(m.from)));
+        }
         break;
       case 'idleKickWarning':
         this.pushPlain('warning', t('*** Idle kick: move or be kicked in $1 seconds.', String(m.seconds)), c.time);
@@ -315,7 +340,8 @@ export class MessageFeed {
   /** `netGameoverPeriodStart`: placar final e o objetivo da próxima partida. */
   gameOverScores(red: number, blue: number, c: FeedContext): void {
     const t = this.t;
-    this.push('info', t('CTF GAME OVER - FINAL SCORE: $RRED $1$> - $BBLUE $2$>', String(red), String(blue)), c.time);
+    const final = 'CTF GAME OVER - FINAL SCORE: $RRED $1$> - $BBLUE $2$>';
+    this.push('info', c.teamTag ? fillMarks(brandTeams(t(final, mark(0), mark(1)), c.teamTag), [String(red), String(blue)]) : t(final, String(red), String(blue)), c.time);
     const parts: string[] = [];
     if (c.captureLimit > 0) parts.push(t('CAPTURE $1 FLAGS TO WIN THE GAME.', String(c.captureLimit)));
     if (c.timeLimit > 0) parts.push(t('TIME LIMIT IS $1 MINUTES.', String(c.timeLimit)));

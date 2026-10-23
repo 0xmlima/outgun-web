@@ -70,7 +70,7 @@ export class EntityRenderer {
 
   constructor(
     private readonly theme: RoomTheme,
-    private readonly sprites: EntitySprites,
+    private sprites: EntitySprites,
     /** Fonte bitmap instalada no PixiJS para nomes e contagens; `null` = sem texto. */
     private readonly font: { family: string; height: number } | null,
   ) {
@@ -83,6 +83,11 @@ export class EntityRenderer {
   /** Efeito criado por evento (foguete acertou jogador ou parede). */
   addEffect(kind: EffectKind, pos: WorldCoords, team: number, time: number): void {
     this.effects.push({ kind, pos, time, team, alpha: 1 });
+  }
+
+  /** Texturas refeitas com as cores do clã (OG-409). */
+  setSprites(sprites: EntitySprites): void {
+    this.sprites = sprites;
   }
 
   private c(name: string): string {

@@ -36,6 +36,7 @@ import { DEFAULT_GRAPHICS, hudScaleValue, type GraphicsOptions } from './graphic
 import { createRoomSource } from './render/room-source.js';
 import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme, type RoomTheme } from './render/theme.js';
+import { applyTeamColours } from './render/team-palette.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
 
@@ -578,7 +579,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       });
       const manifest = await loadManifest();
       if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
-      const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+      const baseTheme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+      // cópia viva das cores: o lado que vira o clã troca as dele (OG-409); `baseTheme` guarda as do tema
+      const theme: RoomTheme = { ...baseTheme, colours: { ...baseTheme.colours } };
+      let seenIdentity = -1;
       app.ticker.maxFPS = maxFps(client.fpsLimit);
       if (destroyed) return;
       app.renderer.background.color = theme.colours.screen_background ?? '#000000';
@@ -651,6 +655,14 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           const frame = demo.frame(world.layout.visibleX > 1 || world.layout.visibleY > 1);
           entities.render(frame, world.layout, topLeft);
           report(frame);
+        }
+        if (session && entities && session.teamIdentityVersion !== seenIdentity) {
+          seenIdentity = session.teamIdentityVersion;
+          const colours = [session.teamIdentity[0]?.color ?? null, session.teamIdentity[1]?.color ?? null] as const;
+          if (applyTeamColours(theme.colours as Record<string, string>, baseTheme.colours, colours)) {
+            const target = entities;
+            void loadEntitySprites(manifest, opts.theme, theme.colours).then((s) => !destroyed && entities === target && target.setSprites(s));
+          }
         }
         if (session && entities && world?.layout && worldMap && session.world?.map === worldMap) {
           const now = performance.now();

@@ -110,6 +110,9 @@ export const BotChatSchema = Type.Object({
   ),
 });
 
+/** Lado que virou o clã (OG-409): o mesmo formato no relatório e na página da partida. */
+export const MatchTeamSchema = Type.Object({ tag: Type.String({ maxLength: 8 }), name: Type.String({ maxLength: 24 }), color: Type.Union([Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), Type.Null()]) });
+
 const HeartbeatReply = Type.Object({
   updated: Type.Integer(),
   /** Comandos do painel para salas deste servidor. */
@@ -215,6 +218,8 @@ const MatchResult = Type.Object({
    * (servidor antigo), vale quem está em `players`.
    */
   skillRoster: Type.Optional(Type.Array(Type.Object({ userId: Type.String({ format: 'uuid' }), team: Type.Union([Type.Literal(0), Type.Literal(1)]) }), { maxItems: 32 })),
+  /** O clã que cada lado foi na rodada (OG-409). */
+  teams: Type.Optional(Type.Array(Type.Union([MatchTeamSchema, Type.Null()]), { minItems: 2, maxItems: 2 })),
   /** Eventos da ranqueada (OG-362): abates e ações de bandeira; jogadores = índice em `players`. */
   events: Type.Optional(
     Type.Object({
@@ -475,6 +480,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               blueClanId: war?.[1] ?? null,
               substituteBots: (body.substitutions ?? []).filter((x) => x.kind === 'bot').length,
               shortHanded: (body.substitutions ?? []).filter((x) => x.kind === 'short').length,
+              teamIdentity: body.teams && (body.teams[0] || body.teams[1]) ? [body.teams[0] ?? null, body.teams[1] ?? null] : null,
               substitutions: body.substitutions ?? [],
             })
             .returning({ id: matches.id });

@@ -21,7 +21,7 @@ import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
 import { MatchEventRecorder, type EventFlag } from './match-events.js';
-import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution } from './match-report.js';
+import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution, type ReportTeam } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { teamStrength, type PlayerSkill } from './ranking.js';
 import { buildFrame, minimapViews, RecipientState, seesRocket } from './aoi.js';
@@ -1826,6 +1826,7 @@ export class Room {
         substitutions: this.substitutions,
         skillRoster: this.skillRoster(),
         events: this.events.log(),
+        teams: [0, 1].map((t) => { const id = this.identities[t as 0 | 1]; return id ? { tag: id.tag, name: id.name, color: id.color } : null; }) as [ReportTeam | null, ReportTeam | null],
       }),
     );
   }

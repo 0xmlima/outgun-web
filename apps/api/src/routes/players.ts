@@ -12,6 +12,7 @@ import { milestoneProgressOf, milestoneRarity, SECRET_TOTAL, unlockedSecrets } f
 import { matchSkillChanges, playerSkillOf } from '../skill.js';
 import { ErrorSchema, GameModeSchema, RankedFormatSchema, SeriesBestOfSchema } from './schemas.js';
 import { previousPodium } from '../ranking.js';
+import { MatchTeamSchema } from './internal.js';
 
 /** Texto nos dois idiomas (marcos secretos, OG-393). */
 const Bilingual = Type.Object({ 'pt-BR': Type.String(), en: Type.String() });
@@ -289,6 +290,8 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
               series: Type.Union([Type.Null(), SeriesView]),
               /** Clãs de cada lado numa partida clã x clã (OG-259); null se não for ou se um deles foi apagado. */
               clans: Type.Union([Type.Null(), Type.Object({ red: ClanRef, blue: ClanRef })]),
+              /** O clã que cada lado foi na rodada (OG-409): tag, nome e cor; null = vermelho x azul. */
+              teams: Type.Union([Type.Null(), Type.Array(Type.Union([MatchTeamSchema, Type.Null()]))]),
               /** Variação do rating de habilidade de cada conta (OG-349); vazio antes da implantação e no Casual. */
               skill: Type.Array(SkillChangeLine),
             }),
@@ -329,6 +332,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
           gameNo: m.gameNo,
           series: m.seriesId ? await seriesView(m.seriesId) : null,
           clans: await warClans(m),
+          teams: m.teamIdentity ?? null,
           skill: await skillLines(m.id),
         };
       },

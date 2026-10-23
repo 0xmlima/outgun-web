@@ -870,7 +870,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-406](cards/OG-406-cliente-webtransport-com-reserva.md) | Cliente escolhe WebTransport e cai no WebSocket sem o jogador perceber | E11 | 3 | Should | — | OG-405 | Backlog |
 | [OG-407](cards/OG-407-cores-do-cla.md) | Cores primária e secundária do clã | E9 | 3 | Should | S43 | OG-275 | Em revisão |
 | [OG-408](cards/OG-408-identidade-do-time-na-partida.md) | Identidade do clã na partida: quando o lado vira o clã (servidor) | E9 | 3 | Should | S43 | OG-407 | Em revisão |
-| [OG-409](cards/OG-409-time-com-a-cor-do-cla.md) | Time com a cor e o nome do clã na tela (cliente) | E9 | 5 | Should | S43 | OG-408 | Pronto |
+| [OG-409](cards/OG-409-time-com-a-cor-do-cla.md) | Time com a cor e o nome do clã na tela (cliente) | E9 | 5 | Should | S43 | OG-408 | Em andamento |
 | [OG-410](cards/OG-410-numeros-de-jogador.md) | Números de jogador (2 a 99, o 1 para o líder do mês) | E9 | 5 | Should | S43 | OG-358 | Pronto |
 | [OG-411](cards/OG-411-mais-cores-pessoais.md) | 32 cores pessoais e as medalhas do top 3 | E9 | 3 | Should | S43 | OG-358 | Em revisão |
 | [OG-412](cards/OG-412-notificacoes-atras-do-tocador.md) | Notificações atrás do tocador de música | E8 | 1 | Must | S43 | OG-361 | Em revisão |

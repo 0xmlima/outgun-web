@@ -96,6 +96,8 @@ export interface MatchDetails {
 
 export interface MatchPage {
   match: MatchSummary & { startedAt: string; roomId: string | null };
+  /** O clã que cada lado foi na rodada (OG-409); null = vermelho x azul. */
+  teams?: readonly ({ tag: string; name: string; color: string | null } | null)[] | null;
   details: MatchDetails;
   players: PlayerLine[];
   replayUrl: string | null;

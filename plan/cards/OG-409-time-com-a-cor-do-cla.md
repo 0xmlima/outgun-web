@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S43 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | OG-408 |
 | Regras de negócio | RN-CLA-09, RN-UI-05, D-78 |
 | Skills | `outgun-card-workflow` |
