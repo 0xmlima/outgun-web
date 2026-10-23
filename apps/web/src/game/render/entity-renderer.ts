@@ -37,6 +37,7 @@ import {
 import { pfScale, roomOffsetsX, roomOffsetsY, type RoomLayout } from './layout.js';
 import type { EntitySprites } from './sprites.js';
 import { colour, type RoomTheme } from './theme.js';
+import { ALL_COLORS, colourKey, isMedalColor } from '@outgun/protocol';
 
 interface Effect {
   readonly kind: EffectKind | 'smoke' | 'turbo';
@@ -336,7 +337,7 @@ export class EntityRenderer {
     if (alpha <= 0) return;
     const L = this.list;
     let pc1 = this.c(p.team === 0 ? 'team_red_basic' : 'team_blue_basic');
-    let pc2 = p.color >= 16 ? this.c('player_unknown') : this.c(`player${String(p.color + 1).padStart(2, '0')}`);
+    let pc2 = p.color >= ALL_COLORS ? this.c('player_unknown') : this.c(colourKey(p.color));
     const hit = trail ? null : hitColour(this.c('player_hit'), p.hitfx, t);
     const power = !trail && p.power && powerBlink(t);
     if (hit) pc1 = pc2 = hit;
@@ -345,7 +346,7 @@ export class EntityRenderer {
       pc2 = this.c('player_power_personal');
     }
     let sprite: Texture | null = null;
-    if (p.gundir >= 0 && p.color < 16) sprite = power && this.sprites.playerPower ? this.sprites.playerPower : (this.sprites.player?.[p.team]?.[p.color] ?? null);
+    if (p.gundir >= 0 && p.color < ALL_COLORS) sprite = power && this.sprites.playerPower ? this.sprites.playerPower : (this.sprites.player?.(p.team, p.color) ?? null);
     for (const [x, y] of this.at(pos)) {
       if (sprite) {
         const s = L.sprite(sprite, x, y, this.pfd(PLAYER_SPRITE_SIZE), gunAngle(p.gundir), alpha / 255);
@@ -357,6 +358,8 @@ export class EntityRenderer {
       const R = this.pf(PLAYER_RADIUS);
       g.circle(x, y, R).fill({ color: pc1, alpha: a });
       g.circle(x, y, (R * 2) / 3).fill({ color: pc2, alpha: a });
+      // medalha (OG-411): brilho metálico na metade de cima do miolo
+      if (isMedalColor(p.color) && !hit && !power) g.ellipse(x, y - R / 4, R / 2.4, R / 4.5).fill({ color: 0xffffff, alpha: 0.45 * a });
       if (p.gundir >= 0) {
         const ang = gunAngle(p.gundir);
         const gdx = Math.cos(ang);

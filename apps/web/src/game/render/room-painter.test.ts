@@ -41,6 +41,8 @@ describe('tema', () => {
 
   it('colours.txt do tema substitui só as cores que lista', () => {
     const colours = themeColours({ ground: '#104000', wall: '#30C000' }, { ground: '#CCCCFF' });
-    expect(colours).toEqual({ ground: '#CCCCFF', wall: '#30C000' });
+    expect(colours).toMatchObject({ ground: '#CCCCFF', wall: '#30C000' });
+    // as cores novas (OG-411) entram por baixo, para os temas do original
+    expect(colours.player17).toBe('#262626');
   });
 });

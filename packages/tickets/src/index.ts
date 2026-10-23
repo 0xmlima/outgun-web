@@ -30,6 +30,8 @@ export interface TicketClaims {
   skill?: TicketSkill;
   /** Nível do bot que substitui a conta se ela sair de vez (OG-266, 1..5; só nas salas Ranked). */
   botLevel?: number;
+  /** Pódio (1..3) do "Melhor do mês" do mês anterior (OG-411): libera a cor da medalha. */
+  medal?: number;
   /**
    * Sala que o game server deve abrir se ainda não a hospeda (OG-086): a API escolhe o servidor
    * e manda a configuração no ticket, assinada, em vez de uma chamada direta ao servidor.

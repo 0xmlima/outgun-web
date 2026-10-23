@@ -19,6 +19,8 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Tabs } from '../ui/Tabs.js';
 import { ControlsPanel } from './ControlsScreen.js';
+import { ALL_COLORS, colourKey, EXTRA_COLOUR_DEFAULTS, isMedalColor, medalColor } from '@outgun/protocol';
+import { api } from '../app/api.js';
 
 /**
  * Limites de FPS (OG-400, "liberar geral"): no cliente desktop o FPS é sempre livre e nunca fica
@@ -101,7 +103,7 @@ export function useManifestLists() {
         colourThemes: Object.entries(m.graphics).filter(([, v]) => v.colours).map(([k]) => k),
         backgrounds: Object.entries(m.graphics).filter(([, v]) => v.graphics.background).map(([k]) => k),
         soundThemes: Object.keys(m.sounds),
-        playerColours: Array.from({ length: 16 }, (_, i) => m.defaultColours[`player${String(i + 1).padStart(2, '0')}`] ?? '#888888'),
+        playerColours: Array.from({ length: ALL_COLORS }, (_, i) => m.defaultColours[colourKey(i)] ?? EXTRA_COLOUR_DEFAULTS[colourKey(i)] ?? '#888888'),
       });
     });
     return () => {
@@ -128,7 +130,18 @@ export function optionsTab(section: string | undefined): OptionsTab {
 }
 
 /** Cores favoritas (`Colorselect`): ←/→ escolhem a cor; Ctrl+←/→ (ou +/−) levam a cor junto. */
-function FavoriteColors({ label, hint, colors, order, disabled, onChange }: { label: string; hint: string; colors: readonly string[]; order: readonly number[]; disabled: boolean; onChange: (order: number[]) => void }) {
+/** Amostra da cor; a medalha com o brilho metálico, como no boneco (OG-411). */
+export const swatchBackground = (c: number, colour: string | undefined) => (isMedalColor(c) ? `linear-gradient(160deg, #ffffff 0%, ${colour ?? '#888888'} 45%, ${colour ?? '#888888'} 100%)` : (colour ?? '#888888'));
+
+/** Ordem mostrada: a paleta e, para o pódio do mês anterior, a medalha dele (as outras somem). */
+export function shownColors(order: readonly number[], medal: number | null): number[] {
+  const mine = medal ? medalColor(medal) : undefined;
+  const out = order.filter((c) => !isMedalColor(c) || c === mine);
+  if (mine !== undefined && !out.includes(mine)) out.push(mine);
+  return out;
+}
+
+function FavoriteColors({ label, hint, colors, order, disabled, onChange, medalTitle }: { label: string; hint: string; colors: readonly string[]; order: readonly number[]; disabled: boolean; onChange: (order: number[]) => void; medalTitle?: string }) {
   const [selected, setSelected] = useState(0);
   const move = (delta: -1 | 1, carry: boolean) => {
     const r = moveColor(order, selected, delta, carry);
@@ -173,7 +186,8 @@ function FavoriteColors({ label, hint, colors, order, disabled, onChange }: { la
             aria-selected={i === selected}
             aria-label={String(i + 1)}
             className={i === selected ? 'swatch selected' : 'swatch'}
-            style={{ background: colors[c] ?? '#888888' }}
+            title={isMedalColor(c) ? medalTitle : undefined}
+            style={{ background: swatchBackground(c, colors[c]) }}
             onClick={() => !disabled && prefer(i)}
           />
         ))}
@@ -212,6 +226,19 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
   const { user } = useAccount();
   const navigate = useNavigate();
   const lists = useManifestLists();
+  // pódio do mês anterior (OG-411): a cor da medalha aparece entre as favoritas
+  const [medal, setMedal] = useState<number | null>(null);
+  useEffect(() => {
+    if (!user) return setMedal(null);
+    let alive = true;
+    api<{ medal?: number | null }>(`/players/${encodeURIComponent(user.username)}`).then(
+      (p) => alive && setMedal(p.medal ?? null),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [user]);
 
   type BoolKey = { [K in keyof Prefs]: Prefs[K] extends boolean ? K : never }[keyof Prefs];
   const toggle = (key: BoolKey, label: string, disabled = false) => (
@@ -251,7 +278,7 @@ export function OptionsBody({ tab, onTab, inGame = false }: { readonly tab: Opti
               ) : (
                 <TextField label={t('Name')} value={prefs.playerName} onChange={(v) => setPrefs({ playerName: v })} maxLength={15} hint={t('guest')} />
               )}
-              <FavoriteColors label={t('Favorite colors')} hint={t('Click a colour to make it your first choice; Ctrl+arrows reorder.')} colors={lists.playerColours} order={prefs.favoriteColors} disabled={prefs.randomColor} onChange={(favoriteColors) => setPrefs({ favoriteColors })} />
+              <FavoriteColors label={t('Favorite colors')} hint={t('Click a colour to make it your first choice; Ctrl+arrows reorder.')} colors={lists.playerColours} order={shownColors(prefs.favoriteColors, medal)} disabled={prefs.randomColor} onChange={(favoriteColors) => setPrefs({ favoriteColors })} medalTitle={t('Medal of the top 3 of last month')} />
               {toggle('randomColor', 'Use random color')}
             </FieldGroup>
           </Panel>

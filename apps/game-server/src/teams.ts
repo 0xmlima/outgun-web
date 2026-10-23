@@ -5,6 +5,9 @@
 // (`server_think_after_broadcast`, :1824), `balance_teams`/`shuffle_teams` (:216) e as cores
 // pessoais (`check_fav_colors`, :420).
 import { randomShuffle, type Rng } from '@outgun/sim';
+import { ALL_COLORS, NO_COLOR, PERSONAL_COLORS } from '@outgun/protocol';
+
+const CLASSIC_COLORS = 16;
 
 /** O que as regras precisam saber de cada vaga ocupada. */
 export interface Slot {
@@ -179,9 +182,12 @@ export function shuffleSwaps(slots: Slots, maxPlayers: number, rng: Rng): [numbe
   return swaps;
 }
 
-/** 16 cores pessoais por time (`fav_colors[team][16]`), sem repetir dentro do time (RN-TIM-05). */
-export const COLORS = 16;
-export const NO_COLOR = 255;
+/**
+ * Cores pessoais por time, sem repetir dentro do time (RN-TIM-05): as 32 da paleta (OG-411; o
+ * original tinha 16) e as 3 medalhas, que só entram pelas favoritas de quem tem direito.
+ */
+export const COLORS = ALL_COLORS;
+export { NO_COLOR };
 
 export class ColorPool {
   private readonly used: [boolean[], boolean[]] = [new Array<boolean>(COLORS).fill(false), new Array<boolean>(COLORS).fill(false)];
@@ -208,8 +214,11 @@ export class ColorPool {
       }
     }
     if (current < COLORS) return current;
-    const order = randomShuffle(Array.from({ length: COLORS }, (_, i) => i), this.rng);
-    const free = order.find((c) => !used[c]);
+    // sorteio só na paleta comum (medalha nunca sai por acaso): primeiro nas 16 do original, com o
+    // mesmo sorteio dele; as novas só se as 16 estiverem ocupadas (com 16 por time, nunca)
+    const order = randomShuffle(Array.from({ length: CLASSIC_COLORS }, (_, i) => i), this.rng);
+    let free = order.find((c) => !used[c]);
+    if (free === undefined) free = Array.from({ length: PERSONAL_COLORS - CLASSIC_COLORS }, (_, i) => CLASSIC_COLORS + i).find((c) => !used[c]);
     if (free === undefined) return NO_COLOR;
     used[free] = true;
     return free;

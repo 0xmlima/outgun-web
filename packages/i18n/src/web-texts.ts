@@ -224,6 +224,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Event: 'Acontecimento',
     'Chance (%)': 'Chance (%)',
     'Who talks': 'Quem fala',
+    'Medal of the top 3 of last month': 'Medalha do top 3 do mês passado',
     'Message sent to $1 rooms.': 'Mensagem enviada a $1 salas.',
     'Message to all rooms': 'Mensagem a todas as salas',
     'Minutes (empty = no end)': 'Minutos (vazio = sem fim)',

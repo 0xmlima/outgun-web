@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { completeColors, defaultPrefs, parsePrefs } from '../app/prefs.js';
-import { moveColor, optionsTab, preferColor } from './options.js';
+import { moveColor, optionsTab, preferColor, shownColors } from './options.js';
 
 describe('opções do jogador (OG-068)', () => {
-  it('favoritas: as 16 cores, sem repetir, as salvas primeiro', () => {
-    expect(completeColors([5, 5, 99, 2])).toEqual([5, 2, 0, 1, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
-    expect(completeColors('x')).toHaveLength(16);
+  it('favoritas: as 32 cores (OG-411), sem repetir, as salvas primeiro; medalha salva fica', () => {
+    expect(completeColors([5, 5, 99, 2])).toEqual([5, 2, ...Array.from({ length: 32 }, (_, i) => i).filter((c) => c !== 5 && c !== 2)]);
+    expect(completeColors('x')).toHaveLength(32);
+    expect(completeColors([32, 1]).slice(0, 2)).toEqual([32, 1]);
+  });
+
+  it('medalha só aparece para o pódio do mês anterior, e só a dele (OG-411)', () => {
+    expect(shownColors([33, 0, 1], null)).toEqual([0, 1]);
+    expect(shownColors([33, 0, 1], 2)).toEqual([33, 0, 1]);
+    expect(shownColors([0, 1], 1)).toEqual([0, 1, 32]);
+    expect(shownColors([34, 0], 1)).toEqual([0, 32]);
   });
 
   it('Colorselect: ←/→ escolhe; com Ctrl leva a cor junto; não passa das pontas', () => {

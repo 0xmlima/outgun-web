@@ -207,3 +207,16 @@ export async function seasonAt(db: Db | Tx, startedAt: Date): Promise<{ id: numb
   const current = await activeSeason(db);
   return current && { id: current.id, active: true };
 }
+
+/**
+ * Pódio do "Melhor do mês" (índice geral, OG-358) da última temporada encerrada: 1..3, ou null.
+ * Vale durante a temporada seguinte (OG-411: cor da medalha; OG-410: o número 1).
+ */
+export async function previousPodium(db: Db | Tx, userId: string): Promise<number | null> {
+  const rows = await db.execute<{ position: number }>(sql`
+    SELECT c.position FROM season_champions c
+    WHERE c.board = 'stat:overall' AND c.user_id = ${userId}
+      AND c.season_id = (SELECT id FROM seasons WHERE NOT active ORDER BY ends_at DESC NULLS LAST, id DESC LIMIT 1)
+    LIMIT 1`);
+  return rows[0]?.position ?? null;
+}

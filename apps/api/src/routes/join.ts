@@ -16,6 +16,7 @@ import { botLevelFrom, recentRanked } from '../bot-level.js';
 import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
+import { previousPodium } from '../ranking.js';
 
 const MINUTE = 60_000;
 
@@ -90,6 +91,7 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     const [member] = user && room.mode === 'ranked' ? await db.select({ clanId: clanMembers.clanId }).from(clanMembers).where(eq(clanMembers.userId, user.id)) : [];
     const clanId = member?.clanId;
     const skill = user ? await playerSkillRank(db, user.id) : null;
+    const medal = user ? await previousPodium(db, user.id) : null;
     const jti = randomUUID();
     const ticket = signTicket(
       {
@@ -107,6 +109,8 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         ...(skill ? { skill: { mu: skill.mu, value: skill.value, rank: skill.rank, of: skill.of } } : {}),
         // nível do bot substituto pelo histórico Ranked e a posição no OpenSkill (OG-266, OG-350)
         ...(user && room.mode === 'ranked' ? { botLevel: botLevelFrom({ ...(await recentRanked(db, user.id)), rank: skill?.rank ?? 0, of: skill?.of ?? 0 }) } : {}),
+        // pódio do mês anterior (OG-411): a cor da medalha
+        ...(medal ? { medal } : {}),
         ...(place.spawn ? { spawn: place.spawn } : {}),
         ...(device ? { dev: device } : {}),
       },

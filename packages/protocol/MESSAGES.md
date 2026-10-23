@@ -240,7 +240,7 @@ Código 20. Troca de nome (convidados; contas usam o nome da conta).
 
 Código 21. Cores preferidas, em ordem.
 
-- `colors`: lista (até 16) de u8
+- `colors`: lista (até 35) de u8
 
 ### minimapBandwidth
 

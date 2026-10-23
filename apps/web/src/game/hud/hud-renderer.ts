@@ -12,6 +12,7 @@ import { HudFaces, type FaceWeight, type HudFace } from './hud-faces.js';
 import type { Place } from './modern-layout.js';
 import { FOG_MAX_ALPHA, minimapPoint, minimapRect, minimapRoom, paintMinimap } from './minimap.js';
 import { scaleBy, type FontMetrics, type ScreenLayout } from './screen-layout.js';
+import { ALL_COLORS, colourKey } from '@outgun/protocol';
 
 /** Fonte do jogo e a de contorno (OG-013). */
 export class GameFont implements FontMetrics {
@@ -133,7 +134,7 @@ export interface VoteTarget {
   bot: boolean;
 }
 
-const PLAYER_COLOURS = Array.from({ length: 16 }, (_, i) => `player${String(i + 1).padStart(2, '0')}`);
+const PLAYER_COLOURS = Array.from({ length: ALL_COLORS }, (_, i) => colourKey(i));
 
 /** Nome no placar: até 15 caracteres (ou o que couber); com a tag do clã (OG-206) o que passar vira "...". */
 export function scoreboardName(name: string, max = 15): string {

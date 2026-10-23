@@ -3,7 +3,7 @@
 // original (src/server.cpp) para um único mapa em rotação. Times, votação, chat e validação de
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
-import { chatName, encodeFrame, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { chatName, encodeFrame, isMedalColor, medalColor, message, PERSONAL_COLORS, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { applyGamemod, formatPlayers, newSeries, recordSeriesGame, seriesOver, seriesWinner, settingsOf, type GameMode, type GameSettings, type Preset, type RankedRoomFormat, type SeriesScore } from '@outgun/settings';
 import { findPreset } from './presets.js';
 import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
@@ -76,6 +76,8 @@ export interface Identity {
   ip?: string;
   /** Nível do bot substituto desta conta (OG-266, do ticket Ranked); ausente = intermediário. */
   botLevel?: number;
+  /** Pódio do "Melhor do mês" anterior (1..3, OG-411): pode usar a cor da medalha. */
+  medal?: number;
   /** Hash do dispositivo, vindo do ticket (ban por dispositivo, OG-104). */
   device?: string;
 }
@@ -1036,7 +1038,8 @@ export class Room {
           }
           break;
         case 'favoriteColors': {
-          client.favColors = m.colors.filter((c) => c < 16);
+          // paleta comum e, para o pódio do mês anterior, a medalha dele (OG-411)
+          client.favColors = m.colors.filter((c) => c < PERSONAL_COLORS || (isMedalColor(c) && c === medalColor(client.identity.medal ?? 0)));
           const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
           if (color !== client.color) {
             client.color = color;

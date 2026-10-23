@@ -4,7 +4,7 @@ import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typ
 import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppDeps, Services } from '../app.js';
-import { checkRegisteredName } from '@outgun/protocol';
+import { ALL_COLORS, checkRegisteredName } from '@outgun/protocol';
 import { isCommonPassword } from '../auth/common-passwords.js';
 import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/names.js';
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
@@ -159,7 +159,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         if (JSON.stringify(settings).length > 16 * 1024) return reply.code(413).send({ error: 'too_large', message: 'settings too large' });
         // as favoritas também ficam na coluna própria (lista de 0..15)
         const colors = Array.isArray(settings.favoriteColors)
-          ? settings.favoriteColors.filter((c): c is number => Number.isInteger(c) && (c as number) >= 0 && (c as number) < 16).slice(0, 16)
+          ? settings.favoriteColors.filter((c): c is number => Number.isInteger(c) && (c as number) >= 0 && (c as number) < ALL_COLORS).slice(0, ALL_COLORS)
           : undefined;
         const set = { settings, ...(colors ? { favoriteColors: colors } : {}), updatedAt: new Date() };
         await db.insert(playerProfiles).values({ userId: user.id, ...set }).onConflictDoUpdate({ target: playerProfiles.userId, set });

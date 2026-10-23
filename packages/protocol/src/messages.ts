@@ -371,7 +371,7 @@ export const MESSAGES = {
     { name: str(64) },
   ),
   favoriteColors: msg(21, 'c2s', 'event', '`data_fav_colors`', 'Cores preferidas, em ordem.', {
-    colors: list(u8, 16),
+    colors: list(u8, 35),
   }),
   minimapBandwidth: msg(
     22,
