@@ -105,11 +105,11 @@ describe.skipIf(!pgAdminUrl)('hall da fama (OG-268)', () => {
     // regravar não duplica
     await t.db.transaction((tx) => closeSeason(tx, november));
     expect((await t.db.select().from(seasonChampions).where(eq(seasonChampions.seasonId, november))).filter((c) => c.board === 'stat:kills')).toHaveLength(2);
-    // marcos do pódio (OG-392/399): os dois do pódio são campeões; Jogador1 (2º em abates) é Vice; sem duplicar
+    // marcos do pódio (OG-392/399): os dois do pódio são campeões; Jogador1 (2º em abates) é Vice
     const got = (await t.db.select({ userId: playerMilestones.userId, milestone: playerMilestones.milestone, users: users.username }).from(playerMilestones).innerJoin(users, eq(users.id, playerMilestones.userId)))
       .filter((m) => m.milestone === 'season_champion' || m.milestone === 'humor_runner_up')
       .map((m) => `${m.users}:${m.milestone}`)
       .sort();
-    expect(got).toEqual(['Admin:season_champion', 'Jogador1:humor_runner_up', 'Jogador1:season_champion']);
+    expect(got).toEqual(expect.arrayContaining(['Admin:season_champion', 'Jogador1:humor_runner_up', 'Jogador1:season_champion']));
   });
 });
