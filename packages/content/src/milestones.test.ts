@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
+import { MULTI_KILL_WINDOW, WILD_FLAG, type MilestoneEvent, type MilestoneEvents } from './milestone-events.js';
 import { ACCURACY_MIN_SHOTS, ELITE_ACCURACY_MIN_SHOTS, MILESTONE_TOTALS, MILESTONES, milestonesFrom, type MilestoneMatch } from './milestones.js';
 
 const match = (i: number, o: Partial<MilestoneMatch> = {}): MilestoneMatch => ({
@@ -148,6 +149,77 @@ describe('marcos (OG-213)', () => {
       expect(got([match(0), match(1, { stats: { multiKills: 1 } })]).multi_kill).toBe('m1');
       const old = got([match(0, { kills: 40, captures: 3 })]);
       expect([old.multi_kill, old.streak_10, old.kills_match_30, old.flawless, old.shutout, old.hat_trick]).toEqual([undefined, undefined, undefined, undefined, undefined, 'm0']);
+    });
+  });
+
+  describe('eventos e contexto (OG-391)', () => {
+    // índices 0 e 1 no time 0 (0 é a conta), 2 e 3 no time 1
+    const TEAMS = [0, 0, 1, 1];
+    const kill = (t: number, killer: number, victim: number, cause = 'rocket') => [t, 'kill', killer, victim, 0, 0, 0, cause] as const;
+    const cap = (t: number, who: number, flag = who < 2 ? 1 : 0) => [t, 'capture', who, flag] as const;
+    const ev = (...log: MilestoneEvent[]): MilestoneEvents => ({ me: [0], teams: TEAMS, log });
+    const one = (o: Partial<MilestoneMatch>) => got([match(0, o)]);
+
+    it('domador: captura da bandeira selvagem pela conta', () => {
+      expect(one({ events: ev(cap(10, 0, WILD_FLAG)) }).wild_flag).toBe('m0');
+      expect(one({ events: ev(cap(10, 0, 1), cap(20, 1, WILD_FLAG)) }).wild_flag).toBeUndefined();
+    });
+
+    it('triplo: 3 kills em inimigos dentro da janela; aliado e intervalo longo quebram', () => {
+      const w = MULTI_KILL_WINDOW;
+      expect(one({ events: ev(kill(0, 0, 2), kill(w, 0, 3), kill(2 * w, 0, 2)) }).triple_kill).toBe('m0');
+      expect(one({ events: ev(kill(0, 0, 2), kill(w, 0, 3), kill(2 * w + 1, 0, 2)) }).triple_kill).toBeUndefined();
+      expect(one({ events: ev(kill(0, 0, 2), kill(w, 0, 1), kill(2 * w, 0, 3)) }).triple_kill).toBeUndefined();
+    });
+
+    it('deathbringer: primeira kill e 50, pelos stats', () => {
+      const g = got(series(25, () => ({ stats: { deathbringerKills: 2 } })));
+      expect([g.deathbringer_1, g.deathbringer_50]).toEqual(['m0', 'm24']);
+    });
+
+    it('virada: ranqueada vencida depois de estar 2 atrás; 1 atrás ou Casual não', () => {
+      const behind2 = ev(cap(1, 2), cap(2, 3), cap(3, 0), cap(4, 0), cap(5, 1));
+      expect(one({ ranked: true, result: 1, team: 0, events: behind2 }).comeback).toBe('m0');
+      expect(one({ ranked: false, result: 1, team: 0, events: behind2 }).comeback).toBeUndefined();
+      expect(one({ ranked: true, result: -1, team: 0, events: behind2 }).comeback).toBeUndefined();
+      expect(one({ ranked: true, result: 1, team: 0, events: ev(cap(1, 2), cap(2, 0), cap(3, 0)) }).comeback).toBeUndefined();
+    });
+
+    it('ranqueada: estreia, vitória, 100 vitórias e vitória por formato', () => {
+      const g = got(series(101, (i) => ({ ranked: true, result: i === 0 ? -1 : 1, format: i === 0 ? '5x5' : i === 1 ? '3x3' : '4x4' })));
+      expect([g.ranked_first, g.ranked_win, g.ranked_wins_100, g.win_3x3, g.win_4x4, g.win_5x5]).toEqual(['m0', 'm1', 'm100', 'm1', 'm2', undefined]);
+      expect(one({ result: 1, format: '3x3' }).win_3x3).toBeUndefined();
+    });
+
+    it('série longa: md5 vencida no jogo que fecha; md3 e série perdida não', () => {
+      const bo5 = (res: (1 | -1)[], bestOf = 5) => res.map((result, i) => match(i, { result, series: { id: 's', bestOf } }));
+      expect(got(bo5([-1, -1, 1, 1, 1])).series_bo5).toBe('m4');
+      expect(got(bo5([1, 1, -1, -1, -1])).series_bo5).toBeUndefined();
+      expect(got(bo5([1, 1], 3)).series_bo5).toBeUndefined();
+    });
+
+    it('mapas: 10 e 25 distintos; gerados contam como um', () => {
+      const g = got(series(25, (i) => ({ map: `mapa${i}` })));
+      expect([g.maps_10, g.maps_25]).toEqual(['m9', 'm24']);
+      expect(got(series(30, (i) => ({ map: i < 9 ? `mapa${i}` : `mapgen_${i}` }))).maps_10).toBe('m9');
+      expect(got(series(30, (i) => ({ map: i < 8 ? `mapa${i}` : `mapgen_${i}` }))).maps_10).toBeUndefined();
+    });
+
+    it('rotina: 7 dias seguidos; um dia de folga zera; duas partidas no mesmo dia contam um', () => {
+      const day = (d: number) => `2026-10-${String(d).padStart(2, '0')}`;
+      expect(got([1, 1, 2, 3, 4, 5, 6, 7].map((d, i) => match(i, { day: day(d) }))).days_7).toBe('m7');
+      expect(got([1, 2, 3, 5, 6, 7, 8].map((d, i) => match(i, { day: day(d) }))).days_7).toBeUndefined();
+      expect(got(['2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03'].map((d, i) => match(i, { day: d }))).days_7).toBe('m6');
+    });
+
+    it('dupla dinâmica: 50 partidas no mesmo time do mesmo jogador', () => {
+      expect(got(series(50, (i) => ({ mates: i % 2 ? ['a', 'b'] : ['a'] }))).duo_50).toBe('m49');
+      expect(got(series(50, (i) => ({ mates: i ? ['a'] : ['b'] }))).duo_50).toBeUndefined();
+    });
+
+    it('partida sem eventos não concede marco de evento', () => {
+      const g = one({ ranked: true, result: 1, team: 0 });
+      expect([g.wild_flag, g.triple_kill, g.comeback]).toEqual([undefined, undefined, undefined]);
     });
   });
 });

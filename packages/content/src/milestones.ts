@@ -2,6 +2,7 @@
 // Marcos do jogador (OG-213, RN-SOC-03): catálogo versionado e o cálculo a partir do histórico de
 // partidas com conta. Puro: a API lê as partidas, chama `milestonesFrom` e grava o que faltar (o
 // mesmo cálculo serve ao fim de cada partida e ao preenchimento retroativo, por isso é idempotente).
+import { capturedWildFlag, longestKillChain, worstDeficit, type MilestoneEvents } from './milestone-events.js';
 import type { Bilingual } from './privacy.js';
 
 /** Partida de uma conta, na ordem em que terminou. Kills em bots já descontados. */
@@ -20,6 +21,22 @@ export interface MilestoneMatch {
   conceded?: number;
   /** Stats da partida (`match_players.stats`, OG-355/363); `botKills` sem desconto. Ausente = partida antiga. */
   stats?: Readonly<Record<string, number>>;
+  /** Contexto da partida (OG-391). */
+  ranked?: boolean;
+  /** Formato da ranqueada (`3x3`, `4x4`, `5x5`). */
+  format?: string;
+  /** Arquivo do mapa; os gerados (`mapgen_*`) contam como um mapa só. */
+  map?: string;
+  /** Dia do fim da partida em America/Sao_Paulo (`AAAA-MM-DD`). */
+  day?: string;
+  /** Time da conta (0 vermelho, 1 azul). */
+  team?: number;
+  /** Contas no mesmo time (sem a própria, sem bots). */
+  mates?: readonly string[];
+  /** Série md3/md5 da partida (OG-250). */
+  series?: { id: string; bestOf: number };
+  /** Eventos da partida (OG-362; Casual desde a 2.39.1). Ausente = partida sem registro. */
+  events?: MilestoneEvents;
   /** Partida clã x clã (OG-259, RN-RKL-14) do ponto de vista do clã da conta. */
   clanWar?: ClanWarMatch;
 }
@@ -70,6 +87,9 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'win_streak_10', group: 'progress', name: b('Imbatível', 'Unstoppable'), description: b('10 vitórias seguidas', '10 wins in a row') },
   { id: 'hours_10', group: 'progress', name: b('Dedicado', 'Dedicated'), description: b('10 horas jogadas', '10 hours played') },
   { id: 'hours_100', group: 'progress', name: b('Incansável', 'Tireless'), description: b('100 horas jogadas', '100 hours played') },
+  { id: 'days_7', group: 'progress', name: b('Rotina', 'Routine'), description: b('Jogou em 7 dias seguidos', 'Played on 7 days in a row') },
+  { id: 'maps_10', group: 'progress', name: b('Turista', 'Tourist'), description: b('Jogou em 10 mapas diferentes', 'Played on 10 different maps') },
+  { id: 'maps_25', group: 'progress', name: b('Explorador', 'Explorer'), description: b('Jogou em 25 mapas diferentes', 'Played on 25 different maps') },
   // bandeira
   { id: 'first_capture', group: 'flag', name: b('Primeira captura', 'First capture'), description: b('Capturou a primeira bandeira', 'Captured the first flag') },
   { id: 'captures_50', group: 'flag', name: b('Ladrão de bandeiras', 'Flag thief'), description: b('50 capturas', '50 captures') },
@@ -77,6 +97,7 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'hat_trick', group: 'flag', name: b('Hat-trick', 'Hat-trick'), description: b('3 capturas numa partida', '3 captures in a match') },
   { id: 'returns_100', group: 'flag', name: b('Resgatador', 'Rescuer'), description: b('100 bandeiras devolvidas', '100 flags returned') },
   { id: 'carry_60', group: 'flag', name: b('Maratonista', 'Marathoner'), description: b('60 segundos com a bandeira numa partida', '60 seconds carrying the flag in a match') },
+  { id: 'wild_flag', group: 'flag', name: b('Domador', 'Tamer'), description: b('Capturou a bandeira selvagem', 'Captured the wild flag') },
   // defesa
   { id: 'defenses_match_10', group: 'defense', name: b('Muralha', 'Wall'), description: b('10 defesas numa partida', '10 defenses in a match') },
   { id: 'defenses_250', group: 'defense', name: b('Guardião', 'Guardian'), description: b('250 defesas', '250 defenses') },
@@ -93,12 +114,25 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'kills_match_30', group: 'combat', name: b('Massacre', 'Massacre'), description: b('30 kills numa partida', '30 kills in a match') },
   { id: 'flawless', group: 'combat', name: b('Intocável', 'Untouchable'), description: b('10 kills ou mais numa partida sem morrer nenhuma vez', '10 or more kills in a match without dying once') },
   { id: 'multi_kill', group: 'combat', name: b('Dobradinha', 'Double kill'), description: b('Fez o primeiro multi-kill', 'Scored the first multi-kill') },
+  { id: 'triple_kill', group: 'combat', name: b('Triplo', 'Triple kill'), description: b('3 kills em sequência', '3 kills in a row') },
+  { id: 'deathbringer_1', group: 'combat', name: b('Portador da morte', 'Deathbringer'), description: b('Matou com o deathbringer', 'Scored a kill with the deathbringer') },
+  { id: 'deathbringer_50', group: 'combat', name: b('Ceifador', 'Reaper'), description: b('50 kills com o deathbringer', '50 deathbringer kills') },
   { id: 'trades_50', group: 'combat', name: b('Vingador', 'Avenger'), description: b('50 trocas (matou quem acabou de matar um aliado)', '50 trades (killed whoever just killed a teammate)') },
   { id: 'first_kills_50', group: 'combat', name: b('Abre-alas', 'Opener'), description: b('50 primeiros abates', '50 opening kills') },
   { id: 'assists_100', group: 'combat', name: b('Parceiro', 'Partner'), description: b('100 assistências', '100 assists') },
   { id: 'enemy_base_kills_100', group: 'combat', name: b('Invasor', 'Invader'), description: b('100 kills na base inimiga', '100 kills in the enemy base') },
+  // ranqueada
+  { id: 'ranked_first', group: 'ranked', name: b('Estreia ranqueada', 'Ranked debut'), description: b('Jogou a primeira ranqueada', 'Played the first ranked match') },
+  { id: 'ranked_win', group: 'ranked', name: b('Primeira vitória ranqueada', 'First ranked win'), description: b('Venceu a primeira ranqueada', 'Won the first ranked match') },
+  { id: 'ranked_wins_100', group: 'ranked', name: b('Ranqueado', 'Ranked regular'), description: b('100 vitórias ranqueadas', '100 ranked wins') },
+  { id: 'win_3x3', group: 'ranked', name: b('Trio', 'Trio'), description: b('Venceu uma ranqueada 3x3', 'Won a 3v3 ranked match') },
+  { id: 'win_4x4', group: 'ranked', name: b('Quarteto', 'Quartet'), description: b('Venceu uma ranqueada 4x4', 'Won a 4v4 ranked match') },
+  { id: 'win_5x5', group: 'ranked', name: b('Quinteto', 'Quintet'), description: b('Venceu uma ranqueada 5x5', 'Won a 5v5 ranked match') },
+  { id: 'series_bo5', group: 'ranked', name: b('Série longa', 'Long series'), description: b('Venceu uma série md5', 'Won a best-of-5 series') },
+  { id: 'comeback', group: 'ranked', name: b('Virada', 'Comeback'), description: b('Venceu uma ranqueada depois de estar 2 capturas atrás', 'Won a ranked match after being 2 captures behind') },
   // social
   { id: 'beta', group: 'social', name: b('Pioneiro', 'Pioneer'), description: b('Jogou o beta', 'Played the beta') },
+  { id: 'duo_50', group: 'social', name: b('Dupla dinâmica', 'Dynamic duo'), description: b('50 partidas no mesmo time do mesmo jogador', '50 matches on the same team as the same player') },
   // clã x clã (OG-259)
   { id: 'clan_war', group: 'clan', name: b('Guerra de clãs', 'Clan war'), description: b('Jogou a primeira partida clã x clã', 'Played the first clan vs clan match') },
   { id: 'clan_war_win', group: 'clan', name: b('Primeira conquista', 'First conquest'), description: b('Venceu a primeira partida clã x clã', 'Won the first clan vs clan match') },
@@ -111,7 +145,7 @@ export const MILESTONES: readonly Milestone[] = [
 ];
 
 /** Contadores somados partida a partida; também mostram o progresso no perfil (OG-393). */
-export type MilestoneCounter = 'matches' | 'wins' | 'kills' | 'captures' | 'playSeconds' | 'flagsReturned' | 'defenses' | 'trades' | 'firstKills' | 'assists' | 'killsEnemyBase';
+export type MilestoneCounter = 'matches' | 'wins' | 'kills' | 'captures' | 'playSeconds' | 'flagsReturned' | 'defenses' | 'trades' | 'firstKills' | 'assists' | 'killsEnemyBase' | 'rankedWins' | 'deathbringerKills';
 
 const stat = (m: MilestoneMatch, key: string): number => m.stats?.[key] ?? 0;
 
@@ -127,6 +161,8 @@ const COUNTERS: Readonly<Record<MilestoneCounter, (m: MilestoneMatch) => number>
   firstKills: (m) => stat(m, 'firstKills'),
   assists: (m) => stat(m, 'assists'),
   killsEnemyBase: (m) => stat(m, 'killsEnemyBase'),
+  rankedWins: (m) => (m.ranked && m.result > 0 ? 1 : 0),
+  deathbringerKills: (m) => stat(m, 'deathbringerKills'),
 };
 
 const HOUR = 3600;
@@ -153,7 +189,21 @@ export const MILESTONE_TOTALS: Readonly<Record<string, { counter: MilestoneCount
   first_kills_50: { counter: 'firstKills', target: 50 },
   assists_100: { counter: 'assists', target: 100 },
   enemy_base_kills_100: { counter: 'killsEnemyBase', target: 100 },
+  ranked_wins_100: { counter: 'rankedWins', target: 100 },
+  deathbringer_1: { counter: 'deathbringerKills', target: 1 },
+  deathbringer_50: { counter: 'deathbringerKills', target: 50 },
 };
+
+/** Alvos dos marcos que contam coisas distintas (progresso no OG-393). */
+export const MAPS_TARGETS = { maps_10: 10, maps_25: 25 } as const;
+export const DAYS_STREAK = 7;
+export const DUO_MATCHES = 50;
+export const COMEBACK_DEFICIT = 2;
+
+/** Mapas gerados (`mapgen_*`, OG-015) contam como um só. */
+export const mapKey = (map: string): string => (map.startsWith('mapgen_') ? 'mapgen' : map);
+
+const dayNumber = (day: string): number => Date.parse(`${day}T00:00:00Z`) / 86_400_000;
 
 /**
  * Feitos de uma partida só. Os de kills exigem partida sem kills em bots (`botKills`), que o
@@ -173,7 +223,22 @@ const FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
   kills_match_30: (m) => noBots(m) && m.kills >= 30,
   flawless: (m) => noBots(m) && m.kills >= 10 && m.deaths === 0,
   multi_kill: (m) => stat(m, 'multiKills') >= 1,
+  wild_flag: (m) => m.events !== undefined && capturedWildFlag(m.events),
+  triple_kill: (m) => m.events !== undefined && longestKillChain(m.events) >= 3,
+  ranked_first: (m) => m.ranked === true,
+  ranked_win: (m) => m.ranked === true && m.result > 0,
+  win_3x3: (m) => m.ranked === true && m.result > 0 && m.format === '3x3',
+  win_4x4: (m) => m.ranked === true && m.result > 0 && m.format === '4x4',
+  win_5x5: (m) => m.ranked === true && m.result > 0 && m.format === '5x5',
+  comeback: (m) => m.ranked === true && m.result > 0 && m.events !== undefined && m.team !== undefined && worstDeficit(m.events, m.team) >= COMEBACK_DEFICIT,
 };
+
+/** Placar de cada série md3/md5 do ponto de vista da conta, jogo a jogo. */
+interface SeriesState {
+  wins: number;
+  losses: number;
+  done: boolean;
+}
 
 /**
  * Marcos que o histórico `matches` (ordem de término) concede, com a partida da conquista.
@@ -187,6 +252,11 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
   const sums = Object.fromEntries(Object.keys(COUNTERS).map((k) => [k, 0])) as Record<MilestoneCounter, number>;
   let streak = 0;
   const wars = { matches: 0, wins: 0, against: new Map<string, number>() };
+  const maps = new Set<string>();
+  const mates = new Map<string, number>();
+  const series = new Map<string, SeriesState>();
+  let lastDay: number | null = null;
+  let days = 0;
   for (const m of matches) {
     for (const k of Object.keys(COUNTERS) as MilestoneCounter[]) sums[k] += COUNTERS[k](m);
     for (const [id, t] of Object.entries(MILESTONE_TOTALS)) if (sums[t.counter] >= t.target) give(id, m);
@@ -194,6 +264,33 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
     streak = m.result > 0 ? streak + 1 : 0;
     if (streak >= 10) give('win_streak_10', m);
     if (o.beta) give('beta', m);
+    if (m.map) {
+      maps.add(mapKey(m.map));
+      for (const [id, n] of Object.entries(MAPS_TARGETS)) if (maps.size >= n) give(id, m);
+    }
+    if (m.day) {
+      const d = dayNumber(m.day);
+      if (lastDay === null || d - lastDay > 1) days = 1;
+      else if (d - lastDay === 1) days++;
+      lastDay = d;
+      if (days >= DAYS_STREAK) give('days_7', m);
+    }
+    for (const mate of m.mates ?? []) {
+      const n = (mates.get(mate) ?? 0) + 1;
+      mates.set(mate, n);
+      if (n >= DUO_MATCHES) give('duo_50', m);
+    }
+    if (m.series) {
+      const s = series.get(m.series.id) ?? { wins: 0, losses: 0, done: false };
+      series.set(m.series.id, s);
+      if (!s.done) {
+        if (m.result > 0) s.wins++;
+        else if (m.result < 0) s.losses++;
+        const need = Math.floor(m.series.bestOf / 2) + 1;
+        if (s.wins >= need || s.losses >= need) s.done = true;
+        if (s.wins >= need && m.series.bestOf >= 5) give('series_bo5', m);
+      }
+    }
     const w = m.clanWar;
     if (w) {
       wars.matches++;

@@ -850,7 +850,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-388](cards/OG-388-moderacao-tela-cheia-e-papeis.md) | Moderação em tela cheia: presets e rotações aproveitando a largura, papéis em lista | E5 | 3 | Must | S40 | OG-382, OG-383 | Concluído |
 | [OG-389](cards/OG-389-demais-abas-da-moderacao.md) | Demais abas da moderação no visual v2, na largura toda | E5 | 3 | Must | S40 | OG-388 | Concluído |
 | [OG-390](cards/OG-390-marcos-dos-stats.md) | Marcos novos a partir dos stats da partida (vitórias, tempo, bandeira, defesa, combate) | E9 | 5 | Must | S41 | OG-355, OG-364 | Em revisão |
-| [OG-391](cards/OG-391-marcos-de-eventos-e-contexto.md) | Marcos de eventos e de contexto (armas, virada, ranked por formato, mapas, dupla, dias seguidos) | E9 | 5 | Must | S41 | OG-390, OG-362 | Pronto |
+| [OG-391](cards/OG-391-marcos-de-eventos-e-contexto.md) | Marcos de eventos e de contexto (armas, virada, ranked por formato, mapas, dupla, dias seguidos) | E9 | 5 | Must | S41 | OG-390, OG-362 | Em revisão |
 | [OG-392](cards/OG-392-marco-campeao-da-temporada.md) | Marco fora da partida: Campeão da temporada (top 3 do hall da fama) | E9 | 2 | Should | S41 | OG-390, OG-268 | Pronto |
 | [OG-393](cards/OG-393-perfil-marcos-por-grupo-e-progresso.md) | Perfil no jogo: marcos por grupo, com ícone, progresso, raridade e secretos | E9 | 5 | Must | S41 | OG-390, OG-395 | Pronto |
 | [OG-394](cards/OG-394-aviso-de-marco-novo.md) | Aviso de marco novo: no relatório da partida e um toast ao voltar ao menu | E9 | 2 | Should | S41 | OG-390 | Pronto |
