@@ -8,7 +8,7 @@ import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { TextField } from '../ui/Field.js';
+import { TextAreaField, TextField } from '../ui/Field.js';
 import { Page } from '../ui/Page.js';
 import { Table } from '../ui/Table.js';
 import { decodeMapFile, parseMapFile } from '@outgun/content';
@@ -22,6 +22,11 @@ import {
   PRESET_FIELDS,
   PRESET_FORM_CATEGORIES,
   RANKED_FORMATS,
+  BOT_NAMES_MAX,
+  BOT_PREFIX_MAX_LENGTH,
+  BOT_PREFIXES_MAX,
+  type BotNameEntry,
+  type BotNamesConfig,
   type Category,
   type PresetField,
   type PresetForm,
@@ -29,7 +34,7 @@ import {
 } from '@outgun/settings';
 import { MapDrawing, MapPreview } from './MapPreview.js';
 
-type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'invites' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'bots' | 'invites' | 'roles';
 
 interface RosterEntry {
   uid: number;
@@ -128,6 +133,7 @@ export default function AdminScreen() {
     ['presets', t('Presets')],
     ['maps', t('Maps')],
     ['rotations', t('Map rotations')],
+    ['bots', t('Bots')],
     ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
   ];
   return (
@@ -155,6 +161,7 @@ export default function AdminScreen() {
           {tab === 'presets' && <PresetsTab canEdit={allowed} />}
           {tab === 'maps' && <MapsTab />}
           {tab === 'rotations' && <RotationsTab canEdit={allowed} />}
+          {tab === 'bots' && <BotsTab />}
           {tab === 'roles' && isAdmin && <RolesTab />}
         </div>
       )}
@@ -1147,6 +1154,154 @@ interface UserRow {
 const ROLE_TONE = { admin: 'danger', moderator: 'accent', player: 'neutral' } as const;
 
 /** Papéis (OG-388): as contas em lista, admins e moderadores primeiro; o papel muda na própria linha. */
+/** Lista editável de prefixos ou nomes (OG-403): ativo, texto, prévia e remover; `i` = posição na lista inteira. */
+function BotEntries(props: { caption: string; rows: { e: BotNameEntry; i: number }[]; prefixes?: boolean; preview: (text: string) => string; onSet: (i: number, patch: Partial<BotNameEntry>) => void; onRemove: (i: number) => void; empty: string }) {
+  const { t } = usePrefs();
+  return (
+    <Table
+      caption={props.caption}
+      rows={props.rows}
+      rowKey={(r) => String(r.i)}
+      empty={props.empty}
+      columns={[
+        { key: 'active', header: t('Active'), cell: (r) => <input type="checkbox" aria-label={t('Active')} checked={r.e.active} onChange={(ev) => props.onSet(r.i, { active: ev.target.checked })} /> },
+        {
+          key: 'text',
+          header: t('Text'),
+          cell: (r) =>
+            props.prefixes && r.e.text === '' ? (
+              <span className="admin-muted">{t('(no prefix)')}</span>
+            ) : (
+              <input className="ui-input" aria-label={t('Text')} value={r.e.text} maxLength={props.prefixes ? BOT_PREFIX_MAX_LENGTH : 15} onChange={(ev) => props.onSet(r.i, { text: ev.target.value })} />
+            ),
+        },
+        { key: 'preview', header: t('In the game'), cell: (r) => <code>{props.preview(r.e.text)}</code> },
+        {
+          key: 'remove',
+          header: '',
+          cell: (r) => (
+            <Button variant="ghost" onClick={() => props.onRemove(r.i)}>
+              {t('Remove')}
+            </Button>
+          ),
+        },
+      ]}
+    />
+  );
+}
+
+/**
+ * Aba Bots (OG-403): cadastro de prefixos e de nomes possíveis. Cada bot que entra sorteia um
+ * prefixo e um nome ativos; listas vazias = "BOT " + nome gerado. Vale nos bots que entrarem depois.
+ */
+function BotsTab() {
+  const { t } = usePrefs();
+  const saved = useLoad<BotNamesConfig & { version: number; updatedAt: string | null }>('/admin/bots');
+  const [draft, setDraft] = useState<BotNamesConfig | null>(null);
+  const [prefix, setPrefix] = useState('');
+  const [paste, setPaste] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const data = draft ?? (saved.data ? { prefixes: saved.data.prefixes, names: saved.data.names } : null);
+  if (!data) return <Status error={saved.error} />;
+  const edit = (patch: Partial<BotNamesConfig>) => setDraft({ ...data, ...patch });
+  const has = (list: BotNameEntry[], text: string) => list.some((e) => e.text.toLowerCase() === text.toLowerCase());
+  const firstName = data.names.find((n) => n.active)?.text ?? 'Fulano';
+  const firstPrefix = data.prefixes.find((p) => p.active)?.text ?? 'BOT ';
+  const addPrefix = (text: string) => {
+    if (!has(data.prefixes, text)) edit({ prefixes: [...data.prefixes, { text, active: true }] });
+    setPrefix('');
+  };
+  const addNames = () => {
+    const fresh = [...new Set(paste.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))].filter((n) => !has(data.names, n));
+    edit({ names: [...data.names, ...fresh.map((text) => ({ text, active: true }))] });
+    setPaste('');
+  };
+  const save = () =>
+    api<BotNamesConfig>('/admin/bots', { method: 'PUT', body: data }).then(
+      (r) => {
+        setDraft(null);
+        saved.reload();
+        setStatus({ text: t('Saved: $1 prefixes and $2 names. Bots that join from now on use them.', String(r.prefixes.length), String(r.names.length)) });
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  const query = search.trim().toLowerCase();
+  const names = data.names.map((e, i) => ({ e, i })).filter(({ e }) => !query || e.text.toLowerCase().includes(query));
+  return (
+    <section className="admin-tab">
+      <div className="admin-bar">
+        <span className="admin-rotation-count">
+          <Badge tone="accent">{t('$1 active prefixes', String(data.prefixes.filter((p) => p.active).length))}</Badge>
+          <Badge tone="accent">{t('$1 active names', String(data.names.filter((n) => n.active).length))}</Badge>
+          <span className="admin-muted">{t('Each bot that joins draws one active prefix and one active name not in use in the room. Empty lists: "BOT " + a generated name.')}</span>
+        </span>
+        <span className="admin-bar-end">
+          {draft && <Button variant="ghost" onClick={() => setDraft(null)}>{t('Discard changes')}</Button>}
+          <Button disabled={!draft} onClick={() => void save()}>
+            {t('Save changes')}
+          </Button>
+        </span>
+      </div>
+      <Status text={status.text} error={status.error ?? saved.error} />
+      <div className="admin-bots">
+        <section className="admin-tab">
+          <h3>{t('Prefixes')}</h3>
+          <form
+            className="admin-bar"
+            onSubmit={(ev: FormEvent) => {
+              ev.preventDefault();
+              // o espaço do fim fica ("BOT " separa do nome)
+              if (prefix.trim()) addPrefix(prefix.trimStart());
+            }}
+          >
+            <TextField label={t('New prefix')} value={prefix} maxLength={BOT_PREFIX_MAX_LENGTH} placeholder="BOT-" onChange={setPrefix} />
+            <span className="admin-bar-end">
+              <Button type="submit" disabled={!prefix.trim() || data.prefixes.length >= BOT_PREFIXES_MAX}>
+                {t('Add')}
+              </Button>
+              {!has(data.prefixes, '') && (
+                <Button variant="ghost" onClick={() => addPrefix('')}>
+                  {t('Add "no prefix"')}
+                </Button>
+              )}
+            </span>
+          </form>
+          <BotEntries
+            caption={t('Prefixes')}
+            rows={data.prefixes.map((e, i) => ({ e, i }))}
+            prefixes
+            preview={(p) => p + firstName}
+            onSet={(i, patch) => edit({ prefixes: data.prefixes.map((e, j) => (j === i ? { ...e, ...patch } : e)) })}
+            onRemove={(i) => edit({ prefixes: data.prefixes.filter((_, j) => j !== i) })}
+            empty={t('No prefixes: bots use "BOT ".')}
+          />
+        </section>
+        <section className="admin-tab">
+          <h3>{t('Possible names')}</h3>
+          <div className="admin-bar">
+            <TextAreaField label={t('Add names (one per line)')} value={paste} rows={3} maxLength={8000} onChange={setPaste} />
+            <span className="admin-bar-end">
+              <Button disabled={!paste.trim() || data.names.length >= BOT_NAMES_MAX} onClick={addNames}>
+                {t('Add')}
+              </Button>
+            </span>
+          </div>
+          <TextField label={t('Search names')} value={search} maxLength={32} onChange={setSearch} />
+          <BotEntries
+            caption={t('Possible names')}
+            rows={names}
+            preview={(n) => firstPrefix + n}
+            onSet={(i, patch) => edit({ names: data.names.map((e, j) => (j === i ? { ...e, ...patch } : e)) })}
+            onRemove={(i) => edit({ names: data.names.filter((_, j) => j !== i) })}
+            empty={query ? t('No names found.') : t('No names: bots get generated names.')}
+          />
+        </section>
+      </div>
+    </section>
+  );
+}
+
 function RolesTab() {
   const { t } = usePrefs();
   const { user } = useAccount();

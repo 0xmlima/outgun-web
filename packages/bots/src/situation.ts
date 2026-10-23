@@ -45,7 +45,7 @@ export function moreDefensive(bot: RobotCore, player: BotPlayer): boolean {
   if (bot.haveFlag(player.pid)) return true;
   const me = bot.player(bot.me);
   if ((bot.here(player, true) || bot.fx.rules.seeMinimapPlayerProperties >= 1) && player.turbo !== me.turbo) return !player.turbo;
-  if (player.name.substring(0, 4) === 'BOT ') return player.pid < bot.me;
+  if (player.bot) return player.pid < bot.me;
   return player.defending;
 }
 

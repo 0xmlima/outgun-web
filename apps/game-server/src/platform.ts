@@ -4,7 +4,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { signInternalRequest } from '@outgun/tickets';
-import type { RotationKey } from '@outgun/settings';
+import type { BotNames, RotationKey } from '@outgun/settings';
 import type { AuditEntry, ConsolePlayer, PlayerReport } from './moderation.js';
 import type { HostedRoom } from './rooms.js';
 import type { RemoteCommand } from './room.js';
@@ -69,6 +69,8 @@ export interface PanelConfig {
   rotations: Partial<Record<RotationKey, string[]>>;
   /** Mapas publicados pela moderação (OG-367); ausente = API antiga. */
   maps?: PanelMapRef[];
+  /** Nomes e prefixos ativos dos bots (OG-403); ausente = API antiga. */
+  bots?: BotNames;
 }
 
 export interface HeartbeatReply {

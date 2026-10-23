@@ -23,6 +23,32 @@ describe('RN-BOT-03: nomes como src/names.cpp', () => {
   });
 });
 
+describe('OG-403: nomes e prefixos da moderação', () => {
+  const names = { prefixes: ['BOT-'], names: ['Ana', 'Bia', 'Carla'] };
+  it('prefixo + um nome da lista, sem repetir na sala nem colidir com quem está nela', () => {
+    const reserved = new Set<string>();
+    const rng = new GlibcRand(7);
+    const got = [createBotName(rng, reserved, [], names), createBotName(rng, reserved, ['bia*'], names)];
+    for (const n of got) expect(n).toMatch(/^BOT-(Ana|Bia|Carla)$/);
+    expect(new Set(got).size).toBe(2);
+    expect(createBotName(new GlibcRand(1), new Set(), ['xX Ana', 'Bia', 'Carla'], names)).not.toMatch(/Ana|Bia|Carla/);
+  });
+  it('nomes esgotados: o gerador com o prefixo da moderação; sem prefixo cadastrado, "BOT "', () => {
+    expect(createBotName(new GlibcRand(1), new Set(['ana', 'bia', 'carla']), [], names)).toBe('BOT-Zyyradoi Ga');
+    expect(createBotName(new GlibcRand(1), new Set(), [], { prefixes: [], names: [] })).toBe('BOT Zyyradoi Ga');
+  });
+  it('vários prefixos (inclusive o vazio) sorteados; nome final cabe em 15 caracteres', () => {
+    const many = { prefixes: ['', '[BR]', 'xX'], names: ['Fulano', 'NomeBemComprido'] };
+    const seen = new Set<string>();
+    for (let i = 0; i < 300; i++) {
+      const n = createBotName(new GlibcRand(i), new Set(), [], many);
+      expect(n.length).toBeLessThanOrEqual(15);
+      seen.add(n.replace(/Fulano|NomeBemComprido/, ''));
+    }
+    expect([...seen].sort()).toEqual(['', '[BR]', 'xX']);
+  });
+});
+
 describe('RN-BOT-01: bots necessários (init_bots)', () => {
   const base: BotNeeds = { humans: 1, maxPlayers: 16, minBots: 0, botsFill: 0, balanceBot: false, extraBots: 0 };
   it('bots_fill completa até N jogadores; min_bots é o piso', () => {

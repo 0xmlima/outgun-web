@@ -3,7 +3,7 @@
 // duas descrições têm as mesmas colunas.
 import { sql } from 'drizzle-orm';
 import type { ClanTagStyle } from '@outgun/protocol';
-import type { RotationKey } from '@outgun/settings';
+import type { BotNameEntry, RotationKey } from '@outgun/settings';
 import {
   bigserial,
   boolean,
@@ -659,6 +659,16 @@ export const mapRotations = pgTable('map_rotations', {
   /** casual | ranked | ranked:3x3 | ranked:4x4 | ranked:5x5 (OG-251, `RotationKey`). */
   key: text('key').$type<RotationKey>().primaryKey(),
   maps: text('maps').array().notNull(),
+  version: integer('version').notNull().default(1),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+});
+
+/** Aba Bots da moderação (OG-403): prefixos e nomes possíveis dos bots (uma linha, id = 1). */
+export const botSettings = pgTable('bot_settings', {
+  id: smallint('id').primaryKey().default(1),
+  prefixes: jsonb('prefixes').$type<BotNameEntry[]>().notNull().default([]),
+  names: jsonb('names').$type<BotNameEntry[]>().notNull().default([]),
   version: integer('version').notNull().default(1),
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   updatedAt: tstz('updated_at').notNull().defaultNow(),
