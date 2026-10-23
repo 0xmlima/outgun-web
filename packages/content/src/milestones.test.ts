@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { MULTI_KILL_WINDOW, WILD_FLAG, type MilestoneEvent, type MilestoneEvents } from './milestone-events.js';
-import { ACCURACY_MIN_SHOTS, ELITE_ACCURACY_MIN_SHOTS, MILESTONE_TOTALS, MILESTONES, milestoneProgress, milestonesFrom, milestoneTarget, type MilestoneMatch } from './milestones.js';
+import { ACCURACY_MIN_SHOTS, ELITE_ACCURACY_MIN_SHOTS, MILESTONE_TOTALS, MILESTONES, milestoneProgress, milestonesFrom, PIONEER_UNTIL, milestoneTarget, type MilestoneMatch } from './milestones.js';
 
 const match = (i: number, o: Partial<MilestoneMatch> = {}): MilestoneMatch => ({
   matchId: `m${i}`,
@@ -56,9 +56,12 @@ describe('marcos (OG-213)', () => {
     expect(got(series(17, (i) => ({ result: i === 6 ? -1 : 1 }))).win_streak_10).toBe('m16');
   });
 
-  it('beta: na primeira partida, só quando jogada no beta', () => {
-    expect(got(series(3), true).beta).toBe('m0');
-    expect(got(series(3), false).beta).toBeUndefined();
+  it('Pioneiro (beta): na primeira partida até 31/10/2026 (São Paulo) ou com BETA=1', () => {
+    const at = (iso: string) => (i: number) => ({ endedAt: new Date(Date.parse(iso) + i * 60_000).toISOString() });
+    expect(got(series(3), false).beta).toBe('m0');
+    expect(got(series(3, at('2026-11-01T02:59:00.000Z')), false).beta).toBe('m0');
+    expect(got(series(3, at(PIONEER_UNTIL)), false).beta).toBeUndefined();
+    expect(got(series(3, at(PIONEER_UNTIL)), true).beta).toBe('m0');
   });
 
   it('idempotente e na ordem do catálogo', () => {
