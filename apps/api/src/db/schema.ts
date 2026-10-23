@@ -801,6 +801,7 @@ export const allTables = {
   panel_map_versions: panelMapVersions,
   casual_preset_versions: casualPresetVersions,
   map_rotations: mapRotations,
+  bot_settings: botSettings,
   ranked_series: rankedSeries,
   beta_invites: betaInvites,
   beta_invite_uses: betaInviteUses,
