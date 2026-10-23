@@ -6,8 +6,8 @@
 | Tipo | Infra |
 | Prioridade | Should |
 | Estimativa | 3 pts |
-| Sprint | S30 |
-| Status | Backlog |
+| Sprint | S42 |
+| Status | Pronto |
 | Dependências | [OG-307](OG-307-backups-fora-do-servidor.md) |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

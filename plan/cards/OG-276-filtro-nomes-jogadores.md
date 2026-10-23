@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 1 pt |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S42 |
+| Status | Pronto |
 | Dependências | [OG-275](OG-275-clas-moderacao.md) |
 | Regras de negócio | RN-CLA-08, RN-NOM-01 |
 | Skills | `outgun-card-workflow` |

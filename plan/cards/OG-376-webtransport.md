@@ -6,8 +6,8 @@
 | Tipo | Spike |
 | Prioridade | Could |
 | Estimativa | 8 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S42 |
+| Status | Pronto |
 | Dependências | OG-370 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
