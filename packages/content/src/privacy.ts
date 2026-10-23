@@ -61,6 +61,7 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   casual_presets: 'none',
   casual_preset_versions: 'none',
   map_rotations: 'none',
+  bot_settings: 'none',
 };
 
 const b = (pt: string, en: string): Bilingual => ({ 'pt-BR': pt, en });
