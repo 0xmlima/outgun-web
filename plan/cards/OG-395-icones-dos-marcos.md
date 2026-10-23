@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | RN-SOC-06, RN-SOC-07 |
 | Skills | `outgun-card-workflow`, `outgun-asset-pipeline` |
@@ -24,7 +24,10 @@ Como jogador, quero um ícone para cada marco, para reconhecer as conquistas no 
 - Ícones dos símbolos desenhados ou de conjunto com licença compatível (GPL/CC0), com a fonte registrada.
 
 ## Critérios de aceite
-- [ ] Um ícone para cada id de `MILESTONES` (o script falha se faltar algum).
-- [ ] PNGs da Steam nos dois estados, 256×256.
+- [x] Um ícone para cada id de `MILESTONES` (o script falha se faltar algum).
+- [x] PNGs da Steam nos dois estados, 256×256.
 
 ## Notas de implementação
+- Sem arquivos de asset no cliente: `milestoneIconSvg` (`@outgun/content`) gera o SVG do catálogo; o perfil desenha o mesmo SVG. Símbolos no traço dos ícones dos menus (OG-291), desenhados aqui (sem conjunto de terceiros).
+- No cliente todos os secretos usam o ícone genérico (estrela/interrogação), para o símbolo não dar dica; os símbolos de cada secreto ficam no módulo deles e só vão para a Steam.
+- PNGs: `node tools/visual-compare/milestone-icons.mjs` (Chrome local) → `apps/desktop/steam/achievements/<API_NAME>[_locked].png`, 162 arquivos para 81 marcos.

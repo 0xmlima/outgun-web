@@ -363,3 +363,6 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
   const order = new Map(MILESTONES.map((x, i) => [x.id, i]));
   return [...found.values()].sort((x, y) => (order.get(x.id) ?? 0) - (order.get(y.id) ?? 0));
 }
+
+/** API name da conquista da Steam (OG-396/397): o id em maiúsculas (`matches_10` → `MATCHES_10`). */
+export const steamAchievementName = (id: string): string => id.toUpperCase();

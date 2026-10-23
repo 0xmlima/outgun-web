@@ -3,6 +3,7 @@
 // catálogo de `@outgun/content` e não pode receber nome nem condição de um secreto que o jogador
 // não tem. Só a API importa este módulo (`@outgun/content/secret`) e manda o texto de quem desbloqueou.
 import { enemyKill, kills, scoreline, type MilestoneEvents } from './milestone-events.js';
+import type { MilestoneSymbol } from './milestone-icons.js';
 import type { Achieved, Milestone, MilestoneMatch } from './milestones.js';
 import type { Bilingual } from './privacy.js';
 
@@ -154,3 +155,21 @@ export function secretMilestonesFrom(matches: readonly MilestoneMatch[]): Achiev
 }
 
 export const isSecretMilestone = (id: string): boolean => id.startsWith('secret_');
+
+/** Símbolo de cada secreto no ícone da Steam (OG-395); no cliente, todos usam o genérico. */
+export const SECRET_ICON_SYMBOLS: Readonly<Record<string, MilestoneSymbol>> = {
+  secret_ace: 'star',
+  secret_mutual: 'skull',
+  secret_pacifist: 'flag',
+  secret_perfect_hat_trick: 'flags',
+  secret_underdog: 'player',
+  secret_long_haul: 'clock',
+  secret_buzzer: 'bolt',
+  secret_kingslayer: 'crosshair',
+  secret_roadkill: 'player',
+  secret_night_owl: 'clock',
+  secret_seven_one: 'laugh',
+  secret_seven_one_comeback: 'trophy',
+  secret_choked: 'laugh',
+  secret_series_comeback: 'trophy',
+};
