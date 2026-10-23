@@ -52,7 +52,8 @@
       "identity": "-",
       "hardenedRuntime": false,
       "notarize": false,
-      "artifactName": "Outgun-mac-${version}.${ext}"
+      "artifactName": "Outgun-mac-${version}.${ext}",
+      "x64ArchFiles": "Contents/Resources/app.asar.unpacked/node_modules/steamworks.js/dist/osx/*"
     },
     "dmg": {
       "title": "Outgun"
