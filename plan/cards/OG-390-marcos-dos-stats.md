@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S41 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-355, OG-364 |
 | Regras de negócio | RN-SOC-03 |
 | Skills | `outgun-card-workflow` |
@@ -32,10 +32,14 @@ Como jogador, quero marcos para tudo o que faço bem numa partida (vencer, defen
 - Retroativo: `cli.js milestones` depois do deploy (partidas sem o stat contam 0).
 
 ## Critérios de aceite
-- [ ] Testes de `milestonesFrom` cobrem cada marco novo no limite exato (ex.: 9 → nada, 10 → concede) e a partida da conquista.
-- [ ] Os 20 ids antigos não mudam; o retroativo é idempotente.
+- [x] Testes de `milestonesFrom` cobrem cada marco novo no limite exato (ex.: 9 → nada, 10 → concede) e a partida da conquista.
+- [x] Os 20 ids antigos não mudam; o retroativo é idempotente.
 
 ## Notas técnicas
 - Nada de stat novo no game server: tudo já está no jsonb.
 
 ## Notas de implementação
+- Catálogo ganhou `group` (seções do OG-393) e `MILESTONE_TOTALS` (contador + alvo, para o progresso). Imbatível foi para Progresso.
+- Feitos de kills numa partida (Em chamas, Imparável, Massacre, Intocável) só valem em partida sem kills em bots: o `consecutiveKills` do jsonb não separa bots.
+- Sem chance usa o placar sofrido de qualquer partida (`conceded`); partida sem o campo não concede.
+- Pendente: rodar `cli.js milestones` no beta depois do deploy.

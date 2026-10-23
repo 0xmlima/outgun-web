@@ -38,6 +38,7 @@ Como jogador, quero marcos por jeitos diferentes de jogar (armas, viradas, forma
 - [ ] Partida sem eventos não quebra o cálculo nem concede marco de evento.
 
 ## Notas técnicas
+- Portador da morte/Ceifador podem sair de `stats.deathbringerKills` (vem no jsonb de toda partida), sem depender dos eventos: retroativo maior.
 - Mapa gerado aleatoriamente conta como um mapa só (nome `random`/gerado), para "Turista" não sair em 10 partidas de mapgen.
 
 ## Notas de implementação

@@ -14,6 +14,12 @@ export interface MilestoneMatch {
   captures: number;
   shots: number;
   hits: number;
+  /** Mortes, segundos jogados e o placar do outro lado (OG-390). Ausentes contam 0. */
+  deaths?: number;
+  playSeconds?: number;
+  conceded?: number;
+  /** Stats da partida (`match_players.stats`, OG-355/363); `botKills` sem desconto. Ausente = partida antiga. */
+  stats?: Readonly<Record<string, number>>;
   /** Partida clã x clã (OG-259, RN-RKL-14) do ponto de vista do clã da conta. */
   clanWar?: ClanWarMatch;
 }
@@ -28,8 +34,12 @@ export interface ClanWarMatch {
   sweep: boolean;
 }
 
+/** Seções do perfil (OG-393). */
+export type MilestoneGroup = 'progress' | 'flag' | 'defense' | 'combat' | 'ranked' | 'social' | 'clan' | 'humor' | 'secret';
+
 export interface Milestone {
   readonly id: string;
+  readonly group: MilestoneGroup;
   readonly name: Bilingual;
   readonly description: Bilingual;
 }
@@ -42,45 +52,127 @@ export interface Achieved {
 
 /** Tiros mínimos numa partida para valer o marco de precisão (1 em 1 não é pontaria). */
 export const ACCURACY_MIN_SHOTS = 20;
+/** Idem para o marco de 70%. */
+export const ELITE_ACCURACY_MIN_SHOTS = 30;
 
 const b = (pt: string, en: string): Bilingual => ({ 'pt-BR': pt, en });
 
 /** Na ordem em que aparecem no perfil. Ids são estáveis (gravados no banco): nunca renomear. */
 export const MILESTONES: readonly Milestone[] = [
-  { id: 'first_match', name: b('Estreia', 'Debut'), description: b('Jogou a primeira partida', 'Played the first match') },
-  { id: 'matches_10', name: b('Frequentador', 'Regular'), description: b('10 partidas', '10 matches') },
-  { id: 'matches_100', name: b('Veterano', 'Veteran'), description: b('100 partidas', '100 matches') },
-  { id: 'matches_1000', name: b('Lenda', 'Legend'), description: b('1000 partidas', '1000 matches') },
-  { id: 'first_capture', name: b('Primeira captura', 'First capture'), description: b('Capturou a primeira bandeira', 'Captured the first flag') },
-  { id: 'captures_50', name: b('Ladrão de bandeiras', 'Flag thief'), description: b('50 capturas', '50 captures') },
-  { id: 'kills_100', name: b('Atirador', 'Gunner'), description: b('100 kills em jogadores', '100 kills on players') },
-  { id: 'kills_1000', name: b('Pistoleiro', 'Gunslinger'), description: b('1000 kills em jogadores', '1000 kills on players') },
-  { id: 'kills_10000', name: b('Outgunner', 'Outgunner'), description: b('10000 kills em jogadores', '10000 kills on players') },
-  { id: 'accuracy_50', name: b('Mira certeira', 'Sharpshooter'), description: b(`Precisão de 50% ou mais numa partida (mínimo de ${ACCURACY_MIN_SHOTS} tiros)`, `50% accuracy or better in a match (at least ${ACCURACY_MIN_SHOTS} shots)`) },
-  { id: 'win_streak_10', name: b('Imbatível', 'Unstoppable'), description: b('10 vitórias seguidas', '10 wins in a row') },
-  { id: 'beta', name: b('Pioneiro', 'Pioneer'), description: b('Jogou o beta', 'Played the beta') },
+  // progresso
+  { id: 'first_match', group: 'progress', name: b('Estreia', 'Debut'), description: b('Jogou a primeira partida', 'Played the first match') },
+  { id: 'matches_10', group: 'progress', name: b('Frequentador', 'Regular'), description: b('10 partidas', '10 matches') },
+  { id: 'matches_100', group: 'progress', name: b('Veterano', 'Veteran'), description: b('100 partidas', '100 matches') },
+  { id: 'matches_1000', group: 'progress', name: b('Lenda', 'Legend'), description: b('1000 partidas', '1000 matches') },
+  { id: 'wins_1', group: 'progress', name: b('Primeira vitória', 'First win'), description: b('Venceu a primeira partida', 'Won the first match') },
+  { id: 'wins_100', group: 'progress', name: b('Vencedor', 'Winner'), description: b('100 vitórias', '100 wins') },
+  { id: 'wins_500', group: 'progress', name: b('Campeão', 'Champion'), description: b('500 vitórias', '500 wins') },
+  { id: 'win_streak_10', group: 'progress', name: b('Imbatível', 'Unstoppable'), description: b('10 vitórias seguidas', '10 wins in a row') },
+  { id: 'hours_10', group: 'progress', name: b('Dedicado', 'Dedicated'), description: b('10 horas jogadas', '10 hours played') },
+  { id: 'hours_100', group: 'progress', name: b('Incansável', 'Tireless'), description: b('100 horas jogadas', '100 hours played') },
+  // bandeira
+  { id: 'first_capture', group: 'flag', name: b('Primeira captura', 'First capture'), description: b('Capturou a primeira bandeira', 'Captured the first flag') },
+  { id: 'captures_50', group: 'flag', name: b('Ladrão de bandeiras', 'Flag thief'), description: b('50 capturas', '50 captures') },
+  { id: 'captures_250', group: 'flag', name: b('Mestre das bandeiras', 'Flag master'), description: b('250 capturas', '250 captures') },
+  { id: 'hat_trick', group: 'flag', name: b('Hat-trick', 'Hat-trick'), description: b('3 capturas numa partida', '3 captures in a match') },
+  { id: 'returns_100', group: 'flag', name: b('Resgatador', 'Rescuer'), description: b('100 bandeiras devolvidas', '100 flags returned') },
+  { id: 'carry_60', group: 'flag', name: b('Maratonista', 'Marathoner'), description: b('60 segundos com a bandeira numa partida', '60 seconds carrying the flag in a match') },
+  // defesa
+  { id: 'defenses_match_10', group: 'defense', name: b('Muralha', 'Wall'), description: b('10 defesas numa partida', '10 defenses in a match') },
+  { id: 'defenses_250', group: 'defense', name: b('Guardião', 'Guardian'), description: b('250 defesas', '250 defenses') },
+  { id: 'carriers_match_5', group: 'defense', name: b('Caça-portador', 'Carrier hunter'), description: b('Matou 5 portadores de bandeira numa partida', 'Killed 5 flag carriers in a match') },
+  { id: 'shutout', group: 'defense', name: b('Sem chance', 'No chance'), description: b('Venceu uma partida sem sofrer captura', 'Won a match without conceding a capture') },
+  // combate
+  { id: 'kills_100', group: 'combat', name: b('Atirador', 'Gunner'), description: b('100 kills em jogadores', '100 kills on players') },
+  { id: 'kills_1000', group: 'combat', name: b('Pistoleiro', 'Gunslinger'), description: b('1000 kills em jogadores', '1000 kills on players') },
+  { id: 'kills_10000', group: 'combat', name: b('Outgunner', 'Outgunner'), description: b('10000 kills em jogadores', '10000 kills on players') },
+  { id: 'accuracy_50', group: 'combat', name: b('Mira certeira', 'Sharpshooter'), description: b(`Precisão de 50% ou mais numa partida (mínimo de ${ACCURACY_MIN_SHOTS} tiros)`, `50% accuracy or better in a match (at least ${ACCURACY_MIN_SHOTS} shots)`) },
+  { id: 'accuracy_70', group: 'combat', name: b('Atirador de elite', 'Marksman'), description: b(`Precisão de 70% ou mais numa partida (mínimo de ${ELITE_ACCURACY_MIN_SHOTS} tiros)`, `70% accuracy or better in a match (at least ${ELITE_ACCURACY_MIN_SHOTS} shots)`) },
+  { id: 'streak_10', group: 'combat', name: b('Em chamas', 'On fire'), description: b('10 kills sem morrer', '10 kills without dying') },
+  { id: 'streak_20', group: 'combat', name: b('Imparável', 'Unstoppable force'), description: b('20 kills sem morrer', '20 kills without dying') },
+  { id: 'kills_match_30', group: 'combat', name: b('Massacre', 'Massacre'), description: b('30 kills numa partida', '30 kills in a match') },
+  { id: 'flawless', group: 'combat', name: b('Intocável', 'Untouchable'), description: b('10 kills ou mais numa partida sem morrer nenhuma vez', '10 or more kills in a match without dying once') },
+  { id: 'multi_kill', group: 'combat', name: b('Dobradinha', 'Double kill'), description: b('Fez o primeiro multi-kill', 'Scored the first multi-kill') },
+  { id: 'trades_50', group: 'combat', name: b('Vingador', 'Avenger'), description: b('50 trocas (matou quem acabou de matar um aliado)', '50 trades (killed whoever just killed a teammate)') },
+  { id: 'first_kills_50', group: 'combat', name: b('Abre-alas', 'Opener'), description: b('50 primeiros abates', '50 opening kills') },
+  { id: 'assists_100', group: 'combat', name: b('Parceiro', 'Partner'), description: b('100 assistências', '100 assists') },
+  { id: 'enemy_base_kills_100', group: 'combat', name: b('Invasor', 'Invader'), description: b('100 kills na base inimiga', '100 kills in the enemy base') },
+  // social
+  { id: 'beta', group: 'social', name: b('Pioneiro', 'Pioneer'), description: b('Jogou o beta', 'Played the beta') },
   // clã x clã (OG-259)
-  { id: 'clan_war', name: b('Guerra de clãs', 'Clan war'), description: b('Jogou a primeira partida clã x clã', 'Played the first clan vs clan match') },
-  { id: 'clan_war_win', name: b('Primeira conquista', 'First conquest'), description: b('Venceu a primeira partida clã x clã', 'Won the first clan vs clan match') },
-  { id: 'clan_war_10', name: b('Veterano de guerra', 'War veteran'), description: b('10 partidas clã x clã', '10 clan vs clan matches') },
-  { id: 'clan_war_wins_10', name: b('Senhor da guerra', 'Warlord'), description: b('10 vitórias clã x clã', '10 clan vs clan wins') },
-  { id: 'clan_series_win', name: b('Série conquistada', 'Series conquered'), description: b('Venceu uma série clã x clã (md3 ou md5)', 'Won a clan vs clan series (bo3 or bo5)') },
-  { id: 'clan_sweep', name: b('Varrida', 'Clean sweep'), description: b('Venceu uma série clã x clã sem perder um jogo', 'Won a clan vs clan series without losing a game') },
-  { id: 'clan_rivalry_5', name: b('Rivalidade', 'Rivalry'), description: b('5 partidas clã x clã contra o mesmo clã', '5 clan vs clan matches against the same clan') },
-  { id: 'clan_defender', name: b('Defensor do clã', 'Clan defender'), description: b('Venceu uma partida clã x clã sem sofrer captura', 'Won a clan vs clan match without conceding a capture') },
+  { id: 'clan_war', group: 'clan', name: b('Guerra de clãs', 'Clan war'), description: b('Jogou a primeira partida clã x clã', 'Played the first clan vs clan match') },
+  { id: 'clan_war_win', group: 'clan', name: b('Primeira conquista', 'First conquest'), description: b('Venceu a primeira partida clã x clã', 'Won the first clan vs clan match') },
+  { id: 'clan_war_10', group: 'clan', name: b('Veterano de guerra', 'War veteran'), description: b('10 partidas clã x clã', '10 clan vs clan matches') },
+  { id: 'clan_war_wins_10', group: 'clan', name: b('Senhor da guerra', 'Warlord'), description: b('10 vitórias clã x clã', '10 clan vs clan wins') },
+  { id: 'clan_series_win', group: 'clan', name: b('Série conquistada', 'Series conquered'), description: b('Venceu uma série clã x clã (md3 ou md5)', 'Won a clan vs clan series (bo3 or bo5)') },
+  { id: 'clan_sweep', group: 'clan', name: b('Varrida', 'Clean sweep'), description: b('Venceu uma série clã x clã sem perder um jogo', 'Won a clan vs clan series without losing a game') },
+  { id: 'clan_rivalry_5', group: 'clan', name: b('Rivalidade', 'Rivalry'), description: b('5 partidas clã x clã contra o mesmo clã', '5 clan vs clan matches against the same clan') },
+  { id: 'clan_defender', group: 'clan', name: b('Defensor do clã', 'Clan defender'), description: b('Venceu uma partida clã x clã sem sofrer captura', 'Won a clan vs clan match without conceding a capture') },
 ];
 
-const total = (field: 'kills' | 'captures' | 'one', threshold: number) => ({ field, threshold });
-const TOTALS: Readonly<Record<string, ReturnType<typeof total>>> = {
-  first_match: total('one', 1),
-  matches_10: total('one', 10),
-  matches_100: total('one', 100),
-  matches_1000: total('one', 1000),
-  first_capture: total('captures', 1),
-  captures_50: total('captures', 50),
-  kills_100: total('kills', 100),
-  kills_1000: total('kills', 1000),
-  kills_10000: total('kills', 10000),
+/** Contadores somados partida a partida; também mostram o progresso no perfil (OG-393). */
+export type MilestoneCounter = 'matches' | 'wins' | 'kills' | 'captures' | 'playSeconds' | 'flagsReturned' | 'defenses' | 'trades' | 'firstKills' | 'assists' | 'killsEnemyBase';
+
+const stat = (m: MilestoneMatch, key: string): number => m.stats?.[key] ?? 0;
+
+const COUNTERS: Readonly<Record<MilestoneCounter, (m: MilestoneMatch) => number>> = {
+  matches: () => 1,
+  wins: (m) => (m.result > 0 ? 1 : 0),
+  kills: (m) => Math.max(0, m.kills),
+  captures: (m) => m.captures,
+  playSeconds: (m) => m.playSeconds ?? 0,
+  flagsReturned: (m) => stat(m, 'flagsReturned'),
+  defenses: (m) => stat(m, 'defenses'),
+  trades: (m) => stat(m, 'trades'),
+  firstKills: (m) => stat(m, 'firstKills'),
+  assists: (m) => stat(m, 'assists'),
+  killsEnemyBase: (m) => stat(m, 'killsEnemyBase'),
+};
+
+const HOUR = 3600;
+/** Marcos de total: contador e alvo. */
+export const MILESTONE_TOTALS: Readonly<Record<string, { counter: MilestoneCounter; target: number }>> = {
+  first_match: { counter: 'matches', target: 1 },
+  matches_10: { counter: 'matches', target: 10 },
+  matches_100: { counter: 'matches', target: 100 },
+  matches_1000: { counter: 'matches', target: 1000 },
+  wins_1: { counter: 'wins', target: 1 },
+  wins_100: { counter: 'wins', target: 100 },
+  wins_500: { counter: 'wins', target: 500 },
+  hours_10: { counter: 'playSeconds', target: 10 * HOUR },
+  hours_100: { counter: 'playSeconds', target: 100 * HOUR },
+  first_capture: { counter: 'captures', target: 1 },
+  captures_50: { counter: 'captures', target: 50 },
+  captures_250: { counter: 'captures', target: 250 },
+  returns_100: { counter: 'flagsReturned', target: 100 },
+  defenses_250: { counter: 'defenses', target: 250 },
+  kills_100: { counter: 'kills', target: 100 },
+  kills_1000: { counter: 'kills', target: 1000 },
+  kills_10000: { counter: 'kills', target: 10000 },
+  trades_50: { counter: 'trades', target: 50 },
+  first_kills_50: { counter: 'firstKills', target: 50 },
+  assists_100: { counter: 'assists', target: 100 },
+  enemy_base_kills_100: { counter: 'killsEnemyBase', target: 100 },
+};
+
+/**
+ * Feitos de uma partida só. Os de kills exigem partida sem kills em bots (`botKills`), que o
+ * `consecutiveKills` e o `kills` cru do jsonb não separam.
+ */
+const noBots = (m: MilestoneMatch) => m.stats !== undefined && stat(m, 'botKills') === 0;
+const FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
+  hat_trick: (m) => m.captures >= 3,
+  carry_60: (m) => stat(m, 'flagCarryingTime') >= 60,
+  defenses_match_10: (m) => stat(m, 'defenses') >= 10,
+  carriers_match_5: (m) => stat(m, 'carriersKilled') >= 5,
+  shutout: (m) => m.result > 0 && m.conceded === 0,
+  accuracy_50: (m) => m.shots >= ACCURACY_MIN_SHOTS && m.hits * 2 >= m.shots,
+  accuracy_70: (m) => m.shots >= ELITE_ACCURACY_MIN_SHOTS && m.hits * 10 >= m.shots * 7,
+  streak_10: (m) => noBots(m) && stat(m, 'consecutiveKills') >= 10,
+  streak_20: (m) => noBots(m) && stat(m, 'consecutiveKills') >= 20,
+  kills_match_30: (m) => noBots(m) && m.kills >= 30,
+  flawless: (m) => noBots(m) && m.kills >= 10 && m.deaths === 0,
+  multi_kill: (m) => stat(m, 'multiKills') >= 1,
 };
 
 /**
@@ -92,15 +184,13 @@ export function milestonesFrom(matches: readonly MilestoneMatch[], o: { beta?: b
   const give = (id: string, m: MilestoneMatch) => {
     if (!found.has(id)) found.set(id, { id, matchId: m.matchId, endedAt: m.endedAt });
   };
-  const sums = { one: 0, kills: 0, captures: 0 };
+  const sums = Object.fromEntries(Object.keys(COUNTERS).map((k) => [k, 0])) as Record<MilestoneCounter, number>;
   let streak = 0;
   const wars = { matches: 0, wins: 0, against: new Map<string, number>() };
   for (const m of matches) {
-    sums.one++;
-    sums.kills += Math.max(0, m.kills);
-    sums.captures += m.captures;
-    for (const [id, t] of Object.entries(TOTALS)) if (sums[t.field] >= t.threshold) give(id, m);
-    if (m.shots >= ACCURACY_MIN_SHOTS && m.hits * 2 >= m.shots) give('accuracy_50', m);
+    for (const k of Object.keys(COUNTERS) as MilestoneCounter[]) sums[k] += COUNTERS[k](m);
+    for (const [id, t] of Object.entries(MILESTONE_TOTALS)) if (sums[t.counter] >= t.target) give(id, m);
+    for (const [id, feat] of Object.entries(FEATS)) if (feat(m)) give(id, m);
     streak = m.result > 0 ? streak + 1 : 0;
     if (streak >= 10) give('win_streak_10', m);
     if (o.beta) give('beta', m);

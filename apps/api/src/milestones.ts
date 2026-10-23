@@ -2,7 +2,8 @@
 // Marcos (OG-213, RN-SOC-03): lê o histórico das contas, calcula com `milestonesFrom`
 // (@outgun/content) e grava o que faltar. Roda na transação que grava cada partida e, para o
 // histórico já gravado, em `cli.js milestones` — idempotente nos dois casos (ON CONFLICT DO NOTHING).
-// Só partidas com conta e sem bots no slot; kills em bots (`stats.botKills`) não contam.
+// Só partidas com conta e sem bots no slot; kills em bots (`stats.botKills`) não contam. Desde o
+// OG-390 também mortes, tempo jogado, placar sofrido e os stats da partida (jsonb inteiro).
 import { milestonesFrom, type MilestoneMatch } from '@outgun/content';
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
@@ -22,6 +23,9 @@ async function histories(tx: Db | Tx, userIds: readonly string[]): Promise<Map<s
     captures: number;
     shots: number;
     hits: number;
+    deaths: number;
+    play_seconds: number;
+    stats: Record<string, number> | null;
     opponent: string | null;
     conceded: number;
     series_won: boolean;
@@ -33,6 +37,7 @@ async function histories(tx: Db | Tx, userIds: readonly string[]): Promise<Map<s
       mp.captures,
       coalesce((mp.stats ->> 'shots')::int, 0) AS shots,
       coalesce((mp.stats ->> 'hits')::int, 0) AS hits,
+      mp.deaths, mp.play_seconds, mp.stats,
       -- clã x clã (OG-259): adversário, capturas sofridas e a série md3/md5 fechada neste jogo
       CASE WHEN m.clan_war THEN coalesce(CASE WHEN mp.team = 0 THEN m.blue_clan_id ELSE m.red_clan_id END::text, m.id::text) END AS opponent,
       CASE WHEN mp.team = 0 THEN m.blue_score ELSE m.red_score END AS conceded,
@@ -55,6 +60,10 @@ async function histories(tx: Db | Tx, userIds: readonly string[]): Promise<Map<s
       captures: Number(r.captures),
       shots: Number(r.shots),
       hits: Number(r.hits),
+      deaths: Number(r.deaths),
+      playSeconds: Number(r.play_seconds),
+      conceded: Number(r.conceded),
+      ...(r.stats ? { stats: r.stats } : {}),
       ...(r.opponent ? { clanWar: { opponent: r.opponent, conceded: Number(r.conceded), seriesWon: r.series_won, sweep: r.series_won && r.sweep } } : {}),
     });
     out.set(r.user_id, list);
