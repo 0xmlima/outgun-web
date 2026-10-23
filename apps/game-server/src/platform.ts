@@ -71,6 +71,8 @@ export interface PanelConfig {
   maps?: PanelMapRef[];
   /** Nomes e prefixos ativos dos bots (OG-403); ausente = API antiga. */
   bots?: BotNames;
+  /** Chat dos bots (OG-404); ausente = API antiga (vale o padrão). */
+  botChat?: unknown;
 }
 
 export interface HeartbeatReply {

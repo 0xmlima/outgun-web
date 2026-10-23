@@ -6,7 +6,7 @@
 // comandos para as salas vão aos game servers na resposta do heartbeat.
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { checkName } from '@outgun/protocol';
-import { BOT_NAMES_MAX, BOT_PREFIX_MAX_LENGTH, BOT_PREFIXES_MAX, casualPresetProblems, cleanBotPrefix, cleanBotText, PRESETS, ROTATION_KEYS, type BotNameEntry } from '@outgun/settings';
+import { BOT_NAMES_MAX, BOT_PREFIX_MAX_LENGTH, BOT_PREFIXES_MAX, botChatConfig, casualPresetProblems, cleanBotPrefix, cleanBotText, PRESETS, ROTATION_KEYS, type BotNameEntry } from '@outgun/settings';
 import { and, count, desc, eq, gt, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { createInvites } from '../beta.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -16,7 +16,8 @@ import { clanKey, usernameKey } from '../db/keys.js';
 import { adminActions, adminCommands, bans, betaInvites, botSettings, betaInviteUses, casualPresets, casualPresetVersions, clans, feedback, gameServers, mapRotations, panelMaps, panelMapVersions, playerReports, rooms, users } from '../db/schema.js';
 import { nameBlocked } from '../name-filter.js';
 import { checkMapText, mapNameProblem } from '../panel-maps.js';
-import { botNamesConfig } from '../platform-config.js';
+import { botChat, botNamesConfig } from '../platform-config.js';
+import { BotChatSchema } from './internal.js';
 import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
@@ -507,7 +508,7 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
     app.get('/bots', { schema: { tags: ['admin'], summary: 'Prefixos e nomes possíveis dos bots (OG-403)' } }, async (request, reply) => {
       if (!(await guard(request, reply, 'moderator'))) return reply;
       const [row] = await db.select({ version: botSettings.version, updatedAt: botSettings.updatedAt }).from(botSettings).where(eq(botSettings.id, 1));
-      return { ...(await botNamesConfig(db)), version: row?.version ?? 0, updatedAt: row?.updatedAt.toISOString() ?? null };
+      return { ...(await botNamesConfig(db)), chat: await botChat(db), version: row?.version ?? 0, updatedAt: row?.updatedAt.toISOString() ?? null };
     });
     app.put(
       '/bots',
@@ -538,6 +539,22 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
           .returning();
         await audit(user, 'bot_names', { details: { prefixes: prefixes.length, names: names.length, version: row!.version } });
         return { prefixes, names, version: row!.version, updatedAt: row!.updatedAt.toISOString() };
+      },
+    );
+
+    app.put(
+      '/bots/chat',
+      { schema: { tags: ['admin'], summary: 'Troca o chat dos bots (OG-404): ligado, teto por minuto e, por acontecimento, chance, quem fala e mensagens', body: BotChatSchema } },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        const chat = botChatConfig(request.body);
+        await db
+          .insert(botSettings)
+          .values({ id: 1, chat: chat as unknown as Record<string, unknown>, updatedBy: user.id })
+          .onConflictDoUpdate({ target: botSettings.id, set: { chat: chat as unknown as Record<string, unknown>, version: sql`${botSettings.version} + 1`, updatedBy: user.id, updatedAt: new Date() } });
+        await audit(user, 'bot_chat', { details: { enabled: chat.enabled, perMinute: chat.perMinute } });
+        return chat;
       },
     );
 

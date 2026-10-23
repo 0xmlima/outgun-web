@@ -3,7 +3,7 @@
 // autenticada por HMAC (`verifyInternalRequest` de @outgun/tickets).
 import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TOptional, type TString } from '@fastify/type-provider-typebox';
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
-import { PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
+import { BOT_CHAT_MESSAGE_MAX_LENGTH, BOT_CHAT_MESSAGES_MAX, BOT_CHAT_PER_MINUTE_MAX, PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matchEventPlayers, matchEvents, matches, matchPlayers, playerReports, rankedSeries, rooms, users, type MatchEvent } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
@@ -95,6 +95,20 @@ const Command = Type.Object({
   actor: Type.String(),
 });
 
+/** Chat dos bots (OG-404): o mesmo formato na moderação e no heartbeat. */
+export const BotChatSchema = Type.Object({
+  enabled: Type.Boolean(),
+  perMinute: Type.Integer({ minimum: 0, maximum: BOT_CHAT_PER_MINUTE_MAX }),
+  events: Type.Record(
+    Type.String(),
+    Type.Object({
+      chance: Type.Integer({ minimum: 0, maximum: 100 }),
+      speaker: Type.Union([Type.Literal('involved'), Type.Literal('team'), Type.Literal('enemy'), Type.Literal('any')]),
+      messages: Type.Array(Type.String({ maxLength: BOT_CHAT_MESSAGE_MAX_LENGTH }), { maxItems: BOT_CHAT_MESSAGES_MAX }),
+    }),
+  ),
+});
+
 const HeartbeatReply = Type.Object({
   updated: Type.Integer(),
   /** Comandos do painel para salas deste servidor. */
@@ -108,6 +122,8 @@ const HeartbeatReply = Type.Object({
     maps: Type.Array(Type.Object({ name: Type.String(), crc: Type.Integer() })),
     /** Nomes e prefixos ativos dos bots (OG-403). */
     bots: Type.Object({ prefixes: Type.Array(Type.String()), names: Type.Array(Type.String()) }),
+    /** Chat dos bots (OG-404). */
+    botChat: BotChatSchema,
   }),
 });
 

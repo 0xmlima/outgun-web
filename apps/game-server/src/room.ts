@@ -12,6 +12,7 @@ import { censor, formatDuration, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
 import { BOT_LEVELS, botSkill, type BotSkill } from '@outgun/bots';
+import { BotChatTally, BotChatter } from './bot-chat.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
 import { SpectatorStream } from './spectators.js';
@@ -330,6 +331,9 @@ export class Room {
   private readonly botRng: GlibcRand;
   /** Sorteio do nível de cada bot no modo variável (OG-289), separado para não mexer nos outros. */
   private readonly botLevelRng: GlibcRand;
+  /** Bots que falam no chat (OG-404): só no Casual. */
+  private readonly chatter: BotChatter | null;
+  private readonly chatTally = new BotChatTally();
   /** Bots pedidos pelo dono para a próxima partida (OG-289). */
   private pendingCasualBots: CasualBots | null = null;
   /** Regras de bandeira já anunciadas (`flagModeMask`). */
@@ -359,6 +363,16 @@ export class Room {
     this.botNameRng = new GlibcRand(options.seed + 1);
     this.botRng = new GlibcRand(options.seed + 2);
     this.botLevelRng = new GlibcRand(options.seed + 3);
+    const chatRng = new GlibcRand(options.seed + 5);
+    this.chatter =
+      this.mode === 'casual'
+        ? new BotChatter({
+            rng: chatRng,
+            now: this.now,
+            bots: () => [...this.clients].flatMap(([pid, c]) => (c.bot ? [{ pid, team: this.world.teamOf(pid) }] : [])),
+            say: (pid, text) => this.chat(pid, text),
+          })
+        : null;
     this.spectators = new SpectatorStream(options.maxSpectators ?? 16);
     if (this.mode === 'casual' && options.botsFill !== undefined) this.settings.server.botsFill = options.botsFill;
     if (this.mode === 'casual' && options.casualBots) this.applyCasualBots(options.casualBots);
@@ -384,6 +398,7 @@ export class Room {
         const victim = this.world.players[target];
         if (victim) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended }));
+        this.chatKill(attacker & 31, target);
       },
       suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
       flagTaken: (pid, flag) => {
@@ -396,10 +411,14 @@ export class Room {
       },
       flagReturned: (pid) => {
         this.flagEvent('return', pid, this.world.teamOf(pid) as EventFlag);
+        this.chatter?.event('flag_returned', { team: this.world.teamOf(pid) as 0 | 1, involved: pid });
         this.broadcast(message('flagReturn', { pid }));
       },
       flagCaptured: (pid, flagTeam, assistant) => {
         this.flagEvent('capture', pid, flagTeam as EventFlag);
+        const team = this.world.teamOf(pid) as 0 | 1;
+        this.chatter?.event('we_captured', { team, involved: pid });
+        this.chatter?.event('they_captured', { team: (1 - team) as 0 | 1, ...this.chatName(pid) });
         this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant }));
       },
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
@@ -521,6 +540,7 @@ export class Room {
     if (opts.bot) pl.awaitingClientReadies = 0; // bot não carrega mapa
     this.send(pid, [...this.welcomeMessages(pid), ...(opts.bot ? [] : [message('resumeToken', { token: this.clients.get(pid)!.resumeToken })])]);
     this.broadcast(message('playerJoined', { pid, name: identity.name, color, bot: opts.bot ?? false }));
+    if (!opts.bot) this.chatter?.event('player_join', { name: identity.name });
     // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
     if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
     if (identity.accountId) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
@@ -668,6 +688,9 @@ export class Room {
     if (!c) return;
     if (this.mode === 'ranked' && this.gameOverUntil === null && !c.bot && c.identity.accountId) this.departed.set(c.identity.accountId, this.world.teamOf(pid) as 0 | 1);
     this.sim.removePlayer(pid); // apaga os foguetes do jogador para quem os via
+    this.chatTally.forget(pid);
+    if (c.bot) this.chatter?.forget(pid);
+    else if (!c.departing) this.chatter?.event('player_leave', { name: c.identity.name });
     this.colors.release(this.world.teamOf(pid), c.color);
     this.clients.delete(pid);
     this.pause?.undrop(pid, this.uptimeFrames); // prazo esgotado, saída ou expulsão: não espera mais por ele
@@ -1081,6 +1104,11 @@ export class Room {
     const world = this.world;
     this.uptimeFrames++;
     if (this.checkBotsPending) this.checkBots();
+    if (this.chatter) {
+      const turned = this.chatTally.score(world.teams[0].score, world.teams[1].score);
+      if (turned !== null) this.chatter.event('comeback', { team: turned });
+      this.chatter.tick();
+    }
     const tickAt = this.now();
     for (const c of this.clients.values()) {
       c.guard.tick();
@@ -1600,6 +1628,20 @@ export class Room {
     });
   }
 
+  /** `{name}` das mensagens dos bots (OG-404). */
+  private chatName(pid: number): { name?: string } {
+    const name = this.clients.get(pid)?.identity.name;
+    return name ? { name } : {};
+  }
+
+  /** Sequência de abates e "morreu de novo para o mesmo" no chat dos bots (OG-404). */
+  private chatKill(attacker: number, target: number): void {
+    if (!this.chatter) return;
+    const { streak, repeat } = this.chatTally.kill(attacker, target);
+    if (streak >= 5 && streak % 5 === 0) this.chatter.event('kill_streak', { team: this.world.teamOf(attacker) as 0 | 1, involved: attacker });
+    if (repeat === 3) this.chatter.event('killed_by_same', { team: this.world.teamOf(target) as 0 | 1, involved: target, ...this.chatName(attacker) });
+  }
+
   /** Ação de bandeira no registro do jogo Ranked (OG-362). */
   private flagEvent(kind: 'take' | 'drop' | 'return' | 'capture', pid: number, flag: EventFlag): void {
     this.events.flag(this.world.mapTime(), kind, pid, flag);
@@ -1637,6 +1679,10 @@ export class Room {
 
   private onGameOver(reason: GameOverReason, result: MatchResult): void {
     this.results.push(result);
+    if (result.winner !== null) {
+      this.chatter?.event('win', { team: result.winner });
+      this.chatter?.event('loss', { team: (1 - result.winner) as 0 | 1 });
+    }
     // a captura final acontece no mesmo frame: o placar e os contadores finais vão antes do
     // `gameOver`, que o cliente congela (OG-343, OG-379); o `nextMap` abaixo zera os contadores
     this.sendCounters();
@@ -1962,6 +2008,8 @@ export class Room {
     this.matchStartedAt = this.wallClock();
     this.departed.clear();
     this.events.reset();
+    this.chatTally.reset();
+    this.chatter?.event('match_start');
     for (const c of this.clients.values()) c.botKills = 0;
     Object.assign(this.announcer, { votes: 0, needed: 0, nextFrame: 0 });
     const map = entry.map;

@@ -170,6 +170,17 @@ describe.skipIf(!pgAdminUrl)('painel admin (OG-087)', () => {
     expect((await call('GET', '/admin/audit', 'mod')).json().entries.some((a: { action: string }) => a.action === 'bot_names')).toBe(true);
   });
 
+  it('chat dos bots (OG-404): padrão do jogo, editado pela moderação e entregue no heartbeat', async () => {
+    const before = (await call('GET', '/admin/bots', 'mod')).json().chat;
+    expect(before).toMatchObject({ enabled: true, perMinute: 6, events: { they_captured: { speaker: 'team' } } });
+    const chat = { ...before, perMinute: 3, events: { ...before.events, win: { chance: 0, speaker: 'any', messages: ['  gg  ', ''] } } };
+    expect((await call('PUT', '/admin/bots/chat', 'player', chat)).statusCode).toBe(403);
+    expect((await call('PUT', '/admin/bots/chat', 'mod', { ...chat, events: { ...chat.events, win: { chance: 101, speaker: 'any', messages: [] } } })).statusCode).toBe(400);
+    expect((await call('PUT', '/admin/bots/chat', 'mod', chat)).json()).toMatchObject({ perMinute: 3, events: { win: { chance: 0, messages: ['gg'] } } });
+    const sent = (await heartbeat()).json().config.botChat;
+    expect(sent).toMatchObject({ perMinute: 3, events: { win: { chance: 0, messages: ['gg'] }, loss: before.events.loss } });
+  });
+
   it('heartbeat traz as rotações padrão do servidor e o painel parte delas (OG-378)', async () => {
     expect((await heartbeat([], { rotations: { casual: ['outgun1', 'gun dance'], ranked: ['outgun1'] } })).statusCode).toBe(200);
     expect((await call('GET', '/admin/rotations', 'mod')).json().server).toEqual({ casual: ['outgun1', 'gun dance'], ranked: ['outgun1'] });

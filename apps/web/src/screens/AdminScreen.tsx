@@ -22,7 +22,13 @@ import {
   PRESET_FIELDS,
   PRESET_FORM_CATEGORIES,
   RANKED_FORMATS,
+  BOT_CHAT_EVENTS,
+  BOT_CHAT_PER_MINUTE_MAX,
+  BOT_CHAT_SPEAKERS,
   BOT_NAMES_MAX,
+  type BotChatConfig,
+  type BotChatEvent,
+  type BotChatSpeaker,
   BOT_PREFIX_MAX_LENGTH,
   BOT_PREFIXES_MAX,
   type BotNameEntry,
@@ -1196,7 +1202,7 @@ function BotEntries(props: { caption: string; rows: { e: BotNameEntry; i: number
  */
 function BotsTab() {
   const { t } = usePrefs();
-  const saved = useLoad<BotNamesConfig & { version: number; updatedAt: string | null }>('/admin/bots');
+  const saved = useLoad<BotNamesConfig & { chat: BotChatConfig; version: number; updatedAt: string | null }>('/admin/bots');
   const [draft, setDraft] = useState<BotNamesConfig | null>(null);
   const [prefix, setPrefix] = useState('');
   const [paste, setPaste] = useState('');
@@ -1298,6 +1304,99 @@ function BotsTab() {
           />
         </section>
       </div>
+      {saved.data && <BotChatEditor saved={saved.data.chat} onSaved={saved.reload} />}
+    </section>
+  );
+}
+
+const BOT_CHAT_LABELS: Readonly<Record<BotChatEvent, string>> = {
+  match_start: 'Match start',
+  we_captured: 'Team captured',
+  they_captured: 'Team gave up the flag',
+  flag_returned: 'Flag returned',
+  kill_streak: 'Kill streak (5, 10...)',
+  killed_by_same: 'Killed 3 times by the same player',
+  comeback: 'Score turned around',
+  win: 'Victory',
+  loss: 'Defeat',
+  player_join: 'Player joined',
+  player_leave: 'Player left',
+};
+const BOT_SPEAKER_LABELS: Readonly<Record<BotChatSpeaker, string>> = { involved: 'The bot involved', team: 'A bot of the team', enemy: 'A bot of the other team', any: 'Any bot' };
+
+/** Chat dos bots (OG-404): ligado, teto por minuto e, por acontecimento, chance, quem fala e mensagens. */
+function BotChatEditor({ saved, onSaved }: { saved: BotChatConfig; onSaved: () => void }) {
+  const { t } = usePrefs();
+  const [draft, setDraft] = useState<BotChatConfig | null>(null);
+  const [status, setStatus] = useState<{ text?: string; error?: string }>({});
+  const chat = draft ?? saved;
+  const edit = (patch: Partial<BotChatConfig>) => setDraft({ ...chat, ...patch });
+  const rule = (id: BotChatEvent, patch: Partial<BotChatConfig['events'][BotChatEvent]>) => edit({ events: { ...chat.events, [id]: { ...chat.events[id], ...patch } } });
+  const save = () =>
+    api<BotChatConfig>('/admin/bots/chat', {
+      method: 'PUT',
+      // linhas em branco da edição não vão
+      body: { ...chat, events: Object.fromEntries(BOT_CHAT_EVENTS.map((id) => [id, { ...chat.events[id], messages: chat.events[id].messages.map((m) => m.trim()).filter(Boolean) }])) },
+    }).then(
+      () => {
+        setDraft(null);
+        onSaved();
+        setStatus({ text: t('Bot chat saved. It applies from the next events on.') });
+      },
+      (e: unknown) => setStatus({ error: errorText(e) }),
+    );
+  return (
+    <section className="admin-tab">
+      <h3>{t('Bot chat')}</h3>
+      <div className="admin-bar">
+        <label className="admin-inline-check">
+          <input type="checkbox" checked={chat.enabled} onChange={(e) => edit({ enabled: e.target.checked })} /> {t('Bots talk in the chat (Casual only)')}
+        </label>
+        <TextField label={t('Messages per minute in the room (max)')} value={String(chat.perMinute)} maxLength={2} onChange={(v) => edit({ perMinute: Math.min(BOT_CHAT_PER_MINUTE_MAX, Number(v.replace(/\D/g, '') || 0)) })} />
+        <span className="admin-bar-end">
+          {draft && (
+            <Button variant="ghost" onClick={() => setDraft(null)}>
+              {t('Discard changes')}
+            </Button>
+          )}
+          <Button disabled={!draft} onClick={() => void save()}>
+            {t('Save chat')}
+          </Button>
+        </span>
+      </div>
+      <p className="admin-muted">{t('Each event has a chance of a bot commenting, who talks and the messages (one per line; {name} = the other player). Bots wait 1 to 4 s to "type", never talk twice in a row and wait 20 s between their own messages.')}</p>
+      <Status text={status.text} error={status.error} />
+      <Table
+        caption={t('Bot chat')}
+        rows={BOT_CHAT_EVENTS.map((id) => ({ id, r: chat.events[id] }))}
+        rowKey={(x) => x.id}
+        columns={[
+          { key: 'event', header: t('Event'), cell: (x) => t(BOT_CHAT_LABELS[x.id]) },
+          {
+            key: 'chance',
+            header: t('Chance (%)'),
+            cell: (x) => <input className="ui-input admin-chat-chance" aria-label={t('Chance (%)')} inputMode="numeric" value={String(x.r.chance)} maxLength={3} onChange={(e) => rule(x.id, { chance: Math.min(100, Number(e.target.value.replace(/\D/g, '') || 0)) })} />,
+          },
+          {
+            key: 'speaker',
+            header: t('Who talks'),
+            cell: (x) => (
+              <select className="ui-input" aria-label={t('Who talks')} value={x.r.speaker} onChange={(e) => rule(x.id, { speaker: e.target.value as BotChatSpeaker })}>
+                {BOT_CHAT_SPEAKERS.map((s) => (
+                  <option key={s} value={s}>
+                    {t(BOT_SPEAKER_LABELS[s])}
+                  </option>
+                ))}
+              </select>
+            ),
+          },
+          {
+            key: 'messages',
+            header: t('Messages'),
+            cell: (x) => <textarea className="ui-input admin-chat-messages" aria-label={t('Messages')} rows={3} value={x.r.messages.join('\n')} onChange={(e) => rule(x.id, { messages: e.target.value.split('\n') })} />,
+          },
+        ]}
+      />
     </section>
   );
 }

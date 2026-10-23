@@ -5,6 +5,8 @@
 // próxima troca de mapa (D-69): a sala Casual que escolheu mapas fica com os que seguem na rotação.
 import type { GameMap } from '@outgun/sim';
 import type { CommandAck, HeartbeatReply, PanelHandlers } from './platform.js';
+import { botChatConfig } from '@outgun/settings';
+import { setPanelBotChat } from './bot-chat.js';
 import { setPanelBotNames } from './bots.js';
 import { setPanelPresets } from './presets.js';
 import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
@@ -70,6 +72,7 @@ export class AdminPanelLink implements PanelHandlers {
     this.configVersion = config.version;
     setPanelPresets(config.presets);
     if (config.bots) setPanelBotNames(config.bots);
+    if (config.botChat) setPanelBotChat(botChatConfig(config.botChat));
     for (const key of ROTATION_KEYS) {
       const wanted = config.rotations[key];
       if (!wanted) continue;

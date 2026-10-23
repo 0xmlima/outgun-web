@@ -669,6 +669,8 @@ export const botSettings = pgTable('bot_settings', {
   id: smallint('id').primaryKey().default(1),
   prefixes: jsonb('prefixes').$type<BotNameEntry[]>().notNull().default([]),
   names: jsonb('names').$type<BotNameEntry[]>().notNull().default([]),
+  /** Chat dos bots (OG-404); `{}` = o padrão do jogo. */
+  chat: jsonb('chat').$type<Record<string, unknown>>().notNull().default({}),
   version: integer('version').notNull().default(1),
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   updatedAt: tstz('updated_at').notNull().defaultNow(),

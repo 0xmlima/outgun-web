@@ -864,7 +864,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-401](cards/OG-401-resolucao-do-monitor-no-windows.md) | Resolução do monitor no cliente para Windows | E12 | 5 | Should | S41 | OG-337, OG-400 | Concluído |
 | [OG-402](cards/OG-402-pioneiro-ate-31-de-outubro.md) | Pioneiro para quem jogar até 31 de outubro | E9 | 1 | Must | S41 | OG-390 | Concluído |
 | [OG-403](cards/OG-403-bots-nomes-e-prefixo-no-painel.md) | Bots no painel de moderação: cadastro de nomes e de prefixos | E13 | 3 | Should | S42 | OG-377 | Em revisão |
-| [OG-404](cards/OG-404-bots-falam-no-chat.md) | Bots falam no chat conforme o que acontece na partida | E13 | 5 | Should | S42 | OG-403, OG-362 | Pronto |
+| [OG-404](cards/OG-404-bots-falam-no-chat.md) | Bots falam no chat conforme o que acontece na partida | E13 | 5 | Should | S42 | OG-403, OG-362 | Em revisão |
 
 **Total:** 246 cards, 818 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 177 cards, 523 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

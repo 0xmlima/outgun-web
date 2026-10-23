@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S42 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-403, OG-362 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -27,9 +27,12 @@ Como jogador numa sala com bots, quero que eles comentem a partida no chat como 
 - Só no Casual; nada no Ranked.
 
 ## Critérios de aceite
-- [ ] Numa partida com bots, as mensagens saem só nos acontecimentos certos, no tom e no ritmo configurados (teste com Rng fixo).
-- [ ] Chance 0% cala o acontecimento; chat dos bots desligado cala todos.
-- [ ] Limite por minuto respeitado mesmo com muitos acontecimentos seguidos (teste).
-- [ ] Moderador edita mensagens e chance, e a próxima partida já usa.
+- [x] Numa partida com bots, as mensagens saem só nos acontecimentos certos, no tom e no ritmo configurados (teste com Rng fixo).
+- [x] Chance 0% cala o acontecimento; chat dos bots desligado cala todos.
+- [x] Limite por minuto respeitado mesmo com muitos acontecimentos seguidos (teste).
+- [x] Moderador edita mensagens e chance, e a próxima partida já usa.
 
 ## Notas de implementação
+- Catálogo e padrão em `packages/settings/src/bot-chat.ts` (11 acontecimentos, `{name}` = o outro jogador); `bot_settings.chat` (migração 0037, `{}` = padrão), `PUT /admin/bots/chat` (moderador, auditado `bot_chat`) e `config.botChat` no heartbeat.
+- `apps/game-server/src/bot-chat.ts`: `BotChatter` (sorteio de chance, quem fala e mensagem; atraso 1–4 s; 20 s por bot; nunca o mesmo bot seguido; teto por minuto) e `BotChatTally` (sequência de 5/10..., 3 mortes para o mesmo, virada). A sala só cria no Casual; a fala passa pelo `chat()` normal (filtro e `TalkMeter`).
+- Sequência conta abates sem morrer dentro do mapa; "jogador entrou/saiu" só para humanos.
