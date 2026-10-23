@@ -23,7 +23,7 @@ import { MAX_CHAT_LENGTH, OnlineHud } from './hud/online-hud.js';
 import { screenLayout, type ScreenLayout } from './hud/screen-layout.js';
 import { GameConnection } from './net/connection.js';
 import { JoinError, joinErrorText, requestTicket } from './net/ticket.js';
-import { desktopBridge, FPS_UNLIMITED } from '../app/install.js';
+import { FPS_MIN, FPS_UNLIMITED, fpsUnlocked } from '../app/install.js';
 import { CHORD_WINDOW_DEFAULT_MS, ChordFilter } from './input/chord.js';
 import { LatencyWindow } from './net/latency.js';
 import { browserName, NetTelemetry, sendNetReport } from './net/telemetry.js';
@@ -87,14 +87,13 @@ export interface ClientOptions {
   readonly graphics?: GraphicsOptions;
 }
 
-/** Automático sem VSync: bem acima de quase todo monitor, sem a placa desenhar sem parar (D-73). */
-const FPS_AUTO_UNLOCKED = 240;
-
-/** `maxFPS` do PixiJS para o limite escolhido (0 = sem limite para o PixiJS). */
+/**
+ * `maxFPS` do PixiJS para o limite escolhido (0 = sem limite para o PixiJS). Sem VSync, nunca abaixo
+ * de 240 (OG-400); no navegador quem limita é o monitor, e o jogo não segura nada.
+ */
 function maxFps(limit: number): number {
-  if (limit === FPS_UNLIMITED) return 0;
-  if (limit === 0) return desktopBridge()?.frameRateActive() === 'unlocked' ? FPS_AUTO_UNLOCKED : 0;
-  return limit;
+  if (!fpsUnlocked() || limit === FPS_UNLIMITED) return 0;
+  return Math.max(FPS_MIN, limit);
 }
 
 export const DEFAULT_CLIENT: ClientOptions = {
@@ -561,7 +560,6 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         // notebooks com duas placas: a mais forte (OG-373)
         powerPreference: 'high-performance',
         background: '#000000',
-        ...lowLatencyContext(),
       });
       ready = true;
       if (destroyed) return app.destroy(true);
@@ -803,17 +801,4 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       if (ready) app.destroy(true);
     },
   };
-}
-
-/**
- * Canvas de baixa latência (OG-374): no cliente desktop com o VSync desligado, o contexto WebGL é
- * criado com `desynchronized` (o Chromium pinta sem esperar o compositor). Fora dele, o PixiJS cria
- * o contexto como sempre. Mesmos atributos que o PixiJS usaria (fundo opaco, sem antialias).
- */
-function lowLatencyContext(): { canvas: HTMLCanvasElement; context: WebGL2RenderingContext } | Record<string, never> {
-  if (desktopBridge()?.frameRateActive() !== 'unlocked') return {};
-  const canvas = document.createElement('canvas');
-  const attributes = { alpha: false, premultipliedAlpha: true, antialias: false, stencil: true, powerPreference: 'high-performance', desynchronized: true } as WebGLContextAttributes;
-  const context = canvas.getContext('webgl2', attributes);
-  return context ? { canvas, context } : {};
 }

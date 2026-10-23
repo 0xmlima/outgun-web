@@ -98,10 +98,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Diagonal tolerance': 'Tolerância de diagonal',
     'monitor refresh rate': 'taxa do monitor',
     'automatic (240)': 'automático (240)',
-    'Vertical sync (VSync)': 'Sincronia vertical (VSync)',
-    'Takes effect when you reopen the game.': 'Vale quando você reabrir o jogo.',
-    'Off: more frames and less screen delay, but more heat and possible tearing.': 'Desligada: mais quadros e menos atraso na tela, mas mais calor e a imagem pode rasgar.',
-    'Turn off vertical sync to go above the monitor refresh rate.': 'Desligue a sincronia vertical para passar da taxa do monitor.',
+    'Reopen the game to unlock the FPS.': 'Reabra o jogo para liberar o FPS.',
     'Browsers draw at most once per monitor refresh. The desktop client (Steam) can go above it.': 'O navegador desenha no máximo uma vez por atualização do monitor. O cliente desktop (Steam) passa disso.',
     'Keys pressed or released this close together count as together: the gun does not turn on the way. Movement never waits.': 'Teclas apertadas ou soltas com essa diferença contam como juntas: a arma não vira no meio do caminho. O movimento nunca espera.',
     // beta fechado (OG-106)

@@ -2,9 +2,7 @@
 // Cliente para Windows (OG-324, D-58): uma janela que carrega o site do jogo. Nada do jogo vem no
 // instalador, então a versão é sempre a do site. Segurança pelo checklist do Electron: sem Node na
 // página, sandbox, navegação só no domínio do jogo e links externos no navegador do sistema.
-import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
 
@@ -13,41 +11,19 @@ const GAME_URL = new URL(process.env.OUTGUN_URL ?? 'https://outgunweb.com.br/');
 // a trilha começa sem esperar o primeiro clique ou tecla (no navegador, a política de autoplay pede)
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-// VSync (OG-373, D-73): o Chromium prende o requestAnimationFrame à taxa do monitor; desligado (o
-// padrão: menos atraso na tela), o jogo passa dela e o limite de FPS do jogo vale de verdade (no
-// automático, 240). Os switches só valem no início do processo: a opção fica gravada em userData e
-// vale na próxima abertura.
-const settingsFile = join(app.getPath('userData'), 'outgun-desktop.json');
-/** @returns {{ frameRate: 'vsync' | 'unlocked' }} */
-function readSettings() {
-  try {
-    const saved = JSON.parse(readFileSync(settingsFile, 'utf8'));
-    return { frameRate: saved.frameRate === 'vsync' ? 'vsync' : 'unlocked' };
-  } catch {
-    return { frameRate: 'unlocked' };
-  }
-}
-const settings = readSettings();
-const activeFrameRate = settings.frameRate;
-if (activeFrameRate === 'unlocked') {
-  app.commandLine.appendSwitch('disable-frame-rate-limit');
-  app.commandLine.appendSwitch('disable-gpu-vsync');
-}
+// FPS livre (OG-373, OG-400): o Chromium prende o requestAnimationFrame à taxa do monitor; sem VSync
+// e sem o limite de quadros, quem limita é o jogo (no mínimo 240). Sempre ligado, sem opção: um
+// VSync gravado pelos clientes antigos (`outgun-desktop.json`) não vale mais. As pontes de VSync
+// ficam para o site novo falar com o mesmo preload: o modo é sempre 'unlocked'.
+app.commandLine.appendSwitch('disable-frame-rate-limit');
+app.commandLine.appendSwitch('disable-gpu-vsync');
 ipcMain.on('outgun:frame-rate', (event) => {
-  event.returnValue = settings.frameRate;
+  event.returnValue = 'unlocked';
 });
 ipcMain.on('outgun:frame-rate-active', (event) => {
-  event.returnValue = activeFrameRate;
+  event.returnValue = 'unlocked';
 });
-ipcMain.on('outgun:set-frame-rate', (event, mode) => {
-  if (!sameOrigin(event.senderFrame?.url ?? '')) return;
-  settings.frameRate = mode === 'unlocked' ? 'unlocked' : 'vsync';
-  try {
-    writeFileSync(settingsFile, JSON.stringify(settings));
-  } catch {
-    // sem disco gravável a opção vale só até fechar
-  }
-});
+ipcMain.on('outgun:set-frame-rate', () => undefined);
 
 const sameOrigin = (url) => {
   try {
@@ -120,23 +96,31 @@ function createWindow() {
 
 // Conquistas da Steam (OG-396, D-77): o marco da conta é a fonte de verdade e o app só desbloqueia na
 // Steam o que a conta já tem (o site manda os ids). Só quando a Steam abriu o jogo (ela põe o
-// SteamAppId no ambiente); fora dela, ou se o SDK falhar, nada muda.
+// SteamAppId no ambiente); fora dela, ou se o SDK falhar, nada muda. O SDK só liga na primeira
+// sincronização, com a janela e a GPU já de pé (OG-400: nada da Steam antes de o jogo desenhar).
 const STEAM_APP_ID = 663760;
 const MILESTONE_ID = /^[a-z0-9_]{1,64}$/;
-/** @type {typeof import('steamworks.js/client.d') | null} */
-let steam = null;
-if (Number(process.env.SteamAppId ?? process.env.SteamGameId) === STEAM_APP_ID) {
+const launchedBySteam = Number(process.env.SteamAppId ?? process.env.SteamGameId) === STEAM_APP_ID;
+/** @type {typeof import('steamworks.js/client.d') | null | undefined} undefined = ainda não ligado */
+let steam;
+function steamClient() {
+  if (steam !== undefined) return steam;
+  steam = null;
+  if (!launchedBySteam) return steam;
   try {
     steam = createRequire(import.meta.url)('steamworks.js').init(STEAM_APP_ID);
   } catch (error) {
     console.error('Steam indisponível:', error);
   }
+  return steam;
 }
 ipcMain.on('outgun:steam-available', (event) => {
-  event.returnValue = steam !== null && sameOrigin(event.senderFrame?.url ?? '');
+  event.returnValue = launchedBySteam && sameOrigin(event.senderFrame?.url ?? '');
 });
 ipcMain.on('outgun:steam-sync', (event, ids) => {
-  if (!steam || !sameOrigin(event.senderFrame?.url ?? '') || !Array.isArray(ids)) return;
+  if (!launchedBySteam || !sameOrigin(event.senderFrame?.url ?? '') || !Array.isArray(ids)) return;
+  const steam = steamClient();
+  if (!steam) return;
   let changed = false;
   for (const id of ids.slice(0, 200)) {
     if (typeof id !== 'string' || !MILESTONE_ID.test(id)) continue;

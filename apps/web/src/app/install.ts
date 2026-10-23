@@ -49,6 +49,8 @@ export function syncSteamAchievements(ids: readonly string[]): void {
 
 /** Limite de FPS "sem limite" de verdade (cliente desktop sem VSync, OG-373); 0 é o automático. */
 export const FPS_UNLIMITED = 10_000;
+/** Piso do limite de FPS onde o jogo pode passar do monitor (OG-400: "liberar geral"). */
+export const FPS_MIN = 240;
 
 export function desktopBridge(): DesktopBridge | undefined {
   return typeof window === 'undefined' ? undefined : (window as { outgunDesktop?: DesktopBridge }).outgunDesktop;
@@ -78,3 +80,12 @@ export function useInstallPrompt(): (() => Promise<boolean>) | null {
     return (await event.userChoice).outcome === 'accepted';
   };
 }
+
+/** O FPS pode passar da taxa do monitor nesta abertura (cliente desktop sem VSync). */
+export function fpsUnlocked(): boolean {
+  return desktopBridge()?.frameRateActive() === 'unlocked';
+}
+
+// OG-400: os clientes 2.39 e 2.40 guardam a opção de VSync e a aplicam ao abrir; quem a ligou fica
+// preso à taxa do monitor. O site desliga a opção gravada, e o FPS fica livre na próxima abertura.
+if (desktopBridge()?.frameRate() === 'vsync') desktopBridge()?.setFrameRate('unlocked');
