@@ -45,6 +45,10 @@ export interface ApiConfig {
   devRoomWsUrl: string | undefined;
   /** Palavras proibidas em nomes de clã (OG-275) e de jogador (OG-276), já normalizadas; NAME_FILTER=a,b,c. */
   nameFilter: string[];
+  /** Para quem vão os alertas de segurança e operação (OG-313); vazio = só o log. */
+  alertEmail: string | undefined;
+  /** Pasta com `last-backup` (hora do último backup bom), montada do host: o vigia confere o disco e o atraso (OG-313). */
+  backupStatusDir: string | undefined;
   limits: {
     /** Falhas de senha por nome de usuário antes da espera (RN-PLT-06). */
     loginFailuresPerUser: number;
@@ -94,6 +98,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     ticketSigningKeys: env.TICKET_SIGNING_KEYS ?? '',
     devRoomWsUrl: production ? undefined : (env.DEV_ROOM_WS_URL ?? 'ws://localhost:7700/rooms/{id}'),
     nameFilter: parseNameFilter(env.NAME_FILTER),
+    alertEmail: env.ALERT_EMAIL || undefined,
+    backupStatusDir: env.BACKUP_STATUS_DIR || undefined,
     limits: {
       loginFailuresPerUser: 5,
       loginFailuresPerIp: Number(env.LOGIN_FAILURES_PER_IP ?? 10),

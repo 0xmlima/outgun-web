@@ -15,6 +15,7 @@ import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
 import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
+import { securityEvent } from '../security.js';
 
 /** Nome que substitui o do jogador nas partidas de uma conta excluída. */
 export const ANONYMOUS_NAME = '(anon)';
@@ -69,6 +70,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
         }
         const passwordHash = await hashPassword(request.body.newPassword);
         await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, user.id));
+        securityEvent(request.log, 'authn_password_change', { user: user.username, ip: request.ip });
         await sessions.destroyAllFor(user.id, user.sessionId);
         return reply.code(204).send(null);
       },
@@ -117,6 +119,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
           return updated;
         });
         if (!result) return reply.code(409).send({ error: 'username_taken', message: 'username already in use' });
+        securityEvent(request.log, 'user_updated', { user: result.username, ip: request.ip, detail: `username,${user.username}` });
         return { user: toPublic(result) };
       },
     );
@@ -280,6 +283,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
           await leaveClan(tx, user.id); // passa a liderança antes de a conta sumir (D-47)
           await tx.delete(users).where(eq(users.id, user.id));
         });
+        securityEvent(request.log, 'user_deleted', { user: user.username, ip: request.ip });
         sessions.clearCookie(reply);
         return reply.code(204).send(null);
       },

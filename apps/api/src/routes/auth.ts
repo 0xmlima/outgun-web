@@ -15,6 +15,7 @@ import { betaInvites, betaInviteUses, passwordResets, playerProfiles, users } fr
 import { mailLocale, passwordResetMail, welcomeMail } from '../mail/templates.js';
 import { ErrorSchema } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
+import { securityEvent } from '../security.js';
 
 export const RESET_TTL_MS = 30 * 60_000;
 const HOUR = 60 * 60_000;
@@ -59,7 +60,7 @@ export function tooMany(reply: FastifyReply, waitMs: number) {
 
 export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyncTypebox {
   const { db } = deps.database;
-  const { sessions, throttle, rateLimit, mailer } = services;
+  const { sessions, throttle, rateLimit, mailer, security } = services;
 
   return async (app) => {
     app.post(
@@ -152,15 +153,21 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
         const key = usernameKey(request.body.username.trim());
         const keys = throttleKeys(deps, request, key);
         const wait = await throttle.retryAfter(keys);
-        if (wait > 0) return tooMany(reply, wait);
+        if (wait > 0) {
+          securityEvent(request.log, 'authn_login_lock', { user: key, ip: request.ip });
+          return tooMany(reply, wait);
+        }
 
         const [user] = await db.select().from(users).where(eq(users.usernameKey, key));
         const ok = await verifyPassword(user?.passwordHash, request.body.password);
         if (!ok || !user) {
           await throttle.fail(keys);
+          securityEvent(request.log, 'authn_login_fail', { user: key, ip: request.ip });
+          security.loginFailed();
           return fail(reply, 401, 'invalid_credentials', 'invalid username or password');
         }
         await throttle.succeed(`user:${key}`);
+        securityEvent(request.log, 'authn_login_success', { user: user.username, ip: request.ip });
         await sessions.create(user.id, request, reply);
         return { user: toPublic(user) };
       },
@@ -210,6 +217,7 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           .where(where);
         // No máximo 3 links por conta por hora (evita usar o formulário para lotar a caixa de alguém).
         if (user && (await rateLimit.allow(`forgot-user:${user.id}`, 3, HOUR))) {
+          securityEvent(request.log, 'authn_password_reset_request', { user: user.username, ip: request.ip });
           const token = newToken();
           await db.delete(passwordResets).where(and(eq(passwordResets.userId, user.id), isNull(passwordResets.usedAt)));
           await db.insert(passwordResets).values({ tokenHash: tokenHash(token), userId: user.id, expiresAt: new Date(Date.now() + RESET_TTL_MS) });
@@ -254,6 +262,7 @@ export function authRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
           return updated;
         });
         if (!user) return fail(reply, 400, 'invalid_token', 'invalid or expired link');
+        securityEvent(request.log, 'authn_password_change', { user: user.username, ip: request.ip, detail: 'reset' });
         await sessions.destroyAllFor(user.id);
         await throttle.succeed(`user:${user.usernameKey}`);
         await sessions.create(user.id, request, reply);

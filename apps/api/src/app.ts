@@ -30,6 +30,7 @@ import { rankingRoutes } from './routes/ranking.js';
 import { roomRoutes } from './routes/rooms.js';
 import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
 import { DURATION_BUCKETS, ErrorReporter, loggerOptions, metricsAuthorized, PROMETHEUS_CONTENT_TYPE, Registry, registerProcessMetrics, requestId } from '@outgun/observability';
+import { SecurityWatch } from './security.js';
 
 /** Versão do jogo (package.json, igual em todo o monorepo: tools/dev/version.mjs). */
 export const API_VERSION: string = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
@@ -56,6 +57,8 @@ export interface Services {
   throttle: LoginThrottle;
   rateLimit: RateLimit;
   mailer: Mailer;
+  /** Eventos de segurança e alertas (OG-313). */
+  security: SecurityWatch;
   /** Chaves dos tickets de entrada; a primeira assina (OG-083). */
   ticketKeys: SigningKey[];
 }
@@ -108,6 +111,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** Registro de métricas da API (/metrics). */
     metrics: Registry;
+    /** Eventos de segurança e alertas (OG-313), para o vigia do main.ts. */
+    security: SecurityWatch;
   }
   interface FastifyRequest {
     /** Corpo cru (JSON), usado na verificação HMAC das rotas internas. */
@@ -121,13 +126,16 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const app = createFastify(deps);
 
   const counters = deps.counters ?? (deps.redis ? new RedisCounterStore(deps.redis) : new MemoryCounterStore());
+  const mailer = makeMailer(deps, app.log);
   const services: Services = {
     sessions: new SessionStore(deps.database.db, deps.config.sessionTtlMs, deps.config.cookieSecure),
     throttle: new LoginThrottle(counters),
     rateLimit: new RateLimit(counters),
-    mailer: makeMailer(deps, app.log),
+    mailer,
+    security: new SecurityWatch({ mailer, to: deps.config.alertEmail, log: app.log, domain: new URL(deps.config.webUrl).host }),
     ticketKeys: ticketKeys(deps.config),
   };
+  app.decorate('security', services.security);
 
   observe(app, deps);
   await app.register(cookie);

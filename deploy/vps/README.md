@@ -88,6 +88,13 @@ O game server guarda o corpo em `/data/replays/failed/<id>.json` (OG-331); para 
 antes disso, reconstrua do replay com `node tools/dev/rebuild-match.mjs` (OG-330). Envio:
 `DRY_RUN=1 bash deploy/vps/resend-match.sh root@IP report.json` para conferir, depois sem `DRY_RUN`.
 
+## Logs de segurança e alertas (OG-313)
+
+- **Eventos:** a API registra no log, com o campo `security` (vocabulário da OWASP): `authn_login_success`, `authn_login_fail`, `authn_login_lock`, `authn_password_reset_request`, `authn_password_change`, `user_updated` (troca de nome), `user_deleted` e `authz_change` (troca de papel). Vão o nome de usuário e o IP, nunca e-mail nem senha. Ver: `docker compose logs api | grep '"security"'`.
+- **Alertas por e-mail** para `ALERT_EMAIL` (no `.env`; vazio = só o log), no máximo um por tipo a cada 6 h: mais de 50 falhas de login em 10 min, disco acima de 80% e backup atrasado (mais de 26 h sem um bom; o container `backup` grava a hora em `backup-status/last-backup`). O vigia da API confere a cada 15 min. Teste: `docker compose exec api node dist/cli.js alert-test` (um e-mail de cada).
+- **Site fora do ar** não dá para ver de dentro da máquina: use uma verificação externa grátis (UptimeRobot ou parecido) em `https://DOMAIN/api/health`, com alerta para o mesmo e-mail.
+- **Retenção:** log de cada container em `json-file`, 5 arquivos de 20 MB (o mais antigo sai); auditoria da moderação (`admin_actions`) no banco, sem prazo; backups do banco: os 14 últimos (`BACKUP_KEEP`).
+
 ## Provedores
 
 - **DigitalOcean** (beta): sem região na América do Sul; Nova York dá ~110–150 ms a partir do

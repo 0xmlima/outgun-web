@@ -15,6 +15,7 @@ import { usernameKey } from './db/keys.js';
 import { playerProfiles, users } from './db/schema.js';
 import { mailLocale, welcomeMail } from './mail/templates.js';
 import { mailerFor } from './app.js';
+import { SecurityWatch } from './security.js';
 import { eq } from 'drizzle-orm';
 import { exportSigningKey, generateSigningKey } from '@outgun/tickets';
 
@@ -89,8 +90,22 @@ try {
       console.error(`conta não encontrada: ${arg1}`);
       process.exitCode = 1;
     } else console.log(`${rows[0]!.username}: ${arg2}`);
+  } else if (command === 'alert-test') {
+    // Um e-mail de teste de cada alerta (OG-313) para ALERT_EMAIL, pelo MAILER do ambiente.
+    if (!config.alertEmail) {
+      console.error('ALERT_EMAIL vazio: nada a enviar');
+      process.exitCode = 1;
+    } else {
+      const watch = new SecurityWatch({ mailer: mailerFor(config), to: config.alertEmail, log: { info: console.log, warn: console.log, error: console.error } as never, domain: new URL(config.webUrl).host });
+      const cases: [string, string][] = [
+        ['TESTE: pico de falhas de login', 'Assim chega o alerta quando há mais de 50 falhas de login em 10 minutos.'],
+        ['TESTE: disco cheio', 'Assim chega o alerta quando o disco do servidor passa de 80%.'],
+        ['TESTE: backup atrasado', 'Assim chega o alerta quando o backup diário do banco não aparece há mais de 26 horas.'],
+      ];
+      for (const [title, body] of cases) console.log(`${title}: ${(await watch.alert('test', title, body)) ? 'enviado' : 'não enviado'}`);
+    }
   } else {
-    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player | welcome NOME');
+    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player | welcome NOME | alert-test');
     process.exitCode = 2;
   }
 } finally {

@@ -773,7 +773,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-310](cards/OG-310-contas-dos-provedores-e-dns.md) | Contas dos provedores com MFA, DNS protegido e segredos arrumados | E14 | 1 | Must | — | — | Backlog |
 | [OG-311](cards/OG-311-borda-hsts-websocket-divulgacao.md) | Borda: HSTS em tudo, origem do WebSocket e canal de divulgação de falhas | E14 | 2 | Should | S29 | — | Concluído |
 | [OG-312](cards/OG-312-containers-endurecidos-e-rede.md) | Containers endurecidos, limites de memória e rede segmentada | E14 | 3 | Should | — | OG-308 | Backlog |
-| [OG-313](cards/OG-313-logs-de-seguranca-e-alertas.md) | Logs de eventos de segurança e alertas ao PO | E14 | 3 | Should | S42 | OG-307 | Pronto |
+| [OG-313](cards/OG-313-logs-de-seguranca-e-alertas.md) | Logs de eventos de segurança e alertas ao PO | E14 | 3 | Should | S42 | OG-307 | Em revisão |
 | [OG-314](cards/OG-314-mfa-para-admins.md) | Segundo fator (TOTP) para contas admin e moderador | E14 | 5 | Should | — | — | Backlog |
 | [OG-315](cards/OG-315-modo-foco-telas-visiveis.md) | Modo foco mostra as telas do F1–F5, o menu e os avisos | E8 | 1 | Must | S29 | — | Concluído |
 | [OG-316](cards/OG-316-lobby-ranked-tema-dos-menus.md) | Lobby do Ranked com o tema dos menus (Campo ou Placar) | E8 | 1 | Should | S29 | — | Concluído |

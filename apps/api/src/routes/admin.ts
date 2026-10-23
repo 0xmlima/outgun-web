@@ -22,6 +22,7 @@ import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js'
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
 import { ErrorSchema, RoomId } from './schemas.js';
+import { securityEvent } from '../security.js';
 
 export type Role = 'moderator' | 'admin';
 
@@ -758,7 +759,9 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         if (target.id === user.id) return reply.code(422).send({ error: 'own_role', message: 'you cannot change your own role' });
         const role = request.body.role;
         await db.update(users).set({ isAdmin: role === 'admin', isModerator: role === 'moderator', updatedAt: new Date() }).where(eq(users.id, target.id));
-        await audit(user, 'role', { targetUserId: target.id, targetName: target.username, reason: role, details: { from: target.isAdmin ? 'admin' : target.isModerator ? 'moderator' : 'player', to: role } });
+        const from = target.isAdmin ? 'admin' : target.isModerator ? 'moderator' : 'player';
+        await audit(user, 'role', { targetUserId: target.id, targetName: target.username, reason: role, details: { from, to: role } });
+        securityEvent(request.log, 'authz_change', { user: target.username, ip: request.ip, detail: `${from},${role},by ${user.username}` });
         return { username: target.username, role };
       },
     );
