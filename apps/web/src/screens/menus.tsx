@@ -9,12 +9,14 @@ import { AccountChip, SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { NotificationBell } from '../app/notifications.js';
 import { useAccount } from '../app/account.js';
 import { MusicButton } from '../app/music/MusicButton.js';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { APP_VERSION, isOutdated, useServerVersion } from '../app/version.js';
 import { Button } from '../ui/Button.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
 import { HomeFooter, HomeInfoBox, StartCard, SteamLink } from './home-start.js';
+import { PhoneHome } from './home-phone.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
 /**
@@ -25,6 +27,7 @@ import { TextLines, TextPage } from '../ui/TextPage.js';
 export function HomeScreen() {
   const { t } = usePrefs();
   const { user } = useAccount();
+  if (isPhone()) return <PhoneHome />;
   return (
     <div className="ui-container home">
       <div className="home-top">

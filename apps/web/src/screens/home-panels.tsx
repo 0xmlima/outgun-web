@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api } from '../app/api.js';
 import { fallbackMs, useLive, useLiveConnected, type LiveTopic } from '../app/live.js';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { Panel } from '../ui/Panel.js';
@@ -67,13 +68,14 @@ export function liveRooms(rooms: readonly RoomSummary[], max = 3): { online: num
   };
 }
 
-export function NowPlaying() {
+/** `readOnly` (celular, D-80): mostra quem está jogando sem levar à sala. */
+export function NowPlaying({ readOnly = false }: { readonly readOnly?: boolean }) {
   const { t } = usePrefs();
   const navigate = useNavigate();
   const data = usePolled<{ rooms: RoomSummary[] }>('/rooms', LIVE_POLL_MS, 'rooms');
-  const { online, busy } = liveRooms(data?.rooms ?? []);
+  const { online, busy } = liveRooms(data?.rooms ?? [], readOnly ? 5 : 3);
   return (
-    <Panel title={t('Now on Outgun')} actions={<Link to="/rooms">{t('Rooms')}</Link>}>
+    <Panel title={t('Now on Outgun')} actions={readOnly ? undefined : <Link to="/rooms">{t('Rooms')}</Link>}>
       {data === undefined ? (
         <p className="ui-muted">{t('Loading...')}</p>
       ) : data === null ? (
@@ -84,13 +86,13 @@ export function NowPlaying() {
             <strong>{online}</strong> {online === 1 ? t('player online') : t('players online')}
           </p>
           {busy.length === 0 ? (
-            <p className="ui-muted">{t('Nobody is playing right now. Start a match with "Play now" and others will join.')}</p>
+            <p className="ui-muted">{readOnly ? t('Nobody is playing right now.') : t('Nobody is playing right now. Start a match with "Play now" and others will join.')}</p>
           ) : (
             <Table
               caption={t('Rooms with players')}
               rows={busy}
               rowKey={(r) => r.id}
-              onRowActivate={(r) => void navigate(`/rooms/${encodeURIComponent(r.id)}`)}
+              {...(readOnly ? {} : { onRowActivate: (r: RoomSummary) => void navigate(`/rooms/${encodeURIComponent(r.id)}`) })}
               empty=""
               columns={[
                 { key: 'name', header: t('Room'), cell: (r) => r.name },
@@ -144,6 +146,8 @@ export function MonthRanking() {
               <p className="home-rank">
                 {me.skill.calibrating ? t('Your rating: $1 (calibrating)', String(me.skill.value)) : t('Your rating: $1', String(me.skill.value))} <RatingInfo />
               </p>
+            ) : me !== undefined && isPhone() ? (
+              <p className="home-rank ui-muted">{t('Play Ranked to get your rating.')}</p>
             ) : me !== undefined ? (
               <div className="home-rank">
                 <span className="ui-muted">{t('Play Ranked to get your rating.')}</span>

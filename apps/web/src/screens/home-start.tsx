@@ -8,6 +8,7 @@ import { Link, NavLink, useNavigate } from 'react-router';
 import { SourceLink, useNavLinks } from '../app/Shell.js';
 import { useAccount } from '../app/account.js';
 import { desktopBridge, isDesktopClient } from '../app/install.js';
+import { isPhone } from '../app/phone.js';
 import { usePlayNow } from '../app/play-now.js';
 import { usePrefs } from '../app/prefs.js';
 import { api } from '../app/api.js';
@@ -280,7 +281,7 @@ function StatRow({ icon, label, value, to, muted = false }: { readonly icon: Rea
 }
 
 /** Clã de quem entrou, embaixo do nome ("Clã: nome", leva à página do clã) ou o convite para achar um. */
-function HomeClan({ tag }: { readonly tag: string | null }) {
+export function HomeClan({ tag }: { readonly tag: string | null }) {
   const { t } = usePrefs();
   const [name, setName] = useState<string | null>(null);
   useEffect(() => {
@@ -312,7 +313,7 @@ function PodiumIcon() {
  * Posição de quem entrou no ranking geral do mês (o índice "Geral do mês", OG-358), com o total; sem
  * posição ainda, quantas partidas Ranqueadas faltam para aparecer. Leva à tela do ranking.
  */
-function HomeRank({ username }: { readonly username: string }) {
+export function HomeRank({ username }: { readonly username: string }) {
   const { t } = usePrefs();
   const [rank, setRank] = useState<{ position: number | null; total: number; minimum: number } | null>(null);
   useEffect(() => {
@@ -334,7 +335,7 @@ function HomeRank({ username }: { readonly username: string }) {
 }
 
 /** Marcos de quem entrou ("Marcos 8/72"), como no título do painel do perfil; leva ao painel. */
-function HomeMilestones({ username }: { readonly username: string }) {
+export function HomeMilestones({ username }: { readonly username: string }) {
   const { t } = usePrefs();
   const [count, setCount] = useState<{ won: number; total: number } | null>(null);
   useEffect(() => {
@@ -529,7 +530,7 @@ function HowToPlay() {
 }
 
 /** As 4 últimas partidas de quem entrou: data, mapa, resultado e K/D; cada uma leva à partida. */
-function RecentMatchesSlide({ username }: { readonly username: string }) {
+export function RecentMatchesSlide({ username }: { readonly username: string }) {
   const { t, prefs } = usePrefs();
   const history = useApi<{ matches: HistoryEntry[] }>(`/players/${encodeURIComponent(username)}/matches?limit=4`, false, 'matches');
   if (history.data === undefined && !history.error) return <p className="ui-muted">{t('Loading...')}</p>;
@@ -708,7 +709,7 @@ export function HomeFooter() {
         </ul>
       </div>
       <nav className="home-footer-legal" aria-label={t('Legal')}>
-        <Link to="/download">{t('Play on your computer')}</Link>
+        {!isPhone() && <Link to="/download">{t('Play on your computer')}</Link>}
         <Link to="/about">{t('About')}</Link>
         <Link to="/terms">{t('Terms')}</Link>
         <Link to="/privacy">{t('Privacy')}</Link>

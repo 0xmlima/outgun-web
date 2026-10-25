@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418 |
 | Regras de negócio | RN-UI-08, D-80 |
 | Skills | `outgun-card-workflow` |
@@ -26,12 +26,13 @@ Como jogador no celular, quero uma tela inicial com o que dá para fazer ali, pa
 - Convidado vê ranking, jogadores, clãs e o convite para entrar.
 
 ## Critérios de aceite
-- [ ] Celular abre na tela nova; desktop continua com a tela da S44.
-- [ ] Salas ao vivo só para leitura, sem entrar.
-- [ ] Atalho de moderação só para moderadores e admins.
+- [x] Celular abre na tela nova; desktop continua com a tela da S44.
+- [x] Salas ao vivo só para leitura, sem entrar.
+- [x] Atalho de moderação só para moderadores e admins.
 
 ## Notas técnicas
 - Reaproveitar `home-panels.tsx` e o tópico ao vivo das salas (`app/live.ts`).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `screens/home-phone.tsx` (`PhoneHome`), escolhida no `HomeScreen` com `isPhone()`; no celular o início usa a barra comum (com a gaveta). Reaproveita a ficha da S44 (clã, ranking, marcos), as últimas partidas, `NowPlaying` (novo `readOnly`: sem link para a sala, até 5 salas) e `MonthRanking` (sem o botão de salas).
+- Faixa "para jogar, abra no computador" + selo da Steam; "Jogar no computador" (/download) some dos rodapés no celular.

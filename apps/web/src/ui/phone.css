@@ -156,3 +156,62 @@
 :root[data-phone] .account-number-styles {
   justify-content: center;
 }
+
+/* Tela inicial do celular (OG-419) */
+.phone-home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.phone-home-hero {
+  text-align: center;
+}
+.phone-home-hero .home-logo img {
+  width: 9.75rem;
+  height: auto;
+}
+.phone-home-hero .home-tagline {
+  font-size: var(--text-md);
+}
+.phone-home-play {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  font-size: var(--text-sm);
+}
+.phone-home-guest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.phone-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.phone-shortcut {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.25rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text) !important;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+.phone-shortcut:active {
+  background: var(--surface-2);
+}
+.phone-home .home-footer {
+  margin-top: var(--space-4);
+}

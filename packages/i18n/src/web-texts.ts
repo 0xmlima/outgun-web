@@ -1123,5 +1123,9 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'This part of Outgun is not available on phones yet.': 'Esta parte do Outgun ainda não está disponível para celular.',
     'Back to the start': 'Voltar ao início',
     Menu: 'Menu',
+    'To play, open Outgun on a computer. Here you follow stats, profiles, clans and match reports.': 'Para jogar, abra o Outgun no computador. Aqui você acompanha estatísticas, perfis, clãs e relatórios das partidas.',
+    'Sign in to see your profile, your clan and your matches.': 'Entre para ver seu perfil, seu clã e suas partidas.',
+    'My last matches': 'Minhas últimas partidas',
+    'Nobody is playing right now.': 'Ninguém está jogando agora.',
   },
 };

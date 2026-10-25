@@ -171,7 +171,7 @@ function Footer() {
     <footer className="app-footer">
       <span>Outgun Web</span>
       <nav aria-label={t('Legal')}>
-        <Link to="/download">{t('Play on your computer')}</Link>
+        {!isPhone() && <Link to="/download">{t('Play on your computer')}</Link>}
         <Link to="/about">{t('About')}</Link>
         <Link to="/terms">{t('Terms')}</Link>
         <Link to="/privacy">{t('Privacy')}</Link>
@@ -187,7 +187,8 @@ function Footer() {
  */
 export function Shell() {
   const { prefs } = usePrefs();
-  const home = useLocation().pathname === '/';
+  // a tela inicial do computador monta o próprio topo e rodapé; a do celular usa a barra (gaveta)
+  const home = useLocation().pathname === '/' && !isPhone();
   useGamepadKeys();
   useMusicMode('menu'); // o tema na primeira vez da sessão, depois a rotação das faixas (RN-MUS-01)
   return (
