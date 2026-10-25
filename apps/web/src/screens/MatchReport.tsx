@@ -7,6 +7,7 @@ import { milestoneIconSvg, publicMilestoneIcon, secretMilestoneIcon } from '@out
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../app/api.js';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { Page } from '../ui/Page.js';
@@ -268,13 +269,13 @@ export function MatchScreen() {
         { key: 'kills', header: t('Kills'), cell: (p) => p.kills, align: 'end' },
         { key: 'deaths', header: t('Deaths'), cell: (p) => p.deaths, align: 'end' },
         { key: 'captures', header: t('Captures'), cell: (p) => p.captures, align: 'end' },
-        { key: 'assists', header: t('Assists'), cell: (p) => p.stats.assists ?? 0, align: 'end' },
+        { key: 'assists', header: t('Assists'), cell: (p) => p.stats.assists ?? 0, align: 'end', hideOnPhone: true },
         // marcadores novos à vista (OG-380); '—' nas partidas anteriores ao OG-355
-        { key: 'damage', header: t('Effective damage'), cell: (p) => (p.stats.effectiveDamage === undefined ? '—' : Math.round(p.stats.effectiveDamage)), align: 'end' },
-        { key: 'defenses', header: t('Defenses'), cell: (p) => p.stats.defenses ?? '—', align: 'end' },
-        { key: 'zones', header: t('Kills by zone'), cell: zones, align: 'end' },
-        { key: 'accuracy', header: t('Accuracy'), cell: (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`, align: 'end' },
-        { key: 'returns', header: t('Flags returned'), cell: (p) => p.stats.flagsReturned ?? 0, align: 'end' },
+        { key: 'damage', header: t('Effective damage'), cell: (p) => (p.stats.effectiveDamage === undefined ? '—' : Math.round(p.stats.effectiveDamage)), align: 'end', hideOnPhone: true },
+        { key: 'defenses', header: t('Defenses'), cell: (p) => p.stats.defenses ?? '—', align: 'end', hideOnPhone: true },
+        { key: 'zones', header: t('Kills by zone'), cell: zones, align: 'end', hideOnPhone: true },
+        { key: 'accuracy', header: t('Accuracy'), cell: (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`, align: 'end', hideOnPhone: true },
+        { key: 'returns', header: t('Flags returned'), cell: (p) => p.stats.flagsReturned ?? 0, align: 'end', hideOnPhone: true },
         ...(skill.size > 0
           ? [{ key: 'rating', header: t('Rating'), cell: (p: PlayerLine) => { const c = p.username ? skill.get(p.username) : undefined; return c ? `${signedDelta(c.after - c.before)} (${c.after})` : '—'; }, align: 'end' as const }]
           : []),
@@ -316,7 +317,7 @@ export function MatchScreen() {
         )}
       </section>
       <div className="ui-row report-actions">
-        {m.replayUrl && (
+        {m.replayUrl && !isPhone() && (
           <Button variant="primary" onClick={() => void navigate(`/replay?src=${encodeURIComponent(m.replayUrl!)}`)}>
             {t('Watch replay')}
           </Button>

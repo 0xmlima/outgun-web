@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418 |
 | Regras de negócio | RN-SOC-01, RN-UI-08 |
 | Skills | `outgun-card-workflow` |
@@ -25,11 +25,13 @@ Como jogador no celular, quero abrir o relatório completo da partida, para reve
 - Link "Ver replay" vira o aviso do jogo (OG-417); botão "Baixar PDF" (OG-425) no topo.
 
 ## Critérios de aceite
-- [ ] Relatório de partida Casual, Ranked e série em 360 px com as mesmas informações do desktop.
-- [ ] Desktop sem mudança.
+- [x] Relatório de partida Casual, Ranked e série em 360 px com as mesmas informações do desktop.
+- [x] Desktop sem mudança.
 
 ## Notas técnicas
 - Só layout e CSS.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Relatório já em uma coluna abaixo de ~40 rem (`report-grid`); no celular: placar centralizado no topo, destaques em 2 colunas, linha do tempo mais estreita, "Ver replay" some.
+- Tabelas por time ficam com jogador, frags, abates, mortes, capturas e rating; o resto (`hideOnPhone`) segue em "Estatísticas detalhadas", cujas tabelas e a matriz de abates rolam dentro do painel com a 1ª coluna fixa (no lugar de "colunas extras ao tocar").
+- Série e "última partida da sala" usam as mesmas peças. Botão "Baixar PDF": OG-425/426.
