@@ -57,7 +57,11 @@ try {
   if (login !== 200) throw new Error(`login falhou: ${login}`);
   // uma partida, uma série e um clã de verdade do banco local, se houver
   const ids = await page.evaluate(async () => {
-    const get = (p) => fetch(`/api${p}`, { credentials: 'include' }).then((r) => (r.ok ? r.json() : null), () => null);
+    const get = (p) =>
+      fetch(`/api${p}`, { credentials: 'include' }).then(
+        (r) => (r.ok ? r.json() : null),
+        () => null,
+      );
     const history = await get('/players/Admin/matches?limit=20');
     const matches = history?.matches ?? [];
     const clans = await get('/clans');
@@ -83,7 +87,9 @@ try {
     for (const path of portal) {
       const page = await open(width);
       // telas com polling/ao vivo nunca ficam ociosas na rede: carrega e espera os dados chegarem
-      await page.goto(`${BASE}${path}`, { waitUntil: 'load', timeout: 15000 }).catch(() => console.log(`(sem "load" em ${path})`));
+      await page
+        .goto(`${BASE}${path}`, { waitUntil: 'load', timeout: 15000 })
+        .catch(() => console.log(`(sem "load" em ${path})`));
       await wait(1500);
       const r = await page.evaluate(() => {
         const main = document.querySelector('.app-main');
@@ -97,7 +103,9 @@ try {
           notice: !!document.querySelector('.phone-notice'),
           page: document.documentElement.scrollWidth - innerWidth,
           main: main ? main.scrollWidth - main.clientWidth : 0,
-          wide: wide.slice(0, 3).map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join('.')}`),
+          wide: wide
+            .slice(0, 3)
+            .map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].join('.')}`),
         };
       });
       const name = `${width}${path.replace(/[^a-z0-9]+/gi, '-')}`;
@@ -105,7 +113,9 @@ try {
       if (process.env.SHOTS) await page.screenshot({ path: `${OUT}/${name}.png` });
       const bad = !r.phone || r.notice || r.page > 1 || r.main > 1 || r.wide.length > 0;
       if (bad) failures.push(`${width}px ${path}: ${JSON.stringify(r)}`);
-      console.log(`${bad ? 'FALHA' : 'ok   '} ${width}px ${path}${r.wide.length ? ` ${r.wide.join(' ')}` : ''}`);
+      console.log(
+        `${bad ? 'FALHA' : 'ok   '} ${width}px ${path}${r.wide.length ? ` ${r.wide.join(' ')}` : ''}`,
+      );
       await page.close();
     }
     for (const path of ['/play', '/rooms', '/replays', '/options']) {
