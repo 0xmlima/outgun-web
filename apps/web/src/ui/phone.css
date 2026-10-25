@@ -249,3 +249,16 @@
 :root[data-phone] .rating-chart .tick {
   font-size: 10px;
 }
+
+/* Clã (OG-422): ações do líder em coluna dentro da linha; cores do clã quebram a linha */
+:root[data-phone] .ui-table td .ui-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+:root[data-phone] .clan-colors-preview {
+  flex-wrap: wrap;
+}
+:root[data-phone] .clan-description {
+  overflow-wrap: anywhere;
+}

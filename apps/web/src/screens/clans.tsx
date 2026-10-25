@@ -329,7 +329,7 @@ export function ClansScreen() {
             columns={[
               { key: 'clan', header: t('Clan'), cell: (r) => <Link to={clanPath(r.tag)}>({r.tag}) {r.name}</Link> },
               { key: 'members', header: t('Members'), cell: (r) => r.members, align: 'end' },
-              { key: 'since', header: t('Founded'), cell: (r) => new Date(r.createdAt).toLocaleDateString(), align: 'end' },
+              { key: 'since', header: t('Founded'), cell: (r) => new Date(r.createdAt).toLocaleDateString(), align: 'end', hideOnPhone: true },
             ]}
           />
         ) : (
@@ -461,7 +461,7 @@ export function ClanScreen() {
           columns={[
             { key: 'name', header: t('Player'), cell: (m) => <PlayerLink name={m.username} username={m.username} /> },
             { key: 'role', header: t('Role'), cell: (m) => (m.role === 'member' ? roleName(m.role) : <Badge tone={m.role === 'leader' ? 'accent' : 'neutral'}>{roleName(m.role)}</Badge>) },
-            { key: 'since', header: t('Since'), cell: (m) => new Date(m.joinedAt).toLocaleDateString(), align: 'end' },
+            { key: 'since', header: t('Since'), cell: (m) => new Date(m.joinedAt).toLocaleDateString(), align: 'end', hideOnPhone: true },
             ...(staff
               ? [
                   {

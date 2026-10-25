@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418 |
 | Regras de negócio | RN-UI-08 |
 | Skills | `outgun-card-workflow` |
@@ -25,11 +25,12 @@ Como membro de clã no celular, quero ver o perfil e as estatísticas do clã, p
 - Gestão do clã pelo líder (convidar, aceitar, expulsar, cores) funcionando no toque; criar clã também.
 
 ## Critérios de aceite
-- [ ] Lista, ranking e perfil do clã em 360 px com as mesmas informações do desktop.
-- [ ] Ações do líder funcionam no celular.
+- [x] Lista, ranking e perfil do clã em 360 px com as mesmas informações do desktop.
+- [x] Ações do líder funcionam no celular.
 
 ## Notas técnicas
 - Só layout e CSS.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Lista, perfil, estatísticas, convites (`/clans/inbox`) e criação do clã já eram formulários e tabelas do design system: no celular rolam dentro do painel (OG-418). Colunas secundárias com `hideOnPhone`: "Fundado", "Desde", "Tempo de jogo" e, no ranking de clãs (aba de `Players.tsx`), "Partidas" e "Saldo de capturas".
+- Ações do líder (promover, passar a liderança, remover) empilhadas dentro da linha da tabela no celular.

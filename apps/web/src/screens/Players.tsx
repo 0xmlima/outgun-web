@@ -249,9 +249,9 @@ function ClanBoard() {
               { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
               { key: 'clan', header: t('Clan'), cell: (e) => <Link to={`/clans/${encodeURIComponent(e.tag)}`}>{`(${e.tag}) ${e.name}`}</Link> },
               { key: 'points', header: t('Points'), cell: (e) => e.points, align: 'end' },
-              { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
+              { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end', hideOnPhone: true },
               { key: 'record', header: `${t('Wins')}/${t('Draws')}/${t('Losses')}`, cell: (e) => `${e.wins}/${e.draws}/${e.losses}`, align: 'end' },
-              { key: 'diff', header: t('Capture difference'), cell: (e) => (e.captureDiff > 0 ? `+${e.captureDiff}` : e.captureDiff), align: 'end' },
+              { key: 'diff', header: t('Capture difference'), cell: (e) => (e.captureDiff > 0 ? `+${e.captureDiff}` : e.captureDiff), align: 'end', hideOnPhone: true },
             ]}
           />
         </Panel>

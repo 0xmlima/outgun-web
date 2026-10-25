@@ -91,7 +91,7 @@ export function ClanStatsPanels({ base }: { readonly base: string }) {
                 { key: 'matches', header: t('Matches'), cell: (m) => m.matches, align: 'end' },
                 { key: 'kills', header: t('Kills'), cell: (m) => m.kills, align: 'end' },
                 { key: 'captures', header: t('Captures'), cell: (m) => m.captures, align: 'end' },
-                { key: 'time', header: t('Playing time'), cell: (m) => duration(m.playSeconds), align: 'end' },
+                { key: 'time', header: t('Playing time'), cell: (m) => duration(m.playSeconds), align: 'end', hideOnPhone: true },
               ]}
             />
             <p className="ui-muted">{t('$1 matches as a clan · $2 kills · $3 captures', String(s.totals.matches), String(s.totals.kills), String(s.totals.captures))}</p>
