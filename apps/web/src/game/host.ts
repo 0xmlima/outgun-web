@@ -89,6 +89,8 @@ export interface ClientOptions {
   readonly quickMessages: { readonly enabled: boolean; readonly immediate: boolean; readonly messages: readonly string[] };
   /** Opções gráficas avançadas do original (OG-070). */
   readonly graphics?: GraphicsOptions;
+  /** Time escolhido na tela inicial; no Casual, se o servidor puser no outro, pede a troca ao entrar. */
+  readonly preferredTeam?: 0 | 1 | null;
 }
 
 /**
@@ -463,6 +465,12 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             // `client_connected`: favoritas (se não for cor aleatória) e banda do minimapa
             sentClient = { colors: '', minimap: -1 };
             sendClientSettings();
+            // time escolhido na tela inicial: no Casual, entrou no outro? pede a troca (com bots, sai na hora)
+            const preferred = client.preferredTeam;
+            if (m.mode === 'casual' && (preferred === 0 || preferred === 1) && Math.trunc(m.pid / (m.maxPlayers / 2)) !== preferred) {
+              session?.send(message('changeTeam', { on: true }));
+              if (onlineHud) onlineHud.wantChangeTeams = true;
+            }
             if (dropDeadline !== 0) {
               // voltou à mesma vaga
               dropDeadline = 0;

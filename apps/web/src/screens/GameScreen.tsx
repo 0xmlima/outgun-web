@@ -28,6 +28,7 @@ import { OptionsBody, SaveStatusLine, type OptionsTab } from './options.js';
 function clientOptions(p: Prefs): ClientOptions {
   return {
     favoriteColors: p.randomColor ? null : p.favoriteColors,
+    preferredTeam: p.preferredTeam,
     minimapBandwidth: p.minimapBandwidth,
     showFlagMessages: p.showFlagMessages,
     showKillMessages: p.showKillMessages,

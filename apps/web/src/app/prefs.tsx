@@ -31,6 +31,8 @@ export interface Prefs {
   readonly favoriteColors: readonly number[];
   /** `Use random color`: não envia as favoritas. */
   readonly randomColor: boolean;
+  /** Time escolhido na tela inicial (0 vermelho, 1 azul); null = sem preferência. No Casual, pede a troca ao entrar. */
+  readonly preferredTeam: 0 | 1 | null;
   /** Tema gráfico (`''` = sem tema: cores de fábrica, como o `config/client.cfg` distribuído). */
   readonly graphicsTheme: string;
   /** `Colour theme` e `Prefer main theme colours`. */
@@ -152,6 +154,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
     playerName: '',
     favoriteColors: completeColors([]),
     randomColor: false,
+    preferredTeam: null,
     graphicsTheme: '',
     colourTheme: '',
     preferThemeColours: true,
@@ -229,6 +232,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     playerName: str(saved.playerName, fallback.playerName, 15),
     favoriteColors: saved.favoriteColors === undefined ? fallback.favoriteColors : completeColors(saved.favoriteColors),
     randomColor: bool(saved.randomColor, fallback.randomColor),
+    preferredTeam: saved.preferredTeam === 0 || saved.preferredTeam === 1 ? saved.preferredTeam : fallback.preferredTeam,
     graphicsTheme: str(saved.graphicsTheme, fallback.graphicsTheme),
     colourTheme: fallback.colourTheme,
     preferThemeColours: fallback.preferThemeColours,
