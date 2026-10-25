@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418 |
 | Regras de negócio | RN-UI-08 |
 | Skills | `outgun-card-workflow` |
@@ -24,11 +24,12 @@ Como jogador ou moderador no celular, quero entrar na minha conta, para ver meus
 - Convites e pedidos do clã (`/clans/inbox`): aceitar e recusar.
 
 ## Critérios de aceite
-- [ ] Login, cadastro e recuperação de senha funcionam em 360 px.
-- [ ] Aceitar/recusar convite de clã no celular.
+- [x] Login, cadastro e recuperação de senha funcionam em 360 px.
+- [x] Aceitar/recusar convite de clã no celular.
 
 ## Notas técnicas
 - Só layout: as rotas e a API não mudam.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- As telas de conta já eram formulários estreitos com `autocomplete` certo; no celular: "Jogar como convidado" some, a viewport encolhe com o teclado (`interactive-widget=resizes-content`) e `scroll-padding` deixa o campo e o botão à vista.
+- Convites e pedidos do clã (`/clans/inbox`) entram no layout do OG-422.

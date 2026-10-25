@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
 import { useAccount, type AccountUser } from '../app/account.js';
+import { isPhone } from '../app/phone.js';
 import { TERMS_VERSION } from '@outgun/content';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
@@ -168,9 +169,11 @@ export function LoginScreen() {
           }}
         />
       </Panel>
-      <Button variant="ghost" onClick={() => void navigate('/play')}>
-        {t('Play as guest')}
-      </Button>
+      {!isPhone() && (
+        <Button variant="ghost" onClick={() => void navigate('/play')}>
+          {t('Play as guest')}
+        </Button>
+      )}
     </Page>
   );
 }

@@ -145,3 +145,14 @@
 :root[data-phone] .ui-dialog-actions .ui-button {
   flex: 1 1 auto;
 }
+
+/* Formulários (OG-420): o campo focado e o botão logo abaixo dele não ficam atrás do teclado virtual */
+:root[data-phone] .app-main {
+  scroll-padding-block: var(--space-6) 8rem;
+}
+:root[data-phone] .ui-pagebody.narrow {
+  max-width: none;
+}
+:root[data-phone] .account-number-styles {
+  justify-content: center;
+}
