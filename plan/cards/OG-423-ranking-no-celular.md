@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418 |
 | Regras de negócio | RN-LDB-01, RN-LDB-05, RN-LDB-06, RN-UI-08 |
 | Skills | `outgun-card-workflow` |
@@ -26,11 +26,13 @@ Como jogador no celular, quero ver o ranking do mês e o hall da fama, para sabe
 - Minha posição destacada e um atalho "ir para mim".
 
 ## Critérios de aceite
-- [ ] Leaderboard, hall da fama e jogadores em 360 px, sem rolagem horizontal da página.
-- [ ] Desktop sem mudança.
+- [x] Leaderboard, hall da fama e jogadores em 360 px, sem rolagem horizontal da página.
+- [x] Desktop sem mudança.
 
 ## Notas técnicas
 - Só layout e CSS.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Abas de formato e de jogadores/clãs já rolam de lado (`ui-tablist`); filtros de período e stat um embaixo do outro; o resumo por stat em uma coluna.
+- Lista geral do mês: no celular, ficam posição, jogador e índice; a posição em cada stat e as partidas somem (`hideOnPhone`) e tocar na linha leva ao perfil (no lugar do "detalhe ao tocar"). Jogadores: "Tempo de jogo" e "Ativos na semana" somem; a busca não abre o teclado sozinha.
+- "Minha posição" segue na linha "Você: Nº de M" acima de cada lista; não fiz o atalho "ir para mim" (a lista mostra no máximo 100).

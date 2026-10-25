@@ -266,8 +266,8 @@ export function OverallDetailView({ scope, me }: { scope: URLSearchParams; me: s
           { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
           { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} /> },
           { key: 'value', header: t('Index'), cell: (e) => statValue(OVERALL, e.value, prefs.locale), align: 'end' },
-          ...stats.map((s) => ({ key: s, header: t(STAT_LABELS[s] ?? s), cell: (e: OverallEntry) => (e.positions[s] ? `${e.positions[s]}º` : '—'), align: 'end' as const })),
-          { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
+          ...stats.map((s) => ({ key: s, header: t(STAT_LABELS[s] ?? s), cell: (e: OverallEntry) => (e.positions[s] ? `${e.positions[s]}º` : '—'), align: 'end' as const, hideOnPhone: true })),
+          { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end', hideOnPhone: true },
         ]}
       />
       {b.total > b.entries.length && limit < 100 && (

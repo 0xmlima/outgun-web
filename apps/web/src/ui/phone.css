@@ -262,3 +262,12 @@
 :root[data-phone] .clan-description {
   overflow-wrap: anywhere;
 }
+
+/* Ranking (OG-423): filtros um embaixo do outro */
+:root[data-phone] .leaderboard-filters > * {
+  flex: 1 1 100%;
+}
+:root[data-phone] .leaderboard-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}

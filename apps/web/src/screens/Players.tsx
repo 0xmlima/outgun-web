@@ -5,6 +5,7 @@
 import { chatName } from '@outgun/protocol';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Button } from '../ui/Button.js';
 import { ChoiceField, TextField } from '../ui/Field.js';
@@ -48,7 +49,7 @@ export function PlayersScreen() {
   return (
     <Page title={t('Players')} onBack={() => void navigate(-1)}>
       <Panel>
-        <TextField label={t('Search by name or clan')} value={query} onChange={setQuery} maxLength={32} autoFocus />
+        <TextField label={t('Search by name or clan')} value={query} onChange={setQuery} maxLength={32} autoFocus={!isPhone()} />
         {term && <SearchResults term={term} onOpen={open} />}
       </Panel>
       <div className="report-grid">
@@ -64,7 +65,7 @@ export function PlayersScreen() {
                 { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
                 { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
                 { key: 'wins', header: t('Wins'), cell: (r) => r.wins, align: 'end' },
-                { key: 'time', header: t('Playing time'), cell: (r) => duration(r.playSeconds), align: 'end' },
+                { key: 'time', header: t('Playing time'), cell: (r) => duration(r.playSeconds), align: 'end', hideOnPhone: true },
               ]}
             />
           ) : (
@@ -82,7 +83,7 @@ export function PlayersScreen() {
               columns={[
                 { key: 'tag', header: t('Clan'), cell: (r) => <Link to={`/clans/${encodeURIComponent(r.tag)}`}>{r.tag}</Link> },
                 { key: 'members', header: t('Members'), cell: (r) => r.members, align: 'end' },
-                { key: 'active', header: t('Active this week'), cell: (r) => r.activeMembers, align: 'end' },
+                { key: 'active', header: t('Active this week'), cell: (r) => r.activeMembers, align: 'end', hideOnPhone: true },
                 { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
               ]}
             />
