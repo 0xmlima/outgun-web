@@ -215,6 +215,12 @@ function steamClient() {
   }
   return steam;
 }
+// "Abrir o Outgun na web" (tela inicial): o site no navegador do sistema, mesmo sendo a origem do app
+ipcMain.on('outgun:open-external', (event, url) => {
+  // só a página do jogo pode pedir, e só endereços http(s) (openOutside)
+  if (sameOrigin(event.senderFrame?.url ?? '') && typeof url === 'string') openOutside(url);
+});
+
 ipcMain.on('outgun:steam-available', (event) => {
   event.returnValue = launchedBySteam && sameOrigin(event.senderFrame?.url ?? '');
 });

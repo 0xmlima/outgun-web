@@ -4,9 +4,10 @@
 // visual antigo (caixas de menu com fonte bitmap) aparecem centralizadas no meio, com a escala
 // inteira de pixels, até migrarem (OG-202, OG-203).
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useAccount } from './account.js';
 import { NotificationBell, NotificationsProvider } from './notifications.js';
+import { MusicButton } from './music/MusicButton.js';
 import { useMusicMode } from './music/MusicProvider.js';
 import { usePlayNow } from './play-now.js';
 import { usePrefs } from './prefs.js';
@@ -18,6 +19,7 @@ import { ToastProvider } from '../ui/Toast.js';
 import './shell.css';
 import '../ui/theme-campo.css';
 import '../ui/theme-placar.css';
+import '../ui/retro.css';
 
 /** Endereço do código-fonte; até existir o repositório público, a página /source explica a GPL. */
 export const SOURCE_URL: string = import.meta.env.VITE_SOURCE_URL ?? '/source';
@@ -81,7 +83,7 @@ export function Root() {
 }
 
 /** Conta na barra: "Entrar" para o convidado; nome e clã para quem entrou. */
-function AccountChip() {
+export function AccountChip() {
   const { prefs, t } = usePrefs();
   const { user } = useAccount();
   if (user === undefined) return null;
@@ -102,11 +104,11 @@ function AccountChip() {
   );
 }
 
-function TopBar() {
+/** Links da navegação principal (OG-360): a barra superior e o rodapé da tela inicial. */
+export function useNavLinks(): readonly (readonly [string, string])[] {
   const { t } = usePrefs();
   const { user } = useAccount();
-  const playNow = usePlayNow();
-  const links = [
+  return [
     ['/rooms', t('Rooms')],
     ['/ranking', t('Ranking')],
     ['/players', t('Players')],
@@ -114,7 +116,14 @@ function TopBar() {
     ['/replays', t('Replays')],
     ['/options', t('Options')],
     ['/help', t('Help')],
-  ] as const;
+  ];
+}
+
+function TopBar() {
+  const { t } = usePrefs();
+  const { user } = useAccount();
+  const playNow = usePlayNow();
+  const links = useNavLinks();
   return (
     <header className="app-topbar">
       <Link to="/" className="app-logo">
@@ -132,6 +141,7 @@ function TopBar() {
         ))}
       </nav>
       <div className="app-user">
+        <MusicButton />
         {user && <NotificationBell />}
         <AccountChip />
       </div>
@@ -155,19 +165,24 @@ function Footer() {
   );
 }
 
-/** Telas fora da partida: barra superior, conteúdo, rodapé e gamepad (OG-200). */
+/**
+ * Telas fora da partida: barra superior, conteúdo, rodapé e gamepad (OG-200). A tela inicial monta
+ * o próprio topo e rodapé (a navegação embaixo), sem a barra e o rodapé comuns.
+ */
 export function Shell() {
   const { prefs } = usePrefs();
+  const home = useLocation().pathname === '/';
   useGamepadKeys();
   useMusicMode('menu'); // o tema na primeira vez da sessão, depois a rotação das faixas (RN-MUS-01)
   return (
     <NotificationsProvider>
     <div className="ui-page app-shell" data-menu-theme={prefs.menuTheme}>
-      <TopBar />
+      <div className="app-backdrop" aria-hidden="true" />
+      {!home && <TopBar />}
       <main className="app-main">
         <Outlet />
       </main>
-      <Footer />
+      {!home && <Footer />}
     </div>
     </NotificationsProvider>
   );

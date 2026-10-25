@@ -2,7 +2,7 @@
 // Campos do design system v2 (OG-200): texto/senha, escolha, alternador e deslizante, sempre com
 // rótulo visível. Num `FieldGroup`, ↑/↓ passam de um campo a outro (gamepad e teclado) e ←/→ mudam o
 // valor; as teclas dos campos estão em keys.ts.
-import { useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { choiceKey, rovingKey, sliderKey, toggleKey } from './keys.js';
 
 /** Marca os controles que o `FieldGroup` percorre com ↑/↓. */
@@ -113,33 +113,86 @@ interface ChoiceFieldProps<T extends string> {
   readonly hint?: ReactNode;
 }
 
-/** Escolha entre poucas opções, trocada com ←/→ (o "< valor >" dos menus do original). */
+/** Acima de tantas opções, clicar no valor abre a lista inteira em vez de passar para a próxima. */
+const CHOICE_LIST_MIN = 5;
+
+/**
+ * Escolha trocada com ←/→ (o "< valor >" dos menus do original). Com muitas opções (ex.: resoluções com
+ * várias taxas de atualização), clicar no valor, Enter ou Espaço abrem a lista inteira: ↑/↓ andam, Enter
+ * escolhe, Esc fecha. Com poucas, clicar passa para a próxima, como as setas.
+ */
 export function ChoiceField<T extends string>({ label, value, options, onChange, disabled, hint }: ChoiceFieldProps<T>) {
   const id = useId();
   const index = Math.max(0, options.findIndex((o) => o.value === value));
+  const long = options.length >= CHOICE_LIST_MIN;
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const valueButton = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
   const step = (delta: number) => {
     const next = options[(index + delta + options.length) % options.length];
     if (next && next.value !== value) onChange(next.value);
   };
+  const close = (refocus: boolean) => {
+    setOpen(false);
+    if (refocus) valueButton.current?.focus();
+  };
+  const pick = (v: T) => {
+    if (v !== value) onChange(v);
+    close(true);
+  };
+  // ao abrir, a opção atual em foco e à vista; clicar fora fecha
+  useEffect(() => {
+    if (!open) return;
+    const current = list.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    current?.focus();
+    current?.scrollIntoView({ block: 'nearest' });
+    const outside = (ev: MouseEvent) => {
+      if (!box.current?.contains(ev.target as Node)) setOpen(false);
+    };
+    addEventListener('mousedown', outside);
+    return () => removeEventListener('mousedown', outside);
+  }, [open]);
+  const onListKey = (ev: KeyboardEvent<HTMLUListElement>) => {
+    const items = [...(list.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])];
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    const move: Record<string, number> = { ArrowDown: 1, ArrowUp: -1, PageDown: 8, PageUp: -8 };
+    if (ev.key in move) items[Math.max(0, Math.min(items.length - 1, at + move[ev.key]!))]?.focus();
+    else if (ev.key === 'Home') items[0]?.focus();
+    else if (ev.key === 'End') items.at(-1)?.focus();
+    else if (ev.key === 'Escape') close(true);
+    else if (ev.key === 'Tab') close(false);
+    else if (ev.key === 'Enter' || ev.key === ' ') {
+      const option = options[at];
+      if (option) pick(option.value);
+    } else return;
+    if (ev.key !== 'Tab') ev.preventDefault();
+    ev.stopPropagation();
+  };
   return (
     <FieldFrame id={id} label={label} hint={hint}>
-      <div className="ui-choice">
+      <div className="ui-choice" ref={box}>
         <button type="button" className="ui-choice-arrow" tabIndex={-1} aria-hidden="true" disabled={disabled} onClick={() => step(-1)}>
           ‹
         </button>
         <button
           id={id}
+          ref={valueButton}
           {...{ [CONTROL]: '' }}
           type="button"
           className="ui-choice-value"
           disabled={disabled}
           aria-describedby={hint ? `${id}-msg` : undefined}
-          onClick={() => step(1)}
+          aria-haspopup={long ? 'listbox' : undefined}
+          aria-expanded={long ? open : undefined}
+          onClick={() => (long ? setOpen((o) => !o) : step(1))}
           onKeyDown={(ev) => {
             const delta = choiceKey(ev.key);
             if (delta === null) return;
             ev.preventDefault();
-            step(delta);
+            // nas listas longas, Enter/Espaço abrem a lista; ←/→ continuam passando uma a uma
+            if (long && (ev.key === 'Enter' || ev.key === ' ')) setOpen(true);
+            else step(delta);
           }}
         >
           {options[index]?.label}
@@ -147,6 +200,15 @@ export function ChoiceField<T extends string>({ label, value, options, onChange,
         <button type="button" className="ui-choice-arrow" tabIndex={-1} aria-hidden="true" disabled={disabled} onClick={() => step(1)}>
           ›
         </button>
+        {open && (
+          <ul ref={list} className="ui-choice-list" role="listbox" aria-labelledby={id} onKeyDown={onListKey}>
+            {options.map((o) => (
+              <li key={o.value} role="option" tabIndex={-1} aria-selected={o.value === value} onClick={() => pick(o.value)}>
+                {o.label}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </FieldFrame>
   );
