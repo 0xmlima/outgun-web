@@ -3,6 +3,7 @@
 // com alvo, raridade e os secretos. O texto de um secreto só vem da API para quem o desbloqueou;
 // bloqueado, ele é "Marco secreto · ???" com o ícone genérico, sem nome nem condição.
 import { MILESTONE_TOTALS, MILESTONES, milestoneIconSvg, milestoneTarget, publicMilestoneIcon, secretMilestoneIcon, type MilestoneGroup, type MilestoneIconSpec } from '@outgun/content';
+import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
 import { Panel } from '../ui/Panel.js';
@@ -76,8 +77,12 @@ export function MilestonesPanel({ p }: { p: Profile }) {
     return target === undefined || value === undefined ? undefined : { value, target, hours: MILESTONE_TOTALS[id]?.counter === 'playSeconds' };
   };
   const hidden = secrets.total - secrets.unlocked.length;
+  // chegou pelo link dos marcos (tela inicial): rola até o painel
+  useEffect(() => {
+    if (location.hash === '#milestones') document.getElementById('milestones')?.scrollIntoView({ block: 'start' });
+  }, []);
   return (
-    <Panel title={`${t('Milestones')} · ${won.size}/${total}`}>
+    <Panel id="milestones" title={`${t('Milestones')} · ${won.size}/${total}`}>
       {GROUPS.map((g) => {
         const list = MILESTONES.filter((m) => m.group === g);
         if (list.length === 0) return null;

@@ -4,106 +4,51 @@
 import { ORIGINAL_CREDITS, WEB_CREDITS } from '@outgun/content';
 import { catalog } from '@outgun/i18n';
 import { useRef } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { SourceLink, SOURCE_URL } from '../app/Shell.js';
+import { useNavigate } from 'react-router';
+import { AccountChip, SourceLink, SOURCE_URL } from '../app/Shell.js';
+import { NotificationBell } from '../app/notifications.js';
 import { useAccount } from '../app/account.js';
-import { MusicDock } from '../app/music/MusicDock.js';
-import { isInstalledApp } from '../app/install.js';
+import { MusicButton } from '../app/music/MusicButton.js';
 import { usePrefs } from '../app/prefs.js';
-import { usePlayNow } from '../app/play-now.js';
 import { APP_VERSION, isOutdated, useServerVersion } from '../app/version.js';
-import { Badge, Button } from '../ui/Button.js';
+import { Button } from '../ui/Button.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
-import { Panel } from '../ui/Panel.js';
-import { Table } from '../ui/Table.js';
-import { type HistoryEntry, useApi } from './stats.js';
-import { MonthRanking, NowPlaying } from './home-panels.js';
+import { HomeFooter, HomeInfoBox, StartCard, SteamLink } from './home-start.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
-/** Até 5 partidas recentes de quem tem conta, na tela inicial. */
-function RecentMatches({ username }: { readonly username: string }) {
-  const { t, prefs } = usePrefs();
-  const navigate = useNavigate();
-  const history = useApi<{ matches: HistoryEntry[] }>(`/players/${encodeURIComponent(username)}/matches?limit=5`, false, 'matches');
-  return (
-    <Panel title={t('Your recent matches')} actions={<Link to={`/players/${encodeURIComponent(username)}`}>{t('Profile')}</Link>}>
-      {history.data === undefined && !history.error ? (
-        <p className="ui-muted">{t('Loading...')}</p>
-      ) : history.error ? (
-        <p className="ui-muted">{t('Could not reach the server.')}</p>
-      ) : (
-        <Table
-          caption={t('Your recent matches')}
-          rows={history.data?.matches ?? []}
-          rowKey={(m) => m.id}
-          onRowActivate={(m) => void navigate(`/matches/${m.id}`)}
-          empty={t('No matches yet. "Play now" starts one.')}
-          columns={[
-            { key: 'date', header: t('Date'), cell: (m) => new Date(m.endedAt).toLocaleDateString(prefs.locale, { day: '2-digit', month: '2-digit' }) },
-            { key: 'map', header: t('Map'), cell: (m) => m.mapTitle },
-            {
-              key: 'result',
-              header: t('Result'),
-              cell: (m) => {
-                const mine = m.player.team === 0 ? m.redScore : m.blueScore;
-                const theirs = m.player.team === 0 ? m.blueScore : m.redScore;
-                return mine > theirs ? <Badge tone="success">{t('Win')}</Badge> : mine < theirs ? <Badge tone="danger">{t('Loss')}</Badge> : <Badge>{t('Draw')}</Badge>;
-              },
-            },
-            { key: 'kd', header: 'K/D', cell: (m) => `${m.player.kills}/${m.player.deaths}`, align: 'end' },
-          ]}
-        />
-      )}
-    </Panel>
-  );
-}
-
 /**
- * Tela inicial (OG-201): "Jogar agora" em destaque (RN-UI-04), o menu e as últimas partidas. Desde o
- * OG-360 o menu só tem o que não está no topo: Ranking, Jogadores, Clãs, Replays, Opções e Ajuda
- * ficam na barra superior, a conta no nome à direita; Créditos e Enviar feedback estão ocultos.
+ * Tela inicial (OG-201): logo no centro e só dois cartões: à esquerda a entrada (cor sorteada, apelido
+ * e "Jogar agora", ou "Entrar"), à direita o "Como jogar" (ou, para quem entrou, partidas e redes). A
+ * navegação fica no rodapé da própria tela.
  */
 export function HomeScreen() {
   const { t } = usePrefs();
   const { user } = useAccount();
-  const navigate = useNavigate();
-  const playNow = usePlayNow();
-  const go = (to: string) => () => void navigate(to);
-  const items: MenuListItem[] = [
-    { icon: 'play', label: t('Play now'), description: t('Casual: power-ups on, guests welcome, does not count for the ranking.'), primary: true, onActivate: playNow },
-    { icon: 'rooms', label: t('Rooms'), description: t('Open rooms, Casual and Ranked'), onActivate: go('/rooms') },
-    {
-      icon: 'lock',
-      label: t('Create private room'),
-      description: t('Play with friends using an invite link'),
-      aside: user ? undefined : <Badge>{t('needs an account')}</Badge>,
-      onActivate: go(user ? '/rooms/new' : '/login'),
-    },
-    ...(user ? [{ icon: 'player' as const, label: t('My profile'), description: t('Statistics, milestones and matches'), onActivate: go(`/players/${encodeURIComponent(user.username)}`) }] : []),
-    ...(isInstalledApp() ? [] : [{ icon: 'download' as const, label: t('Play on your computer'), description: t('Install Outgun or download it for Windows, macOS or Ubuntu'), onActivate: go('/download') }]),
-    ...(user && (user.isAdmin || user.isModerator) ? [{ icon: 'shield' as const, label: t('Moderation'), onActivate: go('/admin') }] : []),
-  ];
   return (
     <div className="ui-container home">
       <div className="home-top">
-        <section className="home-hero">
-          <h1 className="home-title">
-            Out<span className="home-title-accent">gun</span>
-          </h1>
-          <p className="home-tagline">{t('Capture the flag with friends, right in the browser.')}</p>
-          <GameVersion />
-        </section>
-        <MusicDock />
-      </div>
-      <div className="home-grid">
-        <MenuList label={t('Main menu')} items={items} autoFocus className="home-menu" />
-        <div className="home-side">
-          <NowPlaying />
-          <MonthRanking />
-          {user && <RecentMatches username={user.username} />}
+        <div className="app-user">
+          <MusicButton />
+          {user && <NotificationBell />}
+          <AccountChip />
         </div>
       </div>
+      <section className="home-hero">
+        <h1 className="home-logo">
+          <img src="/home-logo.png" alt="Outgun" width={234} height={124} />
+        </h1>
+        <p className="home-tagline">{t('Capture the flag with friends, right in the browser.')}</p>
+        <GameVersion />
+      </section>
+      <div className="home-main">
+        <StartCard />
+        <div className="home-aside">
+          <HomeInfoBox />
+          <SteamLink />
+        </div>
+      </div>
+      <HomeFooter />
     </div>
   );
 }

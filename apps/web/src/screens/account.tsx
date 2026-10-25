@@ -109,17 +109,13 @@ function useSubmit() {
   return { setMessage, busy, run, fieldError, general };
 }
 
-export function LoginScreen() {
+/** Formulário de entrar: a tela /login e a aba "Entrar" da tela inicial. */
+export function SignInForm({ onSignedIn, autoFocus = false }: { readonly onSignedIn: () => void; readonly autoFocus?: boolean }) {
   const { t } = usePrefs();
-  const navigate = useNavigate();
-  const { user, setUser } = useAccount();
+  const { setUser } = useAccount();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { setMessage, busy, run, general } = useSubmit();
-  // Quem chega já logado vai para a conta; quem acabou de entrar aqui segue para o início.
-  const [signedIn, setSignedIn] = useState(false);
-  if (user && !signedIn) return <Navigate to="/account" replace />;
-
   const submit = () =>
     run(async () => {
       if (!username.trim() || !password) {
@@ -127,30 +123,50 @@ export function LoginScreen() {
         return;
       }
       const r = await api<{ user: AccountUser }>('/auth/login', { body: { username, password } });
-      setSignedIn(true);
+      onSignedIn();
       setUser(r.user);
-      void navigate('/');
     });
+  return (
+    <>
+      <Form
+        label={t('Sign in')}
+        onSubmit={() => void submit()}
+        actions={
+          <Button type="submit" variant="primary" block disabled={busy}>
+            {t('Sign in')}
+          </Button>
+        }
+      >
+        <TextField label={t('Username')} value={username} onChange={setUsername} maxLength={15} autoComplete="username" autoFocus={autoFocus} />
+        <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" />
+      </Form>
+      <FormMessageLine message={general} />
+      <div className="ui-links">
+        <Link to="/register">{t('Create account')}</Link>
+        <Link to="/forgot-password">{t('Forgot your password?')}</Link>
+      </div>
+    </>
+  );
+}
+
+export function LoginScreen() {
+  const { t } = usePrefs();
+  const navigate = useNavigate();
+  const { user } = useAccount();
+  // Quem chega já logado vai para a conta; quem acabou de entrar aqui segue para o início.
+  const [signedIn, setSignedIn] = useState(false);
+  if (user && !signedIn) return <Navigate to="/account" replace />;
+
   return (
     <Page title={t('Sign in')} width="narrow" onBack={() => void navigate('/')} backLabel={t('Back')}>
       <Panel>
-        <Form
-          label={t('Sign in')}
-          onSubmit={() => void submit()}
-          actions={
-            <Button type="submit" variant="primary" block disabled={busy}>
-              {t('Sign in')}
-            </Button>
-          }
-        >
-          <TextField label={t('Username')} value={username} onChange={setUsername} maxLength={15} autoComplete="username" autoFocus />
-          <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={128} autoComplete="current-password" />
-        </Form>
-        <FormMessageLine message={general} />
-        <div className="ui-links">
-          <Link to="/register">{t('Create account')}</Link>
-          <Link to="/forgot-password">{t('Forgot your password?')}</Link>
-        </div>
+        <SignInForm
+          autoFocus
+          onSignedIn={() => {
+            setSignedIn(true);
+            void navigate('/');
+          }}
+        />
       </Panel>
       <Button variant="ghost" onClick={() => void navigate('/play')}>
         {t('Play as guest')}

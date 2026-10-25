@@ -6,6 +6,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* o fundo das telas (`.app-backdrop`, z-index −1, retro.css) fica entre este fundo e o conteúdo */
+  isolation: isolate;
   background:
     radial-gradient(60rem 40rem at -10% 110%, rgb(255 90 90 / 13%), transparent 60%),
     radial-gradient(60rem 40rem at 110% -10%, rgb(92 140 255 / 15%), transparent 60%),
@@ -131,6 +133,65 @@
   background: var(--surface-1);
   box-shadow: var(--shadow-2);
 }
+/* trilha (MusicButton): o alto-falante toca/pausa; a setinha ao lado abre o tocador completo */
+.app-music {
+  display: inline-flex;
+  align-items: center;
+}
+/* parada: cheia na cor de destaque e pulsando de leve, para ser achada; tocando: só o contorno */
+.app-music-toggle:not(.playing) {
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  animation: app-music-pulse 2s ease-out infinite;
+}
+.app-music-toggle:not(.playing):hover {
+  background: var(--accent-hover);
+}
+.app-music-toggle.playing {
+  color: var(--text-accent);
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+@keyframes app-music-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.6rem transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-music-toggle:not(.playing) {
+    animation: none;
+  }
+}
+.app-music-more {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 2.25rem;
+  padding: 0;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.app-music-more:hover,
+.app-music-more[aria-expanded='true'] {
+  color: var(--text);
+}
+.app-music-panel {
+  width: min(24rem, 92vw);
+  padding: 0;
+  overflow: hidden;
+}
+.app-music-panel .music-dock {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
 .app-bell-head {
   display: flex;
   justify-content: space-between;
@@ -244,16 +305,44 @@
 /* Tela inicial (OG-201) */
 .home {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--space-6);
-  padding-top: var(--space-7);
-}
-/* título e tocador na mesma grade de `.home-grid`: o tocador tem a largura dos painéis da direita */
-.home-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
-  align-items: end;
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+/* título no centro, como um logo */
+.home-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 68.3125rem);
+  margin-inline: auto;
+  text-align: center;
+}
+/* logo do jogo (o da página da Steam): pixel art, ampliada sem borrar */
+.home-logo {
+  margin: 0;
+  line-height: 0;
+}
+.home-logo img {
+  width: auto;
+  height: 7.5rem;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 35%));
+}
+/* topo da tela inicial: trilha, sino e conta à direita */
+.home-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  width: min(100%, 68.3125rem);
+  margin-inline: auto;
+}
+.home-hero .home-version {
+  justify-content: center;
 }
 
 /* Tocador da trilha na tela inicial */
@@ -461,27 +550,778 @@
   color: var(--text-muted);
   font-size: var(--text-sm);
 }
-.home-grid {
+/* Os dois cartões da tela inicial (1rem = 16 px): entrada 648 × 443
+   (abas de 52 + conteúdo de 391), "Como jogar" 415 × 365, 30 entre eles. No estilo retrô do botão
+   "Jogar agora": cantos em degrau (clip-path), chanfro claro em cima e escuro embaixo, contorno preto
+   e sombra dura. O clip-path corta box-shadow e filter do próprio elemento, então contorno e sombra
+   ficam no pai (drop-shadow segue o recorte dos filhos); os pequenos levam o contorno por dentro. */
+.home {
+  --home-box-bg: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  --home-tab-bg: color-mix(in srgb, var(--surface-0) 92%, transparent);
+  --retro-outline: drop-shadow(3px 0 0 #000) drop-shadow(-3px 0 0 #000) drop-shadow(0 3px 0 #000) drop-shadow(0 -3px 0 #000);
+  --retro-bevel: inset 0 4px 0 rgb(255 255 255 / 9%), inset 0 -5px 0 rgb(0 0 0 / 30%);
+  /* degrau de 6 px nos quatro cantos; só nos de cima (abas); só nos de baixo (conteúdo das abas) */
+  --retro-clip: polygon(0 12px, 6px 12px, 6px 6px, 12px 6px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 6px, calc(100% - 6px) 6px, calc(100% - 6px) 12px, 100% 12px, 100% calc(100% - 12px), calc(100% - 6px) calc(100% - 12px), calc(100% - 6px) calc(100% - 6px), calc(100% - 12px) calc(100% - 6px), calc(100% - 12px) 100%, 12px 100%, 12px calc(100% - 6px), 6px calc(100% - 6px), 6px calc(100% - 12px), 0 calc(100% - 12px));
+  --retro-clip-top: polygon(0 12px, 6px 12px, 6px 6px, 12px 6px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 6px, calc(100% - 6px) 6px, calc(100% - 6px) 12px, 100% 12px, 100% 100%, 0 100%);
+  --retro-clip-bottom: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 6px) calc(100% - 12px), calc(100% - 6px) calc(100% - 6px), calc(100% - 12px) calc(100% - 6px), calc(100% - 12px) 100%, 12px 100%, 12px calc(100% - 6px), 6px calc(100% - 6px), 6px calc(100% - 12px), 0 calc(100% - 12px));
+  /* degrau de 3 px, para os pequenos */
+  --retro-clip-sm: polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px));
+}
+.home-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-  align-items: start;
+  grid-template-columns: minmax(0, 40.5rem);
+  justify-content: center;
+  gap: 1.875rem;
 }
 @media (min-width: 64rem) {
-  .home-grid,
-  .home-top {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  }
-  .home-top .music-dock {
-    width: 100%;
+  .home-main {
+    grid-template-columns: minmax(0, 40.5rem) minmax(0, 25.9375rem);
+    align-items: start;
   }
 }
-.home-side {
+.home-box {
+  background: var(--home-box-bg);
+  box-shadow: var(--retro-bevel);
+  clip-path: var(--retro-clip);
+}
+.home-box-title,
+.home .home-start .ui-tab {
+  font-size: 1.3125rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+/* Cartão de entrada: abas em pasta coladas ao conteúdo; contorno e sombra dura no próprio cartão */
+.home-start {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  min-width: 0;
+  filter: var(--retro-outline) drop-shadow(0 7px 0 rgb(0 0 0 / 45%));
 }
+.home-start.home-box {
+  min-height: 27.6875rem;
+}
+.home .home-start .ui-tabs {
+  gap: 0;
+}
+.home .home-start .ui-tablist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  overflow: visible;
+  border: 0;
+}
+.home .home-start .ui-tab {
+  height: 3.25rem;
+  margin: 0;
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+  background: var(--home-tab-bg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 4px 0 rgb(255 255 255 / 7%);
+  font-size: 1.1875rem;
+  clip-path: var(--retro-clip-top);
+}
+.home .home-start .ui-tab:hover:not([aria-selected='true']) {
+  color: var(--text);
+}
+.home .home-start .ui-tab[aria-selected='true'] {
+  position: relative;
+  z-index: 1;
+  color: var(--text-accent);
+  background: var(--home-box-bg);
+  font-size: 1.3125rem;
+}
+/* a aba de trás fica mais baixa, como uma pasta atrás da outra */
+.home .home-start .ui-tab:not([aria-selected='true']) {
+  height: calc(3.25rem - 6px);
+  margin-top: 6px;
+}
+.home .home-start .ui-tabpanel {
+  min-height: 24.4375rem;
+  background: var(--home-box-bg);
+  box-shadow: inset 0 -5px 0 rgb(0 0 0 / 30%);
+  clip-path: var(--retro-clip-bottom);
+}
+.home-start-play {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  min-height: inherit;
+  padding: 3.625rem var(--space-5) 1.5rem;
+}
+.home-start.home-box .home-start-play {
+  min-height: 27.4375rem;
+}
+.home-start-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2.75rem;
+}
+.home-start-signin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+/* Boneco: círculo de 181 px com borda clara de 5 px, contorno preto e sombra dura; o botão de sortear
+   no canto */
+.home-avatar {
+  position: relative;
+  flex: none;
+}
+.home-avatar-frame {
+  display: grid;
+  place-items: center;
+  width: 11.3125rem;
+  height: 11.3125rem;
+  background: radial-gradient(circle at 50% 35%, var(--surface-3), var(--surface-0));
+  position: relative;
+  border: 5px solid var(--text);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px #000,
+    0 6px 0 3px rgb(0 0 0 / 45%);
+}
+.home-game-player {
+  width: 100%;
+  height: 100%;
+}
+/* número da conta no miolo do boneco (2 raios de largura), acompanhando o strafe */
+.home-game-number {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--player-x) + var(--strafe, 0%));
+  width: calc(30 / 62 * 100%);
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+/* Ficha de quem entrou: boneco à esquerda; à direita, alinhados à esquerda, o nome (tag do clã antes,
+   como na partida) e uma tabelinha com ícone, rótulo e valor por linha, separada por filetes; a linha
+   toda é o link. Tudo centrado na altura do cartão. */
+.home-start-username .app-clan {
+  margin-right: 0;
+}
+.home-start.home-box .home-start-body {
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: var(--space-6);
+}
+.home-start.home-box .home-start-name {
+  flex: 0 1 18rem;
+  align-items: stretch;
+  gap: var(--space-3);
+  max-width: none;
+  text-align: start;
+}
+.home-start.home-box .home-start-username {
+  overflow: hidden;
+  font-size: var(--text-xl);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-stats {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+.home-stats li {
+  border-bottom: 2px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+.home-stat {
+  display: grid;
+  grid-template-columns: 1.25rem auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-1);
+  color: var(--text) !important;
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+.home-stat:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.home-stat-icon {
+  display: grid;
+  place-items: center;
+  color: var(--text-accent);
+}
+.home-stat-label {
+  color: var(--text-muted);
+}
+.home-stat-value {
+  overflow: hidden;
+  font-weight: var(--weight-bold);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-stat-value.muted {
+  color: var(--text-accent);
+  font-weight: var(--weight-medium);
+}
+.home-start.home-box .home-start-play {
+  justify-content: center;
+  gap: var(--space-7);
+  padding-top: var(--space-5);
+}
+.home-start.home-box .home-retro {
+  margin-top: 0;
+}
+/* balão discreto saindo do boneco: a ponta do biquinho em cima da cabeça dele, acompanha o strafe;
+   surge crescendo a partir do boneco e some encolhendo de volta */
+.home-bubble {
+  position: absolute;
+  bottom: calc(100% - var(--player-top) + 0.6rem);
+  left: calc(var(--player-x) + var(--strafe, 0%));
+  z-index: 1;
+  padding: 0.3rem 0.75rem;
+  color: var(--surface-0);
+  background: var(--text);
+  border-radius: 999px;
+  box-shadow: 0 2px 0 0 rgb(0 0 0 / 25%);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transform-origin: 50% calc(100% + 6px);
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+.home-bubble.hidden {
+  opacity: 0;
+  transform: translateX(-50%) scale(0.3);
+}
+.home-bubble::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 6px solid transparent;
+  border-top-color: var(--text);
+  transform: translateX(-50%);
+  content: '';
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-bubble {
+    transition: none;
+  }
+}
+
+/* Botão de sortear (cor e time; quem entrou, só o time): quadrado de pixel com chanfro, contorno preto
+   e sombra dura, que afunda ao apertar */
+.home-avatar-reroll {
+  position: absolute;
+  right: -6px;
+  bottom: 5px;
+  display: inline-flex;
+  filter: var(--retro-outline) drop-shadow(0 4px 0 rgb(0 0 0 / 45%));
+}
+.home-avatar-reroll button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 49px;
+  margin: 0;
+  padding: 0;
+  color: var(--accent);
+  background: var(--text);
+  border: 0;
+  box-shadow:
+    inset 0 3px 0 #fff,
+    inset 0 -4px 0 rgb(0 0 0 / 22%);
+  cursor: pointer;
+  clip-path: var(--retro-clip-sm);
+  transition: transform 80ms;
+}
+.home-avatar-reroll button:hover {
+  filter: brightness(1.06);
+}
+.home-avatar-reroll button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 3px 0 #fff;
+}
+.home-avatar-reroll button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+/* "Jogar agora" estilo fliperama: cantos em degrau de 4 px (clip-path), chanfro claro em cima e escuro
+   embaixo, contorno preto e sombra dura (drop-shadow no invólucro, que segue o recorte); a seta pisca
+   como um "PRESS START". Passando o mouse, sobe e a seta pisca mais rápido; apertando, afunda. */
+.home-retro {
+  --retro-lift: 6px;
+  display: inline-flex;
+  margin-top: auto;
+  filter: drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000) drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000)
+    drop-shadow(0 var(--retro-lift) 0 rgb(0 0 0 / 55%));
+  transition:
+    transform 90ms steps(2),
+    filter 90ms steps(2);
+}
+.home-retro:has(.home-retro-button:hover) {
+  --retro-lift: 9px;
+  transform: translateY(-3px);
+}
+.home-retro:has(.home-retro-button:active) {
+  --retro-lift: 2px;
+  transform: translateY(4px);
+}
+.home-retro-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 15rem;
+  height: 3.75rem;
+  padding: 0 1.5rem;
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border: 0;
+  box-shadow:
+    inset 0 4px 0 rgb(255 255 255 / 40%),
+    inset 0 -5px 0 rgb(0 0 0 / 28%);
+  font: inherit;
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(
+    0 8px,
+    4px 8px,
+    4px 4px,
+    8px 4px,
+    8px 0,
+    calc(100% - 8px) 0,
+    calc(100% - 8px) 4px,
+    calc(100% - 4px) 4px,
+    calc(100% - 4px) 8px,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 4px) calc(100% - 8px),
+    calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 8px) calc(100% - 4px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    8px calc(100% - 4px),
+    4px calc(100% - 4px),
+    4px calc(100% - 8px),
+    0 calc(100% - 8px)
+  );
+}
+.home-retro-button:hover {
+  background: var(--accent-hover);
+}
+.home-retro-button:focus-visible {
+  outline: none;
+  background: var(--accent-hover);
+}
+.home-retro:has(.home-retro-button:focus-visible) {
+  filter: drop-shadow(2px 0 0 var(--focus-ring)) drop-shadow(-2px 0 0 var(--focus-ring)) drop-shadow(0 2px 0 var(--focus-ring))
+    drop-shadow(0 -2px 0 var(--focus-ring)) drop-shadow(0 var(--retro-lift) 0 rgb(0 0 0 / 55%));
+}
+/* seta de pixel (triângulo em degraus), piscando */
+.home-retro-arrow {
+  width: 12px;
+  height: 18px;
+  background: currentColor;
+  clip-path: polygon(0 0, 4px 0, 4px 3px, 8px 3px, 8px 6px, 12px 6px, 12px 12px, 8px 12px, 8px 15px, 4px 15px, 4px 18px, 0 18px);
+  animation: home-retro-blink 1s steps(1) infinite;
+}
+.home-retro-button:hover .home-retro-arrow {
+  animation-duration: 0.4s;
+  transform: translateX(3px);
+}
+@keyframes home-retro-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-retro,
+  .home-retro-arrow {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Apelido: rótulo em caixa alta em cima do campo de 302 × 54 */
+.home-start-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+}
+.home-start-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+.home-start-prompt {
+  max-width: 17rem;
+  font-size: 1.3125rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+.home-start-input {
+  width: 18.875rem;
+  height: 3.375rem;
+  padding: 0 10px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  border: 0;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    inset 0 5px 0 rgb(0 0 0 / 35%);
+  clip-path: var(--retro-clip-sm);
+  font: inherit;
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+.home-start-input::placeholder {
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+.home-start-input:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.home-start-username {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+.home-start-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.home-start-links .ui-button {
+  gap: var(--space-2);
+}
+
+/* Rodapé da tela inicial: a navegação em caixa alta separada por barras e as
+   redes à direita; embaixo, os links legais pequenos */
+.home-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(100%, 68.3125rem);
+  margin: auto auto 0;
+  padding-top: var(--space-4);
+}
+.home-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-5);
+}
+.home-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.home-footer-nav a {
+  padding: 0 var(--space-3);
+  color: var(--text) !important;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.home-footer-nav a + a {
+  border-left: 1px solid color-mix(in srgb, var(--text) 50%, transparent);
+}
+.home-footer-nav a:hover,
+.home-footer-nav a.active {
+  color: var(--text-accent) !important;
+}
+.home-social {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-social a {
+  display: grid;
+  place-items: center;
+  color: var(--text) !important;
+  opacity: 0.9;
+}
+.home-social a[href]:hover {
+  opacity: 1;
+  color: var(--text-accent) !important;
+}
+.home-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-xs);
+}
+.home-footer-legal a {
+  color: color-mix(in srgb, var(--text) 70%, transparent) !important;
+  text-decoration: none;
+}
+.home-footer-legal a:hover {
+  color: var(--text) !important;
+  text-decoration: underline;
+}
+
+/* Cartão de quem entrou: últimas partidas (uma por linha, levam à partida) e banners das redes */
+.home-recent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* cabeçalho e linhas na mesma grade: data, mapa, resultado, K/D */
+.home-recent-head,
+.home-recent a {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) 5.5rem 3.5rem;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text) !important;
+  background: color-mix(in srgb, var(--surface-0) 55%, transparent);
+  text-align: start;
+  text-decoration: none;
+}
+.home-recent-head {
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: start;
+  text-transform: uppercase;
+}
+.home-recent-head span:nth-child(3) {
+  text-align: center;
+}
+.home-recent-head span:last-child {
+  text-align: end;
+}
+.home-recent a .ui-badge {
+  justify-self: center;
+}
+.home-recent a:hover {
+  background: var(--surface-3);
+}
+.home-recent-map {
+  overflow: hidden;
+  font-weight: var(--weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-recent strong {
+  text-align: end;
+}
+.home-social-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.home-social-banner-icon {
+  color: var(--text-accent);
+}
+.home-social-banner .ui-button {
+  text-decoration: none;
+}
+
+/* coluna da direita: "Como jogar" e, embaixo, o link para a Steam */
+.home-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.0625rem;
+  min-width: 0;
+  filter: var(--retro-outline) drop-shadow(0 7px 0 rgb(0 0 0 / 45%));
+}
+.home-aside .home-howto {
+  align-self: stretch;
+}
+.home-steam {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  gap: var(--space-3);
+  height: 3.5rem;
+  padding: 0 var(--space-4);
+  color: var(--text) !important;
+  background: var(--home-box-bg);
+  box-shadow: var(--retro-bevel);
+  clip-path: var(--retro-clip);
+  text-decoration: none;
+  transition: background var(--duration);
+}
+.home-steam:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+.home-steam-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: start;
+}
+.home-steam-text small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+
+/* "Como jogar": título em destaque, ilustração (as teclas), passo e texto, setas e pontos */
+.home-howto {
+  display: flex;
+  flex-direction: column;
+  min-height: 22.8125rem;
+  padding: 1.25rem var(--space-4) 1.5rem;
+  text-align: center;
+}
+.home-howto .home-box-title {
+  color: var(--text-accent);
+  font-size: 1.5625rem;
+}
+.home-howto-step {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+/* ilustração (as teclas) numa área de altura fixa: título, texto e navegação não pulam entre os passos */
+.home-howto-keys {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  height: 8.25rem;
+  color: var(--text-accent);
+}
+.home-howto-keys kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 3.25rem;
+  height: 3.25rem;
+  padding: 0 var(--space-3);
+  color: var(--surface-0);
+  background: var(--text);
+  box-shadow:
+    inset 0 0 0 2px #000,
+    inset 0 3px 0 #fff,
+    inset 0 -6px 0 rgb(0 0 0 / 22%);
+  clip-path: var(--retro-clip-sm);
+  font: inherit;
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+/* setas em T invertido */
+.home-howto-arrows {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: var(--space-2);
+}
+.home-howto-arrows kbd:nth-child(1) {
+  grid-area: 1 / 2;
+}
+.home-howto-arrows kbd:nth-child(2) {
+  grid-area: 2 / 1;
+}
+.home-howto-arrows kbd:nth-child(3) {
+  grid-area: 2 / 2;
+}
+.home-howto-arrows kbd:nth-child(4) {
+  grid-area: 2 / 3;
+}
+.home-howto-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+/* sempre duas linhas de altura, quebrando em linhas parecidas */
+.home-howto-text {
+  max-width: 21rem;
+  min-height: 2.7rem;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.home-howto-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.375rem;
+  margin-top: var(--space-4);
+}
+.home-howto-arrow {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 37px;
+  padding: 0;
+  color: color-mix(in srgb, var(--text) 50%, transparent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+/* triângulo de pixel (em degraus); a seta da esquerda é a mesma, espelhada */
+.home-howto-arrow::before {
+  width: 18px;
+  height: 27px;
+  background: currentColor;
+  clip-path: polygon(0 0, 6px 0, 6px 4px, 12px 4px, 12px 9px, 18px 9px, 18px 18px, 12px 18px, 12px 23px, 6px 23px, 6px 27px, 0 27px);
+  content: '';
+}
+.home-howto-arrow:first-child::before {
+  transform: scaleX(-1);
+}
+.home-howto-arrow:hover {
+  color: var(--text);
+}
+.home-howto-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  background: color-mix(in srgb, var(--text) 50%, transparent);
+  border: 0;
+  cursor: pointer;
+}
+/* passo atual: o ponto ganha um anel em volta */
+.home-howto-dot[aria-current='step'] {
+  background: var(--text);
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
 .home-online {
   margin: 0;
   font-size: var(--text-lg);
@@ -494,16 +1334,6 @@
   gap: var(--space-3);
   margin: 0;
   font-weight: var(--weight-medium);
-}
-.ui-menu.home-menu {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-}
-.home-menu > li {
-  display: flex;
-}
-.home-menu > li.primary {
-  grid-column: 1 / -1;
 }
 @media (max-width: 40rem) {
   .home {
@@ -668,11 +1498,29 @@
 .leaderboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-5);
+}
+/* "Ver todos" no canto de baixo à direita de cada quadro (o título fica com a largura toda): o
+   cabeçalho some da caixa (display: contents) e as ações vão para o fim do painel */
+.leaderboard-grid .ui-panel-header {
+  display: contents;
+}
+.leaderboard-grid .ui-panel-actions {
+  order: 99;
+  align-self: flex-end;
+  margin-top: auto;
+}
+.leaderboard-grid .ui-panel-actions .ui-button {
+  min-height: 0;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-accent);
+  font-size: var(--text-xs);
+  white-space: nowrap;
 }
 .leaderboard-filters {
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-5);
 }
 .leaderboard-kind {
   margin: 0 0 var(--space-2);
@@ -1470,33 +2318,6 @@
 }
 .phone-notice p {
   margin: 0;
-}
-
-/* Itens do menu inicial com ícone (OG-291): o selo à direita (ex.: "exige conta") desce para baixo
-   da descrição, para o rótulo não espremer nas colunas estreitas. */
-.home-menu .ui-menu-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--space-3);
-}
-.home-menu .ui-menu-icon {
-  grid-row: 1;
-  grid-column: 1;
-}
-.home-menu .ui-menu-text {
-  grid-row: 1;
-  grid-column: 2;
-}
-.home-menu .ui-menu-aside {
-  grid-row: 2;
-  grid-column: 2;
-  justify-self: start;
-  margin-top: var(--space-1);
-}
-.home-menu .ui-menu-shortcut {
-  grid-row: 1;
-  grid-column: 3;
 }
 
 /* Jogar no computador (OG-325): o link de download tem cara de botão */

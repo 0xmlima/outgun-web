@@ -8,12 +8,14 @@ interface PanelProps {
   readonly actions?: ReactNode;
   readonly children: ReactNode;
   readonly className?: string;
+  /** Âncora (ex.: /players/Fulano#milestones). */
+  readonly id?: string;
 }
 
-export function Panel({ title, actions, children, className }: PanelProps) {
+export function Panel({ title, actions, children, className, id: anchor }: PanelProps) {
   const id = useId();
   return (
-    <section className={className ? `ui-panel ${className}` : 'ui-panel'} aria-labelledby={title ? id : undefined}>
+    <section id={anchor} className={className ? `ui-panel ${className}` : 'ui-panel'} aria-labelledby={title ? id : undefined}>
       {(title || actions) && (
         <header className="ui-panel-header">
           {title && (
