@@ -611,6 +611,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S41 | v2: marcos — ~50 novos a partir dos stats e eventos (vitórias, tempo, bandeira, defesa, combate, armas, ranked por formato, mapas, dupla), 14 secretos raros (dois do 7x1 e a virada histórica), marcos de humor, perfil no jogo por grupo com progresso e raridade, ícones e conquistas da Steam espelhando os marcos | OG-390, OG-391, OG-398, OG-399, OG-392, OG-395, OG-393, OG-394, OG-396, OG-397; 2.41.1: OG-400, OG-401; 2.41.2: OG-402 | |
 | S42 | v2: salas com cara de jogo real — nomes e prefixo dos bots no painel e bots que falam no chat conforme a partida; filtro de nomes nos jogadores; portal ao vivo; logs de segurança e alertas; estudo do WebTransport | OG-276, OG-403, OG-404, OG-313, OG-284, OG-376 | |
 | S43 | v2: personalização — cores do clã (o lado vira o clã: "CLÃ x AZUL"), números de jogador como na F1 (o 1 para o líder do mês) e 32 cores pessoais com dourado, prateado e bronze para o top 3 | OG-412, OG-411, OG-407, OG-408, OG-409, OG-410, OG-413; 2.43.1: OG-415 | |
+| S44 | v2: melhorias de UX da comunidade (PR #5) — nova tela inicial com escolha de time, menus em estilo retrô, trilha na barra de cima | OG-416 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -877,8 +878,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-413](cards/OG-413-estilos-do-numero.md) | Estilos do número do jogador | E9 | 3 | Should | S43 | OG-410 | Concluído |
 | [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | — | OG-409 | Backlog |
 | [OG-415](cards/OG-415-trava-do-numero-desligada.md) | Trava da troca de número desligada | E9 | 1 | Must | S43 | OG-410 | Concluído |
+| [OG-416](cards/OG-416-ux-da-comunidade.md) | Melhorias de UX da comunidade (PR #5) | E8 | 5 | Should | S44 | OG-200 | Em revisão |
 
-**Total:** 257 cards, 852 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 188 cards, 557 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 258 cards, 857 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 189 cards, 562 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 

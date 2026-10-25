@@ -1,6 +1,6 @@
 {
   "name": "@outgun/bots",
-  "version": "2.43.1",
+  "version": "2.44.0",
   "private": true,
   "description": "IA dos bots do Outgun (port de src/robot.cpp e src/bot_support.cpp): áreas do mapa, navegação, combate e decisões (cards OG-050 a OG-053).",
   "license": "GPL-2.0-or-later",

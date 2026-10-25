@@ -1,6 +1,6 @@
 {
   "name": "outgun-web",
-  "version": "2.43.1",
+  "version": "2.44.0",
   "private": true,
   "description": "Port web do Outgun 1.0.3 (CTF 2D multiplayer)",
   "license": "GPL-2.0-or-later",
