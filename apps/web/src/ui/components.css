@@ -379,6 +379,41 @@ html {
   font-size: var(--text-lg);
   cursor: pointer;
 }
+/* lista inteira das escolhas longas (ex.: resoluções), aberta embaixo do valor */
+.ui-choice {
+  position: relative;
+}
+.ui-choice-list {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  left: 0;
+  z-index: var(--layer-popover, 31);
+  max-height: 18rem;
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2);
+}
+.ui-choice-list li {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+.ui-choice-list li:hover,
+.ui-choice-list li:focus-visible {
+  outline: none;
+  background: var(--surface-3);
+}
+.ui-choice-list li[aria-selected='true'] {
+  color: var(--text-accent);
+  font-weight: var(--weight-bold);
+}
 .ui-choice-arrow:disabled {
   color: var(--text-muted);
   cursor: default;
