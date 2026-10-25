@@ -3,8 +3,9 @@
 // com alvo, raridade e os secretos. O texto de um secreto só vem da API para quem o desbloqueou;
 // bloqueado, ele é "Marco secreto · ???" com o ícone genérico, sem nome nem condição.
 import { MILESTONE_TOTALS, MILESTONES, milestoneIconSvg, milestoneTarget, publicMilestoneIcon, secretMilestoneIcon, type MilestoneGroup, type MilestoneIconSpec } from '@outgun/content';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Panel } from '../ui/Panel.js';
 import { date, type Profile } from './stats.js';
@@ -65,6 +66,25 @@ function Card(props: { spec: MilestoneIconSpec; name: string; description: strin
   );
 }
 
+/** Um grupo de marcos; no celular (OG-421) vira lista recolhível, para o perfil não ficar enorme. */
+function GroupBox({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+  if (isPhone())
+    return (
+      <details className="milestone-group">
+        <summary>
+          <h3>{title}</h3>
+        </summary>
+        {children}
+      </details>
+    );
+  return (
+    <section className="milestone-group">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export function MilestonesPanel({ p }: { p: Profile }) {
   const { t, prefs } = usePrefs();
   const l = prefs.locale === 'pt-BR' ? 'pt-BR' : 'en';
@@ -87,23 +107,17 @@ export function MilestonesPanel({ p }: { p: Profile }) {
         const list = MILESTONES.filter((m) => m.group === g);
         if (list.length === 0) return null;
         return (
-          <section key={g} className="milestone-group">
-            <h3>
-              {t(GROUP_LABELS[g])} · {list.filter((m) => won.has(m.id)).length}/{list.length}
-            </h3>
+          <GroupBox key={g} title={`${t(GROUP_LABELS[g])} · ${list.filter((m) => won.has(m.id)).length}/${list.length}`}>
             <ul className="profile-milestones">
               {list.map((m) => (
                 <Card key={m.id} spec={publicMilestoneIcon(m.id)!} name={m.name[l]} description={m.description[l]} got={won.get(m.id)} progress={progressOf(m.id)} rarity={p.milestoneRarity?.[m.id]} />
               ))}
             </ul>
-          </section>
+          </GroupBox>
         );
       })}
       {secrets.total > 0 && (
-        <section className="milestone-group">
-          <h3>
-            {t(GROUP_LABELS.secret)} · {secrets.unlocked.length}/{secrets.total}
-          </h3>
+        <GroupBox title={`${t(GROUP_LABELS.secret)} · ${secrets.unlocked.length}/${secrets.total}`}>
           {hidden > 0 && <p className="ui-muted">{hidden === 1 ? t('1 secret left to discover') : t('$1 secrets left to discover', String(hidden))}</p>}
           <ul className="profile-milestones">
             {secrets.unlocked.map((s) => (
@@ -121,7 +135,7 @@ export function MilestonesPanel({ p }: { p: Profile }) {
               <Card key={`hidden-${i}`} spec={secretMilestoneIcon(false)} name={t('Secret milestone')} description="???" got={undefined} rarity={undefined} />
             ))}
           </ul>
-        </section>
+        </GroupBox>
       )}
     </Panel>
   );

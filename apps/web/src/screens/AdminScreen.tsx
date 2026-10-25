@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
+import { isPhone, PHONE_ADMIN_TABS } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { TextAreaField, TextField } from '../ui/Field.js';
@@ -126,9 +127,11 @@ export default function AdminScreen() {
   const navigate = useNavigate();
   const { user } = useAccount();
   const [tab, setTab] = useState<Tab>('rooms');
+  const phone = isPhone();
   const isAdmin = user?.isAdmin ?? false;
   const allowed = isAdmin || (user?.isModerator ?? false);
-  const tabs: [Tab, string][] = [
+  const tabs = (
+    [
     ['rooms', t('Live rooms')],
     ['feedback', t('Feedback')],
     ['network', t('Network')],
@@ -141,7 +144,8 @@ export default function AdminScreen() {
     ['rotations', t('Map rotations')],
     ['bots', t('Bots')],
     ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
-  ];
+    ] as [Tab, string][]
+  ).filter(([id]) => !phone || PHONE_ADMIN_TABS.has(id)); // celular (OG-427): só as abas de moderação
   return (
     <Page title={t('Moderation')} width="full" onBack={() => void navigate('/')}>
       {user === undefined ? null : !allowed ? (
@@ -155,6 +159,7 @@ export default function AdminScreen() {
               </button>
             ))}
           </p>
+          {phone && <p className="admin-muted">{t('Maps, presets, rotations, bots, roles, invites and network: only on the computer.')}</p>}
           {tab === 'rooms' && <RoomsTab isAdmin={isAdmin} />}
           {tab === 'feedback' && <FeedbackTab />}
           {tab === 'network' && <NetworkTab />}
@@ -315,6 +320,7 @@ function ReportsTab() {
         <Status text={status.text} error={status.error ?? reports.error} />
       </div>
       <Table
+        phoneCards
         caption={t('Reports')}
         rows={reports.data?.reports ?? []}
         rowKey={(r) => String(r.id)}
@@ -423,6 +429,7 @@ function ClansTab() {
         </form>
       )}
       <Table
+        phoneCards
         caption={t('Clans')}
         rows={list.data?.clans ?? []}
         rowKey={(c) => c.tag}
@@ -503,6 +510,7 @@ function BansTab({ isAdmin }: { isAdmin: boolean }) {
         <Status text={status.text} error={status.error ?? list.error} />
       </div>
       <Table
+        phoneCards
         caption={t('Bans')}
         rows={list.data?.bans ?? []}
         rowKey={(b) => String(b.id)}
@@ -542,6 +550,7 @@ function AuditTab() {
         <Status error={audit.error} />
       </div>
       <Table
+        phoneCards
         caption={t('Audit log')}
         rows={audit.data?.entries ?? []}
         rowKey={(e) => String(e.id)}
@@ -966,6 +975,7 @@ function MapsTab() {
             <Status text={status.text} error={status.error ?? list.error} />
           </div>
           <Table
+            phoneCards
             caption={t('Maps')}
             rows={maps}
             rowKey={(m) => m.name}
@@ -1165,6 +1175,7 @@ function BotEntries(props: { caption: string; rows: { e: BotNameEntry; i: number
   const { t } = usePrefs();
   return (
     <Table
+      phoneCards
       caption={props.caption}
       rows={props.rows}
       rowKey={(r) => String(r.i)}
@@ -1367,6 +1378,7 @@ function BotChatEditor({ saved, onSaved }: { saved: BotChatConfig; onSaved: () =
       <p className="admin-muted">{t('Each event has a chance of a bot commenting, who talks and the messages (one per line; {name} = the other player). Bots wait 1 to 4 s to "type", never talk twice in a row and wait 20 s between their own messages.')}</p>
       <Status text={status.text} error={status.error} />
       <Table
+        phoneCards
         caption={t('Bot chat')}
         rows={BOT_CHAT_EVENTS.map((id) => ({ id, r: chat.events[id] }))}
         rowKey={(x) => x.id}
@@ -1430,6 +1442,7 @@ function RolesTab() {
       </div>
       <Status text={status.text} error={status.error ?? list.error} />
       <Table
+        phoneCards
         caption={t('Roles')}
         rows={rows}
         rowKey={(u) => u.username}
@@ -1536,6 +1549,7 @@ function FeedbackTab() {
       </div>
       <Status text={msg.text} error={msg.error ?? list.error} />
       <Table
+        phoneCards
         caption={t('Feedback')}
         rows={list.data?.feedback ?? []}
         rowKey={(f) => String(f.id)}
@@ -1635,6 +1649,7 @@ function InvitesTab() {
       </form>
       <Status text={msg.text} error={msg.error ?? list.error} />
       <Table
+        phoneCards
         caption={t('Invites')}
         rows={list.data?.invites ?? []}
         rowKey={(i) => i.code}
@@ -1723,6 +1738,7 @@ function NetworkTab() {
       </div>
       <Status error={net.error} />
       <Table
+        phoneCards
         caption={t('Network')}
         rows={regions}
         rowKey={(r) => r.region}

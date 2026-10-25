@@ -1119,5 +1119,21 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Hold Alt and keep up!': 'Segura Alt e me acompanha!',
     'Shift to run, remember!': 'Shift pra correr, hein!',
     'Grab a power-up on the way!': 'Pega um power-up no caminho!',
+    // celular de volta, sem a partida (S45, D-80)
+    'This part of Outgun is not available on phones yet.': 'Esta parte do Outgun ainda não está disponível para celular.',
+    'Back to the start': 'Voltar ao início',
+    Menu: 'Menu',
+    'To play, open Outgun on a computer. Here you follow stats, profiles, clans and match reports.': 'Para jogar, abra o Outgun no computador. Aqui você acompanha estatísticas, perfis, clãs e relatórios das partidas.',
+    'Sign in to see your profile, your clan and your matches.': 'Entre para ver seu perfil, seu clã e suas partidas.',
+    'My last matches': 'Minhas últimas partidas',
+    'Nobody is playing right now.': 'Ninguém está jogando agora.',
+    // PDF do relatório (OG-425, OG-426)
+    'Download PDF': 'Baixar PDF',
+    'Creating the PDF...': 'Gerando o PDF...',
+    'Could not create the PDF.': 'Não foi possível gerar o PDF.',
+    Duration: 'Duração',
+    'Game version': 'Versão do jogo',
+    'Page $1 of $2': 'Página $1 de $2',
+    'Maps, presets, rotations, bots, roles, invites and network: only on the computer.': 'Mapas, presets, rotações, bots, papéis, convites e rede: só no computador.',
   },
 };

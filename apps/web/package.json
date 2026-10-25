@@ -1,6 +1,6 @@
 {
   "name": "@outgun/web",
-  "version": "2.44.0",
+  "version": "2.45.0",
   "private": true,
   "description": "Cliente web: React (menus) + PixiJS (jogo) (cards OG-060 em diante).",
   "license": "GPL-2.0-or-later",
@@ -25,6 +25,8 @@
     "@outgun/protocol": "workspace:*",
     "@outgun/settings": "workspace:*",
     "@outgun/sim": "workspace:*",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
     "pixi.js": "^8.22.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

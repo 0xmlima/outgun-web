@@ -7,6 +7,7 @@ import { milestoneIconSvg, publicMilestoneIcon, secretMilestoneIcon } from '@out
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../app/api.js';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { Page } from '../ui/Page.js';
@@ -17,7 +18,7 @@ import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
-const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
+export const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
   ['Frags', (p) => p.frags],
   ['Captures', (p) => p.captures],
   ['Assists', (p) => p.stats.assists ?? 0],
@@ -47,7 +48,7 @@ const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
   ['Movement', (p) => `${Math.round(p.stats.movement ?? 0)} u`],
 ];
 
-const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
+export const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
   ['Captures', (x) => x.score ?? 0],
   ['Kills', (x) => x.kills ?? 0],
   ['Deaths', (x) => x.deaths ?? 0],
@@ -62,7 +63,7 @@ const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
 ];
 
 /** Eventos da ranqueada (OG-362); `events` null = partida sem registro. */
-interface MatchEvents {
+export interface MatchEvents {
   players: { slot: number; name: string; username: string | null; team: number; isBot: boolean }[];
   events: (number | string)[][] | null;
 }
@@ -124,7 +125,7 @@ export function highlights(players: readonly PlayerLine[]): { label: string; pla
 }
 
 /** Abates por zona: base inimiga · meio · própria base (OG-355). */
-const zones = (p: PlayerLine) =>
+export const zones = (p: PlayerLine) =>
   p.stats.killsEnemyBase === undefined ? '—' : `${p.stats.killsEnemyBase} · ${p.stats.killsMidfield ?? 0} · ${p.stats.killsOwnBase ?? 0}`;
 
 /** Melhor jogador: mais frags; desempate por capturas, kills e menos mortes. */
@@ -208,8 +209,37 @@ export function SeriesScreen() {
         <span className="report-team blue">{t('Blue')}</span>
         <Badge tone={s.winner === null ? 'neutral' : 'success'}>{seriesResult(s, t)}</Badge>
       </section>
+      {s.matches.length > 0 && (
+        <div className="ui-row report-actions">
+          <PdfButton make={async (pdf) => pdf.saveSeriesPdf(s, t, prefs.locale)} />
+        </div>
+      )}
       <SeriesPanel series={s} />
     </Page>
+  );
+}
+
+/**
+ * "Baixar PDF" (OG-425, OG-426): o gerador e o jsPDF só são baixados no toque; enquanto monta, o
+ * botão mostra "Gerando o PDF...".
+ */
+function PdfButton({ make }: { make: (pdf: typeof import('./report-pdf.js')) => Promise<void> }) {
+  const { t } = usePrefs();
+  const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  return (
+    <Button
+      variant="secondary"
+      disabled={state === 'busy'}
+      onClick={() => {
+        setState('busy');
+        import('./report-pdf.js').then(make).then(
+          () => setState('idle'),
+          () => setState('error'),
+        );
+      }}
+    >
+      {state === 'busy' ? t('Creating the PDF...') : state === 'error' ? t('Could not create the PDF.') : t('Download PDF')}
+    </Button>
   );
 }
 
@@ -268,13 +298,13 @@ export function MatchScreen() {
         { key: 'kills', header: t('Kills'), cell: (p) => p.kills, align: 'end' },
         { key: 'deaths', header: t('Deaths'), cell: (p) => p.deaths, align: 'end' },
         { key: 'captures', header: t('Captures'), cell: (p) => p.captures, align: 'end' },
-        { key: 'assists', header: t('Assists'), cell: (p) => p.stats.assists ?? 0, align: 'end' },
+        { key: 'assists', header: t('Assists'), cell: (p) => p.stats.assists ?? 0, align: 'end', hideOnPhone: true },
         // marcadores novos à vista (OG-380); '—' nas partidas anteriores ao OG-355
-        { key: 'damage', header: t('Effective damage'), cell: (p) => (p.stats.effectiveDamage === undefined ? '—' : Math.round(p.stats.effectiveDamage)), align: 'end' },
-        { key: 'defenses', header: t('Defenses'), cell: (p) => p.stats.defenses ?? '—', align: 'end' },
-        { key: 'zones', header: t('Kills by zone'), cell: zones, align: 'end' },
-        { key: 'accuracy', header: t('Accuracy'), cell: (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`, align: 'end' },
-        { key: 'returns', header: t('Flags returned'), cell: (p) => p.stats.flagsReturned ?? 0, align: 'end' },
+        { key: 'damage', header: t('Effective damage'), cell: (p) => (p.stats.effectiveDamage === undefined ? '—' : Math.round(p.stats.effectiveDamage)), align: 'end', hideOnPhone: true },
+        { key: 'defenses', header: t('Defenses'), cell: (p) => p.stats.defenses ?? '—', align: 'end', hideOnPhone: true },
+        { key: 'zones', header: t('Kills by zone'), cell: zones, align: 'end', hideOnPhone: true },
+        { key: 'accuracy', header: t('Accuracy'), cell: (p) => `${Math.round(100 * (p.stats.accuracy ?? 0))}%`, align: 'end', hideOnPhone: true },
+        { key: 'returns', header: t('Flags returned'), cell: (p) => p.stats.flagsReturned ?? 0, align: 'end', hideOnPhone: true },
         ...(skill.size > 0
           ? [{ key: 'rating', header: t('Rating'), cell: (p: PlayerLine) => { const c = p.username ? skill.get(p.username) : undefined; return c ? `${signedDelta(c.after - c.before)} (${c.after})` : '—'; }, align: 'end' as const }]
           : []),
@@ -316,11 +346,12 @@ export function MatchScreen() {
         )}
       </section>
       <div className="ui-row report-actions">
-        {m.replayUrl && (
+        {m.replayUrl && !isPhone() && (
           <Button variant="primary" onClick={() => void navigate(`/replay?src=${encodeURIComponent(m.replayUrl!)}`)}>
             {t('Watch replay')}
           </Button>
         )}
+        <PdfButton make={async (pdf) => pdf.saveMatchPdf(m, events.data ?? null, t, prefs.locale)} />
         <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(location.href).then(() => setCopied(true))}>
           {copied ? t('Link copied') : t('Copy link')}
         </Button>

@@ -2,6 +2,7 @@
 // Tabela do design system v2 (OG-200): rolagem horizontal própria no celular e, com `onRowActivate`,
 // linhas navegáveis por ↑/↓/Home/End e ativadas com Enter ou clique (ranking, salas, partidas).
 import { useRef, useState, type ReactNode } from 'react';
+import { isPhone } from '../app/phone.js';
 import { rovingKey } from './keys.js';
 
 export interface Column<Row> {
@@ -9,6 +10,8 @@ export interface Column<Row> {
   readonly header: ReactNode;
   readonly cell: (row: Row) => ReactNode;
   readonly align?: 'start' | 'end';
+  /** Some no celular (OG-421): colunas secundárias ou que levam à partida (replay). */
+  readonly hideOnPhone?: boolean;
 }
 
 interface TableProps<Row> {
@@ -20,13 +23,39 @@ interface TableProps<Row> {
   readonly onRowActivate?: (row: Row) => void;
   /** Mostrado no lugar das linhas quando não há nenhuma. */
   readonly empty?: ReactNode;
+  /** No celular, cada linha vira uma ficha (rótulo e valor) em vez da tabela (OG-427: moderação). */
+  readonly phoneCards?: boolean;
 }
 
-export function Table<Row>({ caption, columns, rows, rowKey, onRowActivate, empty }: TableProps<Row>) {
+export function Table<Row>({ caption, columns: all, rows, rowKey, onRowActivate, empty, phoneCards = false }: TableProps<Row>) {
+  const phone = isPhone();
+  const columns = phone ? all.filter((c) => !c.hideOnPhone) : all;
   const [current, setCurrent] = useState(0);
   const refs = useRef<(HTMLTableRowElement | null)[]>([]);
   const interactive = onRowActivate !== undefined;
   const focusRow = Math.min(current, rows.length - 1);
+  if (phone && phoneCards)
+    return (
+      <ul className="ui-table-cards" aria-label={caption}>
+        {rows.length === 0 && empty !== undefined && <li className="ui-table-empty">{empty}</li>}
+        {rows.map((row) => (
+          <li key={rowKey(row)} className={interactive ? 'interactive' : undefined} onClick={interactive ? () => onRowActivate(row) : undefined}>
+            {columns.map((c) =>
+              c.header === '' ? (
+                <div key={c.key} className="ui-table-card-actions">
+                  {c.cell(row)}
+                </div>
+              ) : (
+                <div key={c.key} className="ui-table-card-pair">
+                  <span className="ui-muted">{c.header}</span>
+                  <span>{c.cell(row)}</span>
+                </div>
+              ),
+            )}
+          </li>
+        ))}
+      </ul>
+    );
   return (
     <div className="ui-table-wrap">
       <table className={interactive ? 'ui-table interactive' : 'ui-table'}>
