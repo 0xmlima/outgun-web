@@ -5,6 +5,7 @@
 import { MILESTONES } from '@outgun/content';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
+import { api } from '../app/api.js';
 import { APP_VERSION } from '../app/version.js';
 import { bestPlayer, captureTimeline, highlights, killMatrix, PLAYER_COLUMNS, seriesResult, TEAM_ROWS, zones, type MatchEvents } from './MatchReport.js';
 import { clock, date, duration, signedDelta, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
@@ -372,4 +373,16 @@ export function pdfFilename(kind: 'match' | 'series', id: string, when: string):
 export async function saveMatchPdf(m: MatchPage, events: MatchEvents | null, t: T, locale: string): Promise<void> {
   const pdf = renderReportPdf([matchReportDoc(m, events, t, locale, location.origin)], t);
   savePdf(pdf, pdfFilename('match', m.match.id, m.match.endedAt));
+}
+
+/** "Baixar PDF" na página da série (OG-426): a capa e o relatório completo de cada jogo, num arquivo só. */
+export async function saveSeriesPdf(s: SeriesView, t: T, locale: string): Promise<void> {
+  const games = await Promise.all(
+    s.matches.map(async (g) => {
+      const [page, events] = await Promise.all([api<MatchPage>(`/matches/${encodeURIComponent(g.id)}`), api<MatchEvents>(`/matches/${encodeURIComponent(g.id)}/events`).catch(() => null)]);
+      return matchReportDoc(page, events, t, locale, location.origin);
+    }),
+  );
+  const pdf = renderReportPdf([seriesCoverDoc(s, t, locale, location.origin), ...games], t);
+  savePdf(pdf, pdfFilename('series', s.id, s.startedAt));
 }

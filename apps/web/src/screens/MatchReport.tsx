@@ -209,6 +209,11 @@ export function SeriesScreen() {
         <span className="report-team blue">{t('Blue')}</span>
         <Badge tone={s.winner === null ? 'neutral' : 'success'}>{seriesResult(s, t)}</Badge>
       </section>
+      {s.matches.length > 0 && (
+        <div className="ui-row report-actions">
+          <PdfButton make={async (pdf) => pdf.saveSeriesPdf(s, t, prefs.locale)} />
+        </div>
+      )}
       <SeriesPanel series={s} />
     </Page>
   );

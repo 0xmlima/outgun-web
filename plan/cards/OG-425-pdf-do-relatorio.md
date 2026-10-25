@@ -28,7 +28,7 @@ Como jogador ou capitão de clã, quero baixar o relatório completo da partida 
 ## Critérios de aceite
 - [x] PDF de uma partida Casual e de uma Ranked com todas as seções, abrindo em leitores comuns (teste que gera o PDF a partir de uma partida fixa e confere o texto).
 - [x] A biblioteca de PDF só é baixada ao tocar em "Baixar PDF".
-- [x] Funciona no celular (Android/Chrome e iOS/Safari) e no desktop.
+- [ ] Funciona no celular (Android/Chrome e iOS/Safari) e no desktop. (a conferir pelo PO)
 
 ## Notas técnicas
 - Biblioteca carregada sob demanda (ex.: `pdf-lib` ou `jsPDF` + autotable); fonte única do design system embutida (com acentos), cores dos tokens claros para impressão.
