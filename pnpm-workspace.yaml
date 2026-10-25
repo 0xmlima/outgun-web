@@ -4,3 +4,8 @@ packages:
   - '!apps/desktop'
   - packages/*
   - tools/*
+
+# core-js (via canvg, dependência opcional do jsPDF do PDF do relatório, OG-425): o script de
+# instalação só imprime um aviso; sem esta linha o `pnpm install --frozen-lockfile` falha no CI/Docker
+allowBuilds:
+  core-js: false
