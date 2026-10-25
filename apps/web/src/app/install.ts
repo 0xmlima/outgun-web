@@ -47,6 +47,8 @@ export interface DesktopBridge {
   /** Resolução do monitor (OG-401, só Windows; ausente antes da 2.41.1): "1920x1080@144". */
   displayModes?(): DisplayModes | null;
   setDisplayMode?(mode: string | null): void;
+  /** Abre no navegador do sistema (ausente nos clientes anteriores a esta versão). */
+  openExternal?(url: string): void;
   /** Conquistas da Steam (OG-396); ausentes antes da 2.41. */
   steamAvailable?(): boolean;
   syncSteamAchievements?(ids: readonly string[]): void;

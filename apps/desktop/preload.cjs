@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('outgunDesktop', {
   displayModes: () => ipcRenderer.sendSync('outgun:display-modes'),
   setDisplayMode: (mode) =>
     ipcRenderer.send('outgun:set-display-mode', typeof mode === 'string' ? mode : null),
+  /** Abre um endereço http(s) no navegador do sistema (ex.: o site, que dentro do app abriria no próprio app). */
+  openExternal: (url) =>
+    ipcRenderer.send('outgun:open-external', typeof url === 'string' ? url : ''),
   /** Conquistas da Steam (OG-396): só quando a Steam abriu o jogo. */
   steamAvailable: () => ipcRenderer.sendSync('outgun:steam-available'),
   /** Ids dos marcos da conta; o app desbloqueia na Steam os que faltarem. */
