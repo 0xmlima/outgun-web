@@ -890,7 +890,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-424](cards/OG-424-relatorio-no-celular.md) | Relatório da partida e da série no celular | E9 | 3 | Must | S45 | OG-418 | Em revisão |
 | [OG-425](cards/OG-425-pdf-do-relatorio.md) | PDF do relatório completo da partida | E9 | 5 | Must | S45 | OG-380 | Em revisão |
 | [OG-426](cards/OG-426-pdf-da-serie.md) | PDF do relatório da série | E9 | 2 | Should | S45 | OG-425 | Em revisão |
-| [OG-427](cards/OG-427-moderacao-no-celular.md) | Moderação no celular | E8 | 5 | Must | S45 | OG-418, OG-420 | Pronto |
+| [OG-427](cards/OG-427-moderacao-no-celular.md) | Moderação no celular | E8 | 5 | Must | S45 | OG-418, OG-420 | Em revisão |
 
 **Total:** 269 cards, 891 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 200 cards, 596 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

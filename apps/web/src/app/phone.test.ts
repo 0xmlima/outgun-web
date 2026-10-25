@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
-import { isPortalPath } from './phone.js';
+import { isPortalPath, PHONE_ADMIN_TABS } from './phone.js';
 
 describe('portão do celular (OG-417, D-80)', () => {
   it('abre as telas do portal', () => {
@@ -10,5 +10,8 @@ describe('portão do celular (OG-417, D-80)', () => {
   it('deixa a partida e o que leva a ela no computador', () => {
     for (const path of ['/play', '/spectate', '/replay', '/replays', '/rooms', '/rooms/new', '/rooms/ranked/new', '/rooms/abc', '/options', '/options/hud', '/options/video', '/download', '/dev/ui'])
       expect(isPortalPath(path), path).toBe(false);
+  });
+  it('moderação no celular: só as seis abas de moderação (OG-427)', () => {
+    expect([...PHONE_ADMIN_TABS].sort()).toEqual(['audit', 'bans', 'clans', 'feedback', 'reports', 'rooms']);
   });
 });

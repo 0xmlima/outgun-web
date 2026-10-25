@@ -1134,5 +1134,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Duration: 'Duração',
     'Game version': 'Versão do jogo',
     'Page $1 of $2': 'Página $1 de $2',
+    'Maps, presets, rotations, bots, roles, invites and network: only on the computer.': 'Mapas, presets, rotações, bots, papéis, convites e rede: só no computador.',
   },
 };

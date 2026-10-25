@@ -23,14 +23,39 @@ interface TableProps<Row> {
   readonly onRowActivate?: (row: Row) => void;
   /** Mostrado no lugar das linhas quando não há nenhuma. */
   readonly empty?: ReactNode;
+  /** No celular, cada linha vira uma ficha (rótulo e valor) em vez da tabela (OG-427: moderação). */
+  readonly phoneCards?: boolean;
 }
 
-export function Table<Row>({ caption, columns: all, rows, rowKey, onRowActivate, empty }: TableProps<Row>) {
-  const columns = isPhone() ? all.filter((c) => !c.hideOnPhone) : all;
+export function Table<Row>({ caption, columns: all, rows, rowKey, onRowActivate, empty, phoneCards = false }: TableProps<Row>) {
+  const phone = isPhone();
+  const columns = phone ? all.filter((c) => !c.hideOnPhone) : all;
   const [current, setCurrent] = useState(0);
   const refs = useRef<(HTMLTableRowElement | null)[]>([]);
   const interactive = onRowActivate !== undefined;
   const focusRow = Math.min(current, rows.length - 1);
+  if (phone && phoneCards)
+    return (
+      <ul className="ui-table-cards" aria-label={caption}>
+        {rows.length === 0 && empty !== undefined && <li className="ui-table-empty">{empty}</li>}
+        {rows.map((row) => (
+          <li key={rowKey(row)} className={interactive ? 'interactive' : undefined} onClick={interactive ? () => onRowActivate(row) : undefined}>
+            {columns.map((c) =>
+              c.header === '' ? (
+                <div key={c.key} className="ui-table-card-actions">
+                  {c.cell(row)}
+                </div>
+              ) : (
+                <div key={c.key} className="ui-table-card-pair">
+                  <span className="ui-muted">{c.header}</span>
+                  <span>{c.cell(row)}</span>
+                </div>
+              ),
+            )}
+          </li>
+        ))}
+      </ul>
+    );
   return (
     <div className="ui-table-wrap">
       <table className={interactive ? 'ui-table interactive' : 'ui-table'}>

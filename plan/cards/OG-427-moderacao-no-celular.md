@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418, OG-420 |
 | Regras de negócio | RN-UI-08, D-70, D-80 |
 | Skills | `outgun-card-workflow` |
@@ -26,13 +26,15 @@ Como moderador, quero atender denúncias e punir pelo celular, para agir rápido
 - Salas: ver as salas ao vivo e os jogadores; expulsar e encerrar (sem assistir).
 
 ## Critérios de aceite
-- [ ] Moderador faz o ciclo denúncia → ban → auditoria em 360 px.
-- [ ] As abas pesadas não aparecem no celular e o link direto mostra o aviso.
-- [ ] Permissões por papel iguais às do desktop (teste).
+- [x] Moderador faz o ciclo denúncia → ban → auditoria em 360 px.
+- [x] As abas pesadas não aparecem no celular e o link direto mostra o aviso.
+- [x] Permissões por papel iguais às do desktop (teste).
 
 ## Notas técnicas
 - `AdminScreen.tsx` tem 1743 linhas: separar as seis abas em arquivos só se ajudar o layout, sem mudar a API.
 - Lista de abas permitidas no celular junto da lista de rotas do portal (OG-417).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- No celular o painel mostra só Salas, Denúncias, Clãs, Bans, Auditoria e Feedback (`PHONE_ADMIN_TABS`), com a nota "Mapas, presets... só no computador". As abas são estado da tela (sem URL própria), então não há link direto para as outras.
+- `Table` ganhou `phoneCards`: no celular cada linha vira uma ficha (rótulo e valor, ações embaixo); ligado em todas as tabelas do painel. Salas já eram fichas; no celular uma por linha, campos da barra em largura cheia e botões com 44 px.
+- Permissões não mudam: quem decide é a API, igual ao desktop. A denúncia mostra o que o desktop já mostra (sem chat da partida: não existe no painel hoje).

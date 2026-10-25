@@ -303,3 +303,68 @@
   align-items: center;
   min-height: 2.75rem;
 }
+
+/* Tabela como fichas (OG-427, `phoneCards`): rótulo à esquerda, valor à direita, ações embaixo */
+.ui-table-cards {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ui-table-cards > li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.ui-table-cards > li.interactive {
+  cursor: pointer;
+}
+.ui-table-card-pair {
+  display: grid;
+  grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+.ui-table-card-actions {
+  margin-top: var(--space-1);
+}
+.ui-table-card-actions > * {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Moderação (OG-427): abas roláveis, campos da barra em largura cheia, botões com alvo de toque */
+:root[data-phone] .admin .stats-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:root[data-phone] .admin .stats-tabs button {
+  flex: none;
+  min-height: 2.75rem;
+}
+:root[data-phone] .admin-bar > *,
+:root[data-phone] .admin-bar > .ui-field:first-child {
+  flex: 1 1 100%;
+}
+:root[data-phone] .admin-bar-end {
+  margin-left: 0;
+}
+:root[data-phone] :is(.admin-row-actions, .admin-roster-actions, .admin-card-foot) .ui-button {
+  min-height: 2.75rem;
+}
+:root[data-phone] .admin-wrap {
+  max-width: none;
+}
+:root[data-phone] .admin-cards,
+:root[data-phone] .admin-tiles {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-phone] .admin-roster li {
+  flex-wrap: wrap;
+}
