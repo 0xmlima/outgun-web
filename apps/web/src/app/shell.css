@@ -722,10 +722,20 @@
   text-align: start;
 }
 .home-start.home-box .home-start-username {
+  display: block;
+  color: var(--text) !important;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
   overflow: hidden;
   font-size: var(--text-xl);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* sublinhado sempre (é link); mais grosso e na cor de destaque ao passar o mouse */
+.home-start.home-box .home-start-username:hover {
+  text-decoration-color: var(--text-accent);
+  text-decoration-thickness: 3px;
 }
 .home-stats {
   display: flex;

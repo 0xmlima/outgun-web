@@ -368,11 +368,12 @@ export function StartCard() {
         <div className="home-start-name">
           {user ? (
             <>
-              <p className="home-start-username">
-                {/* a tag do clã à esquerda, no estilo do clã, como na partida ("BV-nick", "[BV] nick"...) */}
+              {/* o nome leva ao perfil com as estatísticas; a tag do clã à esquerda, no estilo do clã, como na
+                  partida ("BV-nick", "[BV] nick"...) */}
+              <Link className="home-start-username" to={`/players/${encodeURIComponent(user.username)}`}>
                 {user.clanLabel && <span className="app-clan">{chatName(user.username, user.clanLabel).slice(0, -user.username.length)}</span>}
                 {user.username}
-              </p>
+              </Link>
               <ul className="home-stats">
                 <HomeClan tag={user.clanTag} />
                 <HomeRank username={user.username} />
