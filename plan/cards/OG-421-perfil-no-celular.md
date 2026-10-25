@@ -1,0 +1,34 @@
+# OG-421 — Perfil do jogador no celular
+
+| Campo | Valor |
+|---|---|
+| Épico | E9 |
+| Tipo | Feature |
+| Prioridade | Must |
+| Estimativa | 3 pts |
+| Sprint | S45 |
+| Status | Pronto |
+| Dependências | OG-418 |
+| Regras de negócio | RN-SOC-01, RN-UI-08 |
+| Skills | `outgun-card-workflow` |
+
+## História
+Como jogador no celular, quero ver o meu perfil e o dos outros, para acompanhar rating, marcos e partidas.
+
+## Contexto
+- Pedido do PO em 2026-10-25 (S45): o celular volta, mas sem a partida — estatísticas, perfis, relatórios em PDF e moderação, tudo no visual retrô da S44 (OG-416). D-80 substitui a D-50.
+- `screens/Profile.tsx` (OG-212, OG-351, OG-393): rating, marcos por grupo com progresso, número, cores e medalhas (S43), companheiros e últimas partidas.
+
+## Escopo
+- Perfil em uma coluna: cabeçalho (nome, clã, número, medalha, rating), stats do mês e de sempre em cartões, marcos por grupo em lista recolhível, companheiros e partidas recentes com link para o relatório.
+- Gráficos e tabelas sem rolagem horizontal da página.
+
+## Critérios de aceite
+- [ ] Perfil completo em 360 px, com as mesmas informações do desktop.
+- [ ] Desktop sem mudança.
+
+## Notas técnicas
+- Só layout e CSS; reaproveitar `milestones-panel.tsx`.
+
+## Notas de implementação
+(preenchido durante a execução)
