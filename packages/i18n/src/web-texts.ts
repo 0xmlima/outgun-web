@@ -1122,5 +1122,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     // celular de volta, sem a partida (S45, D-80)
     'This part of Outgun is not available on phones yet.': 'Esta parte do Outgun ainda não está disponível para celular.',
     'Back to the start': 'Voltar ao início',
+    Menu: 'Menu',
   },
 };

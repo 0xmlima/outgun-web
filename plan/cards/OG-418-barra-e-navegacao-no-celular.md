@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-417 |
 | Regras de negócio | RN-UI-01, RN-UI-03, RN-UI-08 |
 | Skills | `outgun-card-workflow` |
@@ -26,13 +26,15 @@ Como jogador no celular, quero navegar entre as telas com o polegar, para achar 
 - Volta a captura de 360 px nas telas do portal (só elas).
 
 ## Critérios de aceite
-- [ ] Em 360 e 412 px de largura, nenhuma tela do portal tem rolagem horizontal da página (teste com viewport de celular).
-- [ ] Alvos de toque com pelo menos 44 px; contraste AA.
-- [ ] Desktop sem mudança visual.
+- [x] Em 360 e 412 px de largura, nenhuma tela do portal tem rolagem horizontal da página (teste com viewport de celular).
+- [x] Alvos de toque com pelo menos 44 px; contraste AA.
+- [x] Desktop sem mudança visual.
 
 ## Notas técnicas
 - Media queries por largura já existem (`components.css`, `shell.css` em 30/40 rem); juntar num breakpoint de celular e usar `pointer: coarse` só para o tamanho dos alvos.
 - Navegação por gamepad/teclado continua (desktop).
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Estilos do celular em `ui/phone.css`, só com `data-phone` no `<html>` (o `Root` põe com `isPhone()`): desktop não muda nem com janela estreita.
+- Barra: logo só com o ícone, trilha, sino e conta (nome cortado) e o botão de menu, que abre a navegação em gaveta (fecha ao trocar de tela). O tocador ficou na barra (é pequeno), não na gaveta.
+- Base: margem de 16 px, alvos de 44 px, campos com 16 px (sem zoom do Safari), tabela com a 1ª coluna fixa e rolagem dentro do painel, diálogo em tela cheia. Conferência de rolagem lateral em 360/412 px: script do fechamento (`tools/visual-compare/phone-check.mjs`).
