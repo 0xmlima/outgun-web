@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-209, OG-416 |
 | Regras de negócio | RN-UI-01, RN-UI-08, D-80 |
 | Skills | `outgun-card-workflow` |
@@ -25,13 +25,14 @@ Como jogador no celular, quero abrir o Outgun e ver as telas do portal, para aco
 - O chunk do jogo (PixiJS) nunca é baixado no celular.
 
 ## Critérios de aceite
-- [ ] No celular, as rotas do portal abrem e as do jogo mostram o aviso (teste do portão por rota).
-- [ ] Desktop, app desktop e Steam não mudam.
-- [ ] D-80 registrada; RN-UI-01 e RN-UI-08 atualizadas no PLAN.
+- [x] No celular, as rotas do portal abrem e as do jogo mostram o aviso (teste do portão por rota).
+- [x] Desktop, app desktop e Steam não mudam.
+- [x] D-80 registrada; RN-UI-01 e RN-UI-08 atualizadas no PLAN.
 
 ## Notas técnicas
 - Manter a mesma detecção de `isPhone()` (toque sem mouse e lado menor < 600 px): tablets com teclado continuam como desktop.
 - Lista das rotas do portal num lugar só (ex.: `app/device.ts`), usada pelo portão e pelos links.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `app/phone.ts`: `isPhone()` (saiu do `Shell.tsx`), `isPortalPath()` com a lista das rotas do portal e `PHONE_ADMIN_TABS` (OG-427). O `Root` troca só as rotas fora do portal pelo aviso, com "Voltar ao início"; como o `Outlet` nem monta, os chunks do jogo não são baixados.
+- Barra de cima no celular: sem "Jogar agora" e só os links do portal (`useNavLinks` filtra). Links para replay/sala dentro das telas levam ao aviso.

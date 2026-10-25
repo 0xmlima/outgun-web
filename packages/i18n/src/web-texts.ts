@@ -1119,5 +1119,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Hold Alt and keep up!': 'Segura Alt e me acompanha!',
     'Shift to run, remember!': 'Shift pra correr, hein!',
     'Grab a power-up on the way!': 'Pega um power-up no caminho!',
+    // celular de volta, sem a partida (S45, D-80)
+    'This part of Outgun is not available on phones yet.': 'Esta parte do Outgun ainda não está disponível para celular.',
+    'Back to the start': 'Voltar ao início',
   },
 };

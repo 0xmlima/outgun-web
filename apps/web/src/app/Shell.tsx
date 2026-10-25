@@ -10,6 +10,7 @@ import { NotificationBell, NotificationsProvider } from './notifications.js';
 import { MusicButton } from './music/MusicButton.js';
 import { useMusicMode } from './music/MusicProvider.js';
 import { usePlayNow } from './play-now.js';
+import { isPhone, isPortalPath } from './phone.js';
 import { usePrefs } from './prefs.js';
 import { Button } from '../ui/Button.js';
 import { FontProvider, GAME_FONT } from '../ui/fonts.js';
@@ -45,30 +46,26 @@ export function SourceLink() {
   return SOURCE_URL.startsWith('/') ? <Link to={SOURCE_URL}>{label}</Link> : <a href={SOURCE_URL}>{label}</a>;
 }
 
-/** Raiz de todas as rotas: idioma do documento, escala dos pixels, fonte bitmap e avisos (OG-200). */
-/**
- * Celular (D-50, OG-209): o jogo ainda não é para celular. Toque sem mouse e tela curta (o lado menor
- * abaixo de 600 px) pega celulares e deixa de fora tablets com teclado e notebooks com toque.
- */
-export function isPhone(): boolean {
-  if (typeof matchMedia !== 'function') return false;
-  return matchMedia('(pointer: coarse) and (hover: none)').matches && Math.min(screen.width, screen.height) < 600;
-}
-
 function PhoneNotice() {
   const { t } = usePrefs();
   return (
     <main className="phone-notice">
       <h1 className="home-title">Outgun</h1>
-      <p>{t('Outgun is not available on phones yet.')}</p>
+      <p>{t('This part of Outgun is not available on phones yet.')}</p>
       <p className="ui-muted">{t('Open this page on a computer to play.')}</p>
+      <Link to="/" className="ui-button ui-button-primary">
+        {t('Back to the start')}
+      </Link>
     </main>
   );
 }
 
+/** Raiz de todas as rotas: idioma do documento, escala dos pixels, fonte bitmap e avisos (OG-200). */
 export function Root() {
+  const phone = isPhone();
   const { prefs, t } = usePrefs();
   const scale = usePixelScale();
+  const { pathname } = useLocation();
   useEffect(() => {
     document.documentElement.lang = prefs.locale;
     document.documentElement.style.setProperty('--px', String(scale));
@@ -76,7 +73,7 @@ export function Root() {
   return (
     <FontProvider name={GAME_FONT}>
       <ToastProvider closeLabel={t('Close')}>
-        {isPhone() ? <PhoneNotice /> : <Outlet />}
+        {phone && !isPortalPath(pathname) ? <PhoneNotice /> : <Outlet />}
       </ToastProvider>
     </FontProvider>
   );
@@ -108,7 +105,7 @@ export function AccountChip() {
 export function useNavLinks(): readonly (readonly [string, string])[] {
   const { t } = usePrefs();
   const { user } = useAccount();
-  return [
+  const links: (readonly [string, string])[] = [
     ['/rooms', t('Rooms')],
     ['/ranking', t('Ranking')],
     ['/players', t('Players')],
@@ -117,6 +114,7 @@ export function useNavLinks(): readonly (readonly [string, string])[] {
     ['/options', t('Options')],
     ['/help', t('Help')],
   ];
+  return isPhone() ? links.filter(([to]) => isPortalPath(to)) : links; // celular: só o portal (D-80)
 }
 
 function TopBar() {
@@ -131,9 +129,11 @@ function TopBar() {
         <span>Outgun</span>
       </Link>
       <nav className="app-nav" aria-label={t('Main navigation')}>
-        <Button variant="primary" className="app-nav-play" onClick={playNow}>
-          {t('Play now')}
-        </Button>
+        {!isPhone() && (
+          <Button variant="primary" className="app-nav-play" onClick={playNow}>
+            {t('Play now')}
+          </Button>
+        )}
         {links.map(([to, label]) => (
           <NavLink key={to} to={to} className="app-nav-link">
             {label}
