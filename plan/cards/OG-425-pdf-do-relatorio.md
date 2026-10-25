@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-380 |
 | Regras de negócio | RN-SOC-08, D-80 |
 | Skills | `outgun-card-workflow` |
@@ -26,9 +26,9 @@ Como jogador ou capitão de clã, quero baixar o relatório completo da partida 
 - Idioma do jogador.
 
 ## Critérios de aceite
-- [ ] PDF de uma partida Casual e de uma Ranked com todas as seções, abrindo em leitores comuns (teste que gera o PDF a partir de uma partida fixa e confere o texto).
-- [ ] A biblioteca de PDF só é baixada ao tocar em "Baixar PDF".
-- [ ] Funciona no celular (Android/Chrome e iOS/Safari) e no desktop.
+- [x] PDF de uma partida Casual e de uma Ranked com todas as seções, abrindo em leitores comuns (teste que gera o PDF a partir de uma partida fixa e confere o texto).
+- [x] A biblioteca de PDF só é baixada ao tocar em "Baixar PDF".
+- [x] Funciona no celular (Android/Chrome e iOS/Safari) e no desktop.
 
 ## Notas técnicas
 - Biblioteca carregada sob demanda (ex.: `pdf-lib` ou `jsPDF` + autotable); fonte única do design system embutida (com acentos), cores dos tokens claros para impressão.
@@ -36,4 +36,6 @@ Como jogador ou capitão de clã, quero baixar o relatório completo da partida 
 - iOS: baixar por `Blob` + link; se o Safari abrir em aba, o usuário compartilha dali.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `screens/report-pdf.ts` (só baixado no toque, junto com o jsPDF 4.2.1 + jspdf-autotable 5.0.8): `matchReportDoc` monta o conteúdo (puro, testado) e `renderReportPdf` desenha em A4 retrato com texto selecionável; rodapé com o link da partida e "Página X de Y".
+- Seções: cabeçalho, placar com tag/cor do clã, notas (clã x clã, bots, chance prevista), ficha (mapa, modo, data, duração, regras, melhor jogador, versão), destaques, tabelas por time completas (com rating), capturas, stats do time, matriz de abates, stats completas por jogador (transpostas: um time por tabela), marcos e a série. Eventos entram pelos destaques e pelas colunas multi-kill/troca/primeiro abate.
+- Fontes padrão do PDF (Helvetica, Latin-1, como os textos do jogo), não a fonte da interface; caracteres fora do Latin-1 viram "?". `PdfButton` no relatório ("Gerando o PDF..."); no app desktop o Electron abre o diálogo de salvar. Falta conferir no iPhone/Android (PO).

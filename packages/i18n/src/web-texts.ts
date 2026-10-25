@@ -1127,5 +1127,12 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Sign in to see your profile, your clan and your matches.': 'Entre para ver seu perfil, seu clã e suas partidas.',
     'My last matches': 'Minhas últimas partidas',
     'Nobody is playing right now.': 'Ninguém está jogando agora.',
+    // PDF do relatório (OG-425, OG-426)
+    'Download PDF': 'Baixar PDF',
+    'Creating the PDF...': 'Gerando o PDF...',
+    'Could not create the PDF.': 'Não foi possível gerar o PDF.',
+    Duration: 'Duração',
+    'Game version': 'Versão do jogo',
+    'Page $1 of $2': 'Página $1 de $2',
   },
 };

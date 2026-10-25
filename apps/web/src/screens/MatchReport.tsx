@@ -18,7 +18,7 @@ import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
-const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
+export const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
   ['Frags', (p) => p.frags],
   ['Captures', (p) => p.captures],
   ['Assists', (p) => p.stats.assists ?? 0],
@@ -48,7 +48,7 @@ const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
   ['Movement', (p) => `${Math.round(p.stats.movement ?? 0)} u`],
 ];
 
-const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
+export const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
   ['Captures', (x) => x.score ?? 0],
   ['Kills', (x) => x.kills ?? 0],
   ['Deaths', (x) => x.deaths ?? 0],
@@ -63,7 +63,7 @@ const TEAM_ROWS: [string, (t: Record<string, number>) => ReactNode][] = [
 ];
 
 /** Eventos da ranqueada (OG-362); `events` null = partida sem registro. */
-interface MatchEvents {
+export interface MatchEvents {
   players: { slot: number; name: string; username: string | null; team: number; isBot: boolean }[];
   events: (number | string)[][] | null;
 }
@@ -125,7 +125,7 @@ export function highlights(players: readonly PlayerLine[]): { label: string; pla
 }
 
 /** Abates por zona: base inimiga · meio · própria base (OG-355). */
-const zones = (p: PlayerLine) =>
+export const zones = (p: PlayerLine) =>
   p.stats.killsEnemyBase === undefined ? '—' : `${p.stats.killsEnemyBase} · ${p.stats.killsMidfield ?? 0} · ${p.stats.killsOwnBase ?? 0}`;
 
 /** Melhor jogador: mais frags; desempate por capturas, kills e menos mortes. */
@@ -211,6 +211,30 @@ export function SeriesScreen() {
       </section>
       <SeriesPanel series={s} />
     </Page>
+  );
+}
+
+/**
+ * "Baixar PDF" (OG-425, OG-426): o gerador e o jsPDF só são baixados no toque; enquanto monta, o
+ * botão mostra "Gerando o PDF...".
+ */
+function PdfButton({ make }: { make: (pdf: typeof import('./report-pdf.js')) => Promise<void> }) {
+  const { t } = usePrefs();
+  const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  return (
+    <Button
+      variant="secondary"
+      disabled={state === 'busy'}
+      onClick={() => {
+        setState('busy');
+        import('./report-pdf.js').then(make).then(
+          () => setState('idle'),
+          () => setState('error'),
+        );
+      }}
+    >
+      {state === 'busy' ? t('Creating the PDF...') : state === 'error' ? t('Could not create the PDF.') : t('Download PDF')}
+    </Button>
   );
 }
 
@@ -322,6 +346,7 @@ export function MatchScreen() {
             {t('Watch replay')}
           </Button>
         )}
+        <PdfButton make={async (pdf) => pdf.saveMatchPdf(m, events.data ?? null, t, prefs.locale)} />
         <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(location.href).then(() => setCopied(true))}>
           {copied ? t('Link copied') : t('Copy link')}
         </Button>
