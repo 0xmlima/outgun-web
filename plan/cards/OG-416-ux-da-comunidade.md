@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 5 pts |
 | Sprint | S44 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-200 |
 | Regras de negócio | RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -27,7 +27,7 @@ Como jogador, quero uma tela inicial e menus com mais cara de jogo, para entrar 
 
 ## Critérios de aceite
 - [x] `pnpm verify` verde no head da PR (o teste de tick com 32 conexões só passou rodando em série; ele oscila com a máquina carregada).
-- [ ] PO confere a tela inicial, os menus e a escolha de time no Casual.
+- [x] PO confere a tela inicial, os menus e a escolha de time no Casual (aprovado em 2026-10-25).
 
 ## Notas de implementação
 - Nada do HUD mudou de lugar; a escolha de time só manda o `changeTeam` ao conectar (`game/host.ts`).

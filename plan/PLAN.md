@@ -878,7 +878,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-413](cards/OG-413-estilos-do-numero.md) | Estilos do número do jogador | E9 | 3 | Should | S43 | OG-410 | Concluído |
 | [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | — | OG-409 | Backlog |
 | [OG-415](cards/OG-415-trava-do-numero-desligada.md) | Trava da troca de número desligada | E9 | 1 | Must | S43 | OG-410 | Concluído |
-| [OG-416](cards/OG-416-ux-da-comunidade.md) | Melhorias de UX da comunidade (PR #5) | E8 | 5 | Should | S44 | OG-200 | Em revisão |
+| [OG-416](cards/OG-416-ux-da-comunidade.md) | Melhorias de UX da comunidade (PR #5) | E8 | 5 | Should | S44 | OG-200 | Concluído |
 
 **Total:** 258 cards, 857 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 189 cards, 562 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
