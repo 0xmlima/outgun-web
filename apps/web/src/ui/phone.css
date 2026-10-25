@@ -9,6 +9,18 @@
 :root[data-phone] .app-shell {
   overflow-x: hidden;
 }
+/* a página inteira rola (o rodapé vai para o fim, em vez de ficar preso embaixo); a barra fica no topo */
+:root[data-phone] .app-shell.ui-page {
+  overflow-y: auto;
+}
+:root[data-phone] .app-main {
+  flex: 1 0 auto;
+  overflow: visible;
+}
+:root[data-phone] .app-topbar {
+  position: sticky;
+  top: 0;
+}
 
 /* Barra de cima: logo, trilha, sino, conta e o botão de menu; a navegação vira gaveta */
 :root[data-phone] .app-topbar {
@@ -73,7 +85,7 @@
   padding: var(--space-4);
 }
 :root[data-phone] .ui-pagebody.full {
-  padding-inline: 0;
+  padding-inline: var(--space-4);
 }
 :root[data-phone] .ui-pagetitle {
   font-size: var(--text-xl);
@@ -147,8 +159,8 @@
 }
 
 /* Formulários (OG-420): o campo focado e o botão logo abaixo dele não ficam atrás do teclado virtual */
-:root[data-phone] .app-main {
-  scroll-padding-block: var(--space-6) 8rem;
+:root[data-phone] .app-shell.ui-page {
+  scroll-padding-block: 5rem 8rem;
 }
 :root[data-phone] .ui-pagebody.narrow {
   max-width: none;
