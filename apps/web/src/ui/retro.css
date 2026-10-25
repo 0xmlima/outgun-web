@@ -1,0 +1,258 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Estilo retrô das telas fora da partida (o da tela inicial): contorno preto de pixel com os cantos
+   em degrau, chanfro claro em cima e escuro embaixo, sombra dura, títulos e botões em caixa alta.
+   Vale só dentro da moldura dos menus (`.app-shell`): a partida, o HUD, o replay e o espectador ficam
+   como estão. Carregado depois dos temas de menu, para valer sobre eles nos mesmos seletores.
+
+   O contorno é feito com sombras deslocadas (em cima, embaixo e dos lados), que não cobrem os cantos:
+   o canto fica "mordido" como no pixel art, sem clip-path (que cortaria foco, listas e a sombra). */
+
+.app-shell {
+  --px-outline: 0 -3px 0 0 #000, 0 3px 0 0 #000, -3px 0 0 0 #000, 3px 0 0 0 #000;
+  --px-bevel: inset 0 3px 0 rgb(255 255 255 / 9%), inset 0 -4px 0 rgb(0 0 0 / 28%);
+  --px-drop: 0 9px 0 0 rgb(0 0 0 / 40%);
+  --px-drop-sm: 0 6px 0 0 rgb(0 0 0 / 40%);
+}
+
+/* Fundo de todas as telas: listras diagonais e linhas de CRT */
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 42.4px, rgb(255 255 255 / 3.5%) 42.4px 84.8px),
+    radial-gradient(70% 55% at 50% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent),
+    color-mix(in srgb, var(--accent) 16%, var(--surface-0));
+}
+.app-backdrop::after {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgb(0 0 0 / 16%) 0 1px, transparent 1px 3px);
+  content: '';
+}
+
+/* Painéis */
+.app-shell .ui-panel {
+  position: relative;
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--px-outline), var(--px-bevel), var(--px-drop);
+}
+.app-shell .ui-panel::before {
+  content: none;
+}
+.app-shell .ui-panel-title {
+  color: var(--text-accent);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* o tema "campo" corta as quinas da ação principal com um :is() de especificidade maior: tira o corte */
+.app-shell[data-menu-theme] :is(.ui-button, .ui-menu-item) {
+  clip-path: none;
+}
+
+/* Botões: em relevo, sobem ao passar o mouse e afundam ao apertar (o fantasma fica sem contorno) */
+.app-shell .ui-button {
+  border: 0;
+  border-radius: 0;
+  clip-path: none;
+  box-shadow: var(--px-outline), var(--px-bevel), var(--px-drop-sm);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition:
+    background var(--duration),
+    transform 90ms steps(2),
+    box-shadow 90ms steps(2);
+}
+.app-shell .ui-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--px-outline), var(--px-bevel), 0 8px 0 0 rgb(0 0 0 / 40%);
+}
+.app-shell .ui-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--px-outline), inset 0 3px 0 rgb(255 255 255 / 9%), 0 3px 0 0 rgb(0 0 0 / 40%);
+}
+.app-shell .ui-button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 5px;
+  box-shadow: var(--px-outline), var(--px-bevel), var(--px-drop-sm);
+}
+.app-shell .ui-button-secondary {
+  background: var(--surface-2);
+}
+.app-shell .ui-button-ghost,
+.app-shell .ui-button-ghost:hover:not(:disabled),
+.app-shell .ui-button-ghost:active:not(:disabled) {
+  box-shadow: none;
+  transform: none;
+}
+.app-shell .ui-button:disabled {
+  box-shadow: var(--px-outline);
+  opacity: 0.7;
+}
+
+/* Selos */
+.app-shell .ui-badge {
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 -2px 0 0 currentColor,
+    0 2px 0 0 currentColor,
+    -2px 0 0 0 currentColor,
+    2px 0 0 0 currentColor;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Abas: caixa alta, a escolhida em destaque com o contorno de pixel em cima e dos lados */
+.app-shell .ui-tab {
+  border-radius: 0;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.app-shell .ui-tab[aria-selected='true'] {
+  color: var(--text-accent);
+  background: var(--surface-2);
+  border-bottom-color: transparent;
+  box-shadow:
+    0 -3px 0 0 #000,
+    -3px 0 0 0 #000,
+    3px 0 0 0 #000,
+    inset 0 3px 0 rgb(255 255 255 / 9%);
+}
+
+/* Campos: afundados, com contorno preto por dentro */
+.app-shell :is(.ui-input, .ui-textarea, .ui-choice-value) {
+  background: color-mix(in srgb, var(--surface-0) 70%, var(--surface-2));
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    inset 0 5px 0 rgb(0 0 0 / 35%);
+}
+.app-shell :is(.ui-input, .ui-textarea, .ui-choice-value):hover:not(:disabled) {
+  box-shadow:
+    inset 0 0 0 2px var(--border-strong),
+    inset 0 5px 0 rgb(0 0 0 / 35%);
+}
+.app-shell :is(.ui-input, .ui-textarea, .ui-choice-value):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Seletores ‹ valor ›: espaço para os contornos de pixel não se encostarem */
+.app-shell .ui-choice {
+  gap: var(--space-3);
+}
+.app-shell .ui-choice-list {
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--px-outline), var(--px-drop);
+}
+.app-shell .ui-choice-list li {
+  border-radius: 0;
+}
+/* Abas de formato (Todos, 3x3...): respiro antes do que vem embaixo */
+.app-shell .format-filter {
+  margin-bottom: var(--space-5);
+}
+
+/* Interruptor e controle deslizante: quadrados */
+.app-shell .ui-switch,
+.app-shell .ui-switch-thumb {
+  border-radius: 0;
+}
+.app-shell .ui-switch {
+  box-shadow: inset 0 0 0 2px #000;
+}
+.app-shell .ui-slider::-webkit-slider-thumb {
+  border-radius: 0;
+  box-shadow: 0 0 0 2px #000;
+}
+.app-shell .ui-slider::-moz-range-thumb {
+  border-radius: 0;
+  box-shadow: 0 0 0 2px #000;
+}
+
+/* Itens de menu (MenuList): blocos em relevo */
+.app-shell .ui-menu-item {
+  border: 0;
+  border-radius: 0;
+  clip-path: none;
+  box-shadow: var(--px-outline), var(--px-bevel), var(--px-drop-sm);
+}
+.app-shell .ui-menu-label {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.app-shell .ui-menu-icon {
+  border-radius: 0;
+}
+
+/* Tabelas: cabeçalho em caixa alta */
+.app-shell .ui-table th {
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Janelas (diálogos) */
+.app-shell .ui-dialog {
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--px-outline), var(--px-bevel), var(--px-drop);
+}
+
+/* Barra superior: links em caixa alta, o atual com um bloco embaixo; sino, trilha e conta quadrados */
+.app-shell .app-topbar {
+  border-bottom: 3px solid #000;
+  box-shadow: 0 3px 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.app-shell .app-nav-link {
+  border-radius: 0;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.app-shell .app-nav-link.active {
+  background: transparent;
+  box-shadow: inset 0 -4px 0 var(--text-accent);
+}
+.app-shell :is(.app-bell-button, .app-account-user) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--px-outline), var(--px-bevel);
+}
+.app-shell :is(.app-bell-panel, .app-music-panel) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--px-outline), var(--px-drop);
+}
+.app-shell .ui-player-avatar {
+  shape-rendering: crispEdges;
+}
+
+/* Títulos das páginas */
+.app-shell .ui-pagetitle {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .ui-button {
+    transition: none;
+  }
+  .app-shell .ui-button:hover:not(:disabled),
+  .app-shell .ui-button:active:not(:disabled) {
+    transform: none;
+  }
+}
