@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S45 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-418 |
 | Regras de negócio | RN-SOC-01, RN-UI-08 |
 | Skills | `outgun-card-workflow` |
@@ -24,11 +24,12 @@ Como jogador no celular, quero ver o meu perfil e o dos outros, para acompanhar 
 - Gráficos e tabelas sem rolagem horizontal da página.
 
 ## Critérios de aceite
-- [ ] Perfil completo em 360 px, com as mesmas informações do desktop.
-- [ ] Desktop sem mudança.
+- [x] Perfil completo em 360 px, com as mesmas informações do desktop.
+- [x] Desktop sem mudança.
 
 ## Notas técnicas
 - Só layout e CSS; reaproveitar `milestones-panel.tsx`.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- O perfil já era uma coluna abaixo de ~40 rem (`report-grid` com 18 rem); no celular, os marcos viram grupos recolhíveis (`<details>`, `GroupBox`) com um marco por linha, e os números da aba Estatísticas ficam rótulo à esquerda e valor à direita.
+- `Table` ganhou `hideOnPhone` por coluna: em "Partidas recentes" somem "Assistir" (o replay é só no computador) e "Capturas". As demais tabelas rolam dentro do painel com a 1ª coluna fixa (OG-418).

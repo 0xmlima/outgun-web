@@ -247,10 +247,11 @@ export function ProfileScreen() {
                     ),
                   },
                   { key: 'kd', header: `${t('Kills')}/${t('Deaths')}`, cell: (m) => `${m.player.kills}/${m.player.deaths}`, align: 'end' },
-                  { key: 'captures', header: t('Captures'), cell: (m) => m.player.captures, align: 'end' },
+                  { key: 'captures', header: t('Captures'), cell: (m) => m.player.captures, align: 'end', hideOnPhone: true },
                   {
                     key: 'replay',
                     header: '',
+                    hideOnPhone: true,
                     cell: (m) =>
                       m.replayUrl ? (
                         <Button

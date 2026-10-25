@@ -2,6 +2,7 @@
 // Tabela do design system v2 (OG-200): rolagem horizontal própria no celular e, com `onRowActivate`,
 // linhas navegáveis por ↑/↓/Home/End e ativadas com Enter ou clique (ranking, salas, partidas).
 import { useRef, useState, type ReactNode } from 'react';
+import { isPhone } from '../app/phone.js';
 import { rovingKey } from './keys.js';
 
 export interface Column<Row> {
@@ -9,6 +10,8 @@ export interface Column<Row> {
   readonly header: ReactNode;
   readonly cell: (row: Row) => ReactNode;
   readonly align?: 'start' | 'end';
+  /** Some no celular (OG-421): colunas secundárias ou que levam à partida (replay). */
+  readonly hideOnPhone?: boolean;
 }
 
 interface TableProps<Row> {
@@ -22,7 +25,8 @@ interface TableProps<Row> {
   readonly empty?: ReactNode;
 }
 
-export function Table<Row>({ caption, columns, rows, rowKey, onRowActivate, empty }: TableProps<Row>) {
+export function Table<Row>({ caption, columns: all, rows, rowKey, onRowActivate, empty }: TableProps<Row>) {
+  const columns = isPhone() ? all.filter((c) => !c.hideOnPhone) : all;
   const [current, setCurrent] = useState(0);
   const refs = useRef<(HTMLTableRowElement | null)[]>([]);
   const interactive = onRowActivate !== undefined;

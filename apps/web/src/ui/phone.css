@@ -215,3 +215,37 @@
 .phone-home .home-footer {
   margin-top: var(--space-4);
 }
+
+/* Perfil (OG-421): marcos em uma coluna, por grupo recolhível; cabeçalho e números em cartões */
+:root[data-phone] .profile-milestones {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-phone] details.milestone-group {
+  border-top: 1px solid var(--border);
+}
+:root[data-phone] details.milestone-group + details.milestone-group {
+  margin-top: 0;
+}
+:root[data-phone] details.milestone-group summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  cursor: pointer;
+  list-style-position: inside;
+}
+:root[data-phone] details.milestone-group summary h3 {
+  display: inline;
+  margin: 0;
+}
+:root[data-phone] details.milestone-group[open] summary {
+  margin-bottom: var(--space-2);
+}
+:root[data-phone] .profile-head {
+  gap: var(--space-2) var(--space-3);
+}
+:root[data-phone] .profile-numbers > div {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+:root[data-phone] .rating-chart .tick {
+  font-size: 10px;
+}

@@ -884,7 +884,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-418](cards/OG-418-barra-e-navegacao-no-celular.md) | Barra de cima, navegação e base responsiva no celular | E8 | 3 | Must | S45 | OG-417 | Em revisão |
 | [OG-419](cards/OG-419-inicio-do-celular.md) | Tela inicial do celular (portal) | E8 | 3 | Must | S45 | OG-418 | Em revisão |
 | [OG-420](cards/OG-420-conta-no-celular.md) | Entrar, cadastro e conta no celular | E8 | 2 | Must | S45 | OG-418 | Em revisão |
-| [OG-421](cards/OG-421-perfil-no-celular.md) | Perfil do jogador no celular | E9 | 3 | Must | S45 | OG-418 | Pronto |
+| [OG-421](cards/OG-421-perfil-no-celular.md) | Perfil do jogador no celular | E9 | 3 | Must | S45 | OG-418 | Em revisão |
 | [OG-422](cards/OG-422-cla-no-celular.md) | Clã no celular: perfil, estatísticas e ranking de clãs | E9 | 3 | Must | S45 | OG-418 | Pronto |
 | [OG-423](cards/OG-423-ranking-no-celular.md) | Ranking, hall da fama e jogadores no celular | E9 | 3 | Should | S45 | OG-418 | Pronto |
 | [OG-424](cards/OG-424-relatorio-no-celular.md) | Relatório da partida e da série no celular | E9 | 3 | Must | S45 | OG-418 | Pronto |
