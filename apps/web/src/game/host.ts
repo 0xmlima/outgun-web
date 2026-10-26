@@ -13,6 +13,7 @@ import { ASSETS, loadManifest } from '../assets.js';
 import { loadMap } from './map-loader.js';
 import { LocalDemo } from './demo.js';
 import { guardFrame } from './frame-guard.js';
+import { captureError } from '../app/errors.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
 import { chordLabel, isGameKey } from './input/bindings.js';
@@ -741,7 +742,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       app.ticker.add(
         guardFrame(drawFrame, (err) => {
           console.error('erro no desenho do quadro', err);
-          reportError(err); // vai ao serviço de erros (app/errors.ts)
+          // marcado para achar a causa do congelamento da issue #6 no Sentry (OG-434)
+          captureError(err, { tags: { area: 'render', mode: session ? 'online' : 'demo' } });
         }),
       );
     } catch (err) {

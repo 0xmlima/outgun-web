@@ -63,7 +63,10 @@ endereço antigo precisa entrar de novo no novo (sessão e opções do navegador
   de senha; o padrão `log` só registra no log). Sem domínio verificado no Resend, use
   `MAIL_FROM=onboarding@resend.dev` (o Resend só entrega para o e-mail dono da conta). Reenviar as
   boas-vindas: `docker compose exec -T api node dist/cli.js welcome NOME`.
-- `SENTRY_DSN` para o envio de erros.
+- `SENTRY_DSN` para o envio de erros da API e do game server (projeto `outgun-server` no Sentry) e
+  `CSP_EXTRA=https://o315869.ingest.us.sentry.io` para o navegador poder mandar os erros do cliente
+  (projeto `outgun-web`, cujo DSN o `deploy.sh` põe no build; OG-434). O Claude lê os erros pelo MCP
+  do Sentry (`claude mcp add --transport http sentry https://mcp.sentry.dev/mcp`).
 - `GITHUB_ISSUES_TOKEN` para o painel abrir issues dos relatos de bug do site (OG-430): token
   _fine-grained_ do GitHub com acesso só ao repositório `thiagovasconcellos/outgun-web` e a permissão
   **Issues: Read and write** (validade de até 1 ano; renovar antes de vencer). `GITHUB_ISSUES_REPO`
