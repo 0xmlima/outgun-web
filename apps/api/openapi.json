@@ -12607,6 +12607,63 @@
         }
       }
     },
+    "/admin/feedback/{id}/issue": {
+      "get": {
+        "summary": "Prévia da issue do GitHub de um relato de bug (ou a issue já aberta)",
+        "tags": ["admin"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "summary": "Abre a issue do GitHub de um relato de bug (uma só por relato)",
+        "tags": ["admin"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 250
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/admin/feedback.csv": {
       "get": {
         "summary": "Feedback do beta em CSV",
@@ -12979,6 +13036,134 @@
                         }
                       ]
                     }
+                  },
+                  "bug": {
+                    "type": "object",
+                    "required": [
+                      "area",
+                      "summary",
+                      "steps",
+                      "expected",
+                      "actual",
+                      "frequency",
+                      "severity",
+                      "evidence",
+                      "workaround"
+                    ],
+                    "properties": {
+                      "area": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": ["match"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["lobby"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["ranked"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["portal"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["clan"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["report"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["replay"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["account"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["moderation"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["desktop"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["connection"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["other"]
+                          }
+                        ]
+                      },
+                      "summary": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "steps": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "expected": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "actual": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "frequency": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": ["always"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["sometimes"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["once"]
+                          }
+                        ]
+                      },
+                      "severity": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": ["critical"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["high"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["medium"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["low"]
+                          }
+                        ]
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "workaround": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    }
                   }
                 }
               }
@@ -13058,6 +13243,17 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/feedback/mine": {
+      "get": {
+        "summary": "Os relatos do próprio jogador, com a situação da issue do GitHub (OG-431)",
+        "tags": ["beta"],
+        "responses": {
+          "200": {
+            "description": "Default Response"
           }
         }
       }
