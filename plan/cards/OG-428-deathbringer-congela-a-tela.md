@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S46 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Issue | [#6](https://github.com/thiagovasconcellos/outgun-web/issues/6) |
 | Regras de negócio | RN-UI-05 |
@@ -28,8 +28,8 @@ Como jogador, quero continuar vendo a partida depois de ser atingido pela explos
 - Teste da física para o caso do NaN.
 
 ## Critérios de aceite
-- [ ] Um erro lançado no desenho de um quadro não congela a tela (teste do laço).
-- [ ] Jogador fora da sala com velocidade zero troca de sala sem NaN e sem laço infinito (teste).
+- [x] Um erro lançado no desenho de um quadro não congela a tela (teste do laço).
+- [x] Jogador fora da sala com velocidade zero troca de sala sem NaN e sem laço infinito (teste).
 - [ ] PO confere numa partida com Deathbringer.
 
 ## Notas técnicas
@@ -37,4 +37,6 @@ Como jogador, quero continuar vendo a partida depois de ser atingido pela explos
 - Mudança na simulação: registrar como D-81.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `guardFrame` (`game/frame-guard.ts`) envolve o quadro da partida no ticker: o quadro com erro se perde, o erro vai ao console e ao serviço de erros (`reportError`, uma vez por mensagem) e o desenho segue.
+- A exceção exata do desenho não foi achada lendo o código (sem acesso aos logs do beta); com o Sentry ligado no build (`VITE_SENTRY_DSN`) ela aparece no próximo caso. Os estados reais do replay passados pela predição não deram NaN.
+- Física: `changeRoomIfOutside` sem divisão por zero e laços que param com NaN (D-81), com teste.
