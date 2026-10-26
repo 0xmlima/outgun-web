@@ -777,6 +777,13 @@ export const feedback = pgTable('feedback', {
   context: jsonb('context').$type<Record<string, string | number>>().notNull().default({}),
   /** Relato de bug com os campos do modelo de issue (OG-429); null nos outros tipos. */
   bug: jsonb('bug').$type<BugReport>(),
+  /** Issue aberta pelo painel (OG-430). */
+  githubIssue: integer('github_issue'),
+  githubUrl: text('github_url'),
+  /** Situação lida do GitHub (OG-431): open, closed ou not_planned; versão da correção pelo milestone. */
+  issueState: text('issue_state'),
+  fixedIn: text('fixed_in'),
+  issueCheckedAt: tstz('issue_checked_at'),
   status: feedbackStatus('status').notNull().default('new'),
   note: text('note').notNull().default(''),
   handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),

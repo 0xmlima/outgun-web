@@ -11,6 +11,7 @@ import { areaLabels, frequencyLabels, severityLabels, type BugReport } from '../
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { TextAreaField, TextField } from '../ui/Field.js';
+import { Dialog } from '../ui/Dialog.js';
 import { Page } from '../ui/Page.js';
 import { Table } from '../ui/Table.js';
 import { decodeMapFile, parseMapFile } from '@outgun/content';
@@ -1481,6 +1482,8 @@ interface FeedbackRow {
   text: string;
   context: Record<string, string | number>;
   bug: BugReport | null;
+  githubIssue: number | null;
+  githubUrl: string | null;
   status: string;
   note: string;
   createdAt: string;
@@ -1524,12 +1527,58 @@ function BugDetails({ bug, context }: { readonly bug: BugReport; readonly contex
   );
 }
 
+/** Prévia e abertura da issue do GitHub de um relato de bug (OG-430). */
+function IssueDialog({ id, onClose }: { readonly id: number; readonly onClose: (done: string | null) => void }) {
+  const { t } = usePrefs();
+  const preview = useLoad<{ draft?: { title: string; body: string; labels: string[] }; issue?: { number: number; url: string } }>(`/admin/feedback/${id}/issue`, 0);
+  const [title, setTitle] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const draft = preview.data?.draft;
+  const create = () => {
+    setBusy(true);
+    api<{ number: number }>(`/admin/feedback/${id}/issue`, { body: title ? { title } : {} }).then(
+      (r) => onClose(t('Issue #$1 opened on GitHub.', String(r.number))),
+      (e: unknown) => {
+        setBusy(false);
+        setError(errorText(e));
+      },
+    );
+  };
+  return (
+    <Dialog
+      open
+      title={t('Open issue on GitHub')}
+      closeLabel={t('Close')}
+      onClose={() => onClose(null)}
+      actions={
+        <>
+          <Button onClick={() => onClose(null)}>{t('Cancel')}</Button>
+          <Button variant="primary" disabled={!draft || busy} onClick={create}>
+            {t('Open issue')}
+          </Button>
+        </>
+      }
+    >
+      <Status error={error ?? preview.error} />
+      {draft && (
+        <>
+          <TextField label={t('Title')} value={title ?? draft.title} maxLength={250} onChange={setTitle} />
+          <p className="admin-muted">{t('Labels: $1. The repository is public: everyone will see this text.', draft.labels.join(', '))}</p>
+          <pre className="admin-issue-body">{draft.body}</pre>
+        </>
+      )}
+    </Dialog>
+  );
+}
+
 /** Feedback do beta (OG-106): resumo da fidelidade (critério do lançamento), filtros e triagem. */
 function FeedbackTab() {
   const { t } = usePrefs();
   const [status, setStatus] = useState('');
   const query = status ? `?status=${status}` : '';
-  const list = useLoad<{ summary: { all: Summary; veterans: Summary; openCritical: number }; feedback: FeedbackRow[] }>(`/admin/feedback${query}`, 15_000);
+  const list = useLoad<{ summary: { all: Summary; veterans: Summary; openCritical: number }; feedback: FeedbackRow[]; github: boolean }>(`/admin/feedback${query}`, 15_000);
+  const [issueFor, setIssueFor] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ text?: string; error?: string }>({});
   const triage = (id: number, next: string) =>
     api(`/admin/feedback/${id}`, { body: { status: next } }).then(
@@ -1615,6 +1664,22 @@ function FeedbackTab() {
               ),
           },
           {
+            key: 'issue',
+            header: t('Issue'),
+            cell: (f) =>
+              f.githubUrl ? (
+                <a href={f.githubUrl} target="_blank" rel="noreferrer">
+                  #{f.githubIssue}
+                </a>
+              ) : f.bug && list.data?.github ? (
+                <Button onClick={() => setIssueFor(f.id)}>
+                  {t('Open issue')}
+                </Button>
+              ) : (
+                '—'
+              ),
+          },
+          {
             key: 'status',
             header: t('Status'),
             cell: (f) => (
@@ -1629,6 +1694,18 @@ function FeedbackTab() {
           },
         ]}
       />
+      {issueFor !== null && (
+        <IssueDialog
+          id={issueFor}
+          onClose={(done) => {
+            setIssueFor(null);
+            if (done) {
+              setMsg({ text: done });
+              list.reload();
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

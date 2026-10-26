@@ -36,6 +36,10 @@ export interface ApiConfig {
   mailer: 'log' | 'memory' | 'mailpit' | 'resend';
   mailpitUrl: string;
   resendApiKey: string | undefined;
+  /** Token do GitHub (fine-grained, Issues) para abrir issues dos relatos de bug (OG-430); vazio desliga. */
+  githubIssuesToken: string | undefined;
+  /** Repositório das issues, `dono/nome`. */
+  githubIssuesRepo: string;
   mailFrom: string;
   /** Rotas de depuração (caixa de saída do MAILER=memory). Nunca em produção. */
   devRoutes: boolean;
@@ -93,6 +97,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     mailer,
     mailpitUrl: env.MAILPIT_URL ?? 'http://localhost:8025',
     resendApiKey: env.RESEND_API_KEY || undefined,
+    githubIssuesToken: env.GITHUB_ISSUES_TOKEN || undefined,
+    githubIssuesRepo: env.GITHUB_ISSUES_REPO || 'thiagovasconcellos/outgun-web',
     mailFrom: env.MAIL_FROM ?? 'no-reply@outgun.local',
     devRoutes: !production && env.DEV_ROUTES === '1',
     ticketSigningKeys: env.TICKET_SIGNING_KEYS ?? '',

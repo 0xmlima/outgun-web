@@ -1633,6 +1633,13 @@
   margin: 0 0 var(--space-2);
   white-space: pre-wrap;
 }
+/* prévia da issue do GitHub (OG-430) */
+.admin-issue-body {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 0.85em;
+}
 .admin-row-actions {
   display: inline-flex;
   flex-wrap: wrap;

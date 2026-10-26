@@ -64,3 +64,71 @@ describe.skipIf(!pgAdminUrl)('relatos de bug (OG-429)', () => {
     expect(row.bug).toBeNull();
   });
 });
+
+/** GitHub simulado: guarda as issues criadas e responde a situação de cada uma. */
+export class FakeIssues {
+  created: { title: string; body: string; labels: string[] }[] = [];
+  states = new Map<number, { state: string; stateReason: string | null; milestone: string | null }>();
+  gets = 0;
+  async create(draft: { title: string; body: string; labels: string[] }) {
+    this.created.push(draft);
+    const number = 100 + this.created.length;
+    this.states.set(number, { state: 'open', stateReason: null, milestone: null });
+    return { number, url: `https://github.com/thiagovasconcellos/outgun-web/issues/${number}` };
+  }
+  async get(number: number) {
+    this.gets++;
+    return this.states.get(number)!;
+  }
+}
+
+describe.skipIf(!pgAdminUrl)('issue do GitHub pelo painel (OG-430)', () => {
+  let t: TestDatabase;
+  let app: App;
+  let off: App;
+  let ip = 0;
+  const issues = new FakeIssues();
+  const cookies: Record<string, string> = {};
+  const post = (a: App, url: string, payload: unknown, cookie?: string) =>
+    a.inject({ method: 'POST', url, payload: payload as object, remoteAddress: `10.31.0.${++ip}`, headers: { origin: ORIGIN, ...(cookie ? { cookie } : {}) } });
+  const get = (a: App, url: string, cookie?: string) => a.inject({ url, headers: cookie ? { cookie } : {} });
+  const cookieOf = (res: { cookies: { name: string; value: string }[] }) => `og_session=${res.cookies.find((c) => c.name === 'og_session')!.value}`;
+
+  beforeAll(async () => {
+    t = await createTestDatabase();
+    await migrateUp(t.sql);
+    await seed(t.db);
+    await t.db.update(users).set({ isModerator: true }).where(eq(users.username, 'Jogador2'));
+    const config = { ...loadConfig({}), databaseUrl: t.url };
+    app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false, issues });
+    off = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false, issues: null });
+    for (const name of ['Jogador1', 'Jogador2']) cookies[name] = cookieOf(await post(app, '/auth/login', { username: name, password: 'outgun-dev' }));
+  });
+  afterAll(async () => {
+    await app?.close();
+    await off?.close();
+    await t?.drop();
+  });
+
+  it('cria a issue no formato do modelo, grava o número e não duplica; sem token, 503', async () => {
+    const id = (await post(app, '/feedback', { kind: 'bug', text: '', context: { version: '2.45.0', room: 'main', map: '6 Askelta' }, bug: BUG }, cookies.Jogador1)).json().id;
+    expect((await post(app, `/admin/feedback/${id}/issue`, {}, cookies.Jogador1)).statusCode).toBe(403);
+    const preview = (await get(app, `/admin/feedback/${id}/issue`, cookies.Jogador2)).json();
+    expect(preview.draft.title).toBe(`[Bug] Partida / HUD: ${BUG.summary}`);
+    expect(preview.draft.labels).toEqual(['bug', 'triagem', 'gravidade:critico']);
+    const first = (await post(app, `/admin/feedback/${id}/issue`, {}, cookies.Jogador2)).json();
+    expect(first).toMatchObject({ number: 101, created: true });
+    const body = issues.created[0]!.body;
+    for (const piece of ['## Resumo', '| Versão | 2.45.0 |', '| Apelido no jogo | Jogador1 |', '1. Matar o portador', '## Gravidade\nCrítico', 'Sair e entrar na sala']) expect(body).toContain(piece);
+    expect(body).not.toMatch(/@|og_session/);
+    const again = (await post(app, `/admin/feedback/${id}/issue`, {}, cookies.Jogador2)).json();
+    expect(again).toMatchObject({ number: 101, created: false });
+    expect(issues.created).toHaveLength(1);
+    const panel = (await get(app, '/admin/feedback?kind=bug', cookies.Jogador2)).json();
+    expect(panel.github).toBe(true);
+    expect(panel.feedback.find((f: { id: number }) => f.id === id)).toMatchObject({ githubIssue: 101, status: 'confirmed' });
+    expect((await get(off, '/admin/feedback', cookies.Jogador2)).json().github).toBe(false);
+    const other = (await post(off, '/feedback', { kind: 'bug', text: '', bug: BUG }, cookies.Jogador1)).json().id;
+    expect((await post(off, `/admin/feedback/${other}/issue`, {}, cookies.Jogador2)).statusCode).toBe(503);
+  });
+});

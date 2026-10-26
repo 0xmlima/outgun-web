@@ -1164,5 +1164,10 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Evidence (links to the match, screenshots, videos)': 'Evidências (links da partida, prints, vídeos)',
     'Your last match, the game version, your browser and the time go along automatically.': 'Sua última partida, a versão do jogo, o navegador e a hora vão junto automaticamente.',
     'Known workaround': 'Contorno conhecido',
+    Issue: 'Issue',
+    'Open issue': 'Abrir issue',
+    'Open issue on GitHub': 'Abrir issue no GitHub',
+    'Issue #$1 opened on GitHub.': 'Issue #$1 aberta no GitHub.',
+    'Labels: $1. The repository is public: everyone will see this text.': 'Labels: $1. O repositório é público: todos verão este texto.',
   },
 };

@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S46 |
-| Status | Backlog |
+| Status | Em andamento |
 | Dependências | OG-430 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

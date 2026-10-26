@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S46 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-429 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -26,12 +26,14 @@ Como moderador, quero transformar um relato de bug do site numa issue do GitHub 
 - O corpo leva o apelido (público no jogo), versão, navegador, sala e mapa; nada de e-mail, conta ou IP.
 
 ## Critérios de aceite
-- [ ] Com o GitHub simulado no teste, a API cria a issue com título, corpo e labels certos e grava o número.
-- [ ] Segunda tentativa no mesmo feedback devolve a issue existente (não duplica).
-- [ ] Sem token: 503 e o botão não aparece.
+- [x] Com o GitHub simulado no teste, a API cria a issue com título, corpo e labels certos e grava o número.
+- [x] Segunda tentativa no mesmo feedback devolve a issue existente (não duplica).
+- [x] Sem token: 503 e o botão não aparece.
 
 ## Notas técnicas
 - Variáveis `GITHUB_ISSUES_TOKEN` e `GITHUB_ISSUES_REPO` (padrão `thiagovasconcellos/outgun-web`) no `.env` do servidor; documentar em `deploy/vps/README.md`.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `apps/api/src/github.ts`: cliente REST (`IssueTracker`, injetável em `AppDeps.issues`) e `issueDraft` no formato do modelo; labels `bug`, `triagem`, `gravidade:*`. Rotas `GET/POST /admin/feedback/:id/issue` (prévia e criação, auditada como `feedback_issue`; relato `new` passa a `confirmed`).
+- Painel: coluna Issue com o link ou o botão; o diálogo mostra a prévia, deixa editar o título e avisa que o repositório é público.
+- **Pendente do PO:** criar o token e pôr `GITHUB_ISSUES_TOKEN` no `/opt/outgun/.env` (passo a passo em `deploy/vps/README.md`).
