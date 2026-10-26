@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S46 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,8 +23,10 @@ Como PO, quero carregar as issues de bug e transformá-las em cards de uma sprin
 - Passo do fechamento de sprint na skill `outgun-card-workflow`.
 
 ## Critérios de aceite
-- [ ] `import --dry-run` lista os cards que criaria a partir das issues abertas.
-- [ ] `close` só fecha issue cujo card está `Concluído`.
+- [x] `import --dry-run` lista os cards que criaria a partir das issues abertas.
+- [x] `close` só fecha issue cujo card está `Concluído`.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `.github/ISSUE_TEMPLATE/bug.yml` com os títulos iguais aos das issues do painel (`github.ts`), para `tools/dev/issues.mjs` ler os dois; também lê o modelo em Markdown com caixas (como na issue #6). `config.yml` aponta o formulário do site e o relato privado de segurança.
+- Labels criados no repositório (`triagem`, `card-criado`, `gravidade:*`); a issue #6 ganhou `bug`, `card-criado` e `gravidade:critico` e o comentário com o OG-428.
+- Passos de import e close na skill `outgun-card-workflow`. O import não mexe no total de pontos (fica para o refinamento).
