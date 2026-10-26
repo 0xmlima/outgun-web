@@ -39,7 +39,7 @@ body:
     id: version
     attributes:
       label: Versão
-      placeholder: ex.: 2.45.0
+      placeholder: 'ex.: 2.45.0'
   - type: dropdown
     id: device
     attributes:
@@ -49,17 +49,17 @@ body:
     id: client
     attributes:
       label: Navegador e sistema
-      placeholder: ex.: Chrome 141 no Windows 11 · app da Steam
+      placeholder: 'ex.: Chrome 141 no Windows 11 · app da Steam'
   - type: input
     id: where
     attributes:
       label: Sala / mapa
-      placeholder: ex.: Casual, mapa 6 Askelta
+      placeholder: 'ex.: Casual, mapa 6 Askelta'
   - type: input
     id: when
     attributes:
       label: Data e hora
-      placeholder: ex.: 2026-10-26 21:40 BRT
+      placeholder: 'ex.: 2026-10-26 21:40 BRT'
   - type: input
     id: nick
     attributes:

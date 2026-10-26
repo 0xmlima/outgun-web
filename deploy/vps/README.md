@@ -65,7 +65,7 @@ endereço antigo precisa entrar de novo no novo (sessão e opções do navegador
   boas-vindas: `docker compose exec -T api node dist/cli.js welcome NOME`.
 - `SENTRY_DSN` para o envio de erros.
 - `GITHUB_ISSUES_TOKEN` para o painel abrir issues dos relatos de bug do site (OG-430): token
-  *fine-grained* do GitHub com acesso só ao repositório `thiagovasconcellos/outgun-web` e a permissão
+  _fine-grained_ do GitHub com acesso só ao repositório `thiagovasconcellos/outgun-web` e a permissão
   **Issues: Read and write** (validade de até 1 ano; renovar antes de vencer). `GITHUB_ISSUES_REPO`
   troca o repositório (padrão `thiagovasconcellos/outgun-web`). Sem o token, o botão "Abrir issue" some.
 

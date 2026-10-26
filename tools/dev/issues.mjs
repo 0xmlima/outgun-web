@@ -101,7 +101,16 @@ function cardFor(id, issue, sprint) {
   const summary = f.get('Resumo') || issue.title;
   const bare = issue.title.replace(/^\[Bug\]\s*/i, '').replace(/^[^:]+:\s*/, '') || summary;
   const title = bare.charAt(0).toUpperCase() + bare.slice(1);
-  const ctx = ['Versão', 'Dispositivo', 'Navegador e sistema', 'Sala / mapa', 'Sala / modo / mapa', 'Data e hora', 'Data e hora (com fuso)', 'Apelido no jogo']
+  const ctx = [
+    'Versão',
+    'Dispositivo',
+    'Navegador e sistema',
+    'Sala / mapa',
+    'Sala / modo / mapa',
+    'Data e hora',
+    'Data e hora (com fuso)',
+    'Apelido no jogo',
+  ]
     .filter((k) => f.get(k))
     .map((k) => `${k}: ${f.get(k)}`)
     .join(' · ');
@@ -141,7 +150,11 @@ ${ctx ? `- ${ctx}\n` : ''}- Passos: ${(f.get('Passos para reproduzir') || '—')
 ## Notas de implementação
 (preenchido durante a execução)
 `;
-  return { md, file: `OG-${id}-${slugify(title)}.md`, row: `| [OG-${id}](cards/OG-${id}-${slugify(title)}.md) | ${title.replace(/\|/g, '/')} (issue #${issue.number}) | ${epic} | 2 | ${priority} | ${sprint} | — | Backlog |` };
+  return {
+    md,
+    file: `OG-${id}-${slugify(title)}.md`,
+    row: `| [OG-${id}](cards/OG-${id}-${slugify(title)}.md) | ${title.replace(/\|/g, '/')} (issue #${issue.number}) | ${epic} | 2 | ${priority} | ${sprint} | — | Backlog |`,
+  };
 }
 
 function addToPlan(rows, ids, sprint) {
@@ -159,7 +172,11 @@ function addToPlan(rows, ids, sprint) {
     lines[at] = cells.join(' | ');
   } else {
     const lastSprint = lines.reduce((a, l, i) => (/^\| S\d+ \|/.test(l) ? i : a), -1);
-    lines.splice(lastSprint + 1, 0, `| ${sprint} | v2: rodada de correções (issues do GitHub) | ${list} | |`);
+    lines.splice(
+      lastSprint + 1,
+      0,
+      `| ${sprint} | v2: rodada de correções (issues do GitHub) | ${list} | |`,
+    );
   }
   plan = lines.join('\n');
   writeFileSync(PLAN, plan);
@@ -168,7 +185,22 @@ function addToPlan(rows, ids, sprint) {
 function importIssues() {
   const sprint = option('sprint');
   if (!sprint || !/^S\d+$/.test(sprint)) throw new Error('use --sprint SNN');
-  const issues = JSON.parse(gh('issue', 'list', '--state', 'open', '--label', 'bug', '--label', 'triagem', '--limit', '100', '--json', 'number,title,body,url'));
+  const issues = JSON.parse(
+    gh(
+      'issue',
+      'list',
+      '--state',
+      'open',
+      '--label',
+      'bug',
+      '--label',
+      'triagem',
+      '--limit',
+      '100',
+      '--json',
+      'number,title,body,url',
+    ),
+  );
   if (!issues.length) return console.log('nenhuma issue aberta com bug + triagem');
   let id = nextCardId();
   const made = [];
@@ -186,10 +218,26 @@ function importIssues() {
     sprint,
   );
   for (const { id: cid, issue } of made) {
-    gh('issue', 'comment', String(issue.number), '--body', `Virou o card OG-${cid} (sprint ${sprint}).`);
-    gh('issue', 'edit', String(issue.number), '--remove-label', 'triagem', '--add-label', 'card-criado');
+    gh(
+      'issue',
+      'comment',
+      String(issue.number),
+      '--body',
+      `Virou o card OG-${cid} (sprint ${sprint}).`,
+    );
+    gh(
+      'issue',
+      'edit',
+      String(issue.number),
+      '--remove-label',
+      'triagem',
+      '--add-label',
+      'card-criado',
+    );
   }
-  console.log(`${made.length} card(s) criados. Atualize o total de pontos da seção 10 e estime os cards no refinamento.`);
+  console.log(
+    `${made.length} card(s) criados. Atualize o total de pontos da seção 10 e estime os cards no refinamento.`,
+  );
 }
 
 function closeIssues() {
@@ -202,21 +250,34 @@ function closeIssues() {
     if (!issue || !/^\| Status \| Concluído \|$/m.test(md)) continue;
     done.push({ issue: Number(issue), card: file.slice(0, 6) });
   }
-  const open = done.filter((d) => JSON.parse(gh('issue', 'view', String(d.issue), '--json', 'state')).state === 'OPEN');
+  const open = done.filter(
+    (d) => JSON.parse(gh('issue', 'view', String(d.issue), '--json', 'state')).state === 'OPEN',
+  );
   if (!open.length) return console.log('nenhuma issue aberta de card concluído');
   for (const d of open) console.log(`fecha #${d.issue} (${d.card}) com milestone ${version}`);
   if (dryRun) return console.log('(dry-run: nada fechado)');
   const milestones = JSON.parse(ghApi(`repos/${REPO}/milestones?state=all&per_page=100`));
-  if (!milestones.some((m) => m.title === version)) ghApi(`repos/${REPO}/milestones`, '-f', `title=${version}`);
+  if (!milestones.some((m) => m.title === version))
+    ghApi(`repos/${REPO}/milestones`, '-f', `title=${version}`);
   for (const d of open) {
     gh('issue', 'edit', String(d.issue), '--milestone', version);
-    gh('issue', 'close', String(d.issue), '--reason', 'completed', '--comment', `Corrigido na ${version} (card ${d.card}).`);
+    gh(
+      'issue',
+      'close',
+      String(d.issue),
+      '--reason',
+      'completed',
+      '--comment',
+      `Corrigido na ${version} (card ${d.card}).`,
+    );
   }
 }
 
 if (command === 'import') importIssues();
 else if (command === 'close') closeIssues();
 else {
-  console.log('uso: node tools/dev/issues.mjs import --sprint SNN [--dry-run] | close --version X.Y.Z [--dry-run]');
+  console.log(
+    'uso: node tools/dev/issues.mjs import --sprint SNN [--dry-run] | close --version X.Y.Z [--dry-run]',
+  );
   process.exitCode = 1;
 }
