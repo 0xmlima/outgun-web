@@ -131,4 +131,22 @@ describe.skipIf(!pgAdminUrl)('issue do GitHub pelo painel (OG-430)', () => {
     const other = (await post(off, '/feedback', { kind: 'bug', text: '', bug: BUG }, cookies.Jogador1)).json().id;
     expect((await post(off, `/admin/feedback/${other}/issue`, {}, cookies.Jogador2)).statusCode).toBe(503);
   });
+
+  it('o jogador vê só os próprios relatos; issue fechada com milestone vira "corrigido na versão" (OG-431)', async () => {
+    const id = (await post(app, '/feedback', { kind: 'bug', text: '', bug: { ...BUG, summary: 'Outro bug' } }, cookies.Jogador1)).json().id;
+    const { number } = (await post(app, `/admin/feedback/${id}/issue`, {}, cookies.Jogador2)).json();
+    await post(app, '/feedback', { kind: 'praise', fidelity: 4, text: 'do Jogador2' }, cookies.Jogador2);
+    expect((await get(app, '/feedback/mine')).statusCode).toBe(401);
+    const mine = (await get(app, '/feedback/mine', cookies.Jogador1)).json().reports;
+    expect(mine.every((r: { summary: string }) => r.summary !== 'do Jogador2')).toBe(true);
+    expect(mine.find((r: { id: number }) => r.id === id).issue).toMatchObject({ number, state: 'open', fixedIn: null });
+    issues.states.set(number, { state: 'closed', stateReason: 'completed', milestone: '2.46.0' });
+    // relido só depois de 5 min: volta o relógio da última consulta
+    await t.sql`UPDATE feedback SET issue_checked_at = now() - interval '10 minutes' WHERE id = ${id}`;
+    const after = (await get(app, '/feedback/mine', cookies.Jogador1)).json().reports.find((r: { id: number }) => r.id === id);
+    expect(after).toMatchObject({ status: 'resolved', issue: { state: 'closed', fixedIn: '2.46.0' } });
+    const gets = issues.gets;
+    await get(app, '/feedback/mine', cookies.Jogador1);
+    expect(issues.gets).toBe(gets); // fechada: não consulta mais
+  });
 });

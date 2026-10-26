@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S46 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-430 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -20,11 +20,12 @@ Como jogador que relatou um bug, quero ver em que pé ele está e em que versão
 - Situação da issue lida do GitHub (aberta/fechada e o milestone com a versão, ex. `2.46.0`), com cache de alguns minutos; issue fechada como concluída marca o relato como corrigido "na 2.46.0".
 
 ## Critérios de aceite
-- [ ] O jogador vê só os próprios relatos (teste).
-- [ ] Issue fechada com milestone `2.46.0` aparece como "Corrigido na 2.46.0" (teste com GitHub simulado).
+- [x] O jogador vê só os próprios relatos (teste).
+- [x] Issue fechada com milestone `2.46.0` aparece como "Corrigido na 2.46.0" (teste com GitHub simulado).
 
 ## Notas técnicas
 - O fechamento das issues com o milestone é feito pelo script do OG-432 na aprovação da sprint.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `GET /feedback/mine` (últimos 50): relê do GitHub as issues abertas no máximo a cada 5 min e até 10 por pedido (migração `0043_feedback_issues`); fechada como concluída marca o relato `resolved` e guarda o milestone em `fixed_in`; `not_planned` vira "não será corrigido". Fechada, não é mais consultada.
+- "Seus relatos" embaixo do formulário, com a situação e o link da issue (o repositório é público).

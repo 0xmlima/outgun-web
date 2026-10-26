@@ -1169,5 +1169,13 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Open issue on GitHub': 'Abrir issue no GitHub',
     'Issue #$1 opened on GitHub.': 'Issue #$1 aberta no GitHub.',
     'Labels: $1. The repository is public: everyone will see this text.': 'Labels: $1. O repositório é público: todos verão este texto.',
+    'Fixed in $1': 'Corrigido na $1',
+    Fixed: 'Corrigido',
+    'Will not be fixed': 'Não será corrigido',
+    Resolved: 'Resolvido',
+    'In the fix queue': 'Na fila de correção',
+    Received: 'Recebido',
+    Confirmed: 'Confirmado',
+    'Your reports': 'Seus relatos',
   },
 };

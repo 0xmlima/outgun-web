@@ -2522,3 +2522,25 @@
 .number-style.selected {
   border-color: var(--accent);
 }
+
+/* "Seus relatos" na tela de feedback (OG-431) */
+.feedback-mine {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.feedback-mine li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+.feedback-mine-date,
+.feedback-mine-status {
+  white-space: nowrap;
+}
+:root[data-phone] .feedback-mine li {
+  grid-template-columns: 1fr;
+}

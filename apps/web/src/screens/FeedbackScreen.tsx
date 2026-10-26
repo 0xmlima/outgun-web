@@ -2,7 +2,7 @@
 // Feedback do beta (OG-106): tipo, nota de fidelidade ao Outgun original (o critério do lançamento),
 // nota geral, se jogou o original e texto livre. O contexto (sala, mapa, versão, tela) vai junto.
 // O tipo bug é o modelo de issue do GitHub (OG-429), para quem não tem conta lá.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
@@ -11,6 +11,7 @@ import { usePrefs } from '../app/prefs.js';
 import { Button } from '../ui/Button.js';
 import { ChoiceField, TextAreaField, TextField, ToggleField } from '../ui/Field.js';
 import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
+import { Panel } from '../ui/Panel.js';
 
 type Kind = 'bug' | 'suggestion' | 'praise' | 'other';
 
@@ -118,6 +119,63 @@ export default function FeedbackScreen() {
         )}
       </Form>
       <FormMessageLine message={status} />
+      <MyReports refresh={sent} />
     </Page>
+  );
+}
+
+interface MyReport {
+  id: number;
+  kind: Kind;
+  summary: string;
+  status: 'new' | 'confirmed' | 'critical' | 'resolved' | 'dismissed';
+  issue: { number: number; url: string; state: 'open' | 'closed' | 'not_planned' | null; fixedIn: string | null } | null;
+  createdAt: string;
+}
+
+/** "Seus relatos" (OG-431): a situação de cada relato e, quando virou issue, o link e a versão da correção. */
+function MyReports({ refresh }: { readonly refresh: boolean }) {
+  const { t } = usePrefs();
+  const [reports, setReports] = useState<MyReport[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api<{ reports: MyReport[] }>('/feedback/mine').then(
+      (r) => alive && setReports(r.reports),
+      () => alive && setReports([]),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [refresh]);
+  if (!reports?.length) return null;
+  const situation = (r: MyReport): string => {
+    if (r.issue?.state === 'closed') return r.issue.fixedIn ? t('Fixed in $1', r.issue.fixedIn) : t('Fixed');
+    if (r.issue?.state === 'not_planned' || r.status === 'dismissed') return t('Will not be fixed');
+    if (r.status === 'resolved') return t('Resolved');
+    if (r.issue) return t('In the fix queue');
+    return r.status === 'new' ? t('Received') : t('Confirmed');
+  };
+  return (
+    <Panel title={t('Your reports')}>
+      <ul className="feedback-mine">
+        {reports.map((r) => (
+          <li key={r.id}>
+            <span className="feedback-mine-date">{new Date(r.createdAt).toLocaleDateString()}</span>
+            <span className="feedback-mine-summary">{r.summary || '—'}</span>
+            <span className="feedback-mine-status">
+              {situation(r)}
+              {r.issue && (
+                <>
+                  {' · '}
+                  <a href={r.issue.url} target="_blank" rel="noreferrer">
+                    #{r.issue.number}
+                  </a>
+                </>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Panel>
   );
 }

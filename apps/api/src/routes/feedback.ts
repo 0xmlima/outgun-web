@@ -3,7 +3,7 @@
 // testadores mandam feedback com a nota de fidelidade ao original, que o painel resume. O tipo bug
 // leva os campos do modelo de issue do GitHub (OG-429).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { AppDeps, Services } from '../app.js';
 import { feedback, matches, matchPlayers, type BugReport } from '../db/schema.js';
 import { ErrorSchema } from './schemas.js';
@@ -25,6 +25,8 @@ export const BugSchema = Type.Object({
 });
 
 const HOUR = 60 * 60_000;
+/** A situação de uma issue aberta é relida do GitHub no máximo a cada 5 min (OG-431). */
+const ISSUE_RECHECK_MS = 5 * 60_000;
 const Rating = Type.Optional(Type.Integer({ minimum: 1, maximum: 5 }));
 
 export function feedbackRoutes(deps: AppDeps, services: Services): FastifyPluginAsyncTypebox {
@@ -90,6 +92,49 @@ export function feedbackRoutes(deps: AppDeps, services: Services): FastifyPlugin
           })
           .returning({ id: feedback.id });
         return reply.code(201).send({ id: row!.id });
+      },
+    );
+
+    app.get(
+      '/feedback/mine',
+      { schema: { tags: ['beta'], summary: 'Os relatos do próprio jogador, com a situação da issue do GitHub (OG-431)' } },
+      async (request, reply) => {
+        const user = await services.sessions.current(request);
+        if (!user) return reply.code(401).send({ error: 'login_required', message: 'sign in to see your reports' });
+        const db = deps.database.db;
+        const mine = () => db.select().from(feedback).where(eq(feedback.userId, user.id)).orderBy(desc(feedback.createdAt)).limit(50);
+        let rows = await mine();
+        const now = Date.now();
+        const stale = rows.filter((f) => f.githubIssue !== null && f.issueState === 'open' && (!f.issueCheckedAt || now - f.issueCheckedAt.getTime() > ISSUE_RECHECK_MS)).slice(0, 10);
+        if (services.issues && stale.length) {
+          const issues = services.issues;
+          await Promise.all(
+            stale.map(async (f) => {
+              try {
+                const st = await issues.get(f.githubIssue!);
+                const closed = st.state === 'closed';
+                const state = !closed ? 'open' : st.stateReason === 'not_planned' ? 'not_planned' : 'closed';
+                await db
+                  .update(feedback)
+                  .set({ issueState: state, fixedIn: state === 'closed' ? st.milestone : null, issueCheckedAt: new Date(), ...(state === 'closed' ? { status: 'resolved' as const } : {}) })
+                  .where(and(eq(feedback.id, f.id), inArray(feedback.status, ['new', 'confirmed', 'critical', 'resolved'])));
+              } catch (err) {
+                request.log.warn({ err, issue: f.githubIssue }, 'falha ao ler a issue no GitHub');
+              }
+            }),
+          );
+          rows = await mine();
+        }
+        return {
+          reports: rows.map((f) => ({
+            id: f.id,
+            kind: f.kind,
+            summary: f.bug?.summary ?? f.text.slice(0, 200),
+            status: f.status,
+            issue: f.githubIssue !== null ? { number: f.githubIssue, url: f.githubUrl, state: f.issueState, fixedIn: f.fixedIn } : null,
+            createdAt: f.createdAt.toISOString(),
+          })),
+        };
       },
     );
   };
