@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | — (2.46.1) |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-429 |
 | Regras de negócio | D-80 |
 | Skills | `outgun-card-workflow` |
