@@ -613,6 +613,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S43 | v2: personalização — cores do clã (o lado vira o clã: "CLÃ x AZUL"), números de jogador como na F1 (o 1 para o líder do mês) e 32 cores pessoais com dourado, prateado e bronze para o top 3 | OG-412, OG-411, OG-407, OG-408, OG-409, OG-410, OG-413; 2.43.1: OG-415 | |
 | S44 | v2: melhorias de UX da comunidade (PR #5) — nova tela inicial com escolha de time, menus em estilo retrô, trilha na barra de cima | OG-416 | |
 | S45 | v2: o celular volta, sem a partida — portão por rota, barra e base responsiva, tela inicial do portal, conta, perfil, clã, ranking, relatório da partida e da série, PDF do relatório completo (partida e série) e moderação, no visual retrô da S44 | OG-417, OG-418, OG-420, OG-419, OG-421, OG-422, OG-423, OG-424, OG-425, OG-426, OG-427 | |
+| S46 | v2: relatos de bug da comunidade — tela que congelava depois da explosão do Deathbringer (issue #6), formulário de bug no site, issue no GitHub pelo painel, retorno ao jogador e issues que viram cards | OG-428, OG-429, OG-430, OG-431, OG-432 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -697,7 +698,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-203](cards/OG-203-telas-restantes-v2.md) | Salas, replays, ajuda, créditos, legais e feedback no novo visual | E8 | 5 | Must | S14 | OG-201 | Concluído |
 | [OG-204](cards/OG-204-admin-v2.md) | Painel admin e moderação no novo visual | E8 | 3 | Could | — | OG-200 | Backlog |
 | [OG-206](cards/OG-206-cla-no-hud.md) | Clã do jogador no HUD da partida, em todos os modos | E8 | 3 | Should | S18 | OG-265, OG-270 | Concluído |
-| [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Should | S14 | OG-200 | Backlog |
+| [OG-205](cards/OG-205-fonte-unica-jogo.md) | Fonte única dentro da partida (HUD, chat, placar e overlays) | E8 | 5 | Won't (v2) | — | OG-200 | Cancelado |
 | [OG-207](cards/OG-207-titulo-do-mapa-nas-telas.md) | Título do mapa (e não o nome do arquivo) em todas as telas | E8 | 2 | Must | S18 | — | Concluído |
 | [OG-208](cards/OG-208-tela-inicial-viva.md) | Tela inicial viva: quem está jogando e o ranking do mês | E8 | 3 | Should | S18 | OG-267 | Concluído |
 | [OG-209](cards/OG-209-aviso-celular.md) | Aviso de que o jogo não está disponível para celular | E8 | 1 | Must | S18 | — | Concluído |
@@ -891,8 +892,13 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-425](cards/OG-425-pdf-do-relatorio.md) | PDF do relatório completo da partida | E9 | 5 | Must | S45 | OG-380 | Concluído |
 | [OG-426](cards/OG-426-pdf-da-serie.md) | PDF do relatório da série | E9 | 2 | Should | S45 | OG-425 | Concluído |
 | [OG-427](cards/OG-427-moderacao-no-celular.md) | Moderação no celular | E8 | 5 | Must | S45 | OG-418, OG-420 | Concluído |
+| [OG-428](cards/OG-428-deathbringer-congela-a-tela.md) | Tela congela depois da explosão do Deathbringer (issue #6) | E11 | 3 | Must | S46 | — | Em andamento |
+| [OG-429](cards/OG-429-formulario-de-bug-no-site.md) | Formulário de bug no site | E8 | 3 | Must | S46 | OG-106, OG-203 | Backlog |
+| [OG-430](cards/OG-430-issue-no-github-pelo-painel.md) | Abrir a issue no GitHub pelo painel | E7 | 3 | Must | S46 | OG-429 | Backlog |
+| [OG-431](cards/OG-431-retorno-do-relato-ao-jogador.md) | Retorno do relato ao jogador | E9 | 2 | Should | S46 | OG-430 | Backlog |
+| [OG-432](cards/OG-432-issues-viram-cards.md) | Issues de bug viram cards | E7 | 2 | Should | S46 | — | Backlog |
 
-**Total:** 269 cards, 891 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 200 cards, 596 pts (OG-210 e OG-216 cancelados, 7 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 274 cards, 899 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 205 cards, 604 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -970,7 +976,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-55 | **v2** — Estilos do HUD da partida | — | ✅ **Decidido pelo PO em 2026-10-16:** três estilos em Opções › Gráficos: **Clássico** (o HUD da S25, padrão), **Moderno** (opção A do protótipo `plan/specs/hud-moderno/`: sala com a altura toda à esquerda, coluna com placar dos times e relógio, minimapa, vida, energia, power-ups, arma e chat; frags só no TAB) e **Personalizado** (editor de posição, tamanho e visibilidade, começando do Moderno). A opção B (painéis sobre a sala) foi descartada: informação sobre o mapa cria pontos cegos. Por isso nenhum componente fica sobre a sala, nem no Personalizado. O layout personalizado vai na conta com as outras preferências (sem migration: é mais um campo das configurações) Em 2026-10-16 o PO decidiu que o **Clássico continua o padrão** e pediu a opção de deixar os frags só no TAB também no Clássico, desligada por padrão (OG-302) | PO |
 | D-56 | **v2** — Atraso do espectador ao vivo | — | ✅ **Decidido pelo PO em 2026-10-20:** o `spectating_delay` padrão passa de 120 s (original) para **30 s** em todos os presets, porque 2 minutos é demais para um jogo tão rápido; o atraso continua para ninguém passar posições a um time assistindo ao vivo. `/set spectating_delay` segue valendo (OG-318) | PO |
 | D-57 | **v2** — Espectador em salas com senha | — | ✅ **Decidido pelo PO em 2026-10-20:** salas com senha também podem ser assistidas (revoga a divergência do OG-092 de 2026-10-14); a senha protege só a entrada como jogador. Toda sala, Casual ou Ranked, tem botão "Assistir" (OG-319, OG-320) | PO |
-| D-58 | **v2** — Jogo no computador | — | ✅ **Decidido pelo PO em 2026-10-20:** além da web, o jogador pode instalar o Outgun pelo navegador (PWA) ou baixar um `.exe` (Electron). O cliente desktop é só uma janela que carrega o site: a versão é sempre a mesma da web, sem instalador novo a cada deploy. Sem assinatura digital por ora; o instalador fica no servidor do beta, porque o repositório é privado (OG-323, OG-324, OG-325) | PO |
+| D-58 | **v2** — Jogo no computador | — | ✅ **Decidido pelo PO em 2026-10-20:** além da web, o jogador pode instalar o Outgun pelo navegador (PWA) ou baixar um `.exe` (Electron). O cliente desktop é só uma janela que carrega o site: a versão é sempre a mesma da web, sem instalador novo a cada deploy. Sem assinatura digital por ora; o instalador fica no servidor do beta, porque o repositório é privado (OG-323, OG-324, OG-325). _Nota de 2026-10-26: o repositório passou a ser público._ | PO |
 | D-59 | **v2** — Outgun na Steam | — | ✅ **Decidido pelo PO em 2026-10-20:** o cliente Electron substitui o jogo antigo no app 663760 da Steam, com depots para Windows (663761), macOS (663762) e Linux (663763). Cada envio vai para a branch `beta` (com senha); só o PO promove para a `default` no Steamworks, e o build antigo (5426019) fica como volta atrás (OG-328) | PO |
 | D-60 | **v2** — Anti-flood do chat | Limiar do original / só flood extremo | ✅ **Decidido pelo PO em 2026-10-21:** só rajadas extremas contam como flood (30–40 mensagens em poucos segundos); o bloqueio sempre acaba. Revê a RN-CHT-02 (OG-335) | PO |
 | D-61 | **v2** — Duração do Ranked | Só limite de capturas / 20 min + prorrogação | ✅ **Decidido pelo PO em 2026-10-21:** 20 min fixos; empate → +5 min sem morte súbita (até 8 capturas ou 25 min); empate aos 25 é empate. RN-RKL-25 (OG-341) | PO |
@@ -1055,6 +1061,7 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 - **Fidelidade ao original deixa de ser requisito.** O Outgun 1.0.3 em `_legacy/` continua como referência histórica e fonte de assets; mudanças de regra e física são decisões novas (D-NN), não divergências a justificar.
 - **Skills:** `outgun-re-spec` e `outgun-parity-harness` desativadas; `outgun-card-workflow` revisada; `outgun-asset-pipeline` mantida. O job de paridade do CI continua enquanto a sim não mudar e sai no OG-230.
 - **Branches e tags:** `main` em `v1.0.0` é o port concluído (beta). A v2 é desenvolvida na branch `v2`: branches de card saem dela e voltam para ela; cada sprint aprovada sobe a versão do jogo (número do meio = sprint: S19 = `2.19.0`; correção fora de sprint sobe o último) com `node tools/dev/version.mjs X.Y.Z`, que grava a mesma versão em todos os `package.json` (o `pnpm verify` confere), e ganha a tag `vX.Y.Z`. As tags `v2.0.0-s13` a `v2.0.0-s18` são do esquema antigo. Correções do beta da v1 vão na `main` e são trazidas para a `v2`.
+- **Repositório público (desde 2026-10-26):** `thiagovasconcellos/outgun-web`. Bugs chegam por issue (formulário do GitHub) ou pelo formulário do site, que o moderador transforma em issue (OG-429, OG-430); `tools/dev/issues.mjs` transforma as issues em cards e as fecha com a versão na aprovação da sprint (OG-432).
 - **Testes:** a suíte (`bash tools/dev/verify.sh`) roda uma vez, no fechamento da sprint, antes da aprovação do PO.
 - **IDs:** cards da v2 a partir de OG-200 (E8 200–209, E9 210–219, E10 220–229, E11 230–249, E12 250–269, E13 270–279).
 
