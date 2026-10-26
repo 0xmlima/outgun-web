@@ -893,7 +893,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-426](cards/OG-426-pdf-da-serie.md) | PDF do relatório da série | E9 | 2 | Should | S45 | OG-425 | Concluído |
 | [OG-427](cards/OG-427-moderacao-no-celular.md) | Moderação no celular | E8 | 5 | Must | S45 | OG-418, OG-420 | Concluído |
 | [OG-428](cards/OG-428-deathbringer-congela-a-tela.md) | Tela congela depois da explosão do Deathbringer (issue #6) | E11 | 3 | Must | S46 | — | Em revisão |
-| [OG-429](cards/OG-429-formulario-de-bug-no-site.md) | Formulário de bug no site | E8 | 3 | Must | S46 | OG-106, OG-203 | Backlog |
+| [OG-429](cards/OG-429-formulario-de-bug-no-site.md) | Formulário de bug no site | E8 | 3 | Must | S46 | OG-106, OG-203 | Em revisão |
 | [OG-430](cards/OG-430-issue-no-github-pelo-painel.md) | Abrir a issue no GitHub pelo painel | E7 | 3 | Must | S46 | OG-429 | Backlog |
 | [OG-431](cards/OG-431-retorno-do-relato-ao-jogador.md) | Retorno do relato ao jogador | E9 | 2 | Should | S46 | OG-430 | Backlog |
 | [OG-432](cards/OG-432-issues-viram-cards.md) | Issues de bug viram cards | E7 | 2 | Should | S46 | — | Backlog |

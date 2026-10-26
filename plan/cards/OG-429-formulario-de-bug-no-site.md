@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S46 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-106, OG-203 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -25,12 +25,14 @@ Como jogador sem conta no GitHub, quero relatar um bug pelo próprio site, num f
 - No painel (aba Feedback), o bug aparece com os campos organizados.
 
 ## Critérios de aceite
-- [ ] Relato de bug com os campos obrigatórios grava e aparece no painel com o contexto automático.
-- [ ] Sem resumo ou sem "o que aconteceu", a API recusa (teste).
-- [ ] Os outros tipos de feedback continuam iguais.
+- [x] Relato de bug com os campos obrigatórios grava e aparece no painel com o contexto automático.
+- [x] Sem resumo ou sem "o que aconteceu", a API recusa (teste).
+- [x] Os outros tipos de feedback continuam iguais.
 
 ## Notas técnicas
 - `apps/api/src/routes/feedback.ts`, `apps/api/src/db/schema.ts`, migração `0042`; `apps/web/src/screens/FeedbackScreen.tsx`, aba Feedback do `AdminScreen.tsx`.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Tipo "Bug" troca as notas pelos campos do modelo (`app/bug-report.ts`); `/feedback?tipo=bug` já abre nele. Contexto automático: versão, cliente (navegador ou app desktop/Steam), sistema, computador/celular, hora com fuso; a API junta a última partida do jogador (`context.match`).
+- Migração `0042_bug_reports` (coluna `bug` jsonb). Áreas repetidas em `BUG_AREAS` na API e no cliente.
+- Painel: o resumo à vista, os campos e o contexto ao abrir (`BugDetails`).

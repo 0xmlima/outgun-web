@@ -1621,6 +1621,18 @@
   max-width: 36rem;
   white-space: normal;
 }
+/* relato de bug do site (OG-429) */
+.admin-bug summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.admin-bug dl {
+  margin: var(--space-2) 0 0;
+}
+.admin-bug dd {
+  margin: 0 0 var(--space-2);
+  white-space: pre-wrap;
+}
 .admin-row-actions {
   display: inline-flex;
   flex-wrap: wrap;

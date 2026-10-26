@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
 import { isPhone, PHONE_ADMIN_TABS } from '../app/phone.js';
+import { areaLabels, frequencyLabels, severityLabels, type BugReport } from '../app/bug-report.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
 import { TextAreaField, TextField } from '../ui/Field.js';
@@ -1479,6 +1480,7 @@ interface FeedbackRow {
   veteran: boolean;
   text: string;
   context: Record<string, string | number>;
+  bug: BugReport | null;
   status: string;
   note: string;
   createdAt: string;
@@ -1490,6 +1492,37 @@ interface Summary {
 }
 
 const STATUSES = ['new', 'confirmed', 'critical', 'resolved', 'dismissed'] as const;
+
+/** Relato de bug do site (OG-429): resumo à vista; campos do modelo e contexto ao abrir. */
+function BugDetails({ bug, context }: { readonly bug: BugReport; readonly context: Record<string, string | number> }) {
+  const { t } = usePrefs();
+  const rows: [string, string][] = [
+    [t('Where did it happen?'), areaLabels(t)[bug.area]],
+    [t('Severity'), severityLabels(t)[bug.severity]],
+    [t('How often?'), frequencyLabels(t)[bug.frequency]],
+    [t('Steps to reproduce'), bug.steps],
+    [t('What I expected'), bug.expected],
+    [t('What happened'), bug.actual],
+    [t('Evidence (links to the match, screenshots, videos)'), bug.evidence],
+    [t('Known workaround'), bug.workaround],
+    ...Object.entries(context).map(([k, v]): [string, string] => [k, String(v)]),
+  ];
+  return (
+    <details className="admin-wrap admin-bug">
+      <summary>{bug.summary}</summary>
+      <dl>
+        {rows
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <div key={k}>
+              <dt className="admin-muted">{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+      </dl>
+    </details>
+  );
+}
 
 /** Feedback do beta (OG-106): resumo da fidelidade (critério do lançamento), filtros e triagem. */
 function FeedbackTab() {
@@ -1572,11 +1605,14 @@ function FeedbackTab() {
           {
             key: 'text',
             header: t('Text'),
-            cell: (f) => (
-              <span className="admin-wrap" title={Object.entries(f.context).map(([k, v]) => `${k}: ${v}`).join('\n')}>
-                {f.text}
-              </span>
-            ),
+            cell: (f) =>
+              f.bug ? (
+                <BugDetails bug={f.bug} context={f.context} />
+              ) : (
+                <span className="admin-wrap" title={Object.entries(f.context).map(([k, v]) => `${k}: ${v}`).join('\n')}>
+                  {f.text}
+                </span>
+              ),
           },
           {
             key: 'status',

@@ -751,6 +751,19 @@ export const betaInviteUses = pgTable(
 export const feedbackKind = pgEnum('feedback_kind', ['bug', 'suggestion', 'praise', 'other']);
 export const feedbackStatus = pgEnum('feedback_status', ['new', 'confirmed', 'critical', 'resolved', 'dismissed']);
 
+/** Campos do relato de bug (OG-429), os mesmos do modelo de issue do GitHub. */
+export interface BugReport {
+  area: string;
+  summary: string;
+  steps: string;
+  expected: string;
+  actual: string;
+  frequency: 'always' | 'sometimes' | 'once';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  evidence: string;
+  workaround: string;
+}
+
 /** Feedback dos testadores (OG-106). */
 export const feedback = pgTable('feedback', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
@@ -762,6 +775,8 @@ export const feedback = pgTable('feedback', {
   veteran: boolean('veteran').notNull().default(false),
   text: text('text').notNull().default(''),
   context: jsonb('context').$type<Record<string, string | number>>().notNull().default({}),
+  /** Relato de bug com os campos do modelo de issue (OG-429); null nos outros tipos. */
+  bug: jsonb('bug').$type<BugReport>(),
   status: feedbackStatus('status').notNull().default('new'),
   note: text('note').notNull().default(''),
   handledBy: uuid('handled_by').references(() => users.id, { onDelete: 'set null' }),

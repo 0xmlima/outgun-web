@@ -644,7 +644,7 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       const critical = await db.select({ n: count() }).from(feedback).where(eq(feedback.status, 'critical'));
       return {
         summary: { all: summarize(all), veterans: summarize(all.filter((r) => r.veteran)), openCritical: critical[0]!.n },
-        feedback: rows.map((f) => ({ id: f.id, username: f.username, kind: f.kind, fidelity: f.fidelity, overall: f.overall, veteran: f.veteran, text: f.text, context: f.context, status: f.status, note: f.note, createdAt: f.createdAt.toISOString() })),
+        feedback: rows.map((f) => ({ id: f.id, username: f.username, kind: f.kind, fidelity: f.fidelity, overall: f.overall, veteran: f.veteran, text: f.text, context: f.context, bug: f.bug, status: f.status, note: f.note, createdAt: f.createdAt.toISOString() })),
       };
     });
 
