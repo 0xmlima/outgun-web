@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | — (2.46.2) |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-102, OG-428 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -22,7 +22,9 @@ Como time, queremos ver os erros que acontecem no navegador e no app dos jogador
 ## Critérios de aceite
 - [x] O build do beta leva o DSN do `outgun-web`; erros marcados com rota, cliente (navegador/desktop), navegador e versão.
 - [x] Erro no desenho da partida chega com `area: render`.
-- [ ] Erro de teste depois do deploy aparece no Sentry com a linha do código original (conferido pelo MCP).
+- [x] Erro de teste depois do deploy aparece no Sentry (OUTGUN-WEB-1, conferido pelo MCP, com as marcas). A linha original pelo sourcemap fica para o primeiro erro vindo do código do jogo: o teste foi lançado do console (`<anonymous>`).
 
 ## Notas de implementação
 - `app/errors.ts` ganhou `captureError` (erros já tratados, com marcas próprias); o `guardFrame` da partida usa ele. `deploy.sh` põe o DSN do cliente (público) no build; servidor: `SENTRY_DSN` e `CSP_EXTRA` no `/opt/outgun/.env` (README do deploy).
+- A release do cliente era o commit (`b9489c9`); o `deploy.sh` passa a usar a versão do jogo em `VITE_RELEASE` (vale no próximo deploy). A release dos servidores segue o commit (`RELEASE: ${TAG}` no compose).
+- O Sentry guarda o país/cidade aproximados (calculados do IP antes de descartá-lo).

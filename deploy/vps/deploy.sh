@@ -22,8 +22,10 @@ echo "== imagens $tag ($platform)"
 # VITE_OPERATOR_CONTACT (opcional): contato do responsável na política de privacidade
 # VITE_SENTRY_DSN: erros do cliente (OG-434); o DSN do projeto outgun-web é público (vai no site de
 # qualquer jeito). Vazio desliga.
+# versão do jogo (2.NN.x) no cliente: release do Sentry e "Versão" dos relatos de bug (OG-434)
+version="$(node -p "require('./package.json').version")"
 VITE_SENTRY_DSN="${VITE_SENTRY_DSN-https://8aa638661a1c9facb7cc8c0f5fcdc78a@o315869.ingest.us.sentry.io/4512323613949952}"
-for t in api game-server web; do docker build -q --platform "$platform" -f deploy/Dockerfile --target "$t" --build-arg "VITE_RELEASE=$tag" --build-arg "VITE_OPERATOR_CONTACT=${VITE_OPERATOR_CONTACT:-}" --build-arg "VITE_SENTRY_DSN=$VITE_SENTRY_DSN" -t "outgun-$t:$tag" . >/dev/null; done
+for t in api game-server web; do docker build -q --platform "$platform" -f deploy/Dockerfile --target "$t" --build-arg "VITE_RELEASE=$version" --build-arg "VITE_OPERATOR_CONTACT=${VITE_OPERATOR_CONTACT:-}" --build-arg "VITE_SENTRY_DSN=$VITE_SENTRY_DSN" -t "outgun-$t:$tag" . >/dev/null; done
 docker build -q --platform "$platform" -t "outgun-backup:$tag" deploy/backup >/dev/null
 
 echo "== envio"

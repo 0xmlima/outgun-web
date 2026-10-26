@@ -898,7 +898,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-431](cards/OG-431-retorno-do-relato-ao-jogador.md) | Retorno do relato ao jogador | E9 | 2 | Should | S46 | OG-430 | Concluído |
 | [OG-432](cards/OG-432-issues-viram-cards.md) | Issues de bug viram cards | E7 | 2 | Should | S46 | — | Concluído |
 | [OG-433](cards/OG-433-feedback-na-barra.md) | "Enviar feedback" na barra de cima | E8 | 1 | Must | — | OG-429 | Concluído |
-| [OG-434](cards/OG-434-erros-do-cliente-no-sentry.md) | Erros do cliente e dos servidores no Sentry | E7 | 2 | Must | — | OG-102, OG-428 | Em revisão |
+| [OG-434](cards/OG-434-erros-do-cliente-no-sentry.md) | Erros do cliente e dos servidores no Sentry | E7 | 2 | Must | — | OG-102, OG-428 | Concluído |
 
 **Total:** 276 cards, 902 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 207 cards, 607 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
