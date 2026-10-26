@@ -142,27 +142,33 @@ function rocketTimeTillWall(ctx: PhysicsContext, rk: RocketState, maxFraction: n
  */
 function changeRoomIfOutside(ctx: PhysicsContext, pl: PlayerState): number | undefined {
   const { world } = ctx;
+  // tempo desde que passou da borda; parado ou voltando no eixo não há tempo a devolver (sem isso,
+  // velocidade zero dava ±∞ e a posição virava NaN, travando o laço da física — OG-428, D-81)
+  const since = (over: number, v: number) => {
+    const t = over / v;
+    return Number.isFinite(t) && t > 0 ? t : 0;
+  };
   let rdx = 0;
   let rdy = 0;
   let tbx = -1;
   let tby = -1;
   if (pl.pos.x < 0) {
     rdx = -1;
-    tbx = pl.pos.x / pl.vel.x;
+    tbx = since(pl.pos.x, pl.vel.x);
   } else if (pl.pos.x > ROOM_WIDTH) {
     rdx = 1;
-    tbx = (pl.pos.x - ROOM_WIDTH) / pl.vel.x;
+    tbx = since(pl.pos.x - ROOM_WIDTH, pl.vel.x);
   }
   if (pl.pos.y < 0) {
     rdy = -1;
-    tby = pl.pos.y / pl.vel.y;
+    tby = since(pl.pos.y, pl.vel.y);
   } else if (pl.pos.y > ROOM_HEIGHT) {
     rdy = 1;
-    tby = (pl.pos.y - ROOM_HEIGHT) / pl.vel.y;
+    tby = since(pl.pos.y - ROOM_HEIGHT, pl.vel.y);
   }
   if (!rdx && !rdy) return undefined;
   let tb: number;
-  if (tbx > tby) {
+  if (rdx && (!rdy || tbx > tby)) {
     tb = tbx;
     pl.pos.roomX = positiveModulo(pl.pos.roomX + rdx, world.map.width);
     pl.pos.x -= rdx * ROOM_WIDTH;
@@ -193,7 +199,7 @@ export function applyPhysicsToPlayerInIsolation(ctx: PhysicsContext, pl: PlayerS
       }
     }
     subFrame = mt;
-    if (subFrame > fraction - 0.001) break;
+    if (!(subFrame <= fraction - 0.001)) break; // também com NaN: nunca girar para sempre
     executeWallBounce(pl, bounce.contact, plyRadius);
   }
 }
@@ -364,7 +370,7 @@ function applyPhysicsToRoom(
       }
     }
     subFrame = mt;
-    if (subFrame > fraction - 0.001) break;
+    if (!(subFrame <= fraction - 0.001)) break; // também com NaN
 
     // resolve o evento
     if (minPlyCollision < minBounce && minPlyCollision < minCollision) {

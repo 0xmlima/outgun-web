@@ -44,7 +44,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 ## Fechar a sprint
 1. Rode `bash tools/dev/verify.sh` uma vez na ponta da pilha de branches; corrija o que quebrar (commit `OG-NNN: corrige ...` no card culpado ou `Sprint SNN: corrige ...`).
 2. Relatório curto ao PO (por card: 1–2 linhas; achados; provisórios; perguntas só de produto).
-3. Na aprovação: `git merge --no-ff sNN` na `v2` ("Sprint SNN: ... aprovados pelo PO"); no mesmo commit, status `Concluído` (todos os IDs) e `node tools/dev/version.mjs 2.NN.0` (versão do jogo = sprint, em todos os `package.json`; regerar o `openapi.json` da API); tag `v2.NN.0`, push da `v2` e da tag, apagar a branch `sNN`.
+3. Na aprovação: `git merge --no-ff sNN` na `v2` ("Sprint SNN: ... aprovados pelo PO"); no mesmo commit, status `Concluído` (todos os IDs) e `node tools/dev/version.mjs 2.NN.0` (versão do jogo = sprint, em todos os `package.json`; regerar o `openapi.json` da API); tag `v2.NN.0`, push da `v2` e da tag, apagar a branch `sNN`. Depois do push: `node tools/dev/issues.mjs close --version 2.NN.0` fecha as issues dos cards concluídos com o milestone da versão (é o que o jogador vê como "corrigido na 2.NN.0", OG-431).
 4. Atualize a memória com **um** handoff curto da sprint (substitui o da sprint anterior, não acumula).
 5. **Changelog (hook):** com a ordem do PO de subir no beta, rode `bash deploy/vps/deploy.sh root@137.131.202.138` (Docker Desktop aberto). Quando terminar, leia a saída com o Bash (se rodou em segundo plano, `tail` do arquivo de saída): o hook `.claude/hooks/changelog-after-deploy.sh` vê o `no ar: https://...`, confere a versão servida e pede o changelog da sprint em formato WhatsApp, em português, para a comunidade. Entregue o texto num bloco de código.
 
@@ -52,6 +52,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 Status `Bloqueado` + uma linha no card: `> Bloqueado por: <card/decisão> — <motivo>`. Se for uma decisão em aberto (D-NN), avise o usuário.
 
 ## Criar ou quebrar cards
+- **Bugs das issues (OG-432):** quando o PO pedir para carregar as issues, `node tools/dev/issues.mjs import --sprint SNN --dry-run` mostra os cards que sairiam; sem `--dry-run` cria os cards (campo Issue, prioridade pela gravidade, 2 pts provisórios), põe as linhas nas seções 9.2 e 10, comenta o card na issue e troca o label `triagem` por `card-criado`. Depois: atualizar o total de pontos e estimar no refinamento. A sprint segue a regra da rodada de correções.
 - Use o template de PLAN 8.7. IDs da v2 começam em **OG-200**, por épico: E8 (visual e menus) 200–209, E9 (portal e perfil social) 210–219, E10 (trilha sonora) 220–229, E11 (jogabilidade v2, achados do beta) 230–249. Se a faixa esgotar, use o próximo número livre global.
 - Cards de 13 pts devem ser quebrados antes de entrar em sprint.
 - Toda criação/quebra atualiza a tabela da seção 10 e o total de pontos.

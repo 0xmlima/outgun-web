@@ -6,12 +6,13 @@
 import { ClientSession, type LinkConditions, type PredictionOptions } from '@outgun/netcode';
 import { message, type AnyMessage } from '@outgun/protocol';
 import { positiveModulo, type GameMap, type WorldCoords } from '@outgun/sim';
-import { Application, Assets, TilingSprite, UPDATE_PRIORITY, type BitmapFont, type Texture } from 'pixi.js';
+import { Application, Assets, TilingSprite, UPDATE_PRIORITY, type BitmapFont, type Texture, type Ticker } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
 import { loadMap } from './map-loader.js';
 import { LocalDemo } from './demo.js';
+import { guardFrame } from './frame-guard.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
 import { chordLabel, isGameKey } from './input/bindings.js';
@@ -658,7 +659,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           container.dataset.frameMs = `${q(50)},${q(95)},${q(99)}`;
         }
       }, undefined, UPDATE_PRIORITY.UTILITY);
-      app.ticker.add((ticker) => {
+      const drawFrame = (ticker: Ticker) => {
         frameStart = performance.now();
         if (!session && !demo) topLeft = { room: view, x: 0, y: 0 };
         if (demo && entities && world?.layout) {
@@ -736,7 +737,13 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           announced = true;
           opts.onStatus?.({ kind: 'ready', map: worldMap });
         }
-      });
+      };
+      app.ticker.add(
+        guardFrame(drawFrame, (err) => {
+          console.error('erro no desenho do quadro', err);
+          reportError(err); // vai ao serviço de erros (app/errors.ts)
+        }),
+      );
     } catch (err) {
       fail(err instanceof Error ? err.message : String(err));
     }

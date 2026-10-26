@@ -4,13 +4,15 @@
 |---|---|
 | Épico | E8 |
 | Tipo | Feature |
-| Prioridade | Should |
+| Prioridade | Won't (v2) |
 | Estimativa | 5 pts |
-| Sprint | S14 |
-| Status | Backlog |
+| Sprint | — |
+| Status | Cancelado |
 | Dependências | [OG-200](OG-200-design-system-v2.md) |
 | Regras de negócio | RN-UI-02 |
 | Skills | `outgun-card-workflow` |
+
+> Cancelado em 2026-10-26 pelo PO.
 
 ## História
 Como jogador, quero ler HUD, chat e placar com a mesma fonte nítida dos menus.

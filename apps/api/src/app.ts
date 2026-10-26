@@ -17,6 +17,7 @@ import { clanRoutes } from './routes/clans.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { liveRoutes } from './routes/live.js';
 import { adminRoutes } from './routes/admin.js';
+import { GitHubIssues, type IssueTracker } from './github.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { telemetryRoutes } from './routes/telemetry.js';
 import { authRoutes } from './routes/auth.js';
@@ -50,6 +51,8 @@ export interface AppDeps {
   errors?: ErrorReporter;
   /** Desligando (OG-103): /health responde 503 para o balanceador tirar a instância do rodízio. */
   lifecycle?: { stopping: boolean };
+  /** Substitui as issues do GitHub configuradas em GITHUB_ISSUES_TOKEN (testes; null desliga). */
+  issues?: IssueTracker | null;
 }
 
 /** Serviços montados a partir das dependências, usados pelas rotas de conta. */
@@ -62,6 +65,8 @@ export interface Services {
   security: SecurityWatch;
   /** Chaves dos tickets de entrada; a primeira assina (OG-083). */
   ticketKeys: SigningKey[];
+  /** Issues do GitHub dos relatos de bug (OG-430); null sem token. */
+  issues: IssueTracker | null;
 }
 
 function ticketKeys(config: ApiConfig): SigningKey[] {
@@ -135,6 +140,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     mailer,
     security: new SecurityWatch({ mailer, to: deps.config.alertEmail, log: app.log, domain: new URL(deps.config.webUrl).host }),
     ticketKeys: ticketKeys(deps.config),
+    issues: deps.issues !== undefined ? deps.issues : deps.config.githubIssuesToken ? new GitHubIssues(deps.config.githubIssuesToken, deps.config.githubIssuesRepo) : null,
   };
   app.decorate('security', services.security);
 

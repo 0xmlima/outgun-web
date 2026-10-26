@@ -1,0 +1,31 @@
+# OG-431 — Retorno do relato ao jogador
+
+| Campo | Valor |
+|---|---|
+| Épico | E9 |
+| Tipo | Feature |
+| Prioridade | Should |
+| Estimativa | 2 pts |
+| Sprint | S46 |
+| Status | Concluído |
+| Dependências | OG-430 |
+| Regras de negócio | — |
+| Skills | `outgun-card-workflow` |
+
+## História
+Como jogador que relatou um bug, quero ver em que pé ele está e em que versão foi corrigido, para saber que fui ouvido.
+
+## Escopo
+- "Seus relatos" na tela de feedback: data, resumo, situação (recebido, confirmado, na fila de correção, corrigido, descartado) e o link da issue quando houver.
+- Situação da issue lida do GitHub (aberta/fechada e o milestone com a versão, ex. `2.46.0`), com cache de alguns minutos; issue fechada como concluída marca o relato como corrigido "na 2.46.0".
+
+## Critérios de aceite
+- [x] O jogador vê só os próprios relatos (teste).
+- [x] Issue fechada com milestone `2.46.0` aparece como "Corrigido na 2.46.0" (teste com GitHub simulado).
+
+## Notas técnicas
+- O fechamento das issues com o milestone é feito pelo script do OG-432 na aprovação da sprint.
+
+## Notas de implementação
+- `GET /feedback/mine` (últimos 50): relê do GitHub as issues abertas no máximo a cada 5 min e até 10 por pedido (migração `0043_feedback_issues`); fechada como concluída marca o relato `resolved` e guarda o milestone em `fixed_in`; `not_planned` vira "não será corrigido". Fechada, não é mais consultada.
+- "Seus relatos" embaixo do formulário, com a situação e o link da issue (o repositório é público).

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+blank_issues_enabled: true
+contact_links:
+  - name: Relatar pelo jogo (sem conta no GitHub)
+    url: https://outgunweb.com.br/feedback?tipo=bug
+    about: O formulário do site tem os mesmos campos; um moderador transforma o relato em issue.
+  - name: Falha de segurança
+    url: https://github.com/thiagovasconcellos/outgun-web/security/advisories/new
+    about: Use o relato privado de vulnerabilidades (SECURITY.md), não uma issue pública.

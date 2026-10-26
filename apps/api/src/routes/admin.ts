@@ -21,6 +21,7 @@ import { BotChatSchema } from './internal.js';
 import { checkClanFields, ClanError, uniqueError, updateClan } from './clans.js';
 import { likePrefix } from './social.js';
 import { ONLINE_MS } from '../registry.js';
+import { issueDraft } from '../github.js';
 import { ErrorSchema, RoomId } from './schemas.js';
 import { securityEvent } from '../security.js';
 
@@ -644,7 +645,9 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       const critical = await db.select({ n: count() }).from(feedback).where(eq(feedback.status, 'critical'));
       return {
         summary: { all: summarize(all), veterans: summarize(all.filter((r) => r.veteran)), openCritical: critical[0]!.n },
-        feedback: rows.map((f) => ({ id: f.id, username: f.username, kind: f.kind, fidelity: f.fidelity, overall: f.overall, veteran: f.veteran, text: f.text, context: f.context, status: f.status, note: f.note, createdAt: f.createdAt.toISOString() })),
+        feedback: rows.map((f) => ({ id: f.id, username: f.username, kind: f.kind, fidelity: f.fidelity, overall: f.overall, veteran: f.veteran, text: f.text, context: f.context, bug: f.bug, githubIssue: f.githubIssue, githubUrl: f.githubUrl, status: f.status, note: f.note, createdAt: f.createdAt.toISOString() })),
+        // o painel só mostra "Abrir issue" com o token configurado (OG-430)
+        github: services.issues !== null,
       };
     });
 
@@ -670,6 +673,55 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
         if (!row) return reply.code(404).send({ error: 'not_found', message: 'no such feedback' });
         await audit(user, 'feedback', { targetUserId: row.userId, targetName: row.username, reason: request.body.note ?? '', details: { feedback: row.id, status } });
         return { id: row.id, status: row.status };
+      },
+    );
+
+    // --- relato de bug vira issue do GitHub (OG-430) ---
+    const bugFeedback = async (id: number) => {
+      const [row] = await db.select().from(feedback).where(eq(feedback.id, id));
+      return row?.bug ? { ...row, bug: row.bug } : null;
+    };
+    const IssueParams = Type.Object({ id: Type.Integer() });
+
+    app.get('/feedback/:id/issue', { schema: { tags: ['admin'], summary: 'Prévia da issue do GitHub de um relato de bug (ou a issue já aberta)', params: IssueParams } }, async (request, reply) => {
+      if (!(await guard(request, reply, 'moderator'))) return reply;
+      const row = await bugFeedback(request.params.id);
+      if (!row) return reply.code(404).send({ error: 'not_found', message: 'no such bug report' });
+      if (row.githubIssue !== null) return { issue: { number: row.githubIssue, url: row.githubUrl } };
+      return { draft: issueDraft(row, deps.config.webUrl) };
+    });
+
+    app.post(
+      '/feedback/:id/issue',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Abre a issue do GitHub de um relato de bug (uma só por relato)',
+          params: IssueParams,
+          body: Type.Object({ title: Type.Optional(Type.String({ minLength: 1, maxLength: 250 })) }),
+        },
+      },
+      async (request, reply) => {
+        const user = await guard(request, reply, 'moderator');
+        if (!user) return reply;
+        if (!services.issues) return reply.code(503).send({ error: 'github_disabled', message: 'GITHUB_ISSUES_TOKEN is not configured' });
+        const row = await bugFeedback(request.params.id);
+        if (!row) return reply.code(404).send({ error: 'not_found', message: 'no such bug report' });
+        if (row.githubIssue !== null) return { number: row.githubIssue, url: row.githubUrl, created: false };
+        const draft = issueDraft(row, deps.config.webUrl);
+        let issue;
+        try {
+          issue = await services.issues.create({ ...draft, ...(request.body.title ? { title: request.body.title } : {}) });
+        } catch (err) {
+          request.log.error({ err }, 'falha ao abrir a issue no GitHub');
+          return reply.code(502).send({ error: 'github_failed', message: 'GitHub refused the issue' });
+        }
+        await db
+          .update(feedback)
+          .set({ githubIssue: issue.number, githubUrl: issue.url, issueState: 'open', status: row.status === 'new' ? 'confirmed' : row.status, handledBy: user.id, handledAt: new Date() })
+          .where(eq(feedback.id, row.id));
+        await audit(user, 'feedback_issue', { targetUserId: row.userId, targetName: row.username, details: { feedback: row.id, issue: issue.number } });
+        return { number: issue.number, url: issue.url, created: true };
       },
     );
 

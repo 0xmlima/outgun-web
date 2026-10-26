@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Relato de bug (OG-432). Os títulos dos campos são os mesmos das issues abertas pelo painel do site
+# (apps/api/src/github.ts), para o tools/dev/issues.mjs ler os dois do mesmo jeito.
+name: Bug
+description: Algo não funciona como deveria no Outgun Web.
+title: '[Bug] <área>: <o que acontece, em uma frase>'
+labels: [bug, triagem]
+body:
+  - type: markdown
+    attributes:
+      value: Sem conta no GitHub? Relate pelo próprio jogo, em **Enviar feedback → Bug** (https://outgunweb.com.br/feedback?tipo=bug).
+  - type: textarea
+    id: summary
+    attributes:
+      label: Resumo
+      description: O que está errado, em 1–2 frases.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Partida / HUD
+        - Lobby e salas
+        - Ranqueado e séries
+        - Portal (início, perfil, ranking, hall da fama)
+        - Clã
+        - Relatório / PDF
+        - Replay / espectador
+        - Conta e login
+        - Moderação / admin
+        - Steam / app para computador
+        - Servidor / conexão
+        - Outro
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão
+      placeholder: 'ex.: 2.45.0'
+  - type: dropdown
+    id: device
+    attributes:
+      label: Dispositivo
+      options: [Computador, Celular]
+  - type: input
+    id: client
+    attributes:
+      label: Navegador e sistema
+      placeholder: 'ex.: Chrome 141 no Windows 11 · app da Steam'
+  - type: input
+    id: where
+    attributes:
+      label: Sala / mapa
+      placeholder: 'ex.: Casual, mapa 6 Askelta'
+  - type: input
+    id: when
+    attributes:
+      label: Data e hora
+      placeholder: 'ex.: 2026-10-26 21:40 BRT'
+  - type: input
+    id: nick
+    attributes:
+      label: Apelido no jogo
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      value: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que eu esperava
+  - type: textarea
+    id: actual
+    attributes:
+      label: O que aconteceu
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequência
+      options: [Sempre, Às vezes, Aconteceu uma vez]
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Gravidade
+      description: 'Crítico: derruba a partida ou o servidor, perde dados ou conta, falha de segurança · Alto: impede de jogar ou de usar uma tela, sem contorno · Médio: atrapalha, mas tem contorno · Baixo: visual, texto, detalhe'
+      options: [Crítico, Alto, Médio, Baixo]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Print, vídeo, link da partida (https://outgunweb.com.br/matches/...), mensagens do console (F12 → Console).
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Contorno conhecido
