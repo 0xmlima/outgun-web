@@ -1627,6 +1627,18 @@ function FeedbackTab() {
           <a className="ui-button ui-button-ghost ui-button-md" href={`${API_URL}/admin/feedback.csv${query}`}>
             {t('Download CSV')}
           </a>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              // erro lançado do código do jogo (não do console): confere no Sentry a pilha com a linha original (OG-434)
+              setTimeout(() => {
+                throw new Error('Erro de teste do painel (Sentry)');
+              });
+              setMsg({ text: t('Test error sent to the error service.') });
+            }}
+          >
+            {t('Send test error')}
+          </Button>
         </span>
       </div>
       <Status text={msg.text} error={msg.error ?? list.error} />

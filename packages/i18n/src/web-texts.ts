@@ -1177,5 +1177,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Received: 'Recebido',
     Confirmed: 'Confirmado',
     'Your reports': 'Seus relatos',
+    'Send test error': 'Enviar erro de teste',
+    'Test error sent to the error service.': 'Erro de teste enviado ao serviço de erros.',
   },
 };

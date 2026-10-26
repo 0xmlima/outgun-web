@@ -61,6 +61,10 @@ grep -q '^REDIS_PASSWORD=' .env || echo "REDIS_PASSWORD=$(secret)" >> .env
 grep -q '^BETA=' .env || echo "BETA=1" >> .env
 # a versão fica no .env: `docker compose` sem argumentos usa a instalada
 if grep -q '^TAG=' .env; then sed -i "s/^TAG=.*/TAG=$TAG/" .env; else echo "TAG=$TAG" >> .env; fi
+# versão do jogo (2.NN.x): release dos erros no Sentry (OG-434); sem ela, fica a TAG (o commit)
+if [ -n "${RELEASE:-}" ]; then
+  if grep -q '^RELEASE=' .env; then sed -i "s/^RELEASE=.*/RELEASE=$RELEASE/" .env; else echo "RELEASE=$RELEASE" >> .env; fi
+fi
 mkdir -p backups && chmod 700 backups # os dumps têm hashes de senha e e-mails
 mkdir -p downloads # instalador do cliente para Windows (OG-325)
 

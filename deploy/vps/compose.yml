@@ -63,7 +63,7 @@ services:
       WEB_URL: https://${DOMAIN}
       TRUST_PROXY: '1'
       MAILER: ${MAILER:-log}
-      RELEASE: ${TAG}
+      RELEASE: ${RELEASE:-${TAG}}
       # vigia (OG-313): disco e hora do último backup bom; alertas para ALERT_EMAIL (no .env)
       BACKUP_STATUS_DIR: /backup-status
     volumes: ['./backup-status:/backup-status:ro']
@@ -83,7 +83,7 @@ services:
       REGION: ${REGION:-beta}
       TRUST_PROXY: '1'
       GS_ID: vps
-      RELEASE: ${TAG}
+      RELEASE: ${RELEASE:-${TAG}}
     stop_grace_period: 300s
     volumes: [replays:/data/replays]
     depends_on: [api]

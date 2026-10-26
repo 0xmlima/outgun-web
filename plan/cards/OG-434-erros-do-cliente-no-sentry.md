@@ -28,3 +28,4 @@ Como time, queremos ver os erros que acontecem no navegador e no app dos jogador
 - `app/errors.ts` ganhou `captureError` (erros já tratados, com marcas próprias); o `guardFrame` da partida usa ele. `deploy.sh` põe o DSN do cliente (público) no build; servidor: `SENTRY_DSN` e `CSP_EXTRA` no `/opt/outgun/.env` (README do deploy).
 - A release do cliente era o commit (`b9489c9`); o `deploy.sh` passa a usar a versão do jogo em `VITE_RELEASE` (vale no próximo deploy). A release dos servidores segue o commit (`RELEASE: ${TAG}` no compose).
 - O Sentry guarda o país/cidade aproximados (calculados do IP antes de descartá-lo).
+- 2.46.3: a release dos servidores também passa a ser a versão (`RELEASE` no `.env`, gravado pelo `install.sh`); botão "Enviar erro de teste" na aba Feedback do painel, lançado do código do jogo, para conferir a pilha com a linha original.

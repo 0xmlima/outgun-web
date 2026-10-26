@@ -41,4 +41,4 @@ fi
 scp -q -o StrictHostKeyChecking=accept-new deploy/vps/compose.yml deploy/vps/Caddyfile deploy/vps/install.sh deploy/backup/restore.sh "$host:/opt/outgun/"
 
 echo "== instalação"
-ssh_ "TAG=$tag ${DOMAIN:+DOMAIN=$DOMAIN} bash /opt/outgun/install.sh"
+ssh_ "TAG=$tag RELEASE=$version ${DOMAIN:+DOMAIN=$DOMAIN} bash /opt/outgun/install.sh"
