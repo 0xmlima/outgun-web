@@ -22,7 +22,7 @@ Como time, queremos ver os erros que acontecem no navegador e no app dos jogador
 ## Critérios de aceite
 - [x] O build do beta leva o DSN do `outgun-web`; erros marcados com rota, cliente (navegador/desktop), navegador e versão.
 - [x] Erro no desenho da partida chega com `area: render`.
-- [x] Erro de teste depois do deploy aparece no Sentry (OUTGUN-WEB-1, conferido pelo MCP, com as marcas). A linha original pelo sourcemap fica para o primeiro erro vindo do código do jogo: o teste foi lançado do console (`<anonymous>`).
+- [x] Erro de teste depois do deploy aparece no Sentry (OUTGUN-WEB-1, conferido pelo MCP, com as marcas). Na 2.46.3, o erro de teste do painel (OUTGUN-WEB-2) chegou com release `2.46.3` e a pilha em `src/screens/AdminScreen.tsx:1635` (sourcemaps públicos funcionam).
 
 ## Notas de implementação
 - `app/errors.ts` ganhou `captureError` (erros já tratados, com marcas próprias); o `guardFrame` da partida usa ele. `deploy.sh` põe o DSN do cliente (público) no build; servidor: `SENTRY_DSN` e `CSP_EXTRA` no `/opt/outgun/.env` (README do deploy).
