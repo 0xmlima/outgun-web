@@ -116,9 +116,10 @@ export function useNavLinks(): readonly (readonly [string, string])[] {
     [user?.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans', t('Clans')],
     ['/replays', t('Replays')],
     ['/options', t('Options')],
+    ['/feedback?tipo=bug', t('Send feedback')], // relato de bug sem precisar de GitHub (OG-433)
     ['/help', t('Help')],
   ];
-  return isPhone() ? links.filter(([to]) => isPortalPath(to)) : links; // celular: só o portal (D-80)
+  return isPhone() ? links.filter(([to]) => isPortalPath(to.split('?')[0]!)) : links; // celular: só o portal (D-80)
 }
 
 function TopBar() {
