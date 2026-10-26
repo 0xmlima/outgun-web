@@ -1,6 +1,6 @@
 {
   "name": "@outgun/netcode",
-  "version": "2.46.1",
+  "version": "2.46.2",
   "private": true,
   "description": "Cliente de rede do jogo: estado recebido, foguetes locais, predição e suavização (card OG-064).",
   "license": "GPL-2.0-or-later",
