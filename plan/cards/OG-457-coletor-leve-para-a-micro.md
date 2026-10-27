@@ -25,9 +25,10 @@ Como PO, quero as métricas e os logs do beta no Grafana Cloud mesmo na VM de 1 
 
 ## Critérios de aceite
 - [x] Métricas do jogo, da API, da máquina e do banco e os logs chegam ao Grafana Cloud.
-- [ ] Nenhum aumento perceptível de CPU roubada, swap ou espera de disco na VM.
+- [x] Nenhum aumento perceptível de CPU roubada, swap ou espera de disco na VM.
 
 ## Notas de implementação
 - `deploy/vps/fluent-bit/fluent-bit.yaml` (Fluent Bit 5.1.4, binário de 76 MB) e `postgres-exporter` v0.20.1 no perfil `observabilidade`; o Alloy saiu do compose. Teste local contra o Grafana Cloud: máquina, banco (100 queries do `pg_stat_statements`) e logs com `service`/`level` chegaram; Fluent Bit ~10 MB, exporter ~4 MB.
 - Logs pelos arquivos do `json-file` (sem socket do Docker), com `labels: com.docker.compose.service` no compose. Só valem para containers recriados depois do deploy.
 - O Fluent Bit não gera a série `up`: o alerta "sem métricas do jogo" usa `outgun_ticks_total`. Sem coletor de PSI: o painel mostra leitura e escrita de disco no lugar.
+- **No beta (2.49.0, 2026-10-27):** o Fluent Bit fica em 14 a 16 MB, com pico de 42 MB e 10% de CPU no minuto da coleta. O exporter usa uns 10 MB. A VM ficou com 91–94% de CPU ociosa e sem leitura contínua de disco. São ~1.800 séries; painéis e as 6 regras foram enviados. O `grafana-cloud-sync.sh` foi corrigido: variável opcional ausente e endereço do ruler só com o host.

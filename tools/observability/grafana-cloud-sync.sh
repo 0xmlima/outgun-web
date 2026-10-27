@@ -12,14 +12,16 @@ set -euo pipefail
 cd "$(dirname "$0")"
 file="${GRAFANA_CLOUD_ENV:-$HOME/.config/outgun/grafana-cloud.env}"
 [ -f "$file" ] || { echo "faltou $file" >&2; exit 1; }
-get() { grep "^$1=" "$file" | head -1 | cut -d= -f2-; }
+get() { grep "^$1=" "$file" | head -1 | cut -d= -f2- || true; }
 GRAFANA_URL=$(get GRAFANA_URL)
 GRAFANA_SA_TOKEN=$(get GRAFANA_SA_TOKEN)
 PROM_URL=$(get GRAFANA_CLOUD_PROM_URL)
 PROM_USER=$(get GRAFANA_CLOUD_PROM_USER)
 RULES_TOKEN=$(get GRAFANA_CLOUD_RULES_TOKEN)
 RULER_URL=$(get GRAFANA_CLOUD_RULER_URL)
-RULER_URL="${RULER_URL:-${PROM_URL%/push}}"
+# o mimirtool acrescenta /prometheus/config/v1/rules: o endereço é só o host do Prometheus da stack
+host=${PROM_URL#https://}
+RULER_URL="${RULER_URL:-https://${host%%/*}}"
 for v in GRAFANA_URL GRAFANA_SA_TOKEN PROM_URL PROM_USER RULES_TOKEN; do
   [ -n "${!v}" ] || { echo "faltou $v em $file" >&2; exit 1; }
 done
