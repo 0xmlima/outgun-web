@@ -1,9 +1,9 @@
-# OG-437 — Isca de mira: alvo fantasma por cliente
+# OG-437 — Spike: isca de mira (alvo fantasma por cliente)
 
 | Campo | Valor |
 |---|---|
 | Épico | E7 |
-| Tipo | Feature |
+| Tipo | Spike |
 | Prioridade | Could |
 | Estimativa | 5 pts |
 | Sprint | — |
@@ -13,31 +13,31 @@
 | Skills | `outgun-card-workflow` |
 
 ## História
-Como operador, quero uma evidência difícil de contestar de mira automática, sem punir quem só é bom.
+Como moderador, quero uma evidência difícil de contestar de cliente automático, para punir sem depender só de estatística.
 
 ## Contexto
 - O snapshot já é montado por cliente (`aoi.ts`), então dá para colocar no pacote de **um** jogador um alvo que não existe na simulação.
-- Um humano não tem como reagir a algo que o cliente oficial não desenha; um leitor de estado/aimbot ingênuo mira em tudo o que aparece no frame e atira na isca. O tiro é a evidência.
-- É um sinal a mais, não uma prova: um cheat sofisticado pode filtrar o `pid` reservado. Vale como armadilha para o que roda hoje (o mesmo cliente de protocolo cru que joga sem ser notado), não como solução definitiva.
+- Um humano não reage a algo que o cliente oficial não desenha; um cliente de protocolo cru que mira em tudo o que vem no frame atira na isca. O tiro é a evidência.
+- **Limite conhecido:** o repositório é público (GPL). Qualquer marca que o cliente oficial use para esconder a isca fica visível no código, e um cheat que copie o filtro escapa. A isca só pega quem não o copiou — por isso é spike, com decisão de seguir ou não no fim.
 
 ## Escopo
-- Alvo fantasma sorteado com baixa probabilidade (ex.: 1 em N partidas por jogador), só no snapshot de um cliente, com `pid` reservado que nenhum time usa (ex.: 30 com 16 jogadores) e uma posição plausível, fora do caminho real.
-- A isca não entra na simulação: sem colisão, sem dano, sem estatística, sem pontuação, sem bandeira, sem chat, sem minimapa de aliados e **invisível para os bots** (RN-BOT-02).
-- O cliente oficial ignora o `pid` reservado (sem render, sem HUD, sem som); o replay não grava a isca.
-- Evidência no relatório: girou a arma na direção da isca, atirou, quantas vezes e em que frames — visível só no painel.
-- Liga/desliga por ambiente (`ANTICHEAT_DECOY=0`) e por sala; custo zero quando desligada.
-- Se o filtro no cliente oficial se mostrar invasivo demais, o card vira um spike com o resultado medido (o resto continua valendo).
+- Protótipo atrás de flag (`ANTICHEAT_DECOY=1` e por sala, desligado por padrão): alvo fantasma sorteado com baixa probabilidade (ex.: 1 em N partidas por jogador), só no snapshot de um cliente, numa posição plausível fora do caminho real.
+- `pid` da isca: um slot livre da sala (abaixo de `maxPlayers`, nunca o `MAX_PLAYERS - 1`, que a simulação usa como dono neutro em `world/server.ts`); a isca some antes de o slot ser ocupado por um jogador de verdade.
+- A isca não entra em `world.players`: sem colisão, dano, estatística, pontuação, bandeira, chat ou minimapa de aliados. Bots leem o mundo e não o snapshot, então não a veem (RN-BOT-02); o replay não a grava.
+- O cliente oficial não desenha, não toca som e não mostra a isca no HUD.
+- Evidência no relatório: o jogador virou para a isca e atirou, quantas vezes e em que frames — visível só no painel.
+- Saída do spike: relatório curto em `plan/reports/OG-437-isca.md` (o que pegou com o cliente de teste, custo, risco de falso positivo, como o filtro ficou no cliente) e a recomendação seguir/descartar ao PO.
 
 ## Critérios de aceite
-- [ ] Com a isca ligada, um cliente oficial joga uma partida inteira sem ver, ouvir ou colidir com ela (teste e conferência ao vivo).
-- [ ] Cliente de teste que mira no `pid` reservado gera evidência no relatório; nenhum outro jogador vê a isca.
-- [ ] Bots não reagem à isca (teste: partida só de bots com a isca ligada termina igual à de controle).
-- [ ] Desligada por env, sem custo mensurável no tick.
+- [ ] Com a isca ligada, o cliente oficial joga uma partida inteira sem ver, ouvir ou colidir com ela (teste e conferência ao vivo pelo PO).
+- [ ] Cliente de teste que mira em tudo o que vem no frame gera evidência no relatório; nenhum outro jogador recebe a isca.
+- [ ] Partida só de bots com a isca ligada termina igual à de controle (mesma semente).
+- [ ] Desligada por env, sem custo no tick; relatório do spike entregue com a recomendação.
 
 ## Notas técnicas
-- `aoi.ts` monta o frame por `RecipientState`; a isca entra na serialização (frame e, se fizer sentido, minimapa), nunca em `world.players`.
+- `aoi.ts` monta o frame por `RecipientState`; a isca entra só na serialização do frame (e, se fizer sentido, do minimapa).
 - Cuidado com `rocketFire`/`rocketDelete`/`vislist`: o tiro na isca não pode criar foguete de verdade nem revelar posição.
-- `pid` reservado precisa caber na faixa que o cliente e o protocolo aceitam hoje (32 jogadores no original) — validar no cliente antes de ligar em produção.
+- UI da partida (RN-UI-05): o cliente oficial não pode mudar nada do que desenha hoje; rodar `pnpm visual:check`.
 
 ## Notas de implementação
 —
