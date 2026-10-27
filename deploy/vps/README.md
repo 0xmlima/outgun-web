@@ -117,7 +117,15 @@ O container `alloy` (Grafana Alloy, ~55 MB de RAM, limite de 160 MB) coleta e en
 Ligar uma vez: crie a conta e a stack em grafana.com (região São Paulo), ponha as credenciais em
 `~/.config/outgun/grafana-cloud.env` (formato no cabeçalho de `deploy/vps/grafana-cloud.sh`) e rode
 `bash deploy/vps/grafana-cloud.sh root@IP`. Sem credenciais o `alloy` não sobe e nada muda. Painéis e
-regras de alerta: `bash tools/observability/grafana-cloud-sync.sh` (OG-455).
+regras de alerta: `bash tools/observability/grafana-cloud-sync.sh` (OG-455): painéis "Outgun" e
+"Outgun: servidor do beta" na pasta Outgun, regras nos namespaces `outgun-jogo` e `outgun-beta`.
+Uma vez, à mão, no Grafana Cloud: em Alerting > Contact points, o e-mail do `ALERT_EMAIL` na política
+padrão; em Testing & synthetics, uma verificação HTTP de `https://DOMAIN/api/health` a cada minuto
+(o plano Free cobre), que avisa quando o site cai mesmo com a VM de pé.
+
+Alarmes da própria Oracle (OG-456), que funcionam até com a VM fora do ar:
+`bash deploy/vps/oci-alarms.sh EMAIL` (CPU acima de 80% e memória acima de 85% por 5 min, VM sem
+métricas por 5 min; confirme a assinatura pelo e-mail da Oracle).
 
 Consultas úteis no Explore do Grafana: `{service="game-server", level="error"}` (logs),
 `sum by (code) (rate(outgun_ws_closed_total{kind="player"}[1m]))` (quedas),
