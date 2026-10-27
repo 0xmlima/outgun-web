@@ -918,11 +918,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-449](cards/OG-449-convidar-no-menu-da-partida.md) | "Convidar amigo (Steam)" no menu da partida | E9 | 2 | Should | — | OG-447 | Backlog |
 | [OG-450](cards/OG-450-convidar-no-lobby-ranked.md) | Convidar amigo da Steam no lobby Ranked | E12 | 3 | Could | — | OG-447, D-82 | Backlog |
 | [OG-451](cards/OG-451-cards-no-plane.md) | Cards espelhados no Plane | E7 | 3 | Should | — | — | Concluído |
-| [OG-452](cards/OG-452-alloy-grafana-cloud.md) | Métricas e logs do beta no Grafana Cloud (Grafana Alloy) | E7 | 5 | Must | S48 | — | Em andamento |
+| [OG-452](cards/OG-452-alloy-grafana-cloud.md) | Métricas e logs do beta no Grafana Cloud (Grafana Alloy) | E7 | 5 | Must | S48 | — | Em revisão |
 | [OG-453](cards/OG-453-metricas-do-banco.md) | Métricas do banco: pg_stat_statements e exporter do Postgres | E7 | 3 | Must | S48 | OG-452 | Em revisão |
 | [OG-454](cards/OG-454-metricas-de-quedas.md) | Métricas de quedas no game server: conexões fechadas e salas encerradas | E7 | 2 | Should | S48 | — | Em revisão |
-| [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Pronto |
-| [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Pronto |
+| [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Em andamento |
+| [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Em andamento |
 
 **Total:** 298 cards, 973 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 229 cards, 678 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

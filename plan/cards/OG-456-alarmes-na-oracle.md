@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S48 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

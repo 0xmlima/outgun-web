@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S48 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -28,12 +28,15 @@ Como PO, quero as métricas do jogo, da API e da máquina do beta guardadas fora
 - `install.sh` sobe o Alloy junto quando as credenciais existem; README do deploy explica como ligar.
 
 ## Critérios de aceite
-- [ ] Sem credenciais, o deploy segue igual (nenhum container novo).
+- [x] Sem credenciais, o deploy segue igual (nenhum container novo).
 - [ ] Com credenciais, as métricas do jogo, da API, da máquina e dos containers e os logs chegam ao Grafana Cloud.
 - [ ] O Alloy fica abaixo do limite de memória configurado e só escuta na rede interna.
-- [ ] Nenhuma credencial no repositório.
+- [x] Nenhuma credencial no repositório.
 
 ## Notas técnicas
 - O socket do Docker é montado só leitura, para descobrir os containers e ler os logs. Dá acesso amplo ao Docker: o Alloy não publica porta e a interface dele fica só em 127.0.0.1.
 
 ## Notas de implementação
+- Alloy v1.20.1; carregou a configuração e ficou em ~55 MB num teste local (limite 160 MB, `GOMEMLIMIT` 110 MiB). Recebe só as variáveis que usa, não o `.env` inteiro.
+- Sem `netdev`: dentro do container o `/proc/net` é a rede do próprio container (a rede da VM continua vindo da Oracle). Os containers (cAdvisor, `cgroup: host`) só dá para conferir no Linux do beta.
+- Pendente: a conta do Grafana Cloud (PO) e `bash deploy/vps/grafana-cloud.sh root@137.131.202.138`; depois conferir os dois critérios que faltam.
