@@ -10,6 +10,7 @@ import { NotificationBell, NotificationsProvider } from './notifications.js';
 import { MusicButton } from './music/MusicButton.js';
 import { useMusicMode } from './music/MusicProvider.js';
 import { usePlayNow } from './play-now.js';
+import { isDesktopClient, quitDesktop } from './install.js';
 import { isPhone, isPortalPath } from './phone.js';
 import { usePrefs } from './prefs.js';
 import { Button } from '../ui/Button.js';
@@ -154,6 +155,11 @@ function TopBar() {
         <MusicButton />
         {user && <NotificationBell />}
         <AccountChip />
+        {isDesktopClient() && (
+          <Button variant="secondary" onClick={quitDesktop}>
+            {t('Exit Outgun')}
+          </Button>
+        )}
         {phone && (
           <button type="button" className="app-bell-button app-menu-button" aria-label={t('Menu')} aria-expanded={open} aria-controls="app-nav" onClick={() => setOpen((v) => !v)}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true" focusable="false">

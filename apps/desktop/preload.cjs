@@ -29,4 +29,6 @@ contextBridge.exposeInMainWorld('outgunDesktop', {
       'outgun:steam-sync',
       Array.isArray(ids) ? ids.filter((x) => typeof x === 'string') : [],
     ),
+  /** Fecha o app (OG-444): no Windows ele abre em tela cheia, sem o botão da janela. */
+  quit: () => ipcRenderer.send('outgun:quit'),
 });
