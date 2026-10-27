@@ -60,7 +60,8 @@ export class EntityRenderer {
   readonly stage = new Container();
   private readonly clip = new Graphics();
   private readonly list: DrawList;
-  private readonly roomMasks: Graphics[] = [];
+  /** Máscaras por `índice·4 + sala`; Map e não array: os índices pulam e o buraco era `undefined` (OG-442). */
+  private readonly roomMasks = new Map<number, Graphics>();
   private effects: Effect[] = [];
   private readonly nextTurbo = new Map<number, number>();
   private readonly nextSmoke = new Map<number, number>();
@@ -134,7 +135,7 @@ export class EntityRenderer {
     const t = frame.time;
     const L = this.list;
     L.begin();
-    for (const mask of this.roomMasks) mask.clear(); // máscara sem uso desenharia um retângulo
+    for (const mask of this.roomMasks.values()) mask.clear(); // máscara sem uso desenharia um retângulo
     this.effects = this.effects.filter((fx) => t - fx.time >= 0 && t - fx.time <= 0.6);
 
     // 1. mortos
@@ -499,9 +500,9 @@ export class EntityRenderer {
     for (const rx of xs)
       for (const ry of ys) {
         const g = this.list.separate();
-        let mask = this.roomMasks[index * 4 + m];
+        let mask = this.roomMasks.get(index * 4 + m);
         if (!mask) {
-          this.roomMasks[index * 4 + m] = mask = new Graphics();
+          this.roomMasks.set(index * 4 + m, (mask = new Graphics()));
           this.stage.addChild(mask);
         }
         m++;
