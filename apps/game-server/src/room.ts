@@ -681,6 +681,8 @@ export class Room {
       c.conn.close(1000, 'replaced');
       Object.assign(c, { identity: c.replaced.identity, bot: false, replaced: undefined });
       this.broadcast(message('playerName', { pid, name: c.identity.name }));
+      // quem entrou durante a substituição viu o bot sem número (OG-443)
+      if (c.identity.number) this.broadcast(message('playerNumber', { pid, number: c.identity.number, style: c.identity.numberStyle ?? 0 }));
       this.pause?.brief(this.world.teamOf(pid) as 0 | 1, pid, this.uptimeFrames); // volta com a contagem de 3 s
     } else if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
     Object.assign(c, {
@@ -704,8 +706,12 @@ export class Room {
     });
     (this.world.players[pid] as PlayerState).awaitingClientReadies++; // precisa carregar o mapa de novo
     this.pause?.undrop(pid, this.uptimeFrames); // voltou: sem mais ninguém caído, retomada em 3 s (OG-261)
-    // a página pode ser nova (volta pela conta): o próprio nome e clã, sem anunciar entrada (OG-321)
-    const self = [message('playerName', { pid, name: c.identity.name }), ...(c.identity.clanTag ? [message('playerClan', { pid, tag: c.identity.clanTag })] : [])];
+    // a página pode ser nova (volta pela conta): o próprio nome, clã e número, sem anunciar entrada (OG-321, OG-443)
+    const self = [
+      message('playerName', { pid, name: c.identity.name }),
+      ...(c.identity.clanTag ? [message('playerClan', { pid, tag: c.identity.clanTag })] : []),
+      ...(c.identity.number ? [message('playerNumber', { pid, number: c.identity.number, style: c.identity.numberStyle ?? 0 })] : []),
+    ];
     this.send(pid, [...this.welcomeMessages(pid), ...self, message('resumeToken', { token: c.resumeToken })]);
     return { ok: true, pid };
   }
