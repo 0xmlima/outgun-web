@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S48 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -20,6 +20,8 @@ Como PO, quero um aviso por e-mail da própria Oracle quando a VM do beta passa 
 
 ## Critérios de aceite
 - [ ] Alarmes criados na conta do beta, sem nenhum recurso pago.
-- [ ] Um deploy (pico de 3 a 4 min) não dispara o alarme de CPU.
+- [x] Um deploy (pico de 3 a 4 min) não dispara o alarme de CPU.
 
 ## Notas de implementação
+- O alarme de CPU usa a média do minuto por 5 min: os deploys de 26/10 passaram de 90% só por 3 a 4 min no máximo do minuto. O de "sem métricas" usa `absent()` e é CRITICAL. Repetem a cada 2 h enquanto durarem.
+- Pendente: rodar `bash deploy/vps/oci-alarms.sh EMAIL` (a criação na conta da Oracle ficou para o PO) e confirmar a assinatura pelo e-mail.
