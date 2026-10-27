@@ -37,7 +37,8 @@ while IFS= read -r line; do
   mv .env.tmp .env
 done
 chmod 600 .env
-docker compose up -d alloy
+# --no-deps: o .env mudou, e sem isso o compose recriaria a API e o game server
+docker compose up -d --no-deps alloy
 sleep 5
 docker compose ps alloy --format "{{.Service}}: {{.Status}}"
 docker compose logs --no-color --since 1m alloy | grep -E "level=(error|warn)" | tail -5 || true'

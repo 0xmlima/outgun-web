@@ -124,7 +124,7 @@ services:
   # métricas e logs para o Grafana Cloud (OG-452). Fora do perfil padrão: o install.sh só sobe com
   # as credenciais no .env (deploy/vps/grafana-cloud.sh). Sem porta publicada; a interface do Alloy
   # fica em 127.0.0.1 dentro do container. O socket do Docker (só leitura) serve para achar os
-  # containers e ler os logs; /proc, /sys e / da VM, para as métricas da máquina e dos containers.
+  # containers e ler os logs; /proc, /sys e / da VM, para as métricas da máquina.
   alloy:
     <<: *restart
     image: grafana/alloy:v1.20.1
@@ -148,7 +148,6 @@ services:
       # a VM tem 1 GB: o coletor de lixo do Go aperta antes do limite do container
       GOMEMLIMIT: 110MiB
     mem_limit: 160m
-    cgroup: host
     volumes:
       - ./alloy:/etc/alloy:ro
       - alloy-data:/var/lib/alloy/data
@@ -156,7 +155,6 @@ services:
       - /:/rootfs:ro
       - /proc:/host/proc:ro
       - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
       - /run/udev:/run/udev:ro
     depends_on: [api, game-server, postgres]
 

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Grafana Alloy no servidor do beta (OG-452): coleta as métricas do jogo, da API, da máquina, dos
-// containers e do banco (OG-453) e os logs dos containers, e envia ao Grafana Cloud (plano Free:
-// 10 mil séries ativas, 50 GB de logs, 14 dias). Credenciais no /opt/outgun/.env, passadas pelo
-// compose. Cada coleta descarta o que os painéis e alertas não usam, para caber no plano.
+// do banco (OG-453) e os logs dos containers, e envia ao Grafana Cloud (plano Free: 10 mil séries
+// ativas, 50 GB de logs, 14 dias). Credenciais no /opt/outgun/.env, passadas pelo compose.
+// Leve de propósito: a E2.1.Micro só garante uma fração de núcleo. Sem cAdvisor (sozinho deixou a
+// VM com 70% de CPU roubada no primeiro teste); memória e CPU dos serviços vêm do /metrics de cada
+// um; coleta a cada 60 s, o ritmo que o plano Free conta.
 
 logging {
   level  = "warn"
@@ -42,7 +44,7 @@ prometheus.scrape "outgun" {
     {"__address__" = "game-server:7700", "job" = "game-server", "instance" = "vps"},
     {"__address__" = "api:7800", "job" = "api", "instance" = "api"},
   ]
-  scrape_interval = "15s"
+  scrape_interval = "60s"
 
   authorization {
     type        = "Bearer"
@@ -86,7 +88,7 @@ discovery.relabel "host" {
 
 prometheus.scrape "host" {
   targets         = discovery.relabel.host.output
-  scrape_interval = "30s"
+  scrape_interval = "60s"
   forward_to      = [prometheus.relabel.host.receiver]
 }
 
@@ -95,63 +97,6 @@ prometheus.relabel "host" {
   rule {
     source_labels = ["__name__"]
     regex         = "node_(vmstat_(pgmajfault|pswpin|pswpout|oom_kill)|memory_(MemTotal|MemAvailable|MemFree|Buffers|Cached|SwapTotal|SwapFree|Dirty)_bytes|(cpu|disk|filesystem|load|pressure|boot|context|forks|procs|intr|uname)_.*)"
-    action        = "keep"
-  }
-  forward_to = [prometheus.remote_write.cloud.receiver]
-}
-
-// ---------------------------------------------------------------- containers (CPU, memória, rede, OOM)
-
-prometheus.exporter.cadvisor "containers" {
-  docker_host                   = "unix:///var/run/docker.sock"
-  docker_only                   = true
-  storage_duration              = "1m"
-  store_container_labels        = false
-  allowlisted_container_labels  = ["com.docker.compose.service"]
-  enabled_metrics               = ["cpu", "memory", "network", "oom_event"]
-}
-
-discovery.relabel "containers" {
-  targets = prometheus.exporter.cadvisor.containers.targets
-
-  rule {
-    target_label = "job"
-    replacement  = "containers"
-  }
-
-  rule {
-    target_label = "instance"
-    replacement  = "beta"
-  }
-}
-
-prometheus.scrape "containers" {
-  targets         = discovery.relabel.containers.output
-  scrape_interval = "30s"
-  forward_to      = [prometheus.relabel.containers.receiver]
-}
-
-prometheus.relabel "containers" {
-  // só os containers do jogo, com o nome do serviço do compose como rótulo
-  rule {
-    source_labels = ["container_label_com_docker_compose_service"]
-    regex         = ".+"
-    action        = "keep"
-  }
-
-  rule {
-    source_labels = ["container_label_com_docker_compose_service"]
-    target_label  = "service"
-  }
-
-  rule {
-    regex  = "id|image|name|container_label_com_docker_compose_service"
-    action = "labeldrop"
-  }
-
-  rule {
-    source_labels = ["__name__"]
-    regex         = "container_(cpu_usage_seconds_total|cpu_cfs_throttled_seconds_total|memory_working_set_bytes|memory_rss|memory_swap|memory_failcnt|spec_memory_limit_bytes|network_(receive|transmit)_bytes_total|oom_events_total|last_seen)"
     action        = "keep"
   }
   forward_to = [prometheus.remote_write.cloud.receiver]
@@ -190,7 +135,7 @@ discovery.relabel "db" {
 
 prometheus.scrape "db" {
   targets         = discovery.relabel.db.output
-  scrape_interval = "30s"
+  scrape_interval = "60s"
   forward_to      = [prometheus.relabel.db.receiver]
 }
 
@@ -236,11 +181,11 @@ discovery.relabel "logs" {
     target_label  = "service"
   }
 
-  // os logs do próprio Alloy não vão ao Loki
+  // só os serviços com logs úteis para investigar; o acesso HTTP da borda e do web fica de fora
   rule {
     source_labels = ["service"]
-    regex         = "alloy"
-    action        = "drop"
+    regex         = "api|game-server|postgres|backup|migrate"
+    action        = "keep"
   }
 }
 

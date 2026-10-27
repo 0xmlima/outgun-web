@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Alertas do servidor do beta (OG-455): quedas de jogadores (OG-454), máquina, containers e banco
+# Alertas do servidor do beta (OG-455): quedas de jogadores (OG-454), máquina e banco
 # (OG-452, OG-453). As séries vêm do Alloy; no Prometheus local (docker-compose.yml desta pasta) só
 # as de quedas existem. Testes: outgun-beta.rules.test.yml (tools/observability/check.sh).
 groups:
@@ -55,11 +55,12 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Disco da VM com menos de 15% livre'
-      - alert: OutgunContainerSemMemoria
-        expr: increase(container_oom_events_total[5m]) > 0
+      - alert: OutgunVmSemMemoria
+        expr: increase(node_vmstat_oom_kill[5m]) > 0
         labels: { severity: page }
         annotations:
-          summary: 'O container {{ $labels.service }} foi morto por falta de memória'
+          summary: 'O kernel matou um processo por falta de memória na VM'
+          description: 'Veja qual serviço reiniciou: {job="outgun"} nos logs e o painel de memória por serviço.'
 
   - name: outgun-banco
     rules:

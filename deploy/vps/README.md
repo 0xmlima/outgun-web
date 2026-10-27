@@ -104,15 +104,17 @@ antes disso, reconstrua do replay com `node tools/dev/rebuild-match.mjs` (OG-330
 
 ## Métricas e logs no Grafana Cloud (OG-452 a OG-455)
 
-O container `alloy` (Grafana Alloy, ~55 MB de RAM, limite de 160 MB) coleta e envia ao Grafana Cloud
+O container `alloy` (Grafana Alloy, limite de 160 MB) coleta a cada 60 s e envia ao Grafana Cloud
 (plano Free: 10 mil séries, 50 GB de logs, 14 dias):
 
 - o `/metrics` do game server e da API (tick, salas, jogadores, quedas por código, pedidos HTTP);
-- a máquina (CPU com o tempo roubado pelo hipervisor, memória, swap, pressão, disco), os containers
-  (CPU, memória, rede e OOM por serviço) e o banco (conexões, transações, locks, tamanho, tabelas com
+- a máquina (CPU com o tempo roubado pelo hipervisor, memória, swap, pressão, disco, OOM) e o banco (conexões, transações, locks, tamanho, tabelas com
   varredura sequencial, as queries mais caras do `pg_stat_statements`, com o papel `outgun_monitor`);
-- os logs de todos os containers, com os rótulos `service` e `level`. Eles continuam lá depois do
+- os logs da API, do game server, do Postgres e do backup, com os rótulos `service` e `level`. Eles continuam lá depois do
   deploy, que recria os containers e apaga o `json-file`.
+
+Sem métricas por container (cAdvisor): no primeiro teste no beta ele sozinho deixou a E2.1.Micro com
+70% de CPU roubada. Numa máquina maior (A1), dá para voltar com ele.
 
 Ligar uma vez: crie a conta e a stack em grafana.com (região São Paulo), ponha as credenciais em
 `~/.config/outgun/grafana-cloud.env` (formato no cabeçalho de `deploy/vps/grafana-cloud.sh`) e rode

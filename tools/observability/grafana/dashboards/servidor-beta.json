@@ -610,7 +610,7 @@
     {
       "id": 20,
       "type": "row",
-      "title": "Containers",
+      "title": "Serviços (jogo e API)",
       "gridPos": {
         "x": 0,
         "y": 22,
@@ -637,8 +637,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (service) (rate(container_cpu_usage_seconds_total[$__rate_interval]))",
-          "legendFormat": "{{service}}",
+          "expr": "sum by (job) (rate(process_cpu_seconds_total[$__rate_interval]))",
+          "legendFormat": "{{job}}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -667,7 +667,7 @@
           "mode": "multi"
         }
       },
-      "description": "1,0 = um núcleo inteiro; a VM tem 2 vCPUs."
+      "description": "1,0 = um núcleo inteiro; a VM tem 2 vCPUs. Só o jogo e a API (o /metrics de cada um)."
     },
     {
       "id": 22,
@@ -686,8 +686,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (service) (container_memory_working_set_bytes)",
-          "legendFormat": "{{service}}",
+          "expr": "sum by (job) (process_resident_memory_bytes)",
+          "legendFormat": "{{job}}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -720,7 +720,7 @@
     {
       "id": 23,
       "type": "timeseries",
-      "title": "Rede por serviço (enviado)",
+      "title": "Tráfego dos WebSockets do jogo",
       "gridPos": {
         "x": 0,
         "y": 31,
@@ -734,8 +734,17 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (service) (rate(container_network_transmit_bytes_total[$__rate_interval]))",
-          "legendFormat": "{{service}}",
+          "expr": "rate(outgun_ws_sent_bytes_total[$__rate_interval])",
+          "legendFormat": "enviado",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "rate(outgun_ws_received_bytes_total[$__rate_interval])",
+          "legendFormat": "recebido",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -768,7 +777,7 @@
     {
       "id": 24,
       "type": "timeseries",
-      "title": "Mortos por falta de memória (OOM)",
+      "title": "Processos mortos por falta de memória (OOM)",
       "gridPos": {
         "x": 12,
         "y": 31,
@@ -782,8 +791,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (service) (increase(container_oom_events_total[$__rate_interval]))",
-          "legendFormat": "{{service}}",
+          "expr": "increase(node_vmstat_oom_kill[$__rate_interval])",
+          "legendFormat": "OOM",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
