@@ -241,7 +241,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       const user = ws.getUserData();
       ipClosed(user.ip);
       if (user.pid !== -1 && user.conn) {
-        telemetry.closed('player');
+        telemetry.closed('player', code);
         // 1000 = o cliente fechou pelo "Sair" (`connection.close`); queda de rede vem com outro código
         manager.get(user.roomId)?.disconnect(user.pid, user.conn, code === 1000);
       }
@@ -286,11 +286,11 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       telemetry.opened('spectator');
     },
     message: () => {},
-    close: (ws) => {
+    close: (ws, code) => {
       const user = ws.getUserData();
       ipClosed(user.ip);
       if (user.conn) {
-        telemetry.closed('spectator');
+        telemetry.closed('spectator', code);
         manager.get(user.roomId)?.removeSpectator(user.conn);
       }
       user.conn = null;
