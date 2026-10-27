@@ -912,8 +912,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-444](cards/OG-444-nao-tem-botao-de-sair.md) | Botão "Sair do Outgun" no app desktop (issue #9) | E11 | 2 | Should | S47 | — | Concluído |
 | [OG-445](cards/OG-445-sala-com-16-nao-sai-bot.md) | Sala cheia de bots recusa a entrada de humano (issue #10) | E11 | 2 | Must | S47 | — | Concluído |
 | [OG-446](cards/OG-446-bot-com-foguete-de-outro-mapa.md) | Bot quebra com tiro do mapa anterior depois da troca de mapa (Sentry) | E11 | 1 | Should | S47 | — | Concluído |
+| [OG-447](cards/OG-447-convite-pela-steam-base.md) | Convite pela Steam: overlay, lobby da Steam e entrada pelo convite | E9 | 5 | Should | — | OG-328, OG-396, OG-400 | Backlog |
+| [OG-448](cards/OG-448-convidar-ao-criar-sala.md) | Convidar amigos da Steam na criação da sala personalizada | E9 | 2 | Should | — | OG-447 | Backlog |
+| [OG-449](cards/OG-449-convidar-no-menu-da-partida.md) | "Convidar amigo (Steam)" no menu da partida | E9 | 2 | Should | — | OG-447 | Backlog |
+| [OG-450](cards/OG-450-convidar-no-lobby-ranked.md) | Convidar amigo da Steam no lobby Ranked | E12 | 3 | Could | — | OG-447, D-82 | Backlog |
 
-**Total:** 288 cards, 944 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 219 cards, 649 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 292 cards, 956 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 223 cards, 661 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -1015,6 +1019,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-79 | **v2** — Números de jogador e medalhas | — | ✅ **Decidido pelo PO em 2026-10-23 (S43):** números únicos de 2 a 99, liberados depois de 60 dias sem jogar (a espera de 30 dias entre trocas foi desligada pelo PO em 2026-10-24, OG-415: `NUMBER_COOLDOWN_DAYS`); o 1 é do líder do "Melhor do mês" (índice geral) do mês anterior e o uso é opcional; dourado, prateado e bronze para o top 3 desse índice no mês seguinte; paleta pessoal de 32 cores (sem cor livre). | PO |
 | D-80 | **v2** — Celular de volta, sem a partida (substitui a D-50) | Só aviso (D-50) / portal no celular / jogo inteiro no celular | ✅ **Decidido pelo PO em 2026-10-25 (S45):** o celular abre as telas do portal (início, conta, perfil, clãs, ranking, hall da fama, jogadores, relatórios de partida e série com PDF, e as abas de moderação: salas, denúncias, clãs, bans, auditoria e feedback). A partida, o espectador, os replays, criar/entrar em sala, opções, controles e as abas pesadas do painel (mapas, presets, rotações, bots, papéis, convites, rede) seguem só no computador, com aviso. Como levar o jogo ao celular fica em aberto. PDF do relatório gerado no cliente, em A4. | PO |
 | D-81 | **v2** — Troca de sala parada ou voltando no eixo (OG-428) | Dividir pela velocidade como o original / tempo zero quando a velocidade não leva para fora | ✅ **Decidido pelo agente em 2026-10-26 (S46), na correção da issue #6:** fora da sala com velocidade zero (ou voltando) no eixo, a troca de sala não devolve tempo; antes a divisão por zero virava NaN e o laço da física não terminava. Os laços da física também param com NaN. Casos normais (saindo em movimento) ficam idênticos. | Agente |
+| D-82 | **v2** — Regras do convite pela Steam no Ranked (OG-450) | Convidado entra no lado livre normal / entra no time de quem convidou / convite só até o "Pronto" de todos | ✅ **Decidido pelo PO em 2026-10-27:** o convidado entra no time de quem convidou; depois que todos marcam "Pronto" o convite fica inválido; em clã x clã qualquer um pode ser convidado (não precisa ser do clã). | PO |
 
 ---
 
