@@ -551,7 +551,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
       'A clan tag agora é a tag do seu clã: as tags livres foram removidas. Crie ou entre num clã para mostrar a tag dele junto do seu nome.',
     // Telas de clã (OG-272)
     '$1 members': '$1 membros',
-    '1 or 2 characters.': '1 ou 2 caracteres.',
+    '1 to 3 characters.': '1 a 3 caracteres.',
     // estilo da tag do clã (OG-338)
     'Tag in game': 'Tag no jogo',
     'How the tag appears next to the names of the members.': 'Como a tag aparece junto do nome dos membros.',
@@ -569,7 +569,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Founded: 'Fundado',
     'Founded on $1': 'Fundado em $1',
     'Invalid name: 3 to 24 characters.': 'Nome inválido: 3 a 24 caracteres.',
-    'Invalid tag: 1 or 2 characters, no parentheses.': 'Tag inválida: 1 ou 2 caracteres, sem parênteses.',
+    'Invalid tag: 1 to 3 characters, no parentheses.': 'Tag inválida: 1 a 3 caracteres, sem parênteses.',
     'Invite a player': 'Convidar jogador',
     'Invite sent to $1.': 'Convite enviado para $1.',
     'Invites waiting for an answer:': 'Convites aguardando resposta:',

@@ -66,7 +66,7 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await call('POST', '/clans', { name: 'Outro Clã', tag: 'NN' }, 'Outro')).json().error).toBe('clan_tag_taken');
     expect((await call('POST', '/clans', { name: 'Outro Clã', tag: 'ÑN' }, 'Outro')).json().error).toBe('clan_tag_taken');
     expect((await call('POST', '/clans', { name: 'os nandus', tag: 'ZZ' }, 'Outro')).json().error).toBe('clan_name_taken');
-    expect((await call('POST', '/clans', { name: 'Outro Clã', tag: 'ABC' }, 'Outro')).statusCode).toBe(400);
+    expect((await call('POST', '/clans', { name: 'Outro Clã', tag: 'ABCD' }, 'Outro')).statusCode).toBe(400);
     expect((await call('POST', '/clans', { name: 'Outro Clã', tag: '(' }, 'Outro')).json().error).toBe('invalid_clan_tag');
     expect((await call('POST', '/clans', { name: 'ab', tag: 'ZZ' }, 'Outro')).json().error).toBe('invalid_clan_name');
     expect((await call('POST', '/clans', { name: 'Outro Clã', tag: 'ZZ' })).statusCode).toBe(401);

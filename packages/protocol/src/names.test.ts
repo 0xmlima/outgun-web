@@ -69,7 +69,8 @@ describe('convidados e clan tag', () => {
     ['X', true],
     ['ÄÖ', true],
     ['', false],
-    ['ABC', false],
+    ['ABC', true],
+    ['ABCD', false],
     ['(A)', false],
     [' A', false],
   ])('tag %j → %s', (tag, ok) => expect(checkClanTag(tag)).toBe(ok));

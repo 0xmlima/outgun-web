@@ -5,7 +5,7 @@
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, type ClanTagStyle, clanColoursProblem } from '@outgun/protocol';
+import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
@@ -344,7 +344,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           summary: 'Cria um clã; quem cria vira o líder (só para quem não está em clã)',
           body: Type.Object({
             name: Type.String({ maxLength: MAX_CLAN_NAME }),
-            tag: Type.String({ maxLength: 2 }),
+            tag: Type.String({ maxLength: MAX_CLAN_TAG_LENGTH }),
             tagStyle: Type.Optional(TagStyleSchema),
             description: Type.Optional(Type.String({ maxLength: MAX_CLAN_DESCRIPTION })),
           }),
@@ -378,7 +378,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           params: TagParams,
           body: Type.Object({
             name: Type.Optional(Type.String({ maxLength: MAX_CLAN_NAME })),
-            tag: Type.Optional(Type.String({ maxLength: 2 })),
+            tag: Type.Optional(Type.String({ maxLength: MAX_CLAN_TAG_LENGTH })),
             tagStyle: Type.Optional(TagStyleSchema),
             description: Type.Optional(Type.String({ maxLength: MAX_CLAN_DESCRIPTION })),
             /** Cores do clã na partida (OG-407); null tira. */

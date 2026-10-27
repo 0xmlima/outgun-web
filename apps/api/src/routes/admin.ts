@@ -853,7 +853,7 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
           params: Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) }),
           body: Type.Object({
             name: Type.Optional(Type.String({ maxLength: 24 })),
-            tag: Type.Optional(Type.String({ maxLength: 2 })),
+            tag: Type.Optional(Type.String({ maxLength: 3 })),
             description: Type.Optional(Type.String({ maxLength: 500 })),
             reason: Reason,
           }),

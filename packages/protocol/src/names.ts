@@ -5,7 +5,7 @@
 /** maxPlayerNameLength (src/commont.h:53). */
 export const MAX_NAME_LENGTH = 15;
 /** Tag do clã cadastrado (OG-270, D-47). */
-export const MAX_CLAN_TAG_LENGTH = 2;
+export const MAX_CLAN_TAG_LENGTH = 3;
 export const MIN_CLAN_NAME_LENGTH = 3;
 export const MAX_CLAN_NAME_LENGTH = 24;
 /** Marca dos convidados em jogo (RN-NOM-02). */
@@ -60,7 +60,7 @@ export function guestName(base: string): string {
   return base.slice(0, MAX_NAME_LENGTH - GUEST_SUFFIX.length).replace(/[ \u00a0]+$/, '') + GUEST_SUFFIX;
 }
 
-/** Clan tag: 1 a 2 caracteres com as regras do nome, sem parênteses (exibida como "(TAG) nome"). */
+/** Clan tag: 1 a 3 caracteres com as regras do nome, sem parênteses (exibida como "(TAG) nome"). */
 export function checkClanTag(tag: string): boolean {
   return tag.length >= 1 && tag.length <= MAX_CLAN_TAG_LENGTH && checkName(tag) && !/[()]/.test(tag);
 }

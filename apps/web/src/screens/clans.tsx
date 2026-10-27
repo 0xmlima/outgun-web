@@ -236,7 +236,7 @@ function useClanErrorText(): (e: unknown) => string {
       case 'clan_name_taken':
         return t('This clan name is already taken.');
       case 'invalid_clan_tag':
-        return t('Invalid tag: 1 or 2 characters, no parentheses.');
+        return t('Invalid tag: 1 to 3 characters, no parentheses.');
       case 'invalid_clan_name':
         return t('Invalid name: 3 to 24 characters.');
       case 'player_not_found':
@@ -379,7 +379,7 @@ export function CreateClanScreen() {
           }
         >
           <TextField label={t('Clan name')} value={name} onChange={setName} maxLength={24} hint={t('3 to 24 characters.')} autoFocus />
-          <TextField label={t('Tag')} value={tag} onChange={setTag} maxLength={2} hint={t('1 or 2 characters.')} />
+          <TextField label={t('Tag')} value={tag} onChange={setTag} maxLength={3} hint={t('1 to 3 characters.')} />
           <TagStyleField tag={tag} value={tagStyle} onChange={setTagStyle} />
           <TextAreaField label={t('Description')} value={description} onChange={setDescription} maxLength={500} rows={4} />
         </Form>
