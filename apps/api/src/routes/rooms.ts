@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { hashPassword } from '../auth/password.js';
 import { gameServers, panelMaps, rooms } from '../db/schema.js';
-import { onlineServers, pickServer, roomListed, roomOnline } from '../registry.js';
+import { onlineServers, pickServer, roomHumans, roomListed, roomOnline } from '../registry.js';
 import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 
 const RoomSummary = Type.Object({
@@ -49,8 +49,7 @@ function summary(r: typeof rooms.$inferSelect, region: string | null, now: numbe
     hasPassword: r.passwordHash !== null,
     maxPlayers: r.maxPlayers,
     players: online ? r.players : 0,
-    // o roster do heartbeat marca os bots; sem roster (servidor antigo), conta o total
-    humans: !online ? 0 : r.roster.length > 0 ? r.roster.filter((p) => !p.bot).length : r.players,
+    humans: online ? roomHumans(r) : 0,
     map: online ? r.map : null,
     online,
     persistent: r.persistent,

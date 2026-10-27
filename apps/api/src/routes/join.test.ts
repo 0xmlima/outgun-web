@@ -119,6 +119,10 @@ describe.skipIf(!pgAdminUrl)('entrada nas salas (OG-083)', () => {
     expect((await join('main', { name: 'Visita' })).json().error).toBe('room_full');
     await t.db.update(rooms).set({ players: 3 }).where(eq(rooms.id, 'main'));
     expect((await join('main', { name: 'Visita' })).json().wsUrl).toBe('wss://gs1.example/rooms/main');
+    // cheia, mas com bots (OG-445): o humano entra e o game server tira um bot
+    const roster = Array.from({ length: 16 }, (_, i) => ({ uid: i, name: `B${i}`, team: i % 2, bot: i > 0, muted: 0 }));
+    await t.db.update(rooms).set({ players: 16, roster }).where(eq(rooms.id, 'main'));
+    expect((await join('main', { name: 'Visita' })).statusCode).toBe(200);
   });
 
   it('sala inexistente ou fora do ar (sem endereço de desenvolvimento)', async () => {

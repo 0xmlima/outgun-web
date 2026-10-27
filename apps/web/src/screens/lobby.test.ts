@@ -22,6 +22,10 @@ describe('lobby (OG-069)', () => {
     expect(filterRooms(rooms, 'TREI', false).map((r) => r.id)).toEqual(['Treino']);
     expect(filterRooms(rooms, '', true).map((r) => r.id)).toEqual(['Principal', 'Amigos']);
   });
+
+  it('sala cheia de bots não é lotada: o humano entra no lugar de um bot (OG-445)', () => {
+    expect(filterRooms([{ ...room('Bots', 16), humans: 1 }], '', true).map((r) => r.id)).toEqual(['Bots']);
+  });
 });
 
 describe('Agora no Outgun (OG-282)', () => {
