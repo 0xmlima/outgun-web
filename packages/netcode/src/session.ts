@@ -628,6 +628,8 @@ export class ClientSession {
     const create = () => {
       const w = this.world;
       if (!w || rids.some((rid) => rid >= MAX_ROCKETS)) return;
+      // tiro do mapa anterior chegando depois da troca: a sala pode não existir no novo (OG-446)
+      if (m.roomX >= w.map.width || m.roomY >= w.map.height) return;
       for (const rid of rids) this.rocketGen[rid] = (this.rocketGen[rid] as number) + 1;
       // `shootRockets(..., fx.frame − frameno, ...)`: nasce já avançado pelo atraso
       shootRocketFormation(this.physicsContext(w), rids, { owner, team, pos, power: m.power, dir: dirFromNet(m.gundir), frameAdvance: w.frame - m.frame }, this.callbacks(w, true));

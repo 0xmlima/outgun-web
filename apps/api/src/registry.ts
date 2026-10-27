@@ -21,6 +21,11 @@ export function roomOnline(room: Pick<RoomRow, 'lastHeartbeatAt'>, now = Date.no
   return room.lastHeartbeatAt !== null && now - room.lastHeartbeatAt.getTime() < ONLINE_MS;
 }
 
+/** Humanos na sala: o roster do heartbeat marca os bots; sem roster (servidor antigo), conta o total. */
+export function roomHumans(room: Pick<RoomRow, 'players' | 'roster'>): number {
+  return room.roster.length > 0 ? room.roster.filter((p) => !p.bot).length : room.players;
+}
+
 export async function onlineServers(db: Db, now = Date.now()): Promise<ServerRow[]> {
   return db
     .select()

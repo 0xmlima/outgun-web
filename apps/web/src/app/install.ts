@@ -52,6 +52,15 @@ export interface DesktopBridge {
   /** Conquistas da Steam (OG-396); ausentes antes da 2.41. */
   steamAvailable?(): boolean;
   syncSteamAchievements?(ids: readonly string[]): void;
+  /** Fecha o app (OG-444); ausente antes da 2.47. */
+  quit?(): void;
+}
+
+/** Fecha o app desktop (OG-444): no Windows ele abre em tela cheia, sem botão de fechar. Os clientes sem `quit` fecham pela janela. */
+export function quitDesktop(): void {
+  const bridge = desktopBridge();
+  if (bridge?.quit) bridge.quit();
+  else window.close();
 }
 
 /** Manda ao app da Steam os marcos da conta (OG-396, D-77); fora da Steam não faz nada. */

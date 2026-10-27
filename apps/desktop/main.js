@@ -221,6 +221,11 @@ ipcMain.on('outgun:open-external', (event, url) => {
   if (sameOrigin(event.senderFrame?.url ?? '') && typeof url === 'string') openOutside(url);
 });
 
+// "Sair do Outgun" na barra de cima (OG-444): no Windows o app abre em tela cheia, sem o botão da janela
+ipcMain.on('outgun:quit', (event) => {
+  if (sameOrigin(event.senderFrame?.url ?? '')) app.quit();
+});
+
 ipcMain.on('outgun:steam-available', (event) => {
   event.returnValue = launchedBySteam && sameOrigin(event.senderFrame?.url ?? '');
 });

@@ -55,7 +55,8 @@ export function filterRooms(rooms: readonly RoomSummary[], search: string, hideF
   );
 }
 
-const isFull = (r: RoomSummary) => r.online && r.players >= r.maxPlayers;
+// bots não ocupam vaga: o servidor tira um para o humano entrar (OG-445)
+const isFull = (r: RoomSummary) => r.online && r.humans >= r.maxPlayers;
 
 /** Ordem da lista: com gente primeiro (mais cheia antes), depois por nome; lotadas no fim. */
 export function sortRooms(rooms: readonly RoomSummary[]): RoomSummary[] {

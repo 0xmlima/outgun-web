@@ -198,6 +198,13 @@ describe('ClientSession', () => {
     expect(events.some((e) => e.kind === 'rocketFired')).toBe(true);
   });
 
+  it('tiro numa sala fora do mapa atual (do mapa anterior) é ignorado e o frame segue', () => {
+    const { s } = session();
+    s.handle([frame(10, [player(0, 100, 100)]), message('rocketFire', { owner: 2, rockets: [3], gundir: 0, frame: 10, power: false, roomX: 1, roomY: 2, x: 100, y: 100 })], 1000);
+    expect(s.world?.rockets[3]?.owner).toBe(-1);
+    expect(() => s.handle([frame(11, [player(0, 100, 100)])], 1100)).not.toThrow();
+  });
+
   it('foguete apagado com alvo faz o alvo piscar e gera explosão', () => {
     const { s, events } = session();
     s.handle([frame(10, [player(0, 100, 100)]), message('rocketFire', { owner: 2, rockets: [1], gundir: 0, frame: 10, power: false, roomX: 0, roomY: 0, x: 10, y: 100 })], 1000);

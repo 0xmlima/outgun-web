@@ -124,15 +124,15 @@ describe('queda e volta (OG-047)', () => {
     expect(back.of('frags').find((f) => f.pid === a.pid)?.frags).toBe(4);
   });
 
-  it('quem volta pela conta numa página nova sabe o próprio nome e clã (OG-321)', () => {
+  it('quem volta pela conta numa página nova sabe o próprio nome, clã e número (OG-321, OG-443)', () => {
     const r = new Room({ id: 'r', preset: 'classic', maps, maxPlayers: 16, seed: 7 });
-    const join = (name: string, accountId: string, clanTag?: string) => {
+    const join = (name: string, accountId: string, clanTag?: string, number?: number) => {
       const conn = new TestConnection();
-      const res = r.join(conn, { name, accountId, ...(clanTag ? { clanTag } : {}) });
+      const res = r.join(conn, { name, accountId, ...(clanTag ? { clanTag } : {}), ...(number ? { number } : {}) });
       if (!res.ok) throw new Error(res.text);
       return { conn, pid: res.pid };
     };
-    const a = join('Ana', 'u-1', 'Sk');
+    const a = join('Ana', 'u-1', 'Sk', 7);
     const b = join('Bia', 'u-2');
     for (let i = 0; i < 5; i++) r.tick();
     r.disconnect(a.pid, a.conn);
@@ -144,6 +144,7 @@ describe('queda e volta (OG-047)', () => {
     expect(s.me).toBe(a.pid);
     expect(s.names.get(a.pid)).toBe(chatName('Ana', 'Sk'));
     expect(s.names.get(b.pid)).toBe('Bia');
+    expect(s.numbers.get(a.pid)).toBe(7); // o número também volta (OG-443)
     // a volta não anuncia uma entrada nova no feed
     expect(back.of('playerJoined').some((m) => m.pid === a.pid)).toBe(false);
   });

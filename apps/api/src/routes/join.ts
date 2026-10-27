@@ -13,7 +13,7 @@ import { verifyPassword } from '../auth/password.js';
 import { bans, clanMembers, clans, gameServers, rooms } from '../db/schema.js';
 import { playerSkillRank } from '../skill.js';
 import { botLevelFrom, recentRanked } from '../bot-level.js';
-import { onlineServers, placeRoom, roomOnline, type RoomRow } from '../registry.js';
+import { onlineServers, placeRoom, roomHumans, roomOnline, type RoomRow } from '../registry.js';
 import { ErrorSchema, GameModeSchema, RoomId } from './schemas.js';
 import { nameBlocked } from '../name-filter.js';
 import { previousPodium } from '../ranking.js';
@@ -82,8 +82,9 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
       )
       .limit(1);
     if (ban) return fail(403, 'banned', 'you are banned from this room');
-    // quem volta à própria vaga não conta como mais um (a vaga está guardada ou com o bot substituto)
-    if (!returning && roomOnline(room) && room.players >= room.maxPlayers) return fail(409, 'room_full', 'room is full');
+    // quem volta à própria vaga não conta como mais um (a vaga está guardada ou com o bot substituto);
+    // bots não contam: o game server tira um para o humano entrar (`Room.join`, OG-445)
+    if (!returning && roomOnline(room) && roomHumans(room) >= room.maxPlayers) return fail(409, 'room_full', 'room is full');
 
     const place = await placeRoom(db, room, deps.config.devRoomWsUrl, body.region);
     if (!place.ok) return fail(503, 'room_offline', 'no game server available');
