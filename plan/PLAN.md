@@ -614,6 +614,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S44 | v2: melhorias de UX da comunidade (PR #5) — nova tela inicial com escolha de time, menus em estilo retrô, trilha na barra de cima | OG-416 | |
 | S45 | v2: o celular volta, sem a partida — portão por rota, barra e base responsiva, tela inicial do portal, conta, perfil, clã, ranking, relatório da partida e da série, PDF do relatório completo (partida e série) e moderação, no visual retrô da S44 | OG-417, OG-418, OG-420, OG-419, OG-421, OG-422, OG-423, OG-424, OG-425, OG-426, OG-427 | |
 | S46 | v2: relatos de bug da comunidade — tela que congelava depois da explosão do Deathbringer (issue #6), formulário de bug no site, issue no GitHub pelo painel, retorno ao jogador e issues que viram cards | OG-428, OG-429, OG-430, OG-431, OG-432 | |
+| S47 | v2: rodada de correções (issues do GitHub) | OG-442, OG-443, OG-444, OG-445, OG-446 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -906,8 +907,13 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-439](cards/OG-439-resposta-gradual-aviso-ban-e-recurso.md) | Resposta gradual: advertência, ban explicado e recurso | E7 | 5 | Should | — | OG-438 | Backlog |
 | [OG-440](cards/OG-440-evasao-de-ban-correlacao-de-contas.md) | Evasão de ban: correlação de contas e dispositivos | E7 | 5 | Could | — | OG-104, OG-087 | Backlog |
 | [OG-441](cards/OG-441-punicao-em-sombra.md) | Punição em sombra: suspeito confirmado joga separado | E7 | 5 | Could | — | OG-439, OG-053 | Backlog |
+| [OG-442](cards/OG-442-deathbringer-travou-meu-jogo.md) | Tela congela depois da explosão do Deathbringer (de novo) (issue #7) | E11 | 2 | Must | S47 | — | Em revisão |
+| [OG-443](cards/OG-443-deathbringer-travando-ao-voltar-estou-sem.md) | Número do jogador some ao voltar para a partida (issue #8) | E11 | 2 | Must | S47 | — | Em revisão |
+| [OG-444](cards/OG-444-nao-tem-botao-de-sair.md) | Botão "Sair do Outgun" no app desktop (issue #9) | E11 | 2 | Should | S47 | — | Em revisão |
+| [OG-445](cards/OG-445-sala-com-16-nao-sai-bot.md) | Sala cheia de bots recusa a entrada de humano (issue #10) | E11 | 2 | Must | S47 | — | Em revisão |
+| [OG-446](cards/OG-446-bot-com-foguete-de-outro-mapa.md) | Bot quebra com tiro do mapa anterior depois da troca de mapa (Sentry) | E11 | 1 | Should | S47 | — | Em revisão |
 
-**Total:** 283 cards, 935 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 214 cards, 640 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 288 cards, 944 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 219 cards, 649 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
