@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | — |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -26,7 +26,7 @@ Como PO, quero ver o quadro de cards no Plane (sprints, épicos, status), para a
 
 ## Critérios de aceite
 - [x] Os itens de exemplo do Plane foram apagados e os 293 cards estão no projeto com estado, ciclo, módulo, prioridade, pontos e dependências.
-- [ ] Rodar de novo sem mudanças não altera nenhum item.
+- [x] Rodar de novo sem mudanças não altera nenhum item.
 - [x] Sem a chave no repositório.
 
 ## Notas de implementação

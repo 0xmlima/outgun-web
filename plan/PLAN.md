@@ -916,7 +916,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-448](cards/OG-448-convidar-ao-criar-sala.md) | Convidar amigos da Steam na criação da sala personalizada | E9 | 2 | Should | — | OG-447 | Backlog |
 | [OG-449](cards/OG-449-convidar-no-menu-da-partida.md) | "Convidar amigo (Steam)" no menu da partida | E9 | 2 | Should | — | OG-447 | Backlog |
 | [OG-450](cards/OG-450-convidar-no-lobby-ranked.md) | Convidar amigo da Steam no lobby Ranked | E12 | 3 | Could | — | OG-447, D-82 | Backlog |
-| [OG-451](cards/OG-451-cards-no-plane.md) | Cards espelhados no Plane | E7 | 3 | Should | — | — | Em revisão |
+| [OG-451](cards/OG-451-cards-no-plane.md) | Cards espelhados no Plane | E7 | 3 | Should | — | — | Concluído |
 
 **Total:** 293 cards, 959 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 224 cards, 664 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
