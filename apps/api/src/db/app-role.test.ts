@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
-import { ensureAppRole } from './app-role.js';
+import { ensureAppRole, ensureMonitorRole } from './app-role.js';
 import { migrateUp } from './migrate.js';
 
 describe.skipIf(!pgAdminUrl)('papel da aplicação sem superusuário (OG-308)', () => {
@@ -62,5 +62,36 @@ describe.skipIf(!pgAdminUrl)('papel da aplicação sem superusuário (OG-308)', 
   it('recusa nome inválido e senha curta', async () => {
     await expect(ensureAppRole(t.sql, 'x; DROP', 'a'.repeat(20))).rejects.toThrow(/inválido/);
     await expect(ensureAppRole(t.sql, role, 'curta')).rejects.toThrow(/curta/);
+  });
+});
+
+describe.skipIf(!pgAdminUrl)('papel do monitoramento (OG-453)', () => {
+  let t: TestDatabase;
+  let mon: postgres.Sql;
+  const role = `outgun_monitor_test_${randomBytes(4).toString('hex')}`;
+  const password = randomBytes(18).toString('base64url');
+
+  beforeAll(async () => {
+    t = await createTestDatabase();
+    await migrateUp(t.sql);
+    await ensureMonitorRole(t.sql, role, password);
+    await ensureMonitorRole(t.sql, role, password);
+    const url = new URL(t.url);
+    url.username = role;
+    url.password = password;
+    mon = postgres(url.toString(), { max: 1, onnotice: () => {} });
+  });
+  afterAll(async () => {
+    await mon?.end({ timeout: 2 });
+    await t?.drop();
+    const admin = postgres(pgAdminUrl!, { max: 1, onnotice: () => {} });
+    await admin.unsafe(`DROP ROLE IF EXISTS ${role}`);
+    await admin.end({ timeout: 2 });
+  });
+
+  it('lê as estatísticas, mas não as tabelas do jogo', async () => {
+    expect((await mon`SELECT count(*)::int AS n FROM pg_stat_activity`)[0]?.n).toBeGreaterThan(0);
+    await expect(mon`SELECT * FROM users LIMIT 1`).rejects.toThrow(/permission denied/);
+    await expect(mon`INSERT INTO seasons (name, starts_at) VALUES ('x', now())`).rejects.toThrow(/permission denied/);
   });
 });

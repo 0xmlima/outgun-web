@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S48 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-452 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -22,7 +22,10 @@ Como PO, quero ver as conexões, as queries mais lentas, os locks e o tamanho do
 
 ## Critérios de aceite
 - [ ] `pg_stat_statements` ativo no beta depois do deploy.
-- [ ] O papel de monitoramento não lê as tabelas do jogo (só as visões de estatística).
+- [x] O papel de monitoramento não lê as tabelas do jogo (só as visões de estatística).
 - [ ] Conexões, transações, locks, tamanho do banco e as queries mais caras chegam ao Grafana Cloud.
 
 ## Notas de implementação
+- Migration 0044 cria a extensão; o Postgres do beta sobe com `shared_preload_libraries=pg_stat_statements` (`track=top`, `max=1000`): o primeiro deploy reinicia o banco uma vez (alguns segundos).
+- `ensureMonitorRole` (`outgun_monitor`, `pg_monitor`, até 3 conexões) roda no `migrate up` com `MONITOR_DB_PASSWORD`, que o `install.sh` gera.
+- Teste local com Alloy + Postgres 16 + Prometheus: ~1.350 séries do banco (100 queries do `pg_stat_statements`, 7 métricas por tabela). Pendente: conferir no beta depois do OG-452 ligado.

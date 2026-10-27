@@ -6,7 +6,7 @@ import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { connect } from './db/client.js';
 import { appliedVersions, loadMigrations, migrateDown, migrateUp } from './db/migrate.js';
-import { ensureAppRole } from './db/app-role.js';
+import { ensureAppRole, ensureMonitorRole } from './db/app-role.js';
 import { seed } from './db/seed.js';
 import { backfillMilestones, calibrateMilestones } from './milestones.js';
 import { startSeason } from './ranking.js';
@@ -31,6 +31,12 @@ try {
       const role = process.env.APP_DB_USER ?? 'outgun_app';
       await ensureAppRole(database.sql, role, process.env.APP_DB_PASSWORD);
       console.log(`papel da aplicação ${role} conferido`);
+    }
+    // OG-453: papel só de leitura das estatísticas, usado pelo Alloy no exporter do Postgres
+    if (process.env.MONITOR_DB_PASSWORD) {
+      const role = process.env.MONITOR_DB_USER ?? 'outgun_monitor';
+      await ensureMonitorRole(database.sql, role, process.env.MONITOR_DB_PASSWORD);
+      console.log(`papel de monitoramento ${role} conferido`);
     }
   } else if (command === 'migrate' && arg1 === 'down') {
     console.log('desfeitas:', (await migrateDown(database.sql, Number(arg2 ?? 1))).join(', ') || 'nenhuma');

@@ -919,7 +919,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-450](cards/OG-450-convidar-no-lobby-ranked.md) | Convidar amigo da Steam no lobby Ranked | E12 | 3 | Could | — | OG-447, D-82 | Backlog |
 | [OG-451](cards/OG-451-cards-no-plane.md) | Cards espelhados no Plane | E7 | 3 | Should | — | — | Concluído |
 | [OG-452](cards/OG-452-alloy-grafana-cloud.md) | Métricas e logs do beta no Grafana Cloud (Grafana Alloy) | E7 | 5 | Must | S48 | — | Em andamento |
-| [OG-453](cards/OG-453-metricas-do-banco.md) | Métricas do banco: pg_stat_statements e exporter do Postgres | E7 | 3 | Must | S48 | OG-452 | Pronto |
+| [OG-453](cards/OG-453-metricas-do-banco.md) | Métricas do banco: pg_stat_statements e exporter do Postgres | E7 | 3 | Must | S48 | OG-452 | Em revisão |
 | [OG-454](cards/OG-454-metricas-de-quedas.md) | Métricas de quedas no game server: conexões fechadas e salas encerradas | E7 | 2 | Should | S48 | — | Em revisão |
 | [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Pronto |
 | [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Pronto |

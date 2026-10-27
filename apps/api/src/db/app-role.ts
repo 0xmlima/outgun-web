@@ -27,3 +27,18 @@ export async function ensureAppRole(sql: Sql, role: string, password: string): P
   // o controle das migrations é só do dono
   if ((await sql`SELECT to_regclass('schema_migrations') IS NOT NULL AS ok`)[0]?.ok) await sql.unsafe(`REVOKE INSERT, UPDATE, DELETE ON schema_migrations FROM ${role}`);
 }
+
+/**
+ * Papel do monitoramento (OG-453): só `pg_monitor`, que lê as visões de estatística
+ * (pg_stat_*, pg_stat_statements) e não as tabelas do jogo. Idempotente, como o da aplicação.
+ */
+export async function ensureMonitorRole(sql: Sql, role: string, password: string): Promise<void> {
+  if (!ROLE.test(role)) throw new Error(`nome de papel inválido: ${role}`);
+  if (password.length < 16) throw new Error('senha do papel de monitoramento curta demais (mínimo 16)');
+  const [{ owner, db }] = (await sql`SELECT current_user AS owner, current_database() AS db`) as unknown as [{ owner: string; db: string }];
+  if (owner === role) throw new Error('o papel de monitoramento não pode ser o dono do schema');
+  const exists = (await sql`SELECT 1 FROM pg_roles WHERE rolname = ${role}`).length > 0;
+  await sql.unsafe(`${exists ? 'ALTER' : 'CREATE'} ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 3 PASSWORD ${literal(password)}`);
+  await sql.unsafe(`GRANT pg_monitor TO ${role}`);
+  await sql.unsafe(`GRANT CONNECT ON DATABASE "${db.replace(/"/g, '""')}" TO ${role}`);
+}
