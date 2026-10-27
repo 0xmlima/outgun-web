@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S49 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-452 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

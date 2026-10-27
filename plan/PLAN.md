@@ -924,7 +924,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-454](cards/OG-454-metricas-de-quedas.md) | Métricas de quedas no game server: conexões fechadas e salas encerradas | E7 | 2 | Should | S48 | — | Concluído |
 | [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Concluído |
 | [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Concluído |
-| [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | S49 | OG-452 | Em revisão |
+| [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | S49 | OG-452 | Concluído |
 
 **Total:** 299 cards, 976 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 230 cards, 681 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
