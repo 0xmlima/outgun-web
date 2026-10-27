@@ -69,7 +69,8 @@ async function api(method, path, body) {
       await new Promise((r) => setTimeout(r, wait));
       continue;
     }
-    if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${(await res.text()).slice(0, 300)}`);
+    if (!res.ok)
+      throw new Error(`${method} ${path}: ${res.status} ${(await res.text()).slice(0, 300)}`);
     return res.status === 204 ? null : res.json();
   }
 }
@@ -90,18 +91,36 @@ const write = async (method, path, body) => (dryRun ? null : api(method, path, b
 // --- Cards -------------------------------------------------------------------------------------
 
 const plan = readFileSync(PLAN, 'utf8');
-const cardFiles = new Map(readdirSync(CARDS).filter((f) => /^OG-\d+-.*\.md$/.test(f)).map((f) => [f.slice(0, 6), f]));
+const cardFiles = new Map(
+  readdirSync(CARDS)
+    .filter((f) => /^OG-\d+-.*\.md$/.test(f))
+    .map((f) => [f.slice(0, 6), f]),
+);
 
 /** Linhas da seção 10: `| [OG-NNN](cards/...) | Título | Épico | Pts | Prio | Sprint | Depende de | Status |`. */
 const cards = [];
 for (const line of plan.split('\n')) {
   // pontos riscados (~~13~~) nos quebrados; prioridade "Won't (v2)" nos cancelados
-  const m = /^\| \[(OG-\d+)\]\([^)]*\) \| (.+?) \| (E\d+) \| (?:~~)?(\d+)(?:~~)? \| (.+?) \| (\S+) \| (.+?) \| (.+?) \|$/.exec(line);
+  const m =
+    /^\| \[(OG-\d+)\]\([^)]*\) \| (.+?) \| (E\d+) \| (?:~~)?(\d+)(?:~~)? \| (.+?) \| (\S+) \| (.+?) \| (.+?) \|$/.exec(
+      line,
+    );
   if (!m) continue;
   const [, id, title, epic, pts, prio, sprint, deps, status] = m;
   const file = cardFiles.get(id);
   const text = file ? readFileSync(join(CARDS, file), 'utf8') : '';
-  cards.push({ id, title, epic, pts: Number(pts), prio, sprint: sprint === '—' ? null : sprint, deps: deps.match(/OG-\d+/g) ?? [], status, text, file });
+  cards.push({
+    id,
+    title,
+    epic,
+    pts: Number(pts),
+    prio,
+    sprint: sprint === '—' ? null : sprint,
+    deps: deps.match(/OG-\d+/g) ?? [],
+    status,
+    text,
+    file,
+  });
 }
 
 /** Temas das sprints (seção 9.2) e nomes dos épicos (seção 9.1). */
@@ -122,10 +141,16 @@ function inline(s) {
   return esc(s)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => `<a href="${/^https?:/.test(href) ? href : `${repo}/plan/cards/${href}`}">${label}</a>`);
+    .replace(
+      /\[([^\]]+)\]\(([^)\s]+)\)/g,
+      (_, label, href) =>
+        `<a href="${/^https?:/.test(href) ? href : `${repo}/plan/cards/${href}`}">${label}</a>`,
+    );
 }
 function toHtml(md, file) {
-  const out = [`<p><a href="${repo}/plan/cards/${file}">plan/cards/${esc(file)}</a> (fonte de verdade no repositório)</p>`];
+  const out = [
+    `<p><a href="${repo}/plan/cards/${file}">plan/cards/${esc(file)}</a> (fonte de verdade no repositório)</p>`,
+  ];
   const lines = md.replace(/\r/g, '').split('\n');
   let i = 0;
   while (i < lines.length) {
@@ -145,27 +170,41 @@ function toHtml(md, file) {
       const rows = [];
       for (; i < lines.length && /^\|/.test(lines[i]); i++) {
         if (/^\|[\s|:-]+\|$/.test(lines[i])) continue;
-        rows.push(lines[i].slice(1, -1).split(' | ').map((c) => `<td><p>${inline(c.trim())}</p></td>`).join(''));
+        rows.push(
+          lines[i]
+            .slice(1, -1)
+            .split(' | ')
+            .map((c) => `<td><p>${inline(c.trim())}</p></td>`)
+            .join(''),
+        );
       }
       out.push(`<table><tbody>${rows.map((r) => `<tr>${r}</tr>`).join('')}</tbody></table>`);
     } else if (/^\s*- \[[ x]\] /.test(line)) {
       const items = [];
       for (; i < lines.length && /^\s*- \[[ x]\] /.test(lines[i]); i++) {
         const checked = /- \[x\]/.test(lines[i]);
-        items.push(`<li data-type="taskItem" data-checked="${checked}"><p>${inline(lines[i].replace(/^\s*- \[[ x]\] /, ''))}</p></li>`);
+        items.push(
+          `<li data-type="taskItem" data-checked="${checked}"><p>${inline(lines[i].replace(/^\s*- \[[ x]\] /, ''))}</p></li>`,
+        );
       }
       out.push(`<ul data-type="taskList">${items.join('')}</ul>`);
     } else if (/^\s*([-*]|\d+\.) /.test(line)) {
       const ordered = /^\s*\d+\. /.test(line);
       const items = [];
-      for (; i < lines.length && /^\s*([-*]|\d+\.) /.test(lines[i]); i++) items.push(`<li><p>${inline(lines[i].replace(/^\s*([-*]|\d+\.) /, ''))}</p></li>`);
+      for (; i < lines.length && /^\s*([-*]|\d+\.) /.test(lines[i]); i++)
+        items.push(`<li><p>${inline(lines[i].replace(/^\s*([-*]|\d+\.) /, ''))}</p></li>`);
       out.push(ordered ? `<ol>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`);
     } else if (/^> /.test(line)) {
       out.push(`<blockquote><p>${inline(line.slice(2))}</p></blockquote>`);
       i++;
     } else if (line.trim()) {
       const para = [];
-      for (; i < lines.length && lines[i].trim() && !/^(#|```|\||\s*([-*]|\d+\.) |> )/.test(lines[i]); i++) para.push(lines[i]);
+      for (
+        ;
+        i < lines.length && lines[i].trim() && !/^(#|```|\||\s*([-*]|\d+\.) |> )/.test(lines[i]);
+        i++
+      )
+        para.push(lines[i]);
       out.push(`<p>${inline(para.join(' '))}</p>`);
     } else i++;
   }
@@ -182,7 +221,10 @@ async function ensure(kind, path, wanted, keyOf, create, update) {
     const cur = byKey.get(key);
     if (!cur) {
       console.log(`+ ${kind} ${key}`);
-      byKey.set(key, (await write('POST', path, create(key, body))) ?? { id: `dry-${kind}-${key}`, ...body });
+      byKey.set(
+        key,
+        (await write('POST', path, create(key, body))) ?? { id: `dry-${kind}-${key}`, ...body },
+      );
     } else if (update) {
       const diff = update(cur, body);
       if (diff) {
@@ -235,23 +277,56 @@ async function main() {
     (name, s) => ({ name, ...s }),
     (cur, s) => (cur.group !== s.group || cur.color !== s.color ? s : null),
   );
-  const ptsLabels = new Map([...new Set(cards.map((c) => c.pts))].map((p) => [`${p} pts`, { color: '#64748B' }]));
-  const labels = await ensure('etiqueta', '/labels/', ptsLabels, (x) => x.name, (name, l) => ({ name, ...l }));
-  const me = await fetch(`${URL_BASE}/api/v1/users/me/`, { headers: { 'X-API-Key': KEY } }).then((r) => r.json());
-  const sprints = [...new Set(cards.map((c) => c.sprint).filter(Boolean))].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+  const ptsLabels = new Map(
+    [...new Set(cards.map((c) => c.pts))].map((p) => [`${p} pts`, { color: '#64748B' }]),
+  );
+  const labels = await ensure(
+    'etiqueta',
+    '/labels/',
+    ptsLabels,
+    (x) => x.name,
+    (name, l) => ({ name, ...l }),
+  );
+  const me = await fetch(`${URL_BASE}/api/v1/users/me/`, { headers: { 'X-API-Key': KEY } }).then(
+    (r) => r.json(),
+  );
+  const sprints = [...new Set(cards.map((c) => c.sprint).filter(Boolean))].sort(
+    (a, b) => Number(a.slice(1)) - Number(b.slice(1)),
+  );
   const cycles = await ensure(
     'ciclo',
     '/cycles/',
-    new Map(sprints.map((s) => [s, { name: `${s} — ${sprintTheme.get(s) ?? ''}`.slice(0, 255).replace(/ — $/, '').trim(), description: sprintTheme.get(s) ?? '' }])),
+    new Map(
+      sprints.map((s) => [
+        s,
+        {
+          name: `${s} — ${sprintTheme.get(s) ?? ''}`.slice(0, 255).replace(/ — $/, '').trim(),
+          description: sprintTheme.get(s) ?? '',
+        },
+      ]),
+    ),
     (x) => x.external_id ?? x.name,
-    (s, c) => ({ ...c, project_id: PROJECT, owned_by: me.id, external_id: s, external_source: SOURCE }),
+    (s, c) => ({
+      ...c,
+      project_id: PROJECT,
+      owned_by: me.id,
+      external_id: s,
+      external_source: SOURCE,
+    }),
     (cur, c) => (cur.name !== c.name || cur.description !== c.description ? c : null),
   );
-  const epics = [...new Set(cards.map((c) => c.epic))].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+  const epics = [...new Set(cards.map((c) => c.epic))].sort(
+    (a, b) => Number(a.slice(1)) - Number(b.slice(1)),
+  );
   const modules = await ensure(
     'módulo',
     '/modules/',
-    new Map(epics.map((e) => [e, { name: `${e} — ${epicName.get(e)?.name ?? e}`, description: epicName.get(e)?.goal ?? '' }])),
+    new Map(
+      epics.map((e) => [
+        e,
+        { name: `${e} — ${epicName.get(e)?.name ?? e}`, description: epicName.get(e)?.goal ?? '' },
+      ]),
+    ),
     (x) => x.external_id ?? x.name,
     (e, m) => ({ ...m, project_id: PROJECT, external_id: e, external_source: SOURCE }),
     (cur, m) => (cur.name !== m.name || cur.description !== m.description ? m : null),
@@ -269,7 +344,12 @@ async function main() {
     const cur = byId.get(c.id);
     if (!cur) {
       console.log(`+ item ${c.id}`);
-      const made = await write('POST', '/work-items/', { ...body, description_html: toHtml(c.text, c.file), external_id: c.id, external_source: SOURCE });
+      const made = await write('POST', '/work-items/', {
+        ...body,
+        description_html: toHtml(c.text, c.file),
+        external_id: c.id,
+        external_source: SOURCE,
+      });
       byId.set(c.id, made ?? { id: `dry-${c.id}`, cycle_id: null });
       cache[c.id] = hash;
       continue;
@@ -289,26 +369,33 @@ async function main() {
 
   // ciclos: um item fica num ciclo só; os sem sprint saem do ciclo
   const want = new Map();
-  for (const c of cards) if (c.sprint) want.set(c.sprint, [...(want.get(c.sprint) ?? []), byId.get(c.id).id]);
+  for (const c of cards)
+    if (c.sprint) want.set(c.sprint, [...(want.get(c.sprint) ?? []), byId.get(c.id).id]);
   for (const [sprint, cycle] of cycles) {
-    const has = String(cycle.id).startsWith('dry-') ? [] : (await list(`/cycles/${cycle.id}/cycle-issues/`)).map((x) => x.id);
+    const has = String(cycle.id).startsWith('dry-')
+      ? []
+      : (await list(`/cycles/${cycle.id}/cycle-issues/`)).map((x) => x.id);
     const add = (want.get(sprint) ?? []).filter((id) => !has.includes(id));
     if (add.length) {
       console.log(`  ciclo ${sprint}: +${add.length}`);
       await write('POST', `/cycles/${cycle.id}/cycle-issues/`, { issues: add });
     }
-    for (const id of has.filter((id) => !(want.get(sprint) ?? []).includes(id))) await write('DELETE', `/cycles/${cycle.id}/cycle-issues/${id}/`);
+    for (const id of has.filter((id) => !(want.get(sprint) ?? []).includes(id)))
+      await write('DELETE', `/cycles/${cycle.id}/cycle-issues/${id}/`);
   }
   // módulos
   for (const [epic, mod] of modules) {
     const wanted = cards.filter((c) => c.epic === epic).map((c) => byId.get(c.id).id);
-    const has = String(mod.id).startsWith('dry-') ? [] : (await list(`/modules/${mod.id}/module-issues/`)).map((x) => x.id);
+    const has = String(mod.id).startsWith('dry-')
+      ? []
+      : (await list(`/modules/${mod.id}/module-issues/`)).map((x) => x.id);
     const add = wanted.filter((id) => !has.includes(id));
     if (add.length) {
       console.log(`  módulo ${epic}: +${add.length}`);
       await write('POST', `/modules/${mod.id}/module-issues/`, { issues: add });
     }
-    for (const id of has.filter((id) => !wanted.includes(id))) await write('DELETE', `/modules/${mod.id}/module-issues/${id}/`);
+    for (const id of has.filter((id) => !wanted.includes(id)))
+      await write('DELETE', `/modules/${mod.id}/module-issues/${id}/`);
   }
   // dependências → "bloqueado por" (só acrescenta)
   for (const c of cards) {
@@ -319,7 +406,10 @@ async function main() {
     const missing = deps.filter((id) => !(rel.blocked_by ?? []).includes(id));
     if (missing.length) {
       console.log(`  ${c.id} bloqueado por +${missing.length}`);
-      await write('POST', `/work-items/${it.id}/relations/`, { relation_type: 'blocked_by', issues: missing });
+      await write('POST', `/work-items/${it.id}/relations/`, {
+        relation_type: 'blocked_by',
+        issues: missing,
+      });
     }
   }
 
