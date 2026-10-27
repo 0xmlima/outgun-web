@@ -102,23 +102,27 @@ antes disso, reconstrua do replay com `node tools/dev/rebuild-match.mjs` (OG-330
 - **Site fora do ar** não dá para ver de dentro da máquina: use uma verificação externa grátis (UptimeRobot ou parecido) em `https://DOMAIN/api/health`, com alerta para o mesmo e-mail.
 - **Retenção:** log de cada container em `json-file`, 5 arquivos de 20 MB (o mais antigo sai); auditoria da moderação (`admin_actions`) no banco, sem prazo; backups do banco: os 14 últimos (`BACKUP_KEEP`).
 
-## Métricas e logs no Grafana Cloud (OG-452 a OG-455)
+## Métricas e logs no Grafana Cloud (OG-452 a OG-457)
 
-O container `alloy` (Grafana Alloy, limite de 160 MB) coleta a cada 60 s e envia ao Grafana Cloud
-(plano Free: 10 mil séries, 50 GB de logs, 14 dias):
+Dois containers pequenos, fora do perfil padrão, coletam a cada 60 s e enviam ao Grafana Cloud
+(plano Free: 10 mil séries, 50 GB de logs, 14 dias): o `fluent-bit` (limite de 64 MB; ~10 MB no
+teste) e o `postgres-exporter` (limite de 48 MB). Eles mandam:
 
-- o `/metrics` do game server e da API (tick, salas, jogadores, quedas por código, pedidos HTTP);
-- a máquina (CPU com o tempo roubado pelo hipervisor, memória, swap, pressão, disco, OOM) e o banco (conexões, transações, locks, tamanho, tabelas com
-  varredura sequencial, as queries mais caras do `pg_stat_statements`, com o papel `outgun_monitor`);
-- os logs da API, do game server, do Postgres e do backup, com os rótulos `service` e `level`. Eles continuam lá depois do
-  deploy, que recria os containers e apaga o `json-file`.
+- o `/metrics` do game server e da API (tick, salas, jogadores, quedas por código, pedidos HTTP,
+  CPU e memória de cada processo);
+- a máquina (CPU com o tempo roubado pelo hipervisor, memória, swap, disco, OOM) e o banco
+  (conexões, transações, locks, tamanho, tabelas com varredura sequencial, as queries mais caras do
+  `pg_stat_statements`, com o papel `outgun_monitor`);
+- os logs da API, do game server, do Postgres e do backup, com os rótulos `service` e `level`. Eles
+  ficam no Loki depois do deploy, que recria os containers e apaga o `json-file`. O Fluent Bit lê os
+  arquivos de log do Docker, que trazem o nome do serviço (opção `labels` do `json-file` no compose).
 
-Sem métricas por container (cAdvisor): no primeiro teste no beta ele sozinho deixou a E2.1.Micro com
-70% de CPU roubada. Numa máquina maior (A1), dá para voltar com ele.
+O Grafana Alloy (OG-452) não coube na E2.1.Micro: o binário tem 571 MB, e com pouca memória a VM
+passou a reler o programa do disco sem parar. Numa máquina maior, ele também serviria.
 
 Ligar uma vez: crie a conta e a stack em grafana.com (região São Paulo), ponha as credenciais em
 `~/.config/outgun/grafana-cloud.env` (formato no cabeçalho de `deploy/vps/grafana-cloud.sh`) e rode
-`bash deploy/vps/grafana-cloud.sh root@IP`. Sem credenciais o `alloy` não sobe e nada muda. Painéis e
+`bash deploy/vps/grafana-cloud.sh root@IP`. Sem credenciais os dois não sobem e nada muda. Painéis e
 regras de alerta: `bash tools/observability/grafana-cloud-sync.sh` (OG-455): painéis "Outgun" e
 "Outgun: servidor do beta" na pasta Outgun, regras nos namespaces `outgun-jogo` e `outgun-beta`.
 Uma vez, à mão, no Grafana Cloud: em Alerting > Contact points, o e-mail do `ALERT_EMAIL` na política

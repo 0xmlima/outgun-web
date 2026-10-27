@@ -11,7 +11,7 @@ tests:
         values: '0 0 0 0 0 0 6 6 6 6 6 6 6 6 6 6 6 6 6 6'
       - series: 'outgun_ws_closed_total{instance="vps",kind="player",code="1000"}'
         values: '0 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2'
-      - series: 'up{job="game-server",instance="vps"}'
+      - series: 'outgun_ticks_total{job="game-server",instance="vps"}'
         values: '1x20'
     alert_rule_test:
       - eval_time: 30s

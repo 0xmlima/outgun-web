@@ -6,8 +6,8 @@
 | Tipo | Infra |
 | Prioridade | Should |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S49 |
+| Status | Em revisão |
 | Dependências | OG-452 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,7 +24,10 @@ Como PO, quero as métricas e os logs do beta no Grafana Cloud mesmo na VM de 1 
 - Medir no beta antes de deixar ligado: abaixo de 40 MB de RAM e 2% de CPU, sem leitura contínua de disco.
 
 ## Critérios de aceite
-- [ ] Métricas do jogo, da API, da máquina e do banco e os logs chegam ao Grafana Cloud.
+- [x] Métricas do jogo, da API, da máquina e do banco e os logs chegam ao Grafana Cloud.
 - [ ] Nenhum aumento perceptível de CPU roubada, swap ou espera de disco na VM.
 
 ## Notas de implementação
+- `deploy/vps/fluent-bit/fluent-bit.yaml` (Fluent Bit 5.1.4, binário de 76 MB) e `postgres-exporter` v0.20.1 no perfil `observabilidade`; o Alloy saiu do compose. Teste local contra o Grafana Cloud: máquina, banco (100 queries do `pg_stat_statements`) e logs com `service`/`level` chegaram; Fluent Bit ~10 MB, exporter ~4 MB.
+- Logs pelos arquivos do `json-file` (sem socket do Docker), com `labels: com.docker.compose.service` no compose. Só valem para containers recriados depois do deploy.
+- O Fluent Bit não gera a série `up`: o alerta "sem métricas do jogo" usa `outgun_ticks_total`. Sem coletor de PSI: o painel mostra leitura e escrita de disco no lugar.

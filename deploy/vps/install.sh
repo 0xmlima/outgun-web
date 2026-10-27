@@ -57,7 +57,7 @@ fi
 # senhas do papel da aplicação no Postgres e do Redis (OG-308), também em instalações antigas
 grep -q '^APP_DB_PASSWORD=' .env || echo "APP_DB_PASSWORD=$(secret)" >> .env
 grep -q '^REDIS_PASSWORD=' .env || echo "REDIS_PASSWORD=$(secret)" >> .env
-# papel do Postgres só para as estatísticas (OG-453), usado pelo Alloy
+# papel do Postgres só para as estatísticas (OG-453), usado pelo postgres_exporter
 grep -q '^MONITOR_DB_PASSWORD=' .env || echo "MONITOR_DB_PASSWORD=$(secret)" >> .env
 # beta fechado (OG-106) ligado por padrão; a publicação aberta põe BETA=0 no .env
 grep -q '^BETA=' .env || echo "BETA=1" >> .env
@@ -72,8 +72,8 @@ mkdir -p downloads # instalador do cliente para Windows (OG-325)
 
 # atualização: o game server recebe SIGTERM e drena (as partidas terminam) antes de trocar
 services="edge postgres redis api game-server web backup"
-# métricas e logs no Grafana Cloud (OG-452): só com as credenciais (deploy/vps/grafana-cloud.sh)
-grep -q '^GRAFANA_CLOUD_TOKEN=.' .env && services="$services alloy"
+# métricas e logs no Grafana Cloud (OG-452, OG-457): só com as credenciais (deploy/vps/grafana-cloud.sh)
+grep -q '^GRAFANA_CLOUD_TOKEN=.' .env && services="$services postgres-exporter fluent-bit"
 docker compose up -d --remove-orphans --wait $services
 # o Caddyfile é montado do disco: sem recarregar, a borda segue com a configuração antiga (OG-311)
 docker compose exec -T edge caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || echo "aviso: não recarreguei o Caddyfile da borda"
