@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Alertas do servidor do beta (OG-455): quedas de jogadores (OG-454), máquina, containers e banco
+# (OG-452, OG-453). As séries vêm do Alloy; no Prometheus local (docker-compose.yml desta pasta) só
+# as de quedas existem. Testes: outgun-beta.rules.test.yml (tools/observability/check.sh).
+groups:
+  - name: outgun-quedas
+    rules:
+      # 26/10/2026: a partida travou e todos os jogadores caíram de uma vez
+      - alert: OutgunQuedaEmMassa
+        expr: sum by (instance) (increase(outgun_ws_closed_total{kind="player",code=~"1006|1011|other"}[1m])) >= 4
+        labels: { severity: page }
+        annotations:
+          summary: '{{ $value | humanize }} jogadores caíram sem aviso no último minuto em {{ $labels.instance }}'
+          description: 'Código 1006 é queda sem fechamento (rede ou processo travado). Veja os logs do game server no mesmo minuto: {service="game-server"}.'
+      - alert: OutgunSemMetricasDoJogo
+        expr: absent_over_time(up{job="game-server"}[5m])
+        labels: { severity: page }
+        annotations:
+          summary: 'Nenhuma métrica do game server há 5 minutos: o servidor ou o Alloy caiu'
+
+  - name: outgun-maquina
+    rules:
+      - record: instance:node_cpu_busy:ratio
+        expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))
+      - record: instance:node_cpu_steal:ratio
+        expr: avg by (instance) (rate(node_cpu_seconds_total{mode="steal"}[5m]))
+      - alert: OutgunVmCpuAlta
+        expr: instance:node_cpu_busy:ratio > 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'CPU da VM acima de 80% há 5 minutos ({{ $value | humanizePercentage }})'
+      - alert: OutgunVmCpuRoubada
+        expr: instance:node_cpu_steal:ratio > 0.3
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: 'O hipervisor está segurando {{ $value | humanizePercentage }} da CPU da VM há 10 minutos'
+          description: 'A E2.1.Micro só garante uma fração de núcleo. Steal alto com jogo lento é o sinal para migrar para a A1.'
+      - alert: OutgunVmMemoriaBaixa
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: 'Menos de 10% de memória disponível na VM há 5 minutos'
+      - alert: OutgunVmSwapAlto
+        expr: 1 - node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes > 0.6
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Swap da VM {{ $value | humanizePercentage }} ocupado há 15 minutos'
+      - alert: OutgunVmDiscoCheio
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.15
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Disco da VM com menos de 15% livre'
+      - alert: OutgunContainerSemMemoria
+        expr: increase(container_oom_events_total[5m]) > 0
+        labels: { severity: page }
+        annotations:
+          summary: 'O container {{ $labels.service }} foi morto por falta de memória'
+
+  - name: outgun-banco
+    rules:
+      - alert: OutgunBancoFora
+        expr: pg_up == 0
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: 'O Postgres não responde ao monitoramento'
+      - alert: OutgunBancoConexoes
+        expr: sum by (instance) (pg_stat_activity_count) > 80
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: '{{ $value }} conexões abertas no Postgres (o limite é 100)'
+      - alert: OutgunBancoTransacaoLonga
+        expr: max by (instance) (pg_stat_activity_max_tx_duration) > 300
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Transação aberta há mais de 5 minutos no Postgres ({{ $value | humanizeDuration }})'
+      - alert: OutgunBancoDeadlock
+        expr: increase(pg_stat_database_deadlocks{datname="outgun"}[10m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: 'Deadlock no banco do jogo nos últimos 10 minutos'

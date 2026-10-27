@@ -102,6 +102,35 @@ antes disso, reconstrua do replay com `node tools/dev/rebuild-match.mjs` (OG-330
 - **Site fora do ar** não dá para ver de dentro da máquina: use uma verificação externa grátis (UptimeRobot ou parecido) em `https://DOMAIN/api/health`, com alerta para o mesmo e-mail.
 - **Retenção:** log de cada container em `json-file`, 5 arquivos de 20 MB (o mais antigo sai); auditoria da moderação (`admin_actions`) no banco, sem prazo; backups do banco: os 14 últimos (`BACKUP_KEEP`).
 
+## Métricas e logs no Grafana Cloud (OG-452 a OG-455)
+
+O container `alloy` (Grafana Alloy, ~55 MB de RAM, limite de 160 MB) coleta e envia ao Grafana Cloud
+(plano Free: 10 mil séries, 50 GB de logs, 14 dias):
+
+- o `/metrics` do game server e da API (tick, salas, jogadores, quedas por código, pedidos HTTP);
+- a máquina (CPU com o tempo roubado pelo hipervisor, memória, swap, pressão, disco), os containers
+  (CPU, memória, rede e OOM por serviço) e o banco (conexões, transações, locks, tamanho, tabelas com
+  varredura sequencial, as queries mais caras do `pg_stat_statements`, com o papel `outgun_monitor`);
+- os logs de todos os containers, com os rótulos `service` e `level`. Eles continuam lá depois do
+  deploy, que recria os containers e apaga o `json-file`.
+
+Ligar uma vez: crie a conta e a stack em grafana.com (região São Paulo), ponha as credenciais em
+`~/.config/outgun/grafana-cloud.env` (formato no cabeçalho de `deploy/vps/grafana-cloud.sh`) e rode
+`bash deploy/vps/grafana-cloud.sh root@IP`. Sem credenciais o `alloy` não sobe e nada muda. Painéis e
+regras de alerta: `bash tools/observability/grafana-cloud-sync.sh` (OG-455): painéis "Outgun" e
+"Outgun: servidor do beta" na pasta Outgun, regras nos namespaces `outgun-jogo` e `outgun-beta`.
+Uma vez, à mão, no Grafana Cloud: em Alerting > Contact points, o e-mail do `ALERT_EMAIL` na política
+padrão; em Testing & synthetics, uma verificação HTTP de `https://DOMAIN/api/health` a cada minuto
+(o plano Free cobre), que avisa quando o site cai mesmo com a VM de pé.
+
+Alarmes da própria Oracle (OG-456), que funcionam até com a VM fora do ar:
+`bash deploy/vps/oci-alarms.sh EMAIL` (CPU acima de 80% e memória acima de 85% por 5 min, VM sem
+métricas por 5 min; confirme a assinatura pelo e-mail da Oracle).
+
+Consultas úteis no Explore do Grafana: `{service="game-server", level="error"}` (logs),
+`sum by (code) (rate(outgun_ws_closed_total{kind="player"}[1m]))` (quedas),
+`rate(node_cpu_seconds_total{mode="steal"}[5m])` (CPU roubada).
+
 ## Provedores
 
 - **DigitalOcean** (beta): sem região na América do Sul; Nova York dá ~110–150 ms a partir do

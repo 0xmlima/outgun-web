@@ -35,8 +35,9 @@ describe.skipIf(!pgAdminUrl)('migrations no PostgreSQL', () => {
   });
 
   const objects = async () => {
+    // só tabelas: as visões do pg_stat_statements (OG-453) são da extensão
     const tables = await t.sql`SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_name <> 'schema_migrations' ORDER BY table_name`;
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> 'schema_migrations' ORDER BY table_name`;
     const types = await t.sql`SELECT typname FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
       WHERE n.nspname = 'public' AND t.typtype = 'e'`;
     return { tables: tables.map((r) => r.table_name as string), types: types.map((r) => r.typname as string) };

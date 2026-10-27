@@ -39,6 +39,28 @@ describe('GameTelemetry', () => {
     expect(telemetry.errors.get({ kind: 'tick' })).toBe(1);
   });
 
+  it('conta WebSockets fechados por código e salas encerradas por motivo (OG-454)', () => {
+    let t = 0;
+    const clock = { now: () => t, setTimeout: () => 0, clearTimeout: () => {} };
+    const m = new RoomManager({ emptyTimeoutMs: 1000, clock, seed: () => 1 });
+    const telemetry = new GameTelemetry(m);
+    m.observer = telemetry;
+    telemetry.opened('player');
+    telemetry.opened('player');
+    telemetry.closed('player', 1006);
+    telemetry.closed('player', 3999);
+    expect(telemetry.wsClosed.get({ kind: 'player', code: '1006' })).toBe(1);
+    expect(telemetry.wsClosed.get({ kind: 'player', code: 'other' })).toBe(1);
+    m.create({ id: 'vazia', preset: 'classic', maps, maxPlayers: 16 });
+    m.tickAll();
+    t = 2000;
+    m.tickAll();
+    m.create({ id: 'outra', preset: 'classic', maps, maxPlayers: 16 });
+    m.stop();
+    expect(telemetry.roomsClosed.get({ reason: 'empty' })).toBe(1);
+    expect(telemetry.roomsClosed.get({ reason: 'shutdown' })).toBe(1);
+  });
+
   it('o alerta de p95 > 20 ms enxerga ticks lentos', () => {
     const m = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 1 });
     const telemetry = new GameTelemetry(m);

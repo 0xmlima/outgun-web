@@ -63,7 +63,12 @@ export interface TickObserver {
   roomError(roomId: string, error: unknown): void;
   /** Inputs de jogadores no tick (OG-369): espera de cada mudança até o tick (ms) e mudanças sobrescritas. */
   input?(waitsMs: readonly number[], overwritten: number): void;
+  /** A sala foi encerrada (OG-454). */
+  roomClosed?(roomId: string, reason: RoomCloseReason): void;
 }
+
+/** Por que a sala foi encerrada: a partida acabou de vez, ficou vazia tempo demais ou o processo está parando. */
+export type RoomCloseReason = 'finished' | 'empty' | 'shutdown';
 
 /** O que o heartbeat conta à API sobre cada sala (OG-086). */
 export interface HostedRoom {
@@ -102,7 +107,7 @@ export class RoomManager {
 
   stop(): void {
     this.loop.stop();
-    for (const id of [...this.rooms.keys()]) this.close(id);
+    for (const id of [...this.rooms.keys()]) this.close(id, 'shutdown');
   }
 
   create(spec: RoomSpec): Room {
@@ -173,11 +178,12 @@ export class RoomManager {
     return [...this.rooms.values()].map((e) => e.room);
   }
 
-  close(id: string): void {
+  close(id: string, reason: RoomCloseReason = 'shutdown'): void {
     const entry = this.rooms.get(id);
     if (!entry) return;
     entry.room.close();
     this.rooms.delete(id);
+    this.observer?.roomClosed?.(id, reason);
   }
 
   /** Um tick de todas as salas; depois, encerra as vazias há tempo demais. */
@@ -187,7 +193,7 @@ export class RoomManager {
     const observer = this.observer;
     for (const [id, entry] of this.rooms) {
       if (entry.room.finished) {
-        this.close(id);
+        this.close(id, 'finished');
         continue;
       }
       if (observer) {
@@ -205,7 +211,7 @@ export class RoomManager {
       } else entry.room.tick();
       if (entry.room.playerCount > 0 || entry.persistent) entry.emptySince = null;
       else if (entry.emptySince === null) entry.emptySince = now;
-      else if (now - entry.emptySince >= this.options.emptyTimeoutMs) this.close(id);
+      else if (now - entry.emptySince >= this.options.emptyTimeoutMs) this.close(id, 'empty');
     }
     const cost = this.clock.now() - begin;
     observer?.tick(cost, this.loop.stats.lastLateness);

@@ -39,6 +39,8 @@ if [ -n "$missing" ]; then
   docker save $missing | gzip -1 | ssh_ "command -v docker >/dev/null || (apt-get update -q && DEBIAN_FRONTEND=noninteractive apt-get install -yq docker.io docker-compose-v2 >/dev/null); gunzip | docker load" | tail -4
 fi
 scp -q -o StrictHostKeyChecking=accept-new deploy/vps/compose.yml deploy/vps/Caddyfile deploy/vps/install.sh deploy/backup/restore.sh "$host:/opt/outgun/"
+# configuração do Alloy (OG-452), montada só leitura no container
+scp -q -r deploy/vps/alloy "$host:/opt/outgun/"
 
 echo "== instalação"
 ssh_ "TAG=$tag RELEASE=$version ${DOMAIN:+DOMAIN=$DOMAIN} bash /opt/outgun/install.sh"
