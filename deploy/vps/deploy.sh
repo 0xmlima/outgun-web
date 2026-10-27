@@ -42,3 +42,10 @@ scp -q -o StrictHostKeyChecking=accept-new deploy/vps/compose.yml deploy/vps/Cad
 
 echo "== instalação"
 ssh_ "TAG=$tag RELEASE=$version ${DOMAIN:+DOMAIN=$DOMAIN} bash /opt/outgun/install.sh"
+
+# app da Steam na mesma versão (pedido do PO, 2026-10-27): espera o build do commit no CI e envia
+# para a branch beta. Falha aqui não desfaz o deploy do servidor; repita com o release.sh.
+case "$tag" in
+  *-dirty) echo "== steam: árvore com mudanças locais; envio pulado" ;;
+  *) bash apps/desktop/steam/release.sh || echo "== steam: envio falhou; repita com: bash apps/desktop/steam/release.sh" >&2 ;;
+esac
