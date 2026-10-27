@@ -18,6 +18,7 @@ em `_legacy/` é **referência opcional**, não oráculo. As skills de fidelidad
 
 ## Iniciar
 1. Mude o status para `Em andamento` **no cabeçalho do card e na tabela da seção 10**: `python3 tools/dev/set-status.py NNN "Em andamento"` (aceita vários IDs: `203,205`). Vai no primeiro commit do card, não num commit próprio.
+   - **Plane (OG-451):** o quadro do PO é espelhado no Plane. Depois de mudar status, criar cards ou fechar a sprint, rode `node tools/dev/plane-sync.mjs` (só repositório → Plane; chave em `~/.config/outgun/plane.env`, fora do repo). Nunca edite os cards no Plane: o repositório é a fonte de verdade.
 2. **Uma branch por sprint** (`sNN`, saindo da `v2`); cada card é uma sequência de commits `OG-NNN: ...` nela (sem branch por card nem pilha). A `main` é a v1 (tag `v1.0.0`, beta): só correções do beta vão nela.
 3. Leia só as RNs listadas no card (`grep -n "RN-XXX-NN" plan/PLAN.md`), nunca o PLAN inteiro.
 4. Cards de **interface** (épico E8 em diante): siga o design system v2 (`apps/web/src/ui/`, tokens e fonte única do OG-200). Nada de fontes bitmap nem de estilo novo fora dos tokens.
