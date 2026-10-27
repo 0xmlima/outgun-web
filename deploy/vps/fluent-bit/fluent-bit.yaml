@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Fluent Bit no servidor do beta (OG-457, no lugar do Alloy do OG-452, que não coube na E2.1.Micro):
+# coleta o /metrics do jogo e da API, o postgres_exporter (OG-453), a máquina e os logs dos
+# containers, e envia ao Grafana Cloud (plano Free: 10 mil séries, 50 GB de logs, 14 dias).
+# Coleta a cada 60 s, o ritmo que o plano Free conta. Credenciais vêm do /opt/outgun/.env pelo
+# compose. Os rótulos (job, instance, host, service, level) são os que os painéis e as regras de
+# tools/observability/ esperam.
+
+service:
+  flush: 5
+  log_level: warn
+  http_server: off
+
+parsers:
+  # linha do json-file do Docker; o compose pede o rótulo do serviço em "attrs"
+  - name: docker_json
+    format: json
+    time_key: time
+    time_format: '%Y-%m-%dT%H:%M:%S.%L'
+    time_keep: off
+  # só o nível do pino (api, game-server) e do Caddy; o resto da linha fica como está
+  - name: nivel
+    format: regex
+    regex: '"level":"(?<level>[a-z]+)"'
+
+pipeline:
+  inputs:
+    - name: prometheus_scrape
+      tag: m.game
+      host: game-server
+      port: 7700
+      metrics_path: /metrics
+      bearer_token: ${METRICS_TOKEN}
+      scrape_interval: 60s
+      processors:
+        metrics:
+          - name: labels
+            insert: job game-server
+          - name: labels
+            insert: instance vps
+
+    - name: prometheus_scrape
+      tag: m.api
+      host: api
+      port: 7800
+      metrics_path: /metrics
+      bearer_token: ${METRICS_TOKEN}
+      scrape_interval: 60s
+      processors:
+        metrics:
+          - name: labels
+            insert: job api
+          - name: labels
+            insert: instance api
+
+    - name: prometheus_scrape
+      tag: m.db
+      host: postgres-exporter
+      port: 9187
+      metrics_path: /metrics
+      scrape_interval: 60s
+      processors:
+        metrics:
+          # das tabelas, só o que diz se uma query faz varredura ou se o autovacuum está atrasado
+          - name: metrics_selector
+            metric_name: /^pg_stat_user_tables_(?!(seq_scan|seq_tup_read|idx_scan|n_live_tup|n_dead_tup|last_autovacuum_seconds|size_bytes)$)/
+            action: exclude
+          - name: metrics_selector
+            metric_name: /^(go_|process_|promhttp_)/
+            action: exclude
+          - name: labels
+            insert: job postgres
+          - name: labels
+            insert: instance beta
+
+    # sem netdev: dentro do container, /proc/net é a rede do próprio container (a da VM vem da Oracle)
+    - name: node_exporter_metrics
+      tag: m.node
+      metrics: cpu,meminfo,diskstats,filesystem,loadavg,vmstat,stat,uname
+      scrape_interval: 60
+      # o / da VM montado em /rootfs (com /proc e /sys dentro); procfs e sysfs são relativos a ele
+      path.rootfs: /rootfs
+      filesystem.ignore_mount_point_regex: ^/(dev|proc|run|sys|var/lib/docker/.+|snap/.+)($|/)
+      filesystem.ignore_filesystem_type_regex: ^(tmpfs|devtmpfs|overlay|squashfs|nsfs|proc|sysfs|cgroup2?|autofs|fuse.*)$
+      diskstats.ignore_device_regex: ^(loop|ram|dm-|sr)\d*
+      processors:
+        metrics:
+          - name: metrics_selector
+            metric_name: /^node_(vmstat_(pgmajfault|pswpin|pswpout|oom_kill)|memory_(MemTotal|MemAvailable|MemFree|Buffers|Cached|SwapTotal|SwapFree|Dirty)_bytes|(cpu|disk|filesystem|load|boot|context|forks|procs|intr|uname)_.*)$/
+            action: include
+          - name: labels
+            insert: job node
+          - name: labels
+            insert: instance beta
+
+    # logs: só linhas novas (sem reler o histórico); a posição de cada arquivo fica no volume
+    - name: tail
+      tag: logs
+      path: /var/lib/docker/containers/*/*-json.log
+      parser: docker_json
+      db: /data/tail.db
+      read_from_head: false
+      refresh_interval: 10
+      rotate_wait: 5
+      skip_long_lines: on
+      mem_buf_limit: 4MB
+
+  filters:
+    - name: nest
+      match: logs
+      operation: lift
+      nested_under: attrs
+    - name: modify
+      match: logs
+      rename: com.docker.compose.service service
+    # só os serviços com logs úteis para investigar; o acesso HTTP da borda e do web fica de fora
+    - name: grep
+      match: logs
+      regex: service ^(api|game-server|postgres|backup)$
+    - name: parser
+      match: logs
+      key_name: log
+      parser: nivel
+      reserve_data: on
+      preserve_key: on
+
+  outputs:
+    - name: prometheus_remote_write
+      match: m.*
+      host: ${GRAFANA_CLOUD_PROM_HOST}
+      port: 443
+      uri: /api/prom/push
+      tls: on
+      tls.verify: on
+      http_user: ${GRAFANA_CLOUD_PROM_USER}
+      http_passwd: ${GRAFANA_CLOUD_TOKEN}
+      add_label: host ${OUTGUN_HOST_LABEL}
+
+    - name: loki
+      match: logs
+      host: ${GRAFANA_CLOUD_LOKI_HOST}
+      port: 443
+      tls: on
+      tls.verify: on
+      http_user: ${GRAFANA_CLOUD_LOKI_USER}
+      http_passwd: ${GRAFANA_CLOUD_TOKEN}
+      labels: job=outgun, host=${OUTGUN_HOST_LABEL}
+      label_keys: $service,$level
+      remove_keys: stream,attrs
+      drop_single_key: raw
+      line_format: key_value

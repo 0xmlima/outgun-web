@@ -10,7 +10,8 @@ x-restart: &restart
   restart: unless-stopped
   logging:
     driver: json-file
-    options: { max-size: 20m, max-file: '5' }
+    # labels: o serviço do compose vai em cada linha do log, para o Fluent Bit rotular (OG-457)
+    options: { max-size: 20m, max-file: '5', labels: com.docker.compose.service }
 
 services:
   edge:
@@ -121,46 +122,52 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
-  # métricas e logs para o Grafana Cloud (OG-452). Fora do perfil padrão: o install.sh só sobe com
-  # as credenciais no .env (deploy/vps/grafana-cloud.sh). Sem porta publicada; a interface do Alloy
-  # fica em 127.0.0.1 dentro do container. O socket do Docker (só leitura) serve para achar os
-  # containers e ler os logs; /proc, /sys e / da VM, para as métricas da máquina.
-  alloy:
+  # métricas e logs para o Grafana Cloud (OG-457, no lugar do Alloy do OG-452, que não coube na
+  # E2.1.Micro). Fora do perfil padrão: o install.sh só sobe com as credenciais no .env
+  # (deploy/vps/grafana-cloud.sh). Nenhum dos dois publica porta. O Fluent Bit lê /proc, /sys e o
+  # disco da VM (montados em /rootfs) e os arquivos de log do Docker; não usa o socket do Docker.
+  fluent-bit:
     <<: *restart
-    image: grafana/alloy:v1.20.1
+    image: fluent/fluent-bit:5.1.4
     profiles: [observabilidade]
-    command:
-      [
-        run,
-        --server.http.listen-addr=127.0.0.1:12345,
-        --storage.path=/var/lib/alloy/data,
-        --disable-reporting,
-        /etc/alloy/config.alloy,
-      ]
+    command: ['-c', '/fluent-bit/etc/outgun/fluent-bit.yaml']
     environment:
-      GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL:-}
+      GRAFANA_CLOUD_PROM_HOST: ${GRAFANA_CLOUD_PROM_HOST:-}
       GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER:-}
-      GRAFANA_CLOUD_LOKI_URL: ${GRAFANA_CLOUD_LOKI_URL:-}
+      GRAFANA_CLOUD_LOKI_HOST: ${GRAFANA_CLOUD_LOKI_HOST:-}
       GRAFANA_CLOUD_LOKI_USER: ${GRAFANA_CLOUD_LOKI_USER:-}
       GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN:-}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
-      MONITOR_DATABASE_URL: postgres://outgun_monitor:${MONITOR_DB_PASSWORD:-}@postgres:5432/outgun?sslmode=disable
-      # a VM tem 1 GB: o coletor de lixo do Go aperta antes do limite do container
-      GOMEMLIMIT: 110MiB
-    mem_limit: 160m
+      OUTGUN_HOST_LABEL: beta
+    mem_limit: 64m
     volumes:
-      - ./alloy:/etc/alloy:ro
-      - alloy-data:/var/lib/alloy/data
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./fluent-bit:/fluent-bit/etc/outgun:ro
+      - fluent-bit-data:/data
       - /:/rootfs:ro
-      - /proc:/host/proc:ro
-      - /sys:/sys:ro
-      - /run/udev:/run/udev:ro
-    depends_on: [api, game-server, postgres]
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on: [api, game-server, postgres-exporter]
+
+  # métricas do banco (OG-453) com o papel outgun_monitor (pg_monitor: só as visões de estatística)
+  postgres-exporter:
+    <<: *restart
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    profiles: [observabilidade]
+    command:
+      [
+        '--collector.stat_statements',
+        '--collector.stat_statements.include_query',
+        '--collector.stat_statements.query_length=160',
+        '--collector.long_running_transactions',
+        '--no-collector.statio_user_tables',
+      ]
+    environment:
+      DATA_SOURCE_NAME: postgresql://outgun_monitor:${MONITOR_DB_PASSWORD:-}@postgres:5432/outgun?sslmode=disable
+    mem_limit: 48m
+    depends_on: [postgres]
 
 volumes:
   pgdata:
   replays:
   caddy-data:
   caddy-config:
-  alloy-data:
+  fluent-bit-data:

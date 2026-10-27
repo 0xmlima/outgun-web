@@ -44,6 +44,7 @@ groups:
           summary: 'API respondendo 5xx (mais de 3 por minuto)'
   - name: outgun-alvos
     rules:
+      # Prometheus local; no Grafana Cloud (Fluent Bit, sem a série up) vale o OutgunSemMetricasDoJogo
       - alert: OutgunAlvoFora
         expr: up{job=~"game-server|api"} == 0
         for: 1m

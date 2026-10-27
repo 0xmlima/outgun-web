@@ -1,8 +1,8 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Liga as métricas e os logs do servidor no Grafana Cloud (OG-452): copia as credenciais de
+# Liga as métricas e os logs do servidor no Grafana Cloud (OG-452, OG-457): copia as credenciais de
 # ~/.config/outgun/grafana-cloud.env (fora do repositório) para o /opt/outgun/.env do servidor e
-# sobe o Alloy. Rodar de novo troca as credenciais. Uso: bash deploy/vps/grafana-cloud.sh root@IP
+# sobe o Fluent Bit e o postgres_exporter. Rodar de novo troca as credenciais. Uso: bash deploy/vps/grafana-cloud.sh root@IP
 #
 # O arquivo local tem (Grafana Cloud > a stack > Prometheus e Loki > "Details"; o token é de uma
 # access policy com metrics:write e logs:write; as três linhas de baixo servem ao OG-455):
@@ -26,6 +26,12 @@ for k in $keys; do
   case "$v" in *[[:space:]\'\"\$\`\\]*) echo "$k tem caractere inválido" >&2; exit 1 ;; esac
   lines+="$k=$v"$'\n'
 done
+# o Fluent Bit recebe só o host (o caminho de envio é fixo no fluent-bit.yaml)
+for k in GRAFANA_CLOUD_PROM GRAFANA_CLOUD_LOKI; do
+  url=$(grep "^${k}_URL=" "$file" | head -1 | cut -d= -f2-)
+  h=${url#https://}
+  lines+="${k}_HOST=${h%%/*}"$'\n'
+done
 # as credenciais vão pela entrada padrão, não pela linha de comando (não aparecem no ps do servidor)
 printf '%s' "$lines" | ssh -o StrictHostKeyChecking=accept-new "$host" 'set -e
 cd /opt/outgun
@@ -38,7 +44,7 @@ while IFS= read -r line; do
 done
 chmod 600 .env
 # --no-deps: o .env mudou, e sem isso o compose recriaria a API e o game server
-docker compose up -d --no-deps alloy
+docker compose up -d --no-deps postgres-exporter fluent-bit
 sleep 5
-docker compose ps alloy --format "{{.Service}}: {{.Status}}"
-docker compose logs --no-color --since 1m alloy | grep -E "level=(error|warn)" | tail -5 || true'
+docker compose ps postgres-exporter fluent-bit --format "{{.Service}}: {{.Status}}"
+docker compose logs --no-color --since 1m fluent-bit | grep -E "\[(error|warn)" | tail -5 || true'

@@ -477,7 +477,7 @@
     {
       "id": 13,
       "type": "timeseries",
-      "title": "Pressão (PSI): tempo esperando por recurso",
+      "title": "Disco: leitura e escrita",
       "gridPos": {
         "x": 0,
         "y": 14,
@@ -491,8 +491,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "rate(node_pressure_cpu_waiting_seconds_total[$__rate_interval])",
-          "legendFormat": "CPU",
+          "expr": "sum(rate(node_disk_read_bytes_total[$__rate_interval]))",
+          "legendFormat": "leitura",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -500,17 +500,8 @@
         },
         {
           "refId": "B",
-          "expr": "rate(node_pressure_memory_waiting_seconds_total[$__rate_interval])",
-          "legendFormat": "memória",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        },
-        {
-          "refId": "C",
-          "expr": "rate(node_pressure_io_waiting_seconds_total[$__rate_interval])",
-          "legendFormat": "disco",
+          "expr": "sum(rate(node_disk_written_bytes_total[$__rate_interval]))",
+          "legendFormat": "escrita",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -526,7 +517,7 @@
               "mode": "none"
             }
           },
-          "unit": "percentunit"
+          "unit": "Bps"
         },
         "overrides": []
       },
@@ -539,7 +530,7 @@
           "mode": "multi"
         }
       },
-      "description": "Fração do tempo em que algum processo esperou pelo recurso. Acima de 20% o jogo sente."
+      "description": "Leitura alta e contínua com swap em uso é sinal de falta de memória (o kernel relendo programas do disco)."
     },
     {
       "id": 14,
@@ -1469,5 +1460,5 @@
       }
     }
   ],
-  "description": "Máquina, containers, banco, quedas e logs do servidor do beta (OG-455). Dados do Grafana Alloy (OG-452)."
+  "description": "Máquina, serviços, banco, quedas e logs do servidor do beta (OG-455). Dados do Fluent Bit (OG-457)."
 }

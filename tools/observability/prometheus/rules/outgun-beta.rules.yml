@@ -13,10 +13,11 @@ groups:
           summary: '{{ $value | humanize }} jogadores caíram sem aviso no último minuto em {{ $labels.instance }}'
           description: 'Código 1006 é queda sem fechamento (rede ou processo travado). Veja os logs do game server no mesmo minuto: {service="game-server"}.'
       - alert: OutgunSemMetricasDoJogo
-        expr: absent_over_time(up{job="game-server"}[5m])
+        # o Fluent Bit não gera a série up; outgun_ticks_total some junto se o jogo ou o coletor cair
+        expr: absent_over_time(outgun_ticks_total{job="game-server"}[5m])
         labels: { severity: page }
         annotations:
-          summary: 'Nenhuma métrica do game server há 5 minutos: o servidor ou o Alloy caiu'
+          summary: 'Nenhuma métrica do game server há 5 minutos: o servidor ou o coletor caiu'
 
   - name: outgun-maquina
     rules:

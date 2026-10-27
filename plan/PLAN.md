@@ -616,6 +616,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S46 | v2: relatos de bug da comunidade — tela que congelava depois da explosão do Deathbringer (issue #6), formulário de bug no site, issue no GitHub pelo painel, retorno ao jogador e issues que viram cards | OG-428, OG-429, OG-430, OG-431, OG-432 | |
 | S47 | v2: rodada de correções (issues do GitHub) | OG-442, OG-443, OG-444, OG-445, OG-446 | |
 | S48 | v2: observabilidade no plano gratuito — métricas e logs do beta no Grafana Cloud (Alloy), banco, quedas no game server, painéis e alertas, alarmes da Oracle | OG-452, OG-453, OG-454, OG-455, OG-456 | |
+| S49 | v2: coletor leve (Fluent Bit) para mandar as métricas e logs do beta ao Grafana Cloud na E2.1.Micro | OG-457 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -923,7 +924,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-454](cards/OG-454-metricas-de-quedas.md) | Métricas de quedas no game server: conexões fechadas e salas encerradas | E7 | 2 | Should | S48 | — | Concluído |
 | [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Concluído |
 | [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Concluído |
-| [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | — | OG-452 | Backlog |
+| [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | S49 | OG-452 | Em revisão |
 
 **Total:** 299 cards, 976 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 230 cards, 681 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
