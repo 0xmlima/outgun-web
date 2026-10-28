@@ -617,7 +617,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S47 | v2: rodada de correções (issues do GitHub) | OG-442, OG-443, OG-444, OG-445, OG-446 | |
 | S48 | v2: observabilidade no plano gratuito — métricas e logs do beta no Grafana Cloud (Alloy), banco, quedas no game server, painéis e alertas, alarmes da Oracle | OG-452, OG-453, OG-454, OG-455, OG-456 | |
 | S49 | v2: coletor leve (Fluent Bit) para mandar as métricas e logs do beta ao Grafana Cloud na E2.1.Micro | OG-457 | |
-| S50 | v2: rodada de correções (issues #11 e #14–#19; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83) | |
+| S50 | v2: rodada de correções (issues #11 e #14–#24; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83), OG-464, OG-465, OG-466, OG-467, OG-468 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -932,8 +932,13 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-461](cards/OG-461-lobby-ranked-esc-e-botao-de-som.md) | Lobby Ranked: Esc tira o lobby da tela e falta o botão de som (issues #16 e #17) | E12 | 2 | Should | S50 | — | Pronto |
 | [OG-462](cards/OG-462-diagonal-e-alt-rapidos.md) | Diagonal + Alt rápidos ainda registram a direção errada (issue #18) | E11 | 3 | Should | S50 | — | Pronto |
 | [OG-463](cards/OG-463-nome-do-cla-no-lugar-do-time.md) | Nome do clã no lugar de "Time vermelho/azul" (issue #19) | E13 | 2 | Could | S50 | — | Pronto |
+| [OG-464](cards/OG-464-historico-do-lobby-ranked-manter.md) | Lobby Ranked guarda todo o histórico do chat (issue #20) | E12 | 2 | Should | S50 | — | Pronto |
+| [OG-465](cards/OG-465-apos-mandar-um-feedback-limpar-campos.md) | Relato de bug: limpar o formulário depois de enviar e deixar mandar outro (issue #21) | E9 | 1 | Should | S50 | — | Pronto |
+| [OG-466](cards/OG-466-tolerancia-de-diagonal.md) | Tolerância de diagonal ajustável de 1 em 1 ms (issue #22) | E11 | 1 | Should | S50 | — | Pronto |
+| [OG-467](cards/OG-467-destacar-se-ao-nascer-retomada-dessa.md) | Volta a opção "Destacar a si mesmo ao nascer" (issue #23) | E11 | 1 | Should | S50 | — | Pronto |
+| [OG-468](cards/OG-468-replay.md) | Replay sem som (e o +/- do teclado numérico é zoom, não volume) (issue #24) | E11 | 3 | Should | S50 | — | Pronto |
 
-**Total:** 305 cards, 987 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 236 cards, 692 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 310 cards, 995 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 241 cards, 700 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
