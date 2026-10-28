@@ -22,32 +22,33 @@ export interface StyleRadarData {
   readonly population: number;
 }
 
+/** Chaves do `t()` (inglês; pt-BR em `@outgun/i18n`). */
 export const AXIS_LABELS: Record<StyleAxis, string> = {
-  kills: 'Abates',
-  accuracy: 'Precisão',
-  survival: 'Sobrevivência',
-  flag: 'Bandeira',
-  defense: 'Defesa',
-  team: 'Equipe',
+  kills: 'Killing',
+  accuracy: 'Accuracy',
+  survival: 'Survival',
+  flag: 'Flag',
+  defense: 'Defense',
+  team: 'Teamwork',
 };
 
 export const ARCHETYPE_LABELS: Record<Archetype, string> = {
-  shooter: 'Atirador',
-  runner: 'Corredor',
-  wall: 'Muralha',
-  support: 'Suporte',
-  survivor: 'Sobrevivente',
-  joker: 'Coringa',
+  shooter: 'Shooter',
+  runner: 'Runner',
+  wall: 'Wall',
+  support: 'Support',
+  survivor: 'Survivor',
+  joker: 'Joker',
 };
 
 /** Valor bruto na unidade do eixo: por 10 min, porcentagem ou tempo médio de vida. */
-export function axisValueText(axis: StyleAxis, value: number): string {
+export function axisValueText(axis: StyleAxis, value: number, locale = 'pt-BR'): string {
   if (axis === 'accuracy') return `${Math.round(value * 100)}%`;
   if (axis === 'survival') {
     const s = Math.round(value);
     return s >= 60 ? `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, '0')}s` : `${s}s`;
   }
-  return `${value.toFixed(1).replace('.', ',')} / 10 min`;
+  return `${value.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 10 min`;
 }
 
 /** Ângulo do eixo i em graus (tela, y para baixo): o primeiro no alto e os outros a cada 60°. */

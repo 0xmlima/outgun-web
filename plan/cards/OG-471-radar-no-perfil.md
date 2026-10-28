@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S53 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-469, OG-470 |
 | Regras de negócio | RN-RAD-01, RN-RAD-03, RN-RAD-04, RN-SOC-02 |
 | Skills | `outgun-card-workflow` |
@@ -27,7 +27,10 @@ Como jogador, quero ver meu radar e meu arquétipo no perfil e compará-los com 
 - Texto curto "Como ler o radar" (percentil, 50 = mediana, área não é nota, o percentil muda com quem joga) — pt-BR e inglês.
 
 ## Critérios de aceite
-- [ ] Perfil com radar nos estados: normal, amostra pequena, sem radar, sem temporada anterior.
-- [ ] Textos em pt-BR e inglês.
+- [x] Perfil com radar nos estados: normal, amostra pequena, sem radar, sem temporada anterior.
+- [x] Textos em pt-BR e inglês.
 
 ## Notas de implementação
+- `screens/style-panel.tsx`: painel no perfil (abaixo das estatísticas), período na URL (`?style=`), formato do filtro do perfil; a temporada anterior vem na mesma resposta da API (`previous`).
+- Textos com chaves em inglês no `t()` e pt-BR em `@outgun/i18n`; "Killing"/"Teamwork" porque "Kills"/"Team" já existiam com outro sentido. O OG-470 passou a usar o `t()` também.
+- "Poucos jogos" = selo + série tracejada; sem radar, o texto diz quantas ranqueadas faltam.

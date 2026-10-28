@@ -3,6 +3,7 @@
 // sobrepostas e uma sombra cinza por baixo (OG-476), tooltip no ponto e "Ver em tabela". A variante
 // mini (membros do clã, lobby) não tem rótulos, tooltip nem tabela.
 import { useState } from 'react';
+import { usePrefs } from '../app/prefs.js';
 import { Button } from './Button.js';
 import { AXIS_LABELS, axisAngle, axisValueText, radarPoint, radarPolygon, STYLE_AXES, type StyleAxisValue } from './style-radar.js';
 import { Table } from './Table.js';
@@ -31,7 +32,11 @@ interface StyleRadarProps {
   readonly empty?: string;
 }
 
-export function StyleRadar({ caption, series: all, shadow, mini = false, empty = 'Sem dados' }: StyleRadarProps) {
+export function StyleRadar({ caption, series: all, shadow, mini = false, empty }: StyleRadarProps) {
+  const { t, prefs } = usePrefs();
+  const label = (a: (typeof STYLE_AXES)[number]) => t(AXIS_LABELS[a]);
+  const valueText = (a: (typeof STYLE_AXES)[number], v: number) => axisValueText(a, v, prefs.locale);
+  empty ??= t('No data');
   const series = all.slice(0, 3);
   const [active, setActive] = useState<{ s: number; i: number } | null>(null);
   const [table, setTable] = useState(false);
@@ -41,7 +46,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty =
   // margem dos lados para os rótulos ("Sobrevivência") caberem até a 360 px
   const pad = mini ? 0 : 50;
   const color = (s: RadarSeries, n: number) => s.color ?? DEFAULT_COLORS[n % DEFAULT_COLORS.length]!;
-  const summary = series.map((s) => `${s.label}: ${s.axes.map((a) => `${AXIS_LABELS[a.axis]} ${a.percentile}`).join(', ')}`).join('; ');
+  const summary = series.map((s) => `${s.label}: ${s.axes.map((a) => `${label(a.axis)} ${a.percentile}`).join(', ')}`).join('; ');
   const tip = active && series[active.s] ? { s: series[active.s]!, axis: STYLE_AXES[active.i]!, n: active.s } : null;
   const tipValue = tip && tip.s.axes.find((a) => a.axis === tip.axis);
   const tipPoint = tip && tipValue ? radarPoint(active!.i, tipValue.percentile, r, c, c) : null;
@@ -54,20 +59,20 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty =
           rows={STYLE_AXES}
           rowKey={(a) => a}
           columns={[
-            { key: 'axis', header: 'Eixo', cell: (a) => AXIS_LABELS[a] },
+            { key: 'axis', header: t('Axis'), cell: (a) => label(a) },
             ...series.map((s) => ({
               key: s.key,
               header: s.label,
               align: 'end' as const,
               cell: (a: (typeof STYLE_AXES)[number]) => {
                 const v = s.axes.find((x) => x.axis === a);
-                return v ? `${v.percentile} · ${axisValueText(a, v.value)}` : '—';
+                return v ? `${v.percentile} · ${valueText(a, v.value)}` : '—';
               },
             })),
           ]}
         />
         <Button variant="ghost" onClick={() => setTable(false)}>
-          Ver radar
+          {t('See radar')}
         </Button>
       </div>
     );
@@ -100,7 +105,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty =
               const anchor = Math.abs(Math.cos(a)) < 0.2 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end';
               return (
                 <text key={axis} className="ui-radar-label" x={x} y={y} textAnchor={anchor} dominantBaseline="middle">
-                  {AXIS_LABELS[axis]}
+                  {label(axis)}
                 </text>
               );
             })}
@@ -123,7 +128,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty =
                       cy={p.y}
                       r={5}
                       tabIndex={0}
-                      aria-label={`${s.label}, ${AXIS_LABELS[axis]}: percentil ${v.percentile}, ${axisValueText(axis, v.value)}`}
+                      aria-label={`${s.label}, ${label(axis)}: ${t('Percentile $1', String(v.percentile))}, ${valueText(axis, v.value)}`}
                       onMouseEnter={on}
                       onFocus={on}
                       onMouseLeave={off}
@@ -142,10 +147,10 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty =
         </svg>
         {tip && tipValue && tipPoint && (
           <div className="ui-radar-tip" role="status" style={{ left: `${((tipPoint.x + pad) / (vb + 2 * pad)) * 100}%`, top: `${(tipPoint.y / vb) * 100}%`, borderColor: color(tip.s, tip.n) }}>
-            <strong>{AXIS_LABELS[tip.axis]}</strong>
+            <strong>{label(tip.axis)}</strong>
             {series.length > 1 && <span className="ui-muted">{tip.s.label}</span>}
-            <span>Percentil {tipValue.percentile}</span>
-            <span className="ui-muted">{axisValueText(tip.axis, tipValue.value)}</span>
+            <span>{t('Percentile $1', String(tipValue.percentile))}</span>
+            <span className="ui-muted">{valueText(tip.axis, tipValue.value)}</span>
           </div>
         )}
       </div>
@@ -163,7 +168,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty =
             </span>
           )}
           <Button variant="ghost" onClick={() => setTable(true)}>
-            Ver em tabela
+            {t('See as table')}
           </Button>
         </div>
       )}

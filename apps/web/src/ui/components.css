@@ -978,3 +978,13 @@ html {
 .ui-row > .ui-radar:not(.mini) {
   flex: 1 1 16rem;
 }
+.style-up {
+  color: var(--text-success);
+}
+.style-down {
+  color: var(--text-danger);
+}
+.style-help summary {
+  cursor: pointer;
+  color: var(--text-accent);
+}
