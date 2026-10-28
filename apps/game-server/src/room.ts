@@ -1001,6 +1001,7 @@ export class Room {
         this.kick(pid, verdict.reason);
         return;
       }
+      if (verdict.drop) continue;
       if (isActivity(m)) client.lastActivityFrame = this.world.frame;
       switch (m.type) {
         case 'input': {

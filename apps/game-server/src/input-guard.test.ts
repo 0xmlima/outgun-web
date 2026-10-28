@@ -75,9 +75,19 @@ describe('limite de taxa e mensagens inválidas', () => {
     expect(conn.closed).toBeNull();
   });
 
-  it('rajada acima do limite: desconectado por client_misbehavior', () => {
+  it('inputs acumulados por uma conexão travada: o excesso é descartado, sem expulsão', () => {
     const { room, conn, pid } = setup();
-    room.handle(pid, Array.from({ length: 200 }, (_, i) => input(i & 127, 0)));
+    room.handle(pid, Array.from({ length: 200 }, (_, i) => input(i & 127, i < 80 ? CONTROL.up : CONTROL.left)));
+    expect(conn.closed).toBeNull();
+    expect(room.world.players[pid]!.controls).toBe(CONTROL.up); // os 120 além do balde não valeram
+    for (let f = 0; f < 100; f++) room.tick(); // a dívida se paga e o ritmo normal volta a valer
+    room.handle(pid, [input(200, CONTROL.down)]);
+    expect(room.world.players[pid]!.controls).toBe(CONTROL.down);
+  });
+
+  it('enxurrada de inputs: desconectado por client_misbehavior', () => {
+    const { room, conn, pid } = setup();
+    room.handle(pid, Array.from({ length: 1000 }, (_, i) => input(i & 127, 0)));
     expect(conn.closed).toEqual([4003, 'client_misbehavior']);
     expect(conn.received.some((m) => m.type === 'disconnecting' && m.reason === 'misbehavior')).toBe(true);
     expect(room.playerCount).toBe(0);

@@ -234,7 +234,7 @@ describe('game server', () => {
     const flood = new Client('main');
     await flood.hello('dev:Flood');
     await flood.until(() => flood.of('welcome').length > 0);
-    for (let i = 0; i < 200; i++) flood.send(message('input', { clientFrame: i & 127, controls: 0, gundir: 0 }));
+    for (let i = 0; i < 1000; i++) flood.send(message('input', { clientFrame: i & 127, controls: 0, gundir: 0 }));
     await flood.until(() => flood.closed !== null);
     expect(flood.closed).toEqual({ code: 4003, reason: 'client_misbehavior' });
     expect(flood.of('disconnecting').at(-1)?.reason).toBe('misbehavior');

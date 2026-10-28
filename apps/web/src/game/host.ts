@@ -357,6 +357,16 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     layout();
     return map;
   };
+  /**
+   * Cargas e redesenhos numa fila só: o redesenho pelas cores do clã (OG-409) não pode cancelar a
+   * carga pedida pelo servidor, a única que manda o `clientReady` (sem ele, tela preta na partida).
+   */
+  let mapQueue: Promise<unknown> = Promise.resolve();
+  const queueMap = <T,>(job: () => Promise<T>): Promise<T> => {
+    const next = mapQueue.then(job);
+    mapQueue = next.catch(() => undefined);
+    return next;
+  };
 
   const fail = (message: string) => opts.onStatus?.({ kind: 'error', message });
   /** Reconexão (OG-047): token da vaga, fim da espera e se a partida acabou de vez (recusa, expulsão). */
@@ -420,15 +430,13 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     startTelemetry(online);
     let lastFire = false;
     let lastDrop = false;
-    let mapLoad = Promise.resolve();
     session = new ClientSession({
       send: (messages) => connection?.send(messages),
       // "Stay dead when in a menu at round start": com o menu do jogo aberto, não nasce
       holdReady: () => graphics().stayDeadInMenus && !input.isEnabled(),
       onMapChange: (request) => {
         // um mapa de cada vez, na ordem em que o servidor pediu
-        mapLoad = mapLoad
-          .then(() => showMap(request.file, theme))
+        void queueMap(() => showMap(request.file, theme))
           .then((map) => {
             if (!map || !session || session.mapRequest !== request) return;
             if (map.crc !== request.crc) console.warn(`mapa ${request.file}: CRC ${map.crc} ≠ ${request.crc} do servidor`);
@@ -683,7 +691,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
             const target = entities;
             void loadEntitySprites(manifest, opts.theme, theme.colours).then((s) => !destroyed && entities === target && target.setSprites(s));
             // as bases das salas são pintadas com as cores da carga do mapa: redesenha com as novas
-            if (shownMap) void showMap(shownMap.name, shownMap.theme);
+            // na fila, depois de uma carga pendente; o mapa é lido na hora (pode ter mudado até lá)
+            void queueMap(async () => shownMap && showMap(shownMap.name, shownMap.theme)).catch(() => undefined);
           }
         }
         if (session && entities && world?.layout && worldMap && session.world?.map === worldMap) {

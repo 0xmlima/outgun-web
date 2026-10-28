@@ -28,9 +28,15 @@ const LIMITS: Readonly<Partial<Record<AnyMessage['type'], Limit>>> = {
   chat: { rate: 10, burst: 45 },
 };
 const DEFAULT_LIMIT: Limit = { rate: 5, burst: 15 };
+/**
+ * `input` acima do limite é descartado, não expulsa: a conexão que trava alguns segundos entrega os
+ * inputs acumulados de uma vez (o próximo envio, 0,1 s depois, traz os controles atuais). Só a
+ * enxurrada que passa desta dívida de fichas é expulsa.
+ */
+const INPUT_MAX_DEBT = 400;
 
 /** Mensagens que o cliente pode mandar depois de entrar (as outras são do servidor ou o `hello`). */
-export type Verdict = { readonly ok: true } | { readonly ok: false; readonly reason: string };
+export type Verdict = { readonly ok: true; readonly drop?: true } | { readonly ok: false; readonly reason: string };
 
 export class InputGuard {
   private readonly tokens = new Map<string, number>();
@@ -49,8 +55,8 @@ export class InputGuard {
     if (m.type === 'input' && m.gundir > 0xfff) return { ok: false, reason: `gundir inválido: ${m.gundir}` };
     const limit = LIMITS[m.type] ?? DEFAULT_LIMIT;
     const available = this.tokens.get(m.type) ?? limit.burst;
-    if (available < 1) return { ok: false, reason: `limite de ${m.type} excedido (${limit.rate}/s)` };
+    if (available < 1 && !(m.type === 'input' && available > -INPUT_MAX_DEBT)) return { ok: false, reason: `limite de ${m.type} excedido (${limit.rate}/s)` };
     this.tokens.set(m.type, available - 1);
-    return { ok: true };
+    return available < 1 ? { ok: true, drop: true } : { ok: true };
   }
 }
