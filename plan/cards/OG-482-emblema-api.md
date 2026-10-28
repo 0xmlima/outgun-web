@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S51 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-480 |
 | Regras de negócio | RN-EMB-02, RN-EMB-03, RN-CLA-03, RN-CLA-08 |
 | Skills | `outgun-card-workflow` |
@@ -29,6 +29,10 @@ Como líder ou admin de clã, quero escolher e trocar o emblema do clã, com a g
 - Emblema no `ClanSchema` (página do clã, listas, ranking) e no OpenAPI.
 
 ## Critérios de aceite
-- [ ] Testes: permissão (líder, admin, membro), colisão por emblema, colisão por troca de cor, colisão com inversão, padrão, reset da moderação.
+- [x] Testes: permissão (líder, admin, membro), colisão por emblema, colisão por troca de cor, colisão com inversão, padrão, reset da moderação.
 
 ## Notas de implementação
+- Migração 0046: `clans.emblem` (jsonb) e `clans.emblem_key` (índice único). A chave é recalculada em `updateClan` sempre que muda emblema, tag ou cores, então PATCH de cores, troca de tag e moderação passam pelo mesmo `emblem_taken`.
+- `PUT /clans/:tag/emblem` (`null` = padrão) e `GET /clans/:tag/emblem/taken` (chaves dos outros clãs; o editor compara com `emblemKey`).
+- Moderação: `PATCH /admin/clans/:tag` com `resetEmblem: true` (auditoria `clan-edit` com o emblema anterior). Molduras do hall ficam para o OG-488.
+- Testes escritos sem rodar (rodam no fechamento da sprint).

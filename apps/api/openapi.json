@@ -5102,6 +5102,7 @@
                         "tagLabel",
                         "description",
                         "colors",
+                        "emblem",
                         "createdAt",
                         "members",
                         "titles"
@@ -5141,6 +5142,64 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "emblem": {
+                          "type": "object",
+                          "required": ["frame", "symbol", "fillet", "inverted"],
+                          "properties": {
+                            "frame": {
+                              "type": "string",
+                              "enum": [
+                                "shield",
+                                "circle",
+                                "diamond",
+                                "square",
+                                "octagon",
+                                "banner",
+                                "none"
+                              ]
+                            },
+                            "symbol": {
+                              "type": "string",
+                              "enum": [
+                                "tag",
+                                "star",
+                                "chevrons",
+                                "crown",
+                                "wings",
+                                "flag",
+                                "crosshair",
+                                "rocket",
+                                "bolt",
+                                "wolf",
+                                "skull",
+                                "flame",
+                                "tower",
+                                "gem",
+                                "swords",
+                                "brokenShield",
+                                "fist",
+                                "wall",
+                                "phoenix",
+                                "dragon",
+                                "serpent",
+                                "eagle",
+                                "shark",
+                                "spider",
+                                "alien",
+                                "robot",
+                                "joystick",
+                                "ghost",
+                                "pixelHeart"
+                              ]
+                            },
+                            "fillet": {
+                              "type": "boolean"
+                            },
+                            "inverted": {
+                              "type": "boolean"
+                            }
+                          }
                         },
                         "createdAt": {
                           "type": "string"
@@ -5295,6 +5354,7 @@
                         "tagLabel",
                         "description",
                         "colors",
+                        "emblem",
                         "createdAt",
                         "members",
                         "titles"
@@ -5334,6 +5394,64 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "emblem": {
+                          "type": "object",
+                          "required": ["frame", "symbol", "fillet", "inverted"],
+                          "properties": {
+                            "frame": {
+                              "type": "string",
+                              "enum": [
+                                "shield",
+                                "circle",
+                                "diamond",
+                                "square",
+                                "octagon",
+                                "banner",
+                                "none"
+                              ]
+                            },
+                            "symbol": {
+                              "type": "string",
+                              "enum": [
+                                "tag",
+                                "star",
+                                "chevrons",
+                                "crown",
+                                "wings",
+                                "flag",
+                                "crosshair",
+                                "rocket",
+                                "bolt",
+                                "wolf",
+                                "skull",
+                                "flame",
+                                "tower",
+                                "gem",
+                                "swords",
+                                "brokenShield",
+                                "fist",
+                                "wall",
+                                "phoenix",
+                                "dragon",
+                                "serpent",
+                                "eagle",
+                                "shark",
+                                "spider",
+                                "alien",
+                                "robot",
+                                "joystick",
+                                "ghost",
+                                "pixelHeart"
+                              ]
+                            },
+                            "fillet": {
+                              "type": "boolean"
+                            },
+                            "inverted": {
+                              "type": "boolean"
+                            }
+                          }
                         },
                         "createdAt": {
                           "type": "string"
@@ -5497,6 +5615,7 @@
                         "tagLabel",
                         "description",
                         "colors",
+                        "emblem",
                         "createdAt",
                         "members",
                         "titles"
@@ -5536,6 +5655,64 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "emblem": {
+                          "type": "object",
+                          "required": ["frame", "symbol", "fillet", "inverted"],
+                          "properties": {
+                            "frame": {
+                              "type": "string",
+                              "enum": [
+                                "shield",
+                                "circle",
+                                "diamond",
+                                "square",
+                                "octagon",
+                                "banner",
+                                "none"
+                              ]
+                            },
+                            "symbol": {
+                              "type": "string",
+                              "enum": [
+                                "tag",
+                                "star",
+                                "chevrons",
+                                "crown",
+                                "wings",
+                                "flag",
+                                "crosshair",
+                                "rocket",
+                                "bolt",
+                                "wolf",
+                                "skull",
+                                "flame",
+                                "tower",
+                                "gem",
+                                "swords",
+                                "brokenShield",
+                                "fist",
+                                "wall",
+                                "phoenix",
+                                "dragon",
+                                "serpent",
+                                "eagle",
+                                "shark",
+                                "spider",
+                                "alien",
+                                "robot",
+                                "joystick",
+                                "ghost",
+                                "pixelHeart"
+                              ]
+                            },
+                            "fillet": {
+                              "type": "boolean"
+                            },
+                            "inverted": {
+                              "type": "boolean"
+                            }
+                          }
                         },
                         "createdAt": {
                           "type": "string"
@@ -5970,6 +6147,413 @@
         }
       }
     },
+    "/clans/{tag}/emblem": {
+      "put": {
+        "summary": "Escolhe ou troca o emblema do clã (líder e admins, sem espera); null volta ao padrão. Repetir o de outro clã: 409 emblem_taken",
+        "tags": ["clãs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["emblem"],
+                "properties": {
+                  "emblem": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["frame", "symbol", "fillet", "inverted"],
+                        "properties": {
+                          "frame": {
+                            "type": "string",
+                            "enum": [
+                              "shield",
+                              "circle",
+                              "diamond",
+                              "square",
+                              "octagon",
+                              "banner",
+                              "none"
+                            ]
+                          },
+                          "symbol": {
+                            "type": "string",
+                            "enum": [
+                              "tag",
+                              "star",
+                              "chevrons",
+                              "crown",
+                              "wings",
+                              "flag",
+                              "crosshair",
+                              "rocket",
+                              "bolt",
+                              "wolf",
+                              "skull",
+                              "flame",
+                              "tower",
+                              "gem",
+                              "swords",
+                              "brokenShield",
+                              "fist",
+                              "wall",
+                              "phoenix",
+                              "dragon",
+                              "serpent",
+                              "eagle",
+                              "shark",
+                              "spider",
+                              "alien",
+                              "robot",
+                              "joystick",
+                              "ghost",
+                              "pixelHeart"
+                            ]
+                          },
+                          "fillet": {
+                            "type": "boolean"
+                          },
+                          "inverted": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clan"],
+                  "properties": {
+                    "clan": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "tag",
+                        "tagStyle",
+                        "tagLabel",
+                        "description",
+                        "colors",
+                        "emblem",
+                        "createdAt",
+                        "members",
+                        "titles"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "tagStyle": {
+                          "type": "string",
+                          "enum": ["paren", "bracket", "dash", "dot", "pipe"]
+                        },
+                        "tagLabel": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "colors": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string"
+                                },
+                                "secondary": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "emblem": {
+                          "type": "object",
+                          "required": ["frame", "symbol", "fillet", "inverted"],
+                          "properties": {
+                            "frame": {
+                              "type": "string",
+                              "enum": [
+                                "shield",
+                                "circle",
+                                "diamond",
+                                "square",
+                                "octagon",
+                                "banner",
+                                "none"
+                              ]
+                            },
+                            "symbol": {
+                              "type": "string",
+                              "enum": [
+                                "tag",
+                                "star",
+                                "chevrons",
+                                "crown",
+                                "wings",
+                                "flag",
+                                "crosshair",
+                                "rocket",
+                                "bolt",
+                                "wolf",
+                                "skull",
+                                "flame",
+                                "tower",
+                                "gem",
+                                "swords",
+                                "brokenShield",
+                                "fist",
+                                "wall",
+                                "phoenix",
+                                "dragon",
+                                "serpent",
+                                "eagle",
+                                "shark",
+                                "spider",
+                                "alien",
+                                "robot",
+                                "joystick",
+                                "ghost",
+                                "pixelHeart"
+                              ]
+                            },
+                            "fillet": {
+                              "type": "boolean"
+                            },
+                            "inverted": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["username", "role", "joinedAt"],
+                            "properties": {
+                              "username": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": ["leader"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["admin"]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": ["member"]
+                                  }
+                                ]
+                              },
+                              "joinedAt": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["season", "board", "position"],
+                            "properties": {
+                              "season": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/emblem/taken": {
+      "get": {
+        "summary": "Chaves dos emblemas dos outros clãs (o editor desabilita as combinações ocupadas)",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["taken"],
+                  "properties": {
+                    "taken": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clans/{tag}/leave": {
       "post": {
         "summary": "Sai do clã; o líder passa a liderança ao admin mais antigo (senão ao membro mais antigo) e o último dissolve",
@@ -6212,6 +6796,7 @@
                         "tagLabel",
                         "description",
                         "colors",
+                        "emblem",
                         "createdAt",
                         "members",
                         "titles"
@@ -6251,6 +6836,64 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "emblem": {
+                          "type": "object",
+                          "required": ["frame", "symbol", "fillet", "inverted"],
+                          "properties": {
+                            "frame": {
+                              "type": "string",
+                              "enum": [
+                                "shield",
+                                "circle",
+                                "diamond",
+                                "square",
+                                "octagon",
+                                "banner",
+                                "none"
+                              ]
+                            },
+                            "symbol": {
+                              "type": "string",
+                              "enum": [
+                                "tag",
+                                "star",
+                                "chevrons",
+                                "crown",
+                                "wings",
+                                "flag",
+                                "crosshair",
+                                "rocket",
+                                "bolt",
+                                "wolf",
+                                "skull",
+                                "flame",
+                                "tower",
+                                "gem",
+                                "swords",
+                                "brokenShield",
+                                "fist",
+                                "wall",
+                                "phoenix",
+                                "dragon",
+                                "serpent",
+                                "eagle",
+                                "shark",
+                                "spider",
+                                "alien",
+                                "robot",
+                                "joystick",
+                                "ghost",
+                                "pixelHeart"
+                              ]
+                            },
+                            "fillet": {
+                              "type": "boolean"
+                            },
+                            "inverted": {
+                              "type": "boolean"
+                            }
+                          }
                         },
                         "createdAt": {
                           "type": "string"
@@ -6423,6 +7066,7 @@
                         "tagLabel",
                         "description",
                         "colors",
+                        "emblem",
                         "createdAt",
                         "members",
                         "titles"
@@ -6462,6 +7106,64 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "emblem": {
+                          "type": "object",
+                          "required": ["frame", "symbol", "fillet", "inverted"],
+                          "properties": {
+                            "frame": {
+                              "type": "string",
+                              "enum": [
+                                "shield",
+                                "circle",
+                                "diamond",
+                                "square",
+                                "octagon",
+                                "banner",
+                                "none"
+                              ]
+                            },
+                            "symbol": {
+                              "type": "string",
+                              "enum": [
+                                "tag",
+                                "star",
+                                "chevrons",
+                                "crown",
+                                "wings",
+                                "flag",
+                                "crosshair",
+                                "rocket",
+                                "bolt",
+                                "wolf",
+                                "skull",
+                                "flame",
+                                "tower",
+                                "gem",
+                                "swords",
+                                "brokenShield",
+                                "fist",
+                                "wall",
+                                "phoenix",
+                                "dragon",
+                                "serpent",
+                                "eagle",
+                                "shark",
+                                "spider",
+                                "alien",
+                                "robot",
+                                "joystick",
+                                "ghost",
+                                "pixelHeart"
+                              ]
+                            },
+                            "fillet": {
+                              "type": "boolean"
+                            },
+                            "inverted": {
+                              "type": "boolean"
+                            }
+                          }
                         },
                         "createdAt": {
                           "type": "string"
@@ -12861,7 +13563,7 @@
     },
     "/admin/clans/{tag}": {
       "patch": {
-        "summary": "Força a troca de nome, tag ou descrição de um clã (com motivo na auditoria)",
+        "summary": "Força a troca de nome, tag ou descrição de um clã, ou volta o emblema ao padrão (com motivo na auditoria)",
         "tags": ["admin"],
         "requestBody": {
           "required": true,
@@ -12882,6 +13584,10 @@
                   "description": {
                     "type": "string",
                     "maxLength": 500
+                  },
+                  "resetEmblem": {
+                    "type": "boolean",
+                    "enum": [true]
                   },
                   "reason": {
                     "type": "string",

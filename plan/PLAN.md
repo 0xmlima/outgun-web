@@ -951,7 +951,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-479](cards/OG-479-filtro-por-mapa.md) | Filtro por mapa no radar | E9 | 2 | Could | — | OG-471 | Backlog |
 | [OG-480](cards/OG-480-emblema-modelo-e-render.md) | Emblema do clã: modelo, molduras e desenho vetorial compartilhado | E13 | 5 | Must | S51 | OG-407 | Em revisão |
 | [OG-481](cards/OG-481-emblema-catalogo-de-simbolos.md) | Emblema do clã: catálogo final de símbolos (28 desenhos próprios) | E13 | 5 | Must | S51 | OG-480 | Em revisão |
-| [OG-482](cards/OG-482-emblema-api.md) | Emblema do clã: API, unicidade e permissões (líder e admins) | E13 | 5 | Must | S51 | OG-480 | Pronto |
+| [OG-482](cards/OG-482-emblema-api.md) | Emblema do clã: API, unicidade e permissões (líder e admins) | E13 | 5 | Must | S51 | OG-480 | Em revisão |
 | [OG-483](cards/OG-483-emblema-editor.md) | Emblema do clã: editor na página do clã | E13 | 3 | Must | S51 | OG-481, OG-482 | Pronto |
 | [OG-484](cards/OG-484-emblema-no-portal.md) | Emblema do clã nas telas do portal e no lobby Ranked | E13 | 3 | Must | S51 | OG-482 | Pronto |
 | [OG-485](cards/OG-485-emblema-na-identidade-e-relatorio.md) | Emblema do clã na identidade do lado, no relatório e no PDF | E13 | 3 | Must | S51 | OG-482 | Pronto |
