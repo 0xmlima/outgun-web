@@ -3,13 +3,13 @@
 // ativa) ou de sempre, com a temporada anterior para o contorno tracejado (OG-471), e o radar do
 // clã pela mediana dos membros (OG-473).
 import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
-import { desc, eq, lt } from 'drizzle-orm';
+import { desc, eq, inArray, lt } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
 import { clanKey, usernameKey } from '../db/keys.js';
 import { clans, seasons, users } from '../db/schema.js';
 import { LEADERBOARD_MINIMUM_MATCHES, statSince, type BoardScope } from '../leaderboard.js';
 import { activeSeason, type RankedFormat } from '../ranking.js';
-import { clanStyle, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
+import { clanStyle, lineupStyle, medianProfile, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -107,11 +107,19 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
           tags: ['clãs'],
           summary: 'Radar do clã (OG-473, RN-RAD-05): mediana dos percentis dos membros pelas ranqueadas jogadas pelo clã, arquétipo, ponto forte e fraco, e o radar de cada membro',
           params: Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) }),
-          querystring: Type.Object({ season: Type.Optional(Type.Integer({ minimum: 1 })), overall: Type.Boolean({ default: false }) }),
+          querystring: Type.Object({
+            season: Type.Optional(Type.Integer({ minimum: 1 })),
+            overall: Type.Boolean({ default: false }),
+            /** Tag de um rival: só as partidas clã x clã contra ele (OG-474). */
+            against: Type.Optional(Type.String({ minLength: 1, maxLength: 8 })),
+          }),
           response: {
             200: Type.Object({
               tag: Type.String(),
               season: Type.Union([Type.Null(), Season]),
+              /** Partidas do clã no recorte; com `against`, abaixo de 10 é "poucos jogos" (RN-RAD-03). */
+              matches: Type.Integer(),
+              lowSample: Type.Boolean(),
               /** null = nenhum membro com 3 ranqueadas pelo clã no período. */
               clan: Type.Union([
                 Type.Null(),
@@ -128,9 +136,61 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         if (!clan) return reply.code(404).send({ error: 'clan_not_found', message: 'clan not found' });
         const season = await scopeSeason(request.query.season, request.query.overall);
         if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
-        const style = await clanStyle(db, clan.id, { seasonId: season?.id ?? null, format: null });
+        let against: string | undefined;
+        if (request.query.against) {
+          const [rival] = await db.select({ id: clans.id }).from(clans).where(eq(clans.tagKey, clanKey(request.query.against)));
+          if (!rival) return reply.code(404).send({ error: 'clan_not_found', message: 'clan not found' });
+          against = rival.id;
+        }
+        const style = await clanStyle(db, clan.id, { seasonId: season?.id ?? null, format: null }, against ? { against } : {});
         reply.header('cache-control', 'public, max-age=60');
-        return { tag: clan.tag, season: season ? seasonOut(season) : null, ...clanStyleOut(style) };
+        return { tag: clan.tag, season: season ? seasonOut(season) : null, matches: style.matches, lowSample: !!against && style.matches < STYLE_FULL_SAMPLE, ...clanStyleOut(style) };
+      },
+    );
+
+    const MedianSchema = Type.Object({ axes: Type.Array(ClanAxisSchema), archetype: ArchetypeSchema, strongest: StyleAxisSchema, weakest: StyleAxisSchema, members: Type.Integer() });
+    const SideSchema = Type.Object({
+      clan: Type.Union([Type.Null(), Type.String()]),
+      /** Mediana de quem tem radar no lado; null se ninguém tem. */
+      median: Type.Union([Type.Null(), MedianSchema]),
+      players: Type.Array(Type.Object({ username: Type.String(), radar: StyleRadarSchema })),
+    });
+    const names = Type.String({ maxLength: 400, default: '' });
+    app.get(
+      '/style/lineup',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: 'Radar de um confronto (OG-474, OG-477): mediana de cada lado na temporada ativa; com a tag do clã do lado, só as partidas pelo clã de quem está escalado (RN-RAD-05)',
+          querystring: Type.Object({
+            /** Nomes separados por vírgula; quem não tem conta fica de fora. */
+            red: names,
+            blue: names,
+            redClan: Type.Optional(Type.String({ minLength: 1, maxLength: 8 })),
+            blueClan: Type.Optional(Type.String({ minLength: 1, maxLength: 8 })),
+          }),
+          response: { 200: Type.Object({ season: Type.Union([Type.Null(), Season]), sides: Type.Tuple([SideSchema, SideSchema]) }) },
+        },
+      },
+      async (request, reply) => {
+        const q = request.query;
+        const season = await scopeSeason(undefined, false);
+        const scope = { seasonId: season?.id ?? null, format: null };
+        const side = async (list: string, tag: string | undefined) => {
+          const keys = [...new Set(list.split(',').map((n) => n.trim()).filter(Boolean).map(usernameKey))].slice(0, 16);
+          const found = keys.length ? await db.select({ id: users.id, username: users.username, key: users.usernameKey }).from(users).where(inArray(users.usernameKey, keys)) : [];
+          const players = keys.flatMap((k) => found.filter((f) => f.key === k));
+          const [clan] = tag ? await db.select({ id: clans.id, tag: clans.tag }).from(clans).where(eq(clans.tagKey, clanKey(tag))) : [];
+          const s = await lineupStyle(db, scope, players, clan?.id ?? null);
+          return {
+            clan: clan?.tag ?? null,
+            median: medianOut(s.median, s.members.filter((m) => m.profile).length),
+            players: s.members.map((m) => ({ username: m.username, radar: radarOf(m.profile, m.games, s.population) })),
+          };
+        };
+        const sides = [await side(q.red, q.redClan), await side(q.blue, q.blueClan)] as const;
+        reply.header('cache-control', 'public, max-age=30');
+        return { season: season ? seasonOut(season) : null, sides: [...sides] as [typeof sides[0], typeof sides[1]] };
       },
     );
   };
@@ -144,9 +204,12 @@ export function seasonOut(s: typeof seasons.$inferSelect) {
 export function clanStyleOut(style: Awaited<ReturnType<typeof clanStyle>>) {
   const withRadar = style.members.filter((m) => m.profile).length;
   return {
-    clan: style.clan
-      ? { axes: STYLE_AXES.map((axis) => ({ axis, percentile: style.clan!.percentiles[axis] })), archetype: style.clan.archetype, strongest: style.clan.strongest, weakest: style.clan.weakest, members: withRadar }
-      : null,
+    clan: medianOut(style.clan, withRadar),
     members: style.members.map((m) => ({ username: m.username, radar: radarOf(m.profile, m.games, style.population) })),
   };
+}
+
+/** Mediana de um grupo na resposta: percentis na ordem fixa, arquétipo, ponto forte e fraco. */
+function medianOut(m: ReturnType<typeof medianProfile>, members: number) {
+  return m ? { axes: STYLE_AXES.map((axis) => ({ axis, percentile: m.percentiles[axis] })), archetype: m.archetype, strongest: m.strongest, weakest: m.weakest, members } : null;
 }

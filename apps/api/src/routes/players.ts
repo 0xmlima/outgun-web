@@ -65,6 +65,8 @@ const SeriesView = Type.Object({
   winner: Type.Union([Type.Null(), Type.Literal(0), Type.Literal(1)]),
   finished: Type.Boolean(),
   startedAt: Type.String(),
+  /** Contas escaladas em cada lado no último jogo (prévia do confronto, OG-474). */
+  lineup: Type.Tuple([Type.Array(Type.String()), Type.Array(Type.String())]),
   matches: Type.Array(
     Type.Object({ id: Type.String(), gameNo: Type.Union([Type.Null(), Type.Integer()]), mapTitle: Type.String(), redScore: Type.Integer(), blueScore: Type.Integer(), endedAt: Type.String(), withBots: Type.Boolean(), shortHanded: Type.Boolean() }),
   ),
@@ -414,7 +416,13 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
       const [s] = await db.select().from(rankedSeries).where(eq(rankedSeries.id, id));
       if (!s || (s.bestOf !== 1 && s.bestOf !== 3 && s.bestOf !== 5)) return null;
       const games = await db.select().from(matches).where(eq(matches.seriesId, id)).orderBy(asc(matches.gameNo), asc(matches.endedAt));
+      const last = games.at(-1);
+      const players = last
+        ? await db.select({ team: matchPlayers.team, username: users.username }).from(matchPlayers).innerJoin(users, eq(users.id, matchPlayers.userId)).where(and(eq(matchPlayers.matchId, last.id), eq(matchPlayers.isBot, false)))
+        : [];
+      const lineup: [string[], string[]] = [players.filter((p) => p.team === 0).map((p) => p.username), players.filter((p) => p.team === 1).map((p) => p.username)];
       return {
+        lineup,
         id: s.id,
         format: s.format,
         bestOf: s.bestOf as 1 | 3 | 5,

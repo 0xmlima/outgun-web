@@ -155,10 +155,12 @@ export interface SeriesView {
   startedAt: string;
   /** Clã de cada lado (OG-489); null = vermelho/azul. */
   teams?: MatchPage['teams'];
+  /** Contas escaladas em cada lado no último jogo (OG-474). */
+  lineup?: [string[], string[]];
   matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string; withBots?: boolean; shortHanded?: boolean }[];
 }
 
-/** Carrega `path` da API; `null` = não encontrado. `keep` mantém os dados anteriores enquanto troca de filtro. */
+/** Carrega `path` da API; `null` = não encontrado; caminho vazio não busca. `keep` mantém os dados anteriores enquanto troca de filtro. */
 /** Selos de partida Ranked com desconexão permanente (OG-263, RN-RKL-20); nada na partida normal. */
 export function SubstitutionBadges({ withBots, shortHanded }: { withBots?: boolean | undefined; shortHanded?: boolean | undefined }) {
   const { t } = usePrefs();
@@ -183,6 +185,7 @@ export function useApi<T>(path: string, keep = false, topic: LiveTopic | null = 
   current.current = path;
   useLive(topic, () => {
     const at = current.current;
+    if (!at) return;
     api<T>(at).then(
       (data) => current.current === at && setState({ data, error: null }),
       () => undefined,
@@ -191,7 +194,8 @@ export function useApi<T>(path: string, keep = false, topic: LiveTopic | null = 
   const every = fallbackMs(API_REFRESH_MS, useLiveConnected() && topic !== null);
   useEffect(() => {
     let alive = true;
-    if (!keep) setState({ data: undefined, error: null });
+    if (!keep || !path) setState({ data: undefined, error: null });
+    if (!path) return; // caminho vazio = nada a buscar (pedido condicional)
     api<T>(path).then(
       (data) => alive && setState({ data, error: null }),
       (e: unknown) => alive && setState(e instanceof ApiError && e.status === 404 ? { data: null, error: null } : { data: undefined, error: e instanceof ApiError ? e.message : String(e) }),

@@ -179,4 +179,24 @@ describe.skipIf(!pgAdminUrl)('radar do clã (OG-473)', () => {
     expect(kills(b.clan.axes)).toBe(0); // só as 3 de 0 abates pelo BBB
     expect((await app.inject('/clans/ZZZ/style')).statusCode).toBe(404);
   });
+
+  it('prévia do confronto: mediana de quem está escalado, e muda com a escalação (OG-474)', async () => {
+    const lineup = async (q: string) => (await app.inject(`/style/lineup?${q}`)).json();
+    const both = await lineup('red=Ana,Bia&redClan=AAA&blue=Gil');
+    expect(both.sides[0]).toMatchObject({ clan: 'AAA', median: { members: 2 } });
+    expect(kills(both.sides[0].median.axes)).toBe(34);
+    expect(both.sides[1].clan).toBeNull();
+    expect(both.sides[1].players[0]).toMatchObject({ username: 'Gil', radar: { games: 5 } });
+    const swapped = await lineup('red=Ana,Caio&redClan=AAA&blue=Gil');
+    expect(kills(swapped.sides[0].median.axes)).toBe(67); // Caio não tem radar: só a Ana
+    expect(swapped.sides[0].players.map((p: { username: string }) => p.username)).toEqual(['Ana', 'Caio']);
+    // escalada por um clã de que já saiu: sem radar
+    expect((await lineup('red=Eva&redClan=AAA&blue=')).sides[0]).toMatchObject({ median: null, players: [{ username: 'Eva', radar: { axes: null } }] });
+  });
+
+  it('contra um rival com poucas partidas: "poucos jogos" (OG-474, RN-RAD-03)', async () => {
+    const r = (await app.inject('/clans/AAA/style?against=BBB')).json();
+    expect(r).toMatchObject({ matches: 0, lowSample: true, clan: null });
+    expect((await clan('AAA')).lowSample).toBe(false);
+  });
 });

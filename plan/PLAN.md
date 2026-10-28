@@ -945,10 +945,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-471](cards/OG-471-radar-no-perfil.md) | Radar no perfil: arquétipo, temporada passada em tracejado e filtros | E9 | 3 | Must | S53 | OG-469, OG-470 | Em revisão |
 | [OG-472](cards/OG-472-jogador-x-jogador.md) | Jogador x jogador: "Comparar comigo" no radar | E9 | 3 | Must | S53 | OG-471 | Em revisão |
 | [OG-473](cards/OG-473-radar-do-cla.md) | Radar do clã: mediana dos membros e mini radar de cada membro | E13 | 3 | Must | S53 | OG-469, OG-470, OG-273 | Em revisão |
-| [OG-474](cards/OG-474-cla-x-cla-previa-do-confronto.md) | Clã x clã: prévia do confronto com a escalação e radar contra um rival | E13 | 3 | Must | S53 | OG-473 | Em andamento |
+| [OG-474](cards/OG-474-cla-x-cla-previa-do-confronto.md) | Clã x clã: prévia do confronto com a escalação e radar contra um rival | E13 | 3 | Must | S53 | OG-473 | Em revisão |
 | [OG-475](cards/OG-475-radar-da-partida-no-relatorio.md) | Radar da partida no relatório: a partida por cima da média da temporada | E9 | 3 | Should | S53 | OG-469, OG-470 | Pronto |
 | [OG-476](cards/OG-476-sombra-de-referencia.md) | Sombra de referência no radar: média do clã ou top 10 do mês | E9 | 2 | Should | S53 | OG-471 | Pronto |
-| [OG-477](cards/OG-477-radar-dos-times-no-lobby.md) | Radar dos dois times no lobby Ranked antes de começar | E12 | 3 | Should | S53 | OG-469, OG-470 | Pronto |
+| [OG-477](cards/OG-477-radar-dos-times-no-lobby.md) | Radar dos dois times no lobby Ranked antes de começar | E12 | 3 | Should | S53 | OG-469, OG-470 | Em andamento |
 | [OG-478](cards/OG-478-cartao-para-compartilhar.md) | Cartão do estilo para compartilhar (imagem com radar, arquétipo e clã) | E9 | 3 | Could | S53 | OG-471 | Pronto |
 | [OG-479](cards/OG-479-filtro-por-mapa.md) | Filtro por mapa no radar | E9 | 2 | Could | S53 | OG-471 | Pronto |
 | [OG-480](cards/OG-480-emblema-modelo-e-render.md) | Emblema do clã: modelo, molduras e desenho vetorial compartilhado | E13 | 5 | Must | S51 | OG-407 | Concluído |

@@ -17,6 +17,7 @@ import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 import { Emblem } from '../ui/Emblem.js';
+import { MatchupRadar, useLineup, type MatchupSide } from './matchup-radar.js';
 import { downloadCanvas, matchupImage } from '../ui/emblem-image.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
@@ -238,8 +239,26 @@ export function SeriesScreen() {
           )}
         </div>
       )}
+      {(s.teams?.[0] || s.teams?.[1]) && (s.lineup?.[0].length || s.lineup?.[1].length) ? (
+        <SeriesMatchup
+          red={{ label: seriesSide(0), players: s.lineup![0], clan: s.teams?.[0]?.tag, color: s.teams?.[0]?.color }}
+          blue={{ label: seriesSide(1), players: s.lineup![1], clan: s.teams?.[1]?.tag, color: s.teams?.[1]?.color }}
+        />
+      ) : null}
       <SeriesPanel series={s} />
     </Page>
+  );
+}
+
+/** Prévia do confronto clã x clã (OG-474): mediana de quem está escalado na série. */
+function SeriesMatchup({ red, blue }: { red: MatchupSide; blue: MatchupSide }) {
+  const { t } = usePrefs();
+  const lineup = useLineup(red, blue);
+  return (
+    <Panel title={t('Matchup preview')}>
+      {lineup.data ? <MatchupRadar red={red} blue={blue} data={lineup.data} /> : <Status loading={lineup.data === undefined} missing={false} error={lineup.error} />}
+      <p className="ui-muted">{t('Median of the lined-up players, only Ranked matches played for the clan this season.')}</p>
+    </Panel>
   );
 }
 

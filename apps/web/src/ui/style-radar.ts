@@ -84,3 +84,13 @@ export function axisLeads(a: readonly StyleAxisValue[], b: readonly StyleAxisVal
   }
   return { a: left, b: right };
 }
+
+/** Vantagem por eixo num confronto (OG-474): diferença menor que `tie` pontos = empate. */
+export function axisEdges(a: readonly { axis: StyleAxis; percentile: number }[], b: readonly { axis: StyleAxis; percentile: number }[], tie = 10): Record<StyleAxis, 'a' | 'b' | 'even'> {
+  return Object.fromEntries(
+    STYLE_AXES.map((axis) => {
+      const d = (a.find((v) => v.axis === axis)?.percentile ?? 0) - (b.find((v) => v.axis === axis)?.percentile ?? 0);
+      return [axis, Math.abs(d) < tie ? 'even' : d > 0 ? 'a' : 'b'];
+    }),
+  ) as Record<StyleAxis, 'a' | 'b' | 'even'>;
+}

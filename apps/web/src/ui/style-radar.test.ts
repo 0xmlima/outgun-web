@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
-import { axisAngle, axisLeads, axisValueText, radarPoint, radarPolygon, STYLE_AXES } from './style-radar.js';
+import { axisAngle, axisEdges, axisLeads, axisValueText, radarPoint, radarPolygon, STYLE_AXES } from './style-radar.js';
 
 describe('geometria do radar de estilo (OG-470)', () => {
   it('ordem fixa: Abates no alto, duelo à direita, Bandeira embaixo, time à esquerda', () => {
@@ -42,5 +42,10 @@ describe('geometria do radar de estilo (OG-470)', () => {
   it('eixos que cada lado leva na comparação (OG-472), sem contar empates', () => {
     const v = (p: number[]) => STYLE_AXES.map((axis, i) => ({ axis, percentile: p[i]!, value: 0 }));
     expect(axisLeads(v([90, 10, 50, 50, 70, 20]), v([10, 90, 50, 40, 60, 30]))).toEqual({ a: 3, b: 2 });
+  });
+
+  it('vantagem do confronto (OG-474): menos de 10 pontos é empate', () => {
+    const v = (p: number[]) => STYLE_AXES.map((axis, i) => ({ axis, percentile: p[i]! }));
+    expect(axisEdges(v([50, 60, 30, 0, 95, 41]), v([41, 70, 50, 0, 85, 50]))).toEqual({ kills: 'even', accuracy: 'b', survival: 'b', flag: 'even', defense: 'a', team: 'even' });
   });
 });

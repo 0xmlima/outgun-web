@@ -63,20 +63,30 @@ export interface StyleProfile extends StyleRow {
   archetype: Archetype;
 }
 
+export interface ClanFilter {
+  clanId?: string;
+  against?: string;
+}
+const clanWhere = (f: ClanFilter) => [
+  ...(f.clanId ? [sql`mp.clan_id = ${f.clanId}`] : []),
+  ...(f.against ? [sql`m.clan_war AND (m.red_clan_id = ${f.against} OR m.blue_clan_id = ${f.against})`] : []),
+];
+
 const num = (key: string) => `coalesce((mp.stats ->> '${key}')::float8, 0)`;
 const per10 = (col: string) => `CASE WHEN play > 0 THEN ${col} * 600 / play ELSE 0 END`;
 
 /**
  * Uma linha por conta com pelo menos uma ranqueada no período (RN-RAD-01/02: sem bots nem Casual).
- * Com `clanId`, só as partidas jogadas pelo clã (RN-RAD-05, RN-CLA-06).
+ * Com `clanId`, só as partidas jogadas pelo clã (RN-RAD-05, RN-CLA-06); com `against`, só os clã x
+ * clã contra aquele clã (OG-474).
  */
-export async function styleRows(db: Db | Tx, scope: BoardScope, clanId?: string): Promise<StyleRow[]> {
+export async function styleRows(db: Db | Tx, scope: BoardScope, filter: ClanFilter = {}): Promise<StyleRow[]> {
   const where = sql.join(
     [
       sql`m.ranked AND NOT mp.is_bot AND mp.user_id IS NOT NULL`,
       ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
       ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
-      ...(clanId ? [sql`mp.clan_id = ${clanId}`] : []),
+      ...clanWhere(filter),
     ],
     sql` AND `,
   );
@@ -160,22 +170,53 @@ export function medianProfile(profiles: readonly StyleProfile[]): { percentiles:
 /**
  * Radar do clã (OG-473, RN-RAD-05): cada membro atual pelas ranqueadas que jogou pelo clã, em
  * percentil contra os ativos do período; a mediana só de quem tem radar. `only` limita aos
- * escalados (prévia do clã x clã, OG-474).
+ * escalados (prévia do clã x clã) e `against` às partidas contra um rival (OG-474); `matches` é o
+ * número de partidas do clã no recorte.
  */
-export async function clanStyle(db: Db | Tx, clanId: string, scope: BoardScope, only?: readonly string[]) {
+export async function clanStyle(db: Db | Tx, clanId: string, scope: BoardScope, opts: { only?: readonly string[]; against?: string } = {}) {
   const { rows } = await stylePeriod(db, scope);
   const population = activePopulation(rows);
   const members = await db.execute<{ user_id: string; username: string }>(
     sql`SELECT u.id AS user_id, u.username FROM clan_members cm JOIN users u ON u.id = cm.user_id WHERE cm.clan_id = ${clanId} ORDER BY u.username_key`,
   );
-  const forClan = new Map((await styleRows(db, scope, clanId)).map((r) => [r.userId, r]));
+  const filter = { clanId, ...(opts.against ? { against: opts.against } : {}) };
+  const forClan = new Map((await styleRows(db, scope, filter)).map((r) => [r.userId, r]));
+  const where = sql.join(
+    [
+      sql`m.ranked AND NOT mp.is_bot`,
+      ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
+      ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
+      ...clanWhere(filter),
+    ],
+    sql` AND `,
+  );
+  const [count] = await db.execute<{ n: number }>(sql`SELECT count(DISTINCT mp.match_id)::int AS n FROM match_players mp JOIN matches m ON m.id = mp.match_id WHERE ${where}`);
   const lines = members
-    .filter((m) => !only || only.includes(m.user_id))
+    .filter((m) => !opts.only || opts.only.includes(m.user_id))
     .map((m) => {
       const row = forClan.get(m.user_id);
       return { userId: m.user_id, username: m.username, games: row?.games ?? 0, profile: row ? profileAgainst(row, population) : undefined };
     });
-  return { population: population.length, members: lines, clan: medianProfile(lines.flatMap((l) => (l.profile ? [l.profile] : []))) };
+  return { population: population.length, matches: count?.n ?? 0, members: lines, clan: medianProfile(lines.flatMap((l) => (l.profile ? [l.profile] : []))) };
+}
+
+/**
+ * Lado de um confronto (OG-474, OG-477): com clã, a mediana dos escalados pelo clã (RN-RAD-05); sem
+ * clã, a mediana dos perfis dos jogadores no período. Quem não tem radar fica fora da mediana.
+ */
+export async function lineupStyle(db: Db | Tx, scope: BoardScope, players: readonly { id: string; username: string }[], clanId: string | null) {
+  const { rows, profiles } = await stylePeriod(db, scope);
+  const population = activePopulation(rows).length;
+  let members: { userId: string; username: string; games: number; profile: StyleProfile | undefined }[];
+  if (clanId) {
+    const c = await clanStyle(db, clanId, scope, { only: players.map((p) => p.id) });
+    const byId = new Map(c.members.map((m) => [m.userId, m]));
+    // escalado que já não é do clã fica sem radar
+    members = players.map((p) => byId.get(p.id) ?? { userId: p.id, username: p.username, games: 0, profile: undefined });
+  } else {
+    members = players.map((p) => ({ userId: p.id, username: p.username, games: rows.find((r) => r.userId === p.id)?.games ?? 0, profile: profiles.get(p.id) }));
+  }
+  return { population, members, median: medianProfile(members.flatMap((m) => (m.profile ? [m.profile] : []))) };
 }
 
 /** Cache curto por período: o cálculo percorre a temporada inteira. */
