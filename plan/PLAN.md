@@ -956,7 +956,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-484](cards/OG-484-emblema-no-portal.md) | Emblema do clã nas telas do portal e no lobby Ranked | E13 | 3 | Must | S51 | OG-482 | Em revisão |
 | [OG-485](cards/OG-485-emblema-na-identidade-e-relatorio.md) | Emblema do clã na identidade do lado, no relatório e no PDF | E13 | 3 | Must | S51 | OG-482 | Em revisão |
 | [OG-486](cards/OG-486-emblema-no-chao-da-base.md) | Emblema do clã no chão da base, na partida | E13 | 5 | Must | S51 | OG-485 | Em revisão |
-| [OG-487](cards/OG-487-emblema-no-fim-da-partida.md) | Emblema do clã no fim de rodada e de partida | E13 | 2 | Must | S51 | OG-485 | Pronto |
+| [OG-487](cards/OG-487-emblema-no-fim-da-partida.md) | Emblema do clã no fim de rodada e de partida | E13 | 2 | Must | S51 | OG-485 | Em revisão |
 | [OG-488](cards/OG-488-emblema-molduras-do-hall.md) | Emblema do clã: molduras do hall da fama (ouro, prata e bronze) | E13 | 3 | Should | S51 | OG-482, OG-483 | Pronto |
 | [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Pronto |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | — | OG-289 | Backlog |

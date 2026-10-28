@@ -2601,3 +2601,11 @@
 .emblem-sizes.light {
   background: var(--text);
 }
+
+/* emblema do vencedor no fim de partida (OG-487) */
+.match-end-emblems {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  margin: 0;
+}
