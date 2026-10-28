@@ -617,6 +617,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S47 | v2: rodada de correções (issues do GitHub) | OG-442, OG-443, OG-444, OG-445, OG-446 | |
 | S48 | v2: observabilidade no plano gratuito — métricas e logs do beta no Grafana Cloud (Alloy), banco, quedas no game server, painéis e alertas, alarmes da Oracle | OG-452, OG-453, OG-454, OG-455, OG-456 | |
 | S49 | v2: coletor leve (Fluent Bit) para mandar as métricas e logs do beta ao Grafana Cloud na E2.1.Micro | OG-457 | |
+| S50 | v2: rodada de correções (issues #11 e #14–#19; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-459, OG-460, OG-461, OG-462, OG-463 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -925,8 +926,14 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Concluído |
 | [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Concluído |
 | [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | S49 | OG-452 | Concluído |
+| [OG-458](cards/OG-458-voto-f2-e-troca-f8-vao-ao-mapa-errado.md) | Voto no mapa (F2) com pedido de troca (F8) não vai para o mapa votado (issue #11) | E11 | 2 | Should | S50 | — | Pronto |
+| [OG-459](cards/OG-459-idle-kick-com-poucos-humanos.md) | Jogador parado não é expulso na sala com poucos humanos (issue #14) | E11 | 2 | Should | S50 | — | Pronto |
+| [OG-460](cards/OG-460-item-na-base-nao-e-pego.md) | Item na base que aparece na tela, mas não é pego (issue #15) | E11 | 2 | Should | S50 | — | Pronto |
+| [OG-461](cards/OG-461-lobby-ranked-esc-e-botao-de-som.md) | Lobby Ranked: Esc tira o lobby da tela e falta o botão de som (issues #16 e #17) | E12 | 2 | Should | S50 | — | Pronto |
+| [OG-462](cards/OG-462-diagonal-e-alt-rapidos.md) | Diagonal + Alt rápidos ainda registram a direção errada (issue #18) | E11 | 3 | Should | S50 | — | Pronto |
+| [OG-463](cards/OG-463-nome-do-cla-no-lugar-do-time.md) | Nome do clã no lugar de "Time vermelho/azul" (issue #19) | E13 | 2 | Could | S50 | — | Pronto |
 
-**Total:** 299 cards, 976 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 230 cards, 681 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 305 cards, 989 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 236 cards, 694 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
