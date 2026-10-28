@@ -932,7 +932,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-461](cards/OG-461-lobby-ranked-esc-e-botao-de-som.md) | Lobby Ranked: Esc tira o lobby da tela e falta o botão de som (issues #16 e #17) | E12 | 2 | Should | S50 | — | Em revisão |
 | [OG-462](cards/OG-462-diagonal-e-alt-rapidos.md) | Diagonal + Alt rápidos ainda registram a direção errada (issue #18) | E11 | 3 | Should | S50 | — | Em revisão |
 | [OG-463](cards/OG-463-nome-do-cla-no-lugar-do-time.md) | Nome do clã no lugar de "Time vermelho/azul" (issue #19) | E13 | 2 | Could | S50 | — | Em revisão |
-| [OG-464](cards/OG-464-historico-do-lobby-ranked-manter.md) | Lobby Ranked guarda todo o histórico do chat (issue #20) | E12 | 2 | Should | S50 | — | Pronto |
+| [OG-464](cards/OG-464-historico-do-lobby-ranked-manter.md) | Lobby Ranked guarda todo o histórico do chat (issue #20) | E12 | 2 | Should | S50 | — | Em revisão |
 | [OG-465](cards/OG-465-apos-mandar-um-feedback-limpar-campos.md) | Relato de bug: limpar o formulário depois de enviar e deixar mandar outro (issue #21) | E9 | 1 | Should | S50 | — | Pronto |
 | [OG-466](cards/OG-466-tolerancia-de-diagonal.md) | Tolerância de diagonal ajustável de 1 em 1 ms (issue #22) | E11 | 1 | Should | S50 | — | Pronto |
 | [OG-467](cards/OG-467-destacar-se-ao-nascer-retomada-dessa.md) | Volta a opção "Destacar a si mesmo ao nascer" (issue #23) | E11 | 1 | Should | S50 | — | Pronto |

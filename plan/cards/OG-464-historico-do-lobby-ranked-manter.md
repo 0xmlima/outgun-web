@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Issue | [#20](https://github.com/thiagovasconcellos/outgun-web/issues/20) |
 | Regras de negócio | — |
@@ -25,9 +25,10 @@ Como jogador no lobby Ranked, quero rolar o chat e ver as mensagens antigas, nã
 - Não mexe no feed do HUD da partida (RN-UI-05).
 
 ## Critérios de aceite
-- [ ] Com mais de 8 mensagens, as antigas continuam no chat do lobby, que dá para rolar.
-- [ ] O chat da partida (HUD) não muda.
+- [x] Com mais de 8 mensagens, as antigas continuam no chat do lobby, que dá para rolar.
+- [x] O chat da partida (HUD) não muda.
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- O lobby pede 200 linhas ao feed (`host.chat(200)`), o mesmo teto que o `MessageFeed` já guarda; a caixa do chat já rolava (`max-height: 8rem`).
+- A rolagem até o fim agora também acontece com o histórico cheio (o tamanho da lista para de mudar em 200).

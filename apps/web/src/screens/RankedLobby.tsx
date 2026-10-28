@@ -218,7 +218,7 @@ function ChatLog({ lines }: { lines: { team: number; text: string }[] }) {
   const ref = useRef<HTMLOListElement>(null);
   useEffect(() => {
     ref.current?.lastElementChild?.scrollIntoView({ block: 'nearest' });
-  }, [lines.length]);
+  }, [lines.length, lines.at(-1)?.text]); // com o histórico cheio, o tamanho não muda a cada mensagem nova
   return (
     <ol ref={ref} className="ranked-chat-log" aria-live="polite">
       {lines.map((l, i) => (

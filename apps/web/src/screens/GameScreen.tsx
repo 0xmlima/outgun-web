@@ -233,7 +233,7 @@ export default function GameScreen() {
         maxPlayers: s.maxPlayers,
         names: new Map(s.names),
         maps: s.mapList.map((m) => ({ file: m.file, title: m.title })),
-        chat: host.current?.chat(8) ?? [],
+        chat: host.current?.chat(200) ?? [], // o histórico inteiro do feed, que guarda 200 linhas (OG-464)
       });
     }, 250);
     return () => clearInterval(id);
