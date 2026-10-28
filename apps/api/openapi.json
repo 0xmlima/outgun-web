@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.52.0",
+    "version": "2.53.0",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -2664,6 +2664,1374 @@
         }
       }
     },
+    "/players/{name}/style": {
+      "get": {
+        "summary": "Radar de estilo (OG-469, RN-RAD): 6 eixos em percentil contra os ativos da temporada (padrão: a ativa) ou de sempre (overall=true), o arquétipo e a temporada anterior",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "season",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "in": "query",
+            "name": "overall",
+            "required": true
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["3x3"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["4x4"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["5x5"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "format",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["clan"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["top10"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "reference",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "map",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "in": "path",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "username",
+                    "clanTag",
+                    "clan",
+                    "reference",
+                    "season",
+                    "radar",
+                    "previous",
+                    "maps",
+                    "fewOnMap",
+                    "since"
+                  ],
+                  "properties": {
+                    "username": {
+                      "type": "string"
+                    },
+                    "clanTag": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "clan": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["tag", "name", "color"],
+                          "properties": {
+                            "tag": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "color": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "reference": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["kind", "members", "axes"],
+                          "properties": {
+                            "kind": {
+                              "type": "string"
+                            },
+                            "members": {
+                              "type": "integer"
+                            },
+                            "axes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": ["axis", "percentile"],
+                                "properties": {
+                                  "axis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "kills",
+                                      "accuracy",
+                                      "survival",
+                                      "flag",
+                                      "defense",
+                                      "team"
+                                    ]
+                                  },
+                                  "percentile": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "season": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["id", "name", "startsAt", "endsAt", "active"],
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string"
+                            },
+                            "endsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "active": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "radar": {
+                      "type": "object",
+                      "required": ["games", "lowSample", "axes", "archetype", "population"],
+                      "properties": {
+                        "games": {
+                          "type": "integer"
+                        },
+                        "lowSample": {
+                          "type": "boolean"
+                        },
+                        "axes": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": ["axis", "percentile", "value"],
+                                "properties": {
+                                  "axis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "kills",
+                                      "accuracy",
+                                      "survival",
+                                      "flag",
+                                      "defense",
+                                      "team"
+                                    ]
+                                  },
+                                  "percentile": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  },
+                                  "value": {
+                                    "type": "number"
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "archetype": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "enum": ["shooter", "runner", "wall", "support", "survivor", "joker"]
+                            }
+                          ]
+                        },
+                        "population": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "previous": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["season", "radar"],
+                          "properties": {
+                            "season": {
+                              "type": "object",
+                              "required": ["id", "name", "startsAt", "endsAt", "active"],
+                              "properties": {
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "startsAt": {
+                                  "type": "string"
+                                },
+                                "endsAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "active": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "radar": {
+                              "type": "object",
+                              "required": ["games", "lowSample", "axes", "archetype", "population"],
+                              "properties": {
+                                "games": {
+                                  "type": "integer"
+                                },
+                                "lowSample": {
+                                  "type": "boolean"
+                                },
+                                "axes": {
+                                  "anyOf": [
+                                    {
+                                      "type": "null"
+                                    },
+                                    {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "required": ["axis", "percentile", "value"],
+                                        "properties": {
+                                          "axis": {
+                                            "type": "string",
+                                            "enum": [
+                                              "kills",
+                                              "accuracy",
+                                              "survival",
+                                              "flag",
+                                              "defense",
+                                              "team"
+                                            ]
+                                          },
+                                          "percentile": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 100
+                                          },
+                                          "value": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                },
+                                "archetype": {
+                                  "anyOf": [
+                                    {
+                                      "type": "null"
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "shooter",
+                                        "runner",
+                                        "wall",
+                                        "support",
+                                        "survivor",
+                                        "joker"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "population": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "maps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["map", "title", "games"],
+                        "properties": {
+                          "map": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "games": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "fewOnMap": {
+                      "type": "boolean"
+                    },
+                    "since": {
+                      "type": "object",
+                      "required": ["defense", "team"],
+                      "properties": {
+                        "defense": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "team": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/style": {
+      "get": {
+        "summary": "Radar do clã (OG-473, RN-RAD-05): mediana dos percentis dos membros pelas ranqueadas jogadas pelo clã, arquétipo, ponto forte e fraco, e o radar de cada membro",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "season",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "in": "query",
+            "name": "overall",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "query",
+            "name": "against",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "path",
+            "name": "tag",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["tag", "season", "matches", "lowSample", "clan", "members"],
+                  "properties": {
+                    "tag": {
+                      "type": "string"
+                    },
+                    "season": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["id", "name", "startsAt", "endsAt", "active"],
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string"
+                            },
+                            "endsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "active": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "matches": {
+                      "type": "integer"
+                    },
+                    "lowSample": {
+                      "type": "boolean"
+                    },
+                    "clan": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["axes", "archetype", "strongest", "weakest", "members"],
+                          "properties": {
+                            "axes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": ["axis", "percentile"],
+                                "properties": {
+                                  "axis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "kills",
+                                      "accuracy",
+                                      "survival",
+                                      "flag",
+                                      "defense",
+                                      "team"
+                                    ]
+                                  },
+                                  "percentile": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                  }
+                                }
+                              }
+                            },
+                            "archetype": {
+                              "type": "string",
+                              "enum": ["shooter", "runner", "wall", "support", "survivor", "joker"]
+                            },
+                            "strongest": {
+                              "type": "string",
+                              "enum": ["kills", "accuracy", "survival", "flag", "defense", "team"]
+                            },
+                            "weakest": {
+                              "type": "string",
+                              "enum": ["kills", "accuracy", "survival", "flag", "defense", "team"]
+                            },
+                            "members": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["username", "radar"],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "radar": {
+                            "type": "object",
+                            "required": ["games", "lowSample", "axes", "archetype", "population"],
+                            "properties": {
+                              "games": {
+                                "type": "integer"
+                              },
+                              "lowSample": {
+                                "type": "boolean"
+                              },
+                              "axes": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "required": ["axis", "percentile", "value"],
+                                      "properties": {
+                                        "axis": {
+                                          "type": "string",
+                                          "enum": [
+                                            "kills",
+                                            "accuracy",
+                                            "survival",
+                                            "flag",
+                                            "defense",
+                                            "team"
+                                          ]
+                                        },
+                                        "percentile": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 100
+                                        },
+                                        "value": {
+                                          "type": "number"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "archetype": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "shooter",
+                                      "runner",
+                                      "wall",
+                                      "support",
+                                      "survivor",
+                                      "joker"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "population": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/matches/{id}/style": {
+      "get": {
+        "summary": "Radar da partida (OG-475): para cada conta de uma ranqueada, os 6 eixos daquela partida em percentil contra os ativos da temporada e o radar da temporada; menos de 180 s jogados = partida curta demais",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["ranked", "minimumSeconds", "players"],
+                  "properties": {
+                    "ranked": {
+                      "type": "boolean"
+                    },
+                    "minimumSeconds": {
+                      "type": "integer"
+                    },
+                    "players": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["username", "short", "match", "season"],
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "short": {
+                            "type": "boolean"
+                          },
+                          "match": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": ["axis", "percentile", "value"],
+                                  "properties": {
+                                    "axis": {
+                                      "type": "string",
+                                      "enum": [
+                                        "kills",
+                                        "accuracy",
+                                        "survival",
+                                        "flag",
+                                        "defense",
+                                        "team"
+                                      ]
+                                    },
+                                    "percentile": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 100
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "season": {
+                            "type": "object",
+                            "required": ["games", "lowSample", "axes", "archetype", "population"],
+                            "properties": {
+                              "games": {
+                                "type": "integer"
+                              },
+                              "lowSample": {
+                                "type": "boolean"
+                              },
+                              "axes": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "required": ["axis", "percentile", "value"],
+                                      "properties": {
+                                        "axis": {
+                                          "type": "string",
+                                          "enum": [
+                                            "kills",
+                                            "accuracy",
+                                            "survival",
+                                            "flag",
+                                            "defense",
+                                            "team"
+                                          ]
+                                        },
+                                        "percentile": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 100
+                                        },
+                                        "value": {
+                                          "type": "number"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "archetype": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "shooter",
+                                      "runner",
+                                      "wall",
+                                      "support",
+                                      "survivor",
+                                      "joker"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "population": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "message"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/style/lineup": {
+      "get": {
+        "summary": "Radar de um confronto (OG-474, OG-477): mediana de cada lado na temporada ativa; com a tag do clã do lado, só as partidas pelo clã de quem está escalado (RN-RAD-05)",
+        "tags": ["perfil"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 400,
+              "default": ""
+            },
+            "in": "query",
+            "name": "red",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 400,
+              "default": ""
+            },
+            "in": "query",
+            "name": "blue",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "query",
+            "name": "redClan",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8
+            },
+            "in": "query",
+            "name": "blueClan",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["season", "sides"],
+                  "properties": {
+                    "season": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": ["id", "name", "startsAt", "endsAt", "active"],
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "startsAt": {
+                              "type": "string"
+                            },
+                            "endsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "active": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "sides": {
+                      "type": "array",
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "type": "object",
+                          "required": ["clan", "median", "players"],
+                          "properties": {
+                            "clan": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "median": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "axes",
+                                    "archetype",
+                                    "strongest",
+                                    "weakest",
+                                    "members"
+                                  ],
+                                  "properties": {
+                                    "axes": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "required": ["axis", "percentile"],
+                                        "properties": {
+                                          "axis": {
+                                            "type": "string",
+                                            "enum": [
+                                              "kills",
+                                              "accuracy",
+                                              "survival",
+                                              "flag",
+                                              "defense",
+                                              "team"
+                                            ]
+                                          },
+                                          "percentile": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 100
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "archetype": {
+                                      "type": "string",
+                                      "enum": [
+                                        "shooter",
+                                        "runner",
+                                        "wall",
+                                        "support",
+                                        "survivor",
+                                        "joker"
+                                      ]
+                                    },
+                                    "strongest": {
+                                      "type": "string",
+                                      "enum": [
+                                        "kills",
+                                        "accuracy",
+                                        "survival",
+                                        "flag",
+                                        "defense",
+                                        "team"
+                                      ]
+                                    },
+                                    "weakest": {
+                                      "type": "string",
+                                      "enum": [
+                                        "kills",
+                                        "accuracy",
+                                        "survival",
+                                        "flag",
+                                        "defense",
+                                        "team"
+                                      ]
+                                    },
+                                    "members": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "players": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": ["username", "radar"],
+                                "properties": {
+                                  "username": {
+                                    "type": "string"
+                                  },
+                                  "radar": {
+                                    "type": "object",
+                                    "required": [
+                                      "games",
+                                      "lowSample",
+                                      "axes",
+                                      "archetype",
+                                      "population"
+                                    ],
+                                    "properties": {
+                                      "games": {
+                                        "type": "integer"
+                                      },
+                                      "lowSample": {
+                                        "type": "boolean"
+                                      },
+                                      "axes": {
+                                        "anyOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "object",
+                                              "required": ["axis", "percentile", "value"],
+                                              "properties": {
+                                                "axis": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "kills",
+                                                    "accuracy",
+                                                    "survival",
+                                                    "flag",
+                                                    "defense",
+                                                    "team"
+                                                  ]
+                                                },
+                                                "percentile": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 100
+                                                },
+                                                "value": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      "archetype": {
+                                        "anyOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "shooter",
+                                              "runner",
+                                              "wall",
+                                              "support",
+                                              "survivor",
+                                              "joker"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "population": {
+                                        "type": "integer"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": ["clan", "median", "players"],
+                          "properties": {
+                            "clan": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "median": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "axes",
+                                    "archetype",
+                                    "strongest",
+                                    "weakest",
+                                    "members"
+                                  ],
+                                  "properties": {
+                                    "axes": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "required": ["axis", "percentile"],
+                                        "properties": {
+                                          "axis": {
+                                            "type": "string",
+                                            "enum": [
+                                              "kills",
+                                              "accuracy",
+                                              "survival",
+                                              "flag",
+                                              "defense",
+                                              "team"
+                                            ]
+                                          },
+                                          "percentile": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 100
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "archetype": {
+                                      "type": "string",
+                                      "enum": [
+                                        "shooter",
+                                        "runner",
+                                        "wall",
+                                        "support",
+                                        "survivor",
+                                        "joker"
+                                      ]
+                                    },
+                                    "strongest": {
+                                      "type": "string",
+                                      "enum": [
+                                        "kills",
+                                        "accuracy",
+                                        "survival",
+                                        "flag",
+                                        "defense",
+                                        "team"
+                                      ]
+                                    },
+                                    "weakest": {
+                                      "type": "string",
+                                      "enum": [
+                                        "kills",
+                                        "accuracy",
+                                        "survival",
+                                        "flag",
+                                        "defense",
+                                        "team"
+                                      ]
+                                    },
+                                    "members": {
+                                      "type": "integer"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "players": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": ["username", "radar"],
+                                "properties": {
+                                  "username": {
+                                    "type": "string"
+                                  },
+                                  "radar": {
+                                    "type": "object",
+                                    "required": [
+                                      "games",
+                                      "lowSample",
+                                      "axes",
+                                      "archetype",
+                                      "population"
+                                    ],
+                                    "properties": {
+                                      "games": {
+                                        "type": "integer"
+                                      },
+                                      "lowSample": {
+                                        "type": "boolean"
+                                      },
+                                      "axes": {
+                                        "anyOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "object",
+                                              "required": ["axis", "percentile", "value"],
+                                              "properties": {
+                                                "axis": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "kills",
+                                                    "accuracy",
+                                                    "survival",
+                                                    "flag",
+                                                    "defense",
+                                                    "team"
+                                                  ]
+                                                },
+                                                "percentile": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 100
+                                                },
+                                                "value": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      "archetype": {
+                                        "anyOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "shooter",
+                                              "runner",
+                                              "wall",
+                                              "support",
+                                              "survivor",
+                                              "joker"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "population": {
+                                        "type": "integer"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "minItems": 2
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/players/{name}": {
       "get": {
         "summary": "Perfil público: nome, clã, rating de habilidade e estatísticas por modo",
@@ -3750,6 +5118,7 @@
                             "winner",
                             "finished",
                             "startedAt",
+                            "lineup",
                             "matches"
                           ],
                           "properties": {
@@ -3934,6 +5303,25 @@
                             },
                             "startedAt": {
                               "type": "string"
+                            },
+                            "lineup": {
+                              "type": "array",
+                              "additionalItems": false,
+                              "items": [
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ],
+                              "minItems": 2
                             },
                             "matches": {
                               "type": "array",
@@ -4335,6 +5723,7 @@
                         "winner",
                         "finished",
                         "startedAt",
+                        "lineup",
                         "matches"
                       ],
                       "properties": {
@@ -4519,6 +5908,25 @@
                         },
                         "startedAt": {
                           "type": "string"
+                        },
+                        "lineup": {
+                          "type": "array",
+                          "additionalItems": false,
+                          "items": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ],
+                          "minItems": 2
                         },
                         "matches": {
                           "type": "array",

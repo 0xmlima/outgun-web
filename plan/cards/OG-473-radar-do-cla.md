@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S53 |
+| Status | Concluído |
 | Dependências | OG-469, OG-470, OG-273 |
 | Regras de negócio | RN-RAD-05, RN-CLA-06 |
 | Skills | `outgun-card-workflow` |
@@ -26,6 +26,9 @@ Como membro ou visitante, quero ver o formato do clã e de cada membro, para ent
 - Mesmos filtros de período e formato da página do clã.
 
 ## Critérios de aceite
-- [ ] Testes: mediana com número par e ímpar de membros; membro que saiu não leva os números antigos (RN-CLA-06); membro com poucas partidas fica fora.
+- [x] Testes: mediana com número par e ímpar de membros; membro que saiu não leva os números antigos (RN-CLA-06); membro com poucas partidas fica fora.
 
 ## Notas de implementação
+- `clanStyle` (api): membros **atuais** do clã (`clan_members`), cada um pelas ranqueadas com `match_players.clan_id` do clã, em percentil contra os ativos do período (a mesma base do perfil); entra na mediana quem tem 3+ partidas pelo clã. Rota `GET /clans/:tag/style` (temporada ou `overall`).
+- Ponto forte/fraco = maior/menor eixo da mediana (empate: ordem dos eixos). Painel `screens/clan-style.tsx` na página do clã, na cor primária do clã; a página do clã não tem filtro de formato, então o radar também não.
+- Série `percentOnly` no componente: a mediana não tem valor bruto.

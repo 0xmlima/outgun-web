@@ -1507,7 +1507,7 @@
 /* leaderboard de atributos (OG-353): um quadro por stat com os 3 primeiros */
 .leaderboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
   gap: var(--space-5);
 }
 /* "Ver todos" no canto de baixo à direita de cada quadro (o título fica com a largura toda): o
@@ -1544,13 +1544,28 @@
 }
 .leaderboard-top li {
   display: grid;
-  grid-template-columns: 2.5ch 1fr auto;
+  grid-template-columns: 2.5ch minmax(0, 1fr) auto;
   gap: var(--space-2);
   align-items: baseline;
   font-variant-numeric: tabular-nums;
 }
 .leaderboard-pos {
   text-align: end;
+}
+/* emblema e nome numa célula só (o emblema não vira uma coluna a mais); nome longo corta com reticências */
+.leaderboard-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.leaderboard-name > .ui-emblem {
+  flex-shrink: 0;
+}
+.leaderboard-name > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .map-preview {
   display: block;

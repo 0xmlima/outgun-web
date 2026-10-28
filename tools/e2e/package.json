@@ -1,6 +1,6 @@
 {
   "name": "@outgun/e2e",
-  "version": "2.52.0",
+  "version": "2.53.0",
   "private": true,
   "description": "Testes de ponta a ponta no navegador: cadastro, lobby, partida, fim e ranking (OG-101).",
   "license": "GPL-2.0-or-later",

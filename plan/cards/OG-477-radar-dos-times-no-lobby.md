@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S53 |
+| Status | Concluído |
 | Dependências | OG-469, OG-470 |
 | Regras de negócio | RN-RAD-01, RN-RAD-04 |
 | Skills | `outgun-card-workflow` |
@@ -25,6 +25,9 @@ Como jogador do Ranked, quero ver o estilo dos dois times antes de começar, par
 - Nada dentro da partida: o placar e o HUD não mudam (RN-UI-05).
 
 ## Critérios de aceite
-- [ ] Lobby com time incompleto e com jogadores sem radar não quebra.
+- [x] Lobby com time incompleto e com jogadores sem radar não quebra.
 
 ## Notas de implementação
+- Radar no fim da coluna do centro do lobby (nada do que já existia mudou de lugar), com o `MatchupRadar` do OG-474: lado que é clã usa a mediana pelo clã dos escalados; lado comum, a mediana dos perfis. Some quando a partida começa.
+- Arquétipo ao lado do nome. As contas saem do nome sem tag da sessão (`ClientSession.plainNames`, agora público); a busca muda quando alguém entra ou troca de lado (nomes ordenados no caminho).
+- Time incompleto ou sem ninguém com radar: "Nenhum dos lados tem radar ainda".

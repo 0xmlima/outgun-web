@@ -7,6 +7,8 @@ import { ChoiceField, FieldGroup, SliderField, TextField, ToggleField } from '..
 import { useGamepadKeys } from '../ui/gamepad.js';
 import { MenuList } from '../ui/MenuList.js';
 import { Panel } from '../ui/Panel.js';
+import { StyleRadar } from '../ui/StyleRadar.js';
+import { STYLE_AXES, type StyleAxisValue } from '../ui/style-radar.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { useToast } from '../ui/Toast.js';
@@ -28,6 +30,12 @@ const PLAYERS: readonly Player[] = [
   { name: 'ThOR27', clan: 'BR', rating: 1655, kills: 290, deaths: 244 },
   { name: 'Spinal', clan: '', rating: 1512, kills: 198, deaths: 230 },
 ];
+
+/** Radar de exemplo (OG-470): percentis na ordem fixa dos eixos e valores brutos ilustrativos. */
+const radar = (p: readonly number[]): StyleAxisValue[] => STYLE_AXES.map((axis, i) => ({ axis, percentile: p[i]!, value: axis === 'accuracy' ? p[i]! / 250 : axis === 'survival' ? 20 + p[i]! : p[i]! / 12 }));
+const RADAR_A = radar([88, 72, 40, 25, 35, 50]);
+const RADAR_B = radar([30, 45, 60, 92, 55, 70]);
+const RADAR_C = radar([50, 20, 85, 40, 90, 35]);
 
 export default function DevUiScreen() {
   useGamepadKeys();
@@ -157,6 +165,42 @@ export default function DevUiScreen() {
               ]}
             />
           </Tabs>
+        </Panel>
+
+        <Panel title="Radar de estilo">
+          <div className="ui-row" style={{ alignItems: 'flex-start' }}>
+            <StyleRadar caption="Uma série" series={[{ key: 'a', label: 'Huntta', axes: RADAR_A }]} />
+            <StyleRadar
+              caption="Duas séries"
+              series={[
+                { key: 'a', label: 'Huntta', axes: RADAR_A },
+                { key: 'b', label: 'Nosferatu', axes: RADAR_B },
+              ]}
+            />
+            <StyleRadar
+              caption="Três séries e sombra"
+              series={[
+                { key: 'a', label: 'Huntta', axes: RADAR_A },
+                { key: 'b', label: 'Nosferatu', axes: RADAR_B },
+                { key: 'c', label: 'ThOR27', axes: RADAR_C },
+              ]}
+              shadow={{ key: 'top', label: 'Top 10 do mês', axes: radar([70, 70, 70, 70, 70, 70]) }}
+            />
+            <StyleRadar
+              caption="Temporada passada tracejada"
+              series={[
+                { key: 'now', label: 'Esta temporada', axes: RADAR_A },
+                { key: 'before', label: 'Temporada passada', axes: RADAR_C, dashed: true, color: 'var(--text-muted)' },
+              ]}
+            />
+            <StyleRadar caption="Sem dados" series={[]} empty="Jogue 3 ranqueadas para ver o radar" />
+          </div>
+          <div className="ui-row">
+            {[RADAR_A, RADAR_B, RADAR_C].map((axes, n) => (
+              <StyleRadar key={n} mini caption={`Mini ${n + 1}`} series={[{ key: 'm', label: 'Membro', axes }]} />
+            ))}
+            <StyleRadar mini caption="Mini sem dados" series={[]} empty="—" />
+          </div>
         </Panel>
 
         <Panel title="Avisos">

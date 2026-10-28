@@ -232,6 +232,7 @@ export default function GameScreen() {
         me: s.me,
         maxPlayers: s.maxPlayers,
         names: new Map(s.names),
+        accounts: new Map(s.plainNames),
         maps: s.mapList.map((m) => ({ file: m.file, title: m.title })),
         chat: host.current?.chat(200) ?? [], // o histórico inteiro do feed, que guarda 200 linhas (OG-464)
       });

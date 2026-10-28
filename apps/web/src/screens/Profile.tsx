@@ -18,6 +18,7 @@ import { Tabs } from '../ui/Tabs.js';
 import { TitleBadges } from './HallOfFame.js';
 import { useManifestLists, swatchBackground } from './options.js';
 import { MilestonesPanel } from './milestones-panel.js';
+import { StylePanel } from './style-panel.js';
 import { RatingInfo } from './rating-help.js';
 import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, SubstitutionBadges, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
 import { ClanBadge } from '../ui/Emblem.js';
@@ -77,6 +78,7 @@ export function ProfileScreen() {
   const [duelPeriod, setDuelPeriod] = useState<'month' | 'all'>('month');
   const duels = useApi<Duels>(`${base}/kills?period=${duelPeriod}`);
   const progress = useApi<Progress>(`${base}/progress`);
+  const seasons = useApi<{ seasons: { id: number; name: string; active: boolean }[] }>('/seasons');
   const history = useApi<{ total: number; hidden: boolean; matches: HistoryEntry[] }>(
     `${base}/matches?limit=${limit}${historyMode === 'all' ? '' : `&mode=${historyMode}`}${historyMode === 'casual' ? '' : formatQuery(format)}`,
     false,
@@ -202,6 +204,8 @@ export function ProfileScreen() {
           )}
         </Panel>
       </div>
+
+      <StylePanel name={p.user.username} format={format} seasons={seasons.data?.seasons ?? []} me={me?.username} />
 
       <Panel title={t('Rating')} actions={<RatingInfo />}>
         {pr?.hidden ? privateNote : pr && pr.series.length > 1 ? <RatingChart series={pr.series} locale={prefs.locale} /> : <p className="ui-muted">{t('No ranked matches yet.')}</p>}

@@ -29,6 +29,7 @@ import { joinRoutes } from './routes/join.js';
 import { playerRoutes } from './routes/players.js';
 import { socialRoutes } from './routes/social.js';
 import { rankingRoutes } from './routes/ranking.js';
+import { styleRoutes } from './routes/style.js';
 import { roomRoutes } from './routes/rooms.js';
 import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
 import { DURATION_BUCKETS, ErrorReporter, loggerOptions, metricsAuthorized, PROMETHEUS_CONTENT_TYPE, Registry, registerProcessMetrics, requestId } from '@outgun/observability';
@@ -201,6 +202,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(healthRoutes(deps));
   await app.register(roomRoutes(deps, services));
   await app.register(rankingRoutes(deps));
+  await app.register(styleRoutes(deps));
   await app.register(playerRoutes(deps, services));
   await app.register(socialRoutes(deps, services));
   await app.register(clanRoutes(deps, services));

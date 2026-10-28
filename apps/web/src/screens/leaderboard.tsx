@@ -137,7 +137,10 @@ export function StatOverviewView({ scope, onPick }: { scope: URLSearchParams; on
             {b.overall.map((e) => (
               <li key={e.username}>
                 <span className="leaderboard-pos">{e.position}º</span>
-                <ClanBadge tag={e.clanTag} /><PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
+                <span className="leaderboard-name">
+                  <ClanBadge tag={e.clanTag} />
+                  <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
+                </span>
                 <strong>{statValue(OVERALL, e.value, prefs.locale)}</strong>
               </li>
             ))}
@@ -171,7 +174,10 @@ export function StatOverviewView({ scope, onPick }: { scope: URLSearchParams; on
               {s.entries.map((e) => (
                 <li key={e.username}>
                   <span className="leaderboard-pos">{e.position}º</span>
-                  <ClanBadge tag={e.clanTag} /><PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
+                  <span className="leaderboard-name">
+                    <ClanBadge tag={e.clanTag} />
+                    <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
+                  </span>
                   <strong>{statValue(s.stat, e.value, prefs.locale)}</strong>
                 </li>
               ))}

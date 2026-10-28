@@ -861,3 +861,217 @@ html {
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
+
+/* Radar de estilo (OG-470) */
+.ui-radar {
+  width: 100%;
+  max-width: 26rem;
+}
+.ui-radar.mini {
+  width: 5rem;
+}
+.ui-radar-chart {
+  position: relative;
+}
+.ui-radar svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.ui-radar-ring {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.ui-radar-ring.half {
+  stroke: var(--border-strong);
+  stroke-dasharray: 4 4;
+}
+.ui-radar-spoke {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.ui-radar-label {
+  fill: var(--text-muted);
+  font-size: 13px;
+}
+.ui-radar-empty {
+  fill: var(--text-muted);
+  font-size: 14px;
+}
+.ui-radar.mini .ui-radar-empty {
+  font-size: 10px;
+}
+.ui-radar-shadow {
+  fill: var(--text-muted);
+  fill-opacity: 0.18;
+  stroke: var(--text-muted);
+  stroke-opacity: 0.5;
+  stroke-width: 1;
+}
+.ui-radar-area {
+  fill: currentColor;
+  fill-opacity: 0.18;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.ui-radar-area.dashed {
+  fill-opacity: 0.06;
+  stroke-dasharray: 6 4;
+}
+.ui-radar.mini .ui-radar-area {
+  stroke-width: 1.5;
+}
+.ui-radar-dot {
+  fill: currentColor;
+  stroke: var(--surface-1);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+.ui-radar-dot:focus-visible {
+  outline: none;
+  stroke: var(--focus-ring);
+  stroke-width: 3;
+}
+.ui-radar-tip {
+  position: absolute;
+  z-index: var(--layer-popover);
+  transform: translate(-50%, calc(-100% - 10px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-2);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ui-radar-legend {
+  align-items: center;
+  font-size: var(--text-sm);
+}
+.ui-radar-key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.ui-radar-key > span {
+  color: var(--text);
+}
+.ui-radar-key i {
+  display: inline-block;
+  width: 1.25rem;
+  border-top: 2px solid currentColor;
+}
+.ui-radar-key i.dashed {
+  border-top-style: dashed;
+}
+.ui-radar-key.shadow i {
+  border-top: 0.5rem solid var(--text-muted);
+  opacity: 0.4;
+}
+.ui-row > .ui-radar:not(.mini) {
+  flex: 1 1 16rem;
+}
+.style-up {
+  color: var(--text-success);
+}
+.style-down {
+  color: var(--text-danger);
+}
+.style-help summary {
+  cursor: pointer;
+  color: var(--text-accent);
+}
+.style-compare-heads {
+  align-items: flex-start;
+}
+.style-side {
+  flex: 1 1 12rem;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--text-team-blue);
+}
+.style-side.red {
+  border-left-color: var(--text-team-red);
+}
+.style-bar {
+  position: relative;
+  display: block;
+  min-width: 6rem;
+  height: 0.5rem;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+}
+.style-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-pill);
+}
+.style-bar i.blue {
+  background: var(--text-team-blue);
+}
+.style-bar i.red {
+  background: var(--text-team-red);
+}
+.clan-style-members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.clan-style-members li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+.matchup-edges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+.matchup-edges li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.matchup-edges li.even strong {
+  color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+.ranked-radar {
+  width: 100%;
+  max-width: 20rem;
+  margin-inline: auto;
+}
+.ranked-archetype {
+  font-size: var(--text-xs);
+}
+.match-style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.match-style-grid li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
