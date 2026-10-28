@@ -620,7 +620,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S50 | v2: rodada de correções (issues #11 e #14–#24; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83), OG-464, OG-465, OG-466, OG-467, OG-468 | |
 | S51 | v2: emblema do clã (D-85), em duas entregas — 1) base e portal: modelo e desenho, catálogo, API, editor, portal, identidade/relatório/PDF; 2) partida e extras: chão da base (com clã no replay/espectador), fim de partida, molduras do hall, compartilhar | Entrega 1: OG-480, OG-481, OG-482, OG-483, OG-484, OG-485; entrega 2: OG-486, OG-414, OG-487, OG-488, OG-489; correção: OG-501 | |
 | S52 | v2: resumo do jogo no PDF da partida | OG-502 | |
-| S53 | v2: radar de estilo de jogo (D-84) — API dos 6 eixos e arquétipo, componente, perfil, jogador x jogador, clã e clã x clã, relatório da partida, sombra de referência, lobby Ranked, cartão para compartilhar e filtro por mapa | OG-469, OG-470, OG-471, OG-472, OG-473, OG-474, OG-475, OG-476, OG-477, OG-478, OG-479 | |
+| S53 | v2: radar de estilo de jogo (D-84) — API dos 6 eixos e arquétipo, componente, perfil, jogador x jogador, clã e clã x clã, relatório da partida, sombra de referência, lobby Ranked, cartão para compartilhar e filtro por mapa; correção da visão geral do leaderboard | OG-469, OG-470, OG-471, OG-472, OG-473, OG-474, OG-475, OG-476, OG-477, OG-478, OG-479; correção: OG-503 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -963,6 +963,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Concluído |
 | [OG-501](cards/OG-501-pdf-no-celular.md) | Baixar PDF no celular (folha de compartilhar do sistema) | E9 | 2 | Must | S51 | OG-425, OG-426 | Concluído |
 | [OG-502](cards/OG-502-resumo-do-jogo-no-pdf.md) | Resumo do jogo no PDF da partida (lado a lado, nas cores dos clãs) | E9 | 3 | Should | S52 | OG-425, OG-485 | Concluído |
+| [OG-503](cards/OG-503-leaderboard-emblema-desalinhado.md) | Visão geral do leaderboard desalinhada com o emblema do clã | E9 | 1 | Must | S53 | OG-484 | Em revisão |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | — | OG-289 | Backlog |
 | [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | — | OG-490 | Backlog |
 | [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | — | OG-490 | Backlog |
@@ -975,7 +976,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | — | OG-490, OG-491 | Backlog |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | — | OG-493, OG-494, OG-495, OG-496 | Backlog |
 
-**Total:** 342 cards, 1105 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 273 cards, 810 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 343 cards, 1106 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 274 cards, 811 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
