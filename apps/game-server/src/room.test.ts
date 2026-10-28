@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
-import { Position, SAMPLES } from '@outgun/sim';
+import { Position, PowerupKind, SAMPLES } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
@@ -371,6 +371,34 @@ describe('Room: número e estilo do número (OG-410, OG-413)', () => {
     const b = join(r, 'Bia');
     r.tick();
     expect(b.conn.of('playerNumber')).toContainEqual(expect.objectContaining({ pid: a.pid, number: 44, style: 2 }));
+  });
+});
+
+describe('Room: power-ups pegos longe do jogador (OG-460)', () => {
+  it('ao voltar para a tela, o item que sumiu enquanto ele estava fora é apagado no cliente', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    for (let i = 0; i < 30; i++) r.tick();
+    const me = r.world.players[a.pid]!;
+    const here = new Position(me.pos.roomX, me.pos.roomY, 100, 100);
+    const away = new Position(me.pos.roomX + 1, me.pos.roomY, 100, 100);
+    const screen = (pos: Position) => {
+      me.pos = pos;
+      (r as unknown as { screenChanged(pid: number): void }).screenChanged(a.pid);
+      r.tick();
+    };
+    const item = r.world.items[0]!;
+    for (const it of r.world.items) it.kind = PowerupKind.unused;
+    item.kind = PowerupKind.turbo;
+    item.pos = new Position(here.roomX, here.roomY, 400, 300); // longe dela, para ela não pegar
+    screen(here);
+    expect(a.conn.of('powerupVisible').at(-1)).toMatchObject({ id: 0, kind: 'turbo' });
+    screen(away);
+    item.kind = PowerupKind.respawning; // um bot pegou enquanto ela estava na outra tela
+    screen(here);
+    // a última notícia do item 0 que chegou ao cliente é "pego"
+    const last = a.conn.received.filter((m) => (m.type === 'powerupVisible' || m.type === 'powerupPicked') && m.id === 0).at(-1);
+    expect(last?.type).toBe('powerupPicked');
   });
 });
 
