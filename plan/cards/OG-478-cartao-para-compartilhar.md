@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 3 pts |
 | Sprint | S53 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-471 |
 | Regras de negócio | RN-RAD-04 |
 | Skills | `outgun-card-workflow` |
@@ -25,6 +25,8 @@ Como jogador, quero uma imagem com meu radar e meu arquétipo, para postar no Wh
 - Também para a comparação jogador x jogador (OG-472).
 
 ## Critérios de aceite
-- [ ] Imagem igual em claro e escuro, com o nome do clã e acentos corretos.
+- [x] Imagem igual em claro e escuro, com o nome do clã e acentos corretos.
 
 ## Notas de implementação
+- `ui/style-card.ts`: canvas 1080×1080 desenhado à mão (mesma geometria do componente), com cores fixas (iguais em claro e escuro); um jogador na cor do clã, ou a comparação em azul x vermelho. Texto pelo canvas, então acentos e o nome do clã saem como na fonte Inter.
+- `shareCanvas`: folha de compartilhar com arquivo quando o navegador aceita (celular); senão baixa o PNG. A resposta do perfil ganhou `clan` (tag, nome e cor primária).

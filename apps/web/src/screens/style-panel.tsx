@@ -10,6 +10,7 @@ import { ChoiceField, TextField } from '../ui/Field.js';
 import { Panel } from '../ui/Panel.js';
 import { StyleRadar, type RadarSeries } from '../ui/StyleRadar.js';
 import { ARCHETYPE_LABELS, AXIS_LABELS, axisLeads, STYLE_AXES, type StyleAxis, type StyleRadarData } from '../ui/style-radar.js';
+import { shareCanvas, styleCard } from '../ui/style-card.js';
 import { Table } from '../ui/Table.js';
 import { statScope } from './leaderboard.js';
 import { Status, useApi, type FormatFilter } from './stats.js';
@@ -23,6 +24,7 @@ interface SeasonRef {
 export interface StyleResponse {
   username: string;
   clanTag: string | null;
+  clan: { tag: string; name: string; color: string | null } | null;
   reference: { kind: string; members: number; axes: { axis: StyleAxis; percentile: number }[] } | null;
   season: SeasonRef | null;
   radar: StyleRadarData;
@@ -64,6 +66,27 @@ export function ArchetypeLine({ radar }: { radar: StyleRadarData }) {
       <span className="ui-muted">{t('$1 Ranked matches', String(radar.games))}</span>
       {radar.axes && radar.lowSample && <Badge tone="warning">{t('Few matches')}</Badge>}
     </div>
+  );
+}
+
+/** "Compartilhar estilo" (OG-478): o cartão PNG de um jogador ou da comparação. */
+export function ShareStyleButton({ sides, format }: { sides: readonly StyleResponse[]; format: FormatFilter }) {
+  const { t } = usePrefs();
+  const withRadar = sides.filter((s) => s.radar.axes);
+  if (withRadar.length === 0) return null;
+  const share = () => {
+    const first = sides[0]!;
+    const period = [first.season?.name ?? t('All time'), format === 'all' ? null : format].filter(Boolean).join(' · ');
+    const card = styleCard(
+      sides.map((s) => ({ name: s.username, clan: s.clan, archetype: s.radar.archetype ? t(ARCHETYPE_LABELS[s.radar.archetype]) : null, axes: s.radar.axes ?? [] })),
+      { axes: STYLE_AXES.map((a) => t(AXIS_LABELS[a])), period, site: location.host },
+    );
+    void shareCanvas(card, `estilo-${sides.map((s) => s.username.toLowerCase()).join('-x-')}.png`);
+  };
+  return (
+    <Button variant="ghost" onClick={share}>
+      {t('Share style')}
+    </Button>
   );
 }
 
@@ -148,12 +171,15 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
         )}
       </div>
       {vs && d ? (
-        <StyleCompare left={d} rightName={vs} scope={scope} />
+        <StyleCompare left={d} rightName={vs} scope={scope} format={format} />
       ) : !d ? (
         <Status loading={d === undefined} missing={d === null} error={res.error} />
       ) : (
         <div className="ui-stack">
-          <ArchetypeLine radar={d.radar} />
+          <div className="ui-row">
+            <ArchetypeLine radar={d.radar} />
+            <ShareStyleButton sides={[d]} format={format} />
+          </div>
           {d.radar.axes ? (
             <StyleRadar
               caption={t('Play style of $1', d.username)}
@@ -206,7 +232,7 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
  * Jogador x jogador (OG-472): o dono do perfil em azul e o outro em vermelho, no mesmo período e
  * formato; tabela com o percentil de cada um, a barra de vantagem e "X leva N eixos".
  */
-function StyleCompare({ left, rightName, scope }: { left: StyleResponse; rightName: string; scope: string }) {
+function StyleCompare({ left, rightName, scope, format }: { left: StyleResponse; rightName: string; scope: string; format: FormatFilter }) {
   const { t } = usePrefs();
   const res = useApi<StyleResponse>(`/players/${encodeURIComponent(rightName)}/style?${scope}`, true, 'matches');
   const right = res.data;
@@ -233,6 +259,7 @@ function StyleCompare({ left, rightName, scope }: { left: StyleResponse; rightNa
         </div>
       </div>
       <StyleRadar caption={t('$1 vs $2', left.username, right.username)} series={[a, b].filter((s): s is RadarSeries => s !== null)} />
+      <ShareStyleButton sides={[left, right]} format={format} />
       {leads && (
         <p>
           {leads.a === leads.b

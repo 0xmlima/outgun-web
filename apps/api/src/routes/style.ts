@@ -78,6 +78,8 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
               username: Type.String(),
               /** Clã atual (a opção "meu clã" some sem ele). */
               clanTag: Type.Union([Type.Null(), Type.String()]),
+              /** Nome e cor primária do clã atual (cartão para compartilhar, OG-478). */
+              clan: Type.Union([Type.Null(), Type.Object({ tag: Type.String(), name: Type.String(), color: Type.Union([Type.Null(), Type.String()]) })]),
               /** Referência pedida; null sem dados (clã sem ninguém com radar, período vazio). */
               reference: Type.Union([Type.Null(), Type.Object({ kind: Type.String(), members: Type.Integer(), axes: Type.Array(ClanAxisSchema) })]),
               season: Type.Union([Type.Null(), Season]),
@@ -104,7 +106,7 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         const [defense, team] = await Promise.all([statSince(db, 'defenses'), statSince(db, 'trades')]);
         const scope = { seasonId: season?.id ?? null, format: fmt };
         let reference: { kind: string; members: number; axes: { axis: StyleAxis; percentile: number }[] } | null = null;
-        const [membership] = await db.select({ id: clans.id, tag: clans.tag }).from(clanMembers).innerJoin(clans, eq(clans.id, clanMembers.clanId)).where(eq(clanMembers.userId, user.id));
+        const [membership] = await db.select({ id: clans.id, tag: clans.tag, name: clans.name, color: clans.primaryColor }).from(clanMembers).innerJoin(clans, eq(clans.id, clanMembers.clanId)).where(eq(clanMembers.userId, user.id));
         if (request.query.reference === 'clan' && membership) {
           const style = await clanStyle(db, membership.id, scope);
           const m = style && medianOut(style.clan, style.members.filter((x) => x.profile).length);
@@ -118,7 +120,7 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
           if (m) reference = { kind: 'top10', members: m.members, axes: m.axes };
         }
         reply.header('cache-control', 'public, max-age=60');
-        return { username: user.username, clanTag: membership?.tag ?? null, reference, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
+        return { username: user.username, clanTag: membership?.tag ?? null, clan: membership ? { tag: membership.tag, name: membership.name, color: membership.color } : null, reference, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
       },
     );
 
