@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Issue | [#24](https://github.com/thiagovasconcellos/outgun-web/issues/24) |
 | Regras de negócio | — |
@@ -26,10 +26,12 @@ Como jogador assistindo a um replay, quero ouvir os sons da partida e ajustar o 
 - Deixar claro na ajuda do replay que +/- é zoom, e qual tecla/botão controla o som.
 
 ## Critérios de aceite
-- [ ] O replay toca os sons da partida no volume configurado.
-- [ ] Pausar silencia; mudar a velocidade não empilha sons.
-- [ ] A ajuda do replay diz o que o +/- faz e como mudar o som.
+- [x] O replay toca os sons da partida no volume configurado.
+- [x] Pausar silencia; mudar a velocidade não empilha sons.
+- [x] A ajuda do replay diz o que o +/- faz e como mudar o som.
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `replay-host.ts`: os eventos que o `ReplayPlayer` já emitia passam pelo mesmo `SoundEvents`/`SoundPlayer` da partida, com o tema, o volume e o liga/desliga das Opções. Os sons valem para a tela que se vê (a do jogador seguido com F, ou a sala escolhida com as setas). Vale também para assistir ao vivo.
+- Ficam mudos: seek (barra, início em `startSeconds`, alcançar o ao vivo) e velocidade acima de 2x. Pausado não há eventos.
+- M liga/desliga o som no replay; a ajuda (pt-BR) diz "+/- do teclado numérico zoom · M som". Volume continua nas Opções > Som.

@@ -57,6 +57,7 @@ export default function ReplayScreen() {
           font: GAME_FONT,
           colourTheme: prefs.colourTheme,
           preferThemeColours: prefs.preferThemeColours,
+          sound: { enabled: prefs.soundEnabled, volume: prefs.soundVolume, theme: prefs.soundTheme },
           startSeconds: start,
           onStatus: setStatus,
           translate: (text, ...args) => t(text, ...args),
@@ -116,7 +117,7 @@ export default function ReplayScreen() {
                 {t('Back')}
               </button>
             </span>
-            <small>{t('PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom')}</small>
+            <small>{t('PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom · M sound')}</small>
           </div>
         )}
       </div>
@@ -144,6 +145,7 @@ export function SpectateScreen() {
       font: GAME_FONT,
       colourTheme: prefs.colourTheme,
       preferThemeColours: prefs.preferThemeColours,
+      sound: { enabled: prefs.soundEnabled, volume: prefs.soundVolume, theme: prefs.soundTheme },
       live: true,
       onStatus: setStatus,
       translate: (text, ...args) => t(text, ...args),
@@ -219,7 +221,7 @@ export function SpectateScreen() {
                 {t('Back')}
               </button>
             </span>
-            <small>{t('Arrows room · F follow player · keypad +/- zoom')}</small>
+            <small>{t('Arrows room · F follow player · keypad +/- zoom · M sound')}</small>
           </div>
         )}
       </div>

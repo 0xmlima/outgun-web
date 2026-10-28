@@ -761,7 +761,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Live': 'Ao vivo',
     '$1 s delay': 'atraso de $1 s',
     'Live with $1 s delay: the match appears after the delay.': 'Ao vivo com atraso de $1 s: a partida aparece depois do atraso.',
-    'Arrows room · F follow player · keypad +/- zoom': 'Setas sala · F seguir jogador · +/- do teclado numérico zoom',
+    'Arrows room · F follow player · keypad +/- zoom · M sound': 'Setas sala · F seguir jogador · +/- do teclado numérico zoom · M som',
     'Disconnected': 'Desconectado',
     'My matches': 'Minhas partidas',
     'No replay chosen.': 'Nenhum replay escolhido.',
@@ -775,8 +775,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Copy link': 'Copiar link',
     'Link copied': 'Link copiado',
     'Back': 'Voltar',
-    'PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom':
-      'PgUp/PgDn velocidade · Home normal · P pausa · setas sala · F seguir jogador · +/- do teclado numérico zoom',
+    'PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom · M sound':
+      'PgUp/PgDn velocidade · Home normal · P pausa · setas sala · F seguir jogador · +/- do teclado numérico zoom · M som',
     'Team stats': 'Estatísticas dos times',
     'Team': 'Time',
     'Red': 'Vermelho',

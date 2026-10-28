@@ -936,7 +936,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-465](cards/OG-465-apos-mandar-um-feedback-limpar-campos.md) | Relato de bug: limpar o formulário depois de enviar e deixar mandar outro (issue #21) | E9 | 1 | Should | S50 | — | Em revisão |
 | [OG-466](cards/OG-466-tolerancia-de-diagonal.md) | Tolerância de diagonal ajustável de 1 em 1 ms (issue #22) | E11 | 1 | Should | S50 | — | Em revisão |
 | [OG-467](cards/OG-467-destacar-se-ao-nascer-retomada-dessa.md) | Volta a opção "Destacar a si mesmo ao nascer" (issue #23) | E11 | 1 | Should | S50 | — | Em revisão |
-| [OG-468](cards/OG-468-replay.md) | Replay sem som (e o +/- do teclado numérico é zoom, não volume) (issue #24) | E11 | 3 | Should | S50 | — | Pronto |
+| [OG-468](cards/OG-468-replay.md) | Replay sem som (e o +/- do teclado numérico é zoom, não volume) (issue #24) | E11 | 3 | Should | S50 | — | Em revisão |
 
 **Total:** 310 cards, 995 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 241 cards, 700 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
