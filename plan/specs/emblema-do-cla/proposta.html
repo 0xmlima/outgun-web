@@ -1,0 +1,653 @@
+<title>Emblema do Clã Outgun</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mesma família visual da proposta do radar; coluna de ~1040px, montador do emblema no topo, texto + exemplo lado a lado, empilhando no celular. */
+:root {
+  --bg: #eef1ef;
+  --surface: #f8faf9;
+  --ink: #17201c;
+  --muted: #56635d;
+  --line: #c9d2cd;
+  --flag: #b07a0c;          /* dourado da bandeira: único acento */
+  --good: #1f8a6a;
+  --bad: #c2393f;
+  --arena: #1b2420;         /* chão escuro das maquetes de partida (igual nos dois temas) */
+  --arena-ink: #e2eae6;
+  --display: "Chakra Petch", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832;
+    --flag: #e0a83a; --good: #43c29b; --bad: #f0646b; --arena: #0b100e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832;
+  --flag: #e0a83a; --good: #43c29b; --bad: #f0646b; --arena: #0b100e; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 700; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; max-width: 64ch; }
+ul, ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 70ch; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--flag); }
+.muted { color: var(--muted); }
+code { font-family: var(--mono); font-size: .86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.emb { display: block; flex: none; }
+.emb svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+header.hero { padding-top: 48px; display: grid; gap: 16px; }
+.hero p.lede { font-size: 1.08rem; }
+.note-example { font-family: var(--mono); font-size: .78rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; max-width: none; }
+
+section { display: grid; gap: 24px; }
+.head { display: grid; gap: 10px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.split > * { min-width: 0; }
+.stack { display: grid; gap: 14px; align-content: start; }
+
+/* Montador */
+.builder { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 32px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+.builder > * { min-width: 0; }
+.big { display: grid; gap: 12px; justify-items: center; align-content: start; }
+.big .emb { width: 240px; height: 240px; max-width: 100%; }
+.big .who { font-family: var(--display); font-size: 1.2rem; font-weight: 600; text-align: center; }
+.big .who small { display: block; font-family: var(--mono); font-size: .75rem; color: var(--muted); font-weight: 400; }
+.ctrls { display: grid; gap: 18px; }
+.ctrl { display: grid; gap: 8px; }
+.ctrl .lbl { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt {
+  font: 500 .86rem var(--body); color: var(--ink); background: var(--bg);
+  border: 1.5px solid var(--line); border-radius: 8px; padding: 4px 10px 4px 4px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.opt .emb { width: 32px; height: 32px; }
+.opt.noimg { padding: 6px 12px; }
+.opt[aria-pressed="true"] { border-color: var(--flag); box-shadow: inset 0 0 0 1px var(--flag); }
+.opt:focus-visible, .sw:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--flag); outline-offset: 2px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 5px; }
+.sw { width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--line); background: var(--c); cursor: pointer; padding: 0; }
+.sw[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--flag); }
+.sw[disabled] { opacity: .2; cursor: not-allowed; }
+select { font: 500 1rem var(--body); color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 100%; }
+.combos { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+
+/* Escalas */
+.scales { display: flex; flex-wrap: wrap; gap: 24px; align-items: end; }
+.scales figure { margin: 0; display: grid; gap: 6px; justify-items: center; }
+.scales figcaption { font-family: var(--mono); font-size: .75rem; color: var(--muted); text-align: center; line-height: 1.3; }
+.scales .ground { padding: 10px; border-radius: 8px; display: grid; place-items: center; }
+.scales .ground.dark { background: var(--arena); }
+.scales .ground.light { background: #d8ddd9; }
+
+/* Leitura da proposta */
+.review { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.review article { background: var(--surface); padding: 20px; display: grid; gap: 10px; align-content: start; }
+.review h3 { display: flex; gap: 8px; align-items: center; }
+.review h3 i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); display: inline-block; }
+.review li small { color: var(--muted); font-family: var(--mono); font-size: .76rem; }
+
+/* Gramática */
+.grammar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.grammar article { background: var(--surface); padding: 18px; display: grid; gap: 8px; align-content: start; }
+.grammar .k { font-family: var(--mono); font-size: .72rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.grammar .gallery { display: flex; flex-wrap: wrap; gap: 4px; }
+.grammar .gallery .emb { width: 32px; height: 32px; }
+
+/* Onde aparece */
+.places { display: grid; gap: 28px; }
+.ptier { display: grid; gap: 12px; }
+.ptier h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.pill { font-family: var(--mono); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--c); color: var(--c); border-radius: 999px; padding: 1px 8px; }
+.pgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; align-content: start; }
+.pcard p { font-size: .9rem; }
+.pcard .t { font-family: var(--display); font-weight: 600; }
+.pcard .src { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+
+/* Maquetes */
+.mock { border-radius: 8px; overflow: hidden; }
+.mock.arena { background: var(--arena); color: var(--arena-ink); }
+.mock .scene { width: 100%; height: auto; display: block; }
+.m-clan { display: flex; gap: 10px; align-items: center; padding: 10px; background: var(--bg); border-radius: 8px; }
+.m-clan .emb { width: 64px; height: 64px; flex: none; }
+.m-clan b { font-family: var(--display); font-size: 1.05rem; display: block; line-height: 1.2; }
+.m-clan small { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+.m-rank { display: grid; gap: 4px; font-size: .86rem; }
+.m-rank div { display: grid; grid-template-columns: 18px 32px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 3px 6px; background: var(--bg); border-radius: 6px; }
+.m-rank .emb { width: 32px; height: 32px; }
+.m-rank .n { font-family: var(--mono); color: var(--muted); font-size: .75rem; }
+.m-rank .r { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.m-profile { display: flex; gap: 8px; align-items: center; padding: 10px; background: var(--bg); border-radius: 8px; font-family: var(--display); font-weight: 600; flex-wrap: wrap; }
+.m-profile .emb { width: 32px; height: 32px; }
+.m-profile .tag { font-family: var(--mono); color: var(--muted); font-weight: 400; }
+.m-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; padding: 14px 8px; background: var(--bg); border-radius: 8px; text-align: center; }
+.m-vs .emb { width: 64px; height: 64px; margin: 0 auto; }
+.m-vs .x { font-family: var(--display); font-weight: 700; color: var(--muted); font-size: 1.2rem; }
+.m-vs b { font-family: var(--display); display: block; font-size: .95rem; }
+.m-vs small { font-family: var(--mono); font-size: .7rem; color: var(--muted); }
+.m-report { display: grid; gap: 4px; font-size: .84rem; }
+.m-report div { display: flex; gap: 8px; align-items: center; padding: 4px 8px; background: var(--bg); border-radius: 6px; }
+.m-report .emb { width: 24px; height: 24px; }
+.m-report .r { margin-left: auto; font-family: var(--mono); }
+.m-win { padding: 18px 10px; display: grid; justify-items: center; gap: 8px; }
+.m-win .emb { width: 64px; height: 64px; }
+.m-win b { font-family: var(--display); font-size: 1.4rem; letter-spacing: .06em; }
+
+/* Cuidados e perguntas */
+.cares { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; }
+.cares article { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 10px; }
+.cares p { font-size: .94rem; }
+.qs { counter-reset: q; list-style: none; padding: 0; display: grid; gap: 14px; max-width: 76ch; }
+.qs li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; }
+.qs li::before { counter-increment: q; content: "P" counter(q); font-family: var(--display); font-weight: 700; color: var(--flag); font-size: 1.1rem; line-height: 1.5; }
+.qs li p { max-width: none; }
+.qs li small { display: block; font-size: .86rem; color: var(--muted); margin-top: 2px; }
+.ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ideas article { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.ideas p { font-size: .93rem; }
+footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
+
+@media (max-width: 820px) {
+  .builder, .split, .review, .cares, .ideas { grid-template-columns: minmax(0, 1fr); }
+  .grammar, .pgrid { grid-template-columns: minmax(0, 1fr); }
+  .builder { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Proposta para a comunidade · identidade do clã</span>
+  <h1>Emblema do clã</h1>
+  <p class="lede">O jogador já tem número e cor pessoal. O clã já tem tag e duas cores. Falta um símbolo. A ideia é cada clã montar o seu emblema a partir de peças prontas (moldura, símbolo e as cores que o clã já escolheu), do mesmo jeito que o número do jogador vem em estilos prontos. Nada de enviar imagem.</p>
+  <p class="note-example">Exemplos com clãs, jogadores e números inventados. Os desenhos de símbolo são rascunhos para discussão, não a arte final.</p>
+</header>
+
+<section id="montador" aria-labelledby="t-montador">
+  <div class="head">
+    <h2 id="t-montador">Monte um emblema</h2>
+    <p class="muted">Desenho vetorial, com contorno escuro e cores chapadas: nítido em qualquer tamanho, dos 16 px do pano da bandeira aos 240 px da página do clã. No jogo ele vira textura no tamanho exato da tela.</p>
+  </div>
+  <div class="builder">
+    <div class="big">
+      <span id="bigEmblem" class="emb" role="img" aria-label="Emblema montado"></span>
+      <div class="who" id="who"></div>
+      <label class="ctrl" for="clanPick" style="justify-items:center">
+        <span class="lbl">Clã de exemplo</span>
+        <select id="clanPick"></select>
+      </label>
+    </div>
+    <div class="ctrls">
+      <div class="ctrl"><span class="lbl">Moldura</span><div class="opts" id="frameOpts"></div></div>
+      <div class="ctrl"><span class="lbl">Símbolo</span><div class="opts" id="symOpts"></div></div>
+      <div class="ctrl"><span class="lbl">Cor primária do clã (fundo)</span><div class="swatches" id="priOpts"></div></div>
+      <div class="ctrl"><span class="lbl">Cor secundária do clã (símbolo)</span><div class="swatches" id="secOpts"></div></div>
+      <div class="ctrl"><span class="lbl">Detalhes</span><div class="opts" id="detOpts"></div></div>
+      <p class="combos" id="combos"></p>
+    </div>
+  </div>
+  <div class="scales" id="scales" aria-label="O emblema em vários tamanhos"></div>
+</section>
+
+<section aria-labelledby="t-leitura">
+  <div class="head">
+    <h2 id="t-leitura">O que a prancha da comunidade acerta, e o que eu mudaria</h2>
+    <p class="muted">A prancha "Clan Logo Design System" tem 10 seções. A base é boa. Os ajustes vêm do que o jogo já tem hoje.</p>
+  </div>
+  <div class="review">
+    <article style="--c: var(--good)">
+      <h3><i></i>Fica</h3>
+      <ul>
+        <li>Tag de 1 a 3 caracteres, como no cadastro do clã (RN-CLA-01). <small>seções 1 e 9</small></li>
+        <li>Estética de arcade: cores chapadas, contorno forte, sem gradiente, alto contraste. <small>seção 9</small></li>
+        <li>Testar o desenho em vários tamanhos antes de aprovar. É a regra mais importante da prancha. <small>seção 8</small></li>
+        <li>O emblema na bandeira do lado do clã. É o lugar mais forte para ele na partida. <small>seção 10</small></li>
+        <li>Formas simples e com silhueta clara: escudos, estrelas, divisas. <small>seções 2 e 4</small></li>
+      </ul>
+    </article>
+    <article style="--c: var(--bad)">
+      <h3><i></i>Muda</h3>
+      <ul>
+        <li><b>As cores são as do clã, não vermelho e azul.</b> Desde a S43 o lado vira o clã com a cor primária ou secundária dele (D-78). Por isso a variação por time da seção 7 sai. <small>seção 7</small></li>
+        <li><b>Seis famílias viram uma regra só:</b> moldura + símbolo + cores. Os exemplos da prancha (tag, emblema, patente, abstrato) cabem como símbolos. <small>seções 1 a 6</small></li>
+        <li><b>Nada parecido com personagem conhecido.</b> Alguns mascotes lembram os alienígenas de arcade clássico e um ratinho amarelo famoso. Os símbolos têm que ser desenhos próprios. <small>seções 3 e 5</small></li>
+        <li><b>Vetor em vez de pixel.</b> O pixel art fica bonito pequeno, mas serrilhado na página do clã e no lobby. O desenho vetorial mantém o estilo e fica limpo em qualquer tamanho. <small>seção 8</small></li>
+        <li><b>Minimapa fica de fora.</b> A bandeira lá tem poucos pixels e a cor já diz de quem é. <small>seção 10</small></li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="t-regra">
+  <div class="head">
+    <h2 id="t-regra">A regra do emblema</h2>
+    <p>Três escolhas, todas de listas fechadas. O líder do clã escolhe no portal, com prévia nos tamanhos do jogo. Fica salvo junto do clã: <code>clans.emblem</code> com moldura, símbolo e detalhes (as cores já existem desde a migração 0038).</p>
+  </div>
+  <div class="grammar">
+    <article>
+      <span class="k">1 · Moldura</span>
+      <h3>Contorno do emblema</h3>
+      <p class="muted" style="font-size:.92rem">Escudo, círculo, losango, quadrado, octógono, estandarte ou sem moldura. Fundo na cor primária, contorno escuro e um leve facetado no topo.</p>
+      <div class="gallery" id="galFrames"></div>
+    </article>
+    <article>
+      <span class="k">2 · Símbolo</span>
+      <h3>O desenho do meio</h3>
+      <p class="muted" style="font-size:.92rem">A própria tag na letra do jogo, ou um símbolo do catálogo, na cor secundária com uma sombra curta. Rascunho com 15 opções; o catálogo cresce por versão.</p>
+      <div class="gallery" id="galSyms"></div>
+    </article>
+    <article>
+      <span class="k">3 · Cores e detalhes</span>
+      <h3>As cores que o clã já tem</h3>
+      <p class="muted" style="font-size:.92rem">Primária no fundo, secundária no símbolo, das 18 cores do clã (<code>CLAN_COLORS</code>). Dois detalhes: filete interno e cores invertidas.</p>
+      <div class="gallery" id="galColors"></div>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="t-onde">
+  <div class="head">
+    <h2 id="t-onde">Onde o emblema aparece</h2>
+    <p class="muted">Os exemplos usam o emblema montado lá em cima, contra um clã rival inventado. Muda o emblema e eles mudam junto.</p>
+  </div>
+  <div class="places">
+    <div class="ptier">
+      <h3>Portal <span class="pill" style="--c: var(--good)">primeira entrega</span></h3>
+      <p class="muted">Fora da partida não há risco para o HUD, e cada tela já mostra a tag ou a cor do clã num lugar onde o emblema cabe.</p>
+      <div class="pgrid">
+        <div class="pcard">
+          <span class="t">Página do clã e lista de clãs</span>
+          <div class="m-clan"><span class="emb e-mine"></span><div><b class="n-mine"></b><small>12 membros · formado em mar/2026</small></div></div>
+          <span class="src">clans.tsx · celular também (D-80)</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Ranking e hall da fama de clãs</span>
+          <div class="m-rank" id="mRank"></div>
+          <span class="src">leaderboard.tsx · HallOfFame.tsx</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Perfil e lista de jogadores</span>
+          <div class="m-profile"><span class="emb e-mine"></span><span class="tag t-mine"></span> Faísca <span class="tag">#27</span></div>
+          <p class="muted">Ao lado da tag, no tamanho do texto. Clicar abre o clã.</p>
+          <span class="src">Profile.tsx · Players.tsx</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Lobby Ranked e série clã x clã</span>
+          <div class="m-vs"><div><span class="emb e-mine"></span><b class="t-mine"></b><small>prontos 3/3</small></div><span class="x">x</span><div><span class="emb e-rival"></span><b class="t-rival"></b><small>prontos 2/3</small></div></div>
+          <span class="src">lobby Ranked · séries (S18)</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Relatório da partida e PDF</span>
+          <div class="m-report" id="mReport"></div>
+          <p class="muted">No lugar do quadrado de cor do lado. Vale o emblema do dia da partida.</p>
+          <span class="src">MatchReport.tsx · report-pdf.ts · matches.team_identity</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Tela inicial</span>
+          <div class="m-profile"><span class="emb e-mine"></span> Seu clã: <span class="n-mine"></span></div>
+          <p class="muted">No painel de conta, junto do número e da cor pessoal.</p>
+          <span class="src">home-start.tsx · home-panels.tsx</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ptier">
+      <h3>Na partida <span class="pill" style="--c: var(--flag)">segunda entrega</span></h3>
+      <p class="muted">Só quando o lado vira o clã (D-78: 2 humanos do clã e nenhum de outro). Nada muda de lugar no HUD (RN-UI-05); o emblema entra em coisas que já existem.</p>
+      <div class="pgrid">
+        <div class="pcard">
+          <span class="t">Bandeira do lado do clã</span>
+          <div class="mock arena"><div id="mFlag"></div></div>
+          <p class="muted">Pintado no pano, que já é montado com a cor do clã. Na escala real é pequeno; em tela grande dá para reconhecer.</p>
+          <span class="src">sprites.ts · team-palette.ts</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Fim de rodada e de partida</span>
+          <div class="mock arena m-win"><span class="emb e-mine"></span><b class="w-mine"></b></div>
+          <p class="muted">Acima do "VENCEU", na tela que já mostra o placar final.</p>
+          <span class="src">fim de partida · pausa</span>
+        </div>
+        <div class="pcard">
+          <span class="t">Chão da base</span>
+          <div class="mock arena"><div id="mFloor"></div></div>
+          <p class="muted">Ideia para discutir: o emblema grande e apagado no chão, sob o ponto da bandeira. Marca o território sem tapar nada.</p>
+          <span class="src">room-painter.ts</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ptier">
+      <h3>Fica de fora <span class="pill" style="--c: var(--muted)">por ora</span></h3>
+      <ul>
+        <li><b>Minimapa:</b> poucos pixels; a cor do clã já identifica o lado.</li>
+        <li><b>Chat e feed:</b> a tag já está lá, e um ícone na linha de texto pesa mais do que ajuda.</li>
+        <li><b>Boneco do jogador:</b> o centro é do número (RN-NUM-01) e a borda é da cor pessoal.</li>
+        <li><b>Lado misto:</b> quando o lado não vira o clã, a partida segue em vermelho e azul, sem emblema.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="t-ideias">
+  <div class="head"><h2 id="t-ideias">Mais ideias</h2></div>
+  <div class="ideas">
+    <article><h3>Molduras de conquista</h3><p>Algumas molduras só para quem ganhou: dourada para o campeão da temporada no ranking de clãs, prateada e bronze para o 2º e o 3º. É a mesma lógica das medalhas do "Melhor do mês" (D-79).</p></article>
+    <article><h3>Imagem do confronto</h3><p>Um botão no relatório da série que gera "LC x MV" com os dois emblemas e o placar, pronta para mandar no WhatsApp ou no Discord.</p></article>
+    <article><h3>Emblema em PNG</h3><p>Baixar o emblema em 128 ou 256 px na página do clã, para usar como avatar do grupo ou do servidor do Discord do clã.</p></article>
+    <article><h3>Catálogo pela comunidade</h3><p>Membros sugerem símbolos (SVG simples, de uma cor) num formulário; a moderação aprova e eles entram no catálogo na versão seguinte. O catálogo continua fechado, mas cresce.</p></article>
+  </div>
+</section>
+
+<section aria-labelledby="t-cuidados">
+  <div class="head"><h2 id="t-cuidados">Cuidados</h2></div>
+  <div class="cares">
+    <article><h3>Legível no menor tamanho</h3><p>Todo símbolo novo passa pela prévia em 16 px e por um teste em tons de cinza. Se não dá para reconhecer, não entra.</p></article>
+    <article><h3>Forma além da cor</h3><p>Quem não distingue bem cores reconhece o clã pela moldura e pelo símbolo. Esse é o ganho real do emblema sobre a cor sozinha.</p></article>
+    <article><h3>Sem upload, sem moderação de imagem</h3><p>Catálogo fechado impede imagem ofensiva ou copiada. A tag já passa pelo filtro de nomes (RN-CLA-08).</p></article>
+    <article><h3>Desenhos próprios</h3><p>Nenhum símbolo pode copiar personagem, logotipo de time ou marca. O repositório é público e o jogo está na Steam.</p></article>
+    <article><h3>HUD intacto</h3><p>Na partida o emblema só entra em elementos que já existem. Antes de ir ao beta: <code>pnpm visual:check</code>, partida online real e capturas.</p></article>
+    <article><h3>Histórico</h3><p>Se o clã trocar o emblema, os relatórios antigos mostram o emblema da época. Ele é gravado junto com <code>matches.team_identity</code>, como já acontece com a tag e a cor.</p></article>
+    <article><h3>Replay e espectador</h3><p>Hoje ainda desenham vermelho x azul (OG-414, em Backlog). O emblema na bandeira deve chegar lá junto com as cores.</p></article>
+    <article><h3>Temas gráficos</h3><p>O emblema é desenhado por cima do pano da bandeira de qualquer tema. Precisa ser conferido nos temas que trocam a bandeira.</p></article>
+  </div>
+</section>
+
+<section aria-labelledby="t-perguntas">
+  <div class="head">
+    <h2 id="t-perguntas">Perguntas para o grupo</h2>
+    <p class="muted">Responda pelo número (P1, P2...) no grupo.</p>
+  </div>
+  <ol class="qs">
+    <li><p>Emblema montado (moldura + símbolo + cores do clã, de listas fechadas) está bom, ou vocês preferem as seis famílias fixas da prancha?</p></li>
+    <li><p>Quem escolhe e troca o emblema: só o líder (como a tag) ou líder e admins? Precisa de um tempo de espera entre trocas?</p><small>Hoje a tag é só do líder (RN-CLA-03).</small></li>
+    <li><p>Dois clãs podem ter o mesmo emblema, ou cada combinação é única, como a tag?</p><small>Com o rascunho atual há mais de 120 mil combinações, contando as cores.</small></li>
+    <li><p>Na partida: bandeira, fim de partida e chão da base. Quais desses entram? Algum outro lugar?</p></li>
+    <li><p>Começar pelo portal e levar à partida numa segunda entrega, ou tudo junto?</p></li>
+    <li><p>Querem molduras de conquista (campeão da temporada, 2º, 3º)?</p></li>
+    <li><p>Quais símbolos faltam no catálogo? E quais do rascunho tirariam?</p><small>Alguém da comunidade quer desenhar a versão final? A prancha mostra que tem gente com mão para isso.</small></li>
+    <li><p>Querem a imagem do confronto para compartilhar e o PNG do emblema para o Discord?</p></li>
+  </ol>
+</section>
+
+<footer>
+  <span>Proposta de 28/10/2026 a partir da prancha "Clan Logo Design System" enviada por um membro da comunidade.</span>
+  <span>Já existe no jogo: tag e cores do clã (OG-407, migração 0038), lado com cor e tag do clã (OG-409, D-78), identidade do lado gravada no relatório (migração 0039), estilos do número (OG-413).</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+  // Cores do clã: as 18 de CLAN_COLORS (packages/protocol/src/colors.ts).
+  const COLORS = [
+    ['red', 'Vermelho', '#E02828'], ['orange', 'Laranja', '#F07800'], ['yellow', 'Amarelo', '#F2C200'],
+    ['gold', 'Dourado', '#B8932A'], ['lime', 'Lima', '#7CC400'], ['green', 'Verde', '#1E9E3A'],
+    ['teal', 'Turquesa', '#0FA89A'], ['cyan', 'Ciano', '#00AEDB'], ['blue', 'Azul', '#2050E0'],
+    ['navy', 'Marinho', '#1E2F80'], ['purple', 'Roxo', '#7A2BC0'], ['magenta', 'Magenta', '#C0189E'],
+    ['pink', 'Rosa', '#F25AA8'], ['wine', 'Vinho', '#8A1E3C'], ['brown', 'Marrom', '#80542A'],
+    ['black', 'Preto', '#303030'], ['white', 'Branco', '#E6E6E6'], ['silver', 'Prata', '#8E98A6'],
+  ];
+  const HEX = Object.fromEntries(COLORS.map(([k, , h]) => [k, h]));
+  const DARK = '#101410';
+  const LIGHT = '#E6E6E6';
+  const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
+
+  // Símbolos num quadro de 100 × 100, centrados em (50, 50). `f` = cor do símbolo, `h` = cor dos vazados.
+  const star = (() => {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? 11.5 : 27, a = -Math.PI / 2 + (i * Math.PI) / 5;
+      pts.push(`${(50 + r * Math.cos(a)).toFixed(1)},${(52 + r * Math.sin(a)).toFixed(1)}`);
+    }
+    return pts.join(' ');
+  })();
+  const sword = (f) => `<path fill="${f}" d="M50 14 L55 21 L55 62 L45 62 L45 21 Z"/><path fill="${f}" d="M37 62 H63 V68 H37 Z"/><path fill="${f}" d="M47 68 H53 V80 H47 Z"/><circle fill="${f}" cx="50" cy="83" r="4"/>`;
+  const SYMBOLS = {
+    estrela: (f) => `<polygon fill="${f}" stroke="${f}" stroke-width="3" stroke-linejoin="round" points="${star}"/>`,
+    divisas: (f) => `<path fill="${f}" d="M26 46 L50 28 L74 46 L74 57 L50 39 L26 57 Z"/><path fill="${f}" d="M26 64 L50 46 L74 64 L74 75 L50 57 L26 75 Z"/>`,
+    coroa: (f, h) => `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M25 66 L25 36 L38 49 L50 28 L62 49 L75 36 L75 66 Z"/><rect fill="${f}" x="25" y="70" width="50" height="7" rx="2"/><circle fill="${f}" cx="25" cy="34" r="4"/><circle fill="${f}" cx="50" cy="26" r="4"/><circle fill="${f}" cx="75" cy="34" r="4"/><circle fill="${h}" cx="50" cy="56" r="4.5"/>`,
+    asas: (f) => {
+      const w = 'M46 42 C36 32 22 30 12 33 C18 37 21 40 22 42 C16 42 13 45 12 48 C20 49 25 51 27 53 C23 55 21 58 21 61 C32 62 41 58 46 53 Z';
+      return `<path fill="${f}" d="${w}"/><path fill="${f}" transform="translate(100 0) scale(-1 1)" d="${w}"/><path fill="${f}" d="M50 36 L56 44 L54 66 L50 72 L46 66 L44 44 Z"/>`;
+    },
+    bandeira: (f) => `<rect fill="${f}" x="29" y="22" width="6" height="56" rx="2"/><path fill="${f}" d="M35 25 C46 20 55 31 72 25 L72 52 C55 58 46 47 35 52 Z"/><circle fill="${f}" cx="32" cy="21" r="4"/>`,
+    mira: (f) => `<circle fill="none" stroke="${f}" stroke-width="6" cx="50" cy="50" r="21"/><path fill="${f}" d="M47 20 H53 V39 H47 Z M47 61 H53 V80 H47 Z M20 47 H39 V53 H20 Z M61 47 H80 V53 H61 Z"/><circle fill="${f}" cx="50" cy="50" r="4.5"/>`,
+    foguete: (f, h) => `<path fill="${f}" d="M50 18 C61 27 64 42 61 64 L39 64 C36 42 39 27 50 18 Z"/><circle fill="${h}" cx="50" cy="40" r="6"/><path fill="${f}" d="M39 46 L28 64 L28 70 L39 64 Z M61 46 L72 64 L72 70 L61 64 Z"/><path fill="${f}" d="M43 67 L50 82 L57 67 Z"/>`,
+    raio: (f) => `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M58 18 L30 55 L47 55 L40 82 L70 43 L53 43 L62 18 Z"/>`,
+    lobo: (f, h) => `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M50 80 L38 68 L29 52 L26 20 L42 33 L50 31 L58 33 L74 20 L71 52 L62 68 Z"/><path fill="${h}" d="M35 45 L46 50 L38 54 Z M65 45 L54 50 L62 54 Z"/><path fill="${h}" d="M45 66 L55 66 L50 72 Z"/>`,
+    caveira: (f, h) => `<path fill="${f}" d="M50 20 C66 20 75 31 75 45 C75 54 70 59 65 61 L65 72 C65 75 63 77 60 77 L40 77 C37 77 35 75 35 72 L35 61 C30 59 25 54 25 45 C25 31 34 20 50 20 Z"/><ellipse fill="${h}" cx="40" cy="47" rx="7" ry="7.5"/><ellipse fill="${h}" cx="60" cy="47" rx="7" ry="7.5"/><path fill="${h}" d="M50 55 L54 62 L46 62 Z"/><path fill="${h}" d="M43 67 H45.5 V77 H43 Z M48.75 67 H51.25 V77 H48.75 Z M54.5 67 H57 V77 H54.5 Z"/>`,
+    chama: (f, h) => `<path fill="${f}" d="M50 16 C58 30 72 39 70 58 C69 71 60 80 50 80 C40 80 31 71 30 58 C29 47 36 40 41 31 C43 40 46 45 50 47 C50 38 47 28 50 16 Z"/><path fill="${h}" d="M50 54 C55 61 59 64 58 70 C57 75 54 78 50 78 C46 78 43 75 42 70 C42 64 47 61 50 54 Z"/>`,
+    torre: (f, h) => `<path fill="${f}" d="M28 20 H37 V27 H45 V20 H55 V27 H63 V20 H72 V38 L66 42 V72 H72 V80 H28 V72 H34 V42 L28 38 Z"/><path fill="${h}" d="M44 80 V66 A6 6 0 0 1 56 66 V80 Z"/><rect fill="${h}" x="47" y="46" width="6" height="10" rx="3"/>`,
+    gema: (f, h) => `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M34 28 L66 28 L78 44 L50 80 L22 44 Z"/><path fill="none" stroke="${h}" stroke-width="2.5" stroke-linejoin="round" d="M22 44 H78 M41 28 L36 44 L50 80 L64 44 L59 28"/>`,
+    cruzado: (f) => `<g transform="rotate(42 50 50)">${sword(f)}</g><g transform="rotate(-42 50 50)">${sword(f)}</g>`,
+  };
+  const SYM_NAMES = { tag: 'Tag', estrela: 'Estrela', divisas: 'Divisas', coroa: 'Coroa', asas: 'Asas', bandeira: 'Bandeira', mira: 'Mira', foguete: 'Foguete', raio: 'Raio', lobo: 'Lobo', caveira: 'Caveira', chama: 'Chama', torre: 'Torre', gema: 'Gema', cruzado: 'Cruzado' };
+
+  const octagon = (() => {
+    const pts = [];
+    for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + (i * Math.PI) / 4; pts.push(`${(50 + 47 * Math.cos(a)).toFixed(1)} ${(50 + 47 * Math.sin(a)).toFixed(1)}`); }
+    return `M${pts.join(' L')} Z`;
+  })();
+  // Molduras: contorno, centro do filete, e como o símbolo se encaixa (escala e deslocamento vertical).
+  const FRAMES = {
+    escudo: { d: 'M50 5 L91 15 L91 47 C91 71 73 87 50 96 C27 87 9 71 9 47 L9 15 Z', cy: 48, k: 0.92, dy: -3 },
+    circulo: { d: 'M50 4 A46 46 0 1 1 49.99 4 Z', cy: 50, k: 0.92, dy: 0 },
+    losango: { d: 'M50 3 L97 50 L50 97 L3 50 Z', cy: 50, k: 0.72, dy: 0 },
+    quadrado: { d: 'M20 5 H80 A15 15 0 0 1 95 20 V80 A15 15 0 0 1 80 95 H20 A15 15 0 0 1 5 80 V20 A15 15 0 0 1 20 5 Z', cy: 50, k: 1, dy: 0 },
+    octogono: { d: octagon, cy: 50, k: 0.94, dy: 0 },
+    estandarte: { d: 'M9 5 H91 V93 L50 75 L9 93 Z', cy: 44, k: 0.86, dy: -7 },
+    nenhuma: null,
+  };
+  const FRAME_NAMES = { escudo: 'Escudo', circulo: 'Círculo', losango: 'Losango', quadrado: 'Quadrado', octogono: 'Octógono', estandarte: 'Estandarte', nenhuma: 'Sem moldura' };
+
+  const CLANS = [
+    { name: 'Lobos do Cerrado', tag: 'LC', pri: 'navy', sec: 'yellow', frame: 'escudo', sym: 'lobo', filete: true, inv: false },
+    { name: 'Maré Vermelha', tag: 'MV', pri: 'wine', sec: 'white', frame: 'circulo', sym: 'tag', filete: false, inv: false },
+    { name: 'Os Sem Sono', tag: 'ZZ', pri: 'purple', sec: 'cyan', frame: 'losango', sym: 'raio', filete: false, inv: false },
+    { name: 'Pixel Bravo', tag: 'P8', pri: 'green', sec: 'black', frame: 'octogono', sym: 'cruzado', filete: true, inv: false },
+    { name: 'Bando da Laje', tag: 'BDL', pri: 'orange', sec: 'black', frame: 'estandarte', sym: 'caveira', filete: false, inv: false },
+  ];
+  const MV = CLANS[1];
+  let RIVAL = MV;
+  let state = { ...CLANS[0] };
+
+  const tagSymbol = (e) => (f, _h, stroke) => {
+    const t = [...e.tag.toUpperCase()].slice(0, 3).join('');
+    const size = [60, 60, 46, 34][t.length];
+    const st = stroke ? ` stroke="${stroke}" stroke-width="9" stroke-linejoin="round"` : '';
+    return `<text x="50" y="53" text-anchor="middle" dominant-baseline="central" font-family="Chakra Petch, Rajdhani, sans-serif" font-weight="700" font-size="${size}" letter-spacing="1" fill="${f}"${st}>${t}</text>`;
+  };
+
+  let uid = 0;
+  // O emblema como SVG (quadro de 100 × 100).
+  function emblemSVG(e) {
+    let pri = HEX[e.pri], sec = HEX[e.sec];
+    if (e.inv) [pri, sec] = [sec, pri];
+    const draw = e.sym === 'tag' ? tagSymbol(e) : SYMBOLS[e.sym];
+    const fr = FRAMES[e.frame];
+    const id = `c${++uid}`;
+    if (!fr) {
+      const out = lum(sec) < 0.22 ? LIGHT : DARK;
+      const g = 'transform="translate(50 50) scale(1.08) translate(-50 -50)"';
+      const silhouette = e.sym === 'tag'
+        ? draw(out, out, out)
+        : `<g stroke="${out}" stroke-width="9" stroke-linejoin="round">${draw(out, out).replaceAll(/stroke="[^"]*"|stroke-width="[^"]*"/g, '')}</g>`;
+      return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g ${g}>${silhouette}${draw(sec, out)}</g></svg>`;
+    }
+    const out = lum(pri) < 0.2 ? LIGHT : DARK;
+    const sym = `translate(50 ${50 + fr.dy}) scale(${fr.k}) translate(-50 -50)`;
+    const fil = e.filete
+      ? `<path d="${fr.d}" fill="none" stroke="${sec}" stroke-width="${(3.2 / 0.82).toFixed(2)}" transform="translate(50 ${fr.cy}) scale(.82) translate(-50 -${fr.cy})"/>`
+      : '';
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs><clipPath id="${id}"><path d="${fr.d}"/></clipPath></defs>
+      <path d="${fr.d}" fill="${pri}"/>
+      <g clip-path="url(#${id})"><path d="M0 0 H100 V34 L0 56 Z" fill="#fff" opacity=".13"/><path d="M0 100 H100 V74 L0 92 Z" fill="#000" opacity=".14"/></g>
+      ${fil}
+      <g transform="${sym}"><g transform="translate(2 2.5)" opacity=".35">${draw(DARK, DARK)}</g>${draw(sec, pri)}</g>
+      <path d="${fr.d}" fill="none" stroke="${out}" stroke-width="5" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  function paint(el, e) { el.innerHTML = emblemSVG(e); }
+  function mk() { const s = document.createElement('span'); s.className = 'emb'; return s; }
+  const inner = (e) => emblemSVG(e).replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+
+  const $ = (id) => document.getElementById(id);
+
+  // Controles
+  const pick = $('clanPick');
+  CLANS.forEach((c, i) => pick.add(new Option(`[${c.tag}] ${c.name}`, i)));
+  pick.addEventListener('change', () => { state = { ...CLANS[pick.value] }; render(); });
+
+  function optButtons(host, entries, key, preview) {
+    host.innerHTML = '';
+    entries.forEach(([value, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'opt'; b.dataset.v = value;
+      const c = mk(); b.append(c, document.createTextNode(label));
+      b.addEventListener('click', () => { state[key] = value; render(); });
+      host.append(b);
+      b._preview = () => paint(c, preview(value));
+    });
+  }
+  optButtons($('frameOpts'), Object.entries(FRAME_NAMES), 'frame', (v) => ({ ...state, frame: v }));
+  optButtons($('symOpts'), Object.entries(SYM_NAMES), 'sym', (v) => ({ ...state, sym: v }));
+
+  function swatches(host, key) {
+    host.innerHTML = '';
+    COLORS.forEach(([k, name, hex]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'sw'; b.style.setProperty('--c', hex); b.dataset.v = k;
+      b.title = name; b.setAttribute('aria-label', name);
+      b.addEventListener('click', () => { state[key] = k; render(); });
+      host.append(b);
+    });
+  }
+  swatches($('priOpts'), 'pri');
+  swatches($('secOpts'), 'sec');
+
+  const det = $('detOpts');
+  [['filete', 'Filete interno'], ['inv', 'Inverter cores']].forEach(([k, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'opt noimg'; b.dataset.k = k; b.textContent = label;
+    b.addEventListener('click', () => { state[k] = !state[k]; render(); });
+    det.append(b);
+  });
+
+  const nFrames = Object.keys(FRAMES).length, nSyms = Object.keys(SYM_NAMES).length;
+  const total = nFrames * nSyms * 4 * COLORS.length * (COLORS.length - 1);
+
+  // Escalas: do pano da bandeira (16 px) à página do clã.
+  const scales = $('scales');
+  const SCALES = [[16, 'bandeira na partida'], [24, 'relatório'], [32, 'listas e perfil'], [64, 'lobby e fim de partida'], [128, 'página do clã']];
+  const scaleEls = [];
+  SCALES.forEach(([px, use]) => {
+    ['dark', 'light'].forEach((ground) => {
+      if (ground === 'light' && px > 32) return;
+      const f = document.createElement('figure');
+      const g = document.createElement('div'); g.className = `ground ${ground}`;
+      const c = mk(); c.style.width = c.style.height = `${px}px`;
+      g.append(c); f.append(g);
+      const cap = document.createElement('figcaption');
+      cap.innerHTML = `${px} px${ground === 'light' ? ' · fundo claro' : ''}${ground === 'dark' ? `<br>${use}` : ''}`;
+      f.append(cap); scales.append(f); scaleEls.push(c);
+    });
+  });
+
+  // Galerias da regra (fixas)
+  Object.keys(FRAMES).forEach((f) => { const c = mk(); paint(c, { ...CLANS[0], frame: f, sym: 'estrela', filete: false }); c.title = FRAME_NAMES[f]; $('galFrames').append(c); });
+  Object.keys(SYM_NAMES).forEach((s) => { const c = mk(); paint(c, { ...CLANS[0], frame: 'nenhuma', sym: s, pri: 'navy', sec: 'yellow' }); c.title = SYM_NAMES[s]; $('galSyms').append(c); });
+  [['red', 'white'], ['navy', 'gold'], ['green', 'black'], ['purple', 'cyan'], ['black', 'orange'], ['white', 'wine']].forEach(([p, s], i) => {
+    const c = mk(); paint(c, { ...CLANS[0], frame: 'quadrado', sym: 'tag', tag: ['LC', 'BDL', 'Z', 'P8', 'MVX', 'K'][i], pri: p, sec: s, filete: i % 2 === 1 }); $('galColors').append(c);
+  });
+
+  const floor = () => {
+    let g = '<rect width="240" height="144" style="fill:var(--arena)"/>';
+    for (let x = 0; x <= 240; x += 24) g += `<rect x="${x}" width="1" height="144" fill="#fff" opacity=".05"/>`;
+    for (let y = 0; y <= 144; y += 24) g += `<rect y="${y}" width="240" height="1" fill="#fff" opacity=".05"/>`;
+    return g;
+  };
+  function drawFlag() {
+    const pri = HEX[state.inv ? state.sec : state.pri];
+    $('mFlag').innerHTML = `<svg class="scene" viewBox="0 0 240 144" xmlns="http://www.w3.org/2000/svg">${floor()}
+      <rect x="74" y="26" width="5" height="96" rx="2" fill="#c8c8c8"/>
+      <path d="M79 30 C96 22 110 40 136 30 L136 72 C110 82 96 64 79 72 Z" fill="${pri}" stroke="${DARK}" stroke-width="2.5" stroke-linejoin="round"/>
+      <svg x="91" y="35" width="34" height="34" viewBox="0 0 100 100">${inner(state)}</svg>
+      <circle cx="172" cy="100" r="20" fill="${pri}" stroke="${DARK}" stroke-width="2"/>
+      <circle cx="172" cy="100" r="13" fill="#fff"/>
+      <text x="172" y="101" text-anchor="middle" dominant-baseline="central" font-family="Chakra Petch, sans-serif" font-weight="700" font-size="14" fill="#111">27</text>
+    </svg>`;
+  }
+  function drawFloor() {
+    const pri = HEX[state.inv ? state.sec : state.pri];
+    $('mFloor').innerHTML = `<svg class="scene" viewBox="0 0 240 144" xmlns="http://www.w3.org/2000/svg">${floor()}
+      <g opacity=".26"><svg x="66" y="18" width="108" height="108" viewBox="0 0 100 100">${inner(state)}</svg></g>
+      <rect x="116" y="46" width="4" height="46" rx="2" fill="#c8c8c8"/>
+      <path d="M120 48 C128 44 134 52 146 48 L146 66 C134 70 128 62 120 66 Z" fill="${pri}" stroke="${DARK}" stroke-width="2"/>
+    </svg>`;
+  }
+
+  function render() {
+    RIVAL = state.tag === MV.tag ? CLANS[0] : MV;
+    paint($('bigEmblem'), state);
+    $('who').innerHTML = `[${state.tag}] ${state.name}<small>${FRAME_NAMES[state.frame]} · ${SYM_NAMES[state.sym]} · ${COLORS.find((c) => c[0] === state.pri)[1]} e ${COLORS.find((c) => c[0] === state.sec)[1]}</small>`;
+    document.querySelectorAll('#frameOpts .opt').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.v === state.frame); b._preview(); });
+    document.querySelectorAll('#symOpts .opt').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.v === state.sym); b._preview(); });
+    document.querySelectorAll('#priOpts .sw').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.v === state.pri); b.disabled = b.dataset.v === state.sec; });
+    document.querySelectorAll('#secOpts .sw').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.v === state.sec); b.disabled = b.dataset.v === state.pri; });
+    document.querySelectorAll('#detOpts .opt').forEach((b) => b.setAttribute('aria-pressed', !!state[b.dataset.k]));
+    $('combos').textContent = `${nFrames} molduras × ${nSyms} símbolos × 4 detalhes × ${COLORS.length} × ${COLORS.length - 1} pares de cor = ${total.toLocaleString('pt-BR')} combinações.`;
+    scaleEls.forEach((c) => paint(c, state));
+
+    document.querySelectorAll('.e-mine').forEach((c) => paint(c, state));
+    document.querySelectorAll('.e-rival').forEach((c) => paint(c, RIVAL));
+    document.querySelectorAll('.t-mine').forEach((el) => { el.textContent = `[${state.tag}]`; });
+    document.querySelectorAll('.t-rival').forEach((el) => { el.textContent = `[${RIVAL.tag}]`; });
+    document.querySelectorAll('.n-mine').forEach((el) => { el.textContent = state.name; });
+    document.querySelectorAll('.w-mine').forEach((el) => { el.textContent = `${state.tag} VENCEU`; });
+
+    const rank = [state, RIVAL, CLANS[2].tag === state.tag ? CLANS[3] : CLANS[2]];
+    const pts = [1842, 1790, 1655];
+    $('mRank').innerHTML = '';
+    rank.forEach((cl, i) => {
+      const row = document.createElement('div');
+      const c = mk(); paint(c, cl);
+      row.innerHTML = `<span class="n">${i + 1}</span>`;
+      row.append(c);
+      row.insertAdjacentHTML('beforeend', `<span>${cl.name}</span><span class="r">${pts[i]}</span>`);
+      $('mRank').append(row);
+    });
+    $('mReport').innerHTML = '';
+    [[state, 3], [RIVAL, 1]].forEach(([cl, caps]) => {
+      const row = document.createElement('div');
+      const c = mk(); paint(c, cl);
+      row.append(c);
+      row.insertAdjacentHTML('beforeend', `<b>${cl.name}</b><span class="r">${caps} cap</span>`);
+      $('mReport').append(row);
+    });
+    drawFlag();
+    drawFloor();
+  }
+  render();
+  // A tag usa a fonte do título; redesenha quando ela chegar.
+  document.fonts?.ready.then(render).catch(() => {});
+})();
+</script>
