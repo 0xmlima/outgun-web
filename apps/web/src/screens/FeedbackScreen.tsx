@@ -27,7 +27,9 @@ export default function FeedbackScreen() {
   const [text, setText] = useState('');
   const [bug, setBug] = useState<BugReport>(EMPTY_BUG);
   const [status, setStatus] = useState<FormMessage>(null);
-  const [sent, setSent] = useState(false);
+  // enviando: o botão espera a resposta; `sent` conta os envios (atualiza "Meus relatos", OG-465)
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(0);
   if (user === null) return <Navigate to="/login" replace />;
   const isBug = kind === 'bug';
   const set = <K extends keyof BugReport>(key: K) => (value: BugReport[K]) => setBug((b) => ({ ...b, [key]: value }));
@@ -44,16 +46,25 @@ export default function FeedbackScreen() {
       screen: `${screen.width}x${screen.height}`,
     };
     const body = isBug ? { kind, text: '', context, bug } : { kind, ...(fidelity ? { fidelity } : {}), ...(overall ? { overall } : {}), veteran, text, context };
+    setSending(true);
     api('/feedback', { body }).then(
       () => {
-        setSent(true);
+        // formulário limpo para o próximo relato, sem recarregar a página
+        setSending(false);
+        setSent((n) => n + 1);
+        setFidelity(0);
+        setOverall(0);
+        setText('');
+        setBug(EMPTY_BUG);
         setStatus({ text: t('Thank you! Your feedback was sent.'), error: false });
       },
-      (e: unknown) =>
+      (e: unknown) => {
+        setSending(false);
         setStatus({
           text: e instanceof ApiError && e.code === 'empty_feedback' ? t('Give a rating or write something.') : e instanceof ApiError && e.code === 'bug_incomplete' ? t('Fill in the summary and what happened.') : e instanceof ApiError ? e.message : String(e),
           error: true,
-        }),
+        });
+      },
     );
   };
 
@@ -74,7 +85,7 @@ export default function FeedbackScreen() {
         label={t('Send feedback')}
         onSubmit={submit}
         actions={
-          <Button type="submit" variant="primary" disabled={sent}>
+          <Button type="submit" variant="primary" disabled={sending}>
             {t('Send')}
           </Button>
         }
@@ -134,7 +145,7 @@ interface MyReport {
 }
 
 /** "Seus relatos" (OG-431): a situação de cada relato e, quando virou issue, o link e a versão da correção. */
-function MyReports({ refresh }: { readonly refresh: boolean }) {
+function MyReports({ refresh }: { readonly refresh: number }) {
   const { t } = usePrefs();
   const [reports, setReports] = useState<MyReport[] | null>(null);
   useEffect(() => {
