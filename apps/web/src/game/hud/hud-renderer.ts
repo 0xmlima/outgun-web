@@ -15,6 +15,14 @@ import { scaleBy, type FontMetrics, type ScreenLayout } from './screen-layout.js
 import { ALL_COLORS, colourKey } from '@outgun/protocol';
 
 /** Fonte do jogo e a de contorno (OG-013). */
+/** Corta o texto com reticências até caber em `maxW` (nome de clã no placar, OG-463). */
+function fitText(text: string, maxW: number, width: (text: string) => number): string {
+  if (width(text) <= maxW) return text;
+  let cut = text;
+  while (cut.length > 1 && width(`${cut}…`) > maxW) cut = cut.slice(0, -1);
+  return `${cut.trimEnd()}…`;
+}
+
 export class GameFont implements FontMetrics {
   readonly height: number;
   constructor(
@@ -440,7 +448,8 @@ export class HudRenderer {
       this.vline(bx2, by, by + rows * rowH, lc);
       const capCol = this.c(i === 0 ? 'scoreboard_caption_redteam' : 'scoreboard_caption_blueteam');
       const rightText = s.showPings ? this.t('pings') : this.t('$1 capt', String(s.scores[i]).padStart(3, ' '));
-      this.text(s.teamNames?.[i as 0 | 1] ?? this.t(i === 0 ? 'Red Team' : 'Blue Team'), textX, by + vpad, capCol);
+      const caption = s.teamNames?.[i as 0 | 1] ?? this.t(i === 0 ? 'Red Team' : 'Blue Team');
+      this.text(fitText(caption, right - this.fw(rightText) - this.fw(' ') - textX, (v) => this.fw(v)), textX, by + vpad, capCol);
       this.text(rightText, right - this.fw(rightText), by + vpad, capCol);
     }
     const line = [1, 1];
@@ -833,7 +842,9 @@ export class HudRenderer {
       const cx = x + pad + team * (colW + pad);
       this.box(cx, ty, colW, teamH, this.c(team ? 'team_blue_dark' : 'team_red_dark'));
       this.box(cx, ty, colW, Math.max(2, Math.round(3 * k)), this.c(team ? 'team_blue_basic' : 'team_red_basic'));
-      this.ftext(teamFace, s.teamNames?.[team] ?? this.t(team ? 'Blue Team' : 'Red Team'), cx + Math.round(8 * k), ty + Math.round((teamH - teamFace.height) / 2), '#ffffff');
+      const caption = s.teamNames?.[team] ?? this.t(team ? 'Blue Team' : 'Red Team');
+      const captionW = colW - Math.round(24 * k) - scoreFace.width(String(s.scores[team]));
+      this.ftext(teamFace, fitText(caption, captionW, (v) => teamFace.width(v)), cx + Math.round(8 * k), ty + Math.round((teamH - teamFace.height) / 2), '#ffffff');
       this.ftext(scoreFace, String(s.scores[team]), cx + colW - Math.round(8 * k), ty + Math.round((teamH - scoreFace.height) / 2), '#ffffff', 'right');
       const fragsX = cx + Math.round(colW * 0.72);
       const pingX = cx + colW - Math.round(8 * k);
