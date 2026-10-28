@@ -937,8 +937,19 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-466](cards/OG-466-tolerancia-de-diagonal.md) | Tolerância de diagonal ajustável de 1 em 1 ms (issue #22) | E11 | 1 | Should | S50 | — | Concluído |
 | [OG-467](cards/OG-467-destacar-se-ao-nascer-retomada-dessa.md) | Volta a opção "Destacar a si mesmo ao nascer" (issue #23) | E11 | 1 | Should | S50 | — | Concluído |
 | [OG-468](cards/OG-468-replay.md) | Replay sem som (e o +/- do teclado numérico é zoom, não volume) (issue #24) | E11 | 3 | Should | S50 | — | Concluído |
+| [OG-469](cards/OG-469-radar-api-eixos-e-arquetipo.md) | Radar de estilo: API com os 6 eixos em percentil e o arquétipo | E9 | 5 | Must | — | OG-358, OG-363 | Backlog |
+| [OG-470](cards/OG-470-componente-radar.md) | Componente de radar no design system (SVG, tooltip, tracejado, mini e tabela) | E9 | 3 | Must | — | OG-200 | Backlog |
+| [OG-471](cards/OG-471-radar-no-perfil.md) | Radar no perfil: arquétipo, temporada passada em tracejado e filtros | E9 | 3 | Must | — | OG-469, OG-470 | Backlog |
+| [OG-472](cards/OG-472-jogador-x-jogador.md) | Jogador x jogador: "Comparar comigo" no radar | E9 | 3 | Must | — | OG-471 | Backlog |
+| [OG-473](cards/OG-473-radar-do-cla.md) | Radar do clã: mediana dos membros e mini radar de cada membro | E13 | 3 | Must | — | OG-469, OG-470, OG-273 | Backlog |
+| [OG-474](cards/OG-474-cla-x-cla-previa-do-confronto.md) | Clã x clã: prévia do confronto com a escalação e radar contra um rival | E13 | 3 | Must | — | OG-473 | Backlog |
+| [OG-475](cards/OG-475-radar-da-partida-no-relatorio.md) | Radar da partida no relatório: a partida por cima da média da temporada | E9 | 3 | Should | — | OG-469, OG-470 | Backlog |
+| [OG-476](cards/OG-476-sombra-de-referencia.md) | Sombra de referência no radar: média do clã ou top 10 do mês | E9 | 2 | Should | — | OG-471 | Backlog |
+| [OG-477](cards/OG-477-radar-dos-times-no-lobby.md) | Radar dos dois times no lobby Ranked antes de começar | E12 | 3 | Should | — | OG-469, OG-470 | Backlog |
+| [OG-478](cards/OG-478-cartao-para-compartilhar.md) | Cartão do estilo para compartilhar (imagem com radar, arquétipo e clã) | E9 | 3 | Could | — | OG-471 | Backlog |
+| [OG-479](cards/OG-479-filtro-por-mapa.md) | Filtro por mapa no radar | E9 | 2 | Could | — | OG-471 | Backlog |
 
-**Total:** 310 cards, 995 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 241 cards, 700 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 321 cards, 1028 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 252 cards, 733 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -1042,6 +1053,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-81 | **v2** — Troca de sala parada ou voltando no eixo (OG-428) | Dividir pela velocidade como o original / tempo zero quando a velocidade não leva para fora | ✅ **Decidido pelo agente em 2026-10-26 (S46), na correção da issue #6:** fora da sala com velocidade zero (ou voltando) no eixo, a troca de sala não devolve tempo; antes a divisão por zero virava NaN e o laço da física não terminava. Os laços da física também param com NaN. Casos normais (saindo em movimento) ficam idênticos. | Agente |
 | D-82 | **v2** — Regras do convite pela Steam no Ranked (OG-450) | Convidado entra no lado livre normal / entra no time de quem convidou / convite só até o "Pronto" de todos | ✅ **Decidido pelo PO em 2026-10-27:** o convidado entra no time de quem convidou; depois que todos marcam "Pronto" o convite fica inválido; em clã x clã qualquer um pode ser convidado (não precisa ser do clã). | PO |
 | D-83 | **v2** — Expulsão por inatividade com poucos humanos (OG-459, issue #14) | Contar bots para o limite / baixar o limite para 2 humanos / manter | ✅ **Decidido pelo PO em 2026-10-28:** manter como está: o idle kick (120 s) só age com 4 humanos ou mais na sala (`idlekick_playerlimit`). OG-459 cancelado | PO |
+| D-84 | **v2** — Radar de estilo de jogo (OG-469 a OG-479) | Eixos, partidas que contam, base do percentil, janela, radar de clã, arquétipos | ✅ **Decidido pelo PO em 2026-10-28, após discussão com a comunidade:** os 6 eixos propostos; só ranqueadas; percentil contra todos os ativos da temporada; temporada atual com "sempre" como opção; radar de clã sempre pela mediana dos membros (na prévia clã x clã, de quem joga, para não ficar desproporcional); arquétipos Atirador, Corredor, Muralha, Suporte, Sobrevivente e Coringa; todos os itens na mesma sprint. RN-RAD-01 a 05 | PO |
 
 ---
 
@@ -1181,6 +1193,11 @@ Em 2026-10-14 o port ficou completo (S0–S12) e o beta com veteranos está no a
 | RN-LDB-04 | Mínimo de 5 ranqueadas no período para aparecer; desempate pelo total do stat e depois pelo nome. |
 | RN-LDB-05 | **Hall da fama:** na virada do mês, os 3 primeiros de cada stat principal do mês encerrado (todos os formatos), com selo no perfil. Os selos do ranking antigo continuam como "ranking clássico"; o hall de clãs segue RN-CLA-07. |
 | RN-LDB-06 | **Lista geral do mês (D-67):** índice de 0 a 100 = soma de peso × percentil em cada stat principal, entre quem tem o mínimo de partidas (1º = 1, último = 0). Pesos: capturas 25%, abates 20%, devoluções 20%, tempo com bandeira 15%, K/D 10%, precisão 10%. Os 3 primeiros entram no hall da fama ("Melhor do mês"). |
+| RN-RAD-01 | **Radar de estilo (D-84):** 6 eixos em ordem fixa — Abates, Precisão, Sobrevivência, Bandeira, Defesa, Equipe (duelo à direita, time à esquerda, bandeira embaixo). Abates = kills sem bots/10 min; Precisão = hits ÷ shots; Sobrevivência = tempo médio de vida; Bandeira = (bandeiras pegas + 3 × capturas)/10 min; Defesa = (devoluções + portadores abatidos + defesas)/10 min; Equipe = (assistências + trocas)/10 min. |
+| RN-RAD-02 | Cada eixo mostra o percentil (0–100) contra todos os ativos da temporada (mínimo da RN-LDB-04), com o valor bruto no detalhe. Só ranqueadas concluídas, sem bots. Período padrão = temporada atual; "sempre" é opção; filtro por formato como no leaderboard. |
+| RN-RAD-03 | Amostra: menos de 3 ranqueadas no período → sem radar; de 3 a 9 → contorno tracejado e "poucos jogos". |
+| RN-RAD-04 | Arquétipo pelo formato do radar: amplitude (maior − menor percentil) abaixo de 20 → Coringa; senão o eixo mais alto decide — Abates ou Precisão → Atirador, Bandeira → Corredor, Defesa → Muralha, Equipe → Suporte, Sobrevivência → Sobrevivente. Sem radar, sem arquétipo. |
+| RN-RAD-05 | Radar de clã = mediana dos percentis dos membros, eixo a eixo, só nas partidas pelo clã (RN-CLA-06). Na prévia de um clã x clã, a mediana é de quem está escalado na série, não do clã inteiro. |
 | RN-NOM-04 | **v2:** a clan tag aparece no HUD da partida, em todos os modos, como `(TAG) nome` — mesmo formato do chat (RN-NOM-03) — seguindo RN-UI-05. |
 | RN-UI-05 | Mudanças na UI **dentro da partida** não alteram a disposição atual do HUD: elementos novos são sobreposições temporárias numa área declarada; todo card que toca essa UI passa pela comparação de capturas do OG-265 (diferença zero fora da área nova) e é conferido numa partida online de verdade, com capturas para o PO (lição do OG-205). |
 | RN-UI-06 | **v2:** O HUD da partida escala com a tela (D-54): texto, barras e placar seguem a escala do HUD (automática pela altura ou escolhida nas Opções); o layout é o do protótipo `plan/specs/hud-resolucoes/` (faixa em 4:3, coluna em telas largas). A partir dele, a RN-UI-05 volta a valer: novas mudanças não movem o que existe. |

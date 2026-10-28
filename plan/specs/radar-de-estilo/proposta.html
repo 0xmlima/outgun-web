@@ -1,0 +1,622 @@
+<title>Radar de Estilo Outgun</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: coluna de leitura de ~1040px; cada seção = texto + radar lado a lado, empilhando no celular. */
+:root {
+  --bg: #eef1ef;
+  --surface: #f8faf9;
+  --ink: #17201c;
+  --muted: #56635d;
+  --line: #c9d2cd;
+  --grid: #b7c2bc;
+  --flag: #b07a0c;          /* dourado da bandeira: único acento */
+  --s1: #cf3a43;            /* vermelho do time */
+  --s2: #2f6fd0;            /* azul do time */
+  --s3: #b07a0c;
+  --s4: #1f8a6a;
+  --s5: #7a55c2;
+  --good: #1f8a6a;
+  --bad: #c2393f;
+  --display: "Chakra Petch", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832; --grid: #3a4842;
+    --flag: #e0a83a; --s1: #f0646b; --s2: #6aa0f2; --s3: #e0a83a; --s4: #43c29b; --s5: #a98af0;
+    --good: #43c29b; --bad: #f0646b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832; --grid: #3a4842;
+  --flag: #e0a83a; --s1: #f0646b; --s2: #6aa0f2; --s3: #e0a83a; --s4: #43c29b; --s5: #a98af0;
+  --good: #43c29b; --bad: #f0646b; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 700; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; max-width: 64ch; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--flag); }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code { font-family: var(--mono); font-size: .86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+header.hero { padding-top: 48px; display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); align-items: center; }
+.hero .lede { display: grid; gap: 16px; }
+.hero .lede p { font-size: 1.08rem; }
+.note-example { font-family: var(--mono); font-size: .78rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+
+section { display: grid; gap: 24px; }
+.head { display: grid; gap: 10px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.split > * { min-width: 0; }
+.stack { display: grid; gap: 14px; align-content: start; }
+
+/* Radar */
+.radar { width: 100%; max-width: 440px; height: auto; display: block; margin: 0 auto; overflow: visible; }
+.radar .ring { fill: none; stroke: var(--grid); stroke-width: 1; }
+.radar .ring.mid { stroke-dasharray: 3 4; }
+.radar .spoke { stroke: var(--grid); stroke-width: 1; }
+.radar .tick { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+.radar .axis { fill: var(--ink); font-family: var(--display); font-size: 14px; font-weight: 600; }
+.radar .axis-sub { fill: var(--muted); font-family: var(--mono); font-size: 9.5px; }
+.radar .half { fill: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: .1em; }
+.radar polygon.shape { stroke-width: 2.2; stroke-linejoin: round; }
+.radar circle.dot { stroke: var(--surface); stroke-width: 1.5; }
+.mini .radar .axis, .mini .radar .tick { display: none; }
+
+/* Controles */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 500 .9rem var(--body); color: var(--ink); background: var(--surface);
+  border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 14px 6px 10px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chip .sw { width: 12px; height: 12px; border-radius: 3px; background: var(--c); opacity: .35; }
+.chip[aria-pressed="true"] { border-color: var(--c); }
+.chip[aria-pressed="true"] .sw { opacity: 1; }
+.chip:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--flag); outline-offset: 2px; }
+.chip .tag { font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+label.sel { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+select { font: 500 1rem var(--body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.vs { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.vs .x { font-family: var(--display); font-weight: 700; color: var(--muted); padding-bottom: 8px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 18px; height: 0; border-top: 3px solid var(--c); display: inline-block; }
+.legend i.dash { border-top-style: dashed; }
+
+.arch { display: inline-flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: .78rem; border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; background: var(--surface); }
+.arch b { font-family: var(--display); font-size: .92rem; color: var(--flag); font-weight: 600; }
+
+/* Eixos */
+.axes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.axes article { background: var(--surface); padding: 18px; display: grid; gap: 6px; align-content: start; }
+.axes .k { font-family: var(--mono); font-size: .72rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.axes .f { font-size: .92rem; }
+.axes .src { font-family: var(--mono); font-size: .76rem; color: var(--muted); }
+
+/* Tabela de diferença */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.dbar { position: relative; width: 140px; height: 10px; }
+.dbar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--grid); }
+.dbar span { position: absolute; top: 0; height: 10px; border-radius: 2px; }
+
+/* Escala */
+.scale { display: grid; gap: 10px; }
+.dist { position: relative; height: 54px; }
+.dist svg { width: 100%; height: 54px; display: block; }
+.dist .curve { fill: var(--grid); opacity: .55; }
+.dist .mark { stroke: var(--s1); stroke-width: 2.5; }
+.dist .lbl { fill: var(--ink); font-family: var(--mono); font-size: 11px; }
+
+/* Clã: membros */
+.members { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.members figure { margin: 0; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.members figcaption { font-size: .85rem; line-height: 1.3; }
+.members figcaption small { display: block; font-family: var(--mono); font-size: .7rem; color: var(--flag); }
+
+.edge { display: grid; gap: 8px; }
+.edge .row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 110px; gap: 10px; align-items: center; font-size: .9rem; }
+.edge .row .l { text-align: right; }
+.edge .bar { display: grid; grid-template-columns: 1fr 1fr; height: 12px; }
+.edge .bar .a { justify-self: end; height: 12px; border-radius: 2px 0 0 2px; }
+.edge .bar .b { height: 12px; border-radius: 0 2px 2px 0; }
+.edge .ax { font-family: var(--display); font-weight: 600; text-align: center; font-size: .82rem; color: var(--muted); }
+
+/* Ideias */
+.ideas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.idea { border-top: 3px solid var(--flag); background: var(--surface); padding: 16px 18px 18px; display: grid; gap: 8px; align-content: start; border-radius: 0 0 8px 8px; }
+.idea .why { font-size: .9rem; color: var(--muted); }
+.idea .tagp { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+
+.cautions { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; max-width: 76ch; }
+.cautions li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; }
+.cautions li::before { content: "!"; font-family: var(--display); font-weight: 700; color: var(--bad); text-align: center; border: 1.5px solid var(--bad); border-radius: 50%; width: 20px; height: 20px; line-height: 18px; font-size: .8rem; margin-top: 3px; }
+
+.questions { counter-reset: q; display: grid; gap: 14px; padding: 0; margin: 0; list-style: none; }
+.questions li { counter-increment: q; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.questions li::before { content: "P" counter(q); font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--flag); }
+.questions .opts { font-size: .9rem; color: var(--muted); margin-top: 4px; }
+
+footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+
+@media (max-width: 820px) {
+  header.hero, .split { grid-template-columns: minmax(0, 1fr); }
+  .axes, .ideas { grid-template-columns: minmax(0, 1fr); }
+  .members { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .edge .row { grid-template-columns: 80px minmax(0, 1fr) 80px; font-size: .82rem; }
+}
+@media (max-width: 460px) {
+  .members { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .radar polygon.shape, .radar circle.dot { transition: opacity .2s; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="lede">
+    <span class="eyebrow">Proposta para a comunidade · Outgun Web</span>
+    <h1>Radar de estilo de jogo</h1>
+    <p>Um gráfico de radar no perfil que mostra <strong>como</strong> você joga, e não só quanto: quem vive de abate, quem segura a base, quem carrega a bandeira. Dá para sobrepor dois jogadores, ver o formato de um clã e comparar dois clãs antes de uma série.</p>
+    <p class="muted">Clique nos nomes para ligar e desligar cada jogador no radar.</p>
+    <div class="chips" id="heroChips"></div>
+    <p class="note-example">Todos os jogadores, clãs e números desta página são exemplos inventados para a discussão.</p>
+  </div>
+  <div><svg class="radar" id="heroRadar" viewBox="-70 -10 540 420" role="img" aria-label="Radar com o estilo dos jogadores selecionados"></svg></div>
+</header>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Os seis eixos</span>
+    <h2>Tudo sai de números que o jogo já grava</h2>
+    <p>Cada partida guarda o conjunto completo de stats de cada jogador (<code>match_players.stats</code>). Os eixos combinam esses campos, sempre <strong>por 10 minutos jogados</strong> como no leaderboard, para quem joga muito não ganhar só por volume. A ordem também tem sentido: a metade direita do radar é o duelo, a metade esquerda é o jogo de time, e a bandeira fica embaixo, no meio das duas.</p>
+  </div>
+  <div class="axes" id="axesGrid"></div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">A escala</span>
+    <h2>0 a 100 é o percentil, não o número bruto</h2>
+  </div>
+  <div class="split">
+    <div class="stack">
+      <p>Precisão é uma fração (0,31), abates por 10 min ficam perto de 4, capturas perto de 0,6. Em escalas tão diferentes, o radar sairia torto. A proposta é mostrar em cada eixo o <strong>percentil</strong> do jogador entre os jogadores ativos da temporada: 50 é a mediana, 90 quer dizer que você está acima de 90% deles.</p>
+      <p>O anel tracejado no meio do radar marca o 50. Passando o mouse num ponto aparece o número bruto, para quem quiser o valor exato.</p>
+      <p class="muted">Quem tiver poucas partidas na temporada aparece com o contorno tracejado e o aviso de amostra pequena (veja as ideias mais abaixo).</p>
+    </div>
+    <div class="scale" id="scaleDemo"></div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Jogador x jogador</span>
+    <h2>Dois formatos sobrepostos</h2>
+    <p>No perfil de outra pessoa, o botão <strong>Comparar comigo</strong> sobrepõe os dois radares nas cores dos times: você em vermelho, o outro em azul. A tabela ao lado diz eixo por eixo quem leva vantagem.</p>
+  </div>
+  <div class="split">
+    <div class="stack">
+      <div class="vs">
+        <label class="sel" for="pvpA">Vermelho<select id="pvpA"></select></label>
+        <span class="x">x</span>
+        <label class="sel" for="pvpB">Azul<select id="pvpB"></select></label>
+      </div>
+      <svg class="radar" id="pvpRadar" viewBox="-70 -10 540 420" role="img" aria-label="Comparação entre dois jogadores"></svg>
+    </div>
+    <div class="stack">
+      <div class="tablewrap"><table id="pvpTable"></table></div>
+      <p class="muted" id="pvpSummary"></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Você contra você</span>
+    <h2>A temporada passada em tracejado</h2>
+    <p>Como as temporadas são mensais, o próprio perfil pode desenhar o mês anterior por baixo do atual. Fica fácil ver onde a pessoa evoluiu, que é a pergunta que mais aparece quando alguém olha os próprios stats.</p>
+  </div>
+  <div class="split">
+    <svg class="radar" id="evoRadar" viewBox="-70 -10 540 420" role="img" aria-label="Evolução de Raposa entre setembro e outubro"></svg>
+    <div class="stack">
+      <div class="legend" id="evoLegend"></div>
+      <div class="tablewrap"><table id="evoTable"></table></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Clã</span>
+    <h2>O formato do clã e de cada membro</h2>
+    <p>O radar do clã é a <strong>mediana dos membros</strong>, contando só as partidas jogadas pelo clã. A mediana não deixa um craque sozinho puxar o formato. Embaixo, um mini radar por membro mostra como o time se divide: quem ataca, quem defende, quem corre com a bandeira. É o mesmo desenho, na cor do clã.</p>
+  </div>
+  <div class="split">
+    <div class="stack">
+      <label class="sel" for="clanSel">Clã<select id="clanSel"></select></label>
+      <svg class="radar" id="clanRadar" viewBox="-70 -10 540 420" role="img" aria-label="Radar do clã"></svg>
+    </div>
+    <div class="stack">
+      <h3 id="clanTitle"></h3>
+      <p class="muted" id="clanRead"></p>
+      <div class="members" id="clanMembers"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Clã x clã</span>
+    <h2>Prévia do confronto</h2>
+    <p>Na página da série ou do retrospecto entre dois clãs, os dois radares aparecem sobrepostos e, ao lado, a vantagem de cada um por eixo. Serve de "pré-jogo" para a série e de assunto para a comunidade.</p>
+  </div>
+  <div class="split">
+    <div class="stack">
+      <div class="vs">
+        <label class="sel" for="cvcA">Clã A<select id="cvcA"></select></label>
+        <span class="x">x</span>
+        <label class="sel" for="cvcB">Clã B<select id="cvcB"></select></label>
+      </div>
+      <svg class="radar" id="cvcRadar" viewBox="-70 -10 540 420" role="img" aria-label="Comparação entre dois clãs"></svg>
+    </div>
+    <div class="stack">
+      <div class="edge" id="cvcEdge"></div>
+      <p class="muted" id="cvcSummary"></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Mais ideias</span>
+    <h2>O que mais dá para fazer com o radar</h2>
+    <p>Sugestões para além do pedido original. Nada disso está decidido: é material para a conversa.</p>
+  </div>
+  <div class="ideas">
+    <article class="idea"><h3>Arquétipo automático</h3><p>O formato vira um rótulo: <b>Atirador</b>, <b>Corredor</b>, <b>Muralha</b>, <b>Suporte</b>, <b>Sobrevivente</b>, <b>Coringa</b>. Aparece no perfil, no lobby e no placar.</p><p class="why">Dá identidade e assunto, e um novato entende o próprio estilo sem ler número nenhum. Nos exemplos desta página o rótulo já é calculado.</p></article>
+    <article class="idea"><h3>Radar da partida</h3><p>No relatório de cada partida, o radar daquele jogo por cima da sua média da temporada.</p><p class="why">Responde "joguei bem hoje?" de um jeito visual. Liga com o relatório em PDF que já existe.</p></article>
+    <article class="idea"><h3>Filtro por formato e mapa</h3><p>Os mesmos filtros do perfil (Todos / 3x3 / 4x4 / 5x5) e, depois, por mapa.</p><p class="why">Muita gente defende no 5x5 e ataca no 3x3. Um radar só mistura os dois papéis.</p></article>
+    <article class="idea"><h3>Amostra mínima</h3><p>Com menos de 10 partidas ranqueadas na temporada, o contorno fica tracejado e aparece "poucos jogos". Abaixo de 3, nada de radar.</p><p class="why">Evita que alguém com duas partidas boas apareça como o melhor do servidor.</p></article>
+    <article class="idea"><h3>Sombra de referência</h3><p>Uma camada cinza opcional por baixo: média do seu clã, ou o top 10 do mês.</p><p class="why">Dá contexto sem precisar escolher outra pessoa para comparar.</p></article>
+    <article class="idea"><h3>Radar dos times no lobby</h3><p>Antes de começar o Ranked, a mediana dos dois times lado a lado.</p><p class="why">Mostra se o balanceamento ficou parecido também no estilo, não só no rating.</p></article>
+    <article class="idea"><h3>Cartão para compartilhar</h3><p>Uma imagem com o radar, o arquétipo e a tag do clã, pronta para o WhatsApp e o Discord.</p><p class="why">Divulgação de graça: o pessoal posta o próprio estilo e chama os amigos.</p></article>
+    <article class="idea"><h3>Clã contra um rival</h3><p>O radar do clã só nas partidas contra um clã específico, por cima do radar geral.</p><p class="why">Mostra se o clã muda de jeito contra aquele rival, usando o retrospecto que a página do clã já tem.</p></article>
+    <article class="idea"><h3>Tabela ao lado</h3><p>Todo radar tem um "ver em tabela" com percentil e número bruto.</p><p class="why">Acessibilidade e precisão: o radar mostra o formato, a tabela mostra o valor exato.</p></article>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Cuidados</span>
+    <h2>Onde o radar pode enganar</h2>
+  </div>
+  <ul class="cautions">
+    <li><span><strong>A área não é nota.</strong> Um formato maior parece "melhor", mas um especialista com dois eixos no 95 pode valer mais para o time do que alguém com tudo no 60. O radar mostra estilo; quem diz força continua sendo o rating.</span></li>
+    <li><span><strong>A ordem dos eixos muda o desenho.</strong> Trocar dois eixos de lugar muda a área e o formato. Por isso a ordem fica fixa e agrupa eixos parecidos: duelo à direita, time à esquerda.</span></li>
+    <li><span><strong>O percentil mexe com a população.</strong> Se muita gente boa entrar no meio do mês, seu radar encolhe sem você ter jogado pior. Vale explicar isso na tela, junto do "desde DD/MM".</span></li>
+    <li><span><strong>Bots e partidas casuais.</strong> Abate em bot e partida casual sem compromisso distorcem tudo. A sugestão é contar só partidas ranqueadas contra humanos.</span></li>
+    <li><span><strong>Mais de seis eixos vira teia.</strong> Com 8 ou 10 eixos ninguém lê. Se a comunidade quiser mais stats, a ideia é trocar algum eixo, não somar.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Para discutir</span>
+    <h2>Perguntas para a comunidade</h2>
+    <p>Responda citando o número (P1, P2...) no grupo.</p>
+  </div>
+  <ol class="questions">
+    <li><div><strong>Os seis eixos estão certos?</strong><div class="opts">Trocaria algum? Candidatos de fora: dano efetivo, tempo com a bandeira, multi-kill, primeiro abate, abates na base inimiga.</div></div></li>
+    <li><div><strong>Quais partidas contam?</strong><div class="opts">Só ranqueadas · ranqueadas + casuais sem bots · tudo.</div></div></li>
+    <li><div><strong>Percentil contra quem?</strong><div class="opts">Todos os ativos da temporada · só o mesmo formato (3x3/4x4/5x5) · só jogadores de rating parecido.</div></div></li>
+    <li><div><strong>Que janela de tempo?</strong><div class="opts">Temporada atual (mensal) · últimas 30 partidas · desde sempre, com filtro.</div></div></li>
+    <li><div><strong>O radar do clã usa a mediana dos membros ou percentil entre clãs?</strong><div class="opts">A mediana mostra o estilo dos membros; o percentil entre clãs mostra onde o clã fica no servidor.</div></div></li>
+    <li><div><strong>Arquétipos: sim ou não?</strong><div class="opts">Se sim, sugira nomes. Devem aparecer no lobby e no placar ou só no perfil?</div></div></li>
+    <li><div><strong>Das ideias acima, quais três vêm primeiro?</strong><div class="opts">A primeira entrega seria o radar no perfil + jogador x jogador + clã + clã x clã, como pedido.</div></div></li>
+  </ol>
+</section>
+
+<footer>Outgun Web · proposta de feature para discussão, 28/10/2026. Os eixos usam os campos de <code>PlayerStats</code> já gravados por partida; trocas vêm do registro de eventos do Ranked.</footer>
+</div>
+
+<script>
+(function () {
+  // Ordem fixa: direita = duelo, esquerda = time, embaixo = bandeira.
+  var AXES = [
+    { key: 'abates', name: 'Abates', unit: 'abates/10 min', formula: 'Abates por 10 minutos jogados.', src: 'kills, play_seconds' },
+    { key: 'precisao', name: 'Precisão', unit: 'acertos/tiros', formula: 'Fração dos tiros que acertaram alguém.', src: 'hits ÷ shots' },
+    { key: 'sobrev', name: 'Sobrevivência', unit: 's de vida média', formula: 'Tempo médio de vida; morrer pouco puxa para cima.', src: 'lifetime, deaths' },
+    { key: 'bandeira', name: 'Bandeira', unit: 'pts/10 min', formula: 'Bandeiras pegas + capturas (cada captura vale 3), por 10 min.', src: 'flagsTaken, captures' },
+    { key: 'defesa', name: 'Defesa', unit: 'ações/10 min', formula: 'Bandeiras devolvidas + portadores abatidos + defesas, por 10 min.', src: 'flagsReturned, carriersKilled, defenses' },
+    { key: 'equipe', name: 'Equipe', unit: 'ações/10 min', formula: 'Assistências + trocas (vingar um aliado em até 3 s), por 10 min.', src: 'assists, trocas (OG-363)' }
+  ];
+  // Percentis inventados, na ordem de AXES; raw = números brutos de exemplo.
+  var P = {
+    raposa:  { name: 'Raposa',  clan: 'LBO', v: [88, 74, 52, 35, 30, 61], raw: [5.8, 0.36, 41, 1.1, 0.9, 2.2], games: 46 },
+    granito: { name: 'Granito', clan: 'LBO', v: [45, 60, 78, 20, 92, 70], raw: [3.1, 0.31, 58, 0.6, 3.4, 2.5], games: 52 },
+    cometa:  { name: 'Cometa',  clan: 'LBO', v: [55, 40, 35, 95, 38, 50], raw: [3.6, 0.26, 33, 3.9, 1.1, 1.8], games: 38 },
+    brasa:   { name: 'Brasa',   clan: 'LBO', v: [60, 58, 55, 48, 50, 52], raw: [3.9, 0.30, 43, 1.6, 1.6, 1.9], games: 29 },
+    lince:   { name: 'Lince',   clan: 'LBO', v: [40, 66, 62, 30, 72, 58], raw: [2.9, 0.33, 47, 0.9, 2.5, 2.1], games: 31 },
+    faisca:  { name: 'Faísca',  clan: 'VTX', v: [70, 52, 28, 62, 44, 83], raw: [4.6, 0.29, 30, 2.1, 1.4, 3.0], games: 41 },
+    neblina: { name: 'Neblina', clan: 'VTX', v: [82, 80, 45, 40, 28, 35], raw: [5.3, 0.38, 38, 1.3, 0.8, 1.4], games: 44 },
+    trovao:  { name: 'Trovão',  clan: 'VTX', v: [76, 55, 30, 58, 25, 40], raw: [4.9, 0.30, 31, 1.9, 0.7, 1.6], games: 35 },
+    sabre:   { name: 'Sabre',   clan: 'VTX', v: [68, 70, 50, 45, 35, 42], raw: [4.4, 0.34, 40, 1.5, 1.0, 1.6], games: 27 },
+    novato:  { name: 'Pipoca',  clan: 'VTX', v: [25, 30, 40, 22, 35, 30], raw: [2.0, 0.22, 36, 0.6, 1.0, 1.2], games: 7 }
+  };
+  var RAPOSA_SET = [72, 61, 48, 30, 26, 44];
+  var CLANS = {
+    LBO: { tag: 'LBO', name: 'Lobos do Sul', color: 'var(--s1)', members: ['raposa', 'granito', 'cometa', 'brasa', 'lince'], record: '18V 9D' },
+    VTX: { tag: 'VTX', name: 'Vórtice', color: 'var(--s2)', members: ['faisca', 'neblina', 'trovao', 'sabre', 'novato'], record: '15V 12D' }
+  };
+  var SERIES = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)'];
+  var NS = 'http://www.w3.org/2000/svg';
+  var C = 200, R = 140;
+
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function pt(i, val) {
+    var a = -Math.PI / 2 + i * 2 * Math.PI / AXES.length, r = R * val / 100;
+    return [C + r * Math.cos(a), C + r * Math.sin(a)];
+  }
+  function fmtRaw(i, x) {
+    if (i === 1) return Math.round(x * 100) + '%';
+    if (i === 2) return x + ' s';
+    return String(x).replace('.', ',');
+  }
+
+  function archetype(v) {
+    var mean = v.reduce(function (a, b) { return a + b; }, 0) / v.length;
+    var max = Math.max.apply(null, v), min = Math.min.apply(null, v);
+    if (mean < 35) return 'Em formação';
+    if (max - min < 20) return 'Coringa';
+    var top = v.indexOf(max);
+    return ['Atirador', 'Atirador', 'Sobrevivente', 'Corredor', 'Muralha', 'Suporte'][top];
+  }
+
+  // series: [{name, color, v, raw?, dashed?}]
+  function drawRadar(svg, series, opts) {
+    opts = opts || {};
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    [25, 50, 75, 100].forEach(function (lv) {
+      var pts = AXES.map(function (_, i) { return pt(i, lv).join(','); }).join(' ');
+      el('polygon', { points: pts, 'class': 'ring' + (lv === 50 ? ' mid' : '') }, svg);
+    });
+    AXES.forEach(function (ax, i) {
+      var p = pt(i, 100);
+      el('line', { x1: C, y1: C, x2: p[0], y2: p[1], 'class': 'spoke' }, svg);
+      if (opts.mini) return;
+      var lp = pt(i, 122), anchor = Math.abs(lp[0] - C) < 5 ? 'middle' : (lp[0] > C ? 'start' : 'end');
+      var dy = lp[1] < C - 60 ? -4 : (lp[1] > C + 60 ? 12 : 4);
+      var t = el('text', { x: lp[0], y: lp[1] + dy, 'class': 'axis', 'text-anchor': anchor }, svg);
+      t.textContent = ax.name;
+    });
+    if (!opts.mini) {
+      [25, 50, 75, 100].forEach(function (lv) {
+        var t = el('text', { x: C + 4, y: C - R * lv / 100 - 3, 'class': 'tick' }, svg);
+        t.textContent = lv;
+      });
+    }
+    series.forEach(function (s) {
+      var pts = s.v.map(function (val, i) { return pt(i, val).join(','); }).join(' ');
+      var poly = el('polygon', { points: pts, 'class': 'shape', fill: s.color, 'fill-opacity': s.dashed ? 0.04 : (opts.mini ? 0.25 : 0.13), stroke: s.color }, svg);
+      if (s.dashed) poly.setAttribute('stroke-dasharray', '6 5');
+      if (opts.mini) { poly.setAttribute('stroke-width', '5'); return; }
+      s.v.forEach(function (val, i) {
+        var p = pt(i, val);
+        var d = el('circle', { cx: p[0], cy: p[1], r: s.dashed ? 3.5 : 5, 'class': 'dot', fill: s.color }, svg);
+        var tt = el('title', {}, d);
+        tt.textContent = s.name + ' · ' + AXES[i].name + ': percentil ' + val + (s.raw ? ' (' + fmtRaw(i, s.raw[i]) + ' ' + AXES[i].unit + ')' : '');
+      });
+    });
+  }
+
+  function median(arr) {
+    var s = arr.slice().sort(function (a, b) { return a - b; }), m = s.length >> 1;
+    return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+  }
+  function clanShape(tag) {
+    var ms = CLANS[tag].members.map(function (k) { return P[k].v; });
+    return AXES.map(function (_, i) { return median(ms.map(function (v) { return v[i]; })); });
+  }
+
+  // Herói
+  var heroKeys = ['raposa', 'granito', 'cometa'], heroColor = {};
+  var heroOn = { raposa: true, granito: true, cometa: false };
+  var heroChips = document.getElementById('heroChips');
+  heroKeys.forEach(function (k, idx) {
+    heroColor[k] = SERIES[idx];
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.id = 'chip-' + k;
+    b.style.setProperty('--c', SERIES[idx]);
+    b.setAttribute('aria-pressed', heroOn[k] ? 'true' : 'false');
+    b.innerHTML = '<span class="sw"></span>' + P[k].name + ' <span class="tag">' + archetype(P[k].v) + '</span>';
+    b.addEventListener('click', function () {
+      heroOn[k] = !heroOn[k];
+      b.setAttribute('aria-pressed', heroOn[k] ? 'true' : 'false');
+      drawHero();
+    });
+    heroChips.appendChild(b);
+  });
+  function drawHero() {
+    drawRadar(document.getElementById('heroRadar'), heroKeys.filter(function (k) { return heroOn[k]; }).map(function (k) {
+      return { name: P[k].name, color: heroColor[k], v: P[k].v, raw: P[k].raw };
+    }));
+  }
+  drawHero();
+
+  // Eixos
+  var axesGrid = document.getElementById('axesGrid');
+  AXES.forEach(function (ax, i) {
+    var a = document.createElement('article');
+    var side = i === 0 || i === 1 || i === 2 ? 'Duelo' : (i === 3 ? 'Objetivo' : 'Time');
+    a.innerHTML = '<span class="k">' + side + '</span><h3>' + ax.name + '</h3><p class="f">' + ax.formula + '</p><span class="src">' + ax.src + '</span>';
+    axesGrid.appendChild(a);
+  });
+
+  // Escala: distribuição de exemplo de abates/10 min com a Raposa marcada.
+  (function () {
+    var box = document.getElementById('scaleDemo');
+    var rows = [
+      { label: 'Abates por 10 min', raw: '5,8', pct: 88 },
+      { label: 'Precisão', raw: '36%', pct: 74 },
+      { label: 'Bandeira por 10 min', raw: '1,1', pct: 35 }
+    ];
+    var intro = document.createElement('p');
+    intro.className = 'muted';
+    intro.innerHTML = 'Raposa entre os jogadores ativos (exemplo). A curva é a distribuição do servidor; a linha vermelha é ela.';
+    box.appendChild(intro);
+    rows.forEach(function (r) {
+      var w = document.createElement('div'); w.className = 'dist';
+      var svg = el('svg', { viewBox: '0 0 400 54', preserveAspectRatio: 'none', role: 'img', 'aria-label': r.label + ': ' + r.raw + ', percentil ' + r.pct }, w);
+      // curva assimétrica tipo log-normal
+      var d = 'M0,40 ';
+      for (var x = 0; x <= 400; x += 8) {
+        var t = x / 400, y = Math.exp(-Math.pow((Math.log(t * 3 + 0.2) - 0.25) / 0.5, 2));
+        d += 'L' + x + ',' + (40 - 30 * y).toFixed(1) + ' ';
+      }
+      d += 'L400,40 Z';
+      el('path', { d: d, 'class': 'curve' }, svg);
+      var mx = r.pct * 4;
+      el('line', { x1: mx, x2: mx, y1: 4, y2: 42, 'class': 'mark' }, svg);
+      var lbl = document.createElement('div');
+      lbl.className = 'mono';
+      lbl.style.fontSize = '.82rem';
+      lbl.innerHTML = '<strong>' + r.label + '</strong> · bruto ' + r.raw + ' → <span style="color:var(--s1)">percentil ' + r.pct + '</span>';
+      box.appendChild(lbl);
+      box.appendChild(w);
+    });
+  })();
+
+  // Jogador x jogador
+  var keys = Object.keys(P);
+  function fill(sel, list, labelFn, def) {
+    list.forEach(function (k) {
+      var o = document.createElement('option'); o.value = k; o.textContent = labelFn(k); sel.appendChild(o);
+    });
+    sel.value = def;
+  }
+  var pvpA = document.getElementById('pvpA'), pvpB = document.getElementById('pvpB');
+  var lbl = function (k) { return P[k].name + ' [' + P[k].clan + ']'; };
+  fill(pvpA, keys, lbl, 'raposa');
+  fill(pvpB, keys, lbl, 'neblina');
+  function drawPvp() {
+    var a = P[pvpA.value], b = P[pvpB.value];
+    var series = [{ name: a.name, color: 'var(--s1)', v: a.v, raw: a.raw, dashed: a.games < 10 }];
+    if (pvpB.value !== pvpA.value) series.push({ name: b.name, color: 'var(--s2)', v: b.v, raw: b.raw, dashed: b.games < 10 });
+    drawRadar(document.getElementById('pvpRadar'), series);
+    var html = '<thead><tr><th>Eixo</th><th style="text-align:right">' + a.name + '</th><th style="text-align:right">' + b.name + '</th><th>Vantagem</th></tr></thead><tbody>';
+    var winsA = 0, winsB = 0;
+    AXES.forEach(function (ax, i) {
+      var d = a.v[i] - b.v[i];
+      if (d > 0) winsA++; else if (d < 0) winsB++;
+      var w = Math.min(Math.abs(d), 70) / 70 * 70;
+      var bar = d === 0 ? '' : '<span style="background:' + (d > 0 ? 'var(--s1)' : 'var(--s2)') + ';' + (d > 0 ? 'right:50%' : 'left:50%') + ';width:' + w + 'px"></span>';
+      html += '<tr><td>' + ax.name + '</td><td class="num">' + a.v[i] + '</td><td class="num">' + b.v[i] + '</td><td><div class="dbar">' + bar + '</div></td></tr>';
+    });
+    html += '<tr><td>Arquétipo</td><td class="num">' + archetype(a.v) + '</td><td class="num">' + archetype(b.v) + '</td><td></td></tr>';
+    html += '<tr><td>Partidas</td><td class="num">' + a.games + '</td><td class="num">' + b.games + '</td><td></td></tr></tbody>';
+    document.getElementById('pvpTable').innerHTML = html;
+    var s = pvpA.value === pvpB.value ? 'Escolha dois jogadores diferentes.' :
+      a.name + ' leva ' + winsA + ' eixo' + (winsA === 1 ? '' : 's') + ', ' + b.name + ' leva ' + winsB + '. Barras para a esquerda favorecem o vermelho; para a direita, o azul.';
+    if (a.games < 10 || b.games < 10) s += ' Contorno tracejado: menos de 10 partidas na temporada.';
+    document.getElementById('pvpSummary').textContent = s;
+  }
+  pvpA.addEventListener('change', drawPvp); pvpB.addEventListener('change', drawPvp);
+  drawPvp();
+
+  // Evolução
+  (function () {
+    var now = P.raposa.v;
+    drawRadar(document.getElementById('evoRadar'), [
+      { name: 'Raposa · setembro', color: 'var(--muted)', v: RAPOSA_SET, dashed: true },
+      { name: 'Raposa · outubro', color: 'var(--s1)', v: now, raw: P.raposa.raw }
+    ]);
+    document.getElementById('evoLegend').innerHTML =
+      '<span><i style="--c:var(--s1)"></i>Outubro (atual)</span><span><i class="dash" style="--c:var(--muted)"></i>Setembro</span>';
+    var html = '<thead><tr><th>Eixo</th><th style="text-align:right">Set</th><th style="text-align:right">Out</th><th style="text-align:right">Mudança</th></tr></thead><tbody>';
+    AXES.forEach(function (ax, i) {
+      var d = now[i] - RAPOSA_SET[i];
+      html += '<tr><td>' + ax.name + '</td><td class="num">' + RAPOSA_SET[i] + '</td><td class="num">' + now[i] + '</td><td class="num" style="color:' + (d > 0 ? 'var(--good)' : d < 0 ? 'var(--bad)' : 'var(--muted)') + '">' + (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d) + '</td></tr>';
+    });
+    document.getElementById('evoTable').innerHTML = html + '</tbody>';
+  })();
+
+  // Clã
+  var clanSel = document.getElementById('clanSel');
+  fill(clanSel, Object.keys(CLANS), function (t) { return '[' + t + '] ' + CLANS[t].name; }, 'LBO');
+  function drawClan() {
+    var c = CLANS[clanSel.value], shape = clanShape(c.tag);
+    drawRadar(document.getElementById('clanRadar'), [{ name: c.name + ' (mediana)', color: c.color, v: shape }]);
+    document.getElementById('clanTitle').textContent = '[' + c.tag + '] ' + c.name + ' · ' + c.record + ' no mês';
+    var best = shape.indexOf(Math.max.apply(null, shape)), worst = shape.indexOf(Math.min.apply(null, shape));
+    document.getElementById('clanRead').textContent = 'Ponto forte: ' + AXES[best].name.toLowerCase() + ' (' + shape[best] + '). Ponto fraco: ' + AXES[worst].name.toLowerCase() + ' (' + shape[worst] + '). Arquétipo do clã: ' + archetype(shape) + '.';
+    var box = document.getElementById('clanMembers');
+    box.innerHTML = '';
+    c.members.forEach(function (k) {
+      var f = document.createElement('figure'); f.className = 'mini';
+      var svg = el('svg', { 'class': 'radar', viewBox: '40 40 320 320', role: 'img', 'aria-label': P[k].name + ': ' + archetype(P[k].v) }, f);
+      drawRadar(svg, [{ name: P[k].name, color: c.color, v: P[k].v, dashed: P[k].games < 10 }], { mini: true });
+      var cap = document.createElement('figcaption');
+      cap.innerHTML = P[k].name + '<small>' + archetype(P[k].v) + (P[k].games < 10 ? ' · poucos jogos' : '') + '</small>';
+      f.appendChild(cap);
+      box.appendChild(f);
+    });
+  }
+  clanSel.addEventListener('change', drawClan);
+  drawClan();
+
+  // Clã x clã
+  var cvcA = document.getElementById('cvcA'), cvcB = document.getElementById('cvcB');
+  var clanLbl = function (t) { return '[' + t + '] ' + CLANS[t].name; };
+  fill(cvcA, Object.keys(CLANS), clanLbl, 'LBO');
+  fill(cvcB, Object.keys(CLANS), clanLbl, 'VTX');
+  function drawCvc() {
+    var A = CLANS[cvcA.value], B = CLANS[cvcB.value], a = clanShape(A.tag), b = clanShape(B.tag);
+    var same = A.tag === B.tag;
+    var series = [{ name: A.name, color: 'var(--s1)', v: a }];
+    if (!same) series.push({ name: B.name, color: 'var(--s2)', v: b });
+    drawRadar(document.getElementById('cvcRadar'), series);
+    var box = document.getElementById('cvcEdge');
+    var html = '<div class="row"><span class="l mono" style="color:var(--s1)">[' + A.tag + ']</span><span class="ax">por eixo</span><span class="mono" style="color:var(--s2)">[' + B.tag + ']</span></div>';
+    var adv = [], dis = [];
+    AXES.forEach(function (ax, i) {
+      html += '<div class="row"><span class="l mono">' + a[i] + '</span><div><div class="ax">' + ax.name + '</div><div class="bar"><span class="a" style="background:var(--s1);width:' + a[i] + '%"></span><span class="b" style="background:var(--s2);width:' + b[i] + '%"></span></div></div><span class="mono">' + b[i] + '</span></div>';
+      if (a[i] - b[i] >= 10) adv.push(ax.name.toLowerCase());
+      if (b[i] - a[i] >= 10) dis.push(ax.name.toLowerCase());
+    });
+    box.innerHTML = html;
+    document.getElementById('cvcSummary').textContent = same ? 'Escolha dois clãs diferentes.' :
+      A.name + ' chega melhor em ' + (adv.join(', ') || 'nenhum eixo') + '; ' + B.name + ' em ' + (dis.join(', ') || 'nenhum eixo') + '. Diferenças menores que 10 pontos contam como empate. Retrospecto: 3 x 2 para ' + A.name + ' (exemplo).';
+  }
+  cvcA.addEventListener('change', drawCvc); cvcB.addEventListener('change', drawCvc);
+  drawCvc();
+})();
+</script>
