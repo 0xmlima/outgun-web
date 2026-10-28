@@ -1271,6 +1271,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Advantage': 'Vantagem',
     'Even': 'Empate',
     '$1 by $2': '$1 por $2',
+    'All maps': 'Todos os mapas',
+    'Few matches on this map in the period to compare.': 'Poucos jogos neste mapa no período para comparar.',
     'Share style': 'Compartilhar estilo',
     'Reference': 'Referência',
     'Median of $1': 'Mediana do $1',

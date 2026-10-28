@@ -23,6 +23,8 @@ interface SeasonRef {
 
 export interface StyleResponse {
   username: string;
+  maps: { map: string; title: string; games: number }[];
+  fewOnMap: boolean;
   clanTag: string | null;
   clan: { tag: string; name: string; color: string | null } | null;
   reference: { kind: string; members: number; axes: { axis: StyleAxis; percentile: number }[] } | null;
@@ -102,30 +104,33 @@ export function RadarHelp() {
   );
 }
 
-/** Nome do outro jogador da comparação na URL (`vs`); vazio = sem comparação. */
-function useVsParam(): [string, (v: string) => void] {
+/** Parâmetro de texto na URL; vazio = ausente. `vs` = outro jogador da comparação, `map` = mapa (OG-479). */
+function useTextParam(key: string): [string, (v: string) => void] {
   const [params, setParams] = useSearchParams();
   const set = (v: string) =>
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (v) next.set('vs', v);
-        else next.delete('vs');
+        if (v) next.set(key, v);
+        else next.delete(key);
         return next;
       },
       { replace: true },
     );
-  return [params.get('vs') ?? '', set];
+  return [params.get(key) ?? '', set];
 }
 
 export function StylePanel({ name, format, seasons, me }: { name: string; format: FormatFilter; seasons: readonly SeasonRef[]; me?: string | undefined }) {
   const { t, prefs } = usePrefs();
   const [period, setPeriod] = useStylePeriod();
-  const [vs, setVs] = useVsParam();
+  const [vs, setVs] = useTextParam('vs');
+  const [map, setMap] = useTextParam('map');
   const [typed, setTyped] = useState('');
   // sombra de referência (OG-476): nenhuma, mediana do clã do jogador ou do top 10 do período
   const [reference, setReference] = useState<'' | 'clan' | 'top10'>('');
-  const scope = statScope(period, format).toString();
+  const params = statScope(period, format);
+  if (map) params.set('map', map);
+  const scope = params.toString();
   const res = useApi<StyleResponse>(`/players/${encodeURIComponent(name)}/style?${scope}${reference && !vs ? `&reference=${reference}` : ''}`, true, 'matches');
   const d = res.data;
   const past = seasons.filter((s) => !s.active);
@@ -147,6 +152,9 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
           onChange={setPeriod}
           options={[{ value: 'current', label: t('Current season') }, ...past.map((x) => ({ value: String(x.id), label: x.name })), { value: 'all', label: t('All time') }]}
         />
+        {(d?.maps.length ?? 0) > 0 && (
+          <ChoiceField label={t('Map')} value={map} onChange={setMap} options={[{ value: '', label: t('All maps') }, ...(d?.maps ?? []).map((m) => ({ value: m.map, label: m.title }))]} />
+        )}
         <TextField label={t('Compare with')} value={typed} onChange={setTyped} maxLength={32} placeholder={t('Player name')} onEnter={() => typed.trim() && compare(typed)} />
         <Button disabled={!typed.trim()} onClick={() => compare(typed)}>
           {t('Compare')}
@@ -180,7 +188,9 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
             <ArchetypeLine radar={d.radar} />
             <ShareStyleButton sides={[d]} format={format} />
           </div>
-          {d.radar.axes ? (
+          {d.fewOnMap ? (
+            <p className="ui-muted">{t('Few matches on this map in the period to compare.')}</p>
+          ) : d.radar.axes ? (
             <StyleRadar
               caption={t('Play style of $1', d.username)}
               series={series}
@@ -242,7 +252,9 @@ function StyleCompare({ left, rightName, scope, format }: { left: StyleResponse;
   const leads = a && b ? axisLeads(a.axes, b.axes) : null;
   const pct = (s: RadarSeries | null, axis: StyleAxis) => s?.axes.find((x) => x.axis === axis)?.percentile;
   const missing = (r: StyleResponse) => (
-    <p className="ui-muted">{t('$1 has no radar yet: $2 of $3 Ranked matches in the period.', r.username, String(r.radar.games), String(STYLE_MINIMUM_GAMES))}</p>
+    <p className="ui-muted">
+      {r.fewOnMap ? t('Few matches on this map in the period to compare.') : t('$1 has no radar yet: $2 of $3 Ranked matches in the period.', r.username, String(r.radar.games), String(STYLE_MINIMUM_GAMES))}
+    </p>
   );
   return (
     <div className="ui-stack">

@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 2 pts |
 | Sprint | S53 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-471 |
 | Regras de negócio | RN-RAD-02 |
 | Skills | `outgun-card-workflow` |
@@ -24,6 +24,8 @@ Como jogador, quero ver meu radar num mapa específico, porque meu papel muda de
 - Percentil contra quem jogou aquele mapa no período, com o mesmo mínimo de partidas (RN-RAD-03) contado só naquele mapa.
 
 ## Critérios de aceite
-- [ ] Mapa com poucos jogadores no período mostra "poucos jogos neste mapa" em vez do radar.
+- [x] Mapa com poucos jogadores no período mostra "poucos jogos neste mapa" em vez do radar.
 
 ## Notas de implementação
+- `map` no `/players/:name/style` (e na comparação, que usa o mesmo escopo): o `StyleScope` ganhou `map`, então a base do percentil e os mínimos (3 para ter radar, 5 para entrar na base) contam só aquele mapa. A resposta traz `maps` (mapas do jogador no período) para o seletor e `fewOnMap`.
+- "Poucos jogos neste mapa" quando o mapa tem menos de 3 ativos no período (`MAP_MINIMUM_POPULATION`); filtro na URL (`?map=`).

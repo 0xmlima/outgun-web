@@ -113,6 +113,15 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
     expect(ana.since.team).not.toBeNull();
   });
 
+  it('filtro por mapa (OG-479): lista dos mapas e "poucos jogos neste mapa" com menos de 3 ativos', async () => {
+    const ana = await style('Ana');
+    expect(ana.maps).toEqual([{ map: 'outgun1', title: 'outgun1', games: 5 }]);
+    expect(ana.fewOnMap).toBe(false);
+    const onMap = await style('Ana', 'map=outgun1');
+    expect(onMap).toMatchObject({ fewOnMap: true, radar: { games: 5, axes: null, population: 2 } });
+    expect((await style('Ana', 'map=outro')).radar).toMatchObject({ games: 0, axes: null });
+  });
+
   it('sombra de referência (OG-476): top 10 com quem houver; sem clã, nada', async () => {
     const top = await style('Caio', 'reference=top10');
     expect(top.reference).toMatchObject({ kind: 'top10', members: 2 }); // só Ana e Bia têm o mínimo

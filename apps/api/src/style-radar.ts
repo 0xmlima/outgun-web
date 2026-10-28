@@ -6,6 +6,11 @@ import { sql } from 'drizzle-orm';
 import type { Db } from './db/client.js';
 import { LEADERBOARD_MINIMUM_MATCHES, type BoardScope } from './leaderboard.js';
 
+/** Período e formato do leaderboard e, no radar do perfil, um mapa (OG-479). */
+export interface StyleScope extends BoardScope {
+  map?: string | null;
+}
+
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
 /** Ordem fixa (RN-RAD-01): duelo à direita, time à esquerda, bandeira embaixo. */
@@ -83,12 +88,13 @@ const per10 = (col: string) => `CASE WHEN play > 0 THEN ${col} * 600 / play ELSE
  * Com `clanId`, só as partidas jogadas pelo clã (RN-RAD-05, RN-CLA-06); com `against`, só os clã x
  * clã contra aquele clã (OG-474).
  */
-export async function styleRows(db: Db | Tx, scope: BoardScope, filter: ClanFilter = {}): Promise<StyleRow[]> {
+export async function styleRows(db: Db | Tx, scope: StyleScope, filter: ClanFilter = {}): Promise<StyleRow[]> {
   const where = sql.join(
     [
       sql`m.ranked AND NOT mp.is_bot AND mp.user_id IS NOT NULL`,
       ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
       ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
+      ...(scope.map ? [sql`m.map = ${scope.map}`] : []),
       ...clanWhere(filter),
     ],
     sql` AND `,
@@ -176,7 +182,7 @@ export function medianProfile(profiles: readonly StyleProfile[]): { percentiles:
  * escalados (prévia do clã x clã) e `against` às partidas contra um rival (OG-474); `matches` é o
  * número de partidas do clã no recorte.
  */
-export async function clanStyle(db: Db | Tx, clanId: string, scope: BoardScope, opts: { only?: readonly string[]; against?: string } = {}) {
+export async function clanStyle(db: Db | Tx, clanId: string, scope: StyleScope, opts: { only?: readonly string[]; against?: string } = {}) {
   const { rows } = await stylePeriod(db, scope);
   const population = activePopulation(rows);
   const members = await db.execute<{ user_id: string; username: string }>(
@@ -189,6 +195,7 @@ export async function clanStyle(db: Db | Tx, clanId: string, scope: BoardScope, 
       sql`m.ranked AND NOT mp.is_bot`,
       ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
       ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
+      ...(scope.map ? [sql`m.map = ${scope.map}`] : []),
       ...clanWhere(filter),
     ],
     sql` AND `,
@@ -207,7 +214,7 @@ export async function clanStyle(db: Db | Tx, clanId: string, scope: BoardScope, 
  * Lado de um confronto (OG-474, OG-477): com clã, a mediana dos escalados pelo clã (RN-RAD-05); sem
  * clã, a mediana dos perfis dos jogadores no período. Quem não tem radar fica fora da mediana.
  */
-export async function lineupStyle(db: Db | Tx, scope: BoardScope, players: readonly { id: string; username: string }[], clanId: string | null) {
+export async function lineupStyle(db: Db | Tx, scope: StyleScope, players: readonly { id: string; username: string }[], clanId: string | null) {
   const { rows, profiles } = await stylePeriod(db, scope);
   const population = activePopulation(rows).length;
   let members: { userId: string; username: string; games: number; profile: StyleProfile | undefined }[];
@@ -220,6 +227,25 @@ export async function lineupStyle(db: Db | Tx, scope: BoardScope, players: reado
     members = players.map((p) => ({ userId: p.id, username: p.username, games: rows.find((r) => r.userId === p.id)?.games ?? 0, profile: profiles.get(p.id) }));
   }
   return { population, members, median: medianProfile(members.flatMap((m) => (m.profile ? [m.profile] : []))) };
+}
+
+/** Com filtro de mapa, menos ativos que isto na base = "poucos jogos neste mapa" (OG-479). */
+export const MAP_MINIMUM_POPULATION = 3;
+
+/** Mapas das ranqueadas de uma conta no período (filtro do radar, OG-479), do mais jogado ao menos. */
+export async function playerMaps(db: Db | Tx, userId: string, scope: StyleScope): Promise<{ map: string; title: string; games: number }[]> {
+  const where = sql.join(
+    [
+      sql`m.ranked AND mp.user_id = ${userId}`,
+      ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
+      ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
+    ],
+    sql` AND `,
+  );
+  const rows = await db.execute<{ map: string; title: string | null; games: number }>(
+    sql`SELECT m.map, max(m.details ->> 'mapTitle') AS title, count(*)::int AS games FROM match_players mp JOIN matches m ON m.id = mp.match_id WHERE ${where} GROUP BY m.map ORDER BY count(*) DESC, m.map`,
+  );
+  return rows.map((r) => ({ map: r.map, title: r.title?.trim() || r.map, games: r.games }));
 }
 
 /** Abaixo disto de tempo jogado a partida não tem radar: "partida curta demais" (OG-475). */
@@ -254,8 +280,8 @@ export async function matchStyle(db: Db | Tx, matchId: string, seasonId: number 
 const CACHE_MS = 60_000;
 const cache = new Map<string, { at: number; rows: StyleRow[]; profiles: Map<string, StyleProfile> }>();
 
-export async function stylePeriod(db: Db | Tx, scope: BoardScope): Promise<{ rows: StyleRow[]; profiles: Map<string, StyleProfile> }> {
-  const key = `${scope.seasonId ?? 'all'}:${scope.format ?? 'all'}`;
+export async function stylePeriod(db: Db | Tx, scope: StyleScope): Promise<{ rows: StyleRow[]; profiles: Map<string, StyleProfile> }> {
+  const key = `${scope.seasonId ?? 'all'}:${scope.format ?? 'all'}:${scope.map ?? ''}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit;
   const rows = await styleRows(db, scope);

@@ -7,9 +7,9 @@ import { desc, eq, inArray, lt } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
 import { clanKey, usernameKey } from '../db/keys.js';
 import { clanMembers, clans, matches, seasons, users } from '../db/schema.js';
-import { LEADERBOARD_MINIMUM_MATCHES, overallBoard, statSince, type BoardScope } from '../leaderboard.js';
+import { LEADERBOARD_MINIMUM_MATCHES, overallBoard, statSince } from '../leaderboard.js';
 import { activeSeason, type RankedFormat } from '../ranking.js';
-import { clanStyle, lineupStyle, MATCH_STYLE_MIN_SECONDS, matchStyle, medianProfile, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
+import { clanStyle, lineupStyle, MAP_MINIMUM_POPULATION, MATCH_STYLE_MIN_SECONDS, playerMaps, matchStyle, medianProfile, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile, type StyleScope } from '../style-radar.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -42,11 +42,16 @@ export function radarOf(profile: StyleProfile | undefined, games: number, popula
   };
 }
 
-/** Radar de uma conta num período, consultando (ou reaproveitando do cache) a lista do período. */
-export async function playerRadar(db: AppDeps['database']['db'], userId: string, scope: BoardScope): Promise<StyleRadar> {
+/**
+ * Radar de uma conta num período, consultando (ou reaproveitando do cache) a lista do período. Com
+ * mapa e menos de 3 ativos nele, não há base para o percentil: sem radar (OG-479).
+ */
+export async function playerRadar(db: AppDeps['database']['db'], userId: string, scope: StyleScope): Promise<StyleRadar> {
   const { rows, profiles } = await stylePeriod(db, scope);
   const population = rows.filter((r) => r.games >= LEADERBOARD_MINIMUM_MATCHES).length;
-  return radarOf(profiles.get(userId), rows.find((r) => r.userId === userId)?.games ?? 0, population);
+  const games = rows.find((r) => r.userId === userId)?.games ?? 0;
+  if (scope.map && population < MAP_MINIMUM_POPULATION) return radarOf(undefined, games, population);
+  return radarOf(profiles.get(userId), games, population);
 }
 
 export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
@@ -72,6 +77,8 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
             format: Type.Optional(RankedFormatSchema),
             /** Sombra cinza (OG-476): mediana do clã do jogador ou do top 10 da lista geral do período. */
             reference: Type.Optional(Type.Union([Type.Literal('clan'), Type.Literal('top10')])),
+            /** Arquivo do mapa (OG-479): percentil contra quem jogou aquele mapa no período. */
+            map: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
           }),
           response: {
             200: Type.Object({
@@ -86,6 +93,10 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
               radar: StyleRadarSchema,
               /** Temporada anterior à pedida (contorno tracejado); null em "sempre" ou sem temporada anterior. */
               previous: Type.Union([Type.Null(), Type.Object({ season: Season, radar: StyleRadarSchema })]),
+              /** Mapas das ranqueadas do jogador no período (sem o filtro de mapa), para o seletor. */
+              maps: Type.Array(Type.Object({ map: Type.String(), title: Type.String(), games: Type.Integer() })),
+              /** Com mapa: menos de 3 ativos nele no período, sem base para o percentil. */
+              fewOnMap: Type.Boolean(),
               /** Eixos com contadores novos (RN-LDB-03): data da primeira ranqueada que os tem. */
               since: Type.Object({ defense: Type.Union([Type.Null(), Type.String()]), team: Type.Union([Type.Null(), Type.String()]) }),
             }),
@@ -100,11 +111,14 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         const season = await scopeSeason(request.query.season, overall);
         if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
         const fmt: RankedFormat | null = format ?? null;
-        const radar = await playerRadar(db, user.id, { seasonId: season?.id ?? null, format: fmt });
+        const map = request.query.map ?? null;
+        const radar = await playerRadar(db, user.id, { seasonId: season?.id ?? null, format: fmt, map });
         const [before] = season ? await db.select().from(seasons).where(lt(seasons.startsAt, season.startsAt)).orderBy(desc(seasons.startsAt)).limit(1) : [];
-        const previous = before ? { season: seasonOut(before), radar: await playerRadar(db, user.id, { seasonId: before.id, format: fmt }) } : null;
+        const previous = before ? { season: seasonOut(before), radar: await playerRadar(db, user.id, { seasonId: before.id, format: fmt, map }) } : null;
         const [defense, team] = await Promise.all([statSince(db, 'defenses'), statSince(db, 'trades')]);
-        const scope = { seasonId: season?.id ?? null, format: fmt };
+        const scope = { seasonId: season?.id ?? null, format: fmt, map };
+        const maps = await playerMaps(db, user.id, { seasonId: scope.seasonId, format: fmt });
+        const fewOnMap = !!map && radar.population < MAP_MINIMUM_POPULATION;
         let reference: { kind: string; members: number; axes: { axis: StyleAxis; percentile: number }[] } | null = null;
         const [membership] = await db.select({ id: clans.id, tag: clans.tag, name: clans.name, color: clans.primaryColor }).from(clanMembers).innerJoin(clans, eq(clans.id, clanMembers.clanId)).where(eq(clanMembers.userId, user.id));
         if (request.query.reference === 'clan' && membership) {
@@ -120,7 +134,7 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
           if (m) reference = { kind: 'top10', members: m.members, axes: m.axes };
         }
         reply.header('cache-control', 'public, max-age=60');
-        return { username: user.username, clanTag: membership?.tag ?? null, clan: membership ? { tag: membership.tag, name: membership.name, color: membership.color } : null, reference, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
+        return { username: user.username, maps, fewOnMap, clanTag: membership?.tag ?? null, clan: membership ? { tag: membership.tag, name: membership.name, color: membership.color } : null, reference, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
       },
     );
 
