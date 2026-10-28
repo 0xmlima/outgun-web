@@ -303,8 +303,9 @@ export default function GameScreen() {
     return () => removeEventListener('beforeunload', guard);
   }, []);
 
+  // no lobby Ranked o Esc não abre o menu da partida, que esconderia o lobby (OG-461): sair é o botão dele
   useEffect(() => {
-    if (menuOpen) return;
+    if (menuOpen || inLobby) return;
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === 'Escape' && !matchEndOpen.current) {
         ev.preventDefault();
@@ -313,7 +314,7 @@ export default function GameScreen() {
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [menuOpen]);
+  }, [menuOpen, inLobby]);
 
   const sala = params.get('sala');
   // margem de 1 min para o relógio do servidor (ended_at) e o do navegador

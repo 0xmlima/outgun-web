@@ -5,6 +5,7 @@
 // como `lobbyReady`/`lobbyVote`/`lobbySide`/`lobbySwapAnswer`.
 import type { MessageOf } from '@outgun/protocol';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { MusicButton } from '../app/music/MusicButton.js';
 import { usePrefs } from '../app/prefs.js';
 import type { GameHost } from '../game/host.js';
 import { Badge, Button } from '../ui/Button.js';
@@ -111,6 +112,10 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
   return (
     // o lobby fica dentro da tela da partida, fora da moldura dos menus: leva o tema dos menus (OG-316)
     <div className="ranked-lobby" data-menu-theme={prefs.menuTheme} role="dialog" aria-label={t('Ranked lobby')}>
+      {/* a trilha toca no lobby: o mesmo botão da barra de cima, para pausar ou mudar (OG-461) */}
+      <div className="ranked-music">
+        <MusicButton />
+      </div>
       {team(0)}
       <section className="ranked-center">
         <p className="ranked-series">
