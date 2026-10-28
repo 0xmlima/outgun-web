@@ -20,7 +20,7 @@ const { connect } = await api('db/client.js');
 const { clanKey, emailKey, usernameKey } = await api('db/keys.js');
 const { clanMembers, clans, playerProfiles, users } = await api('db/schema.js');
 const { hash } = await imp('@node-rs/argon2');
-const { and, eq } = await imp('drizzle-orm');
+const { eq } = await imp('drizzle-orm');
 const { CLAN_COLORS: C, colourDistance, DEFAULT_EMBLEM, emblemKey } = await imp('@outgun/protocol');
 const { signInternalRequest } = await imp('@outgun/tickets');
 
@@ -111,13 +111,11 @@ async function clanWith(c, leader, members) {
   for (const [i, u] of [leader, ...members].entries()) {
     const [m] = await db.select().from(clanMembers).where(eq(clanMembers.userId, u.id));
     if (!m)
-      await db
-        .insert(clanMembers)
-        .values({
-          clanId: clan.id,
-          userId: u.id,
-          role: i === 0 ? 'leader' : i === 1 ? 'admin' : 'member',
-        });
+      await db.insert(clanMembers).values({
+        clanId: clan.id,
+        userId: u.id,
+        role: i === 0 ? 'leader' : i === 1 ? 'admin' : 'member',
+      });
   }
   return clan;
 }

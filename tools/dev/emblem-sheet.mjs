@@ -7,12 +7,21 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const { CLAN_COLORS, EMBLEM_FRAMES, EMBLEM_FRAME_NAMES, EMBLEM_SYMBOLS, EMBLEM_SYMBOL_NAMES, emblemSvg } = await import(join(root, 'packages/protocol/dist/index.js'));
+const {
+  CLAN_COLORS,
+  EMBLEM_FRAMES,
+  EMBLEM_FRAME_NAMES,
+  EMBLEM_SYMBOLS,
+  EMBLEM_SYMBOL_NAMES,
+  emblemSvg,
+} = await import(join(root, 'packages/protocol/dist/index.js'));
 
 const C = CLAN_COLORS;
 const pairs = Object.entries(C).map(([k, hex], i, all) => [k, hex, all[(i + 9) % all.length][1]]);
-const cell = (svg, px) => `<span style="display:inline-block;width:${px}px;height:${px}px">${svg}</span>`;
-const em = (symbol, frame, pri, sec) => emblemSvg({ frame, symbol, fillet: false, inverted: false }, 'LC', pri, sec);
+const cell = (svg, px) =>
+  `<span style="display:inline-block;width:${px}px;height:${px}px">${svg}</span>`;
+const em = (symbol, frame, pri, sec) =>
+  emblemSvg({ frame, symbol, fillet: false, inverted: false }, 'LC', pri, sec);
 
 let rows = '';
 for (const s of EMBLEM_SYMBOLS) {
@@ -22,7 +31,10 @@ for (const s of EMBLEM_SYMBOLS) {
   const bare = cell(em(s, 'none', C.navy, C.yellow), 32);
   rows += `<tr><th>${EMBLEM_SYMBOL_NAMES[s]}<br><small>${s}</small></th><td>${sizes}</td><td>${bare}</td><td class="c">${colours}</td><td class="g">${sizes}</td></tr>\n`;
 }
-const frames = EMBLEM_FRAMES.map((f) => `<figure>${cell(em('star', f, C.wine, C.white), 64)}<figcaption>${EMBLEM_FRAME_NAMES[f]}</figcaption></figure>`).join('');
+const frames = EMBLEM_FRAMES.map(
+  (f) =>
+    `<figure>${cell(em('star', f, C.wine, C.white), 64)}<figcaption>${EMBLEM_FRAME_NAMES[f]}</figcaption></figure>`,
+).join('');
 
 process.stdout.write(`<!doctype html><meta charset="utf-8"><title>Catálogo do emblema</title>
 <style>body{font:14px Inter,sans-serif;background:#1b1f1b;color:#ddd;margin:16px}td,th{padding:6px;border-bottom:1px solid #333;vertical-align:middle;text-align:left}

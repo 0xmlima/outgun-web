@@ -220,7 +220,7 @@ function tagDraw(tag: string): (f: string, h: string, stroke?: string) => string
 export function emblemSvg(e: ClanEmblem, tag: string, primary: string | null, secondary: string | null): string {
   const [bg, fg] = shownColours(e, primary, secondary);
   const draw = e.symbol === 'tag' ? tagDraw(tag) : SYMBOLS[e.symbol];
-  const fr = FRAMES[e.frame];
+  const fr: FrameShape | null = FRAMES[e.frame];
   const head = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">';
   if (!fr) {
     const out = luminance(fg) < 0.22 ? LIGHT : DARK;
