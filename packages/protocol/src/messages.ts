@@ -921,6 +921,15 @@ export const MESSAGES = {
     'Um lado virou o clã nesta rodada (≥ 2 humanos do mesmo clã e nenhum de outro clã): tag e nome do clã e a cor do lado (`#RRGGBB`; vazia = a cor padrão do lado). Tag vazia = o lado voltou a ser vermelho/azul. No `welcome` de quem entra e a cada rodada que muda.',
     { team: u8, tag: str(8), name: str(24), color: str(7) },
   ),
+  // --- emblema do clã na partida (OG-486, D-85): sem equivalente no original ---
+  teamEmblem: msg(
+    133,
+    's2c',
+    'event',
+    '— (web, OG-486)',
+    'Emblema do clã do lado (`ClanEmblem` e as cores do clã), logo depois do `teamIdentity` que fez o lado virar o clã; o cliente desenha o emblema no chão das bases. Não vem para clã sem emblema gravado.',
+    { team: u8, frame: str(16), symbol: str(16), fillet: bool, inverted: bool, primary: str(7), secondary: str(7) },
+  ),
   // --- números de jogador (OG-410, D-79): sem equivalente no original ---
   playerNumber: msg(132, 's2c', 'event', '— (web, OG-410)', 'Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.', {
     pid,

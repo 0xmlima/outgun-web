@@ -5,11 +5,22 @@
 import { ImageSource, Container, Graphics, Sprite, Texture } from 'pixi.js';
 import type { WorldCoords } from '@outgun/sim';
 import { roomLayout, visibleRooms, type Rect, type RoomLayout } from './layout.js';
+import { FLAGPOS_RADIUS, roomTransform } from './room-painter.js';
 import type { RoomSource } from './room-source.js';
 import { colour, type RoomTheme } from './theme.js';
 
 /** `playfieldFogOfWarAlpha` (src/graphics.h:569). */
 const FOG_ALPHA = 0x38 / 255;
+/** Emblema do clã no chão da base (OG-486): diâmetro em unidades do mundo e opacidade do decalque. */
+const DECAL_SIZE = 5 * FLAGPOS_RADIUS;
+const DECAL_ALPHA = 0.26;
+
+/** Um ponto de bandeira de uma base (sala e posição dentro dela). */
+export interface DecalSpot {
+  readonly room: { readonly x: number; readonly y: number };
+  readonly x: number;
+  readonly y: number;
+}
 
 export interface WorldViewOptions {
   readonly visibleRooms: number;
@@ -28,6 +39,10 @@ interface CachedRoom {
 export class WorldRenderer {
   readonly stage = new Container();
   private readonly rooms = new Container();
+  /** Emblemas no chão das bases (OG-486): por cima das salas, por baixo da névoa e das entidades. */
+  private readonly decals = new Container();
+  private readonly decalSprites: Sprite[] = [];
+  private decalSpots: { spot: DecalSpot; texture: Texture }[] = [];
   /** Salas ainda não pintadas aparecem na cor do chão. */
   private readonly placeholders = new Graphics();
   private readonly fog = new Graphics();
@@ -49,7 +64,7 @@ export class WorldRenderer {
     private readonly source: RoomSource,
     private readonly resolution: number,
   ) {
-    this.stage.addChild(this.placeholders, this.rooms, this.fog, this.clip);
+    this.stage.addChild(this.placeholders, this.rooms, this.decals, this.fog, this.clip);
     this.stage.mask = this.clip;
   }
 
@@ -69,6 +84,11 @@ export class WorldRenderer {
     this.clip.clear().rect(layout.x0, layout.y0, layout.width, layout.height).fill(0xffffff);
     this.lastViewKey = '';
     return layout;
+  }
+
+  /** Emblema de cada lado nos pontos de bandeira das bases dele; textura null = lado sem emblema. */
+  setDecals(teams: readonly { readonly spots: readonly DecalSpot[]; readonly texture: Texture | null }[]): void {
+    this.decalSpots = teams.flatMap(({ spots, texture }) => (texture ? spots.map((spot) => ({ spot, texture })) : []));
   }
 
   /**
@@ -107,6 +127,30 @@ export class WorldRenderer {
       sprite.visible = false;
       sprite.texture = Texture.EMPTY; // a textura pode sair do cache (`evict`)
     }
+    // decalques: posição dentro da sala pelo mesmo enquadramento da pintura (`roomTransform`)
+    let n = 0;
+    if (this.decalSpots.length) {
+      const rt = roomTransform(layout.roomW, layout.roomH);
+      const size = DECAL_SIZE * rt.scale;
+      for (const p of placements)
+        for (const { spot, texture } of this.decalSpots) {
+          if (spot.room.x !== p.rx || spot.room.y !== p.ry) continue;
+          let s = this.decalSprites[n];
+          if (!s) {
+            s = new Sprite();
+            s.anchor.set(0.5);
+            s.alpha = DECAL_ALPHA;
+            this.decalSprites.push(s);
+            this.decals.addChild(s);
+          }
+          s.texture = texture;
+          s.visible = true;
+          s.width = s.height = size;
+          s.position.set(p.x + rt.x0 + spot.x * rt.scale, p.y + rt.y0 + spot.y * rt.scale);
+          n++;
+        }
+    }
+    for (let i = n; i < this.decalSprites.length; i++) this.decalSprites[i]!.visible = false;
     this.placeholders.fill(colour(this.theme, 'ground'));
     this.fog.fill({ color: colour(this.theme, 'playfield_fog'), alpha: FOG_ALPHA });
 

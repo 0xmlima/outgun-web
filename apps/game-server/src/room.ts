@@ -605,13 +605,16 @@ export class Room {
     for (const team of [0, 1, 2]) out.push(this.flagUpdate(team));
     out.push(message('flagModes', this.sim.flagModes())); // `send_flag_modes` na entrada
     if (this.pause) out.push(this.pauseStateMessage()); // quem entra ou volta vê a pausa e o saldo (OG-264)
-    for (const team of [0, 1] as const) if (this.identities[team]) out.push(this.identityMessage(team));
+    for (const team of [0, 1] as const) if (this.identities[team]) out.push(...this.identityMessages(team));
     return out;
   }
 
-  private identityMessage(team: 0 | 1): AnyMessage {
+  /** `teamIdentity` e, se o clã tem emblema, o `teamEmblem` logo depois (OG-486). */
+  private identityMessages(team: 0 | 1): AnyMessage[] {
     const id = this.identities[team];
-    return message('teamIdentity', { team, tag: id?.tag ?? '', name: id?.name ?? '', color: id?.color ?? '' });
+    const out: AnyMessage[] = [message('teamIdentity', { team, tag: id?.tag ?? '', name: id?.name ?? '', color: id?.color ?? '' })];
+    if (id?.emblem && id.colors) out.push(message('teamEmblem', { team, ...id.emblem, ...id.colors }));
+    return out;
   }
 
   /**
@@ -628,7 +631,7 @@ export class Room {
     for (const team of [0, 1] as const) {
       if (JSON.stringify(next[team]) === JSON.stringify(this.identities[team])) continue;
       this.identities[team] = next[team];
-      this.broadcast(this.identityMessage(team));
+      for (const m of this.identityMessages(team)) this.broadcast(m);
     }
   }
 

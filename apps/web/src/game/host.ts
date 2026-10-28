@@ -40,6 +40,7 @@ import { loadEntitySprites } from './render/sprites.js';
 import { loadRoomTheme, type RoomTheme } from './render/theme.js';
 import { applyTeamColours } from './render/team-palette.js';
 import { WorldRenderer } from './render/world-renderer.js';
+import { baseSpots, emblemTexture } from './render/emblem-decal.js';
 import { entityFrameFromWorld } from './render/world-view.js';
 import { loadNumberFonts } from './render/number-styles.js';
 
@@ -355,7 +356,22 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     app.stage.addChildAt(world.stage, backTiles ? 1 : 0);
     announced = false;
     layout();
+    applyDecals();
     return map;
+  };
+  /** Emblema de cada lado que virou o clã no chão das bases dele (OG-486); some quando o lado deixa de ser o clã. */
+  const applyDecals = () => {
+    const target = world;
+    const map = worldMap;
+    const ids = session?.teamIdentity;
+    if (!target || !map || !ids) return;
+    void Promise.all([emblemTexture(ids[0]), emblemTexture(ids[1])]).then(([red, blue]) => {
+      if (destroyed || world !== target) return;
+      target.setDecals([
+        { spots: baseSpots(map, 0), texture: red },
+        { spots: baseSpots(map, 1), texture: blue },
+      ]);
+    });
   };
   /**
    * Cargas e redesenhos numa fila só: o redesenho pelas cores do clã (OG-409) não pode cancelar a
@@ -686,6 +702,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         }
         if (session && entities && session.teamIdentityVersion !== seenIdentity) {
           seenIdentity = session.teamIdentityVersion;
+          applyDecals();
           const colours = [session.teamIdentity[0]?.color ?? null, session.teamIdentity[1]?.color ?? null] as const;
           if (applyTeamColours(theme.colours as Record<string, string>, baseTheme.colours, colours)) {
             const target = entities;

@@ -4,7 +4,7 @@
 // com o frame do servidor e extrapola o mundo para o desenho (`ClientWorld::extrapolate`), com a
 // predição do próprio jogador. Não sabe nada de relógio nem de transporte: quem usa passa o tempo
 // (ms) e entrega/recebe as mensagens. Spec: plan/specs/predicao-interpolacao.md.
-import { chatName, message, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { chatName, message, parseEmblem, PROTOCOL_VERSION, type AnyMessage, type ClanEmblem, type MessageOf } from '@outgun/protocol';
 import { applyGamemod, PRESETS, presetSettings, type GameSettings } from '@outgun/settings';
 import {
   applyPhysics,
@@ -114,6 +114,9 @@ export interface TeamIdentityView {
   tag: string;
   name: string;
   color: string | null;
+  /** Emblema do clã e as cores dele (`teamEmblem`, OG-486); ausente = sem emblema no chão. */
+  emblem?: ClanEmblem;
+  colors?: { primary: string; secondary: string };
 }
 
 export class ClientSession {
@@ -477,6 +480,15 @@ export class ClientSession {
           this.teamIdentityVersion++;
         }
         break;
+      case 'teamEmblem': {
+        const id = m.team === 0 || m.team === 1 ? this.teamIdentity[m.team] : null;
+        const emblem = parseEmblem(m);
+        if (id && emblem) {
+          this.teamIdentity[m.team as 0 | 1] = { ...id, emblem, colors: { primary: m.primary, secondary: m.secondary } };
+          this.teamIdentityVersion++;
+        }
+        break;
+      }
       case 'playerClan':
         this.clanTags.set(m.pid, m.tag);
         this.setName(m.pid, this.plainNames.get(m.pid) ?? '');
