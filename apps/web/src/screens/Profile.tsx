@@ -205,7 +205,7 @@ export function ProfileScreen() {
         </Panel>
       </div>
 
-      <StylePanel name={p.user.username} format={format} seasons={seasons.data?.seasons ?? []} />
+      <StylePanel name={p.user.username} format={format} seasons={seasons.data?.seasons ?? []} me={me?.username} />
 
       <Panel title={t('Rating')} actions={<RatingInfo />}>
         {pr?.hidden ? privateNote : pr && pr.series.length > 1 ? <RatingChart series={pr.series} locale={prefs.locale} /> : <p className="ui-muted">{t('No ranked matches yet.')}</p>}

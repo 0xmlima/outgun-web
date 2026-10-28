@@ -988,3 +988,35 @@ html {
   cursor: pointer;
   color: var(--text-accent);
 }
+.style-compare-heads {
+  align-items: flex-start;
+}
+.style-side {
+  flex: 1 1 12rem;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--text-team-blue);
+}
+.style-side.red {
+  border-left-color: var(--text-team-red);
+}
+.style-bar {
+  position: relative;
+  display: block;
+  min-width: 6rem;
+  height: 0.5rem;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+}
+.style-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-pill);
+}
+.style-bar i.blue {
+  background: var(--text-team-blue);
+}
+.style-bar i.red {
+  background: var(--text-team-red);
+}

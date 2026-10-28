@@ -70,3 +70,17 @@ export function radarPolygon(axes: readonly StyleAxisValue[], r: number, cx: num
     return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
   }).join(' ');
 }
+
+/** Quantos eixos cada lado leva (percentil maior); empate não conta para ninguém (OG-472). */
+export function axisLeads(a: readonly StyleAxisValue[], b: readonly StyleAxisValue[]): { a: number; b: number } {
+  let left = 0;
+  let right = 0;
+  for (const axis of STYLE_AXES) {
+    const x = a.find((v) => v.axis === axis)?.percentile;
+    const y = b.find((v) => v.axis === axis)?.percentile;
+    if (x === undefined || y === undefined || x === y) continue;
+    if (x > y) left++;
+    else right++;
+  }
+  return { a: left, b: right };
+}

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S53 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-471 |
 | Regras de negócio | RN-RAD-01, RN-RAD-03 |
 | Skills | `outgun-card-workflow` |
@@ -26,7 +26,9 @@ Como jogador, quero sobrepor meu radar ao de outro jogador, para ver eixo por ei
 - Amostra pequena de qualquer lado aparece tracejada (RN-RAD-03). Link compartilhável da comparação (os dois nomes na URL).
 
 ## Critérios de aceite
-- [ ] Comparação aberta pelo link reproduz a mesma tela.
-- [ ] Jogador sem radar (menos de 3 ranqueadas) mostra o aviso no lugar da série dele.
+- [x] Comparação aberta pelo link reproduz a mesma tela.
+- [x] Jogador sem radar (menos de 3 ranqueadas) mostra o aviso no lugar da série dele.
 
 ## Notas de implementação
+- No painel do OG-471: `?vs=<nome>` na URL (link compartilhável junto com `style` e `format`); dono do perfil em azul, o outro em vermelho; "Comparar comigo" só logado e no perfil de outra pessoa; campo livre para qualquer nome.
+- Na comparação a temporada anterior some (seriam 4 séries). `axisLeads` conta os eixos de cada lado; empate não conta.

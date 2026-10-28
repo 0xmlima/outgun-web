@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Painel "Estilo de jogo" do perfil (OG-471, RN-RAD): radar da temporada (ou de sempre) com a
-// anterior em tracejado, o arquétipo, a amostra e a mudança por eixo. Período na URL (`style`).
+// anterior em tracejado, o arquétipo, a amostra e a mudança por eixo. Período na URL (`style`) e,
+// na comparação jogador x jogador (OG-472), o outro nome (`vs`).
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
-import { Badge } from '../ui/Button.js';
-import { ChoiceField } from '../ui/Field.js';
+import { Badge, Button } from '../ui/Button.js';
+import { ChoiceField, TextField } from '../ui/Field.js';
 import { Panel } from '../ui/Panel.js';
 import { StyleRadar, type RadarSeries } from '../ui/StyleRadar.js';
-import { ARCHETYPE_LABELS, AXIS_LABELS, STYLE_AXES, type StyleRadarData } from '../ui/style-radar.js';
+import { ARCHETYPE_LABELS, AXIS_LABELS, axisLeads, STYLE_AXES, type StyleAxis, type StyleRadarData } from '../ui/style-radar.js';
 import { Table } from '../ui/Table.js';
 import { statScope } from './leaderboard.js';
 import { Status, useApi, type FormatFilter } from './stats.js';
@@ -75,16 +77,39 @@ export function RadarHelp() {
   );
 }
 
-export function StylePanel({ name, format, seasons }: { name: string; format: FormatFilter; seasons: readonly SeasonRef[] }) {
+/** Nome do outro jogador da comparação na URL (`vs`); vazio = sem comparação. */
+function useVsParam(): [string, (v: string) => void] {
+  const [params, setParams] = useSearchParams();
+  const set = (v: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (v) next.set('vs', v);
+        else next.delete('vs');
+        return next;
+      },
+      { replace: true },
+    );
+  return [params.get('vs') ?? '', set];
+}
+
+export function StylePanel({ name, format, seasons, me }: { name: string; format: FormatFilter; seasons: readonly SeasonRef[]; me?: string | undefined }) {
   const { t, prefs } = usePrefs();
   const [period, setPeriod] = useStylePeriod();
-  const res = useApi<StyleResponse>(`/players/${encodeURIComponent(name)}/style?${statScope(period, format).toString()}`, true, 'matches');
+  const [vs, setVs] = useVsParam();
+  const [typed, setTyped] = useState('');
+  const scope = statScope(period, format).toString();
+  const res = useApi<StyleResponse>(`/players/${encodeURIComponent(name)}/style?${scope}`, true, 'matches');
   const d = res.data;
   const past = seasons.filter((s) => !s.active);
   const now = radarSeries('now', d?.season?.name ?? t('All time'), d?.radar);
   const before = d?.previous ? radarSeries('before', d.previous.season.name, d.previous.radar, { dashed: true, color: 'var(--text-muted)' }) : null;
   const series = [now, before].filter((s): s is RadarSeries => s !== null);
   const since = [d?.since.defense && ['defense', d.since.defense], d?.since.team && ['team', d.since.team]].filter((x): x is [string, string] => !!x);
+  const compare = (who: string) => {
+    setVs(who.trim());
+    setTyped('');
+  };
 
   return (
     <Panel title={t('Play style')}>
@@ -95,8 +120,20 @@ export function StylePanel({ name, format, seasons }: { name: string; format: Fo
           onChange={setPeriod}
           options={[{ value: 'current', label: t('Current season') }, ...past.map((x) => ({ value: String(x.id), label: x.name })), { value: 'all', label: t('All time') }]}
         />
+        <TextField label={t('Compare with')} value={typed} onChange={setTyped} maxLength={32} placeholder={t('Player name')} onEnter={() => typed.trim() && compare(typed)} />
+        <Button disabled={!typed.trim()} onClick={() => compare(typed)}>
+          {t('Compare')}
+        </Button>
+        {me && me.toLowerCase() !== name.toLowerCase() && vs.toLowerCase() !== me.toLowerCase() && <Button onClick={() => compare(me)}>{t('Compare with me')}</Button>}
+        {vs && (
+          <Button variant="ghost" onClick={() => setVs('')}>
+            {t('Stop comparing')}
+          </Button>
+        )}
       </div>
-      {!d ? (
+      {vs && d ? (
+        <StyleCompare left={d} rightName={vs} scope={scope} />
+      ) : !d ? (
         <Status loading={d === undefined} missing={d === null} error={res.error} />
       ) : (
         <div className="ui-stack">
@@ -140,5 +177,71 @@ export function StylePanel({ name, format, seasons }: { name: string; format: Fo
         </div>
       )}
     </Panel>
+  );
+}
+
+/**
+ * Jogador x jogador (OG-472): o dono do perfil em azul e o outro em vermelho, no mesmo período e
+ * formato; tabela com o percentil de cada um, a barra de vantagem e "X leva N eixos".
+ */
+function StyleCompare({ left, rightName, scope }: { left: StyleResponse; rightName: string; scope: string }) {
+  const { t } = usePrefs();
+  const res = useApi<StyleResponse>(`/players/${encodeURIComponent(rightName)}/style?${scope}`, true, 'matches');
+  const right = res.data;
+  if (!right) return right === null ? <p className="ui-muted">{t('Player $1 not found.', rightName)}</p> : <Status loading={right === undefined} missing={false} error={res.error} />;
+  const a = radarSeries('a', left.username, left.radar, { color: 'var(--text-team-blue)' });
+  const b = radarSeries('b', right.username, right.radar, { color: 'var(--text-team-red)' });
+  const leads = a && b ? axisLeads(a.axes, b.axes) : null;
+  const pct = (s: RadarSeries | null, axis: StyleAxis) => s?.axes.find((x) => x.axis === axis)?.percentile;
+  const missing = (r: StyleResponse) => (
+    <p className="ui-muted">{t('$1 has no radar yet: $2 of $3 Ranked matches in the period.', r.username, String(r.radar.games), String(STYLE_MINIMUM_GAMES))}</p>
+  );
+  return (
+    <div className="ui-stack">
+      <div className="ui-row style-compare-heads">
+        <div className="ui-stack style-side blue">
+          <strong>{left.username}</strong>
+          <ArchetypeLine radar={left.radar} />
+          {!a && missing(left)}
+        </div>
+        <div className="ui-stack style-side red">
+          <strong>{right.username}</strong>
+          <ArchetypeLine radar={right.radar} />
+          {!b && missing(right)}
+        </div>
+      </div>
+      <StyleRadar caption={t('$1 vs $2', left.username, right.username)} series={[a, b].filter((s): s is RadarSeries => s !== null)} />
+      {leads && (
+        <p>
+          {leads.a === leads.b
+            ? t('Even: $1 axes each', String(leads.a))
+            : t('$1 leads $2 of 6 axes', leads.a > leads.b ? left.username : right.username, String(Math.max(leads.a, leads.b)))}
+        </p>
+      )}
+      {a && b && (
+        <Table
+          caption={t('$1 vs $2', left.username, right.username)}
+          rows={STYLE_AXES}
+          rowKey={(x) => x}
+          columns={[
+            { key: 'axis', header: t('Axis'), cell: (x) => t(AXIS_LABELS[x]) },
+            { key: 'a', header: left.username, align: 'end', cell: (x) => pct(a, x) ?? '—' },
+            {
+              key: 'bar',
+              header: t('Advantage'),
+              cell: (x) => {
+                const diff = (pct(a, x) ?? 0) - (pct(b, x) ?? 0);
+                return (
+                  <span className="style-bar" aria-label={diff === 0 ? t('Even') : t('$1 by $2', diff > 0 ? left.username : right.username, String(Math.abs(diff)))}>
+                    <i className={diff >= 0 ? 'blue' : 'red'} style={{ width: `${Math.abs(diff) / 2}%`, [diff >= 0 ? 'right' : 'left']: '50%' }} />
+                  </span>
+                );
+              },
+            },
+            { key: 'b', header: right.username, align: 'end', cell: (x) => pct(b, x) ?? '—' },
+          ]}
+        />
+      )}
+    </div>
   );
 }
