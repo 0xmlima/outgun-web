@@ -13,6 +13,8 @@ import { TextField } from '../ui/Field.js';
 import { MapPreview } from './MapPreview.js';
 import { phaseLabel } from './ranked-rooms.js';
 import { ClanBadge } from '../ui/Emblem.js';
+import { ARCHETYPE_LABELS } from '../ui/style-radar.js';
+import { MatchupRadar, useLineup, type MatchupSide } from './matchup-radar.js';
 
 type LobbyState = MessageOf<'lobbyState'>;
 const NONE = 255;
@@ -24,6 +26,8 @@ export interface LobbyView {
   me: number;
   maxPlayers: number;
   names: ReadonlyMap<number, string>;
+  /** Nome sem a tag do clã (o da conta, no Ranked): radar dos times (OG-477). */
+  accounts?: ReadonlyMap<number, string>;
   maps: readonly { file: string; title: string }[];
   chat: { team: number; text: string }[];
 }
@@ -74,6 +78,22 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
 
   // lado que vira o clã (OG-408, D-78): no Ranked já se sabe no lobby
   const identity = (s: 0 | 1) => host?.session()?.teamIdentity[s] ?? null;
+  // radar dos times (OG-474, OG-477): mediana de cada lado, pelo clã quando o lado é um clã
+  const account = (pid: number) => view.accounts?.get(pid) ?? '';
+  const matchup = (s: 0 | 1): MatchupSide => ({
+    label: identity(s)?.tag ?? (s === 0 ? t('Red team') : t('Blue team')),
+    players: side(s).map((m) => account(m.pid)).filter(Boolean),
+    clan: identity(s)?.tag,
+    color: identity(s)?.color,
+  });
+  const red = matchup(0);
+  const blue = matchup(1);
+  const lineup = useLineup(red, blue);
+  const archetype = (pid: number) => {
+    const n = account(pid).toLowerCase();
+    const a = lineup.data?.sides.flatMap((x) => x.players).find((p) => p.username.toLowerCase() === n)?.radar.archetype;
+    return a ? t(ARCHETYPE_LABELS[a]) : null;
+  };
   const team = (s: 0 | 1) => {
     const list = side(s);
     const empty = Math.max(0, lobby.teamSize - list.length);
@@ -89,6 +109,7 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
           {list.map((m) => (
             <li key={m.pid} className={m.pid === me ? 'me' : undefined}>
               <span className="ranked-name">{name(m.pid)}</span>
+              {archetype(m.pid) && <span className="ranked-archetype ui-muted">{archetype(m.pid)}</span>}
               {ready && (m.ready ? <Badge tone="success">{t('Ready')}</Badge> : <Badge>{t('Not ready')}</Badge>)}
               {lobby.phase === 'vote' && m.vote >= 0 && <Badge>{t('Voted')}</Badge>}
               {open && s !== mySide && otherFull && !outgoing && (
@@ -199,6 +220,11 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
           <Button variant="ghost" onClick={onLeave}>
             {t('Leave room')}
           </Button>
+        )}
+        {open && (red.players.length > 0 || blue.players.length > 0) && (
+          <div className="ranked-radar">
+            <MatchupRadar red={red} blue={blue} data={lineup.data} />
+          </div>
         )}
       </section>
       {team(1)}

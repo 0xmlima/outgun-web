@@ -1054,3 +1054,11 @@ html {
   color: var(--text-muted);
   font-weight: var(--weight-regular);
 }
+.ranked-radar {
+  width: 100%;
+  max-width: 20rem;
+  margin-inline: auto;
+}
+.ranked-archetype {
+  font-size: var(--text-xs);
+}

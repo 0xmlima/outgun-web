@@ -133,8 +133,8 @@ export class ClientSession {
   readonly onscreen = new Set<number>();
   /** Nome mostrado: `(TAG) nome` para quem tem clã (OG-206, RN-NOM-04), como no chat. */
   readonly names = new Map<number, string>();
-  /** Nome sem a tag e tag do clã de cada jogador (`playerJoined`/`playerName`, `playerClan`). */
-  private readonly plainNames = new Map<number, string>();
+  /** Nome sem a tag (no Ranked, o nome da conta: radar do lobby, OG-477) e tag do clã de cada jogador (`playerJoined`/`playerName`, `playerClan`). */
+  readonly plainNames = new Map<number, string>();
   readonly clanTags = new Map<number, string>();
   /** Pids ocupados (vale também antes de o mapa carregar). */
   readonly present = new Set<number>();
