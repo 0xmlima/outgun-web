@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S51 |
+| Status | Pronto |
 | Dependências | OG-481, OG-482 |
 | Regras de negócio | RN-EMB-01, RN-EMB-03, RN-UI-01 |
 | Skills | `outgun-card-workflow` |
