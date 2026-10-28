@@ -57,6 +57,14 @@ const star = (() => {
 })();
 const sword = (f: string) =>
   `<path fill="${f}" d="M50 14 L55 21 L55 62 L45 62 L45 21 Z"/><path fill="${f}" d="M37 62 H63 V68 H37 Z"/><path fill="${f}" d="M47 68 H53 V80 H47 Z"/><circle fill="${f}" cx="50" cy="83" r="4"/>`;
+/** Desenho em "pixels" (vetor em degraus): `X` marca um quadrado de lado `u` a partir de (x0, y0). */
+function pixels(rows: string[], u: number, x0: number, y0: number): string {
+  let d = '';
+  rows.forEach((row, r) => {
+    for (const m of row.matchAll(/X+/g)) d += `M${x0 + m.index * u} ${y0 + r * u} h${m[0].length * u} v${u} h${-m[0].length * u} Z `;
+  });
+  return d.trim();
+}
 const wing = 'M46 42 C36 32 22 30 12 33 C18 37 21 40 22 42 C16 42 13 45 12 48 C20 49 25 51 27 53 C23 55 21 58 21 61 C32 62 41 58 46 53 Z';
 
 /** Catálogo de símbolos (desenhos próprios, centrados em 50, 50). O OG-481 fecha a lista. */
@@ -84,10 +92,57 @@ const SYMBOLS = {
   gem: (f, h) =>
     `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M34 28 L66 28 L78 44 L50 80 L22 44 Z"/><path fill="none" stroke="${h}" stroke-width="2.5" stroke-linejoin="round" d="M22 44 H78 M41 28 L36 44 L50 80 L64 44 L59 28"/>`,
   swords: (f) => `<g transform="rotate(42 50 50)">${sword(f)}</g><g transform="rotate(-42 50 50)">${sword(f)}</g>`,
+  // Pedidos da comunidade (P7 da proposta).
+  brokenShield: (f) =>
+    `<path fill="${f}" d="M26 24 L47 20 L43 34 L49 46 L42 58 L47 80 C34 74 26 64 26 48 Z"/><path fill="${f}" d="M53 20 L74 24 L74 48 C74 64 66 74 53 80 L48 58 L55 46 L49 34 Z"/>`,
+  fist: (f, h) =>
+    `<rect fill="${f}" x="29" y="27" width="42" height="39" rx="7"/><path fill="${h}" d="M39 27 h2 v14 h-2 Z M49 27 h2 v14 h-2 Z M59 27 h2 v14 h-2 Z"/><path fill="none" stroke="${h}" stroke-width="2.5" stroke-linecap="round" d="M30 50 H56 C62 50 62 59 56 59 H39"/><rect fill="${f}" x="35" y="69" width="30" height="12" rx="2"/>`,
+  wall: (f, h) =>
+    `<path fill="${f}" d="M20 24 H32 V33 H44 V24 H56 V33 H68 V24 H80 V79 H20 Z"/><path fill="none" stroke="${h}" stroke-width="2.5" d="M20 47 H80 M20 63 H80 M38 33 V47 M62 33 V47 M29 47 V63 M50 47 V63 M71 47 V63 M38 63 V79 M62 63 V79"/>`,
+  phoenix: (f, h) => {
+    const w = 'M48 48 C40 36 28 30 16 16 C18 30 24 42 36 52 C30 52 24 50 18 46 C24 56 34 60 46 58 Z';
+    const t = 'M47 64 C40 70 37 76 38 85 C42 79 45 76 49 74 Z';
+    return `<path fill="${f}" d="${w}"/><path fill="${f}" transform="translate(100 0) scale(-1 1)" d="${w}"/><path fill="${f}" d="${t}"/><path fill="${f}" transform="translate(100 0) scale(-1 1)" d="${t}"/><path fill="${f}" d="M50 37 C56 43 57 53 54 61 L50 80 L46 61 C43 53 44 43 50 37 Z"/><circle fill="${f}" cx="50" cy="30" r="7"/><path fill="${f}" d="M47 24 L50 14 L53 24 Z"/><circle fill="${h}" cx="50" cy="29" r="2"/>`;
+  },
+  dragon: (f, h) =>
+    `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M22 66 C24 54 30 46 38 42 L30 22 L46 36 L52 20 L58 38 C68 38 78 42 86 48 L66 52 L84 60 C74 66 62 66 54 64 L46 74 L34 82 L36 70 Z"/><path fill="${h}" d="M58 44 L68 45 L60 49 Z"/><circle fill="${h}" cx="80" cy="49" r="1.6"/>`,
+  serpent: (f, h) =>
+    `<path fill="none" stroke="${f}" stroke-width="9" stroke-linecap="round" d="M30 78 C18 70 26 57 44 55 C62 53 74 45 66 34 C62 28 54 28 50 32"/><ellipse fill="${f}" cx="44" cy="31" rx="10" ry="7.5"/><circle fill="${h}" cx="46" cy="28.5" r="2"/><path fill="none" stroke="${f}" stroke-width="2.2" stroke-linecap="round" d="M34 32 L26 29 M34 32 L27 36"/>`,
+  eagle: (f, h) => {
+    const w = 'M46 44 L12 32 L18 40 L11 43 L20 48 L15 53 L27 55 L44 58 Z';
+    return `<path fill="${f}" d="${w}"/><path fill="${f}" transform="translate(100 0) scale(-1 1)" d="${w}"/><path fill="${f}" d="M50 33 C57 33 59 42 57 52 L59 70 L50 76 L41 70 L43 52 C41 42 43 33 50 33 Z"/><path fill="${f}" d="M43 70 L39 83 L50 78 L61 83 L57 70 Z"/><circle fill="${f}" cx="50" cy="27" r="8"/><path fill="${f}" d="M54 25 L63 30 L54 34 Z"/><circle fill="${h}" cx="52" cy="25" r="1.8"/>`;
+  },
+  shark: (f, h) =>
+    `<path fill="${f}" stroke="${f}" stroke-width="2" stroke-linejoin="round" d="M12 38 L24 52 C34 46 44 43 52 43 L58 25 L66 44 C76 46 84 51 88 56 C82 60 74 63 64 64 L60 73 L54 64 C42 64 32 62 24 58 L12 72 L18 55 Z"/><circle fill="${h}" cx="77" cy="52" r="2.2"/><path fill="none" stroke="${h}" stroke-width="2" stroke-linecap="round" d="M66 51 L64 59 M70 51 L68 59 M77 59 L84 57"/>`,
+  spider: (f, h) => {
+    const legs = 'M44 44 L30 34 L22 20 M44 48 L26 44 L15 36 M44 54 L26 58 L15 68 M44 58 L32 70 L26 84';
+    return `<g fill="none" stroke="${f}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="${legs}"/><path transform="translate(100 0) scale(-1 1)" d="${legs}"/></g><ellipse fill="${f}" cx="50" cy="38" rx="8" ry="7"/><ellipse fill="${f}" cx="50" cy="58" rx="12" ry="14"/><path fill="${h}" d="M50 51 L54 58 L50 65 L46 58 Z"/>`;
+  },
+  alien: (f, h) =>
+    `<path fill="${f}" d="M50 18 C68 18 78 32 76 46 C74 60 60 78 50 82 C40 78 26 60 24 46 C22 32 32 18 50 18 Z"/><path fill="${h}" d="M29 45 C35 39 44 41 46 52 C38 56 31 52 29 45 Z"/><path fill="${h}" transform="translate(100 0) scale(-1 1)" d="M29 45 C35 39 44 41 46 52 C38 56 31 52 29 45 Z"/><rect fill="${h}" x="45" y="68" width="10" height="2.5" rx="1.2"/>`,
+  robot: (f, h) =>
+    `<rect fill="${f}" x="48" y="20" width="4" height="12"/><circle fill="${f}" cx="50" cy="19" r="4.5"/><rect fill="${f}" x="26" y="32" width="48" height="40" rx="6"/><rect fill="${f}" x="19" y="44" width="7" height="16" rx="2"/><rect fill="${f}" x="74" y="44" width="7" height="16" rx="2"/><rect fill="${f}" x="40" y="72" width="20" height="8"/><circle fill="${h}" cx="39" cy="47" r="6"/><circle fill="${h}" cx="61" cy="47" r="6"/><path fill="${h}" d="M36 59 H44 V66 H36 Z M46 59 H54 V66 H46 Z M56 59 H64 V66 H56 Z"/>`,
+  joystick: (f, h) =>
+    `<path fill="${f}" d="M20 70 L28 57 H72 L80 70 V79 H20 Z"/><rect fill="${f}" x="47" y="34" width="6" height="26"/><circle fill="${f}" cx="50" cy="30" r="12"/><circle fill="${h}" cx="45" cy="25" r="3.5"/><circle fill="${h}" cx="32" cy="68" r="3.5"/><circle fill="${h}" cx="68" cy="68" r="3.5"/>`,
+  ghost: (f, h) =>
+    `<path fill="${f}" d="M50 18 C66 18 72 32 72 46 C72 60 76 70 84 78 C72 81 64 77 58 72 C53 79 45 80 40 76 C33 80 26 78 22 72 C28 66 28 56 28 46 C28 32 34 18 50 18 Z"/><ellipse fill="${h}" cx="42" cy="42" rx="4" ry="6.5"/><ellipse fill="${h}" cx="58" cy="42" rx="4" ry="6.5"/><ellipse fill="${h}" cx="50" cy="58" rx="4" ry="5.5"/>`,
+  pixelHeart: (f, h) => `<path fill="${f}" d="${pixels(['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'], 8, 22, 27)}"/><rect fill="${h}" x="30" y="35" width="8" height="8"/>`,
 } satisfies Record<string, SymbolDraw>;
 
 export type EmblemSymbol = 'tag' | keyof typeof SYMBOLS;
 export const EMBLEM_SYMBOLS = ['tag', ...Object.keys(SYMBOLS)] as EmblemSymbol[];
+
+/** Nomes de tela (chave de tradução, em inglês como no resto do jogo). */
+export const EMBLEM_FRAME_NAMES: Readonly<Record<EmblemFrame, string>> = {
+  shield: 'Shield', circle: 'Circle', diamond: 'Diamond', square: 'Square', octagon: 'Octagon', banner: 'Banner', none: 'No frame',
+};
+export const EMBLEM_SYMBOL_NAMES: Readonly<Record<EmblemSymbol, string>> = {
+  tag: 'Tag', star: 'Star', chevrons: 'Chevrons', crown: 'Crown', wings: 'Wings', flag: 'Flag', crosshair: 'Crosshair',
+  rocket: 'Rocket', bolt: 'Lightning', wolf: 'Wolf', skull: 'Skull', flame: 'Flame', tower: 'Tower', gem: 'Gem',
+  swords: 'Crossed swords', brokenShield: 'Broken shield', fist: 'Fist', wall: 'Wall', phoenix: 'Phoenix', dragon: 'Dragon',
+  serpent: 'Serpent', eagle: 'Eagle', shark: 'Shark', spider: 'Spider', alien: 'Alien', robot: 'Robot', joystick: 'Joystick',
+  ghost: 'Ghost', pixelHeart: '8-bit heart',
+};
 
 /** Clã que nunca escolheu (RN-EMB-01). */
 export const DEFAULT_EMBLEM: Readonly<ClanEmblem> = { frame: 'shield', symbol: 'tag', fillet: false, inverted: false };

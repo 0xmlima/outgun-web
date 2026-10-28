@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { CLAN_COLORS } from './colors.js';
-import { DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_SYMBOLS, emblemKey, emblemSvg, parseEmblem, type ClanEmblem } from './emblem.js';
+import { DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_SYMBOL_NAMES, EMBLEM_SYMBOLS, emblemKey, emblemSvg, parseEmblem, type ClanEmblem } from './emblem.js';
 
 const navy = CLAN_COLORS.navy!;
 const yellow = CLAN_COLORS.yellow!;
@@ -51,5 +51,8 @@ describe('emblema do clã (OG-480)', () => {
         expect(svg.startsWith('<svg viewBox="0 0 100 100"')).toBe(true);
         expect(svg).toContain(yellow);
       }
+    // 28 desenhos do catálogo + a tag.
+    expect(EMBLEM_SYMBOLS).toHaveLength(29);
+    for (const symbol of EMBLEM_SYMBOLS) expect(EMBLEM_SYMBOL_NAMES[symbol]).toBeTruthy();
   });
 });
