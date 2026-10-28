@@ -620,6 +620,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S50 | v2: rodada de correções (issues #11 e #14–#24; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83), OG-464, OG-465, OG-466, OG-467, OG-468 | |
 | S51 | v2: emblema do clã (D-85), em duas entregas — 1) base e portal: modelo e desenho, catálogo, API, editor, portal, identidade/relatório/PDF; 2) partida e extras: chão da base (com clã no replay/espectador), fim de partida, molduras do hall, compartilhar | Entrega 1: OG-480, OG-481, OG-482, OG-483, OG-484, OG-485; entrega 2: OG-486, OG-414, OG-487, OG-488, OG-489; correção: OG-501 | |
 | S52 | v2: resumo do jogo no PDF da partida | OG-502 | |
+| S53 | v2: radar de estilo de jogo (D-84) — API dos 6 eixos e arquétipo, componente, perfil, jogador x jogador, clã e clã x clã, relatório da partida, sombra de referência, lobby Ranked, cartão para compartilhar e filtro por mapa | OG-469, OG-470, OG-471, OG-472, OG-473, OG-474, OG-475, OG-476, OG-477, OG-478, OG-479 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -939,17 +940,17 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-466](cards/OG-466-tolerancia-de-diagonal.md) | Tolerância de diagonal ajustável de 1 em 1 ms (issue #22) | E11 | 1 | Should | S50 | — | Concluído |
 | [OG-467](cards/OG-467-destacar-se-ao-nascer-retomada-dessa.md) | Volta a opção "Destacar a si mesmo ao nascer" (issue #23) | E11 | 1 | Should | S50 | — | Concluído |
 | [OG-468](cards/OG-468-replay.md) | Replay sem som (e o +/- do teclado numérico é zoom, não volume) (issue #24) | E11 | 3 | Should | S50 | — | Concluído |
-| [OG-469](cards/OG-469-radar-api-eixos-e-arquetipo.md) | Radar de estilo: API com os 6 eixos em percentil e o arquétipo | E9 | 5 | Must | — | OG-358, OG-363 | Backlog |
-| [OG-470](cards/OG-470-componente-radar.md) | Componente de radar no design system (SVG, tooltip, tracejado, mini e tabela) | E9 | 3 | Must | — | OG-200 | Backlog |
-| [OG-471](cards/OG-471-radar-no-perfil.md) | Radar no perfil: arquétipo, temporada passada em tracejado e filtros | E9 | 3 | Must | — | OG-469, OG-470 | Backlog |
-| [OG-472](cards/OG-472-jogador-x-jogador.md) | Jogador x jogador: "Comparar comigo" no radar | E9 | 3 | Must | — | OG-471 | Backlog |
-| [OG-473](cards/OG-473-radar-do-cla.md) | Radar do clã: mediana dos membros e mini radar de cada membro | E13 | 3 | Must | — | OG-469, OG-470, OG-273 | Backlog |
-| [OG-474](cards/OG-474-cla-x-cla-previa-do-confronto.md) | Clã x clã: prévia do confronto com a escalação e radar contra um rival | E13 | 3 | Must | — | OG-473 | Backlog |
-| [OG-475](cards/OG-475-radar-da-partida-no-relatorio.md) | Radar da partida no relatório: a partida por cima da média da temporada | E9 | 3 | Should | — | OG-469, OG-470 | Backlog |
-| [OG-476](cards/OG-476-sombra-de-referencia.md) | Sombra de referência no radar: média do clã ou top 10 do mês | E9 | 2 | Should | — | OG-471 | Backlog |
-| [OG-477](cards/OG-477-radar-dos-times-no-lobby.md) | Radar dos dois times no lobby Ranked antes de começar | E12 | 3 | Should | — | OG-469, OG-470 | Backlog |
-| [OG-478](cards/OG-478-cartao-para-compartilhar.md) | Cartão do estilo para compartilhar (imagem com radar, arquétipo e clã) | E9 | 3 | Could | — | OG-471 | Backlog |
-| [OG-479](cards/OG-479-filtro-por-mapa.md) | Filtro por mapa no radar | E9 | 2 | Could | — | OG-471 | Backlog |
+| [OG-469](cards/OG-469-radar-api-eixos-e-arquetipo.md) | Radar de estilo: API com os 6 eixos em percentil e o arquétipo | E9 | 5 | Must | S53 | OG-358, OG-363 | Em revisão |
+| [OG-470](cards/OG-470-componente-radar.md) | Componente de radar no design system (SVG, tooltip, tracejado, mini e tabela) | E9 | 3 | Must | S53 | OG-200 | Pronto |
+| [OG-471](cards/OG-471-radar-no-perfil.md) | Radar no perfil: arquétipo, temporada passada em tracejado e filtros | E9 | 3 | Must | S53 | OG-469, OG-470 | Pronto |
+| [OG-472](cards/OG-472-jogador-x-jogador.md) | Jogador x jogador: "Comparar comigo" no radar | E9 | 3 | Must | S53 | OG-471 | Pronto |
+| [OG-473](cards/OG-473-radar-do-cla.md) | Radar do clã: mediana dos membros e mini radar de cada membro | E13 | 3 | Must | S53 | OG-469, OG-470, OG-273 | Pronto |
+| [OG-474](cards/OG-474-cla-x-cla-previa-do-confronto.md) | Clã x clã: prévia do confronto com a escalação e radar contra um rival | E13 | 3 | Must | S53 | OG-473 | Pronto |
+| [OG-475](cards/OG-475-radar-da-partida-no-relatorio.md) | Radar da partida no relatório: a partida por cima da média da temporada | E9 | 3 | Should | S53 | OG-469, OG-470 | Pronto |
+| [OG-476](cards/OG-476-sombra-de-referencia.md) | Sombra de referência no radar: média do clã ou top 10 do mês | E9 | 2 | Should | S53 | OG-471 | Pronto |
+| [OG-477](cards/OG-477-radar-dos-times-no-lobby.md) | Radar dos dois times no lobby Ranked antes de começar | E12 | 3 | Should | S53 | OG-469, OG-470 | Pronto |
+| [OG-478](cards/OG-478-cartao-para-compartilhar.md) | Cartão do estilo para compartilhar (imagem com radar, arquétipo e clã) | E9 | 3 | Could | S53 | OG-471 | Pronto |
+| [OG-479](cards/OG-479-filtro-por-mapa.md) | Filtro por mapa no radar | E9 | 2 | Could | S53 | OG-471 | Pronto |
 | [OG-480](cards/OG-480-emblema-modelo-e-render.md) | Emblema do clã: modelo, molduras e desenho vetorial compartilhado | E13 | 5 | Must | S51 | OG-407 | Concluído |
 | [OG-481](cards/OG-481-emblema-catalogo-de-simbolos.md) | Emblema do clã: catálogo final de símbolos (28 desenhos próprios) | E13 | 5 | Must | S51 | OG-480 | Concluído |
 | [OG-482](cards/OG-482-emblema-api.md) | Emblema do clã: API, unicidade e permissões (líder e admins) | E13 | 5 | Must | S51 | OG-480 | Concluído |

@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Could |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S53 |
+| Status | Pronto |
 | Dependências | OG-471 |
 | Regras de negócio | RN-RAD-04 |
 | Skills | `outgun-card-workflow` |
