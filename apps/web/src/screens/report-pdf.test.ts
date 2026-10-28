@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import type { MatchEvents } from './MatchReport.js';
-import { matchReportDoc, pdfFilename, pdfText, renderReportPdf, seriesCoverDoc } from './report-pdf.js';
+import { gameSummary, matchReportDoc, pdfFilename, pdfText, renderReportPdf, seriesCoverDoc } from './report-pdf.js';
 import type { MatchPage, PlayerLine, SeriesView } from './stats.js';
 
 const t = (text: string, ...args: string[]) => args.reduce((s, a, i) => s.replace(`$${i + 1}`, a), text);
@@ -80,5 +80,23 @@ describe('PDF do relatório (OG-425, RN-SOC-08)', () => {
     expect(pdfText('ação · º')).toBe('ação · º');
     expect(pdfFilename('match', 'm1', '2026-10-20T20:10:00Z')).toBe('outgun-partida-m1-2026-10-20.pdf');
     expect(pdfFilename('series', 's1', '2026-10-20T20:00:00Z')).toBe('outgun-serie-s1-2026-10-20.pdf');
+  });
+
+  it('resumo do jogo (OG-502): cores dos lados, linhas sem dado somem, tempo com a bandeira em porcentagem', () => {
+    const m = page('ranked');
+    const withStats: MatchPage = {
+      ...m,
+      details: { ...m.details, teams: [{ score: 3, kills: 9, deaths: 4, shots: 120 }, { score: 1, kills: 4, deaths: 9, shots: 80 }] },
+      players: [player(0, 0, 5, { stats: { flagCarryingTime: 30 } }), player(1, 1, 3, { stats: { flagCarryingTime: 10 } })],
+    };
+    const sum = gameSummary(withStats, t, (team) => (team === 0 ? 'Dark' : 'Blue'))!;
+    expect(sum.sides).toEqual([
+      { name: 'Dark', color: '#AA2200' },
+      { name: 'Blue', color: '#1565C0' },
+    ]);
+    expect(sum.share).toEqual({ label: 'Time with the flag', red: 75, blue: 25 });
+    expect(sum.rows.map((r) => r.label)).toEqual(['Captures', 'Kills', 'Deaths', 'Shots']);
+    expect(sum.rows.find((r) => r.label === 'Deaths')).toMatchObject({ red: 4, blue: 9, lowerIsBetter: true });
+    expect(matchReportDoc(withStats, null, t, 'pt-BR', 'https://outgun.test').summary).toBeDefined();
   });
 });

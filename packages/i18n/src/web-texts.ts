@@ -262,6 +262,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Cyan: 'Ciano',
     Navy: 'Marinho',
     'Open the PDF': 'Abrir o PDF',
+    'Game summary': 'Resumo do jogo',
+    'Time with the flag': 'Tempo com a bandeira',
     // Emblema do clã (OG-481)
     'PNG $1 px': 'PNG $1 px',
     'Download matchup image': 'Baixar imagem do confronto',
