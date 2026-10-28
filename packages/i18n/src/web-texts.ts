@@ -262,6 +262,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Cyan: 'Ciano',
     Navy: 'Marinho',
     // Emblema do clã (OG-481)
+    'PNG $1 px': 'PNG $1 px',
+    'Download matchup image': 'Baixar imagem do confronto',
     'Gold crest': 'Brasão de ouro',
     'Silver crest': 'Brasão de prata',
     'Bronze crest': 'Brasão de bronze',

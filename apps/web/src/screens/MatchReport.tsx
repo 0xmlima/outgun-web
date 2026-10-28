@@ -17,6 +17,7 @@ import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 import { Emblem } from '../ui/Emblem.js';
+import { downloadCanvas, matchupImage } from '../ui/emblem-image.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
 export const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
@@ -200,19 +201,41 @@ export function SeriesScreen() {
       </Page>
     );
   }
+  const seriesSide = (team: 0 | 1) => (s.teams?.[team] ? s.teams[team]!.name || s.teams[team]!.tag : t(team === 0 ? 'Red' : 'Blue'));
   return (
     <Page title={`${t('Series')} ${s.format}`} subtitle={`${date(s.startedAt, prefs.locale)} · ${s.bestOf === 1 ? t('Single game') : t('Best of $1', String(s.bestOf))}`} onBack={() => void navigate(-1)}>
       <section className="report-score" aria-label={t('Score')}>
-        <span className="report-team red">{t('Red')}</span>
+        <span className="report-team red" style={s.teams?.[0]?.color ? { color: s.teams[0].color } : undefined}>
+          {s.teams?.[0] && <Emblem clan={s.teams[0]} size={32} inline />}
+          {seriesSide(0)}
+        </span>
         <span className="report-points">
           {s.redWins} – {s.blueWins}
         </span>
-        <span className="report-team blue">{t('Blue')}</span>
+        <span className="report-team blue" style={s.teams?.[1]?.color ? { color: s.teams[1].color } : undefined}>
+          {s.teams?.[1] && <Emblem clan={s.teams[1]} size={32} inline />}
+          {seriesSide(1)}
+        </span>
         <Badge tone={s.winner === null ? 'neutral' : 'success'}>{seriesResult(s, t)}</Badge>
       </section>
       {s.matches.length > 0 && (
         <div className="ui-row report-actions">
           <PdfButton make={async (pdf) => pdf.saveSeriesPdf(s, t, prefs.locale)} />
+          {/* imagem do confronto clã x clã (OG-489) */}
+          {(s.teams?.[0] || s.teams?.[1]) && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                void matchupImage(
+                  { clan: s.teams?.[0] ?? null, label: seriesSide(0), score: s.redWins },
+                  { clan: s.teams?.[1] ?? null, label: seriesSide(1), score: s.blueWins },
+                  `${t('Series')} ${s.format} · ${date(s.startedAt, prefs.locale)}`,
+                ).then((c) => downloadCanvas(c, `confronto-${s.id.slice(0, 8)}.png`))
+              }
+            >
+              {t('Download matchup image')}
+            </Button>
+          )}
         </div>
       )}
       <SeriesPanel series={s} />

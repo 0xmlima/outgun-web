@@ -3740,6 +3740,7 @@
                         {
                           "type": "object",
                           "required": [
+                            "teams",
                             "id",
                             "format",
                             "bestOf",
@@ -3752,6 +3753,123 @@
                             "matches"
                           ],
                           "properties": {
+                            "teams": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "required": ["tag", "name", "color"],
+                                        "properties": {
+                                          "tag": {
+                                            "type": "string",
+                                            "maxLength": 8
+                                          },
+                                          "name": {
+                                            "type": "string",
+                                            "maxLength": 24
+                                          },
+                                          "color": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "pattern": "^#[0-9A-Fa-f]{6}$"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "emblem": {
+                                            "type": "object",
+                                            "required": ["frame", "symbol", "fillet", "inverted"],
+                                            "properties": {
+                                              "frame": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "shield",
+                                                  "circle",
+                                                  "diamond",
+                                                  "square",
+                                                  "octagon",
+                                                  "banner",
+                                                  "none",
+                                                  "hallGold",
+                                                  "hallSilver",
+                                                  "hallBronze"
+                                                ]
+                                              },
+                                              "symbol": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "tag",
+                                                  "star",
+                                                  "chevrons",
+                                                  "crown",
+                                                  "wings",
+                                                  "flag",
+                                                  "crosshair",
+                                                  "rocket",
+                                                  "bolt",
+                                                  "wolf",
+                                                  "skull",
+                                                  "flame",
+                                                  "tower",
+                                                  "gem",
+                                                  "swords",
+                                                  "brokenShield",
+                                                  "fist",
+                                                  "wall",
+                                                  "phoenix",
+                                                  "dragon",
+                                                  "serpent",
+                                                  "eagle",
+                                                  "shark",
+                                                  "spider",
+                                                  "alien",
+                                                  "robot",
+                                                  "joystick",
+                                                  "ghost",
+                                                  "pixelHeart"
+                                                ]
+                                              },
+                                              "fillet": {
+                                                "type": "boolean"
+                                              },
+                                              "inverted": {
+                                                "type": "boolean"
+                                              }
+                                            }
+                                          },
+                                          "colors": {
+                                            "type": "object",
+                                            "required": ["primary", "secondary"],
+                                            "properties": {
+                                              "primary": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9A-Fa-f]{6}$"
+                                              },
+                                              "secondary": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9A-Fa-f]{6}$"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
                             "id": {
                               "type": "string"
                             },
@@ -4207,6 +4325,7 @@
                     "series": {
                       "type": "object",
                       "required": [
+                        "teams",
                         "id",
                         "format",
                         "bestOf",
@@ -4219,6 +4338,123 @@
                         "matches"
                       ],
                       "properties": {
+                        "teams": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "required": ["tag", "name", "color"],
+                                    "properties": {
+                                      "tag": {
+                                        "type": "string",
+                                        "maxLength": 8
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "maxLength": 24
+                                      },
+                                      "color": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "emblem": {
+                                        "type": "object",
+                                        "required": ["frame", "symbol", "fillet", "inverted"],
+                                        "properties": {
+                                          "frame": {
+                                            "type": "string",
+                                            "enum": [
+                                              "shield",
+                                              "circle",
+                                              "diamond",
+                                              "square",
+                                              "octagon",
+                                              "banner",
+                                              "none",
+                                              "hallGold",
+                                              "hallSilver",
+                                              "hallBronze"
+                                            ]
+                                          },
+                                          "symbol": {
+                                            "type": "string",
+                                            "enum": [
+                                              "tag",
+                                              "star",
+                                              "chevrons",
+                                              "crown",
+                                              "wings",
+                                              "flag",
+                                              "crosshair",
+                                              "rocket",
+                                              "bolt",
+                                              "wolf",
+                                              "skull",
+                                              "flame",
+                                              "tower",
+                                              "gem",
+                                              "swords",
+                                              "brokenShield",
+                                              "fist",
+                                              "wall",
+                                              "phoenix",
+                                              "dragon",
+                                              "serpent",
+                                              "eagle",
+                                              "shark",
+                                              "spider",
+                                              "alien",
+                                              "robot",
+                                              "joystick",
+                                              "ghost",
+                                              "pixelHeart"
+                                            ]
+                                          },
+                                          "fillet": {
+                                            "type": "boolean"
+                                          },
+                                          "inverted": {
+                                            "type": "boolean"
+                                          }
+                                        }
+                                      },
+                                      "colors": {
+                                        "type": "object",
+                                        "required": ["primary", "secondary"],
+                                        "properties": {
+                                          "primary": {
+                                            "type": "string",
+                                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                                          },
+                                          "secondary": {
+                                            "type": "string",
+                                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
                         "id": {
                           "type": "string"
                         },

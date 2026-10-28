@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 3 pts |
 | Sprint | S51 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-484, OG-485 |
 | Regras de negócio | RN-EMB-04 |
 | Skills | `outgun-card-workflow` |
@@ -25,6 +25,8 @@ Como membro de clã, quero baixar o emblema e uma imagem do confronto, para usar
 - Relatório da série clã x clã: imagem "TAG x TAG" com os dois emblemas e o placar, gerada no cliente (canvas), para baixar.
 
 ## Critérios de aceite
-- [ ] PNG nítido nos dois tamanhos; imagem do confronto com nomes, emblemas e placar.
+- [x] PNG nítido nos dois tamanhos; imagem do confronto com nomes, emblemas e placar.
 
 ## Notas de implementação
+- `ui/emblem-image.ts`: rasterização única (o PDF e o chão da base passaram a usar), "PNG 128/512 px" na página do clã e a imagem do confronto (1200 × 630, emblemas, nomes e placar da série) na página da série.
+- A série passou a trazer `teams` (do primeiro jogo que virou o clã): a página e a capa do PDF da série mostram nome, cor e emblema dos clãs, não mais "Vermelho x Azul".

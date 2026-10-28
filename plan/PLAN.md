@@ -958,7 +958,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-486](cards/OG-486-emblema-no-chao-da-base.md) | Emblema do clã no chão da base, na partida | E13 | 5 | Must | S51 | OG-485 | Em revisão |
 | [OG-487](cards/OG-487-emblema-no-fim-da-partida.md) | Emblema do clã no fim de rodada e de partida | E13 | 2 | Must | S51 | OG-485 | Em revisão |
 | [OG-488](cards/OG-488-emblema-molduras-do-hall.md) | Emblema do clã: molduras do hall da fama (ouro, prata e bronze) | E13 | 3 | Should | S51 | OG-482, OG-483 | Em revisão |
-| [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Pronto |
+| [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Em revisão |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | — | OG-289 | Backlog |
 | [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | — | OG-490 | Backlog |
 | [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | — | OG-490 | Backlog |

@@ -53,6 +53,8 @@ const MatchSummary = Type.Object({
 });
 /** Série Ranked (OG-257, RN-RKL-03): placar e os jogos dela, em ordem. */
 const SeriesView = Type.Object({
+  /** Clã de cada lado (do primeiro jogo que virou o clã), com emblema (OG-489); null = vermelho/azul. */
+  teams: Type.Union([Type.Null(), Type.Array(Type.Union([MatchTeamSchema, Type.Null()]))]),
   id: Type.String(),
   format: RankedFormatSchema,
   bestOf: SeriesBestOfSchema,
@@ -422,6 +424,7 @@ export function playerRoutes({ database }: AppDeps, { sessions }: Services): Fas
         winner: s.winner === 0 ? (0 as const) : s.winner === 1 ? (1 as const) : null,
         finished: s.finishedAt !== null,
         startedAt: s.createdAt.toISOString(),
+        teams: games.find((g) => g.teamIdentity)?.teamIdentity ?? null,
         matches: games.map((g) => ({ id: g.id, gameNo: g.gameNo, mapTitle: summary(g).mapTitle, redScore: g.redScore, blueScore: g.blueScore, endedAt: g.endedAt.toISOString(), withBots: g.substituteBots > 0, shortHanded: g.shortHanded > 0 })),
       };
     }

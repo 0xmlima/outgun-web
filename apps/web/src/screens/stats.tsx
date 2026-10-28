@@ -153,6 +153,8 @@ export interface SeriesView {
   winner: 0 | 1 | null;
   finished: boolean;
   startedAt: string;
+  /** Clã de cada lado (OG-489); null = vermelho/azul. */
+  teams?: MatchPage['teams'];
   matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string; withBots?: boolean; shortHanded?: boolean }[];
 }
 

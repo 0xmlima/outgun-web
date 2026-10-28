@@ -19,6 +19,7 @@ import { ClanStatsPanels } from './clan-stats.js';
 import { TitleBadges, type SeasonTitle } from './HallOfFame.js';
 import { PlayerLink, Status, useApi } from './stats.js';
 import { ClanBadge, Emblem, forgetEmblem } from '../ui/Emblem.js';
+import { downloadEmblem } from '../ui/emblem-image.js';
 
 interface ClanRef {
   readonly name: string;
@@ -448,6 +449,12 @@ export function ClanScreen() {
     >
       <div className="ui-row clan-head">
         <Emblem clan={clan} size={112} title={t('Clan emblem')} />
+        {/* PNG do emblema (OG-489) */}
+        {([128, 512] as const).map((size) => (
+          <Button key={size} variant="ghost" onClick={() => void downloadEmblem(clan, size)}>
+            {t('PNG $1 px', String(size))}
+          </Button>
+        ))}
         {clan.titles && clan.titles.length > 0 && <TitleBadges titles={clan.titles} />}
       </div>
       {clan.colors && (

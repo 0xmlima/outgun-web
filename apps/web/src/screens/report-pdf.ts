@@ -10,6 +10,7 @@ import { APP_VERSION } from '../app/version.js';
 import { bestPlayer, captureTimeline, highlights, killMatrix, PLAYER_COLUMNS, seriesResult, TEAM_ROWS, zones, type MatchEvents } from './MatchReport.js';
 import { clock, date, duration, signedDelta, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 import { DEFAULT_EMBLEM, emblemSvg } from '@outgun/protocol';
+import { svgCanvas } from '../ui/emblem-image.js';
 
 type T = (text: string, ...args: string[]) => string;
 
@@ -54,7 +55,7 @@ export interface ReportDoc {
 const cell = (v: unknown): string => (v === null || v === undefined ? '' : String(v));
 
 /** SVG do emblema de cada lado que virou o clã; partidas antigas, sem emblema gravado, usam o padrão. */
-function sideEmblems(m: MatchPage): { redEmblem?: string; blueEmblem?: string } {
+function sideEmblems(m: { readonly teams?: MatchPage['teams'] | undefined }): { redEmblem?: string; blueEmblem?: string } {
   const svg = (team: 0 | 1) => {
     const s = m.teams?.[team];
     return s ? emblemSvg(s.emblem ?? DEFAULT_EMBLEM, s.tag, s.colors?.primary ?? null, s.colors?.secondary ?? null) : undefined;
@@ -68,13 +69,7 @@ export async function withEmblemImages(doc: ReportDoc): Promise<ReportDoc> {
   const png = async (svg: string | undefined) => {
     if (!svg) return undefined;
     try {
-      const img = new Image();
-      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-      await img.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = 512;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, 512, 512);
-      return canvas.toDataURL('image/png');
+      return (await svgCanvas(svg, 512)).toDataURL('image/png');
     } catch {
       return undefined;
     }
@@ -228,11 +223,23 @@ function seriesTable(s: SeriesView, t: T, current?: string): PdfTable {
 
 /** Capa do PDF da série (OG-426): resultado e o resumo de cada jogo; as partidas vêm depois. */
 export function seriesCoverDoc(s: SeriesView, t: T, locale: string, origin: string): ReportDoc {
+  // clã de cada lado (OG-489): o nome no lugar de vermelho/azul, com o emblema
+  const side = (team: 0 | 1) => (s.teams?.[team] ? s.teams[team]!.name || s.teams[team]!.tag : null);
   return {
     label: t('Series'),
     title: `${t('Series')} ${s.format}`,
     subtitle: `${date(s.startedAt, locale)} · ${s.bestOf === 1 ? t('Single game') : t('Best of $1', String(s.bestOf))}`,
-    score: { red: t('Red'), blue: t('Blue'), redScore: s.redWins, blueScore: s.blueWins, redColor: null, blueColor: null, result: seriesResult(s, t), notes: [] },
+    score: {
+      red: side(0) ?? t('Red'),
+      blue: side(1) ?? t('Blue'),
+      redScore: s.redWins,
+      blueScore: s.blueWins,
+      redColor: s.teams?.[0]?.color ?? null,
+      blueColor: s.teams?.[1]?.color ?? null,
+      ...sideEmblems(s),
+      result: seriesResult(s, t),
+      notes: [],
+    },
     facts: [
       [t('Date'), date(s.startedAt, locale)],
       [t('Games of the series'), String(s.matches.length)],
@@ -426,6 +433,6 @@ export async function saveSeriesPdf(s: SeriesView, t: T, locale: string): Promis
       return withEmblemImages(matchReportDoc(page, events, t, locale, location.origin));
     }),
   );
-  const pdf = renderReportPdf([seriesCoverDoc(s, t, locale, location.origin), ...games], t);
+  const pdf = renderReportPdf([await withEmblemImages(seriesCoverDoc(s, t, locale, location.origin)), ...games], t);
   savePdf(pdf, pdfFilename('series', s.id, s.startedAt));
 }

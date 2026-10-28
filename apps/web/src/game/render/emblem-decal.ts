@@ -5,6 +5,7 @@ import { emblemSvg } from '@outgun/protocol';
 import type { GameMap } from '@outgun/sim';
 import type { TeamIdentityView } from '@outgun/netcode';
 import { Texture } from 'pixi.js';
+import { svgCanvas } from '../../ui/emblem-image.js';
 import type { DecalSpot } from './world-renderer.js';
 
 const SIZE = 256;
@@ -18,13 +19,7 @@ export function emblemTexture(id: TeamIdentityView | null): Promise<Texture | nu
   if (!texture) {
     texture = (async () => {
       try {
-        const img = new Image();
-        img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-        await img.decode();
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = SIZE;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, SIZE, SIZE);
-        return Texture.from(canvas);
+        return Texture.from(await svgCanvas(svg, SIZE));
       } catch {
         return null;
       }
