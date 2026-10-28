@@ -89,7 +89,7 @@ export function ControlsPanel() {
           value={prefs.chordWindowMs}
           min={0}
           max={CHORD_WINDOW_MAX_MS}
-          step={5}
+          step={1}
           format={(v) => (v ? `${v} ms` : t('off'))}
           hint={t('Keys pressed or released this close together count as together: the gun does not turn on the way. Movement never waits.')}
           onChange={(v) => setPrefs({ chordWindowMs: v })}
