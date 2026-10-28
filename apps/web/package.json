@@ -1,6 +1,6 @@
 {
   "name": "@outgun/web",
-  "version": "2.50.1",
+  "version": "2.50.2",
   "private": true,
   "description": "Cliente web: React (menus) + PixiJS (jogo) (cards OG-060 em diante).",
   "license": "GPL-2.0-or-later",

@@ -1,6 +1,6 @@
 {
   "name": "@outgun/game-server",
-  "version": "2.50.1",
+  "version": "2.50.2",
   "private": true,
   "description": "Servidor de jogo autoritativo, salas e loop de 10 Hz (card OG-040).",
   "license": "GPL-2.0-or-later",

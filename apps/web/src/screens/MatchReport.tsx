@@ -265,10 +265,11 @@ export function MatchScreen() {
   const best = bestPlayer(m.players);
   const top = highlights(m.players);
   const seconds = (Date.parse(m.match.endedAt) - Date.parse(m.match.startedAt)) / 1000;
-  // lado que virou o clã (OG-409): tag no lugar de vermelho/azul, na cor do clã
+  // lado que virou o clã (OG-409): o nome do clã no lugar de vermelho/azul, na cor do clã (a tag se faltar o nome)
   const side = (team: 0 | 1) => m.teams?.[team] ?? null;
-  const short = (team: 0 | 1) => side(team)?.tag ?? t(team === 0 ? 'Red' : 'Blue');
-  const long = (team: 0 | 1) => side(team)?.tag ?? t(team === 0 ? 'Red team' : 'Blue team');
+  const clan = (team: 0 | 1) => (side(team) ? side(team)!.name || side(team)!.tag : null);
+  const short = (team: 0 | 1) => clan(team) ?? t(team === 0 ? 'Red' : 'Blue');
+  const long = (team: 0 | 1) => clan(team) ?? t(team === 0 ? 'Red team' : 'Blue team');
   const tint = (team: 0 | 1) => (side(team)?.color ? { color: side(team)!.color! } : undefined);
   const winner =
     redScore === blueScore ? t('Draw') : side(redScore > blueScore ? 0 : 1) ? t('$1 wins', short(redScore > blueScore ? 0 : 1)) : redScore > blueScore ? t('Red team wins') : t('Blue team wins');
@@ -336,7 +337,7 @@ export function MatchScreen() {
             {m.clans && (
               <>
                 {' · '}
-                <Link to={`/clans/${encodeURIComponent(m.clans.red.tag)}`}>{m.clans.red.tag}</Link> × <Link to={`/clans/${encodeURIComponent(m.clans.blue.tag)}`}>{m.clans.blue.tag}</Link>
+                <Link to={`/clans/${encodeURIComponent(m.clans.red.tag)}`}>{m.clans.red.name || m.clans.red.tag}</Link> × <Link to={`/clans/${encodeURIComponent(m.clans.blue.tag)}`}>{m.clans.blue.name || m.clans.blue.tag}</Link>
               </>
             )}
           </Badge>
