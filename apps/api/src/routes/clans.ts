@@ -435,7 +435,8 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           tags: ['clãs'],
           summary: 'Escolhe ou troca o emblema do clã (líder e admins, sem espera); null volta ao padrão. Repetir o de outro clã: 409 emblem_taken',
           params: TagParams,
-          body: Type.Object({ emblem: Type.Union([EmblemSchema, Type.Null()]) }),
+          // as cores vão junto (opcional): o editor mostra o emblema com as cores ainda não salvas do clã
+          body: Type.Object({ emblem: Type.Union([EmblemSchema, Type.Null()]), colors: Type.Optional(Type.Union([Type.Object({ primary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), secondary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }) }), Type.Null()])) }),
           response: { 200: Type.Object({ clan: ClanSchema }), 400: ErrorSchema, 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
         },
       },
@@ -448,7 +449,10 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
           const emblem = request.body.emblem && parseEmblem(request.body.emblem);
           if (request.body.emblem && !emblem) throw new ClanError(400, 'invalid_emblem');
-          await updateClan(tx, clan.id, { emblem });
+          const c = request.body.colors;
+          const colors = c && { primary: c.primary.toUpperCase(), secondary: c.secondary.toUpperCase() };
+          await checkClanFields(tx, { colors }, config.nameFilter, clan.id);
+          await updateClan(tx, clan.id, { emblem, colors });
           return clan.tag;
         });
         if (!done) return reply;

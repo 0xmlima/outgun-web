@@ -6295,6 +6295,27 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "colors": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["primary", "secondary"],
+                        "properties": {
+                          "primary": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                          },
+                          "secondary": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-Fa-f]{6}$"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }

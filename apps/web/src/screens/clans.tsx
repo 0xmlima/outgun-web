@@ -653,11 +653,11 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
       </Panel>
       <EmblemEditor
         key={tick}
-        clan={clan}
+        clan={{ ...clan, colors }}
         base={base}
         tick={tick}
         onSave={(emblem) =>
-          void act(`${base}/emblem`, { method: 'PUT', body: { emblem } }).then((ok) => {
+          void act(`${base}/emblem`, { method: 'PUT', body: { emblem, colors } }).then((ok) => {
             if (!ok) return;
             forgetEmblem(clan.tag);
             toast(t('Saved.'), 'success');

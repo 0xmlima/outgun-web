@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Editor do emblema do clã (OG-483, RN-EMB-01..03): moldura, símbolo, filete e inverter sobre as
-// cores do clã, com prévia em vários tamanhos. Combinações que repetiriam o emblema de outro clã
+// cores do clã (as do formulário, ainda sem salvar: o emblema muda junto e salva com elas), com
+// prévia em vários tamanhos. Combinações que repetiriam o emblema de outro clã
 // (RN-EMB-02) ficam desabilitadas.
 import { useState } from 'react';
 import { DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_FRAME_NAMES, EMBLEM_SYMBOLS, EMBLEM_SYMBOL_NAMES, emblemKey, type ClanEmblem } from '@outgun/protocol';

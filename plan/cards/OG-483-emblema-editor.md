@@ -31,4 +31,4 @@ Como líder ou admin de clã, quero montar o emblema com prévia nos tamanhos re
 ## Notas de implementação
 - `ui/Emblem.tsx` (componente único, usa `emblemSvg`) e `screens/clan-emblem.tsx` (editor), no painel de gestão do clã, que só líder e admins veem; o membro vê o emblema nas telas do OG-484.
 - Opções ocupadas: compara `emblemKey` com `GET /clans/:tag/emblem/taken`; desabilitadas com o motivo no título, e o Salvar trava com a mensagem se a combinação atual for de outro clã.
-- Cores vêm das cores salvas do clã (trocar cor e emblema juntos = salvar as cores primeiro). Prévia em 128 px e 16/32/64 px em fundo escuro e claro.
+- Pedido do PO: a prévia segue as cores do formulário enquanto mudam, e "Salvar emblema" grava essas cores junto (`colors` opcional no `PUT .../emblem`, mesma validação e checagem de repetido). Prévia em 128 px e 16/32/64 px em fundo escuro e claro.
