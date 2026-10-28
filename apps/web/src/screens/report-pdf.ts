@@ -50,6 +50,65 @@ export interface ReportDoc {
   readonly facts: readonly (readonly [string, string])[];
   readonly tables: readonly PdfTable[];
   readonly link: string;
+  /** "Resumo do jogo" (OG-502): lado a lado, nas cores dos lados; ausente na capa da série. */
+  readonly summary?: PdfSummary;
+}
+
+/** Uma linha do resumo: valores e o texto de cada lado; `lowerIsBetter` destaca o menor. */
+export interface PdfSummaryRow {
+  readonly label: string;
+  readonly red: number;
+  readonly blue: number;
+  readonly text: readonly [string, string];
+  readonly lowerIsBetter?: boolean;
+}
+
+export interface PdfSummary {
+  /** Nome e cor (`#RRGGBB`) de cada lado: a cor do clã, senão vermelho/azul. */
+  readonly sides: readonly [{ readonly name: string; readonly color: string }, { readonly name: string; readonly color: string }];
+  /** Barra de cima, em porcentagem (tempo com a bandeira); null sem dado. */
+  readonly share: { readonly label: string; readonly red: number; readonly blue: number } | null;
+  readonly rows: readonly PdfSummaryRow[];
+}
+
+/** Resumo do jogo (OG-502) a partir das estatísticas dos times; linhas sem dado nos dois lados saem. */
+export function gameSummary(m: MatchPage, t: T, name: (team: 0 | 1) => string): PdfSummary | undefined {
+  const teams = m.details.teams;
+  if (!teams) return undefined;
+  const v = (team: 0 | 1, key: string) => teams[team]?.[key] ?? 0;
+  const int = (n: number) => Math.round(n).toLocaleString('pt-BR');
+  const row = (label: string, key: string, format: (n: number) => string = int, lowerIsBetter = false): PdfSummaryRow => ({
+    label: t(label),
+    red: v(0, key),
+    blue: v(1, key),
+    text: [format(v(0, key)), format(v(1, key))],
+    ...(lowerIsBetter ? { lowerIsBetter } : {}),
+  });
+  const rows = [
+    row('Captures', 'score'),
+    row('Kills', 'kills'),
+    row('Deaths', 'deaths', int, true),
+    row('Flags taken', 'flagsTaken'),
+    row('Flags returned', 'flagsReturned'),
+    row('Flags dropped', 'flagsDropped', int, true),
+    row('Shots', 'shots'),
+    row('Hit accuracy', 'accuracy', (n) => `${Math.round(100 * n)}%`),
+    row('Shots taken', 'shotsTaken', int, true),
+    row('Total movement', 'movement', (n) => `${int(n)} u`),
+    row('Suicides', 'suicides', int, true),
+  ].filter((r, i) => i === 0 || r.red !== 0 || r.blue !== 0);
+  const carry = ([0, 1] as const).map((team) => m.players.filter((p) => p.team === team).reduce((sum, p) => sum + (p.stats['flagCarryingTime'] ?? 0), 0));
+  const total = carry[0]! + carry[1]!;
+  const share = total > 0 ? { label: t('Time with the flag'), red: Math.round((100 * carry[0]!) / total), blue: 100 - Math.round((100 * carry[0]!) / total) } : null;
+  const colour = (team: 0 | 1) => m.teams?.[team]?.color ?? (team === 0 ? '#C62828' : '#1565C0');
+  return {
+    sides: [
+      { name: name(0), color: colour(0) },
+      { name: name(1), color: colour(1) },
+    ],
+    share,
+    rows,
+  };
 }
 
 const cell = (v: unknown): string => (v === null || v === undefined ? '' : String(v));
@@ -209,6 +268,10 @@ export function matchReportDoc(m: MatchPage, events: MatchEvents | null, t: T, l
     facts,
     tables,
     link: `${origin}/matches/${m.match.id}`,
+    ...(() => {
+      const summary = gameSummary(m, t, short);
+      return summary ? { summary } : {};
+    })(),
   };
 }
 
@@ -273,6 +336,102 @@ function rgb(hex: string | null, fallback: [number, number, number]): [number, n
 }
 
 /** Desenha as partidas (e a capa da série) em sequência, cada uma começando numa página nova. */
+/** Cor `#RRGGBB` misturada com o fundo do painel (`amount` 0..1 da cor). */
+function shade(colour: [number, number, number], amount: number): [number, number, number] {
+  const [r, g, b] = colour;
+  return [Math.round(PANEL[0] + (r - PANEL[0]) * amount), Math.round(PANEL[1] + (g - PANEL[1]) * amount), Math.round(PANEL[2] + (b - PANEL[2]) * amount)];
+}
+const PANEL: [number, number, number] = [31, 34, 38];
+
+/** Cor do lado legível no painel escuro: cores escuras (preto, marinho, vinho) clareiam até aparecer. */
+function onPanel(hex: string, fallback: [number, number, number]): [number, number, number] {
+  let c = rgb(hex, fallback);
+  const lum = ([r, g, b]: [number, number, number]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  for (let i = 0; i < 4 && lum(c) < 0.4; i++) c = c.map((v) => Math.round(v + (255 - v) * 0.35)) as [number, number, number];
+  return c;
+}
+const TRACK: [number, number, number] = [52, 56, 62];
+const LIGHT: [number, number, number] = [238, 242, 248];
+
+/** Desenha o "Resumo do jogo" a partir de `y`; devolve o `y` depois do painel. */
+function drawSummary(pdf: jsPDF, sum: PdfSummary, score: PdfScore, t: T, M: number, W: number, y: number): number {
+  const rowH = 11;
+  const h = 20 + (sum.share ? 14 : 0) + rowH * sum.rows.length;
+  if (y + h > pdf.internal.pageSize.getHeight() - 16) {
+    pdf.addPage();
+    y = 16;
+  }
+  const x0 = M;
+  const x1 = W - M;
+  const pad = 6;
+  pdf.setFillColor(...PANEL);
+  pdf.roundedRect(x0, y, x1 - x0, h, 3, 3, 'F');
+  // título e os lados (emblema + nome, na cor do lado)
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(13);
+  pdf.setTextColor(...LIGHT);
+  pdf.text(pdfText(t('Game summary')), W / 2, y + 9, { align: 'center' });
+  const emblem = (e: string | undefined) => (e?.startsWith('data:image/png') ? e : undefined);
+  const [re, be] = [emblem(score.redEmblem), emblem(score.blueEmblem)];
+  pdf.setFontSize(10);
+  if (re) pdf.addImage(re, 'PNG', x0 + pad, y + 4, 9, 9);
+  if (be) pdf.addImage(be, 'PNG', x1 - pad - 9, y + 4, 9, 9);
+  pdf.setTextColor(...onPanel(sum.sides[0].color, RED));
+  pdf.text(pdfText(sum.sides[0].name), x0 + pad + (re ? 11 : 0), y + 10);
+  pdf.setTextColor(...onPanel(sum.sides[1].color, BLUE));
+  pdf.text(pdfText(sum.sides[1].name), x1 - pad - (be ? 11 : 0), y + 10, { align: 'right' });
+  let cy = y + 20;
+  const full = (team: 0 | 1) => onPanel(sum.sides[team].color, team === 0 ? RED : BLUE);
+  // barra de cima: porcentagem de cada lado numa barra só
+  if (sum.share) {
+    const sh = sum.share;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    for (const [team, value, x, align] of [
+      [0, sh.red, x0 + pad, 'left'],
+      [1, sh.blue, x1 - pad, 'right'],
+    ] as const) {
+      pdf.setFillColor(...full(team));
+      pdf.roundedRect(align === 'left' ? x : x - 16, cy - 4, 16, 6, 3, 3, 'F');
+      pdf.setTextColor(...INK);
+      pdf.text(`${value}%`, align === 'left' ? x + 8 : x - 8, cy + 0.2, { align: 'center' });
+    }
+    pdf.setTextColor(...LIGHT);
+    pdf.text(pdfText(sh.label), W / 2, cy + 0.2, { align: 'center' });
+    const bw = x1 - x0 - 2 * pad;
+    const split = (bw * sh.red) / 100;
+    pdf.setFillColor(...full(1));
+    pdf.roundedRect(x0 + pad, cy + 4, bw, 4, 2, 2, 'F');
+    pdf.setFillColor(...full(0));
+    pdf.roundedRect(x0 + pad, cy + 4, Math.max(4, split), 4, 2, 2, 'F');
+    if (split > 4 && split < bw - 2) pdf.rect(x0 + pad + split - 2, cy + 4, 2, 4, 'F');
+    cy += 14;
+  }
+  // linhas: valor, rótulo, valor; meia-barra de cada lado crescendo a partir do centro
+  const half = (x1 - x0 - 2 * pad - 8) / 2;
+  for (const r of sum.rows) {
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(...LIGHT);
+    pdf.text(pdfText(r.text[0]), x0 + pad, cy + 1);
+    pdf.text(pdfText(r.text[1]), x1 - pad, cy + 1, { align: 'right' });
+    pdf.text(pdfText(r.label), W / 2, cy + 1, { align: 'center' });
+    const total = r.red + r.blue;
+    const lead = r.red === r.blue ? null : (r.red > r.blue) !== Boolean(r.lowerIsBetter) ? 0 : 1;
+    for (const team of [0, 1] as const) {
+      const start = team === 0 ? x0 + pad : W / 2 + 4;
+      pdf.setFillColor(...TRACK);
+      pdf.roundedRect(start, cy + 3, half, 2.2, 1.1, 1.1, 'F');
+      const len = total > 0 ? (half * (team === 0 ? r.red : r.blue)) / total : 0;
+      if (len <= 0) continue;
+      pdf.setFillColor(...(lead === null || lead === team ? full(team) : shade(full(team), 0.45)));
+      pdf.roundedRect(team === 0 ? start + half - len : start, cy + 3, len, 2.2, 1.1, 1.1, 'F');
+    }
+    cy += rowH;
+  }
+  return y + h + 6;
+}
+
 export function renderReportPdf(docs: readonly ReportDoc[], t: T, compress = true): jsPDF {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress });
   const W = pdf.internal.pageSize.getWidth();
@@ -327,6 +486,9 @@ export function renderReportPdf(docs: readonly ReportDoc[], t: T, compress = tru
     pdf.setTextColor(...MUTED);
     s.notes.forEach((n, i) => pdf.text(pdfText(n), W / 2, y + 23 + 4 * i, { align: 'center' }));
     y += 30 + 4 * s.notes.length;
+
+    // resumo do jogo (OG-502): painel escuro, lado a lado, nas cores dos lados
+    if (doc.summary) y = drawSummary(pdf, doc.summary, s, t, M, W, y);
 
     // ficha (duas colunas)
     autoTable(pdf, {

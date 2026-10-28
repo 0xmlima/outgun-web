@@ -619,6 +619,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S49 | v2: coletor leve (Fluent Bit) para mandar as métricas e logs do beta ao Grafana Cloud na E2.1.Micro | OG-457 | |
 | S50 | v2: rodada de correções (issues #11 e #14–#24; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83), OG-464, OG-465, OG-466, OG-467, OG-468 | |
 | S51 | v2: emblema do clã (D-85), em duas entregas — 1) base e portal: modelo e desenho, catálogo, API, editor, portal, identidade/relatório/PDF; 2) partida e extras: chão da base (com clã no replay/espectador), fim de partida, molduras do hall, compartilhar | Entrega 1: OG-480, OG-481, OG-482, OG-483, OG-484, OG-485; entrega 2: OG-486, OG-414, OG-487, OG-488, OG-489; correção: OG-501 | |
+| S52 | v2: resumo do jogo no PDF da partida | OG-502 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -960,6 +961,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-488](cards/OG-488-emblema-molduras-do-hall.md) | Emblema do clã: molduras do hall da fama (ouro, prata e bronze) | E13 | 3 | Should | S51 | OG-482, OG-483 | Concluído |
 | [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Concluído |
 | [OG-501](cards/OG-501-pdf-no-celular.md) | Baixar PDF no celular (folha de compartilhar do sistema) | E9 | 2 | Must | S51 | OG-425, OG-426 | Concluído |
+| [OG-502](cards/OG-502-resumo-do-jogo-no-pdf.md) | Resumo do jogo no PDF da partida (lado a lado, nas cores dos clãs) | E9 | 3 | Should | S52 | OG-425, OG-485 | Concluído |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | — | OG-289 | Backlog |
 | [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | — | OG-490 | Backlog |
 | [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | — | OG-490 | Backlog |

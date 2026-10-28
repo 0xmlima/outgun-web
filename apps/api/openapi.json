@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.51.0",
+    "version": "2.52.0",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
