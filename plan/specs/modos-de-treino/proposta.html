@@ -1,0 +1,664 @@
+<title>Modos de Treino Outgun</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mesma família visual das propostas do radar e do emblema; coluna de ~1040px, simulador (formulário + arena) no topo, depois as regras dos quatro modos, empilhando no celular. */
+:root {
+  --bg: #eef1ef;
+  --surface: #f8faf9;
+  --ink: #17201c;
+  --muted: #56635d;
+  --line: #c9d2cd;
+  --flag: #b07a0c;          /* dourado da bandeira: único acento */
+  --good: #1f8a6a;
+  --bad: #c2393f;
+  --arena: #1b2420;         /* chão escuro da arena (igual nos dois temas) */
+  --arena-wall: #3d4c45;
+  --arena-ink: #e2eae6;
+  --red: #d8463f;           /* times do jogo */
+  --blue: #3f7ad8;
+  --display: "Chakra Petch", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832;
+    --flag: #e0a83a; --good: #43c29b; --bad: #f0646b; --arena: #0b100e; --arena-wall: #33413a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832;
+  --flag: #e0a83a; --good: #43c29b; --bad: #f0646b; --arena: #0b100e; --arena-wall: #33413a; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 700; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; max-width: 64ch; }
+ul, ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 70ch; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--flag); }
+.muted { color: var(--muted); }
+code { font-family: var(--mono); font-size: .86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+header.hero { padding-top: 48px; display: grid; gap: 16px; }
+.hero p.lede { font-size: 1.08rem; }
+.note-example { font-family: var(--mono); font-size: .78rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; max-width: none; }
+
+section { display: grid; gap: 24px; }
+.head { display: grid; gap: 10px; }
+
+/* Simulador */
+.sim { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+.sim > * { min-width: 0; }
+.form { display: grid; gap: 14px; align-content: start; }
+.form .ftitle { font-family: var(--display); font-weight: 600; font-size: 1.05rem; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.field { display: grid; gap: 4px; }
+.field .lbl { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.field .row { display: flex; gap: 10px; align-items: center; }
+.field .row output { font-family: var(--mono); font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+.field input[type="range"] { flex: 1; min-width: 0; accent-color: var(--flag); }
+.field .hint { font-size: .8rem; color: var(--muted); }
+select { font: 500 1rem var(--body); color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 100%; width: 100%; }
+.fixed { font-size: .86rem; color: var(--muted); display: grid; gap: 2px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.fixed b { color: var(--ink); font-weight: 500; }
+button { font: 600 .92rem var(--body); color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+button.primary { background: var(--flag); border-color: var(--flag); color: #17201c; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--flag); outline-offset: 2px; }
+
+.stage { display: grid; gap: 12px; align-content: start; }
+.arena { position: relative; background: var(--arena); border-radius: 8px; overflow: hidden; }
+.arena canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 1; max-width: 100%; }
+.arena .banner {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-family: var(--display); font-weight: 700; font-size: clamp(.9rem, 2.4vw, 1.3rem); letter-spacing: .04em;
+  color: var(--arena-ink); background: rgba(11, 16, 14, .82); border: 1.5px solid var(--c, var(--arena-wall));
+  border-radius: 8px; padding: 6px 14px; text-align: center; pointer-events: none; max-width: 90%;
+}
+.arena .banner small { display: block; font-family: var(--mono); font-weight: 400; font-size: .72rem; letter-spacing: 0; color: #98a69f; }
+.goal { font-size: .93rem; }
+.goal b { font-family: var(--display); }
+.ctlbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ctlbar label { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; }
+.series { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.series div { background: var(--bg); padding: 8px 10px; display: grid; gap: 0; }
+.series span { font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.series b { font-family: var(--display); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.log { font-family: var(--mono); font-size: .76rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; }
+.log i { font-style: normal; width: 18px; height: 18px; border-radius: 4px; display: inline-grid; place-items: center; color: #fff; font-size: .7rem; }
+.log i.ok { background: var(--good); }
+.log i.ko { background: var(--bad); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--c); }
+.legend i.sq { border-radius: 2px; }
+
+/* Os quatro modos */
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.mode { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; align-content: start; }
+.mode h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.mode .side { font-family: var(--mono); font-size: .74rem; color: var(--muted); font-weight: 400; }
+.mode dl { margin: 0; display: grid; gap: 8px; }
+.mode dt { font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.mode dd { margin: 0; font-size: .92rem; }
+.mode dd ul { gap: 2px; }
+.tag-new { font-family: var(--mono); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; color: var(--flag); border: 1px solid var(--flag); border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
+.ok-t { color: var(--good); font-weight: 600; }
+.ko-t { color: var(--bad); font-weight: 600; }
+
+/* Ciclo da rodada */
+.cycle { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; counter-reset: c; }
+.cycle article { background: var(--surface); padding: 14px; display: grid; gap: 6px; align-content: start; }
+.cycle article::before { counter-increment: c; content: counter(c); font-family: var(--display); font-weight: 700; color: var(--flag); font-size: 1.1rem; }
+.cycle h3 { font-size: 1rem; }
+.cycle p { font-size: .86rem; }
+
+/* O que já existe */
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; align-content: start; }
+.fact .t { font-family: var(--display); font-weight: 600; }
+.fact p { font-size: .9rem; }
+.fact .src { font-family: var(--mono); font-size: .72rem; color: var(--muted); overflow-wrap: anywhere; }
+
+/* Ideias, cuidados e perguntas */
+.ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ideas article { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.ideas p { font-size: .93rem; }
+.cares { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 32px; }
+.cares article { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 10px; }
+.cares p { font-size: .94rem; }
+.qs { counter-reset: q; list-style: none; padding: 0; display: grid; gap: 14px; max-width: 76ch; }
+.qs li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; }
+.qs li::before { counter-increment: q; content: "P" counter(q); font-family: var(--display); font-weight: 700; color: var(--flag); font-size: 1.1rem; line-height: 1.5; }
+.qs li p { max-width: none; }
+.qs li small { display: block; font-size: .86rem; color: var(--muted); margin-top: 2px; }
+footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
+
+@media (max-width: 820px) {
+  .sim, .modes, .ideas, .cares { grid-template-columns: minmax(0, 1fr); }
+  .facts { grid-template-columns: minmax(0, 1fr); }
+  .cycle { grid-template-columns: minmax(0, 1fr); }
+  .sim { padding: 16px; }
+  .series { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Proposta para a comunidade · sala privada Casual</span>
+  <h1>Modos de treino</h1>
+  <p class="lede">Hoje dá para criar uma sala privada com bots, mas a partida é sempre a mesma: CTF inteiro, do começo ao fim. A ideia é ter presets de <b>treino</b> que isolam um fundamento do jogo (atacar, defender, fugir com a bandeira, interceptar o portador) e reiniciam sozinhos a cada tentativa, como um treino de pênalti. É sempre jogador contra bots e, em vários casos, o jogador fica sozinho de um lado.</p>
+  <p class="note-example">A simulação abaixo é um esquema com movimentos inventados, não o jogo de verdade. Os números da série são da sua sessão nesta página.</p>
+</header>
+
+<section id="simulador" aria-labelledby="t-sim">
+  <div class="head">
+    <h2 id="t-sim">Crie uma sala de treino</h2>
+    <p class="muted">À esquerda, o formulário de "Criar sala privada" com os presets novos. À direita, um esquema de três salas do mapa: a sua base, o meio e a base inimiga. Cada tentativa termina num resultado e recomeça sozinha.</p>
+  </div>
+  <div class="sim">
+    <form class="form" id="form" onsubmit="return false">
+      <div class="ftitle">Criar sala privada</div>
+      <label class="field" for="preset">
+        <span class="lbl">Preset</span>
+        <select id="preset">
+          <optgroup label="Partida">
+            <option value="classic">Clássico</option>
+            <option value="duel">Duelo</option>
+            <option value="insta">Insta</option>
+            <option value="chaos">Caos</option>
+            <option value="carnage">Carnificina</option>
+          </optgroup>
+          <optgroup label="Treino">
+            <option value="ataque" selected>Treino: Ataque</option>
+            <option value="defesa">Treino: Defesa</option>
+            <option value="fuga">Treino: Fuga</option>
+            <option value="captura">Treino: Captura</option>
+          </optgroup>
+        </select>
+      </label>
+      <div id="modeFields" class="form"></div>
+      <label class="field" for="level">
+        <span class="lbl">Nível dos bots</span>
+        <span class="row"><input type="range" id="level" min="1" max="5" value="3"><output id="levelOut">3</output></span>
+        <span class="hint" id="levelHint"></span>
+      </label>
+      <label class="field" for="map">
+        <span class="lbl">Mapa</span>
+        <select id="map">
+          <option>Rotação Casual (sorteia)</option>
+          <option>Um mapa da rotação</option>
+        </select>
+      </label>
+      <div class="fixed" id="fixed"></div>
+    </form>
+
+    <div class="stage">
+      <p class="goal" id="goal"></p>
+      <div class="arena">
+        <canvas id="cv" width="900" height="300" role="img" aria-label="Esquema animado da tentativa de treino"></canvas>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i style="--c: var(--blue); outline: 2px solid #fff; outline-offset: 1px"></i>Você</span>
+        <span><i style="--c: var(--blue)"></i>Bot aliado</span>
+        <span><i style="--c: var(--red)"></i>Bot inimigo</span>
+        <span><i class="sq" style="--c: var(--flag)"></i>Bandeira</span>
+      </div>
+      <div class="ctlbar">
+        <button type="button" class="primary" id="again">Nova tentativa</button>
+        <label for="auto"><input type="checkbox" id="auto" checked> Reiniciar sozinho</label>
+        <button type="button" id="reset">Zerar a série</button>
+      </div>
+      <div class="series" aria-live="polite">
+        <div><span>Tentativas</span><b id="sTries">0</b></div>
+        <div><span>Sucessos</span><b id="sWins">0</b></div>
+        <div><span>Aproveitamento</span><b id="sPct">—</b></div>
+        <div><span>Melhor tempo</span><b id="sBest">—</b></div>
+      </div>
+      <div class="log" id="log" aria-label="Últimas tentativas"></div>
+    </div>
+  </div>
+</section>
+
+<section id="modos" aria-labelledby="t-modos">
+  <div class="head">
+    <h2 id="t-modos">Os quatro modos</h2>
+    <p class="muted">As regras de Ataque e Defesa são as do pedido. Os itens marcados <span class="tag-new">proposta</span> completam o que faltava definir e estão nas perguntas no fim da página.</p>
+  </div>
+  <div class="modes">
+    <article class="mode">
+      <h3>Ataque <span class="side">você sozinho × 2 ou 3 bots na defesa</span></h3>
+      <dl>
+        <div><dt>Objetivo</dt><dd>Entrar na base inimiga e pegar a bandeira, derrubando os defensores ou só passando por eles.</dd></div>
+        <div><dt>Reinicia quando</dt><dd><ul>
+          <li><span class="ko-t">falha:</span> você morre;</li>
+          <li><span class="ok-t">sucesso:</span> você derruba todos os defensores;</li>
+          <li><span class="ok-t">sucesso:</span> você sai da sala da base com a bandeira.</li>
+        </ul></dd></div>
+        <div><dt>Opções</dt><dd>Defensores (2 ou 3 no pedido; a página deixa de 1 a 4) e nível.</dd></div>
+      </dl>
+    </article>
+    <article class="mode">
+      <h3>Defesa <span class="side">você + 1 ou 2 bots × N atacantes</span></h3>
+      <dl>
+        <div><dt>Objetivo</dt><dd>Segurar a bandeira na sua base contra uma onda de atacantes.</dd></div>
+        <div><dt>Reinicia quando</dt><dd><ul>
+          <li><span class="ko-t">falha:</span> você morre;</li>
+          <li><span class="ko-t">falha:</span> pegam a bandeira e ela sai da sala da base;</li>
+          <li><span class="ok-t">sucesso:</span> todos os atacantes da onda caem <span class="tag-new">proposta</span>.</li>
+        </ul></dd></div>
+        <div><dt>Opções</dt><dd>Aliados (1 ou 2), atacantes (selecionável, 1 a 5) e nível.</dd></div>
+      </dl>
+    </article>
+    <article class="mode">
+      <h3>Fuga <span class="side">você sozinho com a bandeira × perseguidores</span></h3>
+      <dl>
+        <div><dt>Objetivo</dt><dd>Começar com a bandeira inimiga na mão, dentro da base deles, e levá-la até a sua base com bots no seu encalço <span class="tag-new">proposta</span>.</dd></div>
+        <div><dt>Reinicia quando</dt><dd><ul>
+          <li><span class="ko-t">falha:</span> você morre (a bandeira cai);</li>
+          <li><span class="ok-t">sucesso:</span> você captura na sua base <span class="tag-new">proposta</span>.</li>
+        </ul></dd></div>
+        <div><dt>Opções</dt><dd>Perseguidores (1 a 4), nível e o ponto de chegada (P4).</dd></div>
+      </dl>
+    </article>
+    <article class="mode">
+      <h3>Captura <span class="side">você sozinho × portador + escolta</span></h3>
+      <dl>
+        <div><dt>Objetivo</dt><dd>Um bot sai da sua base com a sua bandeira rumo à base dele. Você precisa alcançá-lo, derrubá-lo e devolver a bandeira antes da entrega.</dd></div>
+        <div><dt>Reinicia quando</dt><dd><ul>
+          <li><span class="ko-t">falha:</span> a bandeira é entregue na base inimiga;</li>
+          <li><span class="ko-t">falha:</span> você morre <span class="tag-new">proposta</span>;</li>
+          <li><span class="ok-t">sucesso:</span> você devolve a bandeira (derrubar o portador e tocar nela) <span class="tag-new">proposta</span>.</li>
+        </ul></dd></div>
+        <div><dt>Opções</dt><dd>Escolta do portador (0 a 3), nível e quanto de vantagem o portador leva na saída.</dd></div>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<section id="rodada" aria-labelledby="t-rodada">
+  <div class="head">
+    <h2 id="t-rodada">Como uma tentativa funciona</h2>
+    <p class="muted">A sala de treino não tem placar de partida, tempo limite nem tela de fim. Ela repete este ciclo enquanto você quiser.</p>
+  </div>
+  <div class="cycle">
+    <article><h3>Posicionar</h3><p>Todos nascem nos pontos do modo: você, os bots e a bandeira já no lugar (na base ou na mão de alguém).</p></article>
+    <article><h3>Contagem</h3><p>3, 2, 1 curtos, com todos parados, para você se orientar na sala.</p></article>
+    <article><h3>Jogar</h3><p>Física e armas de sempre (10 Hz, D-74). Power-ups desligados por padrão, para o treino ser repetível.</p></article>
+    <article><h3>Resultado</h3><p>Sucesso ou falha, o motivo e o tempo da tentativa, no aviso que o jogo já mostra no centro da tela.</p></article>
+    <article><h3>Reinício</h3><p>Uns 2 segundos depois, tudo volta ao passo 1. A série (tentativas, sucessos, melhor tempo) continua contando.</p></article>
+  </div>
+</section>
+
+<section id="existe" aria-labelledby="t-existe">
+  <div class="head">
+    <h2 id="t-existe">O que o jogo já tem</h2>
+    <p class="muted">Boa parte da base existe. O que falta de verdade é ensinar os bots a cumprir um papel fixo e ter um juiz de tentativa no servidor.</p>
+  </div>
+  <div class="facts">
+    <div class="fact"><span class="t">Presets da sala privada</span><p>Clássico, Duelo, Insta, Caos e Carnificina. Os de treino entram como um grupo novo na mesma lista.</p><span class="src">packages/settings/src/presets.ts · RN-CFG-03</span></div>
+    <div class="fact"><span class="t">Bots configuráveis</span><p>Quantidade e nível (1 a 5, ou variável) escolhidos por quem cria a sala, valendo na próxima partida ou reiniciando na hora.</p><span class="src">OG-289 · D-51 · packages/bots/src/skill.ts</span></div>
+    <div class="fact"><span class="t">Nível 4 é o bot do original</span><p>Do 1 ao 3 o bot mira pior, reage mais tarde e decide menos vezes; o 5 tira um frame de atraso. Serve direto para a dificuldade do treino.</p><span class="src">OG-266 · RN-RKL-19</span></div>
+    <div class="fact"><span class="t">A IA escolhe o próprio destino</span><p>O bot decide sozinho se ataca, defende ou caça, pela situação das bandeiras. Não existe papel fixo: um "defensor" hoje pode sair para atacar.</p><span class="src">packages/bots/src/brain.ts (ChooseDestination)</span></div>
+    <div class="fact"><span class="t">Mapas da rotação</span><p>A sala privada escolhe mapas só entre os da rotação Casual do painel. O treino precisa de mapas com base dos dois times.</p><span class="src">D-69 · OG-377</span></div>
+    <div class="fact"><span class="t">Partida só no computador</span><p>No celular fica o portal. O treino segue a mesma regra: a sala aparece no celular, mas só se joga no computador.</p><span class="src">D-80</span></div>
+  </div>
+</section>
+
+<section id="ideias" aria-labelledby="t-ideias">
+  <div class="head">
+    <h2 id="t-ideias">Mais ideias</h2>
+    <p class="muted">Fora do pedido original. Cada uma pode entrar agora, depois ou nunca.</p>
+  </div>
+  <div class="ideas">
+    <article><h3>Série da sessão</h3><p>Tentativas, sucessos, aproveitamento e melhor tempo, como no simulador acima. Aparece na tela do placar (Tab), sem mexer no HUD da partida.</p></article>
+    <article><h3>Dificuldade que sobe sozinha</h3><p>Opção "progressivo": a cada 3 sucessos seguidos, o nível dos bots sobe um; a cada 3 falhas, desce. Bom para quem não sabe qual nível escolher.</p></article>
+    <article><h3>Rever a última tentativa</h3><p>Guardar só a última tentativa como replay curto e oferecer "ver de novo" no fim. Os replays já existem; aqui seria um recorte.</p></article>
+    <article><h3>Mesmo início ou início variado</h3><p>"Mesmo início" repete as posições para treinar uma jogada específica. "Variado" sorteia a sala da base e o ângulo de entrada a cada tentativa.</p></article>
+    <article><h3>Escolher a base do treino</h3><p>Em mapas grandes, escolher qual base atacar ou defender pela miniatura do mapa, que já aparece na criação da sala.</p></article>
+    <article><h3>Dica depois da falha</h3><p>Uma linha curta no resultado: "morreu para 2 bots na porta de baixo", "a bandeira saiu pela porta da direita". Só fatos da tentativa, sem nota.</p></article>
+  </div>
+</section>
+
+<section id="cuidados" aria-labelledby="t-cuidados">
+  <div class="head"><h2 id="t-cuidados">Cuidados</h2></div>
+  <div class="cares">
+    <article><h3>Papéis fixos na IA</h3><p>É a parte grande do trabalho. O treino precisa de bots que só defendem a base, que só perseguem o portador e que só levam a bandeira para casa. Isso fica restrito às salas de treino; os bots do Casual continuam como estão.</p></article>
+    <article><h3>Fora de tudo que conta</h3><p>Treino não grava partida, não entra em estatísticas, radar de estilo, ranking, relatórios nem no marco de pioneiro. Senão vira fábrica de números.</p></article>
+    <article><h3>HUD intocado</h3><p>Nada se move na tela da partida. O resultado usa o aviso central e o chat que já existem; a série vai para o placar (Tab).</p></article>
+    <article><h3>"Sair do quadrado"</h3><p>A página lê "quadrado" como a sala (tela) onde fica a base. Se for outra área, como só o piso da bandeira, a regra muda bastante (P1).</p></article>
+    <article><h3>Uma sala por jogador</h3><p>Cada sala de treino roda bots no servidor do beta. Limitar a uma sala de treino aberta por conta e fechá-la quando o jogador sai.</p></article>
+    <article><h3>Mapas sem duas bases</h3><p>Mapas sem base de um dos times somem da lista quando o preset é de treino, em vez de dar erro na hora de criar.</p></article>
+  </div>
+</section>
+
+<section id="perguntas" aria-labelledby="t-perguntas">
+  <div class="head">
+    <h2 id="t-perguntas">Perguntas para o grupo</h2>
+    <p class="muted">Respondam pelo número.</p>
+  </div>
+  <ol class="qs">
+    <li><p>"Sair do quadrado" quer dizer sair da <b>sala</b> (tela) da base, ou de uma área menor em volta da bandeira?<small>Vale para o Ataque (sucesso) e para a Defesa (falha).</small></p></li>
+    <li><p>No Ataque, os defensores ficam fixos em 2 ou 3, ou dá para escolher de 1 a 4?<small>Com 1 defensor o modo vira quase um duelo; com 4 fica muito difícil no nível 4.</small></p></li>
+    <li><p>Na Defesa, o que conta como sucesso: derrubar todos os atacantes da onda, aguentar um tempo (ex.: 60 s), ou não existe sucesso e o treino só conta quanto tempo você segurou?</p></li>
+    <li><p>Na Fuga, de onde para onde? Da base inimiga até a sua base (com captura), ou entre dois pontos marcados no mapa?<small>Da base até a base usa o que o mapa já tem; pontos marcados pedem um marcador novo.</small></p></li>
+    <li><p>Na Captura, o sucesso é derrubar o portador ou só quando você toca na bandeira e ela volta? E você morrer também reinicia?</p></li>
+    <li><p>Na Captura, o portador vai sozinho ou com escolta? Se com escolta, quantos bots no máximo?</p></li>
+    <li><p>Treino é sempre um humano só, ou dois amigos podem treinar juntos contra os bots (ex.: dois atacando)?</p></li>
+    <li><p>Power-ups ficam desligados no treino, ou é uma opção da sala?</p></li>
+    <li><p>Concordam que o treino fica fora de estatísticas, radar, ranking e relatórios?</p></li>
+    <li><p>Das "Mais ideias", quais entram já na primeira versão?</p></li>
+  </ol>
+</section>
+
+<footer>
+  <span>Proposta de 28/10/2026 para discussão no grupo da comunidade. Nada disso está no jogo ainda.</span>
+  <span>Depois das respostas, a proposta vira cards no quadro do projeto.</span>
+</footer>
+</div>
+
+<script>
+(() => {
+  const W = 900, H = 300, DOOR = 150;
+  const BASE = { you: { x: 150, y: 150 }, foe: { x: 750, y: 150 } };
+  const room = (x) => Math.max(0, Math.min(2, Math.floor(x / 300)));
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  const MODES = {
+    ataque: {
+      goal: '<b>Ataque:</b> pegue a bandeira vermelha e saia da sala da base, ou derrube todos os defensores.',
+      fields: [{ id: 'foes', label: 'Defensores', min: 1, max: 4, value: 3 }],
+      fixed: ['Você sozinho no time azul', 'Bandeira inimiga na base'],
+    },
+    defesa: {
+      goal: '<b>Defesa:</b> não deixe a sua bandeira sair da sala da base. Derrube a onda inteira.',
+      fields: [{ id: 'allies', label: 'Aliados', min: 1, max: 2, value: 1 }, { id: 'foes', label: 'Atacantes', min: 1, max: 5, value: 3 }],
+      fixed: ['Você + bots aliados no time azul', 'Sua bandeira na base'],
+    },
+    fuga: {
+      goal: '<b>Fuga:</b> você começa com a bandeira vermelha na base deles. Leve até a sua base sem morrer.',
+      fields: [{ id: 'foes', label: 'Perseguidores', min: 1, max: 4, value: 2 }],
+      fixed: ['Você sozinho no time azul', 'Bandeira inimiga já na sua mão'],
+    },
+    captura: {
+      goal: '<b>Captura:</b> um bot leva a sua bandeira para a base dele. Derrube o portador e devolva a bandeira.',
+      fields: [{ id: 'foes', label: 'Escolta do portador', min: 0, max: 3, value: 1 }],
+      fixed: ['Você sozinho no time azul', 'Sua bandeira na mão do portador'],
+    },
+  };
+  const LEVEL_HINT = ['Mira bem pior e reage tarde', 'Mira pior e reage tarde', 'Um pouco abaixo do bot do original', 'O bot do original (Casual)', 'Sem o frame de atraso'];
+
+  const $ = (id) => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  let mode = 'ataque', opts = {}, st = null, last = 0, pending = null;
+  const series = { tries: 0, wins: 0, best: null, log: [] };
+
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  let C = {};
+  function readColors() { C = { arena: css('--arena'), wall: css('--arena-wall'), ink: css('--arena-ink'), red: css('--red'), blue: css('--blue'), flag: css('--flag'), good: css('--good'), bad: css('--bad') }; }
+
+  function fitCanvas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = cv.clientWidth || W;
+    cv.width = Math.round(w * dpr); cv.height = Math.round((w / 3) * dpr);
+    ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+  }
+
+  function renderForm() {
+    const m = MODES[mode];
+    $('modeFields').innerHTML = m ? m.fields.map((f) => `
+      <label class="field" for="f-${f.id}">
+        <span class="lbl">${f.label}</span>
+        <span class="row"><input type="range" id="f-${f.id}" data-k="${f.id}" min="${f.min}" max="${f.max}" value="${opts[f.id] ?? f.value}"><output>${opts[f.id] ?? f.value}</output></span>
+      </label>`).join('') : '<p class="hint muted" style="font-size:.86rem">Partida normal de CTF. Escolha um preset do grupo Treino para ver a simulação.</p>';
+    if (m) m.fields.forEach((f) => { opts[f.id] = opts[f.id] ?? f.value; });
+    $('modeFields').querySelectorAll('input').forEach((el) => el.addEventListener('input', () => {
+      opts[el.dataset.k] = +el.value; el.nextElementSibling.textContent = el.value; restart();
+    }));
+    $('fixed').innerHTML = m ? [...m.fixed, 'Power-ups desligados', 'Sem tempo limite, sem placar de partida', 'Não conta em estatísticas'].map((s) => `<span><b>·</b> ${s}</span>`).join('') : '';
+    $('goal').innerHTML = m ? m.goal : '';
+  }
+
+  // um ponto de passagem pela porta quando o alvo está em outra sala
+  function via(p, t) {
+    const a = room(p.x), b = room(t.x);
+    if (a === b) return t;
+    const doorX = a < b ? (a + 1) * 300 : a * 300;
+    if (Math.abs(p.y - DOOR) > 18 && Math.abs(p.x - doorX) > 6) return { x: doorX + (a < b ? -20 : 20), y: DOOR };
+    return { x: doorX + (a < b ? 30 : -30), y: DOOR };
+  }
+  function seek(e, t, speed, dt, stopAt = 0) {
+    const w = via(e, t), d = dist(e, w), stop = w === t ? stopAt : 0;
+    if (w === t && d <= stop + 0.5) return true;
+    if (d < 0.01) return false;
+    const s = Math.min(d - stop, speed * dt);
+    e.x += ((w.x - e.x) / d) * s; e.y += ((w.y - e.y) / d) * s;
+    e.x = Math.max(12, Math.min(W - 12, e.x)); e.y = Math.max(12, Math.min(H - 12, e.y));
+    return w === t && dist(e, t) <= stopAt + 1;
+  }
+
+  function winChance() {
+    const lvl = +$('level').value, n = opts.foes ?? 2;
+    const base = [0.82, 0.68, 0.55, 0.42, 0.3][lvl - 1];
+    const crowd = mode === 'defesa' ? (n - 2 - (opts.allies ?? 1)) * 0.07 : mode === 'captura' ? n * 0.08 : (n - 2) * 0.09;
+    return Math.max(0.08, Math.min(0.92, base - crowd));
+  }
+
+  function newAttempt() {
+    const n = opts.foes ?? 2, lvl = +$('level').value;
+    const s = { t: -0.9, done: false, win: Math.random() < winChance(), you: { x: 0, y: 0, alive: true }, allies: [], foes: [], flag: null, shots: [], fireT: 0, killT: 0, failAt: Infinity, mark: null, lvl };
+    s.foeSpeed = 92 + lvl * 5;
+    if (mode === 'ataque') {
+      Object.assign(s.you, { x: 340, y: rnd(70, 230) });
+      for (let i = 0; i < n; i++) s.foes.push({ x: 750 + Math.cos(i * 2.1) * 70, y: 150 + Math.sin(i * 2.1) * 70, alive: true, a: i * (Math.PI * 2 / n) });
+      s.flag = { x: BASE.foe.x, y: BASE.foe.y, by: null, team: 'red' };
+    } else if (mode === 'defesa') {
+      Object.assign(s.you, { x: 190, y: 120 });
+      for (let i = 0; i < (opts.allies ?? 1); i++) s.allies.push({ x: 120, y: 190 - i * 90, alive: true });
+      for (let i = 0; i < n; i++) s.foes.push({ x: 860 - (i % 2) * 40, y: 60 + ((i * 47) % 180), alive: true, delay: i * 0.55 });
+      s.flag = { x: BASE.you.x, y: BASE.you.y, by: null, team: 'blue' };
+      s.lossKind = Math.random() < 0.5 ? 'die' : 'flag';
+    } else if (mode === 'fuga') {
+      Object.assign(s.you, { x: 750, y: 150 });
+      for (let i = 0; i < n; i++) s.foes.push({ x: 860 - (i % 2) * 20, y: 50 + i * (200 / Math.max(1, n - 1 || 1)), alive: true });
+      s.flag = { x: 750, y: 150, by: s.you, team: 'red' };
+    } else {
+      Object.assign(s.you, { x: 40, y: 270 });
+      const carrier = { x: 175, y: 150, alive: true, carrier: true };
+      s.foes.push(carrier);
+      for (let i = 0; i < n; i++) s.foes.push({ x: 150 - i * 22, y: 110 + i * 40, alive: true });
+      s.flag = { x: carrier.x, y: carrier.y, by: carrier, team: 'blue' };
+      s.lossKind = n > 0 && Math.random() < 0.5 ? 'die' : 'deliver';
+    }
+    return s;
+  }
+
+  function shoot(s, from, to, color) { s.shots.push({ x1: from.x, y1: from.y, x2: to.x + rnd(-8, 8), y2: to.y + rnd(-8, 8), life: 0.12, color }); }
+  function finish(s, win, why) {
+    if (s.done) return;
+    s.done = true; s.result = { win, why, time: Math.max(0, s.t) };
+    series.tries++; if (win) { series.wins++; if (series.best == null || s.result.time < series.best) series.best = s.result.time; }
+    series.log.push(win); if (series.log.length > 24) series.log.shift();
+    paintSeries();
+    const b = $('banner');
+    b.style.setProperty('--c', win ? C.good : C.bad);
+    b.innerHTML = `${win ? 'Sucesso' : 'Falha'} · ${why}<small>${s.result.time.toFixed(1)} s · ${$('auto').checked ? 'reinício em 2 s' : 'clique em Nova tentativa'}</small>`;
+    b.hidden = false;
+    if ($('auto').checked) pending = setTimeout(() => { pending = null; start(); }, 2000);
+  }
+  function kill(s, e) { e.alive = false; s.mark = { x: e.x, y: e.y, life: 0.6 }; if (s.flag.by === e) s.flag.by = null; }
+
+  function step(s, dt) {
+    s.shots.forEach((x) => (x.life -= dt)); s.shots = s.shots.filter((x) => x.life > 0);
+    if (s.mark) { s.mark.life -= dt; if (s.mark.life <= 0) s.mark = null; }
+    s.t += dt;
+    if (s.t < 0 || s.done) return;
+    const you = s.you, alive = s.foes.filter((f) => f.alive);
+    s.fireT -= dt;
+    const fire = s.fireT <= 0; if (fire) s.fireT = 0.32;
+
+    if (mode === 'ataque') {
+      const inBase = room(you.x) === 2;
+      alive.forEach((f) => {
+        f.a += dt * 0.7;
+        const guard = { x: BASE.foe.x + Math.cos(f.a) * 70, y: BASE.foe.y + Math.sin(f.a) * 70 };
+        seek(f, inBase && dist(f, you) < 220 ? you : guard, s.foeSpeed * 0.8, dt, inBase ? 55 : 0);
+        if (fire && dist(f, you) < 200 && Math.random() < 0.5) shoot(s, f, you, C.red);
+      });
+      if (!s.flag.by) { if (seek(you, s.flag, 125, dt, 4)) s.flag.by = you; }
+      else seek(you, { x: 540, y: 150 }, 125, dt);
+      if (inBase && s.failAt === Infinity) s.failAt = s.win ? Infinity : s.t + rnd(0.3, 1.6);
+      const near = alive.find((f) => dist(f, you) < 190);
+      if (near && fire) shoot(s, you, near, C.blue);
+      if (s.win && near) { s.killT += dt; if (s.killT > 0.9) { s.killT = 0; kill(s, near); } }
+      if (s.t >= s.failAt) { you.alive = false; s.flag.by = null; return finish(s, false, 'Você morreu'); }
+      if (!s.foes.some((f) => f.alive)) return finish(s, true, 'Derrubou todos os defensores');
+      if (s.flag.by === you && room(you.x) < 2) return finish(s, true, 'Saiu da sala da base com a bandeira');
+    } else if (mode === 'defesa') {
+      const defenders = [you, ...s.allies.filter((a) => a.alive)];
+      alive.forEach((f) => {
+        if (s.t < f.delay) return;
+        if (s.flag.by === f) seek(f, { x: 560, y: 150 }, s.foeSpeed * 0.9, dt);
+        else if (!s.flag.by && seek(f, s.flag, s.foeSpeed * 0.95, dt, 4) && !(s.win || s.lossKind === 'die')) s.flag.by = f;
+        const tgt = defenders.find((d) => dist(d, f) < 190);
+        if (fire && tgt && Math.random() < 0.45) shoot(s, f, tgt, C.red);
+      });
+      const threat = alive.filter((f) => s.t >= f.delay).sort((a, b) => dist(a, s.flag) - dist(b, s.flag))[0];
+      defenders.forEach((d, i) => {
+        const post = { x: BASE.you.x + 45 + (i === 0 ? 0 : -60), y: BASE.you.y + (i === 0 ? -35 : i === 1 ? 45 : -70) };
+        seek(d, threat && room(threat.x) === 0 ? threat : post, 115, dt, threat && room(threat.x) === 0 ? 70 : 0);
+        if (threat && fire && dist(d, threat) < 200) shoot(s, d, threat, C.blue);
+      });
+      if (threat && dist(threat, you) < 210) {
+        if (s.win) { s.killT += dt; if (s.killT > 0.75) { s.killT = 0; kill(s, threat); } }
+        else if (s.lossKind === 'die' && s.failAt === Infinity) s.failAt = s.t + rnd(0.6, 1.5);
+      }
+      if (s.t >= s.failAt) { you.alive = false; return finish(s, false, 'Você morreu'); }
+      if (s.flag.by && room(s.flag.by.x) > 0) return finish(s, false, 'A bandeira saiu da base');
+      if (!s.foes.some((f) => f.alive)) return finish(s, true, 'Onda defendida');
+    } else if (mode === 'fuga') {
+      seek(you, BASE.you, 122, dt, 3);
+      alive.forEach((f, i) => {
+        seek(f, { x: you.x + 30, y: you.y + (i - 1) * 25 }, s.foeSpeed + 8, dt, 45);
+        if (fire && dist(f, you) < 210 && Math.random() < 0.5) shoot(s, f, you, C.red);
+      });
+      const near = alive.find((f) => dist(f, you) < 170);
+      if (near && fire && Math.random() < 0.5) shoot(s, you, near, C.blue);
+      if (!s.win && s.failAt === Infinity) s.failAt = rnd(1.6, 4);
+      if (s.t >= s.failAt) { you.alive = false; s.flag.by = null; return finish(s, false, 'Você morreu com a bandeira'); }
+      if (dist(you, BASE.you) < 6) return finish(s, true, 'Capturou na sua base');
+    } else {
+      const carrier = s.foes[0];
+      if (carrier.alive && s.flag.by === carrier) seek(carrier, BASE.foe, 98, dt, 3);
+      alive.filter((f) => !f.carrier).forEach((f, i) => {
+        const guard = carrier.alive ? { x: carrier.x - 30, y: carrier.y + (i - 1) * 35 } : you;
+        seek(f, dist(f, you) < 150 ? you : guard, s.foeSpeed, dt, 40);
+        if (fire && dist(f, you) < 190 && Math.random() < 0.5) shoot(s, f, you, C.red);
+      });
+      const yourSpeed = s.win ? 130 : s.lossKind === 'deliver' ? 92 : 125;
+      if (carrier.alive) seek(you, carrier, yourSpeed, dt, 60);
+      else seek(you, s.flag, 130, dt, 3);
+      if (carrier.alive && dist(you, carrier) < 160) {
+        if (fire) shoot(s, you, carrier, C.blue);
+        if (s.win) { s.killT += dt; if (s.killT > 0.7) kill(s, carrier); }
+        else if (s.lossKind === 'die' && s.failAt === Infinity) s.failAt = s.t + rnd(0.5, 1.3);
+      }
+      if (s.t >= s.failAt) { you.alive = false; return finish(s, false, 'Você morreu'); }
+      if (!carrier.alive && dist(you, s.flag) < 8) return finish(s, true, 'Bandeira devolvida');
+      if (s.flag.by === carrier && dist(carrier, BASE.foe) < 6) return finish(s, false, 'Bandeira entregue na base deles');
+    }
+    if (s.flag.by) { s.flag.x = s.flag.by.x; s.flag.y = s.flag.by.y; }
+  }
+
+  function draw(s) {
+    ctx.fillStyle = C.arena; ctx.fillRect(0, 0, W, H);
+    // bases
+    [[BASE.you, C.blue, 'SUA BASE'], [BASE.foe, C.red, 'BASE INIMIGA']].forEach(([b, c, label]) => {
+      ctx.globalAlpha = 0.16; ctx.fillStyle = c; ctx.fillRect(b.x - 50, b.y - 50, 100, 100); ctx.globalAlpha = 1;
+      ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.strokeRect(b.x - 50, b.y - 50, 100, 100); ctx.setLineDash([]);
+      ctx.fillStyle = c; ctx.font = '600 13px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillText(label, b.x, 24);
+    });
+    ctx.fillStyle = C.ink; ctx.globalAlpha = 0.45; ctx.font = '600 13px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillText('MEIO', 450, 24); ctx.globalAlpha = 1;
+    // paredes e portas
+    ctx.strokeStyle = C.wall; ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, W - 6, H - 6);
+    [300, 600].forEach((x) => { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, DOOR - 30); ctx.moveTo(x, DOOR + 30); ctx.lineTo(x, H); ctx.stroke(); });
+    if (!s) return;
+    // tiros
+    s.shots.forEach((x) => { ctx.strokeStyle = x.color; ctx.globalAlpha = Math.min(1, x.life * 9); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x.x1, x.y1); ctx.lineTo(x.x2, x.y2); ctx.stroke(); });
+    ctx.globalAlpha = 1;
+    // bandeira
+    if (s.flag) {
+      const f = s.flag, ox = f.by ? 9 : 0, oy = f.by ? -14 : 0;
+      ctx.fillStyle = C.flag; ctx.strokeStyle = '#0b100e'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(f.x + ox - 1, f.y + oy + 10); ctx.lineTo(f.x + ox - 1, f.y + oy - 9); ctx.lineTo(f.x + ox + 12, f.y + oy - 4); ctx.lineTo(f.x + ox - 1, f.y + oy + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = f.team === 'red' ? C.red : C.blue; ctx.fillRect(f.x + ox - 3, f.y + oy - 9, 2.5, 20);
+    }
+    const dot = (e, c, me) => {
+      if (!e.alive) { ctx.strokeStyle = c; ctx.globalAlpha = 0.5; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(e.x - 7, e.y - 7); ctx.lineTo(e.x + 7, e.y + 7); ctx.moveTo(e.x + 7, e.y - 7); ctx.lineTo(e.x - 7, e.y + 7); ctx.stroke(); ctx.globalAlpha = 1; return; }
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(e.x, e.y, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = me ? '#ffffff' : '#0b100e'; ctx.lineWidth = me ? 3 : 1.5; ctx.stroke();
+      if (me) { ctx.fillStyle = '#ffffff'; ctx.font = '600 12px "IBM Plex Sans", sans-serif'; ctx.textAlign = 'center'; ctx.fillText('você', e.x, e.y + 26); }
+    };
+    s.allies.forEach((a) => dot(a, C.blue, false));
+    s.foes.forEach((f) => dot(f, C.red, false));
+    dot(s.you, C.blue, true);
+    if (s.mark) { ctx.strokeStyle = C.flag; ctx.globalAlpha = s.mark.life / 0.6; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s.mark.x, s.mark.y, 24 - s.mark.life * 20, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+    if (s.t < 0) {
+      ctx.fillStyle = 'rgba(11,16,14,.55)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = C.ink; ctx.font = '700 64px "Chakra Petch", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(Math.ceil(-s.t / 0.3)), W / 2, H / 2); ctx.textBaseline = 'alphabetic';
+    }
+  }
+
+  function paintSeries() {
+    $('sTries').textContent = series.tries; $('sWins').textContent = series.wins;
+    $('sPct').textContent = series.tries ? Math.round((series.wins / series.tries) * 100) + '%' : '—';
+    $('sBest').textContent = series.best == null ? '—' : series.best.toFixed(1) + ' s';
+    $('log').innerHTML = series.log.map((w) => `<i class="${w ? 'ok' : 'ko'}" title="${w ? 'Sucesso' : 'Falha'}">${w ? '✓' : '✕'}</i>`).join('');
+  }
+
+  function start() {
+    if (pending) { clearTimeout(pending); pending = null; }
+    $('banner').hidden = true;
+    st = MODES[mode] ? newAttempt() : null;
+  }
+  function restart() { start(); }
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function frame(ts) {
+    const dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
+    if (st) step(st, reduced ? dt * 0.6 : dt);
+    draw(st);
+    requestAnimationFrame(frame);
+  }
+
+  $('preset').addEventListener('change', (e) => { mode = e.target.value; opts = {}; renderForm(); start(); });
+  $('level').addEventListener('input', (e) => { $('levelOut').textContent = e.target.value; $('levelHint').textContent = LEVEL_HINT[e.target.value - 1]; restart(); });
+  $('again').addEventListener('click', start);
+  $('reset').addEventListener('click', () => { Object.assign(series, { tries: 0, wins: 0, best: null, log: [] }); paintSeries(); });
+  $('auto').addEventListener('change', (e) => { if (e.target.checked && st && st.done && !pending) pending = setTimeout(() => { pending = null; start(); }, 800); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.addEventListener('resize', fitCanvas);
+
+  readColors(); fitCanvas();
+  $('levelHint').textContent = LEVEL_HINT[2];
+  renderForm(); paintSeries(); start();
+  requestAnimationFrame(frame);
+})();
+</script>
