@@ -883,7 +883,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-411](cards/OG-411-mais-cores-pessoais.md) | 32 cores pessoais e as medalhas do top 3 | E9 | 3 | Should | S43 | OG-358 | Concluído |
 | [OG-412](cards/OG-412-notificacoes-atras-do-tocador.md) | Notificações atrás do tocador de música | E8 | 1 | Must | S43 | OG-361 | Concluído |
 | [OG-413](cards/OG-413-estilos-do-numero.md) | Estilos do número do jogador | E9 | 3 | Should | S43 | OG-410 | Concluído |
-| [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | S51 | OG-409 | Pronto |
+| [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | S51 | OG-409 | Em revisão |
 | [OG-415](cards/OG-415-trava-do-numero-desligada.md) | Trava da troca de número desligada | E9 | 1 | Must | S43 | OG-410 | Concluído |
 | [OG-416](cards/OG-416-ux-da-comunidade.md) | Melhorias de UX da comunidade (PR #5) | E8 | 5 | Should | S44 | OG-200 | Concluído |
 | [OG-417](cards/OG-417-celular-portao-por-rota.md) | Celular de volta: portão por rota | E8 | 2 | Must | S45 | OG-209, OG-416 | Concluído |
@@ -955,7 +955,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-483](cards/OG-483-emblema-editor.md) | Emblema do clã: editor na página do clã | E13 | 3 | Must | S51 | OG-481, OG-482 | Em revisão |
 | [OG-484](cards/OG-484-emblema-no-portal.md) | Emblema do clã nas telas do portal e no lobby Ranked | E13 | 3 | Must | S51 | OG-482 | Em revisão |
 | [OG-485](cards/OG-485-emblema-na-identidade-e-relatorio.md) | Emblema do clã na identidade do lado, no relatório e no PDF | E13 | 3 | Must | S51 | OG-482 | Em revisão |
-| [OG-486](cards/OG-486-emblema-no-chao-da-base.md) | Emblema do clã no chão da base, na partida | E13 | 5 | Must | S51 | OG-485 | Pronto |
+| [OG-486](cards/OG-486-emblema-no-chao-da-base.md) | Emblema do clã no chão da base, na partida | E13 | 5 | Must | S51 | OG-485 | Em revisão |
 | [OG-487](cards/OG-487-emblema-no-fim-da-partida.md) | Emblema do clã no fim de rodada e de partida | E13 | 2 | Must | S51 | OG-485 | Pronto |
 | [OG-488](cards/OG-488-emblema-molduras-do-hall.md) | Emblema do clã: molduras do hall da fama (ouro, prata e bronze) | E13 | 3 | Should | S51 | OG-482, OG-483 | Pronto |
 | [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Pronto |

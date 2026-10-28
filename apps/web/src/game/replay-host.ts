@@ -21,7 +21,9 @@ import { EntityRenderer } from './render/entity-renderer.js';
 import { viewTopLeft } from './render/layout.js';
 import { createRoomSource } from './render/room-source.js';
 import { loadEntitySprites } from './render/sprites.js';
-import { loadRoomTheme } from './render/theme.js';
+import { loadRoomTheme, type RoomTheme } from './render/theme.js';
+import { applyTeamColours } from './render/team-palette.js';
+import { baseSpots, emblemTexture } from './render/emblem-decal.js';
 import { WorldRenderer } from './render/world-renderer.js';
 import { entityFrameFromWorld } from './render/world-view.js';
 import { loadNumberFonts } from './render/number-styles.js';
@@ -135,7 +137,41 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   // acabar espera em vez de falhar com "player não iniciado" (OG-281)
   let loaded: () => void = () => undefined;
   let opening = new Promise<void>((resolve) => (loaded = resolve));
-  let setup: Promise<{ theme: Awaited<ReturnType<typeof loadRoomTheme>>; sprites: Awaited<ReturnType<typeof loadEntitySprites>>; font: Awaited<ReturnType<typeof loadFont>> }> | null = null;
+  let mapBytes: Uint8Array | undefined;
+  let setup: Promise<{ theme: RoomTheme; base: RoomTheme; manifest: NonNullable<Awaited<ReturnType<typeof loadManifest>>>; sprites: Awaited<ReturnType<typeof loadEntitySprites>>; font: Awaited<ReturnType<typeof loadFont>> }> | null = null;
+
+  // cores e emblema do clã no replay e no espectador (OG-414, OG-486): a cada `teamIdentity` da sessão
+  let identityFor: ReplayPlayer['session'] | undefined;
+  let identitySeen = -1;
+  const applyIdentity = (s: ReplayPlayer['session']) => {
+    opening = opening
+      .then(async () => {
+        if (!setup) return;
+        const { theme, base, manifest } = await setup;
+        const colours = [s.teamIdentity[0]?.color ?? null, s.teamIdentity[1]?.color ?? null] as const;
+        if (applyTeamColours(theme.colours as Record<string, string>, base.colours, colours)) {
+          const sprites = await loadEntitySprites(manifest, opts.theme, theme.colours);
+          if (destroyed) return;
+          entities?.setSprites(sprites);
+          // as bases das salas são pintadas com as cores: repinta com as novas
+          if (map && mapBytes) {
+            const source = await createRoomSource(map, mapName, mapBytes, theme);
+            if (destroyed) return source.destroy();
+            world?.destroy();
+            world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
+            app.stage.addChildAt(world.stage, 0);
+            layout();
+          }
+        }
+        const [red, blue] = await Promise.all([emblemTexture(s.teamIdentity[0]), emblemTexture(s.teamIdentity[1])]);
+        if (destroyed || !world || !map) return;
+        world.setDecals([
+          { spots: baseSpots(map, 0), texture: red },
+          { spots: baseSpots(map, 1), texture: blue },
+        ]);
+      })
+      .catch(() => undefined);
+  };
 
   const status = () => {
     const s = player?.session;
@@ -215,8 +251,10 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       world = new WorldRenderer(loaded.width, loaded.height, theme, source, app.renderer.resolution);
       app.stage.addChildAt(world.stage, 0);
       map = loaded;
+      mapBytes = bytes;
       mapName = next.header.map;
       layout();
+      identityFor = undefined; // mapa novo: emblemas de novo
     }
     if (!entities) {
       entities = new EntityRenderer(theme, sprites, font);
@@ -270,11 +308,13 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       setup = (async () => {
         const manifest = await loadManifest();
         if (!manifest) throw new Error('assets ausentes: rode `pnpm assets`');
-        const theme = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+        const base = await loadRoomTheme(manifest, opts.theme, opts.colourTheme ?? '', opts.preferThemeColours ?? true);
+        // cópia viva das cores, como no `host.ts`: o lado que vira o clã troca as dele (OG-414)
+        const theme: RoomTheme = { ...base, colours: { ...base.colours } };
         app.renderer.background.color = theme.colours.screen_background ?? '#000000';
         // fontes dos números (OG-413) antes da primeira textura de número
         const [sprites, font] = await Promise.all([loadEntitySprites(manifest, opts.theme, theme.colours), loadFont(opts.font), loadNumberFonts()]);
-        return { theme, sprites, font };
+        return { theme, base, manifest, sprites, font };
       })();
       await setup;
       app.renderer.on('resize', layout);
@@ -294,6 +334,11 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
         // ao vivo, não extrapola além do último frame recebido
         if (p.position >= p.length) subFrame = Math.min(subFrame, 1);
         const s = p.session;
+        if (s !== identityFor || s.teamIdentityVersion !== identitySeen) {
+          identityFor = s;
+          identitySeen = s.teamIdentityVersion;
+          applyIdentity(s);
+        }
         const fd = s.world ? s.extrapolateBy(paused ? 0 : Math.min(1, subFrame)) : null;
         let topLeft: WorldCoords = { room: { x: room[0], y: room[1] }, x: 0, y: 0 };
         const followed = follow >= 0 ? fd?.players[follow] : undefined;
