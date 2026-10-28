@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S53 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-200 |
 | Regras de negócio | RN-RAD-01, RN-RAD-03 |
 | Skills | `outgun-card-workflow` |
@@ -28,7 +28,10 @@ Como jogador, quero um gráfico de radar legível e consistente em todo o portal
 - Cores só dos tokens do design system (vermelho/azul dos times, cor do clã quando houver); funciona de 360 px (RN-UI-08) ao desktop.
 
 ## Critérios de aceite
-- [ ] Teste de geometria: ponto do eixo i com valor v cai no raio e ângulo certos; ordem dos eixos fixa.
-- [ ] Componente na tela de desenvolvimento de UI (`DevUiScreen`) com os estados: 1, 2 e 3 séries, tracejada, mini, sem dados.
+- [x] Teste de geometria: ponto do eixo i com valor v cai no raio e ângulo certos; ordem dos eixos fixa.
+- [x] Componente na tela de desenvolvimento de UI (`DevUiScreen`) com os estados: 1, 2 e 3 séries, tracejada, mini, sem dados.
 
 ## Notas de implementação
+- `ui/style-radar.ts` (eixos, rótulos pt-BR, unidades e geometria; Abates no alto, a cada 60° no sentido horário) e `ui/StyleRadar.tsx` (séries, `shadow`, `mini`, `empty`, tooltip por hover/foco/toque e "Ver em tabela" com o `Table`).
+- Tipos da resposta da API (`StyleRadarData`) ficam no `style-radar.ts` do web, para o perfil, o clã e o lobby.
+- Margem lateral no `viewBox` para os rótulos não cortarem a 360 px.

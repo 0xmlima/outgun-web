@@ -941,8 +941,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-467](cards/OG-467-destacar-se-ao-nascer-retomada-dessa.md) | Volta a opção "Destacar a si mesmo ao nascer" (issue #23) | E11 | 1 | Should | S50 | — | Concluído |
 | [OG-468](cards/OG-468-replay.md) | Replay sem som (e o +/- do teclado numérico é zoom, não volume) (issue #24) | E11 | 3 | Should | S50 | — | Concluído |
 | [OG-469](cards/OG-469-radar-api-eixos-e-arquetipo.md) | Radar de estilo: API com os 6 eixos em percentil e o arquétipo | E9 | 5 | Must | S53 | OG-358, OG-363 | Em revisão |
-| [OG-470](cards/OG-470-componente-radar.md) | Componente de radar no design system (SVG, tooltip, tracejado, mini e tabela) | E9 | 3 | Must | S53 | OG-200 | Pronto |
-| [OG-471](cards/OG-471-radar-no-perfil.md) | Radar no perfil: arquétipo, temporada passada em tracejado e filtros | E9 | 3 | Must | S53 | OG-469, OG-470 | Pronto |
+| [OG-470](cards/OG-470-componente-radar.md) | Componente de radar no design system (SVG, tooltip, tracejado, mini e tabela) | E9 | 3 | Must | S53 | OG-200 | Em revisão |
+| [OG-471](cards/OG-471-radar-no-perfil.md) | Radar no perfil: arquétipo, temporada passada em tracejado e filtros | E9 | 3 | Must | S53 | OG-469, OG-470 | Em andamento |
 | [OG-472](cards/OG-472-jogador-x-jogador.md) | Jogador x jogador: "Comparar comigo" no radar | E9 | 3 | Must | S53 | OG-471 | Pronto |
 | [OG-473](cards/OG-473-radar-do-cla.md) | Radar do clã: mediana dos membros e mini radar de cada membro | E13 | 3 | Must | S53 | OG-469, OG-470, OG-273 | Pronto |
 | [OG-474](cards/OG-474-cla-x-cla-previa-do-confronto.md) | Clã x clã: prévia do confronto com a escalação e radar contra um rival | E13 | 3 | Must | S53 | OG-473 | Pronto |
