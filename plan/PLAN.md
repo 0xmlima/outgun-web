@@ -618,6 +618,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S48 | v2: observabilidade no plano gratuito — métricas e logs do beta no Grafana Cloud (Alloy), banco, quedas no game server, painéis e alertas, alarmes da Oracle | OG-452, OG-453, OG-454, OG-455, OG-456 | |
 | S49 | v2: coletor leve (Fluent Bit) para mandar as métricas e logs do beta ao Grafana Cloud na E2.1.Micro | OG-457 | |
 | S50 | v2: rodada de correções (issues #11 e #14–#24; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83), OG-464, OG-465, OG-466, OG-467, OG-468 | |
+| S51 | v2: emblema do clã (D-85), em duas entregas — 1) base e portal: modelo e desenho, catálogo, API, editor, portal, identidade/relatório/PDF; 2) partida e extras: chão da base (com clã no replay/espectador), fim de partida, molduras do hall, compartilhar | Entrega 1: OG-480, OG-481, OG-482, OG-483, OG-484, OG-485; entrega 2: OG-486, OG-414, OG-487, OG-488, OG-489; correção: OG-501 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -882,7 +883,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-411](cards/OG-411-mais-cores-pessoais.md) | 32 cores pessoais e as medalhas do top 3 | E9 | 3 | Should | S43 | OG-358 | Concluído |
 | [OG-412](cards/OG-412-notificacoes-atras-do-tocador.md) | Notificações atrás do tocador de música | E8 | 1 | Must | S43 | OG-361 | Concluído |
 | [OG-413](cards/OG-413-estilos-do-numero.md) | Estilos do número do jogador | E9 | 3 | Should | S43 | OG-410 | Concluído |
-| [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | — | OG-409 | Backlog |
+| [OG-414](cards/OG-414-cla-no-replay-e-espectador.md) | Cores e nome do clã no replay e no espectador | E9 | 2 | Should | S51 | OG-409 | Concluído |
 | [OG-415](cards/OG-415-trava-do-numero-desligada.md) | Trava da troca de número desligada | E9 | 1 | Must | S43 | OG-410 | Concluído |
 | [OG-416](cards/OG-416-ux-da-comunidade.md) | Melhorias de UX da comunidade (PR #5) | E8 | 5 | Should | S44 | OG-200 | Concluído |
 | [OG-417](cards/OG-417-celular-portao-por-rota.md) | Celular de volta: portão por rota | E8 | 2 | Must | S45 | OG-209, OG-416 | Concluído |
@@ -948,16 +949,17 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-477](cards/OG-477-radar-dos-times-no-lobby.md) | Radar dos dois times no lobby Ranked antes de começar | E12 | 3 | Should | — | OG-469, OG-470 | Backlog |
 | [OG-478](cards/OG-478-cartao-para-compartilhar.md) | Cartão do estilo para compartilhar (imagem com radar, arquétipo e clã) | E9 | 3 | Could | — | OG-471 | Backlog |
 | [OG-479](cards/OG-479-filtro-por-mapa.md) | Filtro por mapa no radar | E9 | 2 | Could | — | OG-471 | Backlog |
-| [OG-480](cards/OG-480-emblema-modelo-e-render.md) | Emblema do clã: modelo, molduras e desenho vetorial compartilhado | E13 | 5 | Must | — | OG-407 | Backlog |
-| [OG-481](cards/OG-481-emblema-catalogo-de-simbolos.md) | Emblema do clã: catálogo final de símbolos (28 desenhos próprios) | E13 | 5 | Must | — | OG-480 | Backlog |
-| [OG-482](cards/OG-482-emblema-api.md) | Emblema do clã: API, unicidade e permissões (líder e admins) | E13 | 5 | Must | — | OG-480 | Backlog |
-| [OG-483](cards/OG-483-emblema-editor.md) | Emblema do clã: editor na página do clã | E13 | 3 | Must | — | OG-481, OG-482 | Backlog |
-| [OG-484](cards/OG-484-emblema-no-portal.md) | Emblema do clã nas telas do portal e no lobby Ranked | E13 | 3 | Must | — | OG-482 | Backlog |
-| [OG-485](cards/OG-485-emblema-na-identidade-e-relatorio.md) | Emblema do clã na identidade do lado, no relatório e no PDF | E13 | 3 | Must | — | OG-482 | Backlog |
-| [OG-486](cards/OG-486-emblema-no-chao-da-base.md) | Emblema do clã no chão da base, na partida | E13 | 5 | Must | — | OG-485 | Backlog |
-| [OG-487](cards/OG-487-emblema-no-fim-da-partida.md) | Emblema do clã no fim de rodada e de partida | E13 | 2 | Must | — | OG-485 | Backlog |
-| [OG-488](cards/OG-488-emblema-molduras-do-hall.md) | Emblema do clã: molduras do hall da fama (ouro, prata e bronze) | E13 | 3 | Should | — | OG-482, OG-483 | Backlog |
-| [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | — | OG-484, OG-485 | Backlog |
+| [OG-480](cards/OG-480-emblema-modelo-e-render.md) | Emblema do clã: modelo, molduras e desenho vetorial compartilhado | E13 | 5 | Must | S51 | OG-407 | Concluído |
+| [OG-481](cards/OG-481-emblema-catalogo-de-simbolos.md) | Emblema do clã: catálogo final de símbolos (28 desenhos próprios) | E13 | 5 | Must | S51 | OG-480 | Concluído |
+| [OG-482](cards/OG-482-emblema-api.md) | Emblema do clã: API, unicidade e permissões (líder e admins) | E13 | 5 | Must | S51 | OG-480 | Concluído |
+| [OG-483](cards/OG-483-emblema-editor.md) | Emblema do clã: editor na página do clã | E13 | 3 | Must | S51 | OG-481, OG-482 | Concluído |
+| [OG-484](cards/OG-484-emblema-no-portal.md) | Emblema do clã nas telas do portal e no lobby Ranked | E13 | 3 | Must | S51 | OG-482 | Concluído |
+| [OG-485](cards/OG-485-emblema-na-identidade-e-relatorio.md) | Emblema do clã na identidade do lado, no relatório e no PDF | E13 | 3 | Must | S51 | OG-482 | Concluído |
+| [OG-486](cards/OG-486-emblema-no-chao-da-base.md) | Emblema do clã no chão da base, na partida | E13 | 5 | Must | S51 | OG-485 | Concluído |
+| [OG-487](cards/OG-487-emblema-no-fim-da-partida.md) | Emblema do clã no fim de rodada e de partida | E13 | 2 | Must | S51 | OG-485 | Concluído |
+| [OG-488](cards/OG-488-emblema-molduras-do-hall.md) | Emblema do clã: molduras do hall da fama (ouro, prata e bronze) | E13 | 3 | Should | S51 | OG-482, OG-483 | Concluído |
+| [OG-489](cards/OG-489-emblema-compartilhar.md) | Emblema do clã: imagem do confronto e PNG do emblema | E13 | 3 | Could | S51 | OG-484, OG-485 | Concluído |
+| [OG-501](cards/OG-501-pdf-no-celular.md) | Baixar PDF no celular (folha de compartilhar do sistema) | E9 | 2 | Must | S51 | OG-425, OG-426 | Concluído |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | — | OG-289 | Backlog |
 | [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | — | OG-490 | Backlog |
 | [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | — | OG-490 | Backlog |

@@ -10,6 +10,7 @@ import { fallbackMs, useLive, useLiveConnected, type LiveTopic } from '../app/li
 import { usePrefs } from '../app/prefs.js';
 import { Badge } from '../ui/Button.js';
 import { Tabs } from '../ui/Tabs.js';
+import type { ClanEmblem } from '@outgun/protocol';
 
 export type Mode = 'ranked' | 'casual';
 
@@ -100,7 +101,8 @@ export interface MatchDetails {
 export interface MatchPage {
   match: MatchSummary & { startedAt: string; roomId: string | null };
   /** O clã que cada lado foi na rodada (OG-409); null = vermelho x azul. */
-  teams?: readonly ({ tag: string; name: string; color: string | null } | null)[] | null;
+  /** Lado que virou o clã (OG-409), com o emblema e as cores do dia da partida (OG-485; ausentes nas antigas). */
+  teams?: readonly ({ tag: string; name: string; color: string | null; emblem?: ClanEmblem; colors?: { primary: string; secondary: string } } | null)[] | null;
   details: MatchDetails;
   players: PlayerLine[];
   replayUrl: string | null;
@@ -151,6 +153,8 @@ export interface SeriesView {
   winner: 0 | 1 | null;
   finished: boolean;
   startedAt: string;
+  /** Clã de cada lado (OG-489); null = vermelho/azul. */
+  teams?: MatchPage['teams'];
   matches: { id: string; gameNo: number | null; mapTitle: string; redScore: number; blueScore: number; endedAt: string; withBots?: boolean; shortHanded?: boolean }[];
 }
 

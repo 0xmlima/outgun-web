@@ -32,7 +32,7 @@ describe.skipIf(!pgAdminUrl)('moderação de clãs (OG-275)', () => {
     const res = await app.inject({ method: 'POST', url: '/auth/login', payload: { username, password: 'outgun-dev' }, headers: { origin: ORIGIN }, remoteAddress: `10.9.0.${username.length}` });
     return `og_session=${res.cookies.find((c) => c.name === 'og_session')!.value}`;
   };
-  const call = (method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, who?: keyof typeof cookies, payload?: unknown) =>
+  const call = (method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, who?: keyof typeof cookies, payload?: unknown) =>
     app.inject({ method, url, ...(payload !== undefined ? { payload: payload as object } : {}), headers: { origin: ORIGIN, ...(who ? { cookie: cookies[who] } : {}) } });
   const lastAudit = async () => (await t.db.select().from(adminActions).orderBy(desc(adminActions.id)).limit(1))[0]!;
 
@@ -76,6 +76,15 @@ describe.skipIf(!pgAdminUrl)('moderação de clãs (OG-275)', () => {
       expect((await call(method, url, undefined, body)).statusCode, `${method} ${url}`).toBe(401);
       expect((await call(method, url, 'player', body)).statusCode, `${method} ${url}`).toBe(403);
     }
+  });
+
+  it('moderador volta o emblema ao padrão, com auditoria (OG-482, RN-EMB-03)', async () => {
+    const wolf = { frame: 'circle', symbol: 'wolf', fillet: false, inverted: false };
+    expect((await call('PUT', '/clans/OL/emblem', 'player', { emblem: wolf })).json().clan.emblem).toEqual(wolf);
+    expect((await call('PATCH', '/admin/clans/OL', 'mod', { resetEmblem: true, reason: 'parece um logotipo' })).statusCode).toBe(200);
+    expect((await call('GET', '/clans/OL')).json().clan.emblem).toMatchObject({ frame: 'shield', symbol: 'tag' });
+    expect(await lastAudit()).toMatchObject({ action: 'clan-edit', reason: 'parece um logotipo' });
+    expect((await lastAudit()).details).toMatchObject({ from: { emblem: wolf }, to: { emblem: null } });
   });
 
   it('forçar troca de nome/tag/descrição fica na auditoria', async () => {

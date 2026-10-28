@@ -4,7 +4,7 @@
 // começo de cada rodada e fixo até ela acabar. Cor: a primária; se ficar parecida com a do outro
 // lado, a secundária; se também, a cor padrão do lado. Clã x clã: o lado azul (o segundo) é quem
 // troca, então dois clãs com a mesma primária ficam "primária x secundária".
-import { colourDistance, DEFAULT_TEAM_COLOURS, TEAM_COLOUR_MIN_DISTANCE } from '@outgun/protocol';
+import { colourDistance, DEFAULT_TEAM_COLOURS, parseEmblem, TEAM_COLOUR_MIN_DISTANCE, type ClanEmblem } from '@outgun/protocol';
 
 export interface ClanOfPlayer {
   id: string;
@@ -12,6 +12,8 @@ export interface ClanOfPlayer {
   name: string;
   primary: string;
   secondary: string;
+  /** Emblema do clã (OG-485); ausente em tickets antigos. */
+  emblem?: unknown;
 }
 
 export interface SidePlayer {
@@ -26,6 +28,9 @@ export interface TeamIdentity {
   name: string;
   /** `#RRGGBB`, ou null = a cor padrão do lado. */
   color: string | null;
+  /** Emblema e as cores dele (OG-485): o do dia da partida, gravado no relatório. */
+  emblem?: ClanEmblem;
+  colors?: { primary: string; secondary: string };
 }
 
 export const MIN_CLAN_PLAYERS = 2;
@@ -60,6 +65,10 @@ export function teamIdentities(players: readonly SidePlayer[]): [TeamIdentity | 
   // o vermelho só se ajusta ao azul padrão; contra outro clã, quem troca é o azul
   const redColour = red ? pick(red, blue ? null : DEFAULT_TEAM_COLOURS[1]) : null;
   const blueColour = blue ? pick(blue, redColour ?? DEFAULT_TEAM_COLOURS[0]) : null;
-  const identity = (c: ClanOfPlayer | null, color: string | null): TeamIdentity | null => (c ? { clanId: c.id, tag: c.tag, name: c.name, color } : null);
+  const identity = (c: ClanOfPlayer | null, color: string | null): TeamIdentity | null => {
+    if (!c) return null;
+    const emblem = parseEmblem(c.emblem);
+    return { clanId: c.id, tag: c.tag, name: c.name, color, ...(emblem ? { emblem, colors: { primary: c.primary, secondary: c.secondary } } : {}) };
+  };
   return [identity(red, redColour), identity(blue, blueColour)];
 }

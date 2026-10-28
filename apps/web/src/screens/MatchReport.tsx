@@ -16,6 +16,8 @@ import { Table } from '../ui/Table.js';
 import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
+import { Emblem } from '../ui/Emblem.js';
+import { downloadCanvas, matchupImage } from '../ui/emblem-image.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
 export const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
@@ -199,19 +201,41 @@ export function SeriesScreen() {
       </Page>
     );
   }
+  const seriesSide = (team: 0 | 1) => (s.teams?.[team] ? s.teams[team]!.name || s.teams[team]!.tag : t(team === 0 ? 'Red' : 'Blue'));
   return (
     <Page title={`${t('Series')} ${s.format}`} subtitle={`${date(s.startedAt, prefs.locale)} · ${s.bestOf === 1 ? t('Single game') : t('Best of $1', String(s.bestOf))}`} onBack={() => void navigate(-1)}>
       <section className="report-score" aria-label={t('Score')}>
-        <span className="report-team red">{t('Red')}</span>
+        <span className="report-team red" style={s.teams?.[0]?.color ? { color: s.teams[0].color } : undefined}>
+          {s.teams?.[0] && <Emblem clan={s.teams[0]} size={32} inline />}
+          {seriesSide(0)}
+        </span>
         <span className="report-points">
           {s.redWins} – {s.blueWins}
         </span>
-        <span className="report-team blue">{t('Blue')}</span>
+        <span className="report-team blue" style={s.teams?.[1]?.color ? { color: s.teams[1].color } : undefined}>
+          {s.teams?.[1] && <Emblem clan={s.teams[1]} size={32} inline />}
+          {seriesSide(1)}
+        </span>
         <Badge tone={s.winner === null ? 'neutral' : 'success'}>{seriesResult(s, t)}</Badge>
       </section>
       {s.matches.length > 0 && (
         <div className="ui-row report-actions">
-          <PdfButton make={async (pdf) => pdf.saveSeriesPdf(s, t, prefs.locale)} />
+          <PdfButton make={async (pdf) => pdf.seriesPdf(s, t, prefs.locale)} />
+          {/* imagem do confronto clã x clã (OG-489) */}
+          {(s.teams?.[0] || s.teams?.[1]) && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                void matchupImage(
+                  { clan: s.teams?.[0] ?? null, label: seriesSide(0), score: s.redWins },
+                  { clan: s.teams?.[1] ?? null, label: seriesSide(1), score: s.blueWins },
+                  `${t('Series')} ${s.format} · ${date(s.startedAt, prefs.locale)}`,
+                ).then((c) => downloadCanvas(c, `confronto-${s.id.slice(0, 8)}.png`))
+              }
+            >
+              {t('Download matchup image')}
+            </Button>
+          )}
         </div>
       )}
       <SeriesPanel series={s} />
@@ -221,21 +245,48 @@ export function SeriesScreen() {
 
 /**
  * "Baixar PDF" (OG-425, OG-426): o gerador e o jsPDF só são baixados no toque; enquanto monta, o
- * botão mostra "Gerando o PDF...".
+ * botão mostra "Gerando o PDF...". No celular (OG-501) o link de download com blob não funciona
+ * (sobretudo no app instalado no iPhone): o PDF vai pela folha de compartilhar do sistema (salvar
+ * em Arquivos, WhatsApp...). Se o toque "venceu" enquanto o PDF era montado, o botão vira "Abrir o
+ * PDF" e o próximo toque compartilha na hora.
  */
-function PdfButton({ make }: { make: (pdf: typeof import('./report-pdf.js')) => Promise<void> }) {
+function PdfButton({ make }: { make: (pdf: typeof import('./report-pdf.js')) => Promise<File> }) {
   const { t } = usePrefs();
   const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  const [ready, setReady] = useState<File | null>(null);
+  const share = (file: File) =>
+    navigator.share({ files: [file], title: file.name }).then(
+      () => setReady(null),
+      (e: unknown) => {
+        const name = e instanceof DOMException ? e.name : '';
+        if (name === 'AbortError') setReady(null); // a pessoa fechou a folha
+        else if (name === 'NotAllowedError') setReady(file); // sem o toque: espera o próximo
+        else setState('error');
+      },
+    );
+  if (ready) {
+    return (
+      <Button variant="primary" onClick={() => void share(ready)}>
+        {t('Open the PDF')}
+      </Button>
+    );
+  }
   return (
     <Button
       variant="secondary"
       disabled={state === 'busy'}
       onClick={() => {
         setState('busy');
-        import('./report-pdf.js').then(make).then(
-          () => setState('idle'),
-          () => setState('error'),
-        );
+        import('./report-pdf.js')
+          .then(async (pdf) => {
+            const file = await make(pdf);
+            if (isPhone() && navigator.canShare?.({ files: [file] })) await share(file);
+            else pdf.savePdf(file);
+          })
+          .then(
+            () => setState((s) => (s === 'busy' ? 'idle' : s)),
+            () => setState('error'),
+          );
       }}
     >
       {state === 'busy' ? t('Creating the PDF...') : state === 'error' ? t('Could not create the PDF.') : t('Download PDF')}
@@ -321,12 +372,14 @@ export function MatchScreen() {
     >
       <section className="report-score" aria-label={t('Score')}>
         <span className="report-team red" style={tint(0)}>
+          {side(0) && <Emblem clan={side(0)!} size={32} inline />}
           {short(0)}
         </span>
         <span className="report-points">
           {redScore} – {blueScore}
         </span>
         <span className="report-team blue" style={tint(1)}>
+          {side(1) && <Emblem clan={side(1)!} size={32} inline />}
           {short(1)}
         </span>
         <Badge tone={redScore === blueScore ? 'neutral' : 'success'}>{winner}</Badge>
@@ -352,7 +405,7 @@ export function MatchScreen() {
             {t('Watch replay')}
           </Button>
         )}
-        <PdfButton make={async (pdf) => pdf.saveMatchPdf(m, events.data ?? null, t, prefs.locale)} />
+        <PdfButton make={async (pdf) => pdf.matchPdf(m, events.data ?? null, t, prefs.locale)} />
         <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(location.href).then(() => setCopied(true))}>
           {copied ? t('Link copied') : t('Copy link')}
         </Button>

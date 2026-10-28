@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 2 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S51 |
+| Status | Concluído |
 | Dependências | OG-485 |
 | Regras de negócio | RN-EMB-04, RN-UI-05 |
 | Skills | `outgun-card-workflow` |
@@ -27,3 +27,5 @@ Como jogador, quero ver o emblema do clã vencedor na tela de fim, junto do "VEN
 - [ ] `pnpm visual:check`, partida online real e capturas ao PO.
 
 ## Notas de implementação
+- No modal de fim de partida (`match-end.tsx`, que também fecha cada mapa do Casual): emblema de 72 px do lado vencedor acima do placar; empate mostra os dois; lado sem clã ou sem emblema, nada. Linha nova no topo do modal, sem mexer no resto (o HUD da partida não muda).
+- `visual:check`, partida real e capturas no fechamento.

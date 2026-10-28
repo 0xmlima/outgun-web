@@ -2,7 +2,7 @@
 // Tabelas para o Drizzle. A fonte de verdade é o SQL de migrations/; schema.test.ts confere que as
 // duas descrições têm as mesmas colunas.
 import { sql } from 'drizzle-orm';
-import type { ClanTagStyle } from '@outgun/protocol';
+import type { ClanEmblem, ClanTagStyle } from '@outgun/protocol';
 import type { BotNameEntry, RotationKey } from '@outgun/settings';
 import {
   bigserial,
@@ -198,6 +198,9 @@ export interface MatchTeam {
   tag: string;
   name: string;
   color: string | null;
+  /** Emblema e cores do clã no dia da partida (OG-485). */
+  emblem?: ClanEmblem;
+  colors?: { primary: string; secondary: string };
 }
 
 export const matches = pgTable(
@@ -394,10 +397,14 @@ export const clans = pgTable(
     /** Cores do clã na partida (OG-407, RN-CLA-09): `#RRGGBB` da paleta `CLAN_COLORS`; nulas = sem cores. */
     primaryColor: text('primary_color'),
     secondaryColor: text('secondary_color'),
+    /** Emblema (OG-482, RN-EMB-01): `ClanEmblem`; nulo = padrão (escudo + tag). */
+    emblem: jsonb('emblem').$type<ClanEmblem>(),
+    /** `emblemKey` do emblema escolhido (RN-EMB-02); nulo com o padrão. */
+    emblemKey: text('emblem_key'),
     createdAt: tstz('created_at').notNull().defaultNow(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('clans_name_key_idx').on(t.nameKey), uniqueIndex('clans_tag_key_idx').on(t.tagKey)],
+  (t) => [uniqueIndex('clans_name_key_idx').on(t.nameKey), uniqueIndex('clans_tag_key_idx').on(t.tagKey), uniqueIndex('clans_emblem_key_idx').on(t.emblemKey)],
 );
 
 export type ClanRole = 'leader' | 'admin' | 'member';

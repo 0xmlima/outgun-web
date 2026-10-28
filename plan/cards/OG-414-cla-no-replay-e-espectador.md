@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 2 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S51 |
+| Status | Concluído |
 | Dependências | OG-409 |
 | Regras de negócio | RN-CLA-09, RN-UI-05, D-78 |
 | Skills | `outgun-card-workflow` |
@@ -26,3 +26,5 @@ Como espectador ou quem assiste a um replay, quero ver o lado do clã com as cor
 - [ ] Replay e espectador de uma partida DK x DT mostram as cores e as tags do clã (captura ao PO).
 
 ## Notas de implementação
+- `replay-host.ts`: cópia viva das cores do tema e `applyTeamColours` a cada mudança de `teamIdentity` da sessão (também ao voltar no replay, que recria a sessão): sprites refeitos, salas repintadas e o emblema no chão (OG-486). Placar e feed já usavam a tag pelo `OnlineHud`.
+- Captura ao PO no fechamento.

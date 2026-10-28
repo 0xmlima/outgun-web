@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 5 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S51 |
+| Status | Concluído |
 | Dependências | OG-407 |
 | Regras de negócio | RN-EMB-01, RN-EMB-02 |
 | Skills | `outgun-card-workflow` |
@@ -27,10 +27,14 @@ Como membro de um clã, quero um emblema com a cara do clã, montado de peças p
 - Emblema padrão de clã que nunca escolheu: escudo + tag com as cores do clã.
 
 ## Critérios de aceite
-- [ ] Testes: validação, `emblemKey` com inversão, padrão, tag de 1/2/3 caracteres.
-- [ ] O SVG é o mesmo em todos os lugares (uma função só).
+- [x] Testes: validação, `emblemKey` com inversão, padrão, tag de 1/2/3 caracteres.
+- [x] O SVG é o mesmo em todos os lugares (uma função só).
 
 ## Notas técnicas
 - Clã sem cores (`colors` null): emblema com cores neutras (prata e preto) até escolher; decidir na implementação e anotar.
 
 ## Notas de implementação
+- `packages/protocol/src/emblem.ts`: ids em inglês (`shield`, `wolf`...), guardados no banco; os nomes de tela ficam no cliente. Catálogo com os 14 rascunhos da proposta; o OG-481 fecha os 28.
+- Sem cores do clã: prata no fundo e preto no símbolo (`NEUTRAL_EMBLEM_COLOURS`).
+- `emblemKey` com a tag como símbolo inclui a própria tag (tags distintas já dão emblemas distintos).
+- Tag na fonte Inter (a do design system); o id do `clipPath` sai da chave, então o SVG é determinístico. O PDF (OG-485) precisa da Inter embutida para a tag sair igual.

@@ -16,6 +16,7 @@ import { Tabs } from '../ui/Tabs.js';
 import { useAccount } from '../app/account.js';
 import { OVERALL, OverallDetailView, StatDetailView, StatOverviewView, STAT_LABELS, statScope } from './leaderboard.js';
 import { duration, FormatTabs, PlayerLink, Status, useApi, useFormatParam } from './stats.js';
+import { ClanBadge } from '../ui/Emblem.js';
 
 interface Directory {
   active: { username: string; clanTag: string | null; clanLabel: string | null; matches: number; wins: number; playSeconds: number }[];
@@ -62,7 +63,7 @@ export function PlayersScreen() {
               onRowActivate={(r) => open(r.username)}
               empty={t('Nobody yet.')}
               columns={[
-                { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
+                { key: 'name', header: t('Player'), cell: (r) => <><ClanBadge tag={r.clanTag} /><PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /></> },
                 { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
                 { key: 'wins', header: t('Wins'), cell: (r) => r.wins, align: 'end' },
                 { key: 'time', header: t('Playing time'), cell: (r) => duration(r.playSeconds), align: 'end', hideOnPhone: true },
@@ -81,7 +82,7 @@ export function PlayersScreen() {
               onRowActivate={(r) => void navigate(`/clans/${encodeURIComponent(r.tag)}`)}
               empty={t('Nobody yet.')}
               columns={[
-                { key: 'tag', header: t('Clan'), cell: (r) => <Link to={`/clans/${encodeURIComponent(r.tag)}`}>{r.tag}</Link> },
+                { key: 'tag', header: t('Clan'), cell: (r) => <Link to={`/clans/${encodeURIComponent(r.tag)}`}><ClanBadge tag={r.tag} />{r.tag}</Link> },
                 { key: 'members', header: t('Members'), cell: (r) => r.members, align: 'end' },
                 { key: 'active', header: t('Active this week'), cell: (r) => r.activeMembers, align: 'end', hideOnPhone: true },
                 { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
@@ -117,7 +118,7 @@ function SearchResults({ term, onOpen }: { term: string; onOpen: (username: stri
         rowKey={(r) => r.username}
         onRowActivate={(r) => onOpen(r.username)}
         empty={t('Nobody found.')}
-        columns={[{ key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> }]}
+        columns={[{ key: 'name', header: t('Player'), cell: (r) => <><ClanBadge tag={r.clanTag} /><PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /></> }]}
       />
       {f.total > f.players.length && limit < 50 && (
         <div className="ui-row">
@@ -248,7 +249,7 @@ function ClanBoard() {
             empty={t('Nobody yet.')}
             columns={[
               { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
-              { key: 'clan', header: t('Clan'), cell: (e) => <Link to={`/clans/${encodeURIComponent(e.tag)}`}>{`(${e.tag}) ${e.name}`}</Link> },
+              { key: 'clan', header: t('Clan'), cell: (e) => <Link to={`/clans/${encodeURIComponent(e.tag)}`}><ClanBadge tag={e.tag} size={20} />{`(${e.tag}) ${e.name}`}</Link> },
               { key: 'points', header: t('Points'), cell: (e) => e.points, align: 'end' },
               { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end', hideOnPhone: true },
               { key: 'record', header: `${t('Wins')}/${t('Draws')}/${t('Losses')}`, cell: (e) => `${e.wins}/${e.draws}/${e.losses}`, align: 'end' },

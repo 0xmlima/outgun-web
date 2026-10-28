@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 5 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S51 |
+| Status | Concluído |
 | Dependências | OG-485 |
 | Regras de negócio | RN-EMB-04, RN-UI-05, D-78 |
 | Skills | `outgun-card-workflow` |
@@ -33,3 +33,6 @@ Como jogador, quero ver o emblema do clã pintado no chão da base do lado do cl
 - Textura do emblema rasterizada uma vez por identidade, no tamanho da tela (o SVG do OG-480); opacidade baixa para não competir com piso e paredes.
 
 ## Notas de implementação
+- Mensagem nova `teamEmblem` (133) logo depois da `teamIdentity` (mesmo caminho da S43: sem subir `PROTOCOL_VERSION`, cliente e servidor sobem juntos); vai no `welcome` e no replay. `ClientSession` junta o emblema e as cores na `teamIdentity`.
+- Decalque como camada de sprites do `WorldRenderer` (acima das salas, abaixo da névoa e das entidades), não no `room-painter` (que roda num worker). Tamanho 5 × raio da marca da bandeira, opacidade 0,26; textura de 256 px por emblema (`render/emblem-decal.ts`).
+- Lado que deixa de ser o clã perde o decalque na troca de identidade. `visual:check`, partida real e capturas ficam para o fechamento.

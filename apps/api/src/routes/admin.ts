@@ -849,12 +849,14 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       {
         schema: {
           tags: ['admin'],
-          summary: 'Força a troca de nome, tag ou descrição de um clã (com motivo na auditoria)',
+          summary: 'Força a troca de nome, tag ou descrição de um clã, ou volta o emblema ao padrão (com motivo na auditoria)',
           params: Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) }),
           body: Type.Object({
             name: Type.Optional(Type.String({ maxLength: 24 })),
             tag: Type.Optional(Type.String({ maxLength: 3 })),
             description: Type.Optional(Type.String({ maxLength: 500 })),
+            /** Volta o emblema ao padrão (OG-482, RN-EMB-03). */
+            resetEmblem: Type.Optional(Type.Literal(true)),
             reason: Reason,
           }),
         },
@@ -862,7 +864,8 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
       async (request, reply) => {
         const user = await guard(request, reply, 'moderator');
         if (!user) return reply;
-        const { reason, ...changes } = request.body;
+        const { reason, resetEmblem, ...fields } = request.body;
+        const changes = { ...fields, ...(resetEmblem ? { emblem: null } : {}) };
         try {
           const before = await db.transaction(async (tx) => {
             const [clan] = await tx.select().from(clans).where(eq(clans.tagKey, clanKey(request.params.tag))).for('update');
@@ -875,7 +878,7 @@ export function adminRoutes(deps: AppDeps, services: Services): FastifyPluginAsy
           await audit(user, 'clan-edit', {
             targetName: `(${after.tag}) ${after.name}`,
             reason,
-            details: { clan: before.id, from: { name: before.name, tag: before.tag, description: before.description }, to: changes },
+            details: { clan: before.id, from: { name: before.name, tag: before.tag, description: before.description, emblem: before.emblem }, to: changes },
           });
           return { name: after.name, tag: after.tag };
         } catch (e) {

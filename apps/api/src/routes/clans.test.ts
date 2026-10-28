@@ -123,6 +123,40 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await call('PATCH', '/clans/NX', { colors: null }, 'Lider')).json().clan.colors).toBeNull();
   });
 
+  it('emblema (OG-482): líder e admins trocam; padrão; combinação de outro clã recusada, também por cor e inversão', async () => {
+    const [navy, yellow] = [CLAN_COLORS.navy!, CLAN_COLORS.yellow!];
+    const wolf = { frame: 'shield', symbol: 'wolf', fillet: true, inverted: false };
+    expect((await clan('NX')).emblem).toEqual({ frame: 'shield', symbol: 'tag', fillet: false, inverted: false });
+    await call('PATCH', '/clans/NX', { colors: { primary: navy, secondary: yellow } }, 'Lider');
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf }, 'Memb1')).statusCode).toBe(403);
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: { ...wolf, symbol: 'mickey' } }, 'Lider')).statusCode).toBe(400);
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf }, 'Adm1')).json().clan.emblem).toEqual(wolf);
+    // moldura do hall sem pódio (OG-488)
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: { ...wolf, frame: 'hallBronze' } }, 'Lider')).json().error).toBe('emblem_frame_locked');
+    // cores junto do emblema (o editor mostra as cores ainda não salvas); par inválido recusa tudo
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf, colors: { primary: CLAN_COLORS.blue!, secondary: CLAN_COLORS.purple! } }, 'Lider')).json().error).toBe('clan_colors_too_similar');
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf, colors: { primary: yellow, secondary: navy } }, 'Lider')).json().clan).toMatchObject({ emblem: wolf, colors: { primary: yellow, secondary: navy } });
+    await call('PATCH', '/clans/NX', { colors: { primary: navy, secondary: yellow } }, 'Lider');
+
+    // outro clã, cores invertidas: amarelo no fundo e marinho no símbolo
+    expect((await call('POST', '/clans', { name: 'Os Outros', tag: 'OT' }, 'Sozinho')).statusCode).toBe(201);
+    await call('PATCH', '/clans/OT', { colors: { primary: yellow, secondary: navy } }, 'Sozinho');
+    expect((await call('GET', '/clans/OT/emblem/taken')).json().taken).toHaveLength(1);
+    expect((await call('PUT', '/clans/OT/emblem', { emblem: { ...wolf, inverted: true } }, 'Sozinho')).json().error).toBe('emblem_taken');
+    expect((await call('PUT', '/clans/OT/emblem', { emblem: wolf }, 'Sozinho')).statusCode).toBe(200);
+    // trocar as cores para as do NX repetiria o emblema
+    expect((await call('PATCH', '/clans/OT', { colors: { primary: navy, secondary: yellow } }, 'Sozinho')).json().error).toBe('emblem_taken');
+    // a tag como símbolo nunca colide; null volta ao padrão e libera a combinação
+    expect((await call('PUT', '/clans/OT/emblem', { emblem: { ...wolf, symbol: 'tag' } }, 'Sozinho')).statusCode).toBe(200);
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: null }, 'Lider')).json().clan.emblem.symbol).toBe('tag');
+    expect((await call('GET', '/clans/OT/emblem/taken')).json().taken).toEqual([]);
+    // em lote pela tag, sem diferença de maiúsculas (OG-484)
+    const many = (await call('GET', '/clans/emblems?tags=nx,OT,ZZ')).json().clans;
+    expect(many.map((c: { tag: string }) => c.tag).sort()).toEqual(['NX', 'OT']);
+    expect(many.find((c: { tag: string }) => c.tag === 'OT')).toMatchObject({ colors: { primary: yellow, secondary: navy }, emblem: { symbol: 'tag' } });
+    expect((await call('DELETE', '/clans/OT', undefined, 'Sozinho')).statusCode).toBe(204);
+  });
+
   it('expulsar: admin só expulsa membro comum; ninguém expulsa o líder', async () => {
     await join('Adm2', 'NX');
     expect((await call('PUT', '/clans/NX/members/Adm2/role', { role: 'admin' }, 'Lider')).json().clan.members).toContainEqual(

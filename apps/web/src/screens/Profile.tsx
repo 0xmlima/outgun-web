@@ -20,6 +20,7 @@ import { useManifestLists, swatchBackground } from './options.js';
 import { MilestonesPanel } from './milestones-panel.js';
 import { RatingInfo } from './rating-help.js';
 import { date, duration, FormatTabs, formatQuery, percent, PlayerLink, Status, SubstitutionBadges, useApi, useFormatParam, type HistoryEntry, type Mode, type Profile, type Totals } from './stats.js';
+import { ClanBadge } from '../ui/Emblem.js';
 
 interface Mate {
   username: string;
@@ -123,6 +124,7 @@ export function ProfileScreen() {
       title={
         <span className="profile-name">
           {colour && <span className="profile-colour" style={{ background: colour }} aria-hidden="true" />}
+          <ClanBadge tag={p.user.clanTag} size={28} />
           {withClan(p.user.username, p.user.clanLabel)}
           {p.number ? <span className="profile-number" title={t('Player number')}>{p.number}</span> : null}
         </span>
@@ -307,7 +309,7 @@ export function ProfileScreen() {
           </Tabs>
         </Panel>
         {s?.clan && (
-          <Panel title={`${t('Clan')} · ${s.clan.tag}`} actions={<Link to={`/clans/${encodeURIComponent(s.clan.tag)}`}>{t('Clan page')}</Link>}>
+          <Panel title={`${t('Clan')} · ${s.clan.tag}`} actions={<Link to={`/clans/${encodeURIComponent(s.clan.tag)}`}><ClanBadge tag={s.clan.tag} size={20} />{t('Clan page')}</Link>}>
             <ul className="profile-clan">
               {s.clan.members.map((m) => (
                 <li key={m}>
@@ -358,7 +360,7 @@ function DuelTable({ caption, rows }: { caption: string; rows: Duel[] }) {
       onRowActivate={(r) => void navigate(`/players/${encodeURIComponent(r.username)}`)}
       empty={t('No data yet (counted from Ranked matches since the event log).')}
       columns={[
-        { key: 'name', header: caption, cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
+        { key: 'name', header: caption, cell: (r) => <><ClanBadge tag={r.clanTag} /><PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /></> },
         { key: 'kills', header: t('Kills'), cell: (r) => r.kills, align: 'end' },
       ]}
     />
@@ -376,7 +378,7 @@ function MateTable({ caption, rows }: { caption: string; rows: Mate[] }) {
       onRowActivate={(r) => void navigate(`/players/${encodeURIComponent(r.username)}`)}
       empty={t('Nobody yet.')}
       columns={[
-        { key: 'name', header: t('Player'), cell: (r) => <PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /> },
+        { key: 'name', header: t('Player'), cell: (r) => <><ClanBadge tag={r.clanTag} /><PlayerLink name={withClan(r.username, r.clanLabel)} username={r.username} /></> },
         { key: 'matches', header: t('Matches'), cell: (r) => r.matches, align: 'end' },
         { key: 'wins', header: t('Wins'), cell: (r) => r.wins, align: 'end' },
         { key: 'losses', header: t('Losses'), cell: (r) => r.losses, align: 'end' },

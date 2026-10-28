@@ -24,6 +24,7 @@ import { Tabs } from '../ui/Tabs.js';
 import { SignInForm } from './account.js';
 import { type HistoryEntry, useApi } from './stats.js';
 import { STEAM_STORE_URL } from './download.js';
+import { ClanBadge } from '../ui/Emblem.js';
 
 /** Seta circular grossa do sorteio de cor. */
 function RerollIcon() {
@@ -372,6 +373,7 @@ export function StartCard() {
               {/* o nome leva ao perfil com as estatísticas; a tag do clã à esquerda, no estilo do clã, como na
                   partida ("BV-nick", "[BV] nick"...) */}
               <Link className="home-start-username" to={`/players/${encodeURIComponent(user.username)}`}>
+                <ClanBadge tag={user.clanTag} size={24} />
                 {user.clanLabel && <span className="app-clan">{chatName(user.username, user.clanLabel).slice(0, -user.username.length)}</span>}
                 {user.username}
               </Link>

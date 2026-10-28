@@ -7,16 +7,19 @@ import { useAccount, type AccountUser } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { CLAN_COLORS, CLAN_TAG_STYLES, chatName, clanColoursProblem, clanLabel, type ClanTagStyle } from '@outgun/protocol';
+import { CLAN_COLORS, CLAN_TAG_STYLES, chatName, clanColoursProblem, clanLabel, type ClanEmblem, type ClanTagStyle } from '@outgun/protocol';
 import { ChoiceField, TextAreaField, TextField, ToggleField } from '../ui/Field.js';
 import { Icon, PlayerAvatar } from '../ui/icons.js';
 import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { useToast } from '../ui/Toast.js';
+import { EmblemEditor } from './clan-emblem.js';
 import { ClanStatsPanels } from './clan-stats.js';
 import { TitleBadges, type SeasonTitle } from './HallOfFame.js';
 import { PlayerLink, Status, useApi } from './stats.js';
+import { ClanBadge, Emblem, forgetEmblem } from '../ui/Emblem.js';
+import { downloadEmblem } from '../ui/emblem-image.js';
 
 interface ClanRef {
   readonly name: string;
@@ -208,6 +211,8 @@ interface ClanPage {
   readonly description: string;
   /** Cores do clã na partida (OG-407); null = sem cores. */
   readonly colors?: { readonly primary: string; readonly secondary: string } | null;
+  /** Emblema (OG-482); o padrão quando o clã nunca escolheu. */
+  readonly emblem?: ClanEmblem;
   readonly createdAt: string;
   readonly members: readonly ClanMember[];
   /** Pódios no hall da fama (OG-268). */
@@ -255,6 +260,10 @@ function useClanErrorText(): (e: unknown) => string {
         return t('Pick a secondary color clearly different from the primary.');
       case 'invalid_clan_color':
         return t('Pick the colors from the palette.');
+      case 'emblem_taken':
+        return t('Another clan already uses this emblem.');
+      case 'emblem_frame_locked':
+        return t('Win a podium in the clan hall of fame.');
       default:
         return t('Something went wrong. Try again.');
     }
@@ -327,7 +336,12 @@ export function ClansScreen() {
             onRowActivate={(r) => void navigate(clanPath(r.tag))}
             empty={term ? t('Nobody found.') : t('No clans yet.')}
             columns={[
-              { key: 'clan', header: t('Clan'), cell: (r) => <Link to={clanPath(r.tag)}>({r.tag}) {r.name}</Link> },
+              { key: 'clan', header: t('Clan'), cell: (r) => (
+                  <Link to={clanPath(r.tag)}>
+                    <ClanBadge tag={r.tag} size={20} />({r.tag}) {r.name}
+                  </Link>
+                ),
+              },
               { key: 'members', header: t('Members'), cell: (r) => r.members, align: 'end' },
               { key: 'since', header: t('Founded'), cell: (r) => new Date(r.createdAt).toLocaleDateString(), align: 'end', hideOnPhone: true },
             ]}
@@ -433,11 +447,16 @@ export function ClanScreen() {
       onBack={() => void navigate('/clans')}
       backLabel={t('Back')}
     >
-      {clan.titles && clan.titles.length > 0 && (
-        <div className="ui-row">
-          <TitleBadges titles={clan.titles} />
-        </div>
-      )}
+      <div className="ui-row clan-head">
+        <Emblem clan={clan} size={112} title={t('Clan emblem')} />
+        {/* PNG do emblema (OG-489) */}
+        {([128, 512] as const).map((size) => (
+          <Button key={size} variant="ghost" onClick={() => void downloadEmblem(clan, size)}>
+            {t('PNG $1 px', String(size))}
+          </Button>
+        ))}
+        {clan.titles && clan.titles.length > 0 && <TitleBadges titles={clan.titles} />}
+      </div>
       {clan.colors && (
         <div className="ui-row clan-colors-preview" title={t('Clan colors in the match')}>
           {[clan.colors.primary, clan.colors.secondary].map((c, i) => (
@@ -573,6 +592,7 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
   const save = () => {
     const body = { name: name.trim(), description, colors, ...(leader ? { tag: tag.trim(), tagStyle } : {}) };
     void act(base, { method: 'PATCH', body }, () => {
+      forgetEmblem(clan.tag);
       toast(t('Saved.'), 'success');
       void navigate(clanPath(body.tag ?? clan.tag), { replace: true });
     });
@@ -640,6 +660,20 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
           <ClanColorsField value={colors} onChange={setColors} />
         </Form>
       </Panel>
+      <EmblemEditor
+        key={tick}
+        clan={{ ...clan, colors }}
+        bestHall={(clan.titles ?? []).filter((x) => x.board === 'clans').reduce<number | null>((best, x) => (best === null || x.position < best ? x.position : best), null)}
+        base={base}
+        tick={tick}
+        onSave={(emblem) =>
+          void act(`${base}/emblem`, { method: 'PUT', body: { emblem, colors } }).then((ok) => {
+            if (!ok) return;
+            forgetEmblem(clan.tag);
+            toast(t('Saved.'), 'success');
+          })
+        }
+      />
     </div>
   );
 }

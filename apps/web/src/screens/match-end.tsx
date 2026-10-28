@@ -9,6 +9,8 @@ import { usePrefs } from '../app/prefs.js';
 import { currentStats, playersInOrder } from '../game/hud/info-screens.js';
 import { Button } from '../ui/Button.js';
 import { Dialog } from '../ui/Dialog.js';
+import { Emblem } from '../ui/Emblem.js';
+import type { TeamIdentityView } from '@outgun/netcode';
 import { signedDelta, type MatchPage, type SkillChange } from './stats.js';
 
 /** Segundos até o modal fechar sozinho. */
@@ -24,8 +26,8 @@ export interface MatchSummary {
   readonly players: readonly { pid: number; name: string; team: 0 | 1; frags: number; captures: number; kills: number; deaths: number; returns: number }[];
   /** Série Ranked (md3/md5) depois deste jogo. */
   readonly series: { bestOf: number; red: number; blue: number; finished: boolean } | null;
-  /** O clã que cada lado foi nesta rodada (OG-409): tag e cor (null = vermelho/azul). */
-  readonly teams?: readonly [{ tag: string; name: string; color: string | null } | null, { tag: string; name: string; color: string | null } | null];
+  /** O clã que cada lado foi nesta rodada (OG-409): tag e cor (null = vermelho/azul); com o emblema (OG-487). */
+  readonly teams?: readonly [TeamIdentityView | null, TeamIdentityView | null];
 }
 
 /** Retrato do fim de partida a partir da sessão (null fora do fim de partida). */
@@ -41,7 +43,7 @@ export function matchSummary(s: ClientSession): MatchSummary | null {
   });
   const l = s.lobby;
   const series = l && l.bestOf > 1 ? { bestOf: l.bestOf, red: l.seriesRed, blue: l.seriesBlue, finished: l.phase === 'finished' } : null;
-  const id = (team: 0 | 1) => (s.teamIdentity?.[team] ? { tag: s.teamIdentity[team]!.tag, name: s.teamIdentity[team]!.name, color: s.teamIdentity[team]!.color } : null);
+  const id = (team: 0 | 1) => (s.teamIdentity?.[team] ? { ...s.teamIdentity[team]! } : null);
   return { outcome, red: go.red, blue: go.blue, reason: go.reason, me: s.me, players, series, teams: [id(0), id(1)] };
 }
 
@@ -121,6 +123,17 @@ export function MatchEndDialog({ summary, onClose, onReport, rating }: { summary
         </>
       }
     >
+      {/* emblema do lado vencedor (OG-487); no empate, os dois. Só lado que virou o clã com emblema */}
+      {(() => {
+        const sides = ([0, 1] as const).filter((team) => summary.teams?.[team]?.emblem && (summary.red === summary.blue || (summary.red > summary.blue) === (team === 0)));
+        return sides.length > 0 ? (
+          <p className="match-end-emblems">
+            {sides.map((team) => (
+              <Emblem key={team} clan={{ tag: summary.teams![team]!.tag, colors: summary.teams![team]!.colors ?? null, emblem: summary.teams![team]!.emblem ?? null }} size={72} title={summary.teams![team]!.name || summary.teams![team]!.tag} />
+            ))}
+          </p>
+        ) : null;
+      })()}
       <p className="match-end-score">
         <span className="team-red" style={summary.teams?.[0]?.color ? { color: summary.teams[0].color } : undefined}>
           {(summary.teams?.[0]?.name || summary.teams?.[0]?.tag) ?? t('Red')} {summary.red}

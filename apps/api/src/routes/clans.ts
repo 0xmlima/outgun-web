@@ -3,9 +3,9 @@
 // dissolver, página pública e busca. A tag de users.clan_tag (ticket, chat) vem dos gatilhos da
 // migração 0016. Convites, pedidos e carência: OG-271. Estatísticas: OG-273 (src/clan-stats.ts).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, eq, gt, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNotNull, lte, ne, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem } from '@outgun/protocol';
+import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem, DEFAULT_EMBLEM, emblemFrameAllowed, emblemKey, parseEmblem, type ClanEmblem } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
@@ -16,7 +16,7 @@ import { clanMembersStats, clanOpponents, clanWarTotals } from '../clan-stats.js
 import { nameBlocked } from '../name-filter.js';
 import { likePrefix } from './social.js';
 import { clanStaff, notify } from './notifications.js';
-import { ErrorSchema } from './schemas.js';
+import { EmblemSchema, ErrorSchema } from './schemas.js';
 
 /** Limite de membros (D-47); vale para convites e pedidos (OG-271). */
 export const MAX_CLAN_MEMBERS = 30;
@@ -39,6 +39,8 @@ const ClanSchema = Type.Object({
   description: Type.String(),
   /** Cores do clã na partida (OG-407); null = sem cores. */
   colors: Type.Union([Type.Object({ primary: Type.String(), secondary: Type.String() }), Type.Null()]),
+  /** Emblema (OG-482); o padrão quando o clã nunca escolheu. */
+  emblem: EmblemSchema,
   createdAt: Type.String(),
   members: Type.Array(Type.Object({ username: Type.String(), role: RoleSchema, joinedAt: Type.String() })),
   /** Pódios no hall da fama (OG-268). */
@@ -73,6 +75,7 @@ export function uniqueError(e: unknown): ClanError | undefined {
   const err = ((e as { cause?: PgError })?.cause ?? e) as PgError;
   if (err?.code !== '23505') return undefined;
   const name = err.constraint_name ?? '';
+  if (name.includes('emblem')) return new ClanError(409, 'emblem_taken');
   return new ClanError(409, name.includes('tag') ? 'clan_tag_taken' : name.includes('name') ? 'clan_name_taken' : 'already_in_clan');
 }
 
@@ -105,6 +108,8 @@ export interface ClanFields {
   readonly description?: string | undefined;
   /** Par de cores (OG-407); null tira as cores. */
   readonly colors?: { primary: string; secondary: string } | null | undefined;
+  /** Emblema (OG-482); null volta ao padrão. */
+  readonly emblem?: ClanEmblem | null | undefined;
 }
 
 /**
@@ -132,6 +137,20 @@ export async function checkClanFields(tx: Tx, f: ClanFields, filter: readonly st
 }
 
 export async function updateClan(tx: Tx, clanId: string, f: ClanFields) {
+  // A chave do emblema (RN-EMB-02) depende do emblema, da tag e das cores: troca de qualquer um que
+  // repetiria o emblema de outro clã é recusada.
+  let emblem = {};
+  if (f.emblem !== undefined || f.tag !== undefined || f.colors !== undefined) {
+    const [c] = await tx.select().from(clans).where(eq(clans.id, clanId));
+    const e = f.emblem !== undefined ? f.emblem : c!.emblem;
+    const colors = f.colors !== undefined ? f.colors : c!.primaryColor && c!.secondaryColor ? { primary: c!.primaryColor, secondary: c!.secondaryColor } : null;
+    const key = e ? emblemKey(e, f.tag ?? c!.tag, colors?.primary ?? null, colors?.secondary ?? null) : null;
+    if (key) {
+      const [other] = await tx.select({ id: clans.id }).from(clans).where(and(eq(clans.emblemKey, key), ne(clans.id, clanId)));
+      if (other) throw new ClanError(409, 'emblem_taken');
+    }
+    emblem = { emblem: e, emblemKey: key };
+  }
   await tx
     .update(clans)
     .set({
@@ -140,6 +159,7 @@ export async function updateClan(tx: Tx, clanId: string, f: ClanFields) {
       ...(f.tagStyle !== undefined ? { tagStyle: f.tagStyle } : {}),
       ...(f.description !== undefined ? { description: f.description } : {}),
       ...(f.colors !== undefined ? { primaryColor: f.colors?.primary ?? null, secondaryColor: f.colors?.secondary ?? null } : {}),
+      ...emblem,
       updatedAt: new Date(),
     })
     .where(eq(clans.id, clanId));
@@ -244,6 +264,7 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
       tagLabel: clanLabel(clan.tag, clan.tagStyle),
       description: clan.description,
       colors: clan.primaryColor && clan.secondaryColor ? { primary: clan.primaryColor, secondary: clan.secondaryColor } : null,
+      emblem: parseEmblem(clan.emblem) ?? DEFAULT_EMBLEM,
       createdAt: clan.createdAt.toISOString(),
       members: members.map((m) => ({ username: m.username, role: m.role, joinedAt: m.joinedAt.toISOString() })),
       titles: await titlesWhere(db, eq(seasonChampions.clanId, clan.id)),
@@ -404,6 +425,89 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
         });
         if (!done) return reply;
         return { clan: (await page(done.value))! };
+      },
+    );
+
+    app.put(
+      '/clans/:tag/emblem',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Escolhe ou troca o emblema do clã (líder e admins, sem espera); null volta ao padrão. Repetir o de outro clã: 409 emblem_taken',
+          params: TagParams,
+          // as cores vão junto (opcional): o editor mostra o emblema com as cores ainda não salvas do clã
+          body: Type.Object({ emblem: Type.Union([EmblemSchema, Type.Null()]), colors: Type.Optional(Type.Union([Type.Object({ primary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), secondary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }) }), Type.Null()])) }),
+          response: { 200: Type.Object({ clan: ClanSchema }), 400: ErrorSchema, 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema, 409: ErrorSchema },
+        },
+      },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const done = await run(reply, async (tx) => {
+          const clan = await lockClan(tx, request.params.tag);
+          const role = await roleIn(tx, clan.id, user.id);
+          if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
+          const emblem = request.body.emblem && parseEmblem(request.body.emblem);
+          if (request.body.emblem && !emblem) throw new ClanError(400, 'invalid_emblem');
+          // molduras do hall (OG-488, RN-EMB-05): pela melhor posição do clã no hall de clãs
+          if (emblem && !emblemFrameAllowed(emblem.frame, null)) {
+            const [row] = await tx
+              .select({ best: sql<number | null>`min(${seasonChampions.position})` })
+              .from(seasonChampions)
+              .where(and(eq(seasonChampions.clanId, clan.id), eq(seasonChampions.board, 'clans')));
+            if (!emblemFrameAllowed(emblem.frame, row?.best ?? null)) throw new ClanError(403, 'emblem_frame_locked');
+          }
+          const c = request.body.colors;
+          const colors = c && { primary: c.primary.toUpperCase(), secondary: c.secondary.toUpperCase() };
+          await checkClanFields(tx, { colors }, config.nameFilter, clan.id);
+          await updateClan(tx, clan.id, { emblem, colors });
+          return clan.tag;
+        });
+        if (!done) return reply;
+        return { clan: (await page(done.value))! };
+      },
+    );
+
+    app.get(
+      '/clans/emblems',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Emblema e cores de vários clãs pela tag (OG-484): o portal mostra o emblema onde só tem a tag',
+          querystring: Type.Object({ tags: Type.String({ maxLength: 400 }) }),
+          response: { 200: Type.Object({ clans: Type.Array(Type.Object({ tag: Type.String(), colors: ClanSchema.properties.colors, emblem: EmblemSchema })) }) },
+        },
+      },
+      async (request) => {
+        const keys = [...new Set(request.query.tags.split(',').filter(Boolean).slice(0, 100).map(clanKey))];
+        if (keys.length === 0) return { clans: [] };
+        const rows = await db.select().from(clans).where(inArray(clans.tagKey, keys));
+        return {
+          clans: rows.map((c) => ({
+            tag: c.tag,
+            colors: c.primaryColor && c.secondaryColor ? { primary: c.primaryColor, secondary: c.secondaryColor } : null,
+            emblem: parseEmblem(c.emblem) ?? DEFAULT_EMBLEM,
+          })),
+        };
+      },
+    );
+
+    app.get(
+      '/clans/:tag/emblem/taken',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Chaves dos emblemas dos outros clãs (o editor desabilita as combinações ocupadas)',
+          params: TagParams,
+          response: { 200: Type.Object({ taken: Type.Array(Type.String()) }) },
+        },
+      },
+      async (request) => {
+        const rows = await db
+          .select({ key: clans.emblemKey })
+          .from(clans)
+          .where(and(isNotNull(clans.emblemKey), ne(clans.tagKey, clanKey(request.params.tag))));
+        return { taken: rows.map((r) => r.key!) };
       },
     );
 

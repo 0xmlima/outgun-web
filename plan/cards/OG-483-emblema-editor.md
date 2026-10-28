@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S51 |
+| Status | Concluído |
 | Dependências | OG-481, OG-482 |
 | Regras de negócio | RN-EMB-01, RN-EMB-03, RN-UI-01 |
 | Skills | `outgun-card-workflow` |
@@ -26,6 +26,9 @@ Como líder ou admin de clã, quero montar o emblema com prévia nos tamanhos re
 - Design system v2; teclado, mouse e gamepad; no celular também (portal, D-80).
 
 ## Critérios de aceite
-- [ ] Líder e admin salvam; membro só vê. Combinação ocupada não é salva e a tela diz por quê.
+- [x] Líder e admin salvam; membro só vê. Combinação ocupada não é salva e a tela diz por quê.
 
 ## Notas de implementação
+- `ui/Emblem.tsx` (componente único, usa `emblemSvg`) e `screens/clan-emblem.tsx` (editor), no painel de gestão do clã, que só líder e admins veem; o membro vê o emblema nas telas do OG-484.
+- Opções ocupadas: compara `emblemKey` com `GET /clans/:tag/emblem/taken`; desabilitadas com o motivo no título, e o Salvar trava com a mensagem se a combinação atual for de outro clã.
+- Pedido do PO: a prévia segue as cores do formulário enquanto mudam, e "Salvar emblema" grava essas cores junto (`colors` opcional no `PUT .../emblem`, mesma validação e checagem de repetido). Prévia em 128 px e 16/32/64 px em fundo escuro e claro.
