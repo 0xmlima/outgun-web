@@ -198,6 +198,9 @@ export interface MatchTeam {
   tag: string;
   name: string;
   color: string | null;
+  /** Emblema e cores do clã no dia da partida (OG-485). */
+  emblem?: ClanEmblem;
+  colors?: { primary: string; secondary: string };
 }
 
 export const matches = pgTable(

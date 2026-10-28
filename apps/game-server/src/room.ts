@@ -1846,7 +1846,7 @@ export class Room {
         substitutions: this.substitutions,
         skillRoster: this.skillRoster(),
         events: this.events.log(),
-        teams: [0, 1].map((t) => { const id = this.identities[t as 0 | 1]; return id ? { tag: id.tag, name: id.name, color: id.color } : null; }) as [ReportTeam | null, ReportTeam | null],
+        teams: [0, 1].map((t) => { const id = this.identities[t as 0 | 1]; return id ? { tag: id.tag, name: id.name, color: id.color, ...(id.emblem ? { emblem: id.emblem, colors: id.colors } : {}) } : null; }) as [ReportTeam | null, ReportTeam | null],
       }),
     );
   }

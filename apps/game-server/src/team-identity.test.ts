@@ -36,4 +36,12 @@ describe('identidade do clã na partida (OG-408, D-78)', () => {
     const R = clan('RR', CLAN_COLORS.red!, CLAN_COLORS.white!);
     expect(teamIdentities([human(1, R), human(1, R), human(0)])[1]!.color).toBe(CLAN_COLORS.white);
   });
+
+  it('o emblema do ticket vai para a identidade com as cores do clã (OG-485); ticket antigo, sem emblema', () => {
+    const wolf = { frame: 'shield', symbol: 'wolf', fillet: false, inverted: true };
+    const W = { ...DK, emblem: wolf };
+    expect(teamIdentities([human(0, W), human(0, W)])[0]).toMatchObject({ emblem: wolf, colors: { primary: DK.primary, secondary: DK.secondary } });
+    expect(teamIdentities([human(0, DK), human(0, DK)])[0]).not.toHaveProperty('emblem');
+    expect(teamIdentities([human(0, { ...DK, emblem: { frame: 'x' } }), human(0, DK)])[0]).not.toHaveProperty('emblem');
+  });
 });

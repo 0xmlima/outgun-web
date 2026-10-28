@@ -5,7 +5,7 @@
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, asc, eq, gt, inArray, isNotNull, lte, ne, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem, DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_SYMBOLS, emblemKey, parseEmblem, type ClanEmblem } from '@outgun/protocol';
+import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem, DEFAULT_EMBLEM, emblemKey, parseEmblem, type ClanEmblem } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
@@ -16,7 +16,7 @@ import { clanMembersStats, clanOpponents, clanWarTotals } from '../clan-stats.js
 import { nameBlocked } from '../name-filter.js';
 import { likePrefix } from './social.js';
 import { clanStaff, notify } from './notifications.js';
-import { ErrorSchema } from './schemas.js';
+import { EmblemSchema, ErrorSchema } from './schemas.js';
 
 /** Limite de membros (D-47); vale para convites e pedidos (OG-271). */
 export const MAX_CLAN_MEMBERS = 30;
@@ -30,13 +30,6 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 const RoleSchema = Type.Union([Type.Literal('leader'), Type.Literal('admin'), Type.Literal('member')]);
 /** Como a tag aparece junto do nome (OG-338). */
 const TagStyleSchema = Type.Unsafe<ClanTagStyle>({ type: 'string', enum: [...CLAN_TAG_STYLES] });
-/** Emblema do clã (OG-482, RN-EMB-01): listas fechadas do protocolo. */
-export const EmblemSchema = Type.Object({
-  frame: Type.Unsafe<ClanEmblem['frame']>({ type: 'string', enum: [...EMBLEM_FRAMES] }),
-  symbol: Type.Unsafe<ClanEmblem['symbol']>({ type: 'string', enum: [...EMBLEM_SYMBOLS] }),
-  fillet: Type.Boolean(),
-  inverted: Type.Boolean(),
-});
 const ClanSchema = Type.Object({
   name: Type.String(),
   tag: Type.String(),

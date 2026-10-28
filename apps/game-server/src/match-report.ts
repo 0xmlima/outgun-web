@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Resultado da partida para a API (POST /internal/matches, OG-049): toda partida manda as
 // estatísticas; só a de sala Ranked que cumpre os mínimos (RN-RNK-01) vai marcada como ranqueada.
+import type { ClanEmblem } from '@outgun/protocol';
 import type { MatchResult, PlayerResult, TeamResult } from '@outgun/sim';
 import type { GameMode, RankedFormat, SeriesBestOf } from '@outgun/settings';
 import type { MatchEventLog } from './match-events.js';
@@ -127,6 +128,9 @@ export interface ReportTeam {
   name: string;
   /** `#RRGGBB`; null = a cor padrão do lado. */
   color: string | null;
+  /** Emblema do clã no dia da partida (OG-485). */
+  emblem?: ClanEmblem;
+  colors?: { primary: string; secondary: string };
 }
 
 export interface ReportInput {

@@ -16,6 +16,7 @@ import { Table } from '../ui/Table.js';
 import { MapPreview } from './MapPreview.js';
 import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
+import { Emblem } from '../ui/Emblem.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
 export const PLAYER_COLUMNS: [string, (p: PlayerLine) => ReactNode][] = [
@@ -321,12 +322,14 @@ export function MatchScreen() {
     >
       <section className="report-score" aria-label={t('Score')}>
         <span className="report-team red" style={tint(0)}>
+          {side(0) && <Emblem clan={side(0)!} size={32} inline />}
           {short(0)}
         </span>
         <span className="report-points">
           {redScore} – {blueScore}
         </span>
         <span className="report-team blue" style={tint(1)}>
+          {side(1) && <Emblem clan={side(1)!} size={32} inline />}
           {short(1)}
         </span>
         <Badge tone={redScore === blueScore ? 'neutral' : 'success'}>{winner}</Badge>

@@ -2,6 +2,7 @@
 // Entrada numa sala (OG-083, PLAN 5.4): a API confere conta, nome, senha da sala, ban e lotação e
 // devolve um ticket JWT de 60 s; o game server confere o ticket com as chaves públicas (JWKS).
 // "Jogar agora" (OG-086) escolhe a sala pública do modo e entra do mesmo jeito.
+import { DEFAULT_EMBLEM } from '@outgun/protocol';
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { signTicket, toJwks } from '@outgun/tickets';
 import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
@@ -92,13 +93,13 @@ export function joinRoutes(deps: AppDeps, services: Services): FastifyPluginAsyn
     // clã cadastrado: no lobby Ranked entra do mesmo lado (OG-253); com cores, o lado pode virar o clã (OG-408)
     const [member] = user
       ? await db
-          .select({ clanId: clanMembers.clanId, tag: clans.tag, name: clans.name, primary: clans.primaryColor, secondary: clans.secondaryColor })
+          .select({ clanId: clanMembers.clanId, tag: clans.tag, name: clans.name, primary: clans.primaryColor, secondary: clans.secondaryColor, emblem: clans.emblem })
           .from(clanMembers)
           .innerJoin(clans, eq(clans.id, clanMembers.clanId))
           .where(eq(clanMembers.userId, user.id))
       : [];
     const clanId = member?.clanId;
-    const clanTeam = member?.primary && member.secondary ? { tag: member.tag, name: member.name, primary: member.primary, secondary: member.secondary } : undefined;
+    const clanTeam = member?.primary && member.secondary ? { tag: member.tag, name: member.name, primary: member.primary, secondary: member.secondary, emblem: member.emblem ?? DEFAULT_EMBLEM } : undefined;
     const skill = user ? await playerSkillRank(db, user.id) : null;
     const medal = user ? await previousPodium(db, user.id) : null;
     const number = user ? await ticketNumber(db, user.id) : null;

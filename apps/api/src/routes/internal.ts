@@ -5,6 +5,7 @@ import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TO
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { BOT_CHAT_MESSAGE_MAX_LENGTH, BOT_CHAT_MESSAGES_MAX, BOT_CHAT_PER_MINUTE_MAX, PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
 import type { AppDeps } from '../app.js';
+import { EmblemSchema } from './schemas.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matchEventPlayers, matchEvents, matches, matchPlayers, playerReports, rankedSeries, rooms, users, type MatchEvent } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
 import { momentStats } from '../match-moments.js';
@@ -111,7 +112,14 @@ export const BotChatSchema = Type.Object({
 });
 
 /** Lado que virou o clã (OG-409): o mesmo formato no relatório e na página da partida. */
-export const MatchTeamSchema = Type.Object({ tag: Type.String({ maxLength: 8 }), name: Type.String({ maxLength: 24 }), color: Type.Union([Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), Type.Null()]) });
+export const MatchTeamSchema = Type.Object({
+  tag: Type.String({ maxLength: 8 }),
+  name: Type.String({ maxLength: 24 }),
+  color: Type.Union([Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), Type.Null()]),
+  /** Emblema e cores do clã no dia da partida (OG-485); partidas antigas não têm (o cliente usa o padrão). */
+  emblem: Type.Optional(EmblemSchema),
+  colors: Type.Optional(Type.Object({ primary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }), secondary: Type.String({ pattern: '^#[0-9A-Fa-f]{6}$' }) })),
+});
 
 const HeartbeatReply = Type.Object({
   updated: Type.Integer(),

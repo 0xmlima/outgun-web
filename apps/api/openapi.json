@@ -3938,6 +3938,78 @@
                                         "type": "null"
                                       }
                                     ]
+                                  },
+                                  "emblem": {
+                                    "type": "object",
+                                    "required": ["frame", "symbol", "fillet", "inverted"],
+                                    "properties": {
+                                      "frame": {
+                                        "type": "string",
+                                        "enum": [
+                                          "shield",
+                                          "circle",
+                                          "diamond",
+                                          "square",
+                                          "octagon",
+                                          "banner",
+                                          "none"
+                                        ]
+                                      },
+                                      "symbol": {
+                                        "type": "string",
+                                        "enum": [
+                                          "tag",
+                                          "star",
+                                          "chevrons",
+                                          "crown",
+                                          "wings",
+                                          "flag",
+                                          "crosshair",
+                                          "rocket",
+                                          "bolt",
+                                          "wolf",
+                                          "skull",
+                                          "flame",
+                                          "tower",
+                                          "gem",
+                                          "swords",
+                                          "brokenShield",
+                                          "fist",
+                                          "wall",
+                                          "phoenix",
+                                          "dragon",
+                                          "serpent",
+                                          "eagle",
+                                          "shark",
+                                          "spider",
+                                          "alien",
+                                          "robot",
+                                          "joystick",
+                                          "ghost",
+                                          "pixelHeart"
+                                        ]
+                                      },
+                                      "fillet": {
+                                        "type": "boolean"
+                                      },
+                                      "inverted": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "colors": {
+                                    "type": "object",
+                                    "required": ["primary", "secondary"],
+                                    "properties": {
+                                      "primary": {
+                                        "type": "string",
+                                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                                      },
+                                      "secondary": {
+                                        "type": "string",
+                                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                                      }
+                                    }
                                   }
                                 }
                               },
@@ -11754,6 +11826,78 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "emblem": {
+                              "type": "object",
+                              "required": ["frame", "symbol", "fillet", "inverted"],
+                              "properties": {
+                                "frame": {
+                                  "type": "string",
+                                  "enum": [
+                                    "shield",
+                                    "circle",
+                                    "diamond",
+                                    "square",
+                                    "octagon",
+                                    "banner",
+                                    "none"
+                                  ]
+                                },
+                                "symbol": {
+                                  "type": "string",
+                                  "enum": [
+                                    "tag",
+                                    "star",
+                                    "chevrons",
+                                    "crown",
+                                    "wings",
+                                    "flag",
+                                    "crosshair",
+                                    "rocket",
+                                    "bolt",
+                                    "wolf",
+                                    "skull",
+                                    "flame",
+                                    "tower",
+                                    "gem",
+                                    "swords",
+                                    "brokenShield",
+                                    "fist",
+                                    "wall",
+                                    "phoenix",
+                                    "dragon",
+                                    "serpent",
+                                    "eagle",
+                                    "shark",
+                                    "spider",
+                                    "alien",
+                                    "robot",
+                                    "joystick",
+                                    "ghost",
+                                    "pixelHeart"
+                                  ]
+                                },
+                                "fillet": {
+                                  "type": "boolean"
+                                },
+                                "inverted": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "colors": {
+                              "type": "object",
+                              "required": ["primary", "secondary"],
+                              "properties": {
+                                "primary": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                                },
+                                "secondary": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9A-Fa-f]{6}$"
+                                }
+                              }
                             }
                           }
                         },
