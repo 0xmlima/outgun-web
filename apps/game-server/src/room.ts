@@ -2030,14 +2030,17 @@ export class Room {
     this.applyPendingCasualBots();
     this.dropSubstitutes();
     if (this.pendingRotation && !this.lobby) {
-      // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados
+      // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados.
+      // Na troca por voto, o mapa mais votado segue valendo se ainda está na rotação nova (OG-458)
+      const voted = reason === 'vote' && forced === undefined ? this.mostVotedFile() : null;
+      const keep = voted === null ? -1 : this.pendingRotation.findIndex((r) => !r.random && r.file === voted);
       this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
       this.pendingRotation = null;
       for (const c of this.clients.values()) {
         c.mapVote = -1;
         c.negativeVotes.clear();
       }
-      forced = 0;
+      forced = Math.max(0, keep);
       this.broadcast(this.mapListMessage());
     }
     const voters = this.voters();
@@ -2166,12 +2169,23 @@ export class Room {
     this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
   }
 
+  /** Arquivo do mapa mais votado (primeiro na ordem da rotação, se empatar) ou null sem votos. */
+  private mostVotedFile(): string | null {
+    const votes = mapVotes(this.voters(), this.rotation.length);
+    const max = Math.max(0, ...votes);
+    if (max === 0) return null;
+    const entry = this.rotation[votes.indexOf(max)];
+    return entry && !entry.random ? entry.file : null;
+  }
+
   /** Rotação que entra na próxima troca de mapa (painel admin, OG-087). */
   private pendingRotation: { map: GameMap; file: string; random?: RandomMapParams }[] | null = null;
 
   setRotation(entries: readonly { map: GameMap; file: string; random?: RandomMapParams }[]): void {
     if (entries.length === 0) return;
-    const same = entries.length === this.rotation.length && entries.every((e, i) => e.file === this.rotation[i]?.file);
+    // `random_map` gera um arquivo novo a cada vez: a entrada é a mesma se os parâmetros são (OG-458)
+    const sameEntry = (e: (typeof entries)[number], r: RotationEntry | undefined) => (e.random || r?.random ? JSON.stringify(e.random) === JSON.stringify(r?.random) : e.file === r?.file);
+    const same = entries.length === this.rotation.length && entries.every((e, i) => sameEntry(e, this.rotation[i]));
     this.pendingRotation = same ? null : [...entries];
   }
 

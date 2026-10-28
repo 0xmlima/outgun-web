@@ -399,6 +399,16 @@ describe('Room: rotação e votação de mapas (OG-045)', () => {
     expect(a.conn.of('mapVotes').at(-1)?.votes).toEqual([0, 0, 0]); // voto no mapa escolhido some
   });
 
+  it('rotação nova do painel com o mapa votado ainda nela: a troca por voto vai para ele (OG-458)', () => {
+    const r = make();
+    const a = join(r, 'Ana');
+    r.addBot('robô');
+    r.setRotation(loadMaps(MAPS, ['coliseu', 'outgun1', 'sisso']).map((m, i) => ({ map: m, file: ['coliseu', 'outgun1', 'sisso'][i]! })));
+    r.handle(a.pid, [message('mapVote', { map: 2 }), message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChange').find((m) => m.reason === 'vote')?.file).toBe('sisso');
+  });
+
   it('anúncio dos votos e votos negativos pulando mapas', () => {
     const r = make();
     const a = join(r, 'Ana');

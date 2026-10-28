@@ -926,7 +926,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-455](cards/OG-455-paineis-e-alertas-no-grafana-cloud.md) | Painéis e alertas no Grafana Cloud | E7 | 3 | Must | S48 | OG-452, OG-453, OG-454 | Concluído |
 | [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Concluído |
 | [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | S49 | OG-452 | Concluído |
-| [OG-458](cards/OG-458-voto-f2-e-troca-f8-vao-ao-mapa-errado.md) | Voto no mapa (F2) com pedido de troca (F8) não vai para o mapa votado (issue #11) | E11 | 2 | Should | S50 | — | Pronto |
+| [OG-458](cards/OG-458-voto-f2-e-troca-f8-vao-ao-mapa-errado.md) | Voto no mapa (F2) com pedido de troca (F8) não vai para o mapa votado (issue #11) | E11 | 2 | Should | S50 | — | Em revisão |
 | [OG-459](cards/OG-459-idle-kick-com-poucos-humanos.md) | Jogador parado não é expulso na sala com poucos humanos (issue #14) | E11 | 2 | Won't (v2) | S50 | — | Cancelado |
 | [OG-460](cards/OG-460-item-na-base-nao-e-pego.md) | Item na base que aparece na tela, mas não é pego (issue #15) | E11 | 2 | Should | S50 | — | Pronto |
 | [OG-461](cards/OG-461-lobby-ranked-esc-e-botao-de-som.md) | Lobby Ranked: Esc tira o lobby da tela e falta o botão de som (issues #16 e #17) | E12 | 2 | Should | S50 | — | Pronto |
