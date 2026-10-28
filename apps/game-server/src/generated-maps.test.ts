@@ -70,6 +70,23 @@ describe('random_map na rotação (OG-015)', () => {
     expect(generated.text(files[2]!)).toBeDefined();
   });
 
+  it('o painel reenviando a mesma rotação com random_map não zera o voto na troca seguinte (OG-458)', () => {
+    const generated = new GeneratedMaps(`${repo}_legacy/mapgen`, 11);
+    const entries = ['random_map 2 2', 'outgun1', 'coliseu'];
+    const slots = resolveRotation(entries, map, generated);
+    const m = new RoomManager({ emptyTimeoutMs: 60_000, seed: () => 3, roomDefaults: { generatedMaps: generated } });
+    const room = m.create({ id: 'r', preset: 'classic', maps: slots.map((s) => s.map), mapFiles: slots.map((s) => s.file), randomSlots: slots.map((s) => s.random ?? null), maxPlayers: 8 });
+    const conn = new TestConnection();
+    const joined = room.join(conn, { name: 'Ana', accountId: null });
+    if (!joined.ok) throw new Error(joined.text);
+    room.handle(joined.pid, [message('clientReady', {})]);
+    room.setRotation(resolveRotation(entries, map, generated)); // heartbeat com a config de novo: arquivos gerados diferentes
+    room.handle(joined.pid, [message('mapVote', { map: 2 }), message('mapExit', { on: true })]);
+    m.tickAll();
+    const change = conn.received.filter((x) => x.type === 'mapChange').at(-1);
+    expect(change?.type === 'mapChange' && change.file).toBe('coliseu');
+  });
+
   describe('game server', () => {
     let server: RunningServer;
     const generated = new GeneratedMaps(`${repo}_legacy/mapgen`, 5);

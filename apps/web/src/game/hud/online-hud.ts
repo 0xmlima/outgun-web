@@ -102,6 +102,11 @@ export class OnlineHud {
   }
 
   /** Overlay da pausa do Ranked (OG-264, RN-UI-05): textos prontos; null sem pausa. */
+  private teamName(team: 0 | 1): string | null {
+    const id = this.session.teamIdentity[team];
+    return id ? id.name || id.tag : null;
+  }
+
   private pauseOverlay(): NonNullable<HudState['pause']> | null {
     const p = this.session.pause;
     if (!p || p.phase === 'none') return null;
@@ -311,7 +316,8 @@ export class OnlineHud {
       map: fx.map,
       time,
       maxPlayers: fx.maxPlayers,
-      teamNames: [this.session.teamIdentity[0]?.tag ?? null, this.session.teamIdentity[1]?.tag ?? null],
+      // o nome do clã no lugar de "Time vermelho/azul" (OG-463); a tag fica nos jogadores
+      teamNames: [this.teamName(0), this.teamName(1)],
       players: ordered,
       flags,
       oldFlags,

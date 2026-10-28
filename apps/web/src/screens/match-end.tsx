@@ -25,7 +25,7 @@ export interface MatchSummary {
   /** Série Ranked (md3/md5) depois deste jogo. */
   readonly series: { bestOf: number; red: number; blue: number; finished: boolean } | null;
   /** O clã que cada lado foi nesta rodada (OG-409): tag e cor (null = vermelho/azul). */
-  readonly teams?: readonly [{ tag: string; color: string | null } | null, { tag: string; color: string | null } | null];
+  readonly teams?: readonly [{ tag: string; name: string; color: string | null } | null, { tag: string; name: string; color: string | null } | null];
 }
 
 /** Retrato do fim de partida a partir da sessão (null fora do fim de partida). */
@@ -41,7 +41,7 @@ export function matchSummary(s: ClientSession): MatchSummary | null {
   });
   const l = s.lobby;
   const series = l && l.bestOf > 1 ? { bestOf: l.bestOf, red: l.seriesRed, blue: l.seriesBlue, finished: l.phase === 'finished' } : null;
-  const id = (team: 0 | 1) => (s.teamIdentity?.[team] ? { tag: s.teamIdentity[team]!.tag, color: s.teamIdentity[team]!.color } : null);
+  const id = (team: 0 | 1) => (s.teamIdentity?.[team] ? { tag: s.teamIdentity[team]!.tag, name: s.teamIdentity[team]!.name, color: s.teamIdentity[team]!.color } : null);
   return { outcome, red: go.red, blue: go.blue, reason: go.reason, me: s.me, players, series, teams: [id(0), id(1)] };
 }
 
@@ -123,11 +123,11 @@ export function MatchEndDialog({ summary, onClose, onReport, rating }: { summary
     >
       <p className="match-end-score">
         <span className="team-red" style={summary.teams?.[0]?.color ? { color: summary.teams[0].color } : undefined}>
-          {summary.teams?.[0]?.tag ?? t('Red')} {summary.red}
+          {(summary.teams?.[0]?.name || summary.teams?.[0]?.tag) ?? t('Red')} {summary.red}
         </span>{' '}
         ×{' '}
         <span className="team-blue" style={summary.teams?.[1]?.color ? { color: summary.teams[1].color } : undefined}>
-          {summary.blue} {summary.teams?.[1]?.tag ?? t('Blue')}
+          {summary.blue} {(summary.teams?.[1]?.name || summary.teams?.[1]?.tag) ?? t('Blue')}
         </span>
       </p>
       <p className="ui-muted match-end-reason">{t(REASONS[summary.reason])}</p>

@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Issue | [#15](https://github.com/thiagovasconcellos/outgun-web/issues/15) |
 | Regras de negócio | — |
@@ -25,8 +25,9 @@ Como jogador, quero pegar o item que vejo na tela (ou não vê-lo, se outro já 
 - Se não reproduzir, registrar nas notas e deixar log no cliente (Sentry) para a próxima vez.
 
 ## Critérios de aceite
-- [ ] Ao entrar numa sala em andamento, item já pego não aparece (teste).
+- [x] Ao entrar numa sala em andamento, item já pego não aparece (teste).
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Causa: o `powerupPicked` só ia para quem estava na mesma tela, e ao entrar numa tela o servidor só mandava os itens que estavam lá, sem apagar os velhos. Um item pego por um bot enquanto o jogador estava em outra tela ficava no cliente como fantasma.
+- Correção no servidor (`room.ts`): cada cliente guarda os power-ups que conhece (`knownItems`); ao mudar de tela, os que não estão mais no chão daquela tela recebem `powerupPicked`. A lista é zerada na troca de mapa e no `worldReset`. Protocolo e cliente sem mudança.

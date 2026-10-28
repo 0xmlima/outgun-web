@@ -75,6 +75,21 @@ describe('limite de taxa e mensagens inválidas', () => {
     expect(conn.closed).toBeNull();
   });
 
+  it('acordes rápidos em jogo intenso (40 inputs/s por um minuto) nunca são descartados (OG-462)', () => {
+    const g = new InputGuard();
+    let dropped = 0;
+    for (let t = 0; t < 600; t++) {
+      // envio do frame + 2 mudanças de tecla por tick e, a cada 5 ticks, um acorde de 5 de uma vez
+      const n = 3 + (t % 5 === 0 ? 5 : 0);
+      for (let k = 0; k < n; k++) {
+        const v = g.check(input(t & 255, CONTROL.up));
+        if (!v.ok || v.drop) dropped++;
+      }
+      g.tick();
+    }
+    expect(dropped).toBe(0);
+  });
+
   it('inputs acumulados por uma conexão travada: o excesso é descartado, sem expulsão', () => {
     const { room, conn, pid } = setup();
     room.handle(pid, Array.from({ length: 200 }, (_, i) => input(i & 127, i < 80 ? CONTROL.up : CONTROL.left)));

@@ -3,7 +3,7 @@ import { CONTROL } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { ChordFilter } from './chord.js';
 
-const { up, right, left, strafe } = CONTROL;
+const { up, down, right, left, strafe } = CONTROL;
 
 describe('tolerância de diagonal (OG-372)', () => {
   it('soltar ↑→ com 25 ms de diferença mantém a arma na diagonal', () => {
@@ -40,5 +40,39 @@ describe('tolerância de diagonal (OG-372)', () => {
     expect(f.filter(left, 0)).toBe(left | strafe);
     expect(f.flush(left)).toBe(left);
     expect(f.filter(left, 5)).toBe(left);
+  });
+  describe('Alt com diagonal (OG-462)', () => {
+    it('diagonal e Alt dentro da janela: anda na diagonal e a arma fica (o Alt chegou junto)', () => {
+      const f = new ChordFilter(30);
+      f.filter(up, 0);
+      f.filter(up, 40); // arma para cima
+      expect(f.filter(down, 1000)).toBe(down | strafe);
+      expect(f.filter(down | right, 1010)).toBe(down | right | strafe);
+      expect(f.filter(down | right | strafe, 1020)).toBe(down | right | strafe);
+      expect(f.filter(up, 2000)).toBe(up); // a arma não virou: ↑ já era a direção dela
+    });
+
+    it('com 1 ms de tolerância, a diagonal 10 ms antes do Alt já vira a arma', () => {
+      const f = new ChordFilter(1);
+      f.filter(down, 1000);
+      expect(f.filter(down | right, 1010)).toBe(down | right);
+      expect(f.filter(down | right | strafe, 1020)).toBe(down | right | strafe);
+      expect(f.filter(up | right, 2000)).toBe(up | right | strafe); // a arma está na diagonal ↓→
+    });
+
+    it('Alt primeiro: troca de diagonal segurando o Alt não vira a arma nem abre janela', () => {
+      const f = new ChordFilter(30);
+      expect(f.filter(up | right | strafe, 0)).toBe(up | right | strafe);
+      expect(f.filter(down | left | strafe, 15)).toBe(down | left | strafe);
+      expect(f.deadline()).toBeNull();
+    });
+
+    it('Alt solto entre as setas: a diagonal que sobra vira a arma no fim da janela', () => {
+      const f = new ChordFilter(30);
+      f.filter(up | right | strafe, 0);
+      expect(f.filter(up | right, 100)).toBe(up | right | strafe); // soltou o Alt: janela
+      expect(f.filter(up, 110)).toBe(up | strafe); // soltou o → 10 ms depois
+      expect(f.filter(up, 130)).toBe(up); // fim da janela: arma para cima
+    });
   });
 });

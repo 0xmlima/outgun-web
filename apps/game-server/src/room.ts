@@ -213,6 +213,8 @@ interface Client {
   mapVote: number;
   wantMapExit: boolean;
   negativeVotes: Set<number>;
+  /** Power-ups que o cliente acha que estão no chão (mandados como visíveis e ainda não pegos, OG-460). */
+  knownItems: Set<number>;
   /** Chat e moderação (OG-046): id do /list, silêncio, anti-flood e contagem da expulsão (frames). */
   uid: number;
   muted: 0 | 1 | 2;
@@ -453,11 +455,11 @@ export class Room {
       },
       powerupAppeared: (index) => {
         const it = this.world.items[index]!;
-        for (const pid of this.viewers((p) => p.pos.sameRoom(it.pos))) this.queueTo(pid, this.powerupVisible(index));
+        for (const pid of this.viewers((p) => p.pos.sameRoom(it.pos))) this.showPowerup(pid, index);
         this.recorder?.event(this.powerupVisible(index));
       },
       powerupPicked: (index, pos) => {
-        for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.queueTo(pid, message('powerupPicked', { id: index }));
+        for (const pid of this.viewers((p) => p.pos.sameRoom(pos))) this.hidePowerup(pid, index);
         this.recorder?.event(message('powerupPicked', { id: index }));
       },
       deathbringerExploded: (team, pos, frame) =>
@@ -538,6 +540,7 @@ export class Room {
       mapVote: -1,
       wantMapExit: false,
       negativeVotes: new Set(),
+      knownItems: new Set(),
       uid: this.nextUid++,
       muted: 0,
       talk: new TalkMeter(),
@@ -571,6 +574,7 @@ export class Room {
       // o original agenda os power-ups depois do reinício (`check_powerup_creation(false)` no fim
       // de `client_connected`); o reset acima apagou os agendados por `addPlayer`
       this.sim.checkPowerupCreation(false);
+      for (const c of this.clients.values()) c.knownItems.clear(); // o `worldReset` zera os power-ups do cliente
       this.broadcast(message('worldReset', {}), message('startGame', {}), this.mapTimeMessage());
       this.startRecording();
     }
@@ -2030,14 +2034,17 @@ export class Room {
     this.applyPendingCasualBots();
     this.dropSubstitutes();
     if (this.pendingRotation && !this.lobby) {
-      // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados
+      // rotação nova do painel (OG-087): entra na troca de mapa, começando pelo primeiro; votos zerados.
+      // Na troca por voto, o mapa mais votado segue valendo se ainda está na rotação nova (OG-458)
+      const voted = reason === 'vote' && forced === undefined ? this.mostVotedFile() : null;
+      const keep = voted === null ? -1 : this.pendingRotation.findIndex((r) => !r.random && r.file === voted);
       this.rotation.splice(0, this.rotation.length, ...this.pendingRotation.map((r) => ({ ...r, lastGame: 0 })));
       this.pendingRotation = null;
       for (const c of this.clients.values()) {
         c.mapVote = -1;
         c.negativeVotes.clear();
       }
-      forced = 0;
+      forced = Math.max(0, keep);
       this.broadcast(this.mapListMessage());
     }
     const voters = this.voters();
@@ -2048,6 +2055,7 @@ export class Room {
     for (const c of this.clients.values()) {
       c.wantMapExit = false;
       if (c.mapVote === this.mapIndex) c.mapVote = -1;
+      c.knownItems.clear(); // mapa novo: o cliente começa sem power-ups
     }
     const entry = this.rotation[this.mapIndex] as RotationEntry;
     entry.lastGame = this.world.frame;
@@ -2126,6 +2134,16 @@ export class Room {
     });
   }
 
+  private showPowerup(pid: number, index: number): void {
+    this.clients.get(pid)?.knownItems.add(index);
+    this.queueTo(pid, this.powerupVisible(index));
+  }
+
+  private hidePowerup(pid: number, index: number): void {
+    this.clients.get(pid)?.knownItems.delete(index);
+    this.queueTo(pid, message('powerupPicked', { id: index }));
+  }
+
   private powerupVisible(index: number): AnyMessage {
     const it = this.world.items[index]!;
     return message('powerupVisible', { id: index, kind: POWERUP_KIND[it.kind as 0], roomX: it.pos.roomX, roomY: it.pos.roomY, x: Math.trunc(it.pos.x), y: Math.trunc(it.pos.y) });
@@ -2134,9 +2152,15 @@ export class Room {
   /** `game_player_screen_change`: power-ups da nova sala e foguetes que ele passa a ver. */
   private screenChanged(pid: number): void {
     const pl = this.world.players[pid];
-    if (!pl || !this.clients.has(pid)) return;
+    const client = this.clients.get(pid);
+    if (!pl || !client) return;
+    // o que foi pego ou sumiu longe dele não chegou ao cliente: tira antes de mostrar a sala nova (OG-460)
+    for (const i of client.knownItems) {
+      const it = this.world.items[i];
+      if (!it?.isReal() || !it.pos.sameRoom(pl.pos)) this.hidePowerup(pid, i);
+    }
     this.world.items.forEach((it, i) => {
-      if (it.isReal() && it.pos.sameRoom(pl.pos)) this.queueTo(pid, this.powerupVisible(i));
+      if (it.isReal() && it.pos.sameRoom(pl.pos)) this.showPowerup(pid, i);
     });
     this.world.rockets.forEach((rk, rid) => {
       const viewers = (this.rocketViewers[rid] ??= new Set());
@@ -2166,12 +2190,23 @@ export class Room {
     this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
   }
 
+  /** Arquivo do mapa mais votado (primeiro na ordem da rotação, se empatar) ou null sem votos. */
+  private mostVotedFile(): string | null {
+    const votes = mapVotes(this.voters(), this.rotation.length);
+    const max = Math.max(0, ...votes);
+    if (max === 0) return null;
+    const entry = this.rotation[votes.indexOf(max)];
+    return entry && !entry.random ? entry.file : null;
+  }
+
   /** Rotação que entra na próxima troca de mapa (painel admin, OG-087). */
   private pendingRotation: { map: GameMap; file: string; random?: RandomMapParams }[] | null = null;
 
   setRotation(entries: readonly { map: GameMap; file: string; random?: RandomMapParams }[]): void {
     if (entries.length === 0) return;
-    const same = entries.length === this.rotation.length && entries.every((e, i) => e.file === this.rotation[i]?.file);
+    // `random_map` gera um arquivo novo a cada vez: a entrada é a mesma se os parâmetros são (OG-458)
+    const sameEntry = (e: (typeof entries)[number], r: RotationEntry | undefined) => (e.random || r?.random ? JSON.stringify(e.random) === JSON.stringify(r?.random) : e.file === r?.file);
+    const same = entries.length === this.rotation.length && entries.every((e, i) => sameEntry(e, this.rotation[i]));
     this.pendingRotation = same ? null : [...entries];
   }
 

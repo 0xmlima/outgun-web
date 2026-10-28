@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Issue | [#21](https://github.com/thiagovasconcellos/outgun-web/issues/21) |
 | Regras de negócio | — |
@@ -25,9 +25,10 @@ Como jogador, quero mandar vários relatos seguidos sem recarregar a página.
 - A lista "Meus relatos" continua atualizando (`MyReports refresh`).
 
 ## Critérios de aceite
-- [ ] Depois de enviar, os campos ficam vazios.
-- [ ] Dá para enviar um segundo relato sem recarregar.
+- [x] Depois de enviar, os campos ficam vazios.
+- [x] Dá para enviar um segundo relato sem recarregar.
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `FeedbackScreen.tsx`: o botão só fica desabilitado enquanto o envio está em andamento (`sending`). No sucesso, o formulário volta ao vazio (notas, texto e relato de bug) e o agradecimento continua na tela. O tipo escolhido (elogio/bug) é mantido.
+- `sent` virou um contador, que atualiza "Meus relatos" a cada envio.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { fileURLToPath } from 'node:url';
 import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
-import { Position, SAMPLES } from '@outgun/sim';
+import { Position, PowerupKind, SAMPLES } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
@@ -374,6 +374,34 @@ describe('Room: número e estilo do número (OG-410, OG-413)', () => {
   });
 });
 
+describe('Room: power-ups pegos longe do jogador (OG-460)', () => {
+  it('ao voltar para a tela, o item que sumiu enquanto ele estava fora é apagado no cliente', () => {
+    const r = room();
+    const a = join(r, 'Ana');
+    for (let i = 0; i < 30; i++) r.tick();
+    const me = r.world.players[a.pid]!;
+    const here = new Position(me.pos.roomX, me.pos.roomY, 100, 100);
+    const away = new Position(me.pos.roomX + 1, me.pos.roomY, 100, 100);
+    const screen = (pos: Position) => {
+      me.pos = pos;
+      (r as unknown as { screenChanged(pid: number): void }).screenChanged(a.pid);
+      r.tick();
+    };
+    const item = r.world.items[0]!;
+    for (const it of r.world.items) it.kind = PowerupKind.unused;
+    item.kind = PowerupKind.turbo;
+    item.pos = new Position(here.roomX, here.roomY, 400, 300); // longe dela, para ela não pegar
+    screen(here);
+    expect(a.conn.of('powerupVisible').at(-1)).toMatchObject({ id: 0, kind: 'turbo' });
+    screen(away);
+    item.kind = PowerupKind.respawning; // um bot pegou enquanto ela estava na outra tela
+    screen(here);
+    // a última notícia do item 0 que chegou ao cliente é "pego"
+    const last = a.conn.received.filter((m) => (m.type === 'powerupVisible' || m.type === 'powerupPicked') && m.id === 0).at(-1);
+    expect(last?.type).toBe('powerupPicked');
+  });
+});
+
 describe('Room: rotação e votação de mapas (OG-045)', () => {
   const rot = loadMaps(MAPS, ['outgun1', 'coliseu', 'sisso']);
   const make = () => new Room({ id: 'r', preset: 'classic', maps: rot, mapFiles: ['outgun1', 'coliseu', 'sisso'], maxPlayers: 8, seed: 7 });
@@ -397,6 +425,16 @@ describe('Room: rotação e votação de mapas (OG-045)', () => {
     const change = a.conn.of('mapChange').find((m) => m.reason === 'vote');
     expect(change?.file).toBe('sisso');
     expect(a.conn.of('mapVotes').at(-1)?.votes).toEqual([0, 0, 0]); // voto no mapa escolhido some
+  });
+
+  it('rotação nova do painel com o mapa votado ainda nela: a troca por voto vai para ele (OG-458)', () => {
+    const r = make();
+    const a = join(r, 'Ana');
+    r.addBot('robô');
+    r.setRotation(loadMaps(MAPS, ['coliseu', 'outgun1', 'sisso']).map((m, i) => ({ map: m, file: ['coliseu', 'outgun1', 'sisso'][i]! })));
+    r.handle(a.pid, [message('mapVote', { map: 2 }), message('mapExit', { on: true })]);
+    r.tick();
+    expect(a.conn.of('mapChange').find((m) => m.reason === 'vote')?.file).toBe('sisso');
   });
 
   it('anúncio dos votos e votos negativos pulando mapas', () => {

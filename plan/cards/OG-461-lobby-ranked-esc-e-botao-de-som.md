@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Issue | [#16](https://github.com/thiagovasconcellos/outgun-web/issues/16), [#17](https://github.com/thiagovasconcellos/outgun-web/issues/17) |
 | Regras de negócio | — |
@@ -26,9 +26,10 @@ Como jogador na fila/lobby Ranked, quero que o Esc não me tire do lobby e quero
 - Botão de som (o mesmo `MusicButton`) no lobby Ranked.
 
 ## Critérios de aceite
-- [ ] Esc no lobby Ranked mantém o lobby na tela.
-- [ ] Dá para pausar/mutar a música no lobby Ranked.
+- [x] Esc no lobby Ranked mantém o lobby na tela.
+- [x] Dá para pausar/mutar a música no lobby Ranked.
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Esc: o atalho do menu da partida (`GameScreen.tsx`) não age com o lobby na tela; sair continua sendo o botão "Sair da sala". O Esc segue fechando o painel da trilha.
+- Som: o mesmo `MusicButton` da barra de cima, no canto superior direito do lobby (`.ranked-music`).

@@ -10,6 +10,8 @@ import { Application } from 'pixi.js';
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { loadManifest } from '../assets.js';
+import { SoundEvents } from './audio/sound-events.js';
+import { SoundPlayer } from './audio/sound-player.js';
 import { loadFont, loadMap, visualCheck } from './host.js';
 import type { Translate } from './hud/feed.js';
 import { HudRenderer } from './hud/hud-renderer.js';
@@ -61,6 +63,8 @@ export interface ReplayOptions {
   readonly live?: boolean;
   /** Textos do HUD (placar, chat, avisos), como na partida (OG-340). */
   readonly translate?: Translate;
+  /** Efeitos sonoros da partida (OG-468), com o volume e o tema das Opções; M liga e desliga. */
+  readonly sound?: { readonly enabled: boolean; readonly volume: number; readonly theme: string };
 }
 
 /** Lê um `.ogr`: prefixo, gzip (DecompressionStream) e blocos. */
@@ -94,6 +98,25 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   let visible = opts.visibleRooms;
   let room: [number, number] = [0, 0];
   let follow = -1;
+  // som (OG-468): os eventos da partida viram os mesmos efeitos; mudo no seek (não toca o que pulou)
+  // e acima de 2x, quando os sons se amontoam
+  const sounds = opts.sound ? new SoundPlayer() : undefined;
+  const soundEvents = sounds ? new SoundEvents((name) => sounds.has(name)) : undefined;
+  let soundOn = opts.sound?.enabled ?? false;
+  let seeking = false;
+  if (sounds && opts.sound) {
+    sounds.configure(soundOn, opts.sound.volume);
+    const theme = opts.sound.theme;
+    void loadManifest().then((m) => m && sounds.load(m, theme));
+  }
+  const seekQuiet = (p: ReplayPlayer, frame: number) => {
+    seeking = true;
+    try {
+      p.seek(frame);
+    } finally {
+      seeking = false;
+    }
+  };
   let world: WorldRenderer | undefined;
   let entities: EntityRenderer | undefined;
   let map: GameMap | undefined;
@@ -168,6 +191,10 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
     else if (ev.code === 'NumpadAdd') visible = zoom(visible, -1);
     else if (ev.code === 'NumpadSubtract') visible = zoom(visible, 1);
     else if (ev.key === 'f' || ev.key === 'F') nextFollow();
+    else if ((ev.key === 'm' || ev.key === 'M') && sounds && opts.sound) {
+      soundOn = !soundOn;
+      sounds.configure(soundOn, opts.sound.volume);
+    }
     else if (ev.key === 'Escape' && follow >= 0) follow = -1;
     else return;
     ev.preventDefault();
@@ -208,15 +235,21 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
     const p = new ReplayPlayer(next, map!, (ev) => {
       const time = (p.session.world?.frame ?? 0) / 10;
       const at = (pos: { roomX: number; roomY: number; x: number; y: number }): WorldCoords => ({ room: { x: pos.roomX, y: pos.roomY }, x: pos.x, y: pos.y });
-      if (ev.kind === 'message') onlineHud?.onMessage(ev.message);
-      else if (ev.kind === 'rocketHitWall') fx.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);
+      const facts = ev.kind === 'message' ? (onlineHud?.onMessage(ev.message) ?? {}) : {};
+      if (sounds && soundEvents && soundOn && !seeking && rate <= 2) {
+        const s = p.session;
+        const seen = follow >= 0 ? s.world?.players[follow] : undefined;
+        const ctx = { me: follow, room: seen ? { x: seen.pos.roomX, y: seen.pos.roomY } : { x: room[0], y: room[1] }, onscreen: s.onscreen, time };
+        for (const name of ev.kind === 'message' ? soundEvents.fromMessage(ev.message, ctx, facts) : soundEvents.fromSession(ev, ctx)) sounds.play(name);
+      }
+      if (ev.kind === 'rocketHitWall') fx.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);
       else if (ev.kind === 'rocketHitPlayer') fx.addEffect('gunExplosion', at(ev.pos), ev.team, time);
     });
     replay = next;
     player = p;
     subFrame = 0;
-    if (opts.live) p.seek(Math.max(0, p.length - 1));
-    else if (opts.startSeconds) p.seek(opts.startSeconds * 10);
+    if (opts.live) seekQuiet(p, Math.max(0, p.length - 1));
+    else if (opts.startSeconds) seekQuiet(p, opts.startSeconds * 10);
     else p.step();
     status();
   };
@@ -250,7 +283,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       app.ticker.add((ticker) => {
         const p = player;
         if (!p || !world?.layout || !entities) return;
-        if (opts.live && p.length - p.position > 5) p.seek(p.length - 1); // atrasou (aba em segundo plano): alcança
+        if (opts.live && p.length - p.position > 5) seekQuiet(p, p.length - 1); // atrasou (aba em segundo plano): alcança
         if (!paused && p.position < p.length) {
           subFrame += Math.min(ticker.deltaMS, 250) * 0.01 * rate;
           while (subFrame >= 1) {
@@ -308,7 +341,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   return {
     seek(frame) {
       if (!player || opts.live) return;
-      player.seek(frame);
+      seekQuiet(player, frame);
       subFrame = 0;
       status();
     },
@@ -323,6 +356,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       world?.destroy();
       entities?.destroy();
       hud?.destroy();
+      sounds?.destroy();
       if (ready) app.destroy(true);
     },
   };

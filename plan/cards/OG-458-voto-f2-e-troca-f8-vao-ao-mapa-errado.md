@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Issue | [#11](https://github.com/thiagovasconcellos/outgun-web/issues/11) |
 | Regras de negócio | — |
@@ -25,8 +25,10 @@ Como jogador, quero que, ao votar num mapa com F2 e pedir a troca com F8, a sala
 - Reproduzir num teste (sala com 1 humano e bots: vota no mapa N com a lista ordenada por outra coluna, pede a troca) e corrigir a causa.
 
 ## Critérios de aceite
-- [ ] F2 + F8 numa sala só com bots troca para o mapa votado, com a lista da F2 em qualquer ordenação (teste).
+- [x] F2 + F8 numa sala só com bots troca para o mapa votado, com a lista da F2 em qualquer ordenação (teste).
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- O cliente estava certo: a F2 mostra e manda o índice da rotação em qualquer ordenação (`sortMaps` devolve índices da rotação). O caminho voto + saída também (teste com 1 humano e bots).
+- Causa provável: `Room.setRotation` comparava as entradas pelo arquivo. Com `random_map`, o arquivo gerado muda a cada vez, então o painel reaplicando a config marcava uma "rotação nova", e a troca seguinte zerava os votos e ia para o mapa 0. Isso também acontecia quando a rotação mudava de verdade. Agora `random_map` se compara pelos parâmetros, e numa troca por voto o mapa mais votado continua valendo se estiver na rotação nova.
+- Não deu para provar nos logs do beta (leitura de produção barrada). Se o PO ainda vir o bug, o próximo passo é registrar no log a troca por voto (votos, mapa escolhido, rotação pendente).

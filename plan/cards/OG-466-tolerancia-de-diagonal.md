@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | — |
 | Issue | [#22](https://github.com/thiagovasconcellos/outgun-web/issues/22) |
 | Regras de negócio | — |
@@ -24,8 +24,8 @@ Como jogador, quero escolher uma tolerância de diagonal menor que 5 ms.
 - Passo de 1 ms no controle (0 = desligado). Mantém o padrão `CHORD_WINDOW_DEFAULT_MS`.
 
 ## Critérios de aceite
-- [ ] Dá para escolher 1, 2, 3 e 4 ms.
+- [x] Dá para escolher 1, 2, 3 e 4 ms.
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `ControlsScreen.tsx`: o controle anda de 1 em 1 ms (0 continua desligando; padrão de 30 ms mantido). É o ajuste que resolve a issue #18 (ver OG-462).
