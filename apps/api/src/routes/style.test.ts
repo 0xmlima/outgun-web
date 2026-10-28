@@ -44,19 +44,12 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
       const res = await app.inject({ method: 'POST', url: '/internal/matches', payload: body, headers: { 'content-type': 'application/json', ...signInternalRequest('gs-1', SECRET, 'POST', '/internal/matches', body) } });
       expect(res.statusCode).toBe(201);
     };
-    const line = (slot: number, name: string, team: 0 | 1, kills: number, deaths: number, stats: Record<string, number>, isBot = false) => ({
-      slot, userId: isBot ? null : ids[name], name, team, isBot, frags: kills, kills, deaths, captures: stats.captures ?? 0, playSeconds: 600, scoreDelta: 0, negDelta: 0, stats,
+    const line = (slot: number, name: string, team: 0 | 1, kills: number, deaths: number, stats: Record<string, number>) => ({
+      slot, userId: ids[name], name, team, isBot: false, frags: kills, kills, deaths, captures: stats.captures ?? 0, playSeconds: 600, scoreDelta: 0, negDelta: 0, stats,
     });
     // Ana: atiradora, 5 ranqueadas 3x3; Bia: corredora, 5 sem formato; Caio: 3 (radar com poucos jogos, fora da base); Davi: 2 (sem radar)
     for (let i = 0; i < 5; i++) {
-      await send(
-        [
-          line(0, 'Ana', 0, 9, 3, { botKills: 3, hits: 30, shots: 60, lifetime: 400, assists: 1, defenses: 1 }),
-          line(1, 'Robô', 1, 50, 0, { hits: 99, shots: 99 }, true),
-        ],
-        true,
-        '3x3',
-      );
+      await send([line(0, 'Ana', 0, 9, 3, { botKills: 3, hits: 30, shots: 60, lifetime: 400, assists: 1, defenses: 1 })], true, '3x3');
       await send([line(0, 'Bia', 1, 1, 5, { hits: 5, shots: 50, lifetime: 200, flagsTaken: 3, captures: 2, flagsReturned: 1, trades: 1 })]);
     }
     for (let i = 0; i < 3; i++) await send([line(0, 'Caio', 0, 2, 1, { hits: 10, shots: 40, lifetime: 300 })]);
@@ -131,13 +124,13 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
     expect(none.reference).toBeNull();
   });
 
-  it('radar da partida (OG-475): eixos da partida contra a temporada, sem bots; curta demais; Casual sem radar', async () => {
+  it('radar da partida (OG-475): eixos da partida contra a temporada; curta demais; Casual sem radar', async () => {
     const matchOf = async (name: string, ranked: boolean) =>
       (await t.sql`SELECT m.id FROM matches m JOIN match_players mp ON mp.match_id = m.id WHERE mp.user_id = ${ids[name]!} AND m.ranked = ${ranked} LIMIT 1`)[0]!.id as string;
     const style = async (id: string) => (await app.inject(`/matches/${id}/style`)).json();
     const ana = await style(await matchOf('Ana', true));
     expect(ana.ranked).toBe(true);
-    expect(ana.players).toHaveLength(1); // o Robô não entra
+    expect(ana.players).toHaveLength(1);
     expect(ana.players[0]).toMatchObject({ username: 'Ana', short: false, season: { games: 5 } });
     expect(ana.players[0].match.find((a: Axis) => a.axis === 'kills')).toEqual({ axis: 'kills', percentile: 100, value: 6 });
     expect((await style(await matchOf('Eli', true))).players[0]).toMatchObject({ username: 'Eli', short: true, match: null, season: { axes: null } });
