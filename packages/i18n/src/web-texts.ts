@@ -261,6 +261,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Teal: 'Turquesa',
     Cyan: 'Ciano',
     Navy: 'Marinho',
+    'Open the PDF': 'Abrir o PDF',
     // Emblema do clã (OG-481)
     'PNG $1 px': 'PNG $1 px',
     'Download matchup image': 'Baixar imagem do confronto',

@@ -403,11 +403,16 @@ function pairs(facts: readonly (readonly [string, string])[]): string[][] {
 }
 
 /** Baixa o PDF; no app desktop o Electron abre o diálogo de salvar do sistema. */
-export function savePdf(pdf: jsPDF, filename: string): void {
-  const url = URL.createObjectURL(pdf.output('blob'));
+/** O PDF pronto, como arquivo: o botão decide se baixa (computador) ou compartilha (celular, OG-501). */
+export function pdfFile(pdf: jsPDF, filename: string): File {
+  return new File([pdf.output('blob')], filename, { type: 'application/pdf' });
+}
+
+export function savePdf(file: File): void {
+  const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename;
+  a.download = file.name;
   document.body.append(a);
   a.click();
   a.remove();
@@ -420,13 +425,13 @@ export function pdfFilename(kind: 'match' | 'series', id: string, when: string):
 }
 
 /** "Baixar PDF" no relatório da partida (OG-425). */
-export async function saveMatchPdf(m: MatchPage, events: MatchEvents | null, t: T, locale: string): Promise<void> {
+export async function matchPdf(m: MatchPage, events: MatchEvents | null, t: T, locale: string): Promise<File> {
   const pdf = renderReportPdf([await withEmblemImages(matchReportDoc(m, events, t, locale, location.origin))], t);
-  savePdf(pdf, pdfFilename('match', m.match.id, m.match.endedAt));
+  return pdfFile(pdf, pdfFilename('match', m.match.id, m.match.endedAt));
 }
 
 /** "Baixar PDF" na página da série (OG-426): a capa e o relatório completo de cada jogo, num arquivo só. */
-export async function saveSeriesPdf(s: SeriesView, t: T, locale: string): Promise<void> {
+export async function seriesPdf(s: SeriesView, t: T, locale: string): Promise<File> {
   const games = await Promise.all(
     s.matches.map(async (g) => {
       const [page, events] = await Promise.all([api<MatchPage>(`/matches/${encodeURIComponent(g.id)}`), api<MatchEvents>(`/matches/${encodeURIComponent(g.id)}/events`).catch(() => null)]);
@@ -434,5 +439,5 @@ export async function saveSeriesPdf(s: SeriesView, t: T, locale: string): Promis
     }),
   );
   const pdf = renderReportPdf([await withEmblemImages(seriesCoverDoc(s, t, locale, location.origin)), ...games], t);
-  savePdf(pdf, pdfFilename('series', s.id, s.startedAt));
+  return pdfFile(pdf, pdfFilename('series', s.id, s.startedAt));
 }

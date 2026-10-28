@@ -220,7 +220,7 @@ export function SeriesScreen() {
       </section>
       {s.matches.length > 0 && (
         <div className="ui-row report-actions">
-          <PdfButton make={async (pdf) => pdf.saveSeriesPdf(s, t, prefs.locale)} />
+          <PdfButton make={async (pdf) => pdf.seriesPdf(s, t, prefs.locale)} />
           {/* imagem do confronto clã x clã (OG-489) */}
           {(s.teams?.[0] || s.teams?.[1]) && (
             <Button
@@ -245,21 +245,48 @@ export function SeriesScreen() {
 
 /**
  * "Baixar PDF" (OG-425, OG-426): o gerador e o jsPDF só são baixados no toque; enquanto monta, o
- * botão mostra "Gerando o PDF...".
+ * botão mostra "Gerando o PDF...". No celular (OG-501) o link de download com blob não funciona
+ * (sobretudo no app instalado no iPhone): o PDF vai pela folha de compartilhar do sistema (salvar
+ * em Arquivos, WhatsApp...). Se o toque "venceu" enquanto o PDF era montado, o botão vira "Abrir o
+ * PDF" e o próximo toque compartilha na hora.
  */
-function PdfButton({ make }: { make: (pdf: typeof import('./report-pdf.js')) => Promise<void> }) {
+function PdfButton({ make }: { make: (pdf: typeof import('./report-pdf.js')) => Promise<File> }) {
   const { t } = usePrefs();
   const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  const [ready, setReady] = useState<File | null>(null);
+  const share = (file: File) =>
+    navigator.share({ files: [file], title: file.name }).then(
+      () => setReady(null),
+      (e: unknown) => {
+        const name = e instanceof DOMException ? e.name : '';
+        if (name === 'AbortError') setReady(null); // a pessoa fechou a folha
+        else if (name === 'NotAllowedError') setReady(file); // sem o toque: espera o próximo
+        else setState('error');
+      },
+    );
+  if (ready) {
+    return (
+      <Button variant="primary" onClick={() => void share(ready)}>
+        {t('Open the PDF')}
+      </Button>
+    );
+  }
   return (
     <Button
       variant="secondary"
       disabled={state === 'busy'}
       onClick={() => {
         setState('busy');
-        import('./report-pdf.js').then(make).then(
-          () => setState('idle'),
-          () => setState('error'),
-        );
+        import('./report-pdf.js')
+          .then(async (pdf) => {
+            const file = await make(pdf);
+            if (isPhone() && navigator.canShare?.({ files: [file] })) await share(file);
+            else pdf.savePdf(file);
+          })
+          .then(
+            () => setState((s) => (s === 'busy' ? 'idle' : s)),
+            () => setState('error'),
+          );
       }}
     >
       {state === 'busy' ? t('Creating the PDF...') : state === 'error' ? t('Could not create the PDF.') : t('Download PDF')}
@@ -378,7 +405,7 @@ export function MatchScreen() {
             {t('Watch replay')}
           </Button>
         )}
-        <PdfButton make={async (pdf) => pdf.saveMatchPdf(m, events.data ?? null, t, prefs.locale)} />
+        <PdfButton make={async (pdf) => pdf.matchPdf(m, events.data ?? null, t, prefs.locale)} />
         <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(location.href).then(() => setCopied(true))}>
           {copied ? t('Link copied') : t('Copy link')}
         </Button>
