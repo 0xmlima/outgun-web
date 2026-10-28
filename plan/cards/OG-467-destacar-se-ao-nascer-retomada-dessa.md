@@ -17,7 +17,7 @@
 Como jogador, quero poder desligar o destaque que aparece em mim quando nasço.
 
 ## Contexto
-- Issue #23 (Partida/HUD; Médio). 2.49.1, Steam no Windows, coiote. "Destacar-se ao nascer ficou fora das opções": o destaque continua ligado e não há como tirar.
+- Issue #23 (Partida/HUD; Médio). 2.49.1, Steam no Windows, coiote. "Destacar-se ao nascer ficou fora das opções": o destaque continua ligado e não há como tirar. O PO confirmou em 2026-10-28: o pedido é ter de volta o interruptor que liga/desliga o destaque.
 - Causa: o OG-386 aposentou a opção (`spawnHighlight` em `RETIRED_PREFS`, `prefs.tsx:216`), que agora vale sempre o padrão `true`. O HUD ainda respeita a flag (`online-hud.ts:329`), e o texto já está no i18n ("Highlight self after spawn").
 
 ## Escopo

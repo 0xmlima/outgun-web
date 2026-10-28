@@ -21,6 +21,7 @@ Como jogador assistindo a um replay, quero ouvir os sons da partida e ajustar o 
 - Causa: o `replay-host.ts` não tem áudio (o `SoundEvents`/`SoundPlayer` só existem no `host.ts:33`). No replay, `NumpadAdd`/`NumpadSubtract` (`replay-host.ts:168`) mudam o zoom, então o jogador não tinha como ouvir nada.
 
 ## Escopo
+- Último card da S50 (PO, 2026-10-28). Se passar dos 3 pts, sai para uma sprint de melhoria.
 - Tocar no replay os mesmos efeitos da partida (`SoundEvents` a partir dos frames reproduzidos), respeitando o volume de efeitos e o mudo das Opções; sem som com o replay pausado e coerente com a velocidade (PageUp/PageDown).
 - Deixar claro na ajuda do replay que +/- é zoom, e qual tecla/botão controla o som.
 
