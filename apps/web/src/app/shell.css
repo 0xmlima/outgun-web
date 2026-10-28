@@ -2544,3 +2544,57 @@
 :root[data-phone] .feedback-mine li {
   grid-template-columns: 1fr;
 }
+
+/* emblema do clã (OG-483) */
+.ui-emblem {
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+  vertical-align: middle;
+}
+.ui-emblem svg {
+  width: 100%;
+  height: 100%;
+}
+.emblem-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.emblem-option {
+  padding: var(--space-1);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+.emblem-option.selected {
+  border-color: var(--text);
+}
+.emblem-option:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.emblem-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+.emblem-sizes {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+.emblem-sizes.dark {
+  background: var(--surface-0);
+}
+.emblem-sizes.light {
+  background: var(--text);
+}

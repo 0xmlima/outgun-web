@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S51 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | OG-482 |
 | Regras de negócio | RN-EMB-04, RN-UI-01, RN-UI-08 |
 | Skills | `outgun-card-workflow` |

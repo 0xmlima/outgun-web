@@ -7,13 +7,14 @@ import { useAccount, type AccountUser } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
-import { CLAN_COLORS, CLAN_TAG_STYLES, chatName, clanColoursProblem, clanLabel, type ClanTagStyle } from '@outgun/protocol';
+import { CLAN_COLORS, CLAN_TAG_STYLES, chatName, clanColoursProblem, clanLabel, type ClanEmblem, type ClanTagStyle } from '@outgun/protocol';
 import { ChoiceField, TextAreaField, TextField, ToggleField } from '../ui/Field.js';
 import { Icon, PlayerAvatar } from '../ui/icons.js';
 import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { useToast } from '../ui/Toast.js';
+import { EmblemEditor } from './clan-emblem.js';
 import { ClanStatsPanels } from './clan-stats.js';
 import { TitleBadges, type SeasonTitle } from './HallOfFame.js';
 import { PlayerLink, Status, useApi } from './stats.js';
@@ -208,6 +209,8 @@ interface ClanPage {
   readonly description: string;
   /** Cores do clã na partida (OG-407); null = sem cores. */
   readonly colors?: { readonly primary: string; readonly secondary: string } | null;
+  /** Emblema (OG-482); o padrão quando o clã nunca escolheu. */
+  readonly emblem?: ClanEmblem;
   readonly createdAt: string;
   readonly members: readonly ClanMember[];
   /** Pódios no hall da fama (OG-268). */
@@ -255,6 +258,8 @@ function useClanErrorText(): (e: unknown) => string {
         return t('Pick a secondary color clearly different from the primary.');
       case 'invalid_clan_color':
         return t('Pick the colors from the palette.');
+      case 'emblem_taken':
+        return t('Another clan already uses this emblem.');
       default:
         return t('Something went wrong. Try again.');
     }
@@ -640,6 +645,13 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
           <ClanColorsField value={colors} onChange={setColors} />
         </Form>
       </Panel>
+      <EmblemEditor
+        key={tick}
+        clan={clan}
+        base={base}
+        tick={tick}
+        onSave={(emblem) => void act(`${base}/emblem`, { method: 'PUT', body: { emblem } }).then((ok) => ok && toast(t('Saved.'), 'success'))}
+      />
     </div>
   );
 }
