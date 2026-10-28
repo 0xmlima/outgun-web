@@ -1271,5 +1271,10 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Advantage': 'Vantagem',
     'Even': 'Empate',
     '$1 by $2': '$1 por $2',
+    'Strong point: $1': 'Ponto forte: $1',
+    'Weak point: $1': 'Ponto fraco: $1',
+    'Median of $1 members': 'Mediana de $1 membros',
+    'No member has 3 Ranked matches for the clan in the period yet.': 'Nenhum membro tem ainda 3 ranqueadas pelo clã no período.',
+    'Only Ranked matches played for the clan count; members need 3 of them to enter the median.': 'Só contam as ranqueadas jogadas pelo clã; o membro precisa de 3 delas para entrar na mediana.',
   },
 };

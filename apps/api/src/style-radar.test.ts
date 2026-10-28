@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Radar de estilo (OG-469, RN-RAD): percentil, amostra e arquétipo, sem banco.
 import { describe, expect, it } from 'vitest';
-import { archetypeOf, percentileOf, styleProfiles, type AxisValues, type StyleRow } from './style-radar.js';
+import { archetypeOf, median, medianProfile, percentileOf, styleProfiles, type AxisValues, type StyleRow } from './style-radar.js';
 
 const flat = (v: number): AxisValues => ({ kills: v, accuracy: v, survival: v, flag: v, defense: v, team: v });
 const row = (name: string, games: number, raw: Partial<AxisValues>): StyleRow => ({ userId: name, username: name, usernameKey: name.toLowerCase(), clanTag: null, games, raw: { ...flat(0), ...raw } });
@@ -49,5 +49,21 @@ describe('arquétipo (RN-RAD-04)', () => {
   it('empate no topo segue a ordem dos eixos', () => {
     expect(archetypeOf({ ...flat(10), defense: 80, team: 80 })).toBe('wall');
     expect(archetypeOf({ ...flat(10), flag: 80, kills: 80 })).toBe('shooter');
+  });
+});
+
+describe('radar do clã (OG-473, RN-RAD-05)', () => {
+  it('mediana com número ímpar e par', () => {
+    expect(median([30, 10, 20])).toBe(20);
+    expect(median([40, 10, 30, 20])).toBe(25);
+    expect(median([7])).toBe(7);
+  });
+
+  it('mediana eixo a eixo dos perfis, com arquétipo, ponto forte e fraco', () => {
+    const p = styleProfiles([row('Ana', 5, { flag: 9, kills: 1 }), row('Bia', 5, { flag: 8, kills: 2 }), row('Caio', 5, { flag: 1, kills: 3 })]);
+    const m = medianProfile([...p.values()])!;
+    expect(m.percentiles.flag).toBe(50); // Ana 100, Bia 50, Caio 0
+    expect(m.percentiles.kills).toBe(50);
+    expect(medianProfile([])).toBeNull();
   });
 });

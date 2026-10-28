@@ -7,7 +7,8 @@ import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { usernameKey } from '../db/keys.js';
 import { migrateUp } from '../db/migrate.js';
-import { rooms, seasons, users } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
+import { clanMembers, clans, rooms, seasons, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
 import { clearStyleCache } from '../style-radar.js';
@@ -112,5 +113,70 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
 
   it('404 para quem não existe', async () => {
     expect((await app.inject('/players/Ninguem/style')).statusCode).toBe(404);
+  });
+});
+
+describe.skipIf(!pgAdminUrl)('radar do clã (OG-473)', () => {
+  let t: TestDatabase;
+  let app: App;
+  const ids: Record<string, string> = {};
+  const clanIds: Record<string, string> = {};
+
+  beforeAll(async () => {
+    t = await createTestDatabase();
+    await migrateUp(t.sql);
+    await seed(t.db);
+    for (const tag of ['AAA', 'BBB']) {
+      const [c] = await t.db.insert(clans).values({ name: `Clã ${tag}`, nameKey: `cla ${tag.toLowerCase()}`, tag, tagKey: tag.toLowerCase() }).returning({ id: clans.id });
+      clanIds[tag] = c!.id;
+    }
+    for (const name of ['Ana', 'Bia', 'Caio', 'Eva', 'Gil']) {
+      const [u] = await t.db.insert(users).values({ username: name, usernameKey: usernameKey(name), email: `${name}@outgun.local`, emailKey: `${name}@outgun.local`, passwordHash: 'x' }).returning({ id: users.id });
+      ids[name] = u!.id;
+      if (name !== 'Gil') await t.db.insert(clanMembers).values({ userId: u!.id, clanId: clanIds.AAA!, role: name === 'Ana' ? 'leader' : 'member' });
+    }
+    const config = { ...loadConfig({ INTERNAL_SECRETS: `gs-1:${SECRET}` }), databaseUrl: t.url };
+    app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false });
+    let n = 0;
+    const play = async (name: string, kills: number, times: number) => {
+      for (let i = 0; i < times; i++) {
+        const players = [{ slot: 0, userId: ids[name], name, team: 0, isBot: false, frags: kills, kills, deaths: 1, captures: 0, playSeconds: 600, scoreDelta: 0, negDelta: 0, stats: { hits: 1, shots: 2, lifetime: 100 } }];
+        const body = JSON.stringify({ serverMatchId: `c${++n}`, roomId: 'ranked', mode: 'ranked', ranked: true, map: 'outgun1', redScore: 1, blueScore: 0, startedAt: new Date(Date.now() - 600_000).toISOString(), endedAt: new Date().toISOString(), players });
+        const res = await app.inject({ method: 'POST', url: '/internal/matches', payload: body, headers: { 'content-type': 'application/json', ...signInternalRequest('gs-1', SECRET, 'POST', '/internal/matches', body) } });
+        expect(res.statusCode).toBe(201);
+      }
+    };
+    await play('Ana', 9, 5);
+    await play('Bia', 3, 5);
+    await play('Caio', 5, 2); // abaixo de 3 pelo clã: fora da mediana
+    await play('Gil', 6, 5); // sem clã: só a base do percentil
+    await play('Eva', 20, 3); // pelo AAA...
+    await t.db.update(clanMembers).set({ clanId: clanIds.BBB! }).where(eq(clanMembers.userId, ids.Eva!));
+    await play('Eva', 0, 3); // ...e depois pelo BBB
+  });
+  beforeEach(() => clearStyleCache());
+  afterAll(async () => {
+    await app?.close();
+    await t?.drop();
+  });
+
+  const clan = async (tag: string) => (await app.inject(`/clans/${tag}/style`)).json();
+  const kills = (axes: { axis: string; percentile: number }[]) => axes.find((a) => a.axis === 'kills')!.percentile;
+
+  it('mediana dos membros atuais com radar; poucas partidas pelo clã fica fora', async () => {
+    const a = await clan('AAA');
+    // base: Ana 9, Bia 3, Gil 6, Eva 10 por 10 min; Ana = 67, Bia = 0 → mediana 33,5
+    expect(kills(a.clan.axes)).toBe(34);
+    expect(a.clan.members).toBe(2);
+    expect(a.members.map((m: { username: string }) => m.username)).toEqual(['Ana', 'Bia', 'Caio']); // Eva saiu
+    expect(a.members.find((m: { username: string }) => m.username === 'Caio').radar).toMatchObject({ games: 2, axes: null });
+  });
+
+  it('quem saiu não leva os números antigos para o clã novo (RN-CLA-06)', async () => {
+    const b = await clan('BBB');
+    expect(b.members).toHaveLength(1);
+    expect(b.members[0].radar.games).toBe(3);
+    expect(kills(b.clan.axes)).toBe(0); // só as 3 de 0 abates pelo BBB
+    expect((await app.inject('/clans/ZZZ/style')).statusCode).toBe(404);
   });
 });

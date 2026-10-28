@@ -16,6 +16,7 @@ import { Table } from '../ui/Table.js';
 import { useToast } from '../ui/Toast.js';
 import { EmblemEditor } from './clan-emblem.js';
 import { ClanStatsPanels } from './clan-stats.js';
+import { ClanStylePanel } from './clan-style.js';
 import { TitleBadges, type SeasonTitle } from './HallOfFame.js';
 import { PlayerLink, Status, useApi } from './stats.js';
 import { ClanBadge, Emblem, forgetEmblem } from '../ui/Emblem.js';
@@ -506,6 +507,7 @@ export function ClanScreen() {
         />
       </Panel>
       <ClanStatsPanels base={base} />
+      <ClanStylePanel base={base} color={clan.colors?.primary} />
       {staff && <ManageClan clan={clan} leader={myRole === 'leader'} act={act} tick={tick} />}
       {user && (
         <Panel>

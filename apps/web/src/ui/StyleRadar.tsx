@@ -16,6 +16,8 @@ export interface RadarSeries {
   readonly color?: string;
   /** Contorno tracejado: temporada anterior ou "poucos jogos" (RN-RAD-03). */
   readonly dashed?: boolean;
+  /** Só percentil, sem valor bruto (mediana do clã, OG-473). */
+  readonly percentOnly?: boolean;
 }
 
 const DEFAULT_COLORS = ['var(--text-team-blue)', 'var(--text-team-red)', 'var(--accent)'];
@@ -66,7 +68,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty }
               align: 'end' as const,
               cell: (a: (typeof STYLE_AXES)[number]) => {
                 const v = s.axes.find((x) => x.axis === a);
-                return v ? `${v.percentile} · ${valueText(a, v.value)}` : '—';
+                return v ? (s.percentOnly ? String(v.percentile) : `${v.percentile} · ${valueText(a, v.value)}`) : '—';
               },
             })),
           ]}
@@ -128,7 +130,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty }
                       cy={p.y}
                       r={5}
                       tabIndex={0}
-                      aria-label={`${s.label}, ${label(axis)}: ${t('Percentile $1', String(v.percentile))}, ${valueText(axis, v.value)}`}
+                      aria-label={`${s.label}, ${label(axis)}: ${t('Percentile $1', String(v.percentile))}${s.percentOnly ? '' : `, ${valueText(axis, v.value)}`}`}
                       onMouseEnter={on}
                       onFocus={on}
                       onMouseLeave={off}
@@ -150,7 +152,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty }
             <strong>{label(tip.axis)}</strong>
             {series.length > 1 && <span className="ui-muted">{tip.s.label}</span>}
             <span>{t('Percentile $1', String(tipValue.percentile))}</span>
-            <span className="ui-muted">{valueText(tip.axis, tipValue.value)}</span>
+            {!tip.s.percentOnly && <span className="ui-muted">{valueText(tip.axis, tipValue.value)}</span>}
           </div>
         )}
       </div>

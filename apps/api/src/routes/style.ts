@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Radar de estilo de jogo (OG-469, D-84, RN-RAD): o perfil de um jogador na temporada (padrão: a
-// ativa) ou de sempre, com a temporada anterior para o contorno tracejado (OG-471).
+// ativa) ou de sempre, com a temporada anterior para o contorno tracejado (OG-471), e o radar do
+// clã pela mediana dos membros (OG-473).
 import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type-provider-typebox';
 import { desc, eq, lt } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
-import { usernameKey } from '../db/keys.js';
-import { seasons, users } from '../db/schema.js';
+import { clanKey, usernameKey } from '../db/keys.js';
+import { clans, seasons, users } from '../db/schema.js';
 import { LEADERBOARD_MINIMUM_MATCHES, statSince, type BoardScope } from '../leaderboard.js';
 import { activeSeason, type RankedFormat } from '../ranking.js';
-import { STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
+import { clanStyle, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -48,6 +49,13 @@ export async function playerRadar(db: AppDeps['database']['db'], userId: string,
 
 export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
   const { db } = database;
+  /** Temporada pedida (padrão: a ativa) ou null com `overall`; undefined se não existe. */
+  async function scopeSeason(id: number | undefined, overall: boolean) {
+    if (overall) return null;
+    const want = id ?? (await activeSeason(db))?.id;
+    const [row] = want ? await db.select().from(seasons).where(eq(seasons.id, want)) : [];
+    return row;
+  }
   return async (app) => {
     app.get(
       '/players/:name/style',
@@ -79,12 +87,8 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         const [user] = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.usernameKey, usernameKey(request.params.name)));
         if (!user) return reply.code(404).send({ error: 'player_not_found', message: 'player not found' });
         const { overall, format } = request.query;
-        let season: typeof seasons.$inferSelect | undefined;
-        if (!overall) {
-          const id = request.query.season ?? (await activeSeason(db))?.id;
-          [season] = id ? await db.select().from(seasons).where(eq(seasons.id, id)) : [];
-          if (!season) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
-        }
+        const season = await scopeSeason(request.query.season, overall);
+        if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
         const fmt: RankedFormat | null = format ?? null;
         const radar = await playerRadar(db, user.id, { seasonId: season?.id ?? null, format: fmt });
         const [before] = season ? await db.select().from(seasons).where(lt(seasons.startsAt, season.startsAt)).orderBy(desc(seasons.startsAt)).limit(1) : [];
@@ -94,9 +98,55 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         return { username: user.username, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
       },
     );
+
+    const ClanAxisSchema = Type.Object({ axis: StyleAxisSchema, percentile: Type.Integer({ minimum: 0, maximum: 100 }) });
+    app.get(
+      '/clans/:tag/style',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Radar do clã (OG-473, RN-RAD-05): mediana dos percentis dos membros pelas ranqueadas jogadas pelo clã, arquétipo, ponto forte e fraco, e o radar de cada membro',
+          params: Type.Object({ tag: Type.String({ minLength: 1, maxLength: 8 }) }),
+          querystring: Type.Object({ season: Type.Optional(Type.Integer({ minimum: 1 })), overall: Type.Boolean({ default: false }) }),
+          response: {
+            200: Type.Object({
+              tag: Type.String(),
+              season: Type.Union([Type.Null(), Season]),
+              /** null = nenhum membro com 3 ranqueadas pelo clã no período. */
+              clan: Type.Union([
+                Type.Null(),
+                Type.Object({ axes: Type.Array(ClanAxisSchema), archetype: ArchetypeSchema, strongest: StyleAxisSchema, weakest: StyleAxisSchema, members: Type.Integer() }),
+              ]),
+              members: Type.Array(Type.Object({ username: Type.String(), radar: StyleRadarSchema })),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [clan] = await db.select({ id: clans.id, tag: clans.tag }).from(clans).where(eq(clans.tagKey, clanKey(request.params.tag)));
+        if (!clan) return reply.code(404).send({ error: 'clan_not_found', message: 'clan not found' });
+        const season = await scopeSeason(request.query.season, request.query.overall);
+        if (season === undefined) return reply.code(404).send({ error: 'season_not_found', message: 'season not found' });
+        const style = await clanStyle(db, clan.id, { seasonId: season?.id ?? null, format: null });
+        reply.header('cache-control', 'public, max-age=60');
+        return { tag: clan.tag, season: season ? seasonOut(season) : null, ...clanStyleOut(style) };
+      },
+    );
   };
 }
 
 export function seasonOut(s: typeof seasons.$inferSelect) {
   return { id: s.id, name: s.name, startsAt: s.startsAt.toISOString(), endsAt: s.endsAt?.toISOString() ?? null, active: s.active };
+}
+
+/** Resposta do radar do clã (OG-473), também usada na prévia do clã x clã (OG-474). */
+export function clanStyleOut(style: Awaited<ReturnType<typeof clanStyle>>) {
+  const withRadar = style.members.filter((m) => m.profile).length;
+  return {
+    clan: style.clan
+      ? { axes: STYLE_AXES.map((axis) => ({ axis, percentile: style.clan!.percentiles[axis] })), archetype: style.clan.archetype, strongest: style.clan.strongest, weakest: style.clan.weakest, members: withRadar }
+      : null,
+    members: style.members.map((m) => ({ username: m.username, radar: radarOf(m.profile, m.games, style.population) })),
+  };
 }

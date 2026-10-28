@@ -1020,3 +1020,19 @@ html {
 .style-bar i.red {
   background: var(--text-team-red);
 }
+.clan-style-members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.clan-style-members li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  font-size: var(--text-sm);
+}

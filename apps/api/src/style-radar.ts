@@ -66,13 +66,17 @@ export interface StyleProfile extends StyleRow {
 const num = (key: string) => `coalesce((mp.stats ->> '${key}')::float8, 0)`;
 const per10 = (col: string) => `CASE WHEN play > 0 THEN ${col} * 600 / play ELSE 0 END`;
 
-/** Uma linha por conta com pelo menos uma ranqueada no período (RN-RAD-01/02: sem bots nem Casual). */
-export async function styleRows(db: Db | Tx, scope: BoardScope): Promise<StyleRow[]> {
+/**
+ * Uma linha por conta com pelo menos uma ranqueada no período (RN-RAD-01/02: sem bots nem Casual).
+ * Com `clanId`, só as partidas jogadas pelo clã (RN-RAD-05, RN-CLA-06).
+ */
+export async function styleRows(db: Db | Tx, scope: BoardScope, clanId?: string): Promise<StyleRow[]> {
   const where = sql.join(
     [
       sql`m.ranked AND NOT mp.is_bot AND mp.user_id IS NOT NULL`,
       ...(scope.seasonId !== null ? [sql`m.season_id = ${scope.seasonId}`] : []),
       ...(scope.format !== null ? [sql`m.format = ${scope.format}`] : []),
+      ...(clanId ? [sql`mp.clan_id = ${clanId}`] : []),
     ],
     sql` AND `,
   );
@@ -116,12 +120,62 @@ export function styleProfiles(rows: readonly StyleRow[]): Map<string, StyleProfi
   const population = rows.filter((r) => r.games >= LEADERBOARD_MINIMUM_MATCHES);
   const out = new Map<string, StyleProfile>();
   for (const r of rows) {
-    if (r.games < STYLE_MINIMUM_GAMES) continue;
-    const others = population.filter((o) => o.userId !== r.userId);
-    const percentiles = Object.fromEntries(STYLE_AXES.map((a) => [a, percentileOf(r.raw[a], others.map((o) => o.raw[a]))])) as AxisValues;
-    out.set(r.userId, { ...r, lowSample: r.games < STYLE_FULL_SAMPLE, percentiles, archetype: archetypeOf(percentiles) });
+    const p = profileAgainst(r, population);
+    if (p) out.set(r.userId, p);
   }
   return out;
+}
+
+/** Perfil de uma linha contra uma população (sem ela mesma); undefined abaixo de 3 ranqueadas. */
+export function profileAgainst(r: StyleRow, population: readonly StyleRow[]): StyleProfile | undefined {
+  if (r.games < STYLE_MINIMUM_GAMES) return undefined;
+  const others = population.filter((o) => o.userId !== r.userId);
+  const percentiles = Object.fromEntries(STYLE_AXES.map((a) => [a, percentileOf(r.raw[a], others.map((o) => o.raw[a]))])) as AxisValues;
+  return { ...r, lowSample: r.games < STYLE_FULL_SAMPLE, percentiles, archetype: archetypeOf(percentiles) };
+}
+
+/** Os ativos do período que formam a base do percentil (mínimo da RN-LDB-04). */
+export const activePopulation = (rows: readonly StyleRow[]) => rows.filter((r) => r.games >= LEADERBOARD_MINIMUM_MATCHES);
+
+/** Mediana; com número par, a média dos dois do meio. */
+export function median(xs: readonly number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+}
+
+/** Mediana eixo a eixo dos percentis (RN-RAD-05); null sem nenhum perfil. */
+export function medianProfile(profiles: readonly StyleProfile[]): { percentiles: AxisValues; archetype: Archetype; strongest: StyleAxis; weakest: StyleAxis } | null {
+  if (profiles.length === 0) return null;
+  const percentiles = Object.fromEntries(STYLE_AXES.map((a) => [a, Math.round(median(profiles.map((p) => p.percentiles[a])))])) as AxisValues;
+  let strongest: StyleAxis = STYLE_AXES[0];
+  let weakest: StyleAxis = STYLE_AXES[0];
+  for (const a of STYLE_AXES) {
+    if (percentiles[a] > percentiles[strongest]) strongest = a;
+    if (percentiles[a] < percentiles[weakest]) weakest = a;
+  }
+  return { percentiles, archetype: archetypeOf(percentiles), strongest, weakest };
+}
+
+/**
+ * Radar do clã (OG-473, RN-RAD-05): cada membro atual pelas ranqueadas que jogou pelo clã, em
+ * percentil contra os ativos do período; a mediana só de quem tem radar. `only` limita aos
+ * escalados (prévia do clã x clã, OG-474).
+ */
+export async function clanStyle(db: Db | Tx, clanId: string, scope: BoardScope, only?: readonly string[]) {
+  const { rows } = await stylePeriod(db, scope);
+  const population = activePopulation(rows);
+  const members = await db.execute<{ user_id: string; username: string }>(
+    sql`SELECT u.id AS user_id, u.username FROM clan_members cm JOIN users u ON u.id = cm.user_id WHERE cm.clan_id = ${clanId} ORDER BY u.username_key`,
+  );
+  const forClan = new Map((await styleRows(db, scope, clanId)).map((r) => [r.userId, r]));
+  const lines = members
+    .filter((m) => !only || only.includes(m.user_id))
+    .map((m) => {
+      const row = forClan.get(m.user_id);
+      return { userId: m.user_id, username: m.username, games: row?.games ?? 0, profile: row ? profileAgainst(row, population) : undefined };
+    });
+  return { population: population.length, members: lines, clan: medianProfile(lines.flatMap((l) => (l.profile ? [l.profile] : []))) };
 }
 
 /** Cache curto por período: o cálculo percorre a temporada inteira. */
