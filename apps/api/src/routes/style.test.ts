@@ -113,6 +113,15 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
     expect(ana.since.team).not.toBeNull();
   });
 
+  it('sombra de referência (OG-476): top 10 com quem houver; sem clã, nada', async () => {
+    const top = await style('Caio', 'reference=top10');
+    expect(top.reference).toMatchObject({ kind: 'top10', members: 2 }); // só Ana e Bia têm o mínimo
+    expect(top.reference.axes.find((a: Axis) => a.axis === 'kills').percentile).toBe(50); // 100 e 0
+    const none = await style('Ana', 'reference=clan');
+    expect(none.clanTag).toBeNull();
+    expect(none.reference).toBeNull();
+  });
+
   it('radar da partida (OG-475): eixos da partida contra a temporada, sem bots; curta demais; Casual sem radar', async () => {
     const matchOf = async (name: string, ranked: boolean) =>
       (await t.sql`SELECT m.id FROM matches m JOIN match_players mp ON mp.match_id = m.id WHERE mp.user_id = ${ids[name]!} AND m.ranked = ${ranked} LIMIT 1`)[0]!.id as string;
@@ -207,6 +216,12 @@ describe.skipIf(!pgAdminUrl)('radar do clã (OG-473)', () => {
     expect(swapped.sides[0].players.map((p: { username: string }) => p.username)).toEqual(['Ana', 'Caio']);
     // escalada por um clã de que já saiu: sem radar
     expect((await lineup('red=Eva&redClan=AAA&blue=')).sides[0]).toMatchObject({ median: null, players: [{ username: 'Eva', radar: { axes: null } }] });
+  });
+
+  it('sombra do clã no perfil (OG-476): a mediana do clã atual', async () => {
+    const r = (await app.inject('/players/Bia/style?reference=clan')).json();
+    expect(r.reference).toMatchObject({ kind: 'clan', members: 2 });
+    expect(kills(r.reference.axes)).toBe(34);
   });
 
   it('contra um rival com poucas partidas: "poucos jogos" (OG-474, RN-RAD-03)', async () => {

@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S53 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-471 |
 | Regras de negócio | RN-RAD-01 |
 | Skills | `outgun-card-workflow` |
@@ -24,6 +24,8 @@ Como jogador, quero uma referência por baixo do meu radar, para ter contexto se
 - Desenhada como série cinza por baixo (OG-470), com legenda.
 
 ## Critérios de aceite
-- [ ] Sem clã, a opção do clã some; top 10 com menos de 10 elegíveis usa quem houver.
+- [x] Sem clã, a opção do clã some; top 10 com menos de 10 elegíveis usa quem houver.
 
 ## Notas de implementação
+- `reference=clan|top10` no `/players/:name/style`: clã = mediana do clã atual do jogador (`clanStyle`, o mesmo do OG-473, clã achado pelo `clan_members`); top 10 = mediana dos perfis dos 10 primeiros da lista geral do período (`overallBoard`), com quem houver.
+- No perfil: seletor "Referência" (some na comparação jogador x jogador); a opção do clã só aparece se o jogador tiver clã. É o clã do dono do perfil, não o de quem está vendo.

@@ -7,7 +7,7 @@
 | Prioridade | Could |
 | Estimativa | 3 pts |
 | Sprint | S53 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | OG-471 |
 | Regras de negócio | RN-RAD-04 |
 | Skills | `outgun-card-workflow` |

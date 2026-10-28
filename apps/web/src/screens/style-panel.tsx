@@ -22,6 +22,8 @@ interface SeasonRef {
 
 export interface StyleResponse {
   username: string;
+  clanTag: string | null;
+  reference: { kind: string; members: number; axes: { axis: StyleAxis; percentile: number }[] } | null;
   season: SeasonRef | null;
   radar: StyleRadarData;
   previous: { season: SeasonRef; radar: StyleRadarData } | null;
@@ -98,8 +100,10 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
   const [period, setPeriod] = useStylePeriod();
   const [vs, setVs] = useVsParam();
   const [typed, setTyped] = useState('');
+  // sombra de referência (OG-476): nenhuma, mediana do clã do jogador ou do top 10 do período
+  const [reference, setReference] = useState<'' | 'clan' | 'top10'>('');
   const scope = statScope(period, format).toString();
-  const res = useApi<StyleResponse>(`/players/${encodeURIComponent(name)}/style?${scope}`, true, 'matches');
+  const res = useApi<StyleResponse>(`/players/${encodeURIComponent(name)}/style?${scope}${reference && !vs ? `&reference=${reference}` : ''}`, true, 'matches');
   const d = res.data;
   const past = seasons.filter((s) => !s.active);
   const now = radarSeries('now', d?.season?.name ?? t('All time'), d?.radar);
@@ -124,6 +128,18 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
         <Button disabled={!typed.trim()} onClick={() => compare(typed)}>
           {t('Compare')}
         </Button>
+        {!vs && (
+          <ChoiceField
+            label={t('Reference')}
+            value={reference === 'clan' && d && !d.clanTag ? '' : reference}
+            onChange={setReference}
+            options={[
+              { value: '', label: t('None') },
+              ...(d?.clanTag ? [{ value: 'clan' as const, label: t('Median of $1', d.clanTag) }] : []),
+              { value: 'top10', label: t('Median of the top 10') },
+            ]}
+          />
+        )}
         {me && me.toLowerCase() !== name.toLowerCase() && vs.toLowerCase() !== me.toLowerCase() && <Button onClick={() => compare(me)}>{t('Compare with me')}</Button>}
         {vs && (
           <Button variant="ghost" onClick={() => setVs('')}>
@@ -139,7 +155,13 @@ export function StylePanel({ name, format, seasons, me }: { name: string; format
         <div className="ui-stack">
           <ArchetypeLine radar={d.radar} />
           {d.radar.axes ? (
-            <StyleRadar caption={t('Play style of $1', d.username)} series={series} />
+            <StyleRadar
+              caption={t('Play style of $1', d.username)}
+              series={series}
+              {...(d.reference && reference
+                ? { shadow: { key: 'ref', label: d.reference.kind === 'clan' ? t('Median of $1', d.clanTag ?? '') : t('Median of the top 10'), axes: d.reference.axes.map((a) => ({ ...a, value: 0 })), percentOnly: true } }
+                : {})}
+            />
           ) : (
             <p className="ui-muted">{t('Play $1 more Ranked matches in the period to see the radar.', String(Math.max(1, STYLE_MINIMUM_GAMES - d.radar.games)))}</p>
           )}

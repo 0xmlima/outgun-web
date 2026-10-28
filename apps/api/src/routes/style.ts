@@ -6,8 +6,8 @@ import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type
 import { desc, eq, inArray, lt } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { clans, matches, seasons, users } from '../db/schema.js';
-import { LEADERBOARD_MINIMUM_MATCHES, statSince, type BoardScope } from '../leaderboard.js';
+import { clanMembers, clans, matches, seasons, users } from '../db/schema.js';
+import { LEADERBOARD_MINIMUM_MATCHES, overallBoard, statSince, type BoardScope } from '../leaderboard.js';
 import { activeSeason, type RankedFormat } from '../ranking.js';
 import { clanStyle, lineupStyle, MATCH_STYLE_MIN_SECONDS, matchStyle, medianProfile, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
@@ -17,6 +17,8 @@ export const StyleAxisSchema = Type.Unsafe<StyleAxis>({ type: 'string', enum: [.
 export const ArchetypeSchema = Type.Unsafe<Archetype>({ type: 'string', enum: [...ARCHETYPES] });
 /** Um eixo: percentil (0–100) e o valor bruto do detalhe (por 10 min, razão ou segundos). */
 export const StyleAxisValue = Type.Object({ axis: StyleAxisSchema, percentile: Type.Integer({ minimum: 0, maximum: 100 }), value: Type.Number() });
+/** Percentil de um grupo (mediana): sem valor bruto. */
+const ClanAxisSchema = Type.Object({ axis: StyleAxisSchema, percentile: Type.Integer({ minimum: 0, maximum: 100 }) });
 /** Radar de um período; `axes` e `archetype` são null abaixo de 3 ranqueadas (RN-RAD-03). */
 export const StyleRadarSchema = Type.Object({
   games: Type.Integer(),
@@ -68,10 +70,16 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
             season: Type.Optional(Type.Integer({ minimum: 1 })),
             overall: Type.Boolean({ default: false }),
             format: Type.Optional(RankedFormatSchema),
+            /** Sombra cinza (OG-476): mediana do clã do jogador ou do top 10 da lista geral do período. */
+            reference: Type.Optional(Type.Union([Type.Literal('clan'), Type.Literal('top10')])),
           }),
           response: {
             200: Type.Object({
               username: Type.String(),
+              /** Clã atual (a opção "meu clã" some sem ele). */
+              clanTag: Type.Union([Type.Null(), Type.String()]),
+              /** Referência pedida; null sem dados (clã sem ninguém com radar, período vazio). */
+              reference: Type.Union([Type.Null(), Type.Object({ kind: Type.String(), members: Type.Integer(), axes: Type.Array(ClanAxisSchema) })]),
               season: Type.Union([Type.Null(), Season]),
               radar: StyleRadarSchema,
               /** Temporada anterior à pedida (contorno tracejado); null em "sempre" ou sem temporada anterior. */
@@ -94,12 +102,26 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         const [before] = season ? await db.select().from(seasons).where(lt(seasons.startsAt, season.startsAt)).orderBy(desc(seasons.startsAt)).limit(1) : [];
         const previous = before ? { season: seasonOut(before), radar: await playerRadar(db, user.id, { seasonId: before.id, format: fmt }) } : null;
         const [defense, team] = await Promise.all([statSince(db, 'defenses'), statSince(db, 'trades')]);
+        const scope = { seasonId: season?.id ?? null, format: fmt };
+        let reference: { kind: string; members: number; axes: { axis: StyleAxis; percentile: number }[] } | null = null;
+        const [membership] = await db.select({ id: clans.id, tag: clans.tag }).from(clanMembers).innerJoin(clans, eq(clans.id, clanMembers.clanId)).where(eq(clanMembers.userId, user.id));
+        if (request.query.reference === 'clan' && membership) {
+          const style = await clanStyle(db, membership.id, scope);
+          const m = style && medianOut(style.clan, style.members.filter((x) => x.profile).length);
+          if (m) reference = { kind: 'clan', members: m.members, axes: m.axes };
+        } else if (request.query.reference === 'top10') {
+          // top 10 da lista geral (RN-LDB-06); com menos elegíveis, quem houver
+          const top = (await overallBoard(db, scope, { limit: 10, offset: 0 })).entries;
+          const { profiles } = await stylePeriod(db, scope);
+          const list = top.flatMap((e) => (profiles.has(e.userId) ? [profiles.get(e.userId)!] : []));
+          const m = medianOut(medianProfile(list), list.length);
+          if (m) reference = { kind: 'top10', members: m.members, axes: m.axes };
+        }
         reply.header('cache-control', 'public, max-age=60');
-        return { username: user.username, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
+        return { username: user.username, clanTag: membership?.tag ?? null, reference, season: season ? seasonOut(season) : null, radar, previous, since: { defense, team } };
       },
     );
 
-    const ClanAxisSchema = Type.Object({ axis: StyleAxisSchema, percentile: Type.Integer({ minimum: 0, maximum: 100 }) });
     app.get(
       '/clans/:tag/style',
       {
