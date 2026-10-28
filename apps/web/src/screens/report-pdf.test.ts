@@ -49,8 +49,8 @@ describe('PDF do relatório (OG-425, RN-SOC-08)', () => {
 
   it('Ranked: lado do clã, rating, chance prevista e a série', () => {
     const doc = matchReportDoc(page('ranked'), null, t, 'pt-BR', 'https://outgun.test');
-    expect(doc.score).toMatchObject({ red: 'DK', redColor: '#AA2200', result: 'DK wins' });
-    expect(doc.score.notes).toEqual(expect.arrayContaining(['Clan vs clan · DK x DT', 'Predicted win chance: red 55% · blue 45%']));
+    expect(doc.score).toMatchObject({ red: 'Dark', redColor: '#AA2200', result: 'Dark wins' }); // nome do clã, não a tag
+    expect(doc.score.notes).toEqual(expect.arrayContaining(['Clan vs clan · Dark x Dt', 'Predicted win chance: red 55% · blue 45%']));
     expect(doc.tables[1]!.head).toContain('Rating');
     expect(doc.tables[1]!.body[0]!.at(-1)).toBe('+29 (1029)');
     expect(doc.tables.map((x) => x.title)).not.toContain('Kills by victim');
@@ -61,7 +61,7 @@ describe('PDF do relatório (OG-425, RN-SOC-08)', () => {
     const pdf = renderReportPdf([matchReportDoc(page('ranked'), events, t, 'pt-BR', 'https://outgun.test')], t, false);
     const out = pdf.output();
     expect(out.startsWith('%PDF-')).toBe(true);
-    for (const text of ['Arena', 'DK', 'Kills by victim', 'Page 1 of', 'https://outgun.test/matches/m1']) expect(out).toContain(text);
+    for (const text of ['Arena', 'Dark', 'Kills by victim', 'Page 1 of', 'https://outgun.test/matches/m1']) expect(out).toContain(text);
     expect(Math.round(pdf.internal.pageSize.getWidth())).toBe(210);
   });
 

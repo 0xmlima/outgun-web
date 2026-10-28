@@ -1,6 +1,6 @@
 {
   "name": "@outgun/api",
-  "version": "2.50.0",
+  "version": "2.50.1",
   "private": true,
   "description": "API da plataforma: contas, ranking, salas (card OG-080).",
   "license": "GPL-2.0-or-later",

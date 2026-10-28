@@ -53,8 +53,10 @@ export function matchReportDoc(m: MatchPage, events: MatchEvents | null, t: T, l
   const d = m.details;
   const { redScore, blueScore } = m.match;
   const side = (team: 0 | 1) => m.teams?.[team] ?? null;
-  const short = (team: 0 | 1) => side(team)?.tag ?? t(team === 0 ? 'Red' : 'Blue');
-  const long = (team: 0 | 1) => side(team)?.tag ?? t(team === 0 ? 'Red team' : 'Blue team');
+  // o nome do clã identifica o lado, como no placar da partida (OG-463); a tag só se faltar o nome
+  const clan = (team: 0 | 1) => (side(team) ? side(team)!.name || side(team)!.tag : null);
+  const short = (team: 0 | 1) => clan(team) ?? t(team === 0 ? 'Red' : 'Blue');
+  const long = (team: 0 | 1) => clan(team) ?? t(team === 0 ? 'Red team' : 'Blue team');
   const winner =
     redScore === blueScore ? t('Draw') : side(redScore > blueScore ? 0 : 1) ? t('$1 wins', short(redScore > blueScore ? 0 : 1)) : redScore > blueScore ? t('Red team wins') : t('Blue team wins');
   const seconds = (Date.parse(m.match.endedAt) - Date.parse(m.match.startedAt)) / 1000;
@@ -66,7 +68,7 @@ export function matchReportDoc(m: MatchPage, events: MatchEvents | null, t: T, l
 
   const notes: string[] = [];
   if (m.match.mode === 'ranked' && !m.match.ranked) notes.push(t('did not count for the ranking'));
-  if (m.match.clanWar) notes.push(m.clans ? `${t('Clan vs clan')} · ${m.clans.red.tag} x ${m.clans.blue.tag}` : t('Clan vs clan'));
+  if (m.match.clanWar) notes.push(m.clans ? `${t('Clan vs clan')} · ${m.clans.red.name || m.clans.red.tag} x ${m.clans.blue.name || m.clans.blue.tag}` : t('Clan vs clan'));
   if (m.match.withBots) notes.push(t('Completed with bots'));
   if (m.match.shortHanded) notes.push(t('Short-handed'));
   if (chance[0] !== undefined && chance[1] !== undefined)
