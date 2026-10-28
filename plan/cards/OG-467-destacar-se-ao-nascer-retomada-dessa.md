@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Issue | [#23](https://github.com/thiagovasconcellos/outgun-web/issues/23) |
 | Regras de negócio | — |
@@ -25,9 +25,9 @@ Como jogador, quero poder desligar o destaque que aparece em mim quando nasço.
 - Não muda a aparência do destaque (RN-UI-05).
 
 ## Critérios de aceite
-- [ ] A opção aparece nas Opções e desligá-la tira o destaque ao nascer.
-- [ ] Quem nunca mexeu continua com o destaque ligado.
+- [x] A opção aparece nas Opções e desligá-la tira o destaque ao nascer.
+- [x] Quem nunca mexeu continua com o destaque ligado.
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `spawnHighlight` saiu de `RETIRED_PREFS` (OG-386) e voltou às Opções > gráficos, depois de "Mostrar números dos jogadores", com o texto que já existia no i18n. O valor salvo volta a valer; o padrão continua ligado (teste em `graphics-options.test.ts`).

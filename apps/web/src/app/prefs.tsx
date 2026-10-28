@@ -213,7 +213,7 @@ export function defaultPrefs(languages: readonly string[] = []): Prefs {
 }
 
 /** Opções do original tiradas da tela no OG-386 (revisão do OG-385): valem o padrão para todos. */
-export const RETIRED_PREFS = ['minimapBandwidth', 'showServerInfo', 'stayDeadInMenus', 'colourTheme', 'preferThemeColours', 'backgroundTheme', 'preferThemeBackground', 'minimapPlayers', 'highlightReturnedFlags', 'emphasizeFlags', 'oldFlagPositions', 'spawnHighlight', 'neighborMarkers', 'boxVisibleArea', 'viewOverBorder', 'repeatMap', 'highlightUnknownMaps', 'statsAlpha', 'mapInfoMode'] as const satisfies readonly (keyof Prefs)[];
+export const RETIRED_PREFS = ['minimapBandwidth', 'showServerInfo', 'stayDeadInMenus', 'colourTheme', 'preferThemeColours', 'backgroundTheme', 'preferThemeBackground', 'minimapPlayers', 'highlightReturnedFlags', 'emphasizeFlags', 'oldFlagPositions', 'neighborMarkers', 'boxVisibleArea', 'viewOverBorder', 'repeatMap', 'highlightUnknownMaps', 'statsAlpha', 'mapInfoMode'] as const satisfies readonly (keyof Prefs)[];
 
 const int = (v: unknown, lo: number, hi: number, fallback: number) => (Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi ? (v as number) : fallback);
 const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
@@ -247,7 +247,7 @@ export function parsePrefs(saved: Record<string, unknown>, fallback: Prefs): Pre
     highlightReturnedFlags: fallback.highlightReturnedFlags,
     emphasizeFlags: fallback.emphasizeFlags,
     oldFlagPositions: fallback.oldFlagPositions,
-    spawnHighlight: fallback.spawnHighlight,
+    spawnHighlight: bool(saved.spawnHighlight, fallback.spawnHighlight), // de volta às Opções (OG-467)
     neighborMarkers: fallback.neighborMarkers,
     boxVisibleArea: fallback.boxVisibleArea,
     viewOverBorder: fallback.viewOverBorder,

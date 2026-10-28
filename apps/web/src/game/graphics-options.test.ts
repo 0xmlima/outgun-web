@@ -44,6 +44,11 @@ describe('opções gráficas avançadas (OG-070)', () => {
     for (const k of RETIRED_PREFS) expect(p[k], k).toEqual(d[k]);
   });
 
+  it('destaque ao nascer voltou às Opções (OG-467): o valor salvo vale; o padrão é ligado', () => {
+    expect(defaultPrefs().spawnHighlight).toBe(true);
+    expect(parsePrefs({ spawnHighlight: false }, defaultPrefs()).spawnHighlight).toBe(false);
+  });
+
   it('escala do HUD (OG-296): automática por padrão, valor inválido volta ao padrão', () => {
     expect(hudScaleValue(defaultPrefs().hudScale)).toBeUndefined();
     expect(hudScaleValue(parsePrefs({ hudScale: '2.5' }, defaultPrefs()).hudScale)).toBe(2.5);
