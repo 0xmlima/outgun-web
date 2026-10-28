@@ -11,6 +11,7 @@ import { bestPlayer, captureTimeline, highlights, killMatrix, PLAYER_COLUMNS, se
 import { clock, date, duration, signedDelta, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 import { DEFAULT_EMBLEM, emblemSvg } from '@outgun/protocol';
 import { svgCanvas } from '../ui/emblem-image.js';
+import { matchStyleTable, type MatchStyle } from './match-style.js';
 
 type T = (text: string, ...args: string[]) => string;
 
@@ -138,7 +139,7 @@ export async function withEmblemImages(doc: ReportDoc): Promise<ReportDoc> {
   return { ...doc, score: { ...score, ...(redEmblem ? { redEmblem } : {}), ...(blueEmblem ? { blueEmblem } : {}) } };
 }
 
-export function matchReportDoc(m: MatchPage, events: MatchEvents | null, t: T, locale: string, origin: string): ReportDoc {
+export function matchReportDoc(m: MatchPage, events: MatchEvents | null, t: T, locale: string, origin: string, style: MatchStyle | null = null): ReportDoc {
   const d = m.details;
   const { redScore, blueScore } = m.match;
   const side = (team: 0 | 1) => m.teams?.[team] ?? null;
@@ -258,6 +259,9 @@ export function matchReportDoc(m: MatchPage, events: MatchEvents | null, t: T, l
     });
   }
 
+  // radar da partida (OG-475): no PDF, em tabela
+  const styleTable = style ? matchStyleTable(style, t, (u) => m.players.find((p) => p.username?.toLowerCase() === u.toLowerCase())?.team ?? null) : undefined;
+  if (styleTable) tables.push(styleTable);
   if (m.series) tables.push(seriesTable(m.series, t, m.match.id));
 
   return {
@@ -588,7 +592,8 @@ export function pdfFilename(kind: 'match' | 'series', id: string, when: string):
 
 /** "Baixar PDF" no relatório da partida (OG-425). */
 export async function matchPdf(m: MatchPage, events: MatchEvents | null, t: T, locale: string): Promise<File> {
-  const pdf = renderReportPdf([await withEmblemImages(matchReportDoc(m, events, t, locale, location.origin))], t);
+  const style = m.match.ranked ? await api<MatchStyle>(`/matches/${encodeURIComponent(m.match.id)}/style`).catch(() => null) : null;
+  const pdf = renderReportPdf([await withEmblemImages(matchReportDoc(m, events, t, locale, location.origin, style))], t);
   return pdfFile(pdf, pdfFilename('match', m.match.id, m.match.endedAt));
 }
 
@@ -596,8 +601,12 @@ export async function matchPdf(m: MatchPage, events: MatchEvents | null, t: T, l
 export async function seriesPdf(s: SeriesView, t: T, locale: string): Promise<File> {
   const games = await Promise.all(
     s.matches.map(async (g) => {
-      const [page, events] = await Promise.all([api<MatchPage>(`/matches/${encodeURIComponent(g.id)}`), api<MatchEvents>(`/matches/${encodeURIComponent(g.id)}/events`).catch(() => null)]);
-      return withEmblemImages(matchReportDoc(page, events, t, locale, location.origin));
+      const [page, events, style] = await Promise.all([
+        api<MatchPage>(`/matches/${encodeURIComponent(g.id)}`),
+        api<MatchEvents>(`/matches/${encodeURIComponent(g.id)}/events`).catch(() => null),
+        api<MatchStyle>(`/matches/${encodeURIComponent(g.id)}/style`).catch(() => null),
+      ]);
+      return withEmblemImages(matchReportDoc(page, events, t, locale, location.origin, style));
     }),
   );
   const pdf = renderReportPdf([await withEmblemImages(seriesCoverDoc(s, t, locale, location.origin)), ...games], t);

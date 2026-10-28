@@ -6,10 +6,10 @@ import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type
 import { desc, eq, inArray, lt } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
 import { clanKey, usernameKey } from '../db/keys.js';
-import { clans, seasons, users } from '../db/schema.js';
+import { clans, matches, seasons, users } from '../db/schema.js';
 import { LEADERBOARD_MINIMUM_MATCHES, statSince, type BoardScope } from '../leaderboard.js';
 import { activeSeason, type RankedFormat } from '../ranking.js';
-import { clanStyle, lineupStyle, medianProfile, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
+import { clanStyle, lineupStyle, MATCH_STYLE_MIN_SECONDS, matchStyle, medianProfile, STYLE_AXES, STYLE_FULL_SAMPLE, STYLE_MINIMUM_GAMES, stylePeriod, ARCHETYPES, type Archetype, type StyleAxis, type StyleProfile } from '../style-radar.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
 
 const Season = Type.Object({ id: Type.Integer(), name: Type.String(), startsAt: Type.String(), endsAt: Type.Union([Type.String(), Type.Null()]), active: Type.Boolean() });
@@ -145,6 +145,54 @@ export function styleRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox {
         const style = await clanStyle(db, clan.id, { seasonId: season?.id ?? null, format: null }, against ? { against } : {});
         reply.header('cache-control', 'public, max-age=60');
         return { tag: clan.tag, season: season ? seasonOut(season) : null, matches: style.matches, lowSample: !!against && style.matches < STYLE_FULL_SAMPLE, ...clanStyleOut(style) };
+      },
+    );
+
+    app.get(
+      '/matches/:id/style',
+      {
+        schema: {
+          tags: ['perfil'],
+          summary: `Radar da partida (OG-475): para cada conta de uma ranqueada, os 6 eixos daquela partida em percentil contra os ativos da temporada e o radar da temporada; menos de ${MATCH_STYLE_MIN_SECONDS} s jogados = partida curta demais`,
+          params: Type.Object({ id: Type.String({ format: 'uuid' }) }),
+          response: {
+            200: Type.Object({
+              /** Casual não tem radar (RN-RAD-02): `players` vazio. */
+              ranked: Type.Boolean(),
+              minimumSeconds: Type.Integer(),
+              players: Type.Array(
+                Type.Object({
+                  username: Type.String(),
+                  short: Type.Boolean(),
+                  /** Eixos da partida; null se curta demais. */
+                  match: Type.Union([Type.Null(), Type.Array(StyleAxisValue)]),
+                  season: StyleRadarSchema,
+                }),
+              ),
+            }),
+            404: ErrorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const [m] = await db.select({ id: matches.id, ranked: matches.ranked, seasonId: matches.seasonId }).from(matches).where(eq(matches.id, request.params.id));
+        if (!m) return reply.code(404).send({ error: 'match_not_found', message: 'match not found' });
+        reply.header('cache-control', 'public, max-age=60');
+        if (!m.ranked) return { ranked: false, minimumSeconds: MATCH_STYLE_MIN_SECONDS, players: [] };
+        const style = await matchStyle(db, m.id, m.seasonId);
+        const ids = style.players.map((p) => p.userId);
+        const names = new Map((ids.length ? await db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, ids)) : []).map((u) => [u.id, u.username]));
+        const seasonGames = new Map((await stylePeriod(db, { seasonId: m.seasonId, format: null })).rows.map((r) => [r.userId, r.games]));
+        return {
+          ranked: true,
+          minimumSeconds: MATCH_STYLE_MIN_SECONDS,
+          players: style.players.map((p) => ({
+            username: names.get(p.userId) ?? '',
+            short: p.short,
+            match: p.percentiles && p.raw ? STYLE_AXES.map((axis) => ({ axis, percentile: p.percentiles![axis], value: p.raw![axis] })) : null,
+            season: radarOf(p.season, seasonGames.get(p.userId) ?? 0, style.population),
+          })),
+        };
       },
     );
 

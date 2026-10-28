@@ -66,10 +66,13 @@ export interface StyleProfile extends StyleRow {
 export interface ClanFilter {
   clanId?: string;
   against?: string;
+  /** Uma partida só: o radar da partida no relatório (OG-475). */
+  matchId?: string;
 }
 const clanWhere = (f: ClanFilter) => [
   ...(f.clanId ? [sql`mp.clan_id = ${f.clanId}`] : []),
   ...(f.against ? [sql`m.clan_war AND (m.red_clan_id = ${f.against} OR m.blue_clan_id = ${f.against})`] : []),
+  ...(f.matchId ? [sql`m.id = ${f.matchId}`] : []),
 ];
 
 const num = (key: string) => `coalesce((mp.stats ->> '${key}')::float8, 0)`;
@@ -217,6 +220,34 @@ export async function lineupStyle(db: Db | Tx, scope: BoardScope, players: reado
     members = players.map((p) => ({ userId: p.id, username: p.username, games: rows.find((r) => r.userId === p.id)?.games ?? 0, profile: profiles.get(p.id) }));
   }
   return { population, members, median: medianProfile(members.flatMap((m) => (m.profile ? [m.profile] : []))) };
+}
+
+/** Abaixo disto de tempo jogado a partida não tem radar: "partida curta demais" (OG-475). */
+export const MATCH_STYLE_MIN_SECONDS = 180;
+
+/**
+ * Radar de cada conta numa ranqueada (OG-475): os eixos daquela partida em percentil contra os
+ * ativos da temporada dela, e o perfil da temporada para o tracejado. Sem amostra mínima de
+ * partidas (é uma só); quem jogou menos de 3 minutos fica com `short`.
+ */
+export async function matchStyle(db: Db | Tx, matchId: string, seasonId: number | null) {
+  const scope = { seasonId, format: null };
+  const { rows, profiles } = await stylePeriod(db, scope);
+  const population = activePopulation(rows);
+  const played = await db.execute<{ user_id: string; play: number }>(
+    sql`SELECT mp.user_id, mp.play_seconds AS play FROM match_players mp WHERE mp.match_id = ${matchId} AND NOT mp.is_bot AND mp.user_id IS NOT NULL`,
+  );
+  const lines = new Map((await styleRows(db, scope, { matchId })).map((r) => [r.userId, r]));
+  return {
+    population: population.length,
+    players: played.map((p) => {
+      const row = lines.get(p.user_id);
+      const short = p.play < MATCH_STYLE_MIN_SECONDS;
+      const others = population.filter((o) => o.userId !== p.user_id);
+      const percentiles = row && !short ? (Object.fromEntries(STYLE_AXES.map((a) => [a, percentileOf(row.raw[a], others.map((o) => o.raw[a]))])) as AxisValues) : null;
+      return { userId: p.user_id, short, raw: row?.raw ?? null, percentiles, season: profiles.get(p.user_id) };
+    }),
+  };
 }
 
 /** Cache curto por período: o cálculo percorre a temporada inteira. */

@@ -1062,3 +1062,16 @@ html {
 .ranked-archetype {
   font-size: var(--text-xs);
 }
+.match-style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.match-style-grid li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}

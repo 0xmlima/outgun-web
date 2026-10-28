@@ -18,6 +18,7 @@ import { milestoneText } from './Profile.js';
 import { clock, date, duration, PlayerLink, signedDelta, Status, SubstitutionBadges, useApi, type MatchPage, type PlayerLine, type SeriesView } from './stats.js';
 import { Emblem } from '../ui/Emblem.js';
 import { MatchupRadar, useLineup, type MatchupSide } from './matchup-radar.js';
+import { MatchStylePanel } from './match-style.js';
 import { downloadCanvas, matchupImage } from '../ui/emblem-image.js';
 
 /** Colunas da tabela de jogadores do `save_stats`. */
@@ -516,6 +517,13 @@ export function MatchScreen() {
         {teamTable(1)}
       </Panel>
       <p className="ui-muted">{t('Kills by zone: enemy base · midfield · own base.')}</p>
+      {ranked && (
+        <MatchStylePanel
+          matchId={m.match.id}
+          teamOf={(u) => m.players.find((p) => p.username?.toLowerCase() === u.toLowerCase())?.team ?? null}
+          colorOf={(team) => (team === 0 || team === 1 ? (side(team)?.color ?? (team === 0 ? 'var(--text-team-red)' : 'var(--text-team-blue)')) : 'var(--accent)')}
+        />
+      )}
       <details className="report-details">
         <summary>{t('Detailed statistics')}</summary>
         <div className="report-details-body">

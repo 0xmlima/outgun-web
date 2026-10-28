@@ -28,7 +28,7 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
     await seed(t.db);
     await t.db.insert(seasons).values({ name: 'Temporada passada', startsAt: new Date(Date.now() - 400 * DAY), endsAt: new Date(Date.now() - 370 * DAY), active: false });
     await t.db.insert(rooms).values({ id: 'r3', name: 'Ranked 3x3', mode: 'ranked', preset: 'ranked', maxPlayers: 6, format: '3x3', bestOf: 1 });
-    for (const name of ['Ana', 'Bia', 'Caio', 'Davi']) {
+    for (const name of ['Ana', 'Bia', 'Caio', 'Davi', 'Eli']) {
       const [u] = await t.db.insert(users).values({ username: name, usernameKey: usernameKey(name), email: `${name}@outgun.local`, emailKey: `${name}@outgun.local`, passwordHash: 'x' }).returning({ id: users.id });
       ids[name] = u!.id;
     }
@@ -63,6 +63,8 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
     for (let i = 0; i < 2; i++) await send([line(0, 'Davi', 0, 2, 1, { hits: 10, shots: 40, lifetime: 300 })]);
     // Casual não conta
     await send([line(0, 'Bia', 1, 100, 0, { hits: 100, shots: 100 })], false);
+    // Eli: uma ranqueada de 1 minuto (abandono), curta demais para o radar da partida
+    await send([{ ...line(0, 'Eli', 0, 1, 0, { hits: 1, shots: 1 }), playSeconds: 60 }]);
   });
   beforeEach(() => clearStyleCache());
   afterAll(async () => {
@@ -109,6 +111,19 @@ describe.skipIf(!pgAdminUrl)('radar de estilo (OG-469)', () => {
     expect(ana.previous.radar).toMatchObject({ games: 0, axes: null });
     expect(ana.since.defense).not.toBeNull();
     expect(ana.since.team).not.toBeNull();
+  });
+
+  it('radar da partida (OG-475): eixos da partida contra a temporada, sem bots; curta demais; Casual sem radar', async () => {
+    const matchOf = async (name: string, ranked: boolean) =>
+      (await t.sql`SELECT m.id FROM matches m JOIN match_players mp ON mp.match_id = m.id WHERE mp.user_id = ${ids[name]!} AND m.ranked = ${ranked} LIMIT 1`)[0]!.id as string;
+    const style = async (id: string) => (await app.inject(`/matches/${id}/style`)).json();
+    const ana = await style(await matchOf('Ana', true));
+    expect(ana.ranked).toBe(true);
+    expect(ana.players).toHaveLength(1); // o Robô não entra
+    expect(ana.players[0]).toMatchObject({ username: 'Ana', short: false, season: { games: 5 } });
+    expect(ana.players[0].match.find((a: Axis) => a.axis === 'kills')).toEqual({ axis: 'kills', percentile: 100, value: 6 });
+    expect((await style(await matchOf('Eli', true))).players[0]).toMatchObject({ username: 'Eli', short: true, match: null, season: { axes: null } });
+    expect(await style(await matchOf('Bia', false))).toMatchObject({ ranked: false, players: [] });
   });
 
   it('404 para quem não existe', async () => {
