@@ -131,6 +131,8 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf }, 'Memb1')).statusCode).toBe(403);
     expect((await call('PUT', '/clans/NX/emblem', { emblem: { ...wolf, symbol: 'mickey' } }, 'Lider')).statusCode).toBe(400);
     expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf }, 'Adm1')).json().clan.emblem).toEqual(wolf);
+    // moldura do hall sem pódio (OG-488)
+    expect((await call('PUT', '/clans/NX/emblem', { emblem: { ...wolf, frame: 'hallBronze' } }, 'Lider')).json().error).toBe('emblem_frame_locked');
     // cores junto do emblema (o editor mostra as cores ainda não salvas); par inválido recusa tudo
     expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf, colors: { primary: CLAN_COLORS.blue!, secondary: CLAN_COLORS.purple! } }, 'Lider')).json().error).toBe('clan_colors_too_similar');
     expect((await call('PUT', '/clans/NX/emblem', { emblem: wolf, colors: { primary: yellow, secondary: navy } }, 'Lider')).json().clan).toMatchObject({ emblem: wolf, colors: { primary: yellow, secondary: navy } });

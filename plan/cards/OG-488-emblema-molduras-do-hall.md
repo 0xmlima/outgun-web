@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S51 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-482, OG-483 |
 | Regras de negócio | RN-EMB-05, RN-CLA-07 |
 | Skills | `outgun-card-workflow` |
@@ -25,9 +25,12 @@ Como clã que chegou ao pódio, quero uma moldura especial no emblema que mostre
 - API: valida a moldura contra os pódios do clã; editor (OG-483) mostra as bloqueadas com "conquiste o pódio da temporada".
 
 ## Critérios de aceite
-- [ ] Clã campeão usa as três; 3º lugar só a bronze; clã sem pódio não salva moldura de hall (teste).
+- [x] Clã campeão usa as três; 3º lugar só a bronze; clã sem pódio não salva moldura de hall (teste).
 
 ## Notas técnicas
 - **Interpretação a confirmar com o PO na revisão:** a moldura é permanente (o hall é permanente) e vale a melhor posição de qualquer temporada. Alternativa: só na temporada seguinte ao pódio, como as medalhas do "Melhor do mês" (D-79).
 
 ## Notas de implementação
+- Brasão de três pontas (`hallGold/hallSilver/hallBronze`) com contorno em metal chapado sobre contorno escuro e filete metálico interno; regra em `emblemFrameAllowed` (protocolo), aplicada no `PUT .../emblem` (`emblem_frame_locked`) e no editor (bloqueadas com "Conquiste um pódio no hall da fama de clãs").
+- Implementado como **permanente, pela melhor posição de qualquer temporada** (interpretação a confirmar com o PO). Moldura já salva continua valendo.
+- Testes: protocolo (campeão/3º/sem pódio) e API (sem pódio recusa).

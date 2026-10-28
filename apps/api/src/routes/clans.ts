@@ -5,7 +5,7 @@
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { and, asc, eq, gt, inArray, isNotNull, lte, ne, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem, DEFAULT_EMBLEM, emblemKey, parseEmblem, type ClanEmblem } from '@outgun/protocol';
+import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem, DEFAULT_EMBLEM, emblemFrameAllowed, emblemKey, parseEmblem, type ClanEmblem } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
 import type { SessionUser } from '../auth/sessions.js';
 import type { Db } from '../db/client.js';
@@ -449,6 +449,14 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
           if (role !== 'leader' && role !== 'admin') throw new ClanError(403, 'clan_forbidden');
           const emblem = request.body.emblem && parseEmblem(request.body.emblem);
           if (request.body.emblem && !emblem) throw new ClanError(400, 'invalid_emblem');
+          // molduras do hall (OG-488, RN-EMB-05): pela melhor posição do clã no hall de clãs
+          if (emblem && !emblemFrameAllowed(emblem.frame, null)) {
+            const [row] = await tx
+              .select({ best: sql<number | null>`min(${seasonChampions.position})` })
+              .from(seasonChampions)
+              .where(and(eq(seasonChampions.clanId, clan.id), eq(seasonChampions.board, 'clans')));
+            if (!emblemFrameAllowed(emblem.frame, row?.best ?? null)) throw new ClanError(403, 'emblem_frame_locked');
+          }
           const c = request.body.colors;
           const colors = c && { primary: c.primary.toUpperCase(), secondary: c.secondary.toUpperCase() };
           await checkClanFields(tx, { colors }, config.nameFilter, clan.id);

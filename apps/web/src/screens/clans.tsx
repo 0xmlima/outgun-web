@@ -261,6 +261,8 @@ function useClanErrorText(): (e: unknown) => string {
         return t('Pick the colors from the palette.');
       case 'emblem_taken':
         return t('Another clan already uses this emblem.');
+      case 'emblem_frame_locked':
+        return t('Win a podium in the clan hall of fame.');
       default:
         return t('Something went wrong. Try again.');
     }
@@ -654,6 +656,7 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
       <EmblemEditor
         key={tick}
         clan={{ ...clan, colors }}
+        bestHall={(clan.titles ?? []).filter((x) => x.board === 'clans').reduce<number | null>((best, x) => (best === null || x.position < best ? x.position : best), null)}
         base={base}
         tick={tick}
         onSave={(emblem) =>

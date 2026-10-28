@@ -262,6 +262,10 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     Cyan: 'Ciano',
     Navy: 'Marinho',
     // Emblema do clã (OG-481)
+    'Gold crest': 'Brasão de ouro',
+    'Silver crest': 'Brasão de prata',
+    'Bronze crest': 'Brasão de bronze',
+    'Win a podium in the clan hall of fame.': 'Conquiste um pódio no hall da fama de clãs.',
     'Clan emblem': 'Emblema do clã',
     Frame: 'Moldura',
     Symbol: 'Símbolo',

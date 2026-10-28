@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { describe, expect, it } from 'vitest';
 import { CLAN_COLORS } from './colors.js';
-import { DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_SYMBOL_NAMES, EMBLEM_SYMBOLS, emblemKey, emblemSvg, parseEmblem, type ClanEmblem } from './emblem.js';
+import { DEFAULT_EMBLEM, emblemFrameAllowed, EMBLEM_FRAMES, EMBLEM_SYMBOL_NAMES, EMBLEM_SYMBOLS, emblemKey, emblemSvg, parseEmblem, type ClanEmblem } from './emblem.js';
 
 const navy = CLAN_COLORS.navy!;
 const yellow = CLAN_COLORS.yellow!;
@@ -54,5 +54,12 @@ describe('emblema do clã (OG-480)', () => {
     // 28 desenhos do catálogo + a tag.
     expect(EMBLEM_SYMBOLS).toHaveLength(29);
     for (const symbol of EMBLEM_SYMBOLS) expect(EMBLEM_SYMBOL_NAMES[symbol]).toBeTruthy();
+  });
+
+  it('molduras do hall (OG-488): campeão usa as três; 3º só a bronze; sem pódio nenhuma', () => {
+    expect(['hallGold', 'hallSilver', 'hallBronze'].map((f) => emblemFrameAllowed(f as ClanEmblem['frame'], 1))).toEqual([true, true, true]);
+    expect(['hallGold', 'hallSilver', 'hallBronze'].map((f) => emblemFrameAllowed(f as ClanEmblem['frame'], 3))).toEqual([false, false, true]);
+    expect(emblemFrameAllowed('hallBronze', null)).toBe(false);
+    expect(emblemFrameAllowed('shield', null)).toBe(true);
   });
 });

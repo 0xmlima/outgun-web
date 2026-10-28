@@ -19,6 +19,8 @@ interface FrameShape {
   cy: number;
   k: number;
   dy: number;
+  /** Moldura do hall da fama (OG-488): contorno em metal chapado. */
+  metal?: string;
 }
 
 const octagon = (() => {
@@ -30,6 +32,8 @@ const octagon = (() => {
   return `M${pts.join(' L')} Z`;
 })();
 
+const crest = 'M8 20 H30 L40 6 L50 15 L60 6 L70 20 H92 V50 C92 73 74 88 50 96 C26 88 8 73 8 50 Z';
+
 const FRAMES = {
   shield: { d: 'M50 5 L91 15 L91 47 C91 71 73 87 50 96 C27 87 9 71 9 47 L9 15 Z', cy: 48, k: 0.92, dy: -3 },
   circle: { d: 'M50 4 A46 46 0 1 1 49.99 4 Z', cy: 50, k: 0.92, dy: 0 },
@@ -38,10 +42,25 @@ const FRAMES = {
   octagon: { d: octagon, cy: 50, k: 0.94, dy: 0 },
   banner: { d: 'M9 5 H91 V93 L50 75 L9 93 Z', cy: 44, k: 0.86, dy: -7 },
   none: null,
+  // hall da fama de clãs (OG-488, RN-EMB-05): brasão com três pontas, em ouro, prata e bronze
+  hallGold: { d: crest, cy: 52, k: 0.8, dy: 3, metal: '#E0B43A' },
+  hallSilver: { d: crest, cy: 52, k: 0.8, dy: 3, metal: '#C4CAD4' },
+  hallBronze: { d: crest, cy: 52, k: 0.8, dy: 3, metal: '#C07A3E' },
 } satisfies Record<string, FrameShape | null>;
 
 export type EmblemFrame = keyof typeof FRAMES;
 export const EMBLEM_FRAMES = Object.keys(FRAMES) as EmblemFrame[];
+/** Molduras do hall de clãs pela posição que as libera (1º ouro, 2º prata, 3º bronze). */
+export const HALL_FRAMES: Readonly<Record<'hallGold' | 'hallSilver' | 'hallBronze', number>> = { hallGold: 1, hallSilver: 2, hallBronze: 3 };
+
+/**
+ * Moldura liberada para o clã (RN-EMB-05): as comuns sempre; as do hall pela melhor posição já
+ * alcançada no hall de clãs (`best`, null sem pódio), a dela e as de baixo. Permanente.
+ */
+export function emblemFrameAllowed(frame: EmblemFrame, best: number | null): boolean {
+  const needs = (HALL_FRAMES as Record<string, number>)[frame];
+  return needs === undefined || (best !== null && best <= needs);
+}
 
 /** Desenho de um símbolo: `f` = cor do símbolo, `h` = cor dos vazados. */
 type SymbolDraw = (f: string, h: string) => string;
@@ -135,6 +154,7 @@ export const EMBLEM_SYMBOLS = ['tag', ...Object.keys(SYMBOLS)] as EmblemSymbol[]
 /** Nomes de tela (chave de tradução, em inglês como no resto do jogo). */
 export const EMBLEM_FRAME_NAMES: Readonly<Record<EmblemFrame, string>> = {
   shield: 'Shield', circle: 'Circle', diamond: 'Diamond', square: 'Square', octagon: 'Octagon', banner: 'Banner', none: 'No frame',
+  hallGold: 'Gold crest', hallSilver: 'Silver crest', hallBronze: 'Bronze crest',
 };
 export const EMBLEM_SYMBOL_NAMES: Readonly<Record<EmblemSymbol, string>> = {
   tag: 'Tag', star: 'Star', chevrons: 'Chevrons', crown: 'Crown', wings: 'Wings', flag: 'Flag', crosshair: 'Crosshair',
@@ -222,6 +242,8 @@ export function emblemSvg(e: ClanEmblem, tag: string, primary: string | null, se
     `<g clip-path="url(#${id})"><path d="M0 0 H100 V34 L0 56 Z" fill="#fff" opacity=".13"/><path d="M0 100 H100 V74 L0 92 Z" fill="#000" opacity=".14"/></g>` +
     fillet +
     `<g transform="translate(50 ${50 + fr.dy}) scale(${fr.k}) translate(-50 -50)"><g transform="translate(2 2.5)" opacity=".35">${draw(DARK, DARK)}</g>${draw(fg, bg)}</g>` +
-    `<path d="${fr.d}" fill="none" stroke="${out}" stroke-width="5" stroke-linejoin="round"/></svg>`
+    (fr.metal
+      ? `<path d="${fr.d}" fill="none" stroke="${DARK}" stroke-width="9" stroke-linejoin="round"/><path d="${fr.d}" fill="none" stroke="${fr.metal}" stroke-width="5" stroke-linejoin="round"/><path d="${fr.d}" fill="none" stroke="${fr.metal}" stroke-width="2.4" transform="translate(50 ${fr.cy}) scale(.86) translate(-50 -${fr.cy})"/></svg>`
+      : `<path d="${fr.d}" fill="none" stroke="${out}" stroke-width="5" stroke-linejoin="round"/></svg>`)
   );
 }

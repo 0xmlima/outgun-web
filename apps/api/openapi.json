@@ -3952,7 +3952,10 @@
                                           "square",
                                           "octagon",
                                           "banner",
-                                          "none"
+                                          "none",
+                                          "hallGold",
+                                          "hallSilver",
+                                          "hallBronze"
                                         ]
                                       },
                                       "symbol": {
@@ -5228,7 +5231,10 @@
                                 "square",
                                 "octagon",
                                 "banner",
-                                "none"
+                                "none",
+                                "hallGold",
+                                "hallSilver",
+                                "hallBronze"
                               ]
                             },
                             "symbol": {
@@ -5480,7 +5486,10 @@
                                 "square",
                                 "octagon",
                                 "banner",
-                                "none"
+                                "none",
+                                "hallGold",
+                                "hallSilver",
+                                "hallBronze"
                               ]
                             },
                             "symbol": {
@@ -5741,7 +5750,10 @@
                                 "square",
                                 "octagon",
                                 "banner",
-                                "none"
+                                "none",
+                                "hallGold",
+                                "hallSilver",
+                                "hallBronze"
                               ]
                             },
                             "symbol": {
@@ -6246,7 +6258,10 @@
                               "square",
                               "octagon",
                               "banner",
-                              "none"
+                              "none",
+                              "hallGold",
+                              "hallSilver",
+                              "hallBronze"
                             ]
                           },
                           "symbol": {
@@ -6406,7 +6421,10 @@
                                 "square",
                                 "octagon",
                                 "banner",
-                                "none"
+                                "none",
+                                "hallGold",
+                                "hallSilver",
+                                "hallBronze"
                               ]
                             },
                             "symbol": {
@@ -6673,7 +6691,10 @@
                                   "square",
                                   "octagon",
                                   "banner",
-                                  "none"
+                                  "none",
+                                  "hallGold",
+                                  "hallSilver",
+                                  "hallBronze"
                                 ]
                               },
                               "symbol": {
@@ -7064,7 +7085,10 @@
                                 "square",
                                 "octagon",
                                 "banner",
-                                "none"
+                                "none",
+                                "hallGold",
+                                "hallSilver",
+                                "hallBronze"
                               ]
                             },
                             "symbol": {
@@ -7334,7 +7358,10 @@
                                 "square",
                                 "octagon",
                                 "banner",
-                                "none"
+                                "none",
+                                "hallGold",
+                                "hallSilver",
+                                "hallBronze"
                               ]
                             },
                             "symbol": {
@@ -11861,7 +11888,10 @@
                                     "square",
                                     "octagon",
                                     "banner",
-                                    "none"
+                                    "none",
+                                    "hallGold",
+                                    "hallSilver",
+                                    "hallBronze"
                                   ]
                                 },
                                 "symbol": {

@@ -4,7 +4,7 @@
 // prévia em vários tamanhos. Combinações que repetiriam o emblema de outro clã
 // (RN-EMB-02) ficam desabilitadas.
 import { useState } from 'react';
-import { DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_FRAME_NAMES, EMBLEM_SYMBOLS, EMBLEM_SYMBOL_NAMES, emblemKey, type ClanEmblem } from '@outgun/protocol';
+import { DEFAULT_EMBLEM, emblemFrameAllowed, EMBLEM_FRAMES, EMBLEM_FRAME_NAMES, EMBLEM_SYMBOLS, EMBLEM_SYMBOL_NAMES, emblemKey, type ClanEmblem } from '@outgun/protocol';
 import { usePrefs } from '../app/prefs.js';
 import { Button } from '../ui/Button.js';
 import { Emblem, type EmblemClan } from '../ui/Emblem.js';
@@ -15,12 +15,14 @@ import { useApi } from './stats.js';
 
 interface Props {
   readonly clan: EmblemClan;
+  /** Melhor posição do clã no hall de clãs (OG-488); null sem pódio. */
+  readonly bestHall: number | null;
   readonly base: string;
   readonly tick: number;
   readonly onSave: (emblem: ClanEmblem | null) => void;
 }
 
-export function EmblemEditor({ clan, base, tick, onSave }: Props) {
+export function EmblemEditor({ clan, bestHall, base, tick, onSave }: Props) {
   const { t } = usePrefs();
   const [e, setE] = useState<ClanEmblem>(clan.emblem ?? DEFAULT_EMBLEM);
   const taken = new Set(useApi<{ taken: string[] }>(`${base}/emblem/taken?v=${tick}`).data?.taken ?? []);
@@ -34,10 +36,12 @@ export function EmblemEditor({ clan, base, tick, onSave }: Props) {
       <div className="emblem-options" role="radiogroup" aria-label={key === 'frame' ? t('Frame') : t('Symbol')}>
         {values.map((v) => {
           const option = { ...e, [key]: v };
-          const off = isTaken(option);
+          const locked = key === 'frame' && !emblemFrameAllowed(v as ClanEmblem['frame'], bestHall);
+          const off = locked || isTaken(option);
           const name = t(names[v]);
+          const why = locked ? t('Win a podium in the clan hall of fame.') : usedBy;
           return (
-            <button key={v} type="button" role="radio" aria-checked={e[key] === v} disabled={off} title={off ? `${name}: ${usedBy}` : name} aria-label={name} className={e[key] === v ? 'emblem-option selected' : 'emblem-option'} onClick={() => setE(option)}>
+            <button key={v} type="button" role="radio" aria-checked={e[key] === v} disabled={off} title={off ? `${name}: ${why}` : name} aria-label={name} className={e[key] === v ? 'emblem-option selected' : 'emblem-option'} onClick={() => setE(option)}>
               <Emblem clan={clan} emblem={option} size={40} />
             </button>
           );
