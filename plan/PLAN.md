@@ -617,7 +617,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S47 | v2: rodada de correções (issues do GitHub) | OG-442, OG-443, OG-444, OG-445, OG-446 | |
 | S48 | v2: observabilidade no plano gratuito — métricas e logs do beta no Grafana Cloud (Alloy), banco, quedas no game server, painéis e alertas, alarmes da Oracle | OG-452, OG-453, OG-454, OG-455, OG-456 | |
 | S49 | v2: coletor leve (Fluent Bit) para mandar as métricas e logs do beta ao Grafana Cloud na E2.1.Micro | OG-457 | |
-| S50 | v2: rodada de correções (issues #11 e #14–#19; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-459, OG-460, OG-461, OG-462, OG-463 | |
+| S50 | v2: rodada de correções (issues #11 e #14–#19; #12 e #13 já corrigidas na 2.49.2) | OG-458, OG-460, OG-461, OG-462, OG-463 (OG-459 cancelado, D-83) | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -927,13 +927,13 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-456](cards/OG-456-alarmes-na-oracle.md) | Alarmes da Oracle: CPU, memória e máquina fora do ar | E7 | 1 | Should | S48 | — | Concluído |
 | [OG-457](cards/OG-457-coletor-leve-para-a-micro.md) | Coletor leve para a E2.1.Micro (Fluent Bit no lugar do Alloy) | E7 | 3 | Should | S49 | OG-452 | Concluído |
 | [OG-458](cards/OG-458-voto-f2-e-troca-f8-vao-ao-mapa-errado.md) | Voto no mapa (F2) com pedido de troca (F8) não vai para o mapa votado (issue #11) | E11 | 2 | Should | S50 | — | Pronto |
-| [OG-459](cards/OG-459-idle-kick-com-poucos-humanos.md) | Jogador parado não é expulso na sala com poucos humanos (issue #14) | E11 | 2 | Should | S50 | — | Pronto |
+| [OG-459](cards/OG-459-idle-kick-com-poucos-humanos.md) | Jogador parado não é expulso na sala com poucos humanos (issue #14) | E11 | 2 | Won't (v2) | S50 | — | Cancelado |
 | [OG-460](cards/OG-460-item-na-base-nao-e-pego.md) | Item na base que aparece na tela, mas não é pego (issue #15) | E11 | 2 | Should | S50 | — | Pronto |
 | [OG-461](cards/OG-461-lobby-ranked-esc-e-botao-de-som.md) | Lobby Ranked: Esc tira o lobby da tela e falta o botão de som (issues #16 e #17) | E12 | 2 | Should | S50 | — | Pronto |
 | [OG-462](cards/OG-462-diagonal-e-alt-rapidos.md) | Diagonal + Alt rápidos ainda registram a direção errada (issue #18) | E11 | 3 | Should | S50 | — | Pronto |
 | [OG-463](cards/OG-463-nome-do-cla-no-lugar-do-time.md) | Nome do clã no lugar de "Time vermelho/azul" (issue #19) | E13 | 2 | Could | S50 | — | Pronto |
 
-**Total:** 305 cards, 989 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 236 cards, 694 pts (OG-210, OG-216 e OG-205 cancelados, 12 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 305 cards, 987 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 236 cards, 692 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
@@ -1036,6 +1036,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | D-80 | **v2** — Celular de volta, sem a partida (substitui a D-50) | Só aviso (D-50) / portal no celular / jogo inteiro no celular | ✅ **Decidido pelo PO em 2026-10-25 (S45):** o celular abre as telas do portal (início, conta, perfil, clãs, ranking, hall da fama, jogadores, relatórios de partida e série com PDF, e as abas de moderação: salas, denúncias, clãs, bans, auditoria e feedback). A partida, o espectador, os replays, criar/entrar em sala, opções, controles e as abas pesadas do painel (mapas, presets, rotações, bots, papéis, convites, rede) seguem só no computador, com aviso. Como levar o jogo ao celular fica em aberto. PDF do relatório gerado no cliente, em A4. | PO |
 | D-81 | **v2** — Troca de sala parada ou voltando no eixo (OG-428) | Dividir pela velocidade como o original / tempo zero quando a velocidade não leva para fora | ✅ **Decidido pelo agente em 2026-10-26 (S46), na correção da issue #6:** fora da sala com velocidade zero (ou voltando) no eixo, a troca de sala não devolve tempo; antes a divisão por zero virava NaN e o laço da física não terminava. Os laços da física também param com NaN. Casos normais (saindo em movimento) ficam idênticos. | Agente |
 | D-82 | **v2** — Regras do convite pela Steam no Ranked (OG-450) | Convidado entra no lado livre normal / entra no time de quem convidou / convite só até o "Pronto" de todos | ✅ **Decidido pelo PO em 2026-10-27:** o convidado entra no time de quem convidou; depois que todos marcam "Pronto" o convite fica inválido; em clã x clã qualquer um pode ser convidado (não precisa ser do clã). | PO |
+| D-83 | **v2** — Expulsão por inatividade com poucos humanos (OG-459, issue #14) | Contar bots para o limite / baixar o limite para 2 humanos / manter | ✅ **Decidido pelo PO em 2026-10-28:** manter como está: o idle kick (120 s) só age com 4 humanos ou mais na sala (`idlekick_playerlimit`). OG-459 cancelado | PO |
 
 ---
 

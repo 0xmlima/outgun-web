@@ -4,13 +4,13 @@
 |---|---|
 | Épico | E11 |
 | Tipo | Bug |
-| Prioridade | Should |
+| Prioridade | Won't (v2) |
 | Estimativa | 2 pts |
 | Sprint | S50 |
-| Status | Pronto |
+| Status | Cancelado |
 | Dependências | — |
 | Issue | [#14](https://github.com/thiagovasconcellos/outgun-web/issues/14) |
-| Regras de negócio | — |
+| Regras de negócio | RN-IDL-01, D-83 |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -31,4 +31,4 @@ Como jogador, quero que quem fica parado na sala seja expulso por inatividade, p
 - [ ] PO confere.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Cancelado pelo PO (D-83, 2026-10-28): o comportamento atual fica, o idle kick só vale com 4 humanos ou mais na sala.
