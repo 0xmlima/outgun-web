@@ -3,7 +3,7 @@
 // dissolver, página pública e busca. A tag de users.clan_tag (ticket, chat) vem dos gatilhos da
 // migração 0016. Convites, pedidos e carência: OG-271. Estatísticas: OG-273 (src/clan-stats.ts).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { and, asc, eq, gt, isNotNull, lte, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNotNull, lte, ne, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CLAN_TAG_STYLES, checkClanName, checkClanTag, clanLabel, MAX_CLAN_NAME_LENGTH as MAX_CLAN_NAME, MAX_CLAN_TAG_LENGTH, type ClanTagStyle, clanColoursProblem, DEFAULT_EMBLEM, EMBLEM_FRAMES, EMBLEM_SYMBOLS, emblemKey, parseEmblem, type ClanEmblem } from '@outgun/protocol';
 import type { AppDeps, Services } from '../app.js';
@@ -460,6 +460,30 @@ export function clanRoutes({ database, config }: AppDeps, { sessions }: Services
         });
         if (!done) return reply;
         return { clan: (await page(done.value))! };
+      },
+    );
+
+    app.get(
+      '/clans/emblems',
+      {
+        schema: {
+          tags: ['clãs'],
+          summary: 'Emblema e cores de vários clãs pela tag (OG-484): o portal mostra o emblema onde só tem a tag',
+          querystring: Type.Object({ tags: Type.String({ maxLength: 400 }) }),
+          response: { 200: Type.Object({ clans: Type.Array(Type.Object({ tag: Type.String(), colors: ClanSchema.properties.colors, emblem: EmblemSchema })) }) },
+        },
+      },
+      async (request) => {
+        const keys = [...new Set(request.query.tags.split(',').filter(Boolean).slice(0, 100).map(clanKey))];
+        if (keys.length === 0) return { clans: [] };
+        const rows = await db.select().from(clans).where(inArray(clans.tagKey, keys));
+        return {
+          clans: rows.map((c) => ({
+            tag: c.tag,
+            colors: c.primaryColor && c.secondaryColor ? { primary: c.primaryColor, secondary: c.secondaryColor } : null,
+            emblem: parseEmblem(c.emblem) ?? DEFAULT_EMBLEM,
+          })),
+        };
       },
     );
 

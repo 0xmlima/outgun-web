@@ -10,6 +10,7 @@ import { Badge, Button } from '../ui/Button.js';
 import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { clock, PlayerLink, Status, useApi } from './stats.js';
+import { ClanBadge } from '../ui/Emblem.js';
 
 export type StatKind = 'rate' | 'ratio' | 'record' | 'average';
 
@@ -136,7 +137,7 @@ export function StatOverviewView({ scope, onPick }: { scope: URLSearchParams; on
             {b.overall.map((e) => (
               <li key={e.username}>
                 <span className="leaderboard-pos">{e.position}º</span>
-                <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
+                <ClanBadge tag={e.clanTag} /><PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
                 <strong>{statValue(OVERALL, e.value, prefs.locale)}</strong>
               </li>
             ))}
@@ -170,7 +171,7 @@ export function StatOverviewView({ scope, onPick }: { scope: URLSearchParams; on
               {s.entries.map((e) => (
                 <li key={e.username}>
                   <span className="leaderboard-pos">{e.position}º</span>
-                  <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
+                  <ClanBadge tag={e.clanTag} /><PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} />
                   <strong>{statValue(s.stat, e.value, prefs.locale)}</strong>
                 </li>
               ))}
@@ -208,7 +209,7 @@ export function StatDetailView({ stat, scope, me }: { stat: string; scope: URLSe
         empty={t('Nobody with $1 matches yet.', String(b.minimumMatches))}
         columns={[
           { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
-          { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} /> },
+          { key: 'name', header: t('Player'), cell: (e) => <><ClanBadge tag={e.clanTag} /><PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} /></> },
           { key: 'value', header: t(STAT_LABELS[stat] ?? stat), cell: (e) => statValue(stat, e.value, prefs.locale), align: 'end' },
           { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end' },
         ]}
@@ -264,7 +265,7 @@ export function OverallDetailView({ scope, me }: { scope: URLSearchParams; me: s
         empty={t('Nobody with $1 matches yet.', String(b.minimumMatches))}
         columns={[
           { key: 'pos', header: '#', cell: (e) => e.position, align: 'end' },
-          { key: 'name', header: t('Player'), cell: (e) => <PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} /> },
+          { key: 'name', header: t('Player'), cell: (e) => <><ClanBadge tag={e.clanTag} /><PlayerLink name={chatName(e.username, e.clanLabel)} username={e.username} /></> },
           { key: 'value', header: t('Index'), cell: (e) => statValue(OVERALL, e.value, prefs.locale), align: 'end' },
           ...stats.map((s) => ({ key: s, header: t(STAT_LABELS[s] ?? s), cell: (e: OverallEntry) => (e.positions[s] ? `${e.positions[s]}º` : '—'), align: 'end' as const, hideOnPhone: true })),
           { key: 'matches', header: t('Matches'), cell: (e) => e.matches, align: 'end', hideOnPhone: true },

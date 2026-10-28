@@ -18,6 +18,7 @@ import { EmblemEditor } from './clan-emblem.js';
 import { ClanStatsPanels } from './clan-stats.js';
 import { TitleBadges, type SeasonTitle } from './HallOfFame.js';
 import { PlayerLink, Status, useApi } from './stats.js';
+import { ClanBadge, Emblem, forgetEmblem } from '../ui/Emblem.js';
 
 interface ClanRef {
   readonly name: string;
@@ -332,7 +333,12 @@ export function ClansScreen() {
             onRowActivate={(r) => void navigate(clanPath(r.tag))}
             empty={term ? t('Nobody found.') : t('No clans yet.')}
             columns={[
-              { key: 'clan', header: t('Clan'), cell: (r) => <Link to={clanPath(r.tag)}>({r.tag}) {r.name}</Link> },
+              { key: 'clan', header: t('Clan'), cell: (r) => (
+                  <Link to={clanPath(r.tag)}>
+                    <ClanBadge tag={r.tag} size={20} />({r.tag}) {r.name}
+                  </Link>
+                ),
+              },
               { key: 'members', header: t('Members'), cell: (r) => r.members, align: 'end' },
               { key: 'since', header: t('Founded'), cell: (r) => new Date(r.createdAt).toLocaleDateString(), align: 'end', hideOnPhone: true },
             ]}
@@ -438,11 +444,10 @@ export function ClanScreen() {
       onBack={() => void navigate('/clans')}
       backLabel={t('Back')}
     >
-      {clan.titles && clan.titles.length > 0 && (
-        <div className="ui-row">
-          <TitleBadges titles={clan.titles} />
-        </div>
-      )}
+      <div className="ui-row clan-head">
+        <Emblem clan={clan} size={112} title={t('Clan emblem')} />
+        {clan.titles && clan.titles.length > 0 && <TitleBadges titles={clan.titles} />}
+      </div>
       {clan.colors && (
         <div className="ui-row clan-colors-preview" title={t('Clan colors in the match')}>
           {[clan.colors.primary, clan.colors.secondary].map((c, i) => (
@@ -578,6 +583,7 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
   const save = () => {
     const body = { name: name.trim(), description, colors, ...(leader ? { tag: tag.trim(), tagStyle } : {}) };
     void act(base, { method: 'PATCH', body }, () => {
+      forgetEmblem(clan.tag);
       toast(t('Saved.'), 'success');
       void navigate(clanPath(body.tag ?? clan.tag), { replace: true });
     });
@@ -650,7 +656,13 @@ function ManageClan({ clan, leader, act, tick }: { readonly clan: ClanPage; read
         clan={clan}
         base={base}
         tick={tick}
-        onSave={(emblem) => void act(`${base}/emblem`, { method: 'PUT', body: { emblem } }).then((ok) => ok && toast(t('Saved.'), 'success'))}
+        onSave={(emblem) =>
+          void act(`${base}/emblem`, { method: 'PUT', body: { emblem } }).then((ok) => {
+            if (!ok) return;
+            forgetEmblem(clan.tag);
+            toast(t('Saved.'), 'success');
+          })
+        }
       />
     </div>
   );

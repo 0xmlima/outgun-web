@@ -10,6 +10,7 @@ import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { STAT_LABELS, statValue } from './leaderboard.js';
 import { Status, useApi } from './stats.js';
+import { ClanBadge } from '../ui/Emblem.js';
 
 interface Champion {
   position: number;
@@ -90,7 +91,7 @@ export function HallOfFameScreen() {
                       <li key={c.position} className={c.position === 1 ? 'hall-first' : undefined}>
                         {b === 'clans' ? (
                           c.clanTag ? (
-                            <Link to={`/clans/${encodeURIComponent(c.clanTag)}`}>{`(${c.name}) ${c.clanName ?? ''}`}</Link>
+                            <Link to={`/clans/${encodeURIComponent(c.clanTag)}`}><ClanBadge tag={c.clanTag} size={20} />{`(${c.name}) ${c.clanName ?? ''}`}</Link>
                           ) : (
                             `(${c.name}) ${c.clanName ?? ''}`
                           )

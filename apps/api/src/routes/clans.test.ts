@@ -144,6 +144,10 @@ describe.skipIf(!pgAdminUrl)('clãs (OG-270)', () => {
     expect((await call('PUT', '/clans/OT/emblem', { emblem: { ...wolf, symbol: 'tag' } }, 'Sozinho')).statusCode).toBe(200);
     expect((await call('PUT', '/clans/NX/emblem', { emblem: null }, 'Lider')).json().clan.emblem.symbol).toBe('tag');
     expect((await call('GET', '/clans/OT/emblem/taken')).json().taken).toEqual([]);
+    // em lote pela tag, sem diferença de maiúsculas (OG-484)
+    const many = (await call('GET', '/clans/emblems?tags=nx,OT,ZZ')).json().clans;
+    expect(many.map((c: { tag: string }) => c.tag).sort()).toEqual(['NX', 'OT']);
+    expect(many.find((c: { tag: string }) => c.tag === 'OT')).toMatchObject({ colors: { primary: yellow, secondary: navy }, emblem: { symbol: 'tag' } });
     expect((await call('DELETE', '/clans/OT', undefined, 'Sozinho')).statusCode).toBe(204);
   });
 

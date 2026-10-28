@@ -6515,6 +6515,127 @@
         }
       }
     },
+    "/clans/emblems": {
+      "get": {
+        "summary": "Emblema e cores de vários clãs pela tag (OG-484): o portal mostra o emblema onde só tem a tag",
+        "tags": ["clãs"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 400
+            },
+            "in": "query",
+            "name": "tags",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["clans"],
+                  "properties": {
+                    "clans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["tag", "colors", "emblem"],
+                        "properties": {
+                          "tag": {
+                            "type": "string"
+                          },
+                          "colors": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "required": ["primary", "secondary"],
+                                "properties": {
+                                  "primary": {
+                                    "type": "string"
+                                  },
+                                  "secondary": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "emblem": {
+                            "type": "object",
+                            "required": ["frame", "symbol", "fillet", "inverted"],
+                            "properties": {
+                              "frame": {
+                                "type": "string",
+                                "enum": [
+                                  "shield",
+                                  "circle",
+                                  "diamond",
+                                  "square",
+                                  "octagon",
+                                  "banner",
+                                  "none"
+                                ]
+                              },
+                              "symbol": {
+                                "type": "string",
+                                "enum": [
+                                  "tag",
+                                  "star",
+                                  "chevrons",
+                                  "crown",
+                                  "wings",
+                                  "flag",
+                                  "crosshair",
+                                  "rocket",
+                                  "bolt",
+                                  "wolf",
+                                  "skull",
+                                  "flame",
+                                  "tower",
+                                  "gem",
+                                  "swords",
+                                  "brokenShield",
+                                  "fist",
+                                  "wall",
+                                  "phoenix",
+                                  "dragon",
+                                  "serpent",
+                                  "eagle",
+                                  "shark",
+                                  "spider",
+                                  "alien",
+                                  "robot",
+                                  "joystick",
+                                  "ghost",
+                                  "pixelHeart"
+                                ]
+                              },
+                              "fillet": {
+                                "type": "boolean"
+                              },
+                              "inverted": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clans/{tag}/emblem/taken": {
       "get": {
         "summary": "Chaves dos emblemas dos outros clãs (o editor desabilita as combinações ocupadas)",

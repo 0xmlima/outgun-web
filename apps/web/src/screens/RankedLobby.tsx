@@ -12,6 +12,7 @@ import { Badge, Button } from '../ui/Button.js';
 import { TextField } from '../ui/Field.js';
 import { MapPreview } from './MapPreview.js';
 import { phaseLabel } from './ranked-rooms.js';
+import { ClanBadge } from '../ui/Emblem.js';
 
 type LobbyState = MessageOf<'lobbyState'>;
 const NONE = 255;
@@ -80,7 +81,10 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
     const label = id?.tag ?? (s === 0 ? t('Red team') : t('Blue team'));
     return (
       <section className={`ranked-team ${s === 0 ? 'red' : 'blue'}`} aria-label={label} style={id?.color ? ({ '--ranked-team': id.color } as CSSProperties) : undefined}>
-        <h2>{label}</h2>
+        <h2>
+          <ClanBadge tag={id?.tag} size={28} />
+          {label}
+        </h2>
         <ul>
           {list.map((m) => (
             <li key={m.pid} className={m.pid === me ? 'me' : undefined}>
