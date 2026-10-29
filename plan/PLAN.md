@@ -621,7 +621,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S51 | v2: emblema do clã (D-85), em duas entregas — 1) base e portal: modelo e desenho, catálogo, API, editor, portal, identidade/relatório/PDF; 2) partida e extras: chão da base (com clã no replay/espectador), fim de partida, molduras do hall, compartilhar | Entrega 1: OG-480, OG-481, OG-482, OG-483, OG-484, OG-485; entrega 2: OG-486, OG-414, OG-487, OG-488, OG-489; correção: OG-501 | |
 | S52 | v2: resumo do jogo no PDF da partida | OG-502 | |
 | S53 | v2: radar de estilo de jogo (D-84) — API dos 6 eixos e arquétipo, componente, perfil, jogador x jogador, clã e clã x clã, relatório da partida, sombra de referência, lobby Ranked, cartão para compartilhar e filtro por mapa; correção da visão geral do leaderboard | OG-469, OG-470, OG-471, OG-472, OG-473, OG-474, OG-475, OG-476, OG-477, OG-478, OG-479; correção: OG-503 | |
-| S54 | v2: rodada de correções (achados do PO na 2.53.0: lobby Ranked e botão de sair do app) | OG-505, OG-506, OG-507, OG-508 | |
+| S54 | v2: rodada de correções (achados do PO na 2.53.0: lobby Ranked e botão de sair do app; issue #25; Sentry OUTGUN-WEB-4, OUTGUN-WEB-5 e OUTGUN-SERVER-2) | OG-505, OG-506, OG-507, OG-508, OG-509, OG-510, OG-511, OG-512 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -981,8 +981,12 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Pronto |
 | [OG-507](cards/OG-507-lobby-ranked-esc-sai-da-sala.md) | Lobby Ranked: Esc não sai da sala e o botão "Sair da sala" não parece botão | E12 | 2 | Must | S54 | OG-461 | Pronto |
 | [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Pronto |
+| [OG-509](cards/OG-509-travou-o-jogo-apos-acessar-the.md) | Travou o jogo após acessar The Blunt Mini com as cores do Dk (issue #25) | E11 | 2 | Should | S54 | — | Pronto |
+| [OG-510](cards/OG-510-sentry-estouro-de-pilha-script-de-fora.md) | Sentry: estouro de pilha no portal vindo de um script de fora da página (OUTGUN-WEB-5) | E11 | 1 | Should | S54 | OG-434 | Pronto |
+| [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Pronto |
+| [OG-512](cards/OG-512-heartbeat-falha-ao-ler-presets.md) | Heartbeat das salas falha ao ler os presets Casual (OUTGUN-SERVER-2) | E11 | 2 | Should | S54 | OG-087 | Pronto |
 
-**Total:** 348 cards, 1113 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 279 cards, 818 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 352 cards, 1119 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 283 cards, 824 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
