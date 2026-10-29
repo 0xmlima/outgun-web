@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-461 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -26,9 +26,11 @@ Como jogador no lobby Ranked, quero sair da sala com o Esc, sem precisar fechar 
 - Esc continua fechando primeiro o que estiver aberto no lobby (pedido de troca, campo do chat com texto).
 
 ## Critérios de aceite
-- [ ] Botão "Sair da sala" visível como botão em todas as fases.
-- [ ] Esc no lobby Ranked sai da sala (web e desktop).
-- [ ] Esc com o chat focado só limpa/desfoca o campo.
+- [x] Botão "Sair da sala" visível como botão em todas as fases.
+- [x] Esc no lobby Ranked sai da sala (web e desktop).
+- [x] Esc com o chat focado só limpa/desfoca o campo.
 - [ ] PO confere no app da Steam.
 
 ## Notas de implementação
+- O botão vai para o topo da coluna do meio (`secondary`, com `<kbd>Esc</kbd>`), sempre no mesmo lugar. No fim da série ele vira "Menu principal", e o "Menu principal" da fase continua lá.
+- O Esc é tratado no próprio `RankedLobby` (o da `GameScreen` segue desligado no lobby, OG-461). Com o chat focado, o primeiro Esc limpa o texto e o segundo tira o foco. Com um pedido de troca recebido, o Esc recusa. Fora isso, sai da sala.
