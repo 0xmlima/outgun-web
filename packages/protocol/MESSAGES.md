@@ -105,6 +105,7 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 130 | [`casualConfig`](#casualconfig) | servidor → cliente | event | — (web, OG-289) | Só para o dono e admins numa sala Casual (a chegada habilita a configuração no cliente): bots e nível em vigor e se há mudança pendente para a próxima partida. |
 | 131 | [`teamIdentity`](#teamidentity) | servidor → cliente | event | — (web, OG-408) | Um lado virou o clã nesta rodada (≥ 2 humanos do mesmo clã e nenhum de outro clã): tag e nome do clã e a cor do lado (`#RRGGBB`; vazia = a cor padrão do lado). Tag vazia = o lado voltou a ser vermelho/azul. No `welcome` de quem entra e a cada rodada que muda. |
 | 133 | [`teamEmblem`](#teamemblem) | servidor → cliente | event | — (web, OG-486) | Emblema do clã do lado (`ClanEmblem` e as cores do clã), logo depois do `teamIdentity` que fez o lado virar o clã; o cliente desenha o emblema no chão das bases. Não vem para clã sem emblema gravado. |
+| 134 | [`trainingState`](#trainingstate) | servidor → cliente | event | — (web, OG-490) | Tentativa da sala de treino: fase (contagem, em jogo ou resultado), modo, segundos da contagem, resultado e motivo do fim, duração da tentativa (décimos de s), sucessos e tentativas da sessão, nível dos bots e se ele mudou (dificuldade progressiva, OG-499). |
 | 132 | [`playerNumber`](#playernumber) | servidor → cliente | event | — (web, OG-410) | Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem. |
 
 ## Campos
@@ -825,6 +826,21 @@ Código 133. Emblema do clã do lado (`ClanEmblem` e as cores do clã), logo dep
 - `inverted`: bool (u8 0/1)
 - `primary`: string (UTF-8, até 7 bytes)
 - `secondary`: string (UTF-8, até 7 bytes)
+
+### trainingState
+
+Código 134. Tentativa da sala de treino: fase (contagem, em jogo ou resultado), modo, segundos da contagem, resultado e motivo do fim, duração da tentativa (décimos de s), sucessos e tentativas da sessão, nível dos bots e se ele mudou (dificuldade progressiva, OG-499).
+
+- `phase`: u8 enum: 0 = countdown, 1 = playing, 2 = result
+- `mode`: u8 enum: 0 = attack, 1 = defense, 2 = escape, 3 = capture
+- `seconds`: u8
+- `result`: u8 enum: 0 = none, 1 = success, 2 = fail
+- `reason`: u8 enum: 0 = none, 1 = died, 2 = defendersDown, 3 = flagOut, 4 = attackersDown, 5 = captured, 6 = delivered, 7 = returned, 8 = timeout
+- `tenths`: u16
+- `successes`: u16
+- `attempts`: u16
+- `level`: u8
+- `levelChange`: u8 enum: 0 = none, 1 = up, 2 = down
 
 ### playerNumber
 

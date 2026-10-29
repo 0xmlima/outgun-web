@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-289 |
 | Regras de negócio | RN-TRN-01, RN-TRN-02, RN-TRN-06, RN-UI-05, D-86 |
 | Skills | `outgun-card-workflow` |
@@ -26,8 +26,8 @@ Como jogador, quero uma sala que repete a mesma situação de jogo em tentativas
 - Física e armas de sempre (10 Hz, D-74).
 
 ## Critérios de aceite
-- [ ] Uma sala de treino roda tentativas em laço, com resultado e reinício, sem fim de partida.
-- [ ] Testes do juiz com um modo de teste (posicionar → contagem → fim → reinício).
+- [x] Uma sala de treino roda tentativas em laço, com resultado e reinício, sem fim de partida.
+- [x] Testes do juiz com um modo de teste (posicionar → contagem → fim → reinício).
 - [ ] `pnpm visual:check`, partida online real e capturas ao PO (aviso do resultado).
 
 ## Notas técnicas
@@ -35,3 +35,7 @@ Como jogador, quero uma sala que repete a mesma situação de jogo em tentativas
 - Interpretação da P1 a confirmar na revisão: "quadrado da base" = a sala (tela) onde fica o ponto da bandeira do time (`map.teams[t].flags`); o mapa não tem outra área de base.
 
 ## Notas de implementação
+- Juiz em `apps/game-server/src/training.ts` (`TrainingSession`, fases idle → contagem 3 s → jogo → resultado 2 s); modos plugáveis em `training-modes.ts`. Sala: `RoomOptions.training`, sem tempo/captura limite, power-ups desligados, lados fixos, sem chat de bot; eventos do frame entregues ao juiz depois da simulação (o morto já está morto).
+- Mensagem nova `trainingState` (134); o cliente mostra a contagem e o resultado na mesma caixa da pausa do Ranked (nada novo no HUD). Tentativa sem fim falha em 2 min ("timeout").
+- "Quadrado da base" = sala da bandeira (`outOfBaseRoom`); `Placement` acha a sala a N passos da base no caminho entre as bases e pontos livres de parede.
+- Pendente no fechamento: `visual:check`, partida online real e capturas ao PO.

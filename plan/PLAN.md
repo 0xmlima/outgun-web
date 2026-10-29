@@ -966,7 +966,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-501](cards/OG-501-pdf-no-celular.md) | Baixar PDF no celular (folha de compartilhar do sistema) | E9 | 2 | Must | S51 | OG-425, OG-426 | Concluído |
 | [OG-502](cards/OG-502-resumo-do-jogo-no-pdf.md) | Resumo do jogo no PDF da partida (lado a lado, nas cores dos clãs) | E9 | 3 | Should | S52 | OG-425, OG-485 | Concluído |
 | [OG-503](cards/OG-503-leaderboard-emblema-desalinhado.md) | Visão geral do leaderboard desalinhada com o emblema do clã | E9 | 1 | Must | S53 | OG-484 | Concluído |
-| [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | S55 | OG-289 | Pronto |
+| [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | S55 | OG-289 | Em revisão |
 | [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | S55 | OG-490 | Pronto |
 | [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | S55 | OG-490 | Pronto |
 | [OG-493](cards/OG-493-treino-ataque.md) | Treino Ataque: entrar na base e sair do quadrado com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Pronto |
