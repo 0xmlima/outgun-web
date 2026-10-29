@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-444 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,8 +23,9 @@ Como jogador no app da Steam, quero fechar o jogo pelo menu principal, sem procu
 - "Sair do Outgun" na tela inicial do app desktop (só no desktop, como hoje), visível sem rolar; mesma ação `quitDesktop`.
 
 ## Critérios de aceite
-- [ ] O botão aparece na tela inicial do app e fecha o jogo.
-- [ ] Não aparece no navegador.
+- [x] O botão aparece na tela inicial do app e fecha o jogo.
+- [x] Não aparece no navegador.
 - [ ] PO confere no app da Steam.
 
 ## Notas de implementação
+- `ExitDesktopButton` em `app/Shell.tsx`, usado na `TopBar` e no topo da tela inicial (`home-top`, ao lado da conta). Só aparece no app desktop.

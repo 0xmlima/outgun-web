@@ -5,7 +5,7 @@ import { ORIGINAL_CREDITS, WEB_CREDITS } from '@outgun/content';
 import { catalog } from '@outgun/i18n';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { AccountChip, SourceLink, SOURCE_URL } from '../app/Shell.js';
+import { AccountChip, ExitDesktopButton, SourceLink, SOURCE_URL } from '../app/Shell.js';
 import { NotificationBell } from '../app/notifications.js';
 import { useAccount } from '../app/account.js';
 import { MusicButton } from '../app/music/MusicButton.js';
@@ -35,6 +35,7 @@ export function HomeScreen() {
           <MusicButton />
           {user && <NotificationBell />}
           <AccountChip />
+          <ExitDesktopButton />
         </div>
       </div>
       <section className="home-hero">

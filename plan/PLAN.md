@@ -980,7 +980,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Em revisão |
 | [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Em revisão |
 | [OG-507](cards/OG-507-lobby-ranked-esc-sai-da-sala.md) | Lobby Ranked: Esc não sai da sala e o botão "Sair da sala" não parece botão | E12 | 2 | Must | S54 | OG-461 | Em revisão |
-| [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Pronto |
+| [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Em revisão |
 | [OG-509](cards/OG-509-travou-o-jogo-apos-acessar-the.md) | Travou o jogo após acessar The Blunt Mini com as cores do Dk (issue #25) | E11 | 2 | Should | S54 | — | Pronto |
 | [OG-510](cards/OG-510-sentry-estouro-de-pilha-script-de-fora.md) | Sentry: estouro de pilha no portal vindo de um script de fora da página (OUTGUN-WEB-5) | E11 | 1 | Should | S54 | OG-434 | Pronto |
 | [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Pronto |
