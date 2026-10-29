@@ -976,8 +976,11 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | — | OG-490, OG-491 | Backlog |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | — | OG-493, OG-494, OG-495, OG-496 | Backlog |
 | [OG-504](cards/OG-504-emblema-botoes-de-download.md) | Botões "PNG 128/512 px" do emblema não dizem que baixam a imagem | E13 | 1 | Should | — | OG-489 | Backlog |
+| [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | — | OG-461 | Backlog |
+| [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | — | OG-477 | Backlog |
+| [OG-507](cards/OG-507-lobby-ranked-esc-sai-da-sala.md) | Lobby Ranked: Esc não sai da sala (app da Steam) | E12 | 1 | Must | — | OG-461 | Backlog |
 
-**Total:** 344 cards, 1107 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 275 cards, 812 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 347 cards, 1111 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 278 cards, 816 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
