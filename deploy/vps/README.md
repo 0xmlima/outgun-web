@@ -60,9 +60,10 @@ endereço antigo precisa entrar de novo no novo (sessão e opções do navegador
 - `ROTATION` (mapas da rotação, separados por vírgula), `GAMEMOD` (linhas de gamemod separadas por
   `|`), `CASUAL_BOTS_FILL`, `MAX_ROOMS`, `MAX_PLAYERS` — ou pelo painel admin (`/admin`).
 - `MAILER=resend` + `RESEND_API_KEY` + `MAIL_FROM` para mandar os e-mails (boas-vindas e recuperação
-  de senha; o padrão `log` só registra no log). Sem domínio verificado no Resend, use
-  `MAIL_FROM=onboarding@resend.dev` (o Resend só entrega para o e-mail dono da conta). Reenviar as
-  boas-vindas: `docker compose exec -T api node dist/cli.js welcome NOME`.
+  de senha; o padrão `log` só registra no log). `MAIL_FROM` tem de ser um endereço do domínio
+  verificado no Resend, na mesma conta da chave (no beta, `no-reply@outgunweb.com.br`). Com
+  `onboarding@resend.dev` (endereço de teste) o Resend responde 403 para qualquer destinatário que não
+  seja o dono da conta. Reenviar as boas-vindas: `docker compose exec -T api node dist/cli.js welcome NOME`.
 - `SENTRY_DSN` para o envio de erros da API e do game server (projeto `outgun-server` no Sentry) e
   `CSP_EXTRA=https://o315869.ingest.us.sentry.io` para o navegador poder mandar os erros do cliente
   (projeto `outgun-web`, cujo DSN o `deploy.sh` põe no build; OG-434). O Claude lê os erros pelo MCP
