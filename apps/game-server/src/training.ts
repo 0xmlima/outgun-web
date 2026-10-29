@@ -4,42 +4,15 @@
 // reinício. Sem placar de partida, tempo limite nem fim de partida. Cada modo (OG-493 a OG-496) só
 // diz quem joga, onde cada um começa e quando a tentativa acaba.
 import type { TrainingRole } from '@outgun/bots';
+import type { TrainingOptions } from '@outgun/settings';
 import { GlibcRand, PLAYER_RADIUS, Position, ROOM_HEIGHT, ROOM_WIDTH, type GameMap, type WorldCoords } from '@outgun/sim';
 
-export type TrainingModeId = 'attack' | 'defense' | 'escape' | 'capture';
+export { clampTraining, TRAINING_LIMITS, type TrainingModeId } from '@outgun/settings';
 /** Papel fixo de um bot de treino (RN-TRN-03); o comportamento fica no `TrainingRobot` (OG-491). */
 export type { TrainingRole };
+/** Opções da sala de treino (OG-492). */
+export type TrainingConfig = TrainingOptions;
 export type TrainingReason = 'died' | 'defendersDown' | 'flagOut' | 'attackersDown' | 'captured' | 'delivered' | 'returned' | 'timeout';
-
-/** Opções da sala de treino, escolhidas na criação (OG-492). */
-export interface TrainingConfig {
-  mode: TrainingModeId;
-  /** Bots do outro lado: defensores (Ataque), atacantes (Defesa), perseguidores (Fuga) ou a escolta máxima (Captura). */
-  bots: number;
-  /** Bots aliados de quem treina (só na Defesa, 0 a 2). */
-  allies: number;
-  /** Nível dos bots, 1 a 5; 0 = progressivo (OG-499). */
-  level: number;
-  /** Power-ups (desligados por padrão, RN-TRN-06). */
-  powerups: boolean;
-  /** Mesmo início em todas as tentativas (OG-500); o padrão é variar. */
-  sameStart: boolean;
-}
-
-/** Limites das opções por modo (RN-TRN-04). */
-export const TRAINING_LIMITS: Record<TrainingModeId, { bots: [number, number]; allies: [number, number] }> = {
-  attack: { bots: [1, 4], allies: [0, 0] },
-  defense: { bots: [1, 5], allies: [0, 2] },
-  escape: { bots: [1, 4], allies: [0, 0] },
-  capture: { bots: [0, 3], allies: [0, 0] },
-};
-
-/** Opções dentro dos limites do modo. */
-export function clampTraining(c: TrainingConfig): TrainingConfig {
-  const l = TRAINING_LIMITS[c.mode];
-  const clamp = (v: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min(hi, Math.trunc(v)));
-  return { ...c, bots: clamp(c.bots, l.bots), allies: clamp(c.allies, l.allies), level: clamp(c.level, [0, 5]) };
-}
 
 /** Time de quem treina (humanos do lado de treino); os bots do outro lado ficam no outro time. */
 export const TRAINEE_TEAM = 0;

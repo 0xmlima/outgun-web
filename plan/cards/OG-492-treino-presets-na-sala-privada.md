@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490 |
 | Regras de negócio | RN-TRN-01, RN-TRN-05, RN-TRN-06, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,11 @@ Como jogador, quero escolher um treino na tela de criar sala privada, para come�
 - Lobby: sala de treino aparece como "Treino · <modo>" e conta como privada.
 
 ## Critérios de aceite
-- [ ] Criar cada um dos quatro treinos pelo cliente, com as opções indo para a sala.
-- [ ] Só os cinco mapas de treino na lista; a API recusa outro mapa.
-- [ ] Segunda sala de treino da mesma conta tratada conforme RN-TRN-06.
+- [x] Criar cada um dos quatro treinos pelo cliente, com as opções indo para a sala.
+- [x] Só os cinco mapas de treino na lista; a API recusa outro mapa.
+- [x] Segunda sala de treino da mesma conta tratada conforme RN-TRN-06.
 
 ## Notas de implementação
+- Opções compartilhadas em `packages/settings/src/training.ts` (modos, limites, `TRAINING_MAPS`, 16 vagas). Migração 0047 (`rooms.training` jsonb); spawn → servidor ignora a rotação do painel e o `casualBots` na sala de treino.
+- "Criar sala privada": o grupo Treino entra no fim da lista de Regras ("Treino · Ataque"...); com ele, escolhe-se um dos cinco mapas (com miniatura), a quantidade do outro lado, aliados (Defesa), nível 1–5 ou progressivo, power-ups e "mesmo início".
+- RN-TRN-06: a sala de treino fora do ar é apagada ao criar outra; com uma no ar, a API recusa (409) e o cliente avisa. Teste em `apps/api/src/routes/training-rooms.test.ts`.

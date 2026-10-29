@@ -5,7 +5,7 @@ import type { GameMap } from '@outgun/sim';
 import { FixedRateLoop, percentile, realClock, type Clock } from './loop.js';
 import { Room, type CasualBots, type RoomOptions } from './room.js';
 import type { RandomMapParams } from './generated-maps.js';
-import type { RankedRoomFormat } from '@outgun/settings';
+import type { RankedRoomFormat, TrainingOptions } from '@outgun/settings';
 import type { LobbyPhase } from './ranked-lobby.js';
 
 export interface RoomSpec {
@@ -27,6 +27,8 @@ export interface RoomSpec {
   ranked?: RankedRoomFormat;
   /** Bots da sala privada Casual escolhidos pelo dono (OG-289). */
   casualBots?: CasualBots;
+  /** Sala de treino (OG-490, OG-492). */
+  training?: TrainingOptions;
   /** Mapas que a sala Casual escolheu (D-69): quando a rotação muda, ficam os que seguem nela. */
   chosenMaps?: readonly string[];
 }
@@ -113,7 +115,7 @@ export class RoomManager {
   create(spec: RoomSpec): Room {
     if (this.rooms.has(spec.id)) throw new Error(`sala já existe: ${spec.id}`);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 2 ** 31);
-    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, ...(spec.ranked ? { ranked: spec.ranked } : {}), ...(spec.casualBots ? { casualBots: spec.casualBots } : {}), seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
+    const room = new Room({ ...this.options.roomDefaults, id: spec.id, preset: spec.preset, maps: spec.maps, mapFiles: spec.mapFiles, ...(spec.randomSlots ? { randomSlots: spec.randomSlots } : {}), maxPlayers: spec.maxPlayers, ...(spec.ranked ? { ranked: spec.ranked } : {}), ...(spec.casualBots ? { casualBots: spec.casualBots } : {}), ...(spec.training ? { training: spec.training } : {}), seed, now: () => this.clock.now(), ...(spec.reconnectSeconds !== undefined ? { reconnectSeconds: spec.reconnectSeconds } : {}) });
     this.rooms.set(spec.id, { room, name: spec.name ?? spec.id, persistent: spec.persistent ?? false, emptySince: null, chosenMaps: spec.chosenMaps ?? null });
     return room;
   }

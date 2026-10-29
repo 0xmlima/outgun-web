@@ -968,7 +968,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-503](cards/OG-503-leaderboard-emblema-desalinhado.md) | Visão geral do leaderboard desalinhada com o emblema do clã | E9 | 1 | Must | S53 | OG-484 | Concluído |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | S55 | OG-289 | Em revisão |
 | [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | S55 | OG-490 | Em revisão |
-| [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | S55 | OG-490 | Pronto |
+| [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | S55 | OG-490 | Em revisão |
 | [OG-493](cards/OG-493-treino-ataque.md) | Treino Ataque: entrar na base e sair do quadrado com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
 | [OG-494](cards/OG-494-treino-defesa.md) | Treino Defesa: segurar a onda de atacantes | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
 | [OG-495](cards/OG-495-treino-fuga.md) | Treino Fuga: da base inimiga até a sua com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |

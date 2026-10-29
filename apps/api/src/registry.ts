@@ -53,6 +53,7 @@ export function roomSpawn(room: RoomRow): RoomSpawn {
     ...(room.maps && room.maps.length > 0 ? { maps: room.maps } : {}),
     ...(room.format && isSeriesBestOf(room.bestOf) ? { ranked: { format: room.format, bestOf: room.bestOf } } : {}),
     ...(room.mode === 'casual' && room.bots !== null && room.botLevel !== null ? { casualBots: { bots: room.bots, level: room.botLevel } } : {}),
+    ...(room.mode === 'casual' && room.training ? { training: room.training } : {}),
   };
 }
 

@@ -74,6 +74,8 @@ export interface RoomSpawn {
   ranked?: { format: '3x3' | '4x4' | '5x5'; bestOf: 1 | 3 | 5 };
   /** Bots escolhidos pelo dono ao criar a sala privada Casual (OG-289): quantidade e nível (0 = variável). */
   casualBots?: { bots: number; level: number };
+  /** Sala de treino (OG-492, D-86): modo e opções (`TrainingOptions` de @outgun/settings). */
+  training?: { mode: 'attack' | 'defense' | 'escape' | 'capture'; bots: number; allies: number; level: number; powerups: boolean; sameStart: boolean };
 }
 
 export type TicketInput = Omit<TicketClaims, 'iss' | 'iat' | 'exp' | 'jti'>;
