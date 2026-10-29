@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
-import { BOT_LEVELS, botSkill, type BotSkill } from '@outgun/bots';
+import { BOT_LEVELS, botSkill, roleMayTakeFlag, type BotSkill } from '@outgun/bots';
 import { BotChatTally, BotChatter } from './bot-chat.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
@@ -485,6 +485,14 @@ export class Room {
         this.broadcast(message('deathbringer', { team: team === 0 ? 'red' : 'blue', frame, roomX: pos.roomX, roomY: pos.roomY, x: Math.trunc(pos.x), y: Math.trunc(pos.y) })),
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
+      ...(options.training
+        ? {
+            mayTakeFlag: (pid: number) => {
+              const role = this.botRoles.get(pid);
+              return role === undefined || roleMayTakeFlag(role); // humanos pegam; bots só pelo papel
+            },
+          }
+        : {}),
       screenSample: (pid, sample) => {
         const pl = this.world.players[pid];
         if (!pl) return;
@@ -944,7 +952,7 @@ export class Room {
 
   private spawnTrainingBot(slot: BotSlot): void {
     const botName = createBotName(this.botNameRng, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
-    const bot = new BotClient(this.botHost(), this.botRng, this.now, botSkill(this.training?.level ?? 3));
+    const bot = new BotClient(this.botHost(), this.botRng, this.now, botSkill(this.training?.level ?? 3), slot.role);
     const res = this.join(bot, { name: botName, accountId: null }, { bot: true, team: slot.team });
     if (!res.ok) return bot.close();
     this.botRoles.set(res.pid, slot.role);

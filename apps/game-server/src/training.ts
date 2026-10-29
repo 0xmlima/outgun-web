@@ -3,11 +3,12 @@
 // posicionar todos, contagem com todos parados, jogar, resultado (sucesso/falha + motivo + tempo) e
 // reinício. Sem placar de partida, tempo limite nem fim de partida. Cada modo (OG-493 a OG-496) só
 // diz quem joga, onde cada um começa e quando a tentativa acaba.
+import type { TrainingRole } from '@outgun/bots';
 import { GlibcRand, PLAYER_RADIUS, Position, ROOM_HEIGHT, ROOM_WIDTH, type GameMap, type WorldCoords } from '@outgun/sim';
 
 export type TrainingModeId = 'attack' | 'defense' | 'escape' | 'capture';
-/** Papel fixo de um bot de treino (RN-TRN-03); o comportamento de cada um fica no `TrainingRobot` (OG-491). */
-export type TrainingRole = 'guard' | 'attack' | 'chase' | 'carry' | 'escort';
+/** Papel fixo de um bot de treino (RN-TRN-03); o comportamento fica no `TrainingRobot` (OG-491). */
+export type { TrainingRole };
 export type TrainingReason = 'died' | 'defendersDown' | 'flagOut' | 'attackersDown' | 'captured' | 'delivered' | 'returned' | 'timeout';
 
 /** Opções da sala de treino, escolhidas na criação (OG-492). */

@@ -3,7 +3,7 @@
 // bytes que um jogador humano, com o atraso de `bot_ping` (`ServerClientLocalConnection`), monta a
 // visão do jogo com o `ClientSession` do netcode, decide com a IA de @outgun/bots e devolve à sala
 // `input` e `fire` como um cliente (RN-BOT-02). Spec: plan/specs/bots-ia.md.
-import { acquireAreaMap, BotPlayer, botSkill, BotView, releaseAreaMap, Robot, type AreaMap, type BotFlagRules, type BotSkill } from '@outgun/bots';
+import { acquireAreaMap, BotPlayer, botSkill, BotView, releaseAreaMap, Robot, TrainingRobot, type AreaMap, type BotFlagRules, type BotSkill, type TrainingRole } from '@outgun/bots';
 import { ClientSession } from '@outgun/netcode';
 import { decodeFrame, message, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import type { PhysicsSettings } from '@outgun/settings';
@@ -87,6 +87,8 @@ export class BotClient implements Connection {
     private readonly clock: () => number = () => performance.now(),
     /** Nível de dificuldade (OG-266); sem ele, o de referência (Casual). */
     public skill: BotSkill = botSkill(),
+    /** Papel do treino (OG-491, D-87): só a sala de treino passa; com ele o bot é um `TrainingRobot`. */
+    public trainingRole: TrainingRole | null = null,
   ) {
     this.session = new ClientSession({
       send: (messages) => this.toServer(messages),
@@ -218,7 +220,7 @@ export class BotClient implements Connection {
       this.areaMap = acquireAreaMap(world.map);
       // foguetes, power-ups, bandeiras e explosões são lidos direto do mundo recebido
       this.view = new BotView(world.map, s.maxPlayers, clientPhysics(s.settings.physics), this.rules, world);
-      this.robot = new Robot(this.view, this.areaMap, s.me, this.rng);
+      this.robot = this.trainingRole ? new TrainingRobot(this.view, this.areaMap, s.me, this.rng, this.trainingRole) : new Robot(this.view, this.areaMap, s.me, this.rng);
       this.robot.botPrevFire = this.fire;
       this.robot.gunDir = this.gunDir;
     }
@@ -274,6 +276,7 @@ export class BotClient implements Connection {
     if (view && robot) {
       robot.me = s.me;
       robot.skill = this.skill;
+      if (robot instanceof TrainingRobot && this.trainingRole) robot.role = this.trainingRole;
       const pending = (this.clFrameSent - this.clFrameWorld + 256) % 256;
       const history: number[] = [];
       if (pending === 0) history.push(this.controlHistory[this.clFrameSent]!);

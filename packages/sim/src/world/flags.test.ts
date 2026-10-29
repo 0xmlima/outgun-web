@@ -178,6 +178,20 @@ describe('tabela de capturas (try_capture)', () => {
 });
 
 describe('pegar, largar e devolver', () => {
+  it('mayTakeFlag (sala de treino, D-87): quem o gancho recusa encosta e não pega', () => {
+    const { w, sim } = world();
+    w.time = 10;
+    w.frame = 100;
+    sim.hooks.mayTakeFlag = (pid) => pid !== 0;
+    const pl = addPlayer(w, 0, 2, 236, 177);
+    sim.postPhysics(pl);
+    expect(pl.stats.carriedFlag).toBe(CarriedFlag.None);
+    expect((w.teams[1].flags[0] as FlagState).status).toBe('base');
+    const other = addPlayer(w, 2, 2, 236, 177);
+    sim.postPhysics(other);
+    expect(other.stats.carriedFlag).toBe(CarriedFlag.Enemy);
+  });
+
   it('largar de propósito desfaz o frag; quem largou só pega de novo depois de sair de cima', () => {
     const { w, sim } = world();
     w.time = 10;

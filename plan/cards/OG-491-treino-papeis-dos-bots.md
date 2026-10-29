@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | OG-490 |
 | Regras de negócio | RN-TRN-03, RN-TRN-08, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
