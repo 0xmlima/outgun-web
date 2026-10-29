@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 5 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S55 |
+| Status | Pronto |
 | Dependências | OG-289 |
 | Regras de negócio | RN-TRN-01, RN-TRN-02, RN-TRN-06, RN-UI-05, D-86 |
 | Skills | `outgun-card-workflow` |

@@ -6,10 +6,10 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S55 |
+| Status | Pronto |
 | Dependências | OG-490, OG-491 |
-| Regras de negócio | RN-TRN-02, RN-TRN-04, D-86 |
+| Regras de negócio | RN-TRN-02, RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -21,6 +21,7 @@ Como defensor, quero treinar segurar a bandeira contra vários atacantes ao mesm
 
 ## Escopo
 - Você + 1 ou 2 bots aliados (papel **guardar a base**) na sua base; 1 a 5 atacantes (papel **atacar a bandeira**) saem juntos de fora da sala da base.
+- Bots (OG-491): atacantes só **atacar a bandeira** (vão à sua bandeira e tentam sair com ela, sem voltar para defender a deles); aliados só **guardar a base**, sem sair atrás da bandeira inimiga.
 - Falha: você morre, ou um atacante sai da sala da base com a sua bandeira.
 - Sucesso: todos os atacantes da onda caem. Atacante abatido não renasce dentro da tentativa.
 

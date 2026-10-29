@@ -6,10 +6,10 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S55 |
+| Status | Pronto |
 | Dependências | OG-490, OG-491 |
-| Regras de negócio | RN-TRN-04, D-86 |
+| Regras de negócio | RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -21,6 +21,7 @@ Como portador, quero treinar levar a bandeira para casa com inimigos no meu enca
 
 ## Escopo
 - Você começa na sala da base inimiga já com a bandeira inimiga; 1 a 4 bots com papel **perseguir o portador**.
+- Bots (OG-491): só **perseguir o portador**. Nenhum bot pega bandeira nem vai esperar na sua base.
 - Falha: você morre.
 - Sucesso: você captura na sua base (com a sua bandeira em casa, regra normal de captura).
 

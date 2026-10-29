@@ -6,10 +6,10 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S55 |
+| Status | Pronto |
 | Dependências | OG-490, OG-491 |
-| Regras de negócio | RN-TRN-02, RN-TRN-04, D-86 |
+| Regras de negócio | RN-TRN-02, RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -22,6 +22,7 @@ Como atacante, quero treinar entrar numa base defendida e sair com a bandeira.
 ## Escopo
 - Você (e convidados do mesmo lado, OG-497) começa fora da sala da base inimiga; 1 a 4 bots com papel **guardar a base** na base inimiga; bandeira inimiga no ponto.
 - Falha: o atacante morre (com convidados, todos os humanos do lado de treino).
+- Bots (OG-491): só **guardar a base**. Nenhum bot sai da sala da base, vai atrás da sua bandeira ou pega bandeira; os defensores só defendem.
 - Sucesso: todos os defensores derrubados, ou o portador sai da sala da base com a bandeira.
 
 ## Critérios de aceite

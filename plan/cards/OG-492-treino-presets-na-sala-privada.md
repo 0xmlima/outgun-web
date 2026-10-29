@@ -6,10 +6,10 @@
 | Tipo | Feature |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S55 |
+| Status | Pronto |
 | Dependências | OG-490 |
-| Regras de negócio | RN-TRN-01, RN-TRN-05, RN-TRN-06, D-69, D-86 |
+| Regras de negócio | RN-TRN-01, RN-TRN-05, RN-TRN-06, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
 
 ## História
@@ -20,12 +20,13 @@ Como jogador, quero escolher um treino na tela de criar sala privada, para come�
 
 ## Escopo
 - Grupo "Treino" na lista de presets de "Criar sala privada" (`apps/web/src/screens/lobby.tsx`): Ataque, Defesa, Fuga e Captura, com as opções do modo (quantidades de bots de cada papel), o nível (1 a 5, ou progressivo, OG-499) e power-ups (desligados por padrão).
-- Mapas: só os da rotação Casual (D-69) que têm bandeira dos dois times; os outros somem da lista com o preset de treino.
+- Mapas (D-87, RN-TRN-06): lista fixa de treino, a mesma nos quatro modos e independente da rotação Casual: **2 versus 2 (Duel)**, **3x3 (Duel)**, **Cebs Park**, **Pari2** e **The Cover 4**. Com preset de treino, só esses aparecem e quem cria a sala escolhe qualquer um deles, em qualquer modo; a lista fica numa constante compartilhada entre cliente e API, e a API recusa outro mapa.
 - API: a criação valida o modo e as opções; uma sala de treino aberta por conta (a anterior fecha ou a criação é recusada com a mensagem).
 - Lobby: sala de treino aparece como "Treino · <modo>" e conta como privada.
 
 ## Critérios de aceite
 - [ ] Criar cada um dos quatro treinos pelo cliente, com as opções indo para a sala.
+- [ ] Só os cinco mapas de treino na lista; a API recusa outro mapa.
 - [ ] Segunda sala de treino da mesma conta tratada conforme RN-TRN-06.
 
 ## Notas de implementação
