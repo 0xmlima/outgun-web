@@ -977,7 +977,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | — | OG-490, OG-491 | Backlog |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | — | OG-493, OG-494, OG-495, OG-496 | Backlog |
 | [OG-504](cards/OG-504-emblema-botoes-de-download.md) | Botões "PNG 128/512 px" do emblema não dizem que baixam a imagem | E13 | 1 | Should | — | OG-489 | Backlog |
-| [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Pronto |
+| [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Em revisão |
 | [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Pronto |
 | [OG-507](cards/OG-507-lobby-ranked-esc-sai-da-sala.md) | Lobby Ranked: Esc não sai da sala e o botão "Sair da sala" não parece botão | E12 | 2 | Must | S54 | OG-461 | Pronto |
 | [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Pronto |

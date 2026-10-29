@@ -104,6 +104,17 @@ describe('tocador da trilha', () => {
     expect(player.getState()).toMatchObject({ status: 'playing', track: { id: player.playing } });
   });
 
+  it('a pausa do menu vale na partida: a faixa da partida não começa a tocar (OG-505)', () => {
+    const player = started();
+    player.pause();
+    player.setMode('match');
+    expect(player.playing).not.toBe('outgun-epic');
+    expect(audioOf(player.playing as string).paused).toBe(true);
+    expect(player.getState().status).toBe('paused');
+    player.resume();
+    expect(audioOf(player.playing as string).paused).toBe(false);
+  });
+
   it('mudo zera o volume sem parar a faixa; avisa quem observa', () => {
     const player = started();
     const listener = vi.fn();
