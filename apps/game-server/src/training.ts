@@ -89,6 +89,8 @@ export interface PlacementContext {
   baseRoom(team: 0 | 1): { x: number; y: number };
   /** Sala a `steps` salas da base de `from`, no caminho até a base de `toward` (ou a mais longe possível). */
   roomOnPath(from: 0 | 1, toward: 0 | 1, steps: number): { x: number; y: number };
+  /** Sala sorteada a exatamente `steps` salas da base do time, em qualquer direção (ou a mais longe possível). */
+  roomAround(team: 0 | 1, steps: number): { x: number; y: number };
   /** Ponto livre (sem parede) na sala, longe dos já escolhidos; `near` puxa para perto de um ponto. */
   spot(room: { x: number; y: number }, near?: WorldCoords): Position;
   /** Ponto da bandeira do time. */
@@ -122,6 +124,18 @@ export function outOfBaseRoom(map: GameMap, team: 0 | 1, pos: Position): boolean
 /** Humanos do lado de treino. */
 export function trainees(world: TrainingWorld): TrainingPlayer[] {
   return world.players().filter((p) => !p.bot && p.team === TRAINEE_TEAM);
+}
+
+/** Do outro lado: bots dos papéis e humanos que assumiram a vaga de um bot (OG-497). */
+export function opponents(world: TrainingWorld): TrainingPlayer[] {
+  return world.players().filter((p) => p.team !== TRAINEE_TEAM);
+}
+
+/** Morte de quem treina: falha quando todos os humanos do lado de treino caíram. */
+export function traineeDeath(world: TrainingWorld, ev: TrainingEvent): TrainingOutcome | null {
+  if (ev.kind !== 'death') return null;
+  const dead = world.players().find((p) => p.pid === ev.pid);
+  return dead && !dead.bot && dead.team === TRAINEE_TEAM && allTraineesDead(world) ? { success: false, reason: 'died' } : null;
 }
 
 /** Todos os humanos do lado de treino morreram (com convidados, a falha é só quando caem todos; RN-TRN-05). */
@@ -210,6 +224,14 @@ export class Placement implements PlacementContext {
     }
     const i = candidates[this.rng.rand() % candidates.length]!;
     return { x: i % w, y: Math.trunc(i / w) };
+  }
+
+  roomAround(team: 0 | 1, steps: number): { x: number; y: number } {
+    const d = this.distancesFromBase(team);
+    const best = Math.min(steps, Math.max(...d));
+    const candidates = d.flatMap((v, i) => (v === best ? [i] : []));
+    const i = candidates[this.rng.rand() % candidates.length]!;
+    return { x: i % this.map.width, y: Math.trunc(i / this.map.width) };
   }
 
   spot(room: { x: number; y: number }, near?: WorldCoords): Position {

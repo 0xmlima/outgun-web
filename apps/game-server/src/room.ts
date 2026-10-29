@@ -871,6 +871,7 @@ export class Room {
     const w = this.settings.world;
     w.timeLimit = 0; // sem tempo limite nem fim por capturas (RN-TRN-01)
     w.captureLimit = 0;
+    w.alwaysSendFlagLocation = true; // o portador fica à vista de todos: perseguir e escoltar dependem disso
     const p = this.settings.powerups;
     if (!config.powerups) p.pupsMin = p.pupsMax = 0; // power-ups desligados por padrão (RN-TRN-06)
     const s = this.settings.server;
