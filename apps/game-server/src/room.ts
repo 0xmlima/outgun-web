@@ -424,7 +424,7 @@ export class Room {
         const killer = this.clients.get(attacker & 31);
         if (killer && (attacker & 31) !== target && this.clients.get(target)?.bot) killer.botKills++;
         const victim = this.world.players[target];
-        if (victim) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
+        if (victim && !options.training) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended }));
         this.chatKill(attacker & 31, target);
         this.trainingEvents.push({ kind: 'death', pid: target });
@@ -1803,6 +1803,7 @@ export class Room {
   /** `start_recording`: replay novo a cada início de partida, com o estado inicial de um espectador. */
   /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
   private startRecording(): void {
+    if (this.options.training) return; // treino não grava replay nem alimenta espectadores (OG-498)
     const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
     const file = this.mapFile(this.mapIndex);
     const mapText = this.options.generatedMaps?.text(file) ?? this.options.mapText?.(file);
@@ -1895,6 +1896,7 @@ export class Room {
 
   /** Ação de bandeira no registro do jogo Ranked (OG-362). */
   private flagEvent(kind: 'take' | 'drop' | 'return' | 'capture', pid: number, flag: EventFlag): void {
+    if (this.options.training) return; // treino não gera relatório (RN-TRN-01)
     this.events.flag(this.world.mapTime(), kind, pid, flag);
   }
 
@@ -2019,6 +2021,7 @@ export class Room {
 
   /** Manda o resultado à API: estatísticas sempre; ranqueada só no Ranked com os mínimos. */
   private report(result: MatchResult): void {
+    if (this.options.training) return; // treino não conta para nada (RN-TRN-01, OG-498)
     const endedAt = this.wallClock();
     const startedAt = this.matchStartedAt;
     this.matchCount++;
@@ -2385,6 +2388,12 @@ export class Room {
   drain(): void {
     if (this.draining) return;
     this.draining = true;
+    if (this.training) {
+      // o treino não tem fim de partida para esperar: fecha já (nada a perder, RN-TRN-01)
+      this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close now.' }));
+      this.finished = true;
+      return;
+    }
     this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
   }
 

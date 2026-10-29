@@ -250,3 +250,33 @@ describe('treino com convidados (OG-497)', () => {
     expect(t.last()?.phase).toBe('playing');
   });
 });
+
+describe('treino não conta para nada (OG-498)', () => {
+  it('nenhum relatório de partida, replay ou evento, por mais tentativas que haja', () => {
+    const reports: unknown[] = [];
+    const saved: string[] = [];
+    const room = new Room({
+      id: 't',
+      preset: 'classic',
+      maps: [maps[0]!],
+      mapFiles: [MAP_NAMES[0]!],
+      maxPlayers: 16,
+      seed: 9,
+      training: { mode: 'defense', bots: 3, allies: 1, level: 5, powerups: false, sameStart: false },
+      reportMatch: (r) => reports.push(r),
+      replays: { save: (key) => (saved.push(key), `x/${key}`) },
+      now: () => 0,
+    });
+    const conn = new TestConnection();
+    const res = room.join(conn, { name: 'Treino', accountId: 'conta-1' });
+    if (!res.ok) throw new Error(res.reason);
+    room.handle(res.pid, [message('clientReady', {})]);
+    for (let i = 0; i < 3000; i++) room.tick();
+    expect(conn.training().filter((s) => s.phase === 'result').length).toBeGreaterThan(3);
+    room.drain();
+    expect(room.finished).toBe(true); // sem fim de partida para esperar, fecha já
+    expect(reports).toEqual([]);
+    expect(saved).toEqual([]);
+    expect(room.results).toEqual([]);
+  });
+});
