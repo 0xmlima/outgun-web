@@ -280,3 +280,25 @@ describe('treino não conta para nada (OG-498)', () => {
     expect(room.results).toEqual([]);
   });
 });
+
+describe('início variado (OG-500)', () => {
+  function starts(sameStart: boolean, mode: TrainingModeId) {
+    const t = setup(mode, 3, { bots: 2, sameStart });
+    const out: string[] = [];
+    for (let k = 0; k < 5; k++) {
+      t.tick(3);
+      const me = t.pl(t.me);
+      const bots = t.bots().map((b) => `${b.pos.roomX},${b.pos.roomY},${Math.round(b.pos.x)},${Math.round(b.pos.y)}`);
+      out.push(`${me.pos.roomX},${me.pos.roomY},${Math.round(me.pos.x)},${Math.round(me.pos.y)}|${bots.join('|')}`);
+      t.tick(COUNTDOWN_FRAMES);
+      t.room.handle(t.me, [message('suicide', {})]);
+      t.tick(25);
+    }
+    return out;
+  }
+
+  it.each(['attack', 'defense', 'escape', 'capture'] as const)('%s: tentativas seguidas começam diferente; com "mesmo início", iguais', (mode) => {
+    expect(new Set(starts(false, mode)).size).toBeGreaterThan(2);
+    expect(new Set(starts(true, mode)).size).toBe(1);
+  });
+});

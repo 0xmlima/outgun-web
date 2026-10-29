@@ -12,7 +12,8 @@ export const defenseMode: TrainingModeDef = {
     const out = new Map<number, ReturnType<typeof ctx.spot>>();
     const home = ctx.baseRoom(TRAINEE_TEAM);
     const flag = ctx.map.teams[TRAINEE_TEAM].flags[0];
-    const wave = ctx.roomOnPath(TRAINEE_TEAM, OPPONENT_TEAM, 2); // a onda sai junta, de fora da sala da base
+    // a onda sai junta, de uma sala sorteada a 2 salas da base: a direção do ataque varia (OG-500)
+    const wave = ctx.roomAround(TRAINEE_TEAM, 2);
     for (const p of players) out.set(p.pid, p.team === TRAINEE_TEAM ? ctx.spot(home, flag) : ctx.spot(wave));
     return out;
   },
