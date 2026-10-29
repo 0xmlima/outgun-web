@@ -977,7 +977,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-498](cards/OG-498-treino-fora-das-estatisticas.md) | Treino não conta para nada: estatísticas, ranking, radar, relatórios e marcos | E11 | 2 | Must | S55 | OG-490 | Pronto |
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | S55 | OG-490, OG-491 | Pronto |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | S55 | OG-493, OG-494, OG-495, OG-496 | Pronto |
-| [OG-513](cards/OG-513-treino-bots-isolados-do-casual.md) | Treino: bots do treino isolados dos bots do Casual (gravação de referência e fronteira de código) | E11 | 3 | Must | S55 | OG-491 | Pronto |
+| [OG-513](cards/OG-513-treino-bots-isolados-do-casual.md) | Treino: bots do treino isolados dos bots do Casual (gravação de referência e fronteira de código) | E11 | 3 | Must | S55 | OG-491 | Em andamento |
 | [OG-504](cards/OG-504-emblema-botoes-de-download.md) | Botões "PNG 128/512 px" do emblema não dizem que baixam a imagem | E13 | 1 | Should | — | OG-489 | Backlog |
 | [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Concluído |
 | [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Concluído |
