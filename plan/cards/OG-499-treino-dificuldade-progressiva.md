@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490, OG-491 |
 | Regras de negócio | RN-TRN-07, D-86 |
 | Skills | `outgun-card-workflow` |
@@ -24,6 +24,7 @@ Como jogador que não sabe qual nível escolher, quero que os bots fiquem mais f
 - A troca de nível aparece junto do resultado da tentativa ("Bots agora no nível 4").
 
 ## Critérios de aceite
-- [ ] Teste da regra de subida e descida, nos limites 1 e 5.
+- [x] Teste da regra de subida e descida, nos limites 1 e 5.
 
 ## Notas de implementação
+- Regra no juiz (`TrainingSession.progress`): a sequência recomeça depois de cada troca de nível; o nível novo vale a partir da tentativa seguinte (os bots trocam de nível no reinício). A caixa do resultado mostra "Bots agora no nível N" e o rodapé mostra o nível atual.

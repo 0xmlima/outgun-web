@@ -141,6 +141,43 @@ describe('TrainingSession', () => {
   });
 });
 
+describe('nível progressivo (OG-499, RN-TRN-07)', () => {
+  function run(results: boolean[]) {
+    const levels: [number, string][] = [];
+    const s = new TrainingSession({ ...config, level: 0 }, testMode, { map: maps[0]!, frame: 0, players: () => [], flag: () => null }, { setBots: () => {}, place: () => {}, resetFlags: () => {}, announce: (a) => a.phase === 'result' && levels.push([a.level, a.levelChange]), holdRespawn: () => {} }, 1);
+    for (const ok of results) {
+      s.phase = 'playing';
+      (s as unknown as { ctx: unknown }).ctx = {};
+      (s as unknown as { finish(o: { success: boolean; reason: string }): void }).finish({ success: ok, reason: ok ? 'flagOut' : 'died' });
+    }
+    return levels;
+  }
+
+  it('começa no 3; 3 sucessos seguidos sobem, 3 falhas seguidas descem', () => {
+    expect(run([true, true, true]).at(-1)).toEqual([4, 'up']);
+    expect(run([false, false, false]).at(-1)).toEqual([2, 'down']);
+    // alternando não muda; a sequência recomeça depois de cada troca
+    expect(run([true, false, true, false]).map((l) => l[0])).toEqual([3, 3, 3, 3]);
+    expect(run([true, true, true, true, true]).at(-1)).toEqual([4, 'none']);
+  });
+
+  it('para nos limites 1 e 5', () => {
+    expect(run(Array(12).fill(true)).at(-1)![0]).toBe(5);
+    expect(run(Array(12).fill(true)).filter((l) => l[1] === 'up')).toHaveLength(2);
+    expect(run(Array(12).fill(false)).at(-1)![0]).toBe(1);
+    expect(run(Array(12).fill(false)).filter((l) => l[1] === 'down')).toHaveLength(2);
+  });
+
+  it('com nível fixo nada muda', () => {
+    const s = new TrainingSession({ ...config, level: 2 }, testMode, { map: maps[0]!, frame: 0, players: () => [], flag: () => null }, { setBots: () => {}, place: () => {}, resetFlags: () => {}, announce: () => {}, holdRespawn: () => {} }, 1);
+    for (let i = 0; i < 6; i++) {
+      s.phase = 'playing';
+      (s as unknown as { finish(o: { success: boolean; reason: string }): void }).finish({ success: true, reason: 'flagOut' });
+    }
+    expect(s.level).toBe(2);
+  });
+});
+
 describe('Placement nos mapas de treino', () => {
   it.each(MAP_NAMES.map((n, i) => [n, i] as const))('%s: bases, caminho e pontos livres', (_name, i) => {
     const map = maps[i]!;

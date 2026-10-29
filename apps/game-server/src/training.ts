@@ -23,6 +23,8 @@ export const COUNTDOWN_FRAMES = 30;
 export const RESULT_FRAMES = 20;
 /** Tentativa que não termina (bots presos, ninguém agindo) falha depois disto. */
 export const ATTEMPT_LIMIT_FRAMES = 1200;
+/** Resultados iguais seguidos que mudam o nível progressivo (OG-499). */
+export const PROGRESSIVE_STREAK = 3;
 
 /** Um bot que a tentativa precisa: time e papel. */
 export interface BotSlot {
@@ -294,6 +296,8 @@ export class TrainingSession {
   /** Nível em vigor dos bots (1 a 5); no progressivo, muda com os resultados (OG-499). */
   level: number;
   private levelChange: 'none' | 'up' | 'down' = 'none';
+  /** Sucessos (positivo) ou falhas (negativo) seguidos, para o nível progressivo (OG-499). */
+  private streak = 0;
 
   constructor(
     readonly config: TrainingConfig,
@@ -371,10 +375,29 @@ export class TrainingSession {
     if (outcome.success) this.successes++;
     this.last = outcome;
     this.lastTenths = this.world.frame - this.startFrame;
-    this.levelChange = 'none';
+    this.levelChange = this.config.level === 0 ? this.progress(outcome.success) : 'none';
     this.phase = 'result';
     this.phaseUntil = this.world.frame + RESULT_FRAMES;
     this.announce();
+  }
+
+  /**
+   * Nível progressivo (RN-TRN-07): começa no 3; 3 sucessos seguidos sobem um (até 5) e 3 falhas seguidas
+   * descem um (até 1). A sequência recomeça a cada troca.
+   */
+  private progress(success: boolean): 'none' | 'up' | 'down' {
+    this.streak = success ? Math.max(0, this.streak) + 1 : Math.min(0, this.streak) - 1;
+    if (this.streak >= PROGRESSIVE_STREAK && this.level < 5) {
+      this.level++;
+      this.streak = 0;
+      return 'up';
+    }
+    if (this.streak <= -PROGRESSIVE_STREAK && this.level > 1) {
+      this.level--;
+      this.streak = 0;
+      return 'down';
+    }
+    return 'none';
   }
 
   private announce(seconds?: number): void {
