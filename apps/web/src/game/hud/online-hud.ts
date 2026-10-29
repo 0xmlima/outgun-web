@@ -107,6 +107,33 @@ export class OnlineHud {
     return id ? id.name || id.tag : null;
   }
 
+  /**
+   * Sala de treino (OG-490, RN-UI-05): a mesma caixa da pausa, só na contagem e no resultado da
+   * tentativa; com a tentativa em jogo, nada na tela.
+   */
+  private trainingOverlay(): NonNullable<HudState['pause']> | null {
+    const tr = this.session.training;
+    if (!tr || tr.phase === 'playing') return null;
+    const t = this.t;
+    const mode = { attack: t('Attack training'), defense: t('Defense training'), escape: t('Escape training'), capture: t('Capture training') }[tr.mode];
+    const footer = t('Successes: $1 of $2 - bots level $3', String(tr.successes), String(tr.attempts), String(tr.level));
+    if (tr.phase === 'countdown') return { title: mode, detail: t('Starting in $1', String(tr.seconds)), options: null, footer, hint: null };
+    const reason = {
+      none: '',
+      died: t('You died.'),
+      defendersDown: t('All defenders are down.'),
+      flagOut: tr.mode === 'attack' ? t('You left the base with the flag.') : t('The flag left your base.'),
+      attackersDown: t('All attackers are down.'),
+      captured: t('Flag captured at your base.'),
+      delivered: t('The flag was delivered.'),
+      returned: t('Flag returned.'),
+      timeout: t('Out of time.'),
+    }[tr.reason];
+    const time = t('Time: $1 s', (tr.tenths / 10).toFixed(1));
+    const level = tr.levelChange === 'none' ? null : t('Bots now at level $1', String(tr.level));
+    return { title: tr.result === 'success' ? t('SUCCESS') : t('FAILED'), detail: `${reason} ${time}`.trim(), options: null, footer, hint: level };
+  }
+
   private pauseOverlay(): NonNullable<HudState['pause']> | null {
     const p = this.session.pause;
     if (!p || p.phase === 'none') return null;
@@ -350,7 +377,7 @@ export class OnlineHud {
       highlightRooms: (opts.rooms.visibleX > 1 || opts.rooms.visibleY > 1 || this.graphics.scroll) && this.graphics.boxVisibleArea,
       changeTeams: this.wantChangeTeams,
       mapExit: this.wantMapExit ? (this.mapExitDelayed ? 'delayed' : 'on') : null,
-      pause: this.pauseOverlay(),
+      pause: this.pauseOverlay() ?? this.trainingOverlay(),
     };
   }
 }

@@ -88,7 +88,7 @@ export class AdminPanelLink implements PanelHandlers {
       // escolheu mapas fica com os que seguem na rotação, ou a rotação inteira se não sobrar nenhum)
       for (const h of this.options.manager.hosted()) {
         const room = this.options.manager.get(h.id);
-        if (!room || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue;
+        if (!room || room.training || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue; // treino: mapa próprio (D-87)
         const chosen = h.mode === 'casual' ? withinRotation(this.options.manager.chosenMaps(h.id) ?? [], files) : [];
         room.setRotation(resolveRotation(chosen.length > 0 ? chosen : files, this.options.map, this.options.generatedMaps));
       }

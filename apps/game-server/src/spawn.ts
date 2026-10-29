@@ -4,7 +4,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameMap } from '@outgun/sim';
-import { formatPlayers, isRankedFormat, isSeriesBestOf } from '@outgun/settings';
+import { clampTraining, formatPlayers, isRankedFormat, isSeriesBestOf, TRAINING_MAPS, TRAINING_MAX_PLAYERS } from '@outgun/settings';
 import type { RoomSpawn } from '@outgun/tickets';
 import { loadMaps, panelRotationKeys, resolveRotation, rotationFor, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
@@ -57,7 +57,16 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
     }
     // Ranked sempre com a rotação oficial; Casual pode trazer a sua (mapas desconhecidos saem), só
     // entre os da rotação do painel quando há uma (D-69); as duas aceitam `random_map L A ...` (OG-015)
-    const chosen = spec.mode === 'casual' && spec.maps ? (panelRotationKeys.has('casual') ? withinRotation(spec.maps, options.rotations.casual) : spec.maps) : [];
+    // sala de treino (OG-492, D-87): um dos mapas de treino, fora da rotação do painel
+    const training = spec.mode === 'casual' && spec.training ? clampTraining(spec.training) : undefined;
+    const chosen = training
+      ? (spec.maps ?? []).filter((m) => TRAINING_MAPS.includes(m)).slice(0, 1)
+      : spec.mode === 'casual' && spec.maps
+        ? panelRotationKeys.has('casual')
+          ? withinRotation(spec.maps, options.rotations.casual)
+          : spec.maps
+        : [];
+    if (training && chosen.length === 0) return undefined;
     const wanted = resolveRotation(chosen, map, options.generatedMaps);
     const slots = wanted.length > 0 ? wanted : resolveRotation(rotationFor(options.rotations, spec.mode, ranked?.format), map, options.generatedMaps);
     if (slots.length === 0) return undefined;
@@ -69,10 +78,11 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       maps: slots.map((s) => s.map),
       mapFiles: files,
       ...(slots.some((s) => s.random) ? { randomSlots: slots.map((s) => s.random ?? null) } : {}),
-      maxPlayers: ranked ? formatPlayers(ranked.format) : spec.maxPlayers,
+      maxPlayers: ranked ? formatPlayers(ranked.format) : training ? TRAINING_MAX_PLAYERS : spec.maxPlayers,
       persistent: spec.persistent,
       ...(ranked ? { ranked: { format: ranked.format, bestOf: ranked.bestOf } } : {}),
-      ...(spec.mode === 'casual' && spec.casualBots ? { casualBots: { bots: spec.casualBots.bots, level: spec.casualBots.level } } : {}),
+      ...(training ? { training } : {}),
+      ...(spec.mode === 'casual' && !training && spec.casualBots ? { casualBots: { bots: spec.casualBots.bots, level: spec.casualBots.level } } : {}),
       ...(wanted.length > 0 ? { chosenMaps: chosen } : {}),
     });
     options.log?.(`sala ${id} aberta (${spec.mode}, ${preset.id}, ${files.length} mapas${ranked ? `, ${ranked.format} md${ranked.bestOf}` : ''})`);

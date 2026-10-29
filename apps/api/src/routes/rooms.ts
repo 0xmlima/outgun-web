@@ -2,9 +2,9 @@
 // Lista pública de salas (substitui a lista do master server do original), criação de sala
 // privada Casual (OG-086, RN-CFG-03) e de sala de lobby Ranked (OG-252, RN-RKL-05/06, D-44).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { formatPlayers, isSeriesBestOf, PRESETS, settingsOf } from '@outgun/settings';
+import { clampTraining, formatPlayers, isSeriesBestOf, PRESETS, settingsOf, TRAINING_MAPS, TRAINING_MAX_PLAYERS } from '@outgun/settings';
 import { casualRotation, findPreset, panelPresets } from '../platform-config.js';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
 import { hashPassword } from '../auth/password.js';
@@ -33,6 +33,19 @@ const RoomSummary = Type.Object({
   format: Type.Union([Type.Null(), RankedFormatSchema]),
   bestOf: Type.Union([Type.Null(), SeriesBestOfSchema]),
   phase: Type.Union([Type.Null(), LobbyPhaseSchema]),
+  /** Sala de treino (OG-492): o modo; null nas outras. No lobby aparece como "Treino · <modo>" e conta como privada. */
+  training: Type.Union([Type.Null(), Type.Literal('attack'), Type.Literal('defense'), Type.Literal('escape'), Type.Literal('capture')]),
+});
+
+/** Opções da sala de treino na criação (OG-492, RN-TRN-04/06). */
+const TrainingSchema = Type.Object({
+  mode: Type.Union([Type.Literal('attack'), Type.Literal('defense'), Type.Literal('escape'), Type.Literal('capture')]),
+  bots: Type.Integer({ minimum: 0, maximum: 5 }),
+  allies: Type.Integer({ minimum: 0, maximum: 2 }),
+  /** 1 a 5; 0 = progressivo (OG-499). */
+  level: Type.Integer({ minimum: 0, maximum: 5 }),
+  powerups: Type.Boolean(),
+  sameStart: Type.Boolean(),
 });
 
 const HOUR = 60 * 60_000;
@@ -59,6 +72,7 @@ function summary(r: typeof rooms.$inferSelect, region: string | null, now: numbe
     bestOf: isSeriesBestOf(r.bestOf) ? r.bestOf : null,
     // fora do ar a sala de lobby ainda não abriu: está no lobby
     phase: r.format ? (online ? (r.phase ?? 'lobby') : 'lobby') : null,
+    training: r.training?.mode ?? null,
   };
 }
 
@@ -192,10 +206,13 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             /** Bots da sala (OG-289): quantidade fixa e nível 1–5 (0 = variável); ausente = o do preset. */
             bots: Type.Optional(Type.Object({ count: Type.Integer({ minimum: 0, maximum: 31 }), level: Type.Integer({ minimum: 0, maximum: 5 }) })),
             region: Type.Optional(Type.String({ pattern: '^[a-z0-9-]{1,32}$' })),
+            /** Sala de treino (OG-492): preset de treino; `maps` = um dos mapas de treino (D-87). */
+            training: Type.Optional(TrainingSchema),
           }),
           response: {
             201: Type.Object({ room: RoomSummary, inviteUrl: Type.String() }),
             401: ErrorSchema,
+            409: ErrorSchema,
             422: ErrorSchema,
             429: ErrorSchema,
             503: ErrorSchema,
@@ -209,10 +226,22 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
         // Não existe sala privada Ranked (RN-MOD-04): só presets Casual.
         const preset = await findPreset(db, body.preset);
         if (!preset || preset.mode !== 'casual') return reply.code(422).send({ error: 'invalid_preset', message: 'private rooms take a casual preset' });
-        // rotação do painel sempre respeitada (D-69): a sala escolhe só entre os mapas dela
-        const rotation = await casualRotation(db);
-        const outside = rotation && body.maps ? body.maps.filter((m) => !rotation.includes(m)) : [];
-        if (outside.length > 0) return reply.code(422).send({ error: 'map_not_in_rotation', message: `not in the casual rotation: ${outside.join(', ')}` });
+        const training = body.training ? clampTraining(body.training) : null;
+        if (training) {
+          // mapas de treino (D-87): um só, da lista fixa, fora da rotação do painel
+          if (!body.maps || body.maps.length !== 1 || !TRAINING_MAPS.includes(body.maps[0]!)) {
+            return reply.code(422).send({ error: 'invalid_training_map', message: `training rooms take one of: ${TRAINING_MAPS.join(', ')}` });
+          }
+          // uma sala de treino aberta por conta (RN-TRN-06): a fora do ar ou vazia sai; com gente nela, recusa
+          const mine = await db.select().from(rooms).where(and(eq(rooms.ownerId, user.id), isNotNull(rooms.training)));
+          if (mine.some((r) => roomOnline(r, Date.now()) && roomHumans(r) > 0)) return reply.code(409).send({ error: 'training_room_open', message: 'you already have a training room open; leave it first' });
+          if (mine.length > 0) await db.delete(rooms).where(and(eq(rooms.ownerId, user.id), isNotNull(rooms.training)));
+        } else {
+          // rotação do painel sempre respeitada (D-69): a sala escolhe só entre os mapas dela
+          const rotation = await casualRotation(db);
+          const outside = rotation && body.maps ? body.maps.filter((m) => !rotation.includes(m)) : [];
+          if (outside.length > 0) return reply.code(422).send({ error: 'map_not_in_rotation', message: `not in the casual rotation: ${outside.join(', ')}` });
+        }
         if (!(await rateLimit.allow(`create-room:${user.id}`, config.limits.roomsPerHourPerUser, HOUR))) {
           return reply.code(429).send({ error: 'rate_limited', message: 'too many rooms, try later' });
         }
@@ -221,7 +250,7 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
         if (!server && !config.devRoomWsUrl) return reply.code(503).send({ error: 'no_server', message: 'no game server available' });
 
         const id = `p-${randomBytes(6).toString('base64url').toLowerCase().replace(/[^a-z0-9]/g, '0')}`;
-        const maxPlayers = settingsOf(preset).server.maxPlayers ?? body.maxPlayers ?? 16;
+        const maxPlayers = training ? TRAINING_MAX_PLAYERS : (settingsOf(preset).server.maxPlayers ?? body.maxPlayers ?? 16);
         const [row] = await db
           .insert(rooms)
           .values({
@@ -234,7 +263,8 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
             maxPlayers,
             persistent: false,
             maps: body.maps && body.maps.length > 0 ? body.maps : null,
-            ...(body.bots ? { bots: Math.min(body.bots.count, maxPlayers - 1), botLevel: body.bots.level } : {}),
+            ...(body.bots && !training ? { bots: Math.min(body.bots.count, maxPlayers - 1), botLevel: body.bots.level } : {}),
+            ...(training ? { training } : {}),
             ...(server ? { serverId: server.id, wsUrl: `${server.wsBaseUrl.replace(/\/$/, '')}/rooms/${id}` } : {}),
           })
           .returning();

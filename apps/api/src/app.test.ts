@@ -121,6 +121,7 @@ describe.skipIf(!pgAdminUrl)('API (integração)', () => {
       format: null,
       bestOf: null,
       phase: null,
+      training: null,
     });
     const [row] = await t.db.select().from(rooms).where(eq(rooms.id, 'main'));
     expect(row?.serverId).toBe('gs-1');

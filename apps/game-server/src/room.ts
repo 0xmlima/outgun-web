@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { censor, formatDuration, MAX_CHAT_LENGTH, TalkMeter } from './chat.js';
 import { ReportLimiter, runCommand, type AuditEntry, type BotConsole, type ConsoleHost, type ConsolePlayer, type PlayerReport } from './moderation.js';
 import { BotClient, type BotHost } from './bot-client.js';
-import { BOT_LEVELS, botSkill, type BotSkill } from '@outgun/bots';
+import { BOT_LEVELS, botSkill, roleMayTakeFlag, type BotSkill } from '@outgun/bots';
 import { BotChatTally, BotChatter } from './bot-chat.js';
 import { createBotName, neededBots } from './bots.js';
 import { ReplayRecorder } from './replay.js';
@@ -21,6 +21,8 @@ import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
 const MAX_SUBSTITUTES = 2;
 import { MatchEventRecorder, type EventFlag } from './match-events.js';
+import { TRAINEE_TEAM, TrainingSession, type BotSlot, type TrainingConfig, type TrainingEvent, type TrainingPlayer, type TrainingRole, type TrainingAnnouncement } from './training.js';
+import { TRAINING_MODES } from './training-modes.js';
 import { matchReport, rankingMinimumsMet, type MatchReport, type ReportPlayer, type SkillRosterEntry, type Substitution, type ReportTeam } from './match-report.js';
 import { endOfGameMessages, statsKey, statsMessage, teamStatsKey, teamStatsMessage } from './stats-sync.js';
 import { teamStrength, type PlayerSkill } from './ranking.js';
@@ -37,9 +39,11 @@ import {
   gunDirectionFromControls,
   iround,
   isStrafe,
+  Position,
   randomShuffle,
   SAMPLES,
   ServerSim,
+  Vec,
   WorldState,
   type GameMap,
   type GameOverReason,
@@ -169,6 +173,8 @@ export interface RoomOptions {
   maxSpectators?: number;
   /** Formato e série da sala Ranked (OG-250); `maxPlayers` tem de ser 2 × N. */
   ranked?: RankedRoomFormat;
+  /** Sala de treino (OG-490, D-86): só no Casual; tentativas em laço, sem fim de partida. */
+  training?: TrainingConfig;
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -353,6 +359,16 @@ export class Room {
   private sentFlagModes = '';
   /** Espectadores ao vivo com atraso (OG-092). */
   private readonly spectators: SpectatorStream;
+  /** Juiz das tentativas da sala de treino (OG-490); null nas outras salas. */
+  readonly training: TrainingSession | null = null;
+  /** Papel de cada bot da sala de treino (RN-TRN-03). */
+  private readonly botRoles = new Map<number, TrainingRole>();
+  /** Humanos do lado oposto do treino e o papel do bot cuja vaga assumiram (RN-TRN-05). */
+  private readonly humanRoles = new Map<number, TrainingRole>();
+  /** A sala de treino já teve alguém: quando o último humano sai, ela fecha (OG-492). */
+  private trainingHadHumans = false;
+  /** Eventos do frame para o juiz do treino, entregues depois da simulação. */
+  private readonly trainingEvents: TrainingEvent[] = [];
 
   constructor(private readonly options: RoomOptions) {
     const preset = findPreset(options.preset);
@@ -377,8 +393,9 @@ export class Room {
     this.botRng = new GlibcRand(options.seed + 2);
     this.botLevelRng = new GlibcRand(options.seed + 3);
     const chatRng = new GlibcRand(options.seed + 5);
+    if (options.training && this.mode !== 'casual') throw new Error('sala de treino só no Casual');
     this.chatter =
-      this.mode === 'casual'
+      this.mode === 'casual' && !options.training
         ? new BotChatter({
             rng: chatRng,
             now: this.now,
@@ -409,11 +426,15 @@ export class Room {
         const killer = this.clients.get(attacker & 31);
         if (killer && (attacker & 31) !== target && this.clients.get(target)?.bot) killer.botKills++;
         const victim = this.world.players[target];
-        if (victim) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
+        if (victim && !options.training) this.events.kill(this.world.mapTime(), attacker & 31, target, { x: victim.pos.roomX, y: victim.pos.roomY }, carried !== CarriedFlag.None, CAUSE[cause]);
         this.broadcast(message('kill', { attacker: attacker & 31, target, cause: CAUSE[cause], carriedFlag: FLAG_TYPE[carried], carrierDefended, flagDefended }));
         this.chatKill(attacker & 31, target);
+        this.trainingEvents.push({ kind: 'death', pid: target });
       },
-      suicide: (pid, flag) => this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] })),
+      suicide: (pid, flag) => {
+        this.broadcast(message('suicideEvent', { pid, carriedFlag: FLAG_TYPE[flag] }));
+        this.trainingEvents.push({ kind: 'death', pid });
+      },
       flagTaken: (pid, flag) => {
         this.flagEvent('take', pid, this.flagOf(pid, flag));
         this.broadcast(message('flagTake', { pid, flag: FLAG_TYPE[flag] }));
@@ -426,6 +447,7 @@ export class Room {
         this.flagEvent('return', pid, this.world.teamOf(pid) as EventFlag);
         this.chatter?.event('flag_returned', { team: this.world.teamOf(pid) as 0 | 1, involved: pid });
         this.broadcast(message('flagReturn', { pid }));
+        this.trainingEvents.push({ kind: 'return', pid });
       },
       flagCaptured: (pid, flagTeam, assistant) => {
         this.flagEvent('capture', pid, flagTeam as EventFlag);
@@ -433,6 +455,7 @@ export class Room {
         this.chatter?.event('we_captured', { team, involved: pid });
         this.chatter?.event('they_captured', { team: (1 - team) as 0 | 1, ...this.chatName(pid) });
         this.broadcast(message('capture', { pid, flagTeam: FLAG_TEAM[flagTeam] as 'red', assistant: assistant === -1 ? 255 : assistant }));
+        this.trainingEvents.push({ kind: 'capture', pid, flagTeam });
       },
       playerSpawned: (pid) => this.broadcast(message('spawn', { pid })),
       timeWarning: (s) => this.broadcast(message('timeEvent', { kind: s === 300 ? 'fiveMinutesLeft' : s === 60 ? 'oneMinuteLeft' : 'thirtySecondsLeft' })),
@@ -466,6 +489,14 @@ export class Room {
         this.broadcast(message('deathbringer', { team: team === 0 ? 'red' : 'blue', frame, roomX: pos.roomX, roomY: pos.roomY, x: Math.trunc(pos.x), y: Math.trunc(pos.y) })),
       playerScreenChange: (pid) => this.screenChanged(pid),
       flagsChanged: (team) => this.dirtyFlags.add(team),
+      ...(options.training
+        ? {
+            mayTakeFlag: (pid: number) => {
+              const role = this.botRoles.get(pid);
+              return role === undefined || roleMayTakeFlag(role); // humanos pegam; bots só pelo papel
+            },
+          }
+        : {}),
       screenSample: (pid, sample) => {
         const pl = this.world.players[pid];
         if (!pl) return;
@@ -475,6 +506,7 @@ export class Room {
     });
     this.colors = new ColorPool(this.sim.rng);
     this.console = this.makeConsole();
+    if (options.training) this.training = this.makeTraining(options.training, options.seed + 6);
     this.sim.loadMapFlags();
     this.sim.startGame();
     this.startRecording();
@@ -496,7 +528,7 @@ export class Room {
    * Entrada na sala (`client_connected`, RN-TIM-01): sala cheia com bot → um bot sai; time pela
    * regra de entrada; primeira vaga livre do time; cor pessoal livre.
    */
-  join(conn: Connection, identity: Identity, opts: { bot?: boolean } = {}): JoinResult {
+  join(conn: Connection, identity: Identity, opts: { bot?: boolean; team?: 0 | 1 } = {}): JoinResult {
     if (this.mode === 'ranked' && identity.accountId === null) return { ok: false, reason: 'rankedNeedsAccount', text: 'Salas Ranked exigem login.' };
     if (!opts.bot && this.isBanned(identity)) return { ok: false, reason: 'banned', text: 'Banido desta sala.' };
     if (opts.bot && this.mode === 'ranked') return { ok: false, reason: 'roomClosed', text: 'Bots são proibidos no Ranked (D-11).' };
@@ -509,9 +541,14 @@ export class Room {
       if (bot === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
       this.dropBot(bot);
     }
-    const team = this.lobby
-      ? lobbyJoinTeam(this.slots(), this.world.maxPlayers, (p) => this.clients.get(p)?.identity.clanId, identity.clanId, () => this.lessScoredTeam())
-      : joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam());
+    // no treino, o time é o do lado: humanos treinam no TRAINEE_TEAM e cada bot vai para o time do papel
+    const team =
+      opts.team ??
+      (this.training
+        ? TRAINEE_TEAM
+        : this.lobby
+          ? lobbyJoinTeam(this.slots(), this.world.maxPlayers, (p) => this.clients.get(p)?.identity.clanId, identity.clanId, () => this.lessScoredTeam())
+          : joinTeam(this.slots(), this.world.maxPlayers, () => this.lessScoredTeam()));
     const pid = freeSlot(this.slots(), this.world.maxPlayers, team);
     if (pid === -1) return { ok: false, reason: 'serverFull', text: 'Sala cheia.' };
     const color = this.colors.assign(team, NO_COLOR, []);
@@ -564,6 +601,13 @@ export class Room {
     if (this.lobby) {
       this.lobby.join(pid, this.world.frame);
       this.lobbyDirty = true;
+      return { ok: true, pid };
+    }
+    if (this.training) {
+      // a tentativa em curso continua; quem entra vê o estado e entra na próxima
+      const state = this.training.snapshot();
+      if (state && !opts.bot) this.queueTo(pid, this.trainingMessage(state));
+      if (!opts.bot) this.queueTo(pid, message('text', { kind: 'info', from: 255, text: 'Sala de treino: a tecla de trocar de time leva você do lado de treino para o lado oposto (e de volta).' }));
       return { ok: true, pid };
     }
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
@@ -735,6 +779,8 @@ export class Room {
 
   /** Saída (`client_disconnected` → `removePlayer`). */
   leave(pid: number): void {
+    this.botRoles.delete(pid);
+    this.humanRoles.delete(pid);
     const c = this.clients.get(pid);
     if (!c) return;
     if (this.mode === 'ranked' && this.gameOverUntil === null && !c.bot && c.identity.accountId) this.departed.set(c.identity.accountId, this.world.teamOf(pid) as 0 | 1);
@@ -826,6 +872,146 @@ export class Room {
     this.sendCasualConfig();
   }
 
+  /** Juiz do treino ligado a esta sala: o que ele lê do mundo e o que ele manda fazer. */
+  private makeTraining(config: TrainingConfig, seed: number): TrainingSession {
+    const w = this.settings.world;
+    w.timeLimit = 0; // sem tempo limite nem fim por capturas (RN-TRN-01)
+    w.captureLimit = 0;
+    w.alwaysSendFlagLocation = true; // o portador fica à vista de todos: perseguir e escoltar dependem disso
+    const p = this.settings.powerups;
+    if (!config.powerups) p.pupsMin = p.pupsMax = 0; // power-ups desligados por padrão (RN-TRN-06)
+    const s = this.settings.server;
+    s.minBots = s.botsFill = 0;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- o juiz lê a sala
+    const room = this;
+    const session = new TrainingSession(
+      config,
+      TRAINING_MODES[config.mode],
+      {
+        get map() {
+          return room.world.map;
+        },
+        get frame() {
+          return room.world.frame;
+        },
+        players: () => this.trainingPlayers(),
+        flag: (team) => {
+          const f = this.world.teams[team].flags[0];
+          if (!f) return null;
+          return { pos: f.pos, atBase: f.status === 'base', carrier: f.status === 'carried' ? f.carrier : -1 };
+        },
+      },
+      {
+        setBots: (slots) => this.setTrainingBots(slots),
+        place: (pid, pos, safeUntil, fresh) => this.placeTrainee(pid, pos, safeUntil, fresh),
+        resetFlags: () => this.sim.returnAllFlags(),
+        announce: (state) => this.broadcast(this.trainingMessage(state)),
+        holdRespawn: (pid) => {
+          const pl = this.world.players[pid];
+          if (pl?.dead) pl.framesToRespawn = 1_000_000;
+        },
+      },
+      seed,
+    );
+    s.botLevel = session.level;
+    return session;
+  }
+
+  private trainingMessage(state: TrainingAnnouncement): AnyMessage {
+    return message('trainingState', { ...state, mode: this.options.training!.mode });
+  }
+
+  /** Jogadores como o juiz do treino os vê. */
+  private trainingPlayers(): TrainingPlayer[] {
+    const out: TrainingPlayer[] = [];
+    for (const [pid, c] of this.clients) {
+      const pl = this.world.players[pid];
+      if (!pl) continue;
+      const carried = pl.stats.carriedFlag === CarriedFlag.None ? null : this.world.teams.findIndex((t) => t.flags.some((f) => f.status === 'carried' && f.carrier === pid));
+      out.push({
+        pid,
+        team: this.world.teamOf(pid) as 0 | 1,
+        bot: c.bot,
+        role: this.botRoles.get(pid) ?? this.humanRoles.get(pid) ?? null,
+        dead: pl.dead,
+        ready: pl.awaitingClientReadies === 0,
+        pos: pl.pos,
+        carrying: carried === 0 || carried === 1 ? carried : null,
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Bots da tentativa (RN-TRN-03): cada humano do lado oposto assume a vaga de um bot de lá (a escolta
+   * antes do portador, RN-TRN-05); dos bots, fica quem já tem o time e o papel, sai o que sobra e entra
+   * o que falta.
+   */
+  private setTrainingBots(wanted: BotSlot[]): void {
+    const slots = [...wanted].sort((a, b) => Number(a.role !== 'escort') - Number(b.role !== 'escort'));
+    this.humanRoles.clear();
+    for (const [pid, c] of this.clients) {
+      if (c.bot || this.world.teamOf(pid) === TRAINEE_TEAM) continue;
+      const i = slots.findIndex((sl) => sl.team === this.world.teamOf(pid));
+      if (i === -1) continue;
+      this.humanRoles.set(pid, slots[i]!.role);
+      slots.splice(i, 1);
+    }
+    const free = new Map<number, TrainingRole>(this.botRoles);
+    const missing: BotSlot[] = [];
+    for (const slot of slots) {
+      const keep = [...free].find(([pid, role]) => role === slot.role && this.world.teamOf(pid) === slot.team);
+      if (keep) free.delete(keep[0]);
+      else missing.push(slot);
+    }
+    for (const pid of free.keys()) this.dropBot(pid);
+    const skill = botSkill(this.training?.level ?? this.settings.server.botLevel);
+    for (const bot of this.botClients()) bot.skill = skill;
+    for (const slot of missing) this.spawnTrainingBot(slot);
+  }
+
+  /** Troca de lado no treino (RN-TRN-05): vai para uma vaga livre do outro time e a tentativa recomeça. */
+  private trainingSwitchSide(pid: number): void {
+    const c = this.clients.get(pid);
+    if (!c || c.bot || !this.training) return;
+    const to = (1 - this.world.teamOf(pid)) as 0 | 1;
+    // sem vaga livre do outro lado, um bot de lá sai (o humano assume a vaga dele)
+    if (freeSlot(this.slots(), this.world.maxPlayers, to) === -1) {
+      const bot = [...this.botRoles.keys()].find((b) => this.world.teamOf(b) === to);
+      if (bot !== undefined) this.dropBot(bot);
+    }
+    const slot = freeSlot(this.slots(), this.world.maxPlayers, to);
+    if (slot === -1) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: 'Não há vaga do outro lado.' }));
+    this.sim.dropFlagIfAny(pid);
+    this.movePlayer(pid, slot);
+    const side = to === TRAINEE_TEAM ? 'de treino' : 'oposto';
+    this.broadcast(message('text', { kind: 'server', from: 255, text: `${c.identity.name} foi para o lado ${side}.` }));
+    this.training.restart();
+  }
+
+  private spawnTrainingBot(slot: BotSlot): void {
+    const botName = createBotName(this.botNameRng, this.reservedBotNames, [...this.clients.values()].map((c) => c.identity.name));
+    const bot = new BotClient(this.botHost(), this.botRng, this.now, botSkill(this.training?.level ?? 3), slot.role);
+    const res = this.join(bot, { name: botName, accountId: null }, { bot: true, team: slot.team });
+    if (!res.ok) return bot.close();
+    this.botRoles.set(res.pid, slot.role);
+    bot.attach(res.pid);
+  }
+
+  /** Começo da tentativa (`fresh`: renasce inteiro, sem bandeira) ou segurar no lugar na contagem. */
+  private placeTrainee(pid: number, pos: Position, safeUntil: number, fresh: boolean): void {
+    const pl = this.world.players[pid];
+    if (!pl || pl.awaitingClientReadies > 0) return;
+    if (fresh) {
+      this.sim.dropFlagIfAny(pid);
+      this.sim.respawnPlayer(pid);
+    } else if (pl.dead) return;
+    pl.pos = new Position(pos.roomX, pos.roomY, pos.x, pos.y);
+    pl.vel = new Vec(0, 0);
+    pl.nextShootFrame = pl.startTakeDamageFrame = Math.max(safeUntil, fresh ? pl.startTakeDamageFrame : 0);
+    if (fresh) this.screenChanged(pid);
+  }
+
   private botHost(): BotHost {
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- o bot guarda a sala
     const room = this;
@@ -860,7 +1046,7 @@ export class Room {
   /** `init_bots` (RN-BOT-01): tira os bots que sobram ou completa até o necessário. */
   private checkBots(): void {
     this.checkBotsPending = false;
-    if (this.mode === 'ranked') return;
+    if (this.mode === 'ranked' || this.training) return; // no treino, os bots são os da tentativa
     const s = this.settings.server;
     const bots = this.bots().length;
     const needed = neededBots({ humans: this.clients.size - bots, maxPlayers: this.world.maxPlayers, minBots: s.minBots, botsFill: s.botsFill, balanceBot: s.balanceBot, extraBots: this.extraBots, botTest: this.options.botTest ?? false });
@@ -980,6 +1166,7 @@ export class Room {
 
   /** `server_think_after_broadcast`: pedidos vencidos e bot que equilibra os times. */
   private thinkAfterBroadcast(): void {
+    if (this.training) return; // no treino os lados são fixos (RN-TRN-05)
     for (const [pid, c] of [...this.clients]) if (c.wantChangeTeams && c.teamChangeTime < this.clock) this.checkPlayerChangeTeams(pid);
     const bot = botToRebalance(this.slots(), this.world.maxPlayers);
     const c = bot === -1 ? undefined : this.clients.get(bot);
@@ -1083,6 +1270,11 @@ export class Room {
           break;
         case 'changeTeam':
           if (this.lobby) break; // no lobby Ranked a troca de lado é pelo `lobbySide` (OG-253)
+          if (this.training) {
+            // no treino, a tecla de trocar de time troca de lado (RN-TRN-05): treino ⇄ oposto
+            if (m.on) this.trainingSwitchSide(pid);
+            break;
+          }
           if (!m.on) client.wantChangeTeams = false;
           else if (!client.wantChangeTeams) {
             client.wantChangeTeams = true;
@@ -1173,6 +1365,12 @@ export class Room {
       }
     }
     if (this.draining && ![...this.clients.values()].some((c) => !c.bot)) this.finished = true;
+    if (this.training) {
+      // sala de treino: os bots nunca saem sozinhos; sem humanos (depois do primeiro), a sala fecha
+      const humans = [...this.clients.values()].some((c) => !c.bot);
+      if (humans) this.trainingHadHumans = true;
+      else if (this.trainingHadHumans) this.finished = true;
+    }
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       if (this.draining) {
@@ -1205,6 +1403,11 @@ export class Room {
     if (running) {
       world.time = world.frame / 10; // relógio determinístico (D-09)
       this.sim.simulateFrame();
+      if (this.training) {
+        // os eventos do frame chegam no meio dele (o morto ainda não está morto): o juiz vê o fim do frame
+        for (const ev of this.trainingEvents.splice(0)) this.training.event(ev);
+        this.training.tick();
+      }
       // a partida acabou neste frame: os contadores finais já saíram antes do `gameOver` e os do
       // mapa seguinte (zerados pelo `changeMap`) só saem no `startGame` (OG-379)
       if (this.gameOverUntil === null) {
@@ -1608,6 +1811,7 @@ export class Room {
   /** `start_recording`: replay novo a cada início de partida, com o estado inicial de um espectador. */
   /** Grava sempre: o stream serve aos espectadores ao vivo; o arquivo só fica se houver destino. */
   private startRecording(): void {
+    if (this.options.training) return; // treino não grava replay nem alimenta espectadores (OG-498)
     const init = this.welcomeMessages(-1).filter((m) => m.type !== 'welcome');
     const file = this.mapFile(this.mapIndex);
     const mapText = this.options.generatedMaps?.text(file) ?? this.options.mapText?.(file);
@@ -1700,6 +1904,7 @@ export class Room {
 
   /** Ação de bandeira no registro do jogo Ranked (OG-362). */
   private flagEvent(kind: 'take' | 'drop' | 'return' | 'capture', pid: number, flag: EventFlag): void {
+    if (this.options.training) return; // treino não gera relatório (RN-TRN-01)
     this.events.flag(this.world.mapTime(), kind, pid, flag);
   }
 
@@ -1824,6 +2029,7 @@ export class Room {
 
   /** Manda o resultado à API: estatísticas sempre; ranqueada só no Ranked com os mínimos. */
   private report(result: MatchResult): void {
+    if (this.options.training) return; // treino não conta para nada (RN-TRN-01, OG-498)
     const endedAt = this.wallClock();
     const startedAt = this.matchStartedAt;
     this.matchCount++;
@@ -2190,6 +2396,12 @@ export class Room {
   drain(): void {
     if (this.draining) return;
     this.draining = true;
+    if (this.training) {
+      // o treino não tem fim de partida para esperar: fecha já (nada a perder, RN-TRN-01)
+      this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close now.' }));
+      this.finished = true;
+      return;
+    }
     this.broadcast(message('text', { kind: 'warning', from: 255, text: 'The server is restarting: this room will close at the end of the current match.' }));
   }
 

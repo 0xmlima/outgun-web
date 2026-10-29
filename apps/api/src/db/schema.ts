@@ -3,7 +3,7 @@
 // duas descrições têm as mesmas colunas.
 import { sql } from 'drizzle-orm';
 import type { ClanEmblem, ClanTagStyle } from '@outgun/protocol';
-import type { BotNameEntry, RotationKey } from '@outgun/settings';
+import type { BotNameEntry, RotationKey, TrainingOptions } from '@outgun/settings';
 import {
   bigserial,
   boolean,
@@ -156,6 +156,8 @@ export const rooms = pgTable('rooms', {
   /** Bots escolhidos pelo dono da sala privada Casual (OG-289): quantidade e nível (0 = variável). */
   bots: smallint('bots'),
   botLevel: smallint('bot_level'),
+  /** Sala de treino (OG-492, D-86/D-87): modo e opções; nula nas outras salas. */
+  training: jsonb('training').$type<TrainingOptions>(),
   createdAt: tstz('created_at').notNull().defaultNow(),
 }, (t) => [index('rooms_server_idx').on(t.serverId)]);
 

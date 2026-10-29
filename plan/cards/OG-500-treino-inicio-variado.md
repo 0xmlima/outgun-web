@@ -6,8 +6,8 @@
 | Tipo | Feature |
 | Prioridade | Should |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S55 |
+| Status | Concluído |
 | Dependências | OG-493, OG-494, OG-495, OG-496 |
 | Regras de negócio | RN-TRN-07, D-86 |
 | Skills | `outgun-card-workflow` |
@@ -25,6 +25,9 @@ Como jogador, quero que cada tentativa comece de um jeito um pouco diferente, pa
 - Sorteio no servidor com o `Rng` da sala (nada de `Math.random` no sim).
 
 ## Critérios de aceite
-- [ ] Tentativas seguidas começam de posições diferentes; com "mesmo início", iguais.
+- [x] Tentativas seguidas começam de posições diferentes; com "mesmo início", iguais.
 
 ## Notas de implementação
+- O sorteio é do juiz (`GlibcRand` da sala, nada de `Math.random`); "mesmo início" recomeça o sorteio igual a cada tentativa. Varia: sala de entrada no Ataque (vizinha da base inimiga), direção da onda na Defesa (sala a 2 da base), sala dos perseguidores na Fuga, sala de saída e escolta na Captura, e os pontos de todos.
+- "Qual base": os cinco mapas de treino têm uma bandeira por time, então não há o que sortear; fica pronto para mapas com mais de uma se a lista crescer.
+- Achado do PO (2026-10-29): na Defesa o início se repetia. O ponto sorteado era o "melhor de 60" puxado para a bandeira e caía quase sempre no mesmo lugar; agora é o primeiro ponto livre a 60 px dos outros. Defesa: você e aliados em qualquer ponto da base, onda de uma sala a 1 ou 2 da base. Fuga e Captura: quem começa com a bandeira encosta nela no 1º frame e vai para um ponto sorteado; perseguidores de uma sala a 1 ou 2 da base inimiga; escolta perto do portador.

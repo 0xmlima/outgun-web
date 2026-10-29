@@ -930,6 +930,26 @@ export const MESSAGES = {
     'Emblema do clã do lado (`ClanEmblem` e as cores do clã), logo depois do `teamIdentity` que fez o lado virar o clã; o cliente desenha o emblema no chão das bases. Não vem para clã sem emblema gravado.',
     { team: u8, frame: str(16), symbol: str(16), fillet: bool, inverted: bool, primary: str(7), secondary: str(7) },
   ),
+  // --- modos de treino (OG-490, D-86): sem equivalente no original ---
+  trainingState: msg(
+    134,
+    's2c',
+    'event',
+    '— (web, OG-490)',
+    'Tentativa da sala de treino: fase (contagem, em jogo ou resultado), modo, segundos da contagem, resultado e motivo do fim, duração da tentativa (décimos de s), sucessos e tentativas da sessão, nível dos bots e se ele mudou (dificuldade progressiva, OG-499).',
+    {
+      phase: enumOf('countdown', 'playing', 'result'),
+      mode: enumOf('attack', 'defense', 'escape', 'capture'),
+      seconds: u8,
+      result: enumOf('none', 'success', 'fail'),
+      reason: enumOf('none', 'died', 'defendersDown', 'flagOut', 'attackersDown', 'captured', 'delivered', 'returned', 'timeout'),
+      tenths: u16,
+      successes: u16,
+      attempts: u16,
+      level: u8,
+      levelChange: enumOf('none', 'up', 'down'),
+    },
+  ),
   // --- números de jogador (OG-410, D-79): sem equivalente no original ---
   playerNumber: msg(132, 's2c', 'event', '— (web, OG-410)', 'Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.', {
     pid,

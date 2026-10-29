@@ -75,6 +75,11 @@ export interface ServerHooks {
   screenSample?(pid: number, sample: SampleName): void;
   /** Bandeiras de um time (2 = selvagens) mudaram: pegada, largada, devolvida (`ctf_net_flag_status`). */
   flagsChanged?(team: number): void;
+  /**
+   * O jogador pode pegar esta bandeira? Sem o gancho, sempre (todas as salas, menos a de treino: lá só
+   * bots com papel de atacar ou levar pegam bandeira, D-87).
+   */
+  mayTakeFlag?(pid: number, flagTeam: number): boolean;
 }
 
 export class ServerSim {
@@ -617,7 +622,7 @@ export class ServerSim {
         if (flag.status === 'carried' || !this.checkFlagTouch(flag, pl)) continue;
         touchesFlag = true;
         // quem acabou de largar não pega de volta até sair de cima
-        if (!pl.droppedFlag && !pl.dropKey) {
+        if (!pl.droppedFlag && !pl.dropKey && (this.hooks.mayTakeFlag?.(pl.pid, flagTeam) ?? true)) {
           this.playerStealsFlag(pl.pid, flagTeam, f);
           break; // uma bandeira só
         }

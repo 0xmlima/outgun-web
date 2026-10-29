@@ -4,7 +4,15 @@
 // agora" por modo, link de convite e criação de sala privada Casual. Visual v2 (OG-203): abas por modo,
 // filtros e tabela de salas; convite e criação de sala em formulários do design system. A aba Ranked é a
 // lista de salas de lobby (OG-255, `ranked-rooms.tsx`): sem "Jogar agora" no Ranked.
-import { PRESETS } from '@outgun/settings';
+import {
+  clampTraining,
+  defaultTraining,
+  PRESETS,
+  TRAINING_LIMITS,
+  TRAINING_MAPS,
+  TRAINING_MODES_LIST,
+  type TrainingModeId,
+} from '@outgun/settings';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { loadManifest } from '../assets.js';
@@ -41,18 +49,52 @@ export interface RoomSummary {
   region: string | null;
   /** Espectador ao vivo (OG-092); null para sala com senha ou fora do ar. */
   spectateUrl?: string | null;
+  /** Sala de treino (OG-492): o modo; null nas outras. */
+  training?: TrainingModeId | null;
 }
+
+/** Nome do modo de treino (OG-492). */
+export const TRAINING_MODE_NAMES: Record<TrainingModeId, string> = {
+  attack: 'Attack',
+  defense: 'Defense',
+  escape: 'Escape',
+  capture: 'Capture',
+};
+/** O que os bots do outro lado são em cada modo (rótulo da quantidade). */
+const TRAINING_BOTS_LABEL: Record<TrainingModeId, string> = {
+  attack: 'Defenders',
+  defense: 'Attackers',
+  escape: 'Chasers',
+  capture: 'Maximum escort',
+};
+const TRAINING_HINT: Record<TrainingModeId, string> = {
+  attack: 'Get into the defended base and leave the base room with the flag. The bots only defend.',
+  defense: 'Hold your flag against a wave of attackers that leave together.',
+  escape:
+    'Start with the enemy flag in their base and capture it at yours, with chasers on your tail.',
+  capture: 'A bot takes your flag home, with an escort: catch the carrier and return the flag.',
+};
+const TRAINING_PREFIX = 'training:';
 
 /** Intervalo da atualização da lista (critério: ≤ 5 s). */
 export const REFRESH_MS = 3000;
 /** Presets Casual do código, até a lista da API chegar (ela traz também os do painel, OG-365). */
-const CASUAL_PRESETS = PRESETS.filter((p) => p.mode === 'casual').map(({ id, description }) => ({ id, description }));
+const CASUAL_PRESETS = PRESETS.filter((p) => p.mode === 'casual').map(({ id, description }) => ({
+  id,
+  description,
+}));
 
 /** Filtros do lobby: busca por nome ou mapa e esconder as lotadas. */
-export function filterRooms(rooms: readonly RoomSummary[], search: string, hideFull: boolean): RoomSummary[] {
+export function filterRooms(
+  rooms: readonly RoomSummary[],
+  search: string,
+  hideFull: boolean,
+): RoomSummary[] {
   const q = search.trim().toLowerCase();
   return rooms.filter(
-    (r) => (!hideFull || !isFull(r)) && (!q || r.name.toLowerCase().includes(q) || (r.map ?? '').toLowerCase().includes(q)),
+    (r) =>
+      (!hideFull || !isFull(r)) &&
+      (!q || r.name.toLowerCase().includes(q) || (r.map ?? '').toLowerCase().includes(q)),
   );
 }
 
@@ -62,7 +104,9 @@ const isFull = (r: RoomSummary) => r.online && r.humans >= r.maxPlayers;
 /** Ordem da lista: com gente primeiro (mais cheia antes), depois por nome; lotadas no fim. */
 export function sortRooms(rooms: readonly RoomSummary[]): RoomSummary[] {
   const full = (r: RoomSummary) => (isFull(r) ? 1 : 0);
-  return [...rooms].sort((a, b) => full(a) - full(b) || b.players - a.players || a.name.localeCompare(b.name));
+  return [...rooms].sort(
+    (a, b) => full(a) - full(b) || b.players - a.players || a.name.localeCompare(b.name),
+  );
 }
 
 /** Ping de cada região (ms), medido com `GET <pingUrl>` (o /health do game server). */
@@ -72,7 +116,9 @@ function usePings(): ReadonlyMap<string, number> {
     let alive = true;
     const measure = async () => {
       try {
-        const { regions } = await api<{ regions: { region: string; pingUrl: string }[] }>('/regions');
+        const { regions } = await api<{ regions: { region: string; pingUrl: string }[] }>(
+          '/regions',
+        );
         const result = new Map<string, number>();
         for (const { region, pingUrl } of regions) {
           let best = Infinity;
@@ -109,7 +155,9 @@ function bestRegion(pings: ReadonlyMap<string, number>): string | undefined {
 
 /** "Jogar agora": a API escolhe a sala do modo; o jogo pede o próprio ticket ao entrar. */
 export async function quickJoin(mode: Mode, name: string, region?: string): Promise<string> {
-  const r = await api<{ roomId: string }>('/rooms/quick-join', { body: { mode, name, device: deviceId(), ...(region ? { region } : {}) } });
+  const r = await api<{ roomId: string }>('/rooms/quick-join', {
+    body: { mode, name, device: deviceId(), ...(region ? { region } : {}) },
+  });
   return r.roomId;
 }
 
@@ -120,7 +168,12 @@ function NameField() {
   return user ? (
     <TextField label={t('Name')} value={user.username} onChange={() => {}} disabled />
   ) : (
-    <TextField label={t('Name')} value={prefs.playerName} onChange={(v) => setPrefs({ playerName: v })} maxLength={15} />
+    <TextField
+      label={t('Name')}
+      value={prefs.playerName}
+      onChange={(v) => setPrefs({ playerName: v })}
+      maxLength={15}
+    />
   );
 }
 
@@ -131,7 +184,9 @@ export function LobbyScreen() {
   const pings = usePings();
   // "Ranked" abre a lista das salas de lobby (OG-255); a volta da criação de sala Ranked cai nela
   const location = useLocation();
-  const [mode, setMode] = useState<Mode>(() => ((location.state as { mode?: Mode } | null)?.mode === 'ranked' ? 'ranked' : 'casual'));
+  const [mode, setMode] = useState<Mode>(() =>
+    (location.state as { mode?: Mode } | null)?.mode === 'ranked' ? 'ranked' : 'casual',
+  );
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -172,7 +227,11 @@ export function LobbyScreen() {
     if (room.hasPassword) return void navigate(`/rooms/${room.id}`);
     void navigate(`/play?sala=${encodeURIComponent(room.id)}`);
   };
-  const playNow = () => void quickJoin('casual', name, bestRegion(pings)).then((id) => void navigate(`/play?sala=${encodeURIComponent(id)}`), fail);
+  const playNow = () =>
+    void quickJoin('casual', name, bestRegion(pings)).then(
+      (id) => void navigate(`/play?sala=${encodeURIComponent(id)}`),
+      fail,
+    );
   const shown = filterRooms(rooms ?? [], search, hideFull);
 
   return (
@@ -190,7 +249,9 @@ export function LobbyScreen() {
           <RankedRoomsPanel pings={pings} />
         ) : (
           <div className="ui-stack lobby">
-            <p className="ui-muted">{t('Casual: power-ups on, guests welcome, does not count for the ranking.')}</p>
+            <p className="ui-muted">
+              {t('Casual: power-ups on, guests welcome, does not count for the ranking.')}
+            </p>
             <div className="lobby-actions">
               {!user && (
                 <div className="lobby-name">
@@ -207,7 +268,14 @@ export function LobbyScreen() {
             </div>
             {error && <FormMessageLine message={{ text: error, error: true }} />}
             <div className="lobby-filters">
-              <TextField label={t('Search rooms')} type="search" value={search} onChange={setSearch} placeholder={t('Room or map')} maxLength={40} />
+              <TextField
+                label={t('Search rooms')}
+                type="search"
+                value={search}
+                onChange={setSearch}
+                placeholder={t('Room or map')}
+                maxLength={40}
+              />
               <ToggleField label={t('Hide full rooms')} checked={hideFull} onChange={setHideFull} />
             </div>
             <Table
@@ -223,15 +291,36 @@ export function LobbyScreen() {
                   cell: (r) => (
                     <span className="lobby-room">
                       {r.name}
+                      {r.training && (
+                        <Badge tone="accent">
+                          {t('Training - $1', t(TRAINING_MODE_NAMES[r.training]))}
+                        </Badge>
+                      )}
                       {r.hasPassword && <Badge>{t('Password')}</Badge>}
                       {isFull(r) && <Badge tone="warning">{t('Full')}</Badge>}
                     </span>
                   ),
                 },
                 { key: 'map', header: t('Map'), cell: (r) => r.map ?? '—' },
-                { key: 'players', header: t('Players'), cell: (r) => `${r.players}/${r.maxPlayers}`, align: 'end' },
-                { key: 'ping', header: t('Ping'), cell: (r) => (r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—'), align: 'end' },
-                { key: 'watch', header: t('Watch'), cell: (r) => <WatchButton room={r} />, align: 'end' },
+                {
+                  key: 'players',
+                  header: t('Players'),
+                  cell: (r) => `${r.players}/${r.maxPlayers}`,
+                  align: 'end',
+                },
+                {
+                  key: 'ping',
+                  header: t('Ping'),
+                  cell: (r) =>
+                    r.region && pings.has(r.region) ? `${pings.get(r.region)} ms` : '—',
+                  align: 'end',
+                },
+                {
+                  key: 'watch',
+                  header: t('Watch'),
+                  cell: (r) => <WatchButton room={r} />,
+                  align: 'end',
+                },
               ]}
             />
           </div>
@@ -264,7 +353,10 @@ export function JoinRoomScreen() {
   if (room === null) return <Navigate to="/rooms" replace />;
   const play = () => {
     if (room.mode === 'ranked' && !user) return void navigate('/login');
-    void navigate(`/play?sala=${encodeURIComponent(room.id)}`, room.hasPassword ? { state: { password } } : undefined);
+    void navigate(
+      `/play?sala=${encodeURIComponent(room.id)}`,
+      room.hasPassword ? { state: { password } } : undefined,
+    );
   };
   const copy = () => void copyText(`${location.origin}/rooms/${room.id}`).then(setCopied);
   return (
@@ -282,15 +374,36 @@ export function JoinRoomScreen() {
             <Button type="submit" variant="primary">
               {t('Join')}
             </Button>
-            {room.spectateUrl && <Button onClick={() => void navigate(`/spectate?src=${encodeURIComponent(room.spectateUrl!)}`)}>{t('Watch live')}</Button>}
+            {room.spectateUrl && (
+              <Button
+                onClick={() =>
+                  void navigate(`/spectate?src=${encodeURIComponent(room.spectateUrl!)}`)
+                }
+              >
+                {t('Watch live')}
+              </Button>
+            )}
             <Button variant="ghost" onClick={copy}>
-              {copied === null ? t('Copy invite link') : copied ? t('Link copied') : t('Could not copy')}
+              {copied === null
+                ? t('Copy invite link')
+                : copied
+                  ? t('Link copied')
+                  : t('Could not copy')}
             </Button>
           </>
         }
       >
         <NameField />
-        {room.hasPassword && <TextField label={t('Password')} type="password" value={password} onChange={setPassword} maxLength={15} autoFocus />}
+        {room.hasPassword && (
+          <TextField
+            label={t('Password')}
+            type="password"
+            value={password}
+            onChange={setPassword}
+            maxLength={15}
+            autoFocus
+          />
+        )}
       </Form>
     </Page>
   );
@@ -313,8 +426,20 @@ export function CreateRoomScreen() {
   const [allMaps, setAllMaps] = useState<readonly string[]>([]);
   // miniaturas só com a lista aberta (cada uma lê o mapa)
   const [mapsOpen, setMapsOpen] = useState(false);
-  const [presets, setPresets] = useState<readonly { id: string; description: string }[]>(CASUAL_PRESETS);
+  const [presets, setPresets] =
+    useState<readonly { id: string; description: string }[]>(CASUAL_PRESETS);
   const [error, setError] = useState<string | null>(null);
+  // presets de treino (OG-492, D-86/D-87): mapas de treino, quantidades do modo, nível, power-ups e início
+  const trainingMode = preset.startsWith(TRAINING_PREFIX)
+    ? (preset.slice(TRAINING_PREFIX.length) as TrainingModeId)
+    : null;
+  const [training, setTraining] = useState(() => defaultTraining('attack'));
+  const [trainingMap, setTrainingMap] = useState(TRAINING_MAPS[0]!);
+  const pickPreset = (v: string) => {
+    setPreset(v);
+    if (v.startsWith(TRAINING_PREFIX))
+      setTraining(defaultTraining(v.slice(TRAINING_PREFIX.length) as TrainingModeId));
+  };
   useEffect(() => {
     // presets do jogo e do painel (OG-365); mapas só da rotação Casual do painel, se houver (D-69)
     api<{ presets: { id: string; description: string }[] }>('/presets').then(
@@ -322,28 +447,77 @@ export function CreateRoomScreen() {
       () => {},
     );
     // sem rotação: os mapas do jogo + os publicados no painel (OG-377)
-    void Promise.all([api<{ maps: string[] | null; published?: string[] }>('/rotation').catch(() => ({ maps: null, published: [] })), loadManifest()]).then(([rotation, m]) =>
+    void Promise.all([
+      api<{ maps: string[] | null; published?: string[] }>('/rotation').catch(() => ({
+        maps: null,
+        published: [],
+      })),
+      loadManifest(),
+    ]).then(([rotation, m]) =>
       setAllMaps(
-        rotation.maps ?? [...new Set([...(m ? Object.entries(m.maps).filter(([, v]) => v.dir === 'maps').map(([k]) => k) : []), ...(rotation.published ?? [])])],
+        rotation.maps ?? [
+          ...new Set([
+            ...(m
+              ? Object.entries(m.maps)
+                  .filter(([, v]) => v.dir === 'maps')
+                  .map(([k]) => k)
+              : []),
+            ...(rotation.published ?? []),
+          ]),
+        ],
       ),
     );
   }, []);
   const duel = preset === 'duel';
   const slots = duel ? 2 : maxPlayers;
-  const mapsLabel = useMemo(() => (maps.length === 0 ? t('Official rotation') : maps.length === 1 ? maps[0]! : t('$1 maps', String(maps.length))), [maps, t]);
+  const mapsLabel = useMemo(
+    () =>
+      maps.length === 0
+        ? t('Official rotation')
+        : maps.length === 1
+          ? maps[0]!
+          : t('$1 maps', String(maps.length)),
+    [maps, t],
+  );
   if (user === null) return <Navigate to="/login" replace />;
 
   const create = () => {
     if (!name.trim()) return;
     setError(null);
-    api<{ room: RoomSummary; inviteUrl: string }>('/rooms', {
-      body: { name: name.trim(), preset, ...(password ? { password } : {}), ...(duel ? {} : { maxPlayers }), ...(maps.length ? { maps } : {}), ...(customBots ? { bots: { count: Math.min(bots, slots - 1), level: botLevel } } : {}) },
-    }).then(
-      ({ room }) => void navigate(`/play?sala=${encodeURIComponent(room.id)}`, password ? { state: { password } } : undefined),
-      (e: unknown) => setError(e instanceof ApiError && e.code === 'rate_limited' ? t('Too many rooms. Try again later.') : t('Could not create the room.')),
+    const body = trainingMode
+      ? {
+          name: name.trim(),
+          preset: 'classic',
+          ...(password ? { password } : {}),
+          maps: [trainingMap],
+          training: clampTraining({ ...training, mode: trainingMode }),
+        }
+      : {
+          name: name.trim(),
+          preset,
+          ...(password ? { password } : {}),
+          ...(duel ? {} : { maxPlayers }),
+          ...(maps.length ? { maps } : {}),
+          ...(customBots ? { bots: { count: Math.min(bots, slots - 1), level: botLevel } } : {}),
+        };
+    api<{ room: RoomSummary; inviteUrl: string }>('/rooms', { body }).then(
+      ({ room }) =>
+        void navigate(
+          `/play?sala=${encodeURIComponent(room.id)}`,
+          password ? { state: { password } } : undefined,
+        ),
+      (e: unknown) =>
+        setError(
+          e instanceof ApiError && e.code === 'rate_limited'
+            ? t('Too many rooms. Try again later.')
+            : e instanceof ApiError && e.code === 'training_room_open'
+              ? t('You already have a training room open. Leave it before creating another.')
+              : t('Could not create the room.'),
+        ),
     );
   };
-  const toggleMap = (m: string) => setMaps((list) => (list.includes(m) ? list.filter((x) => x !== m) : [...list, m]));
+  const toggleMap = (m: string) =>
+    setMaps((list) => (list.includes(m) ? list.filter((x) => x !== m) : [...list, m]));
   return (
     <Page title={t('Create private room')} onBack={() => void navigate('/rooms')} width="narrow">
       <Form
@@ -355,48 +529,153 @@ export function CreateRoomScreen() {
           </Button>
         }
       >
-        <TextField label={t('Room name')} value={name} onChange={setName} maxLength={40} autoFocus />
+        <TextField
+          label={t('Room name')}
+          value={name}
+          onChange={setName}
+          maxLength={40}
+          autoFocus
+        />
         <ChoiceField
           label={t('Rules')}
           value={preset}
-          onChange={setPreset}
-          // nome curto do preset: o começo da descrição ("Clássico: ...")
-          options={presets.map((p) => ({ value: p.id, label: p.description.split(':')[0] || p.id }))}
-          hint={presets.find((p) => p.id === preset)?.description}
+          onChange={pickPreset}
+          // nome curto do preset: o começo da descrição ("Clássico: ..."); depois o grupo Treino
+          options={[
+            ...presets.map((p) => ({ value: p.id, label: p.description.split(':')[0] || p.id })),
+            ...TRAINING_MODES_LIST.map((m) => ({
+              value: `${TRAINING_PREFIX}${m}`,
+              label: t('Training - $1', t(TRAINING_MODE_NAMES[m])),
+            })),
+          ]}
+          hint={
+            trainingMode
+              ? t(TRAINING_HINT[trainingMode])
+              : presets.find((p) => p.id === preset)?.description
+          }
         />
-        <TextField label={t('Password (optional)')} type="password" autoComplete="new-password" value={password} onChange={setPassword} maxLength={15} />
-        <SliderField label={t('Players')} value={duel ? 2 : maxPlayers} min={2} max={32} step={2} disabled={duel} onChange={setMaxPlayers} />
-        <ToggleField label={t('Choose the bots')} checked={customBots} onChange={setCustomBots} hint={customBots ? undefined : t('The rules decide the bots.')} />
-        <SliderField label={t('Number of bots')} value={Math.min(bots, slots - 1)} min={0} max={slots - 1} disabled={!customBots} onChange={setBots} />
-        <ChoiceField
-          label={t('Bot level')}
-          value={String(botLevel)}
-          disabled={!customBots}
-          options={BOT_LEVEL_CHOICES.map(([value, text]) => ({ value: String(value), label: t(text) }))}
-          onChange={(v) => setBotLevel(Number(v))}
+        <TextField
+          label={t('Password (optional)')}
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={setPassword}
+          maxLength={15}
         />
+        {trainingMode ? (
+          <>
+            <ChoiceField
+              label={t('Map')}
+              value={trainingMap}
+              onChange={setTrainingMap}
+              options={TRAINING_MAPS.map((m) => ({ value: m, label: m }))}
+            />
+            <SliderField
+              label={t(TRAINING_BOTS_LABEL[trainingMode])}
+              value={training.bots}
+              min={TRAINING_LIMITS[trainingMode].bots[0]}
+              max={TRAINING_LIMITS[trainingMode].bots[1]}
+              onChange={(v) => setTraining({ ...training, bots: v })}
+            />
+            {trainingMode === 'defense' && (
+              <SliderField
+                label={t('Allied bots')}
+                value={training.allies}
+                min={0}
+                max={TRAINING_LIMITS.defense.allies[1]}
+                onChange={(v) => setTraining({ ...training, allies: v })}
+              />
+            )}
+            <ChoiceField
+              label={t('Bot level')}
+              value={String(training.level)}
+              options={[
+                ...BOT_LEVEL_CHOICES.filter(([v]) => v > 0).map(([value, text]) => ({
+                  value: String(value),
+                  label: t(text),
+                })),
+                { value: '0', label: t('progressive (goes up as you succeed)') },
+              ]}
+              onChange={(v) => setTraining({ ...training, level: Number(v) })}
+            />
+            <ToggleField
+              label={t('Power-ups')}
+              checked={training.powerups}
+              onChange={(v) => setTraining({ ...training, powerups: v })}
+            />
+            <ToggleField
+              label={t('Same start every attempt')}
+              checked={training.sameStart}
+              onChange={(v) => setTraining({ ...training, sameStart: v })}
+              hint={
+                training.sameStart
+                  ? t('Good for drilling one specific play.')
+                  : t('Each attempt starts a little differently.')
+              }
+            />
+          </>
+        ) : (
+          <>
+            <SliderField
+              label={t('Players')}
+              value={duel ? 2 : maxPlayers}
+              min={2}
+              max={32}
+              step={2}
+              disabled={duel}
+              onChange={setMaxPlayers}
+            />
+            <ToggleField
+              label={t('Choose the bots')}
+              checked={customBots}
+              onChange={setCustomBots}
+              hint={customBots ? undefined : t('The rules decide the bots.')}
+            />
+            <SliderField
+              label={t('Number of bots')}
+              value={Math.min(bots, slots - 1)}
+              min={0}
+              max={slots - 1}
+              disabled={!customBots}
+              onChange={setBots}
+            />
+            <ChoiceField
+              label={t('Bot level')}
+              value={String(botLevel)}
+              disabled={!customBots}
+              options={BOT_LEVEL_CHOICES.map(([value, text]) => ({
+                value: String(value),
+                label: t(text),
+              }))}
+              onChange={(v) => setBotLevel(Number(v))}
+            />
+          </>
+        )}
       </Form>
-      <details className="lobby-maps" onToggle={(e) => setMapsOpen(e.currentTarget.open)}>
-        <summary>
-          {t('Maps')}: {mapsLabel}
-        </summary>
-        <div className="ui-row">
-          <Button variant="ghost" onClick={() => setMaps([])} disabled={maps.length === 0}>
-            {t('Official rotation')}
-          </Button>
-        </div>
-        <ul>
-          {allMaps.map((m) => (
-            <li key={m}>
-              <label>
-                <input type="checkbox" checked={maps.includes(m)} onChange={() => toggleMap(m)} />
-                {mapsOpen && <MapPreview name={m} label={m} thumb />}
-                {m}
-              </label>
-            </li>
-          ))}
-        </ul>
-      </details>
+      {trainingMode && <MapPreview name={trainingMap} label={trainingMap} thumb />}
+      {!trainingMode && (
+        <details className="lobby-maps" onToggle={(e) => setMapsOpen(e.currentTarget.open)}>
+          <summary>
+            {t('Maps')}: {mapsLabel}
+          </summary>
+          <div className="ui-row">
+            <Button variant="ghost" onClick={() => setMaps([])} disabled={maps.length === 0}>
+              {t('Official rotation')}
+            </Button>
+          </div>
+          <ul>
+            {allMaps.map((m) => (
+              <li key={m}>
+                <label>
+                  <input type="checkbox" checked={maps.includes(m)} onChange={() => toggleMap(m)} />
+                  {mapsOpen && <MapPreview name={m} label={m} thumb />}
+                  {m}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {error && <FormMessageLine message={{ text: error, error: true }} />}
     </Page>
   );

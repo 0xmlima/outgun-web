@@ -172,6 +172,8 @@ export class ClientSession {
   lobby: MessageOf<'lobbyState'> | null = null;
   /** Pausa do jogo Ranked (OG-260): último `pauseState`; null antes do primeiro (salas sem pausa). */
   pause: MessageOf<'pauseState'> | null = null;
+  /** Sala de treino (OG-490): último `trainingState`; null fora do treino. */
+  training: MessageOf<'trainingState'> | null = null;
   mapVoteCounts: number[] = [];
   currentMapIndex = -1;
   /** Preset da sala (`serverSettings`). */
@@ -441,6 +443,9 @@ export class ClientSession {
         break;
       case 'pauseState':
         this.pause = m;
+        break;
+      case 'trainingState':
+        this.training = m;
         break;
       case 'currentMap':
         this.currentMapIndex = m.mapIndex;
