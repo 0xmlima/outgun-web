@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-522 |
 | Regras de negócio | RN-CUP-01, RN-CUP-06, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -25,9 +25,10 @@ Como jogador, quero acompanhar a OutCup: inscrição, chave, próximos jogos e c
 - Funciona no celular (D-80, RN-UI-08).
 
 ## Critérios de aceite
-- [ ] Página mostra inscrição, chave em andamento e edição encerrada, no computador e a 360 px.
+- [x] Página mostra inscrição, chave em andamento e edição encerrada, no computador e a 360 px.
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
+- `/outcup` e `/outcup/:edicao` (`screens/outcup.tsx`): inscrição, calendário, chave, minha dupla, arquivo; destaque na tela inicial (`OutCupBanner`), link no topo, seção no hall da fama; liberada no celular (portal, D-80). Atualiza ao vivo (tópico `cup`).

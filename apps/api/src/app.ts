@@ -34,6 +34,8 @@ import { roomRoutes } from './routes/rooms.js';
 import { generateSigningKey, parseSigningKeys, type SigningKey } from '@outgun/tickets';
 import { DURATION_BUCKETS, ErrorReporter, loggerOptions, metricsAuthorized, PROMETHEUS_CONTENT_TYPE, Registry, registerProcessMetrics, requestId } from '@outgun/observability';
 import { SecurityWatch } from './security.js';
+import { cupRoutes } from './routes/cup.js';
+import { cupTick } from './cup.js';
 
 /** Versão do jogo (package.json, igual em todo o monorepo: tools/dev/version.mjs). */
 export const API_VERSION: string = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
@@ -120,6 +122,8 @@ declare module 'fastify' {
     metrics: Registry;
     /** Eventos de segurança e alertas (OG-313), para o vigia do main.ts. */
     security: SecurityWatch;
+    /** Um passo do relógio da OutCup (OG-520), para o main.ts e os testes. */
+    cupTick: (now?: Date) => Promise<void>;
   }
   interface FastifyRequest {
     /** Corpo cru (JSON), usado na verificação HMAC das rotas internas. */
@@ -144,6 +148,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     issues: deps.issues !== undefined ? deps.issues : deps.config.githubIssuesToken ? new GitHubIssues(deps.config.githubIssuesToken, deps.config.githubIssuesRepo) : null,
   };
   app.decorate('security', services.security);
+  // relógio da OutCup (OG-520): o main chama a cada minuto
+  app.decorate('cupTick', (now?: Date) => cupTick({ db: deps.database.db, mailer: services.mailer, webUrl: deps.config.webUrl, devRoomWsUrl: deps.config.devRoomWsUrl, log: (err, msg) => app.log.error({ err }, msg) }, now));
 
   observe(app, deps);
   await app.register(cookie);
@@ -206,6 +212,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await app.register(playerRoutes(deps, services));
   await app.register(socialRoutes(deps, services));
   await app.register(clanRoutes(deps, services));
+  await app.register(cupRoutes(deps, services));
   await app.register(notificationRoutes(deps, services));
   await app.register(liveRoutes(deps, services));
   await app.register(nameRoutes(deps));
@@ -215,7 +222,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   if (deps.config.devRoutes && services.mailer instanceof MemoryMailer) {
     await app.register(devRoutes(services.mailer), { prefix: '/dev' });
   }
-  await app.register(internalRoutes(deps), { prefix: '/internal' });
+  await app.register(internalRoutes(deps, services), { prefix: '/internal' });
   await app.register(adminRoutes(deps, services), { prefix: '/admin' });
   await app.register(feedbackRoutes(deps, services));
   await app.register(telemetryRoutes(deps, services));

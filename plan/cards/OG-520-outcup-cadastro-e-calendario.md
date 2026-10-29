@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-516 |
 | Regras de negócio | RN-CUP-01, RN-CUP-02, RN-CUP-03, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -26,9 +26,11 @@ Como comunidade, quero uma OutCup aberta todo mês, com datas fixas, sem depende
 - Painel admin: ver, abrir fora de época, cancelar e editar datas, com auditoria.
 
 ## Critérios de aceite
-- [ ] Virada simulada de mês abre a edição seguinte e o calendário bate com RN-CUP-03 para 4, 8, 16 e 32 duplas (teste).
+- [x] Virada simulada de mês abre a edição seguinte e o calendário bate com RN-CUP-03 para 4, 8, 16 e 32 duplas (teste).
 
 ## Notas técnicas
 - Interpretação a confirmar: datas de inscrição (dia 20 ao último dia do mês anterior) e sorteio às 20h.
 
 ## Notas de implementação
+- `apps/api/src/cup.ts`: `cupDates`/`roundWindows` (Brasília, UTC-3), `ensureNextCup` no relógio de 1 min (`app.cupTick`, chamado pelo `main.ts`); migração 0049 (tabelas `cups`, `cup_entries`, `cup_duos`, `cup_matches`, `cup_availability`, `rooms.cup`, `player_profiles.cup_emails`, tipo `cup` nas notificações). Aba OutCup no painel (só admin).
+- Interpretação aplicada (confirmar): inscrições do dia 20 ao último dia, sorteio às 20h.

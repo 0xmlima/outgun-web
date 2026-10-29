@@ -60,7 +60,7 @@ export interface ClanWarMatch {
 }
 
 /** Seções do perfil (OG-393). */
-export type MilestoneGroup = 'progress' | 'flag' | 'defense' | 'combat' | 'ranked' | 'social' | 'clan' | 'humor' | 'secret';
+export type MilestoneGroup = 'progress' | 'flag' | 'defense' | 'combat' | 'ranked' | 'social' | 'clan' | 'cup' | 'humor' | 'secret';
 
 export interface Milestone {
   readonly id: string;
@@ -160,6 +160,14 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'clan_sweep', group: 'clan', name: b('Varrida', 'Clean sweep'), description: b('Venceu uma série clã x clã sem perder um jogo', 'Won a clan vs clan series without losing a game') },
   { id: 'clan_rivalry_5', group: 'clan', name: b('Rivalidade', 'Rivalry'), description: b('5 partidas clã x clã contra o mesmo clã', '5 clan vs clan matches against the same clan') },
   { id: 'clan_defender', group: 'clan', name: b('Defensor do clã', 'Clan defender'), description: b('Venceu uma partida clã x clã sem sofrer captura', 'Won a clan vs clan match without conceding a capture') },
+  // OutCup (OG-528, RN-CUP-13): concedidos ao fim de cada edição, a partir da chave (fora da partida)
+  { id: 'cup_first', group: 'cup', name: b('Estreia na OutCup', 'OutCup debut'), description: b('Jogou uma edição da OutCup', 'Played an OutCup edition') },
+  { id: 'cup_win_match', group: 'cup', name: b('Passou de fase', 'Through to the next round'), description: b('Venceu uma série da OutCup', 'Won an OutCup series') },
+  { id: 'cup_final', group: 'cup', name: b('Finalista', 'Finalist'), description: b('Chegou à final da OutCup', 'Reached the OutCup final') },
+  { id: 'cup_champion', group: 'cup', name: b('Campeão da OutCup', 'OutCup champion'), description: b('Venceu uma edição da OutCup', 'Won an OutCup edition') },
+  { id: 'cup_bicampeao', group: 'cup', name: b('Bicampeão', 'Two-time champion'), description: b('Venceu duas edições da OutCup', 'Won two OutCup editions') },
+  { id: 'cup_unbeaten', group: 'cup', name: b('Campeão invicto', 'Unbeaten champion'), description: b('Venceu a OutCup sem perder um jogo', 'Won OutCup without losing a single game') },
+  { id: 'cup_comeback', group: 'cup', name: b('Virada na copa', 'Cup comeback'), description: b('Venceu uma série da OutCup depois de perder o primeiro jogo', 'Won an OutCup series after losing the first game') },
 ];
 
 /** Contadores somados partida a partida; também mostram o progresso no perfil (OG-393). */

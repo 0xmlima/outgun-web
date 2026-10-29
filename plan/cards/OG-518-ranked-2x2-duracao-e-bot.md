@@ -35,3 +35,4 @@ Como jogador do 2x2, quero partidas mais curtas e regras de queda adequadas a ti
 ## Notas de implementação
 - `formatGamemod('2x2')` = `time_limit 15` + `extra_time 5`, aplicado sobre o preset travado na criação da sala e mantido no `/reset`.
 - `maxSubstitutesPerSide`: 1 por lado no 2x2 (conta bots que entraram e votos abertos do lado); 2 por partida segue valendo.
+- No 2x2 a segunda queda do mesmo lado deixa o lado sem humanos, e a D-62 já cancela a partida; o limite de 1 por lado vale também para o voto aberto (teste em `cup-room.test.ts`).

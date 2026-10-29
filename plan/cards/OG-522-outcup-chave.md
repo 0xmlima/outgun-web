@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-521 |
 | Regras de negócio | RN-CUP-06, RN-CUP-07, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -24,9 +24,10 @@ Como jogador, quero uma chave justa, em que as duplas mais fortes não se cruzem
 - Avanço automático pelo resultado da série; W.O. duplo elimina as duas e o adversário da fase seguinte avança direto (RN-CUP-10).
 
 ## Critérios de aceite
-- [ ] Chaves de 4, 5, 12 e 32 duplas com byes nas cabeças e cruzamento padrão (teste).
+- [x] Chaves de 4, 5, 12 e 32 duplas com byes nas cabeças e cruzamento padrão (teste).
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
+- Chave gravada inteira no sorteio; `settleNext` leva vencedores adiante, resolve byes e W.O. duplo (o adversário seguinte avança direto, sem campeão se a final tiver W.O. duplo).

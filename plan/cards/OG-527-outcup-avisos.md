@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-524 |
 | Regras de negócio | RN-CUP-12, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -25,9 +25,10 @@ Como jogador, quero saber quando a inscrição abre, qual é minha dupla e quand
 - Opção de não receber e-mails da OutCup nas configurações da conta.
 
 ## Critérios de aceite
-- [ ] Cada evento gera e-mail e aviso uma única vez (teste); quem desligou não recebe e-mail.
+- [x] Cada evento gera e-mail e aviso uma única vez (teste); quem desligou não recebe e-mail.
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
+- Notificação `cup` no sino (textos por evento) e e-mail pelo Resend depois do commit (`CupOutbox` + `cupMail`, pt-BR/en); opção "E-mails da OutCup" na conta (`/account/cup-emails`).

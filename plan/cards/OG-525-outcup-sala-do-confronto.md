@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-524, OG-518 |
 | Regras de negócio | RN-CUP-09, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -27,11 +27,13 @@ Como dupla, quero que a sala do jogo já esteja pronta na hora marcada, sem ning
 - Queda: pausa de 120 s e voto de bot (OG-518); quem cai volta à mesma vaga, inclusive entre jogos da série.
 
 ## Critérios de aceite
-- [ ] Conta de fora não entra na sala da copa; espectador entra (teste).
-- [ ] Jogador que cai e volta dentro dos 120 s retoma a vaga; entre jogos da série a vaga continua reservada para ele (teste).
-- [ ] Resultado da série avança a dupla na chave (teste).
+- [x] Conta de fora não entra na sala da copa; espectador entra (teste).
+- [x] Jogador que cai e volta dentro dos 120 s retoma a vaga; entre jogos da série a vaga continua reservada para ele (teste).
+- [x] Resultado da série avança a dupla na chave (teste).
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
+- Sala `c-*` Ranked 2x2 aberta pelo relógio 15 min antes, com `rooms.cup.sides` no spawn: o game server só aceita essas contas, no lado da dupla (A vermelho, B azul) e sem troca de lado; a API recusa a entrada de outras contas (`cup_room`), espectadores entram pelo `/spectate`.
+- Fim da série (rota interna) avança a chave. Série empatada (empates nos jogos): desempate por capturas somadas na série e depois pela cabeça de chave (decisão técnica, `resolution = tiebreak`).

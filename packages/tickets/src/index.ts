@@ -76,6 +76,8 @@ export interface RoomSpawn {
   casualBots?: { bots: number; level: number };
   /** Sala de treino (OG-492, D-86): modo e opções (`TrainingOptions` de @outgun/settings). */
   training?: { mode: 'attack' | 'defense' | 'escape' | 'capture'; bots: number; allies: number; level: number; powerups: boolean; sameStart: boolean };
+  /** Sala de confronto da OutCup (OG-525): só estas contas entram, cada uma no seu lado (0 vermelho, 1 azul). */
+  cup?: { sides: Record<string, 0 | 1> };
 }
 
 export type TicketInput = Omit<TicketClaims, 'iss' | 'iat' | 'exp' | 'jti'>;

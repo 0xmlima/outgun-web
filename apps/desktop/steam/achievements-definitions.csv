@@ -43,6 +43,7 @@ ENEMY_BASE_KILLS_100,,Client,false,false,,0,0
 RANKED_FIRST,,Client,false,false,,0,0
 RANKED_WIN,,Client,false,false,,0,0
 RANKED_WINS_100,,Client,false,false,,0,0
+WIN_2X2,,Client,false,false,,0,0
 WIN_3X3,,Client,false,false,,0,0
 WIN_4X4,,Client,false,false,,0,0
 WIN_5X5,,Client,false,false,,0,0
@@ -66,6 +67,13 @@ CLAN_SERIES_WIN,,Client,false,false,,0,0
 CLAN_SWEEP,,Client,false,false,,0,0
 CLAN_RIVALRY_5,,Client,false,false,,0,0
 CLAN_DEFENDER,,Client,false,false,,0,0
+CUP_FIRST,,Client,false,false,,0,0
+CUP_WIN_MATCH,,Client,false,false,,0,0
+CUP_FINAL,,Client,false,false,,0,0
+CUP_CHAMPION,,Client,false,false,,0,0
+CUP_BICAMPEAO,,Client,false,false,,0,0
+CUP_UNBEATEN,,Client,false,false,,0,0
+CUP_COMEBACK,,Client,false,false,,0,0
 SECRET_ACE,,Client,true,false,,0,0
 SECRET_MUTUAL,,Client,true,false,,0,0
 SECRET_PACIFIST,,Client,true,false,,0,0

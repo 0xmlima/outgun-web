@@ -82,6 +82,7 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       persistent: spec.persistent,
       ...(ranked ? { ranked: { format: ranked.format, bestOf: ranked.bestOf } } : {}),
       ...(training ? { training } : {}),
+      ...(ranked && spec.cup ? { cup: { sides: spec.cup.sides } } : {}),
       ...(spec.mode === 'casual' && !training && spec.casualBots ? { casualBots: { bots: spec.casualBots.bots, level: spec.casualBots.level } } : {}),
       ...(wanted.length > 0 ? { chosenMaps: chosen } : {}),
     });

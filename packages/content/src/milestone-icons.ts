@@ -38,6 +38,7 @@ export const MILESTONE_GROUP_COLORS: Readonly<Record<MilestoneGroup, string>> = 
   ranked: '#b48cff',
   social: '#4fd1c5',
   clan: '#f59e5b',
+  cup: '#ffb547',
   humor: '#ff8fc7',
   secret: '#ffd35c',
 };
@@ -58,10 +59,11 @@ export const MILESTONE_ICON_SYMBOLS: Readonly<Record<string, MilestoneSymbol>> =
   beta: 'star', duo_50: 'players',
   humor_today_yes: 'flag', humor_customer: 'skull', humor_butterfingers: 'flag', humor_ball_hog: 'player', humor_punching_bag: 'skull', humor_sightseeing: 'map', humor_runner_up: 'medal',
   clan_war: 'clan', clan_war_win: 'clan', clan_war_10: 'clan', clan_war_wins_10: 'clan', clan_series_win: 'trophy', clan_sweep: 'trophy', clan_rivalry_5: 'players', clan_defender: 'shield',
+  cup_first: 'calendar', cup_win_match: 'medal', cup_final: 'medal', cup_champion: 'trophy', cup_bicampeao: 'trophy', cup_unbeaten: 'star', cup_comeback: 'bolt',
 };
 
 const GROUP_SYMBOL: Readonly<Record<MilestoneGroup, MilestoneSymbol>> = {
-  progress: 'play', flag: 'flag', defense: 'shield', combat: 'crosshair', ranked: 'medal', social: 'players', clan: 'clan', humor: 'laugh', secret: 'star',
+  progress: 'play', flag: 'flag', defense: 'shield', combat: 'crosshair', ranked: 'medal', social: 'players', clan: 'clan', cup: 'trophy', humor: 'laugh', secret: 'star',
 };
 
 /** Nível 0/1/2 (bronze/prata/ouro) dos marcos de total, pela ordem do alvo no mesmo contador. */

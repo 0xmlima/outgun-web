@@ -35,7 +35,7 @@ export async function clanStaff(tx: Db | Tx, clanId: string): Promise<string[]> 
 
 const Notification = Type.Object({
   id: Type.String(),
-  kind: Type.Union([Type.Literal('clan_invite'), Type.Literal('clan_request'), Type.Literal('milestone'), Type.Literal('number_expiring'), Type.Literal('number_released')]),
+  kind: Type.Union([Type.Literal('clan_invite'), Type.Literal('clan_request'), Type.Literal('milestone'), Type.Literal('number_expiring'), Type.Literal('number_released'), Type.Literal('cup')]),
   data: Type.Object({
     clanTag: Type.Optional(Type.String()),
     clanName: Type.Optional(Type.String()),
@@ -45,6 +45,18 @@ const Notification = Type.Object({
     secretNames: Type.Optional(Type.Record(Type.String(), Type.Object({ 'pt-BR': Type.String(), en: Type.String() }))),
     /** Número a expirar ou liberado (OG-410). */
     number: Type.Optional(Type.Integer()),
+    /** OutCup (OG-527): edição, evento e detalhes. */
+    cup: Type.Optional(Type.String()),
+    cupEvent: Type.Optional(Type.String()),
+    partner: Type.Optional(Type.String()),
+    opponent: Type.Optional(Type.String()),
+    matchId: Type.Optional(Type.String()),
+    roomId: Type.Optional(Type.String()),
+    round: Type.Optional(Type.Integer()),
+    at: Type.Optional(Type.String()),
+    won: Type.Optional(Type.Boolean()),
+    bye: Type.Optional(Type.Boolean()),
+    resolution: Type.Optional(Type.String()),
   }),
   createdAt: Type.String(),
   read: Type.Boolean(),

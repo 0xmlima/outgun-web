@@ -16,6 +16,7 @@ import { Panel } from '../ui/Panel.js';
 import { Table } from '../ui/Table.js';
 import { Tabs } from '../ui/Tabs.js';
 import { TitleBadges } from './HallOfFame.js';
+import { CupTitleBadges } from './outcup.js';
 import { useManifestLists, swatchBackground } from './options.js';
 import { MilestonesPanel } from './milestones-panel.js';
 import { StylePanel } from './style-panel.js';
@@ -144,6 +145,7 @@ export function ProfileScreen() {
         )}
         <RatingInfo />
         <TitleBadges titles={p.titles ?? []} />
+        <CupTitleBadges name={p.user.username} />
         <Link to="/ranking">{t('Ranking')}</Link>
         <Link to="/players">{t('Players')}</Link>
         {owner && <Link to="/account">{t('Profile privacy')}</Link>}

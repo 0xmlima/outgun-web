@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-520 |
 | Regras de negócio | RN-CUP-04, RN-CUP-05, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -26,10 +26,11 @@ Como jogador, quero me inscrever sozinho e receber uma dupla sorteada, para a co
 - Banido de plataforma não se inscreve.
 
 ## Critérios de aceite
-- [ ] Sorteio com 9 inscritos forma 4 duplas e deixa de fora o último (teste).
-- [ ] 7 inscritos cancelam a edição (teste).
+- [x] Sorteio com 9 inscritos forma 4 duplas e deixa de fora o último (teste).
+- [x] 7 inscritos cancelam a edição (teste).
 
 ## Notas técnicas
 - Interpretação a confirmar: quem fica de fora com número ímpar (último inscrito).
 
 ## Notas de implementação
+- Sorteio com semente gravada (`draw_seed`, mulberry32 + Fisher–Yates), cabeças pela soma do rating exibido; ímpar deixa de fora o último inscrito (interpretação a confirmar). Abaixo de 8 inscritos a edição é cancelada no fechamento. Exclusão de conta troca o nome na dupla por "(anon)".

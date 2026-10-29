@@ -14,7 +14,8 @@ export function isPhone(): boolean {
 /** Rotas do portal (RN-UI-08): o resto (partida, salas, replays, opções) mostra o aviso no celular. */
 const PORTAL = [
   /^\/$/,
-  /^\/(help|credits|source|terms|privacy|about|feedback|admin|ranking|hall-da-fama|players|jogadores|clans)\/?$/,
+  /^\/(help|credits|source|terms|privacy|about|feedback|admin|ranking|hall-da-fama|players|jogadores|clans|outcup)\/?$/,
+  /^\/outcup\/\d{4}-\d{2}\/?$/,
   /^\/(login|register|forgot-password|reset-password)\/?$/,
   /^\/account(\/(password|delete|username|clan-tag))?\/?$/,
   /^\/clans\/[^/]+\/?$/,

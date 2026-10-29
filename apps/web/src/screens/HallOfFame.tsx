@@ -11,6 +11,7 @@ import { Panel } from '../ui/Panel.js';
 import { STAT_LABELS, statValue } from './leaderboard.js';
 import { Status, useApi } from './stats.js';
 import { ClanBadge } from '../ui/Emblem.js';
+import { cupTitle } from './outcup.js';
 
 interface Champion {
   position: number;
@@ -76,6 +77,7 @@ export function HallOfFameScreen() {
   return (
     <Page title={t('Hall of fame')} subtitle={t('The top 3 of every month in each main stat of the leaderboard and among clans.')} onBack={() => void navigate(-1)}>
       <Status loading={h === undefined} missing={h === null} error={hall.error} />
+      <CupHall />
       {h && h.seasons.length === 0 && <p className="ui-muted">{t('No finished season yet.')}</p>}
       {h?.seasons.map((s) => (
         <Panel key={s.id} title={s.classic ? `${s.name} · ${t('classic ranking')}` : s.name}>
@@ -109,5 +111,39 @@ export function HallOfFameScreen() {
         </Panel>
       ))}
     </Page>
+  );
+}
+
+/** Campeões e vices de cada edição encerrada da OutCup (RN-CUP-13). */
+function CupHall() {
+  const { t, prefs } = usePrefs();
+  const res = useApi<{ cups: { edition: string; status: string; champion: string[] | null; runnerUp: string[] | null }[] }>('/cups', true, 'cup');
+  const done = (res.data?.cups ?? []).filter((c) => c.status === 'finished' && c.champion);
+  if (done.length === 0) return null;
+  const pair = (names: string[]) =>
+    names.map((n, i) => (
+      <span key={n}>
+        {i > 0 && ' + '}
+        <Link to={`/players/${encodeURIComponent(n)}`}>{n}</Link>
+      </span>
+    ));
+  return (
+    <Panel title="OutCup">
+      <ol className="outcup-archive">
+        {done.map((c) => (
+          <li key={c.edition}>
+            <Link to={`/outcup/${c.edition}`}>{cupTitle(c.edition, prefs.locale)}</Link>
+            <span>
+              {t('Champions')}: {pair(c.champion!)}
+            </span>
+            {c.runnerUp && (
+              <span className="ui-muted">
+                {t('OutCup runner-up')}: {pair(c.runnerUp)}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </Panel>
   );
 }

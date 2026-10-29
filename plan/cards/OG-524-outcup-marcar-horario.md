@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-522 |
 | Regras de negócio | RN-CUP-08, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -25,9 +25,10 @@ Como dupla, quero combinar o horário do confronto dentro do jogo, sem depender 
 - Disponibilidade marcada fica registrada para a regra do W.O. (RN-CUP-10).
 
 ## Critérios de aceite
-- [ ] Fluxo marcar → propor → aceitar → marcado, e remarcação, com prazo da janela respeitado (teste).
+- [x] Fluxo marcar → propor → aceitar → marcado, e remarcação, com prazo da janela respeitado (teste).
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
+- Grade de horas da janela no fuso de quem vê; proposta só numa hora cheia em que os 4 marcaram (é o aceite dos 4) e a outra dupla aceita ou recusa; remarcar = nova proposta aceita. Proposta vencida é limpa pelo relógio.

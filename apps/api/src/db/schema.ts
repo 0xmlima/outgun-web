@@ -21,6 +21,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   type AnyPgColumn,
@@ -100,6 +101,8 @@ export const playerProfiles = pgTable('player_profiles', {
   /** Privacidade do perfil social (OG-211, D-39). */
   hideCompanions: boolean('hide_companions').notNull().default(false),
   hideHistory: boolean('hide_history').notNull().default(false),
+  /** E-mails da OutCup (RN-CUP-12). */
+  cupEmails: boolean('cup_emails').notNull().default(true),
   updatedAt: tstz('updated_at').notNull().defaultNow(),
 });
 
@@ -158,8 +161,16 @@ export const rooms = pgTable('rooms', {
   botLevel: smallint('bot_level'),
   /** Sala de treino (OG-492, D-86/D-87): modo e opções; nula nas outras salas. */
   training: jsonb('training').$type<TrainingOptions>(),
+  /** Sala de confronto da OutCup (OG-525): o confronto e o lado de cada conta; nulo nas outras. */
+  cup: jsonb('cup').$type<RoomCup>(),
   createdAt: tstz('created_at').notNull().defaultNow(),
 }, (t) => [index('rooms_server_idx').on(t.serverId)]);
+
+export interface RoomCup {
+  matchId: string;
+  /** Conta → lado (0 vermelho, 1 azul). */
+  sides: Record<string, 0 | 1>;
+}
 
 /** Série md1/md3/md5 de uma sala Ranked (OG-250, RN-RKL-02/03): só agrupa jogos; placar por lado. */
 export const rankedSeries = pgTable(
@@ -520,7 +531,7 @@ export const matchEventPlayers = pgTable(
 );
 
 /** Notificações da conta (OG-361): convite de clã, pedido de entrada no clã; marcos novos de uma partida (OG-394). */
-export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released';
+export type NotificationKind = 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released' | 'cup';
 /** Clã (tag e nome) e quem convidou ou pediu; nos marcos, os ids e o texto dos secretos (o cliente não tem o catálogo deles). */
 export interface NotificationData {
   clanTag?: string;
@@ -530,6 +541,18 @@ export interface NotificationData {
   secretNames?: Record<string, { 'pt-BR': string; en: string }>;
   /** Número a expirar ou liberado (OG-410). */
   number?: number;
+  /** OutCup (OG-527): edição, o que aconteceu e os detalhes para o texto. */
+  cup?: string;
+  cupEvent?: string;
+  partner?: string;
+  opponent?: string;
+  matchId?: string;
+  roomId?: string;
+  round?: number;
+  at?: string;
+  won?: boolean;
+  bye?: boolean;
+  resolution?: string;
 }
 export const notifications = pgTable(
   'notifications',
@@ -820,6 +843,100 @@ export const netReports = pgTable('net_reports', {
   framesPerSecond: real('frames_per_second').notNull(),
 });
 
+
+// OutCup (OG-520..528, D-88, RN-CUP): copa mensal 2x2 em mata-mata.
+export type CupStatus = 'registration' | 'running' | 'finished' | 'cancelled';
+export type CupMatchStatus = 'pending' | 'open' | 'scheduled' | 'live' | 'done' | 'walkover' | 'double_walkover' | 'bye' | 'dispute';
+export type CupResolution = 'series' | 'tiebreak' | 'walkover' | 'double_walkover' | 'bye' | 'admin';
+
+export const cups = pgTable('cups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** AAAA-MM: o mês em que a copa é disputada. */
+  edition: text('edition').notNull().unique(),
+  status: text('status').$type<CupStatus>().notNull().default('registration'),
+  registrationOpensAt: tstz('registration_opens_at').notNull(),
+  drawAt: tstz('draw_at').notNull(),
+  startsAt: tstz('starts_at').notNull(),
+  endsAt: tstz('ends_at').notNull(),
+  rounds: smallint('rounds'),
+  drawSeed: text('draw_seed'),
+  championDuoId: uuid('champion_duo_id'),
+  runnerUpDuoId: uuid('runner_up_duo_id'),
+  cancelReason: text('cancel_reason'),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+});
+
+export const cupEntries = pgTable(
+  'cup_entries',
+  {
+    cupId: uuid('cup_id').notNull().references(() => cups.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    /** Número ímpar: o último inscrito fica de fora (RN-CUP-05). */
+    leftOut: boolean('left_out').notNull().default(false),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.cupId, t.userId] })],
+);
+
+export const cupDuos = pgTable(
+  'cup_duos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cupId: uuid('cup_id').notNull().references(() => cups.id, { onDelete: 'cascade' }),
+    player1Id: uuid('player1_id').references(() => users.id, { onDelete: 'set null' }),
+    player2Id: uuid('player2_id').references(() => users.id, { onDelete: 'set null' }),
+    player1Name: text('player1_name').notNull(),
+    player2Name: text('player2_name').notNull(),
+    /** Cabeça de chave (1 = a mais forte, RN-CUP-06). */
+    seed: smallint('seed').notNull(),
+    /** Soma do rating exibido dos dois no sorteio. */
+    rating: integer('rating').notNull().default(0),
+  },
+  (t) => [index('cup_duos_cup_idx').on(t.cupId)],
+);
+
+export const cupMatches = pgTable(
+  'cup_matches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cupId: uuid('cup_id').notNull().references(() => cups.id, { onDelete: 'cascade' }),
+    /** Fase (0 = primeira) e posição na fase. */
+    round: smallint('round').notNull(),
+    slot: smallint('slot').notNull(),
+    duoA: uuid('duo_a').references(() => cupDuos.id, { onDelete: 'set null' }),
+    duoB: uuid('duo_b').references(() => cupDuos.id, { onDelete: 'set null' }),
+    bestOf: smallint('best_of').notNull(),
+    windowStart: tstz('window_start').notNull(),
+    windowEnd: tstz('window_end').notNull(),
+    status: text('status').$type<CupMatchStatus>().notNull().default('pending'),
+    proposedAt: tstz('proposed_at'),
+    proposedBy: uuid('proposed_by').references(() => cupDuos.id, { onDelete: 'set null' }),
+    scheduledAt: tstz('scheduled_at'),
+    roomId: text('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+    seriesId: uuid('series_id').references(() => rankedSeries.id, { onDelete: 'set null' }),
+    winnerDuo: uuid('winner_duo').references(() => cupDuos.id, { onDelete: 'set null' }),
+    scoreA: smallint('score_a'),
+    scoreB: smallint('score_b'),
+    resolution: text('resolution').$type<CupResolution>(),
+    /** Aviso de "prazo acabando" já enviado. */
+    remindedAt: tstz('reminded_at'),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [unique('cup_matches_cup_id_round_slot_key').on(t.cupId, t.round, t.slot), index('cup_matches_room_idx').on(t.roomId)],
+);
+
+export const cupAvailability = pgTable(
+  'cup_availability',
+  {
+    matchId: uuid('match_id').notNull().references(() => cupMatches.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    /** Começo de cada hora em que o jogador pode jogar (RN-CUP-08). */
+    hours: tstz('hours').array().notNull().default(sql`'{}'`),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.userId] })],
+);
+
 export const allTables = {
   users,
   sessions,
@@ -863,4 +980,9 @@ export const allTables = {
   net_reports: netReports,
   password_resets: passwordResets,
   reserved_names: reservedNames,
+  cups,
+  cup_entries: cupEntries,
+  cup_duos: cupDuos,
+  cup_matches: cupMatches,
+  cup_availability: cupAvailability,
 };

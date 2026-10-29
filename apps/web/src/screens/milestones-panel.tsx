@@ -10,7 +10,7 @@ import { usePrefs } from '../app/prefs.js';
 import { Panel } from '../ui/Panel.js';
 import { date, type Profile } from './stats.js';
 
-const GROUPS: readonly Exclude<MilestoneGroup, 'secret'>[] = ['progress', 'flag', 'defense', 'combat', 'ranked', 'social', 'clan', 'humor'];
+const GROUPS: readonly Exclude<MilestoneGroup, 'secret'>[] = ['progress', 'flag', 'defense', 'combat', 'ranked', 'social', 'clan', 'cup', 'humor'];
 const GROUP_LABELS: Readonly<Record<MilestoneGroup, string>> = {
   progress: 'Progress',
   flag: 'Flag',
@@ -19,6 +19,7 @@ const GROUP_LABELS: Readonly<Record<MilestoneGroup, string>> = {
   ranked: 'Ranked',
   social: 'Social',
   clan: 'Clan',
+  cup: 'OutCup',
   humor: 'Humor',
   secret: 'Secrets',
 };

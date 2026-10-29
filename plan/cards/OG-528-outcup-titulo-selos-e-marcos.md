@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 3 pts |
 | Sprint | S56 |
-| Status | Backlog |
+| Status | Em revisão |
 | Dependências | OG-522 |
 | Regras de negócio | RN-CUP-13, RN-SOC-03, D-88 |
 | Skills | `outgun-card-workflow` |
@@ -24,9 +24,10 @@ Como jogador, quero que o título da OutCup fique no meu perfil para sempre.
 - Marcos novos: primeira participação, primeira vitória em copa, chegar à final, campeão, bicampeão, campeão invicto (sem perder jogo na série), virada numa série de copa; espelhados nas conquistas da Steam (ícones como os do OG-397).
 
 ## Critérios de aceite
-- [ ] Campeão e vice recebem selo e marcos ao fim da final; marcos aparecem também no Steam (teste do espelho).
+- [x] Campeão e vice recebem selo e marcos ao fim da final; marcos aparecem também no Steam (teste do espelho).
 
 ## Notas técnicas
 - —
 
 ## Notas de implementação
+- 7 marcos do grupo novo "OutCup" (`cup_first`, `cup_win_match`, `cup_final`, `cup_champion`, `cup_bicampeao`, `cup_unbeaten`, `cup_comeback`), dados no fim da edição a partir da chave; ícones e CSVs da Steam regenerados (89 conquistas). Selos de campeão/vice no perfil (`/players/:nome/cup-titles`) e no hall da fama.

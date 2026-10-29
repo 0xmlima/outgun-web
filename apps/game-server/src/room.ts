@@ -174,6 +174,8 @@ export interface RoomOptions {
   ranked?: RankedRoomFormat;
   /** Sala de treino (OG-490, D-86): só no Casual; tentativas em laço, sem fim de partida. */
   training?: TrainingConfig;
+  /** Sala de confronto da OutCup (OG-525): só estas contas entram, cada uma no seu lado. */
+  cup?: { sides: Readonly<Record<string, 0 | 1>> };
 }
 
 export type JoinResult = { ok: true; pid: number } | { ok: false; reason: MessageOf<'reject'>['reason']; text: string };
@@ -536,6 +538,9 @@ export class Room {
     if (this.mode === 'ranked' && identity.accountId === null) return { ok: false, reason: 'rankedNeedsAccount', text: 'Salas Ranked exigem login.' };
     if (!opts.bot && this.isBanned(identity)) return { ok: false, reason: 'banned', text: 'Banido desta sala.' };
     if (opts.bot && this.mode === 'ranked') return { ok: false, reason: 'roomClosed', text: 'Bots são proibidos no Ranked (D-11).' };
+    // OutCup (OG-525): só os jogadores do confronto, no lado da dupla
+    const cupSide = this.options.cup && identity.accountId !== null ? this.options.cup.sides[identity.accountId] : undefined;
+    if (this.options.cup && !opts.bot && cupSide === undefined) return { ok: false, reason: 'roomClosed', text: 'Sala da OutCup: só os jogadores do confronto.' };
     // lobby Ranked (OG-252, D-43): em jogo ou com a série acabada ninguém entra; entre jogos, se houver vaga
     if (this.lobby && !this.lobby.acceptsJoins) {
       return this.lobby.members.size >= this.lobby.capacity ? { ok: false, reason: 'serverFull', text: 'Sala cheia.' } : { ok: false, reason: 'roomClosed', text: 'Partida em andamento.' };
@@ -548,6 +553,7 @@ export class Room {
     // no treino, o time é o do lado: humanos treinam no TRAINEE_TEAM e cada bot vai para o time do papel
     const team =
       opts.team ??
+      cupSide ??
       (this.training
         ? TRAINEE_TEAM
         : this.lobby
@@ -2165,6 +2171,7 @@ export class Room {
   private lobbySide(pid: number, target: number): void {
     const lobby = this.lobby;
     if (!lobby || lobby.playing || lobby.phase === 'finished') return;
+    if (this.options.cup) return; // OutCup: cada dupla no seu lado (OG-525)
     const other = 1 - this.world.teamOf(pid);
     if (target === 255) {
       const slot = freeSlot(this.slots(), this.world.maxPlayers, other);

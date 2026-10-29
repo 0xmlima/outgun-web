@@ -16,6 +16,7 @@ import { Button } from '../ui/Button.js';
 import { MenuList, type MenuListItem } from '../ui/MenuList.js';
 import { Page } from '../ui/Page.js';
 import { HomeFooter, HomeInfoBox, StartCard, SteamLink } from './home-start.js';
+import { OutCupBanner } from './outcup.js';
 import { PhoneHome } from './home-phone.js';
 import { TextLines, TextPage } from '../ui/TextPage.js';
 
@@ -48,6 +49,7 @@ export function HomeScreen() {
       <div className="home-main">
         <StartCard />
         <div className="home-aside">
+          <OutCupBanner />
           <HomeInfoBox />
           <SteamLink />
         </div>

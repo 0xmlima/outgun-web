@@ -802,3 +802,52 @@ body {
   margin: 0;
   flex: 1;
 }
+
+/* OutCup (OG-523/524): chave, calendário, confronto e grade de horários */
+.outcup-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-4); }
+.outcup-champion { flex-basis: 100%; margin: 0; color: var(--text-warning); }
+.outcup-entrants { color: var(--text-muted); font-size: var(--text-sm); }
+.outcup-calendar { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.outcup-calendar li { display: grid; grid-template-columns: 10rem 1fr auto; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border); align-items: baseline; }
+.outcup-calendar li:first-child { border-top: 0; }
+.outcup-calendar li.is-now { box-shadow: inset 3px 0 0 var(--accent); background: var(--surface-2); }
+.outcup-when { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: var(--text-sm); }
+@media (max-width: 600px) { .outcup-calendar li { grid-template-columns: 1fr; gap: 0; } }
+.outcup-bracket-wrap { overflow-x: auto; padding-bottom: var(--space-2); }
+.outcup-bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(12rem, 1fr); gap: var(--space-4); min-width: min-content; }
+.outcup-round { display: grid; grid-template-rows: auto 1fr; gap: var(--space-2); }
+.outcup-round h3 { margin: 0; font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.outcup-list { display: flex; flex-direction: column; justify-content: space-around; gap: var(--space-2); }
+.outcup-match { display: grid; text-align: left; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0; cursor: pointer; overflow: hidden; }
+.outcup-match:hover { border-color: var(--border-strong); }
+.outcup-match:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.outcup-match.is-selected { border-color: var(--accent); }
+.outcup-row { display: grid; grid-template-columns: 1fr auto; gap: var(--space-2); padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }
+.outcup-row + .outcup-row { border-top: 1px solid var(--border); }
+.outcup-row.is-win { font-weight: var(--weight-bold, 700); }
+.outcup-row.is-lose { color: var(--text-muted); }
+.outcup-row.is-mine { box-shadow: inset 3px 0 0 var(--accent); }
+.outcup-score { font-variant-numeric: tabular-nums; }
+.outcup-status { padding: var(--space-1) var(--space-3); border-top: 1px solid var(--border); font-size: var(--text-xs); background: transparent; }
+.outcup-trophy { border: 1px solid var(--text-warning); color: var(--text-warning); border-radius: var(--radius-sm); padding: var(--space-3); text-align: center; font-weight: var(--weight-bold, 700); }
+.outcup-vs { font-size: var(--text-lg); margin: 0; }
+.outcup-red { color: var(--text-team-red); }
+.outcup-blue { color: var(--text-team-blue); }
+.outcup-games { margin: 0; padding-left: 1.2em; font-variant-numeric: tabular-nums; }
+.outcup-availability h3 { margin: var(--space-4) 0 var(--space-2); font-size: var(--text-md); }
+.outcup-grid-wrap { overflow-x: auto; }
+.outcup-grid { border-collapse: collapse; }
+.outcup-grid th { text-align: left; padding-right: var(--space-2); font-weight: var(--weight-regular); color: var(--text-muted); font-size: var(--text-xs); white-space: nowrap; }
+.outcup-grid td { padding: 1px; }
+.outcup-grid button { position: relative; width: 2rem; height: 2rem; font: inherit; font-size: var(--text-xs); color: var(--text-muted); background: var(--surface-1); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.outcup-grid button:disabled { opacity: 0.35; cursor: default; }
+.outcup-grid button.is-on { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
+.outcup-grid button.is-all { background: var(--text-warning); border-color: var(--text-warning); color: var(--surface-0); }
+.outcup-grid button small { position: absolute; right: 2px; bottom: 0; font-size: 0.6rem; }
+.outcup-grid button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.outcup-archive { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.outcup-archive li { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: baseline; }
+.outcup-banner { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); border: 1px solid var(--text-warning); border-radius: var(--radius-md); background: var(--surface-1); color: var(--text); text-decoration: none; }
+.outcup-banner strong { color: var(--text-warning); }
+.outcup-banner:hover { background: var(--surface-2); }
+.outcup-banner:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
