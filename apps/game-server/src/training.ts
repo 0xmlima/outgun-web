@@ -394,6 +394,12 @@ export class TrainingSession {
     });
   }
 
+  /** Recomeça já, sem contar a tentativa (alguém trocou de lado, OG-497). */
+  restart(): void {
+    if (this.phase === 'idle') return;
+    this.begin();
+  }
+
   /** Estado atual para quem entra no meio. */
   snapshot(): TrainingAnnouncement | null {
     if (this.phase === 'idle') return null;

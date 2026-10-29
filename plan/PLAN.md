@@ -973,7 +973,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-494](cards/OG-494-treino-defesa.md) | Treino Defesa: segurar a onda de atacantes | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
 | [OG-495](cards/OG-495-treino-fuga.md) | Treino Fuga: da base inimiga até a sua com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
 | [OG-496](cards/OG-496-treino-captura.md) | Treino Captura: alcançar o portador e devolver a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
-| [OG-497](cards/OG-497-treino-com-convidados.md) | Treino com convidados: escolher o lado, junto ou contra | E11 | 5 | Must | S55 | OG-490, OG-492 | Pronto |
+| [OG-497](cards/OG-497-treino-com-convidados.md) | Treino com convidados: escolher o lado, junto ou contra | E11 | 5 | Must | S55 | OG-490, OG-492 | Em revisão |
 | [OG-498](cards/OG-498-treino-fora-das-estatisticas.md) | Treino não conta para nada: estatísticas, ranking, radar, relatórios e marcos | E11 | 2 | Must | S55 | OG-490 | Pronto |
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | S55 | OG-490, OG-491 | Pronto |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | S55 | OG-493, OG-494, OG-495, OG-496 | Pronto |

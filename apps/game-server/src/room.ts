@@ -363,6 +363,8 @@ export class Room {
   readonly training: TrainingSession | null = null;
   /** Papel de cada bot da sala de treino (RN-TRN-03). */
   private readonly botRoles = new Map<number, TrainingRole>();
+  /** Humanos do lado oposto do treino e o papel do bot cuja vaga assumiram (RN-TRN-05). */
+  private readonly humanRoles = new Map<number, TrainingRole>();
   /** Eventos do frame para o juiz do treino, entregues depois da simulação. */
   private readonly trainingEvents: TrainingEvent[] = [];
 
@@ -603,6 +605,7 @@ export class Room {
       // a tentativa em curso continua; quem entra vê o estado e entra na próxima
       const state = this.training.snapshot();
       if (state && !opts.bot) this.queueTo(pid, this.trainingMessage(state));
+      if (!opts.bot) this.queueTo(pid, message('text', { kind: 'info', from: 255, text: 'Sala de treino: a tecla de trocar de time leva você do lado de treino para o lado oposto (e de volta).' }));
       return { ok: true, pid };
     }
     // segundo jogador: a partida recomeça (`client_connected` com player_count == 2)
@@ -775,6 +778,7 @@ export class Room {
   /** Saída (`client_disconnected` → `removePlayer`). */
   leave(pid: number): void {
     this.botRoles.delete(pid);
+    this.humanRoles.delete(pid);
     const c = this.clients.get(pid);
     if (!c) return;
     if (this.mode === 'ranked' && this.gameOverUntil === null && !c.bot && c.identity.accountId) this.departed.set(c.identity.accountId, this.world.teamOf(pid) as 0 | 1);
@@ -926,7 +930,7 @@ export class Room {
         pid,
         team: this.world.teamOf(pid) as 0 | 1,
         bot: c.bot,
-        role: this.botRoles.get(pid) ?? null,
+        role: this.botRoles.get(pid) ?? this.humanRoles.get(pid) ?? null,
         dead: pl.dead,
         ready: pl.awaitingClientReadies === 0,
         pos: pl.pos,
@@ -936,8 +940,21 @@ export class Room {
     return out;
   }
 
-  /** Bots da tentativa (RN-TRN-03): fica quem já tem o time e o papel; sai o que sobra; entra o que falta. */
-  private setTrainingBots(slots: BotSlot[]): void {
+  /**
+   * Bots da tentativa (RN-TRN-03): cada humano do lado oposto assume a vaga de um bot de lá (a escolta
+   * antes do portador, RN-TRN-05); dos bots, fica quem já tem o time e o papel, sai o que sobra e entra
+   * o que falta.
+   */
+  private setTrainingBots(wanted: BotSlot[]): void {
+    const slots = [...wanted].sort((a, b) => Number(a.role !== 'escort') - Number(b.role !== 'escort'));
+    this.humanRoles.clear();
+    for (const [pid, c] of this.clients) {
+      if (c.bot || this.world.teamOf(pid) === TRAINEE_TEAM) continue;
+      const i = slots.findIndex((sl) => sl.team === this.world.teamOf(pid));
+      if (i === -1) continue;
+      this.humanRoles.set(pid, slots[i]!.role);
+      slots.splice(i, 1);
+    }
     const free = new Map<number, TrainingRole>(this.botRoles);
     const missing: BotSlot[] = [];
     for (const slot of slots) {
@@ -949,6 +966,25 @@ export class Room {
     const skill = botSkill(this.training?.level ?? this.settings.server.botLevel);
     for (const bot of this.botClients()) bot.skill = skill;
     for (const slot of missing) this.spawnTrainingBot(slot);
+  }
+
+  /** Troca de lado no treino (RN-TRN-05): vai para uma vaga livre do outro time e a tentativa recomeça. */
+  private trainingSwitchSide(pid: number): void {
+    const c = this.clients.get(pid);
+    if (!c || c.bot || !this.training) return;
+    const to = (1 - this.world.teamOf(pid)) as 0 | 1;
+    // sem vaga livre do outro lado, um bot de lá sai (o humano assume a vaga dele)
+    if (freeSlot(this.slots(), this.world.maxPlayers, to) === -1) {
+      const bot = [...this.botRoles.keys()].find((b) => this.world.teamOf(b) === to);
+      if (bot !== undefined) this.dropBot(bot);
+    }
+    const slot = freeSlot(this.slots(), this.world.maxPlayers, to);
+    if (slot === -1) return this.queueTo(pid, message('text', { kind: 'warning', from: 255, text: 'Não há vaga do outro lado.' }));
+    this.sim.dropFlagIfAny(pid);
+    this.movePlayer(pid, slot);
+    const side = to === TRAINEE_TEAM ? 'de treino' : 'oposto';
+    this.broadcast(message('text', { kind: 'server', from: 255, text: `${c.identity.name} foi para o lado ${side}.` }));
+    this.training.restart();
   }
 
   private spawnTrainingBot(slot: BotSlot): void {
@@ -1232,7 +1268,11 @@ export class Room {
           break;
         case 'changeTeam':
           if (this.lobby) break; // no lobby Ranked a troca de lado é pelo `lobbySide` (OG-253)
-          if (this.training) break; // no treino os lados são fixos (RN-TRN-05)
+          if (this.training) {
+            // no treino, a tecla de trocar de time troca de lado (RN-TRN-05): treino ⇄ oposto
+            if (m.on) this.trainingSwitchSide(pid);
+            break;
+          }
           if (!m.on) client.wantChangeTeams = false;
           else if (!client.wantChangeTeams) {
             client.wantChangeTeams = true;

@@ -208,3 +208,45 @@ describe('bots do treino separados dos do Casual (OG-513)', () => {
     expect(casual.botClients().every((b) => b.trainingRole === null)).toBe(true);
   });
 });
+
+describe('treino com convidados (OG-497)', () => {
+  function join(room: Room, name: string) {
+    const conn = new TestConnection();
+    const res = room.join(conn, { name, accountId: null });
+    if (!res.ok) throw new Error(res.reason);
+    room.handle(res.pid, [message('clientReady', {})]);
+    return res.pid;
+  }
+
+  it('dois humanos treinando juntos: a falha por morte só quando os dois caem', () => {
+    const t = setup('attack', 3, { bots: 2 });
+    const friend = join(t.room, 'Amigo');
+    t.tick(1);
+    t.room.handle(friend, [message('suicide', {})]); // reinício: os dois entram na próxima tentativa
+    t.tick(1 + COUNTDOWN_FRAMES);
+    const before = t.last()!.attempts;
+    t.room.handle(t.me, [message('suicide', {})]);
+    t.tick(2);
+    expect(t.last()?.phase).toBe('playing');
+    t.room.handle(friend, [message('suicide', {})]);
+    t.tick(2);
+    expect(t.last()).toMatchObject({ result: 'fail', reason: 'died', attempts: before + 1 });
+  });
+
+  it.each(['attack', 'defense', 'escape', 'capture'] as const)('%s: humano do lado oposto assume a vaga de um bot', (mode) => {
+    const t = setup(mode, 3, { bots: mode === 'capture' ? 0 : 2 });
+    const rival = join(t.room, 'Rival');
+    t.tick(2);
+    const botsBefore = t.room.bots().length;
+    t.room.handle(rival, [message('changeTeam', { on: true })]);
+    t.tick(1 + COUNTDOWN_FRAMES);
+    const rival2 = t.room.world.players.findIndex((p, pid) => p && t.room.playerName(pid) === 'Rival' && t.room.world.teamOf(pid) === 1);
+    expect(rival2).toBeGreaterThanOrEqual(0);
+    // o lado oposto tem o mesmo tamanho: um bot a menos
+    expect(t.room.bots().filter((pid) => t.room.world.teamOf(pid) === 1)).toHaveLength(botsBefore - 1);
+    // a morte do humano do lado oposto não encerra a tentativa
+    t.room.handle(rival2, [message('suicide', {})]);
+    t.tick(2);
+    expect(t.last()?.phase).toBe('playing');
+  });
+});

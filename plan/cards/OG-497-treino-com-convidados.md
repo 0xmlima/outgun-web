@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490, OG-492 |
 | Regras de negócio | RN-TRN-05, D-86 |
 | Skills | `outgun-card-workflow` |
@@ -26,9 +26,11 @@ Como jogador, quero chamar amigos para a sala de treino, treinando do meu lado o
 - Vagas da sala: total de bots dos papéis + humanos do lado de treino (bots não ocupam vaga, OG-445).
 
 ## Critérios de aceite
-- [ ] Dois humanos treinando juntos e um humano em cada lado, nos quatro modos.
+- [x] Dois humanos treinando juntos e um humano em cada lado, nos quatro modos.
 
 ## Notas técnicas
 - Interpretação a confirmar na revisão: humano no lado oposto conta como o bot que ele substituiu (ex.: defensor no Ataque, atacante na Defesa).
 
 ## Notas de implementação
+- Escolha do lado = a tecla de trocar de time (Ctrl+End), só dentro da sala de treino; quem entra cai no lado de treino e recebe o aviso no chat. Trocar de lado recomeça a tentativa sem contar.
+- Humano do lado oposto assume a vaga e o papel de um bot (a escolta antes do portador); confirmada a interpretação do card: conta como o bot que substituiu. Sem vaga livre, um bot de lá sai.
