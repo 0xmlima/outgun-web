@@ -9,9 +9,9 @@ export const attackMode: TrainingModeDef = {
     const out = new Map<number, ReturnType<typeof ctx.spot>>();
     // fora da sala da base inimiga, numa sala vizinha sorteada: a porta de entrada varia (OG-500)
     const start = ctx.roomAround(OPPONENT_TEAM, 1);
+    // guardas espalhados pela sala da base, em pontos sorteados a cada tentativa (OG-500)
     const base = ctx.baseRoom(OPPONENT_TEAM);
-    const flag = ctx.map.teams[OPPONENT_TEAM].flags[0];
-    for (const p of players) out.set(p.pid, p.team === TRAINEE_TEAM ? ctx.spot(start) : ctx.spot(base, flag));
+    for (const p of players) out.set(p.pid, p.team === TRAINEE_TEAM ? ctx.spot(start) : ctx.spot(base));
     return out;
   },
   judge: (world, ev) => {

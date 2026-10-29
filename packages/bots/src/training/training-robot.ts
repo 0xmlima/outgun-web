@@ -2,7 +2,7 @@
 // Bot do treino (OG-491, D-87, RN-TRN-03/08): usado só nas salas de treino. Herda do bot do Casual a
 // mira, o combate, o desvio, a navegação e o nível (OG-266); o destino e o que ele pode fazer vêm só do
 // papel, de uma lista fechada. O `Robot` do Casual não sabe que este arquivo existe (OG-513).
-import { FLAG_RADIUS, PLAYER_RADIUS, Vec, type Rng, type WorldCoords } from '@outgun/sim';
+import { FLAG_RADIUS, PLAYER_RADIUS, ROOM_HEIGHT, ROOM_WIDTH, Vec, type Rng, type WorldCoords } from '@outgun/sim';
 import type { Area, AreaMap } from '../areamap.js';
 import { Robot } from '../brain.js';
 import { moveTo, moveToNoAggregate, setDestination } from '../navigation.js';
@@ -25,6 +25,8 @@ export function roleMayTakeFlag(role: TrainingRole): boolean {
 }
 
 const other = (team: number): 0 | 1 => (team === 0 ? 1 : 0);
+/** Pausa do guarda em cada ponto da patrulha, em decisões (mínimo e faixa sorteada). */
+const PATROL_WAIT = [3, 15] as const;
 
 export class TrainingRobot extends Robot {
   constructor(
@@ -36,6 +38,10 @@ export class TrainingRobot extends Robot {
   ) {
     super(view, areaMap, me, rng);
   }
+
+  /** Ponto da patrulha do guarda na sala da base (local) e quantas decisões ainda espera nele. */
+  private patrol: Vec | null = null;
+  private patrolWait = 0;
 
   /** Ponto da bandeira do time (o "posto" de quem guarda). */
   private base(team: number): WorldCoords | undefined {
@@ -132,8 +138,37 @@ export class TrainingRobot extends Robot {
     if (this.role !== 'guard') return this.role === 'chase' ? 0 : Ctl.strafe;
     const b = this.base(this.myTeam());
     if (!b || !this.inRoomOf(b)) return 0;
-    const post = new Vec(b.x, b.y).sub(this.myPos.local());
-    if (post.mag() < 4 * PLAYER_RADIUS) return Ctl.strafe; // "não faça nada" em vez de passear
-    return moveToNoAggregate(this, post, 3 * PLAYER_RADIUS);
+    return this.patrolBase(b);
+  }
+
+  /**
+   * Guarda sem inimigo à vista: patrulha a sala da base, de um ponto sorteado a outro, com uma pausa
+   * curta em cada um (quem ataca não acha os guardas parados sempre no mesmo lugar).
+   */
+  private patrolBase(b: WorldCoords): number {
+    const here = this.myPos.local();
+    if (this.patrol && this.patrol.sub(here).mag() < 2 * PLAYER_RADIUS) {
+      if (this.patrolWait > 0) {
+        this.patrolWait--;
+        return Ctl.strafe;
+      }
+      this.patrol = null;
+    }
+    if (!this.patrol) {
+      this.patrol = this.patrolPoint(b);
+      this.patrolWait = PATROL_WAIT[0] + (this.rand() % PATROL_WAIT[1]);
+    }
+    return moveToNoAggregate(this, this.patrol.sub(here), PLAYER_RADIUS);
+  }
+
+  /** Ponto livre de parede na sala da base (até 20 sorteios; senão, o ponto da bandeira). */
+  private patrolPoint(b: WorldCoords): Vec {
+    const r = 5 * PLAYER_RADIUS; // longe das bordas: o embalo não leva o guarda pela porta
+    for (let i = 0; i < 20; i++) {
+      const x = r + (this.rand() % (ROOM_WIDTH - 2 * r));
+      const y = r + (this.rand() % (ROOM_HEIGHT - 2 * r));
+      if (!this.fx.map.fallOnWallCirc({ room: b.room, x, y }, PLAYER_RADIUS + 4)) return new Vec(x, y);
+    }
+    return new Vec(b.x, b.y);
   }
 }
