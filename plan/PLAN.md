@@ -988,8 +988,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Concluído |
 | [OG-512](cards/OG-512-heartbeat-falha-ao-ler-presets.md) | Heartbeat das salas falha ao ler os presets Casual (OUTGUN-SERVER-2) | E11 | 2 | Should | S54 | OG-087 | Concluído |
 | [OG-514](cards/OG-514-erros-tratados-no-sentry.md) | Erros tratados (log.error) também vão ao Sentry | E11 | 2 | Must | — | OG-434, OG-512 | Backlog |
+| [OG-515](cards/OG-515-email-de-boas-vindas-atualizado.md) | E-mail de boas-vindas atualizado para a v2, com versão HTML | E11 | 1 | Should | — | — | Em revisão |
 
-**Total:** 354 cards, 1124 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 285 cards, 829 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
+**Total:** 355 cards, 1125 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 286 cards, 830 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
 ---
 
