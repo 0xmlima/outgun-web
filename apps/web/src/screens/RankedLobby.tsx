@@ -218,7 +218,7 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
         )}
         {open && (red.players.length > 0 || blue.players.length > 0) && (
           <div className="ranked-radar">
-            <MatchupRadar red={red} blue={blue} data={lineup.data} />
+            <MatchupRadar red={red} blue={blue} data={lineup.data} compact />
           </div>
         )}
       </section>

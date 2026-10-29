@@ -38,7 +38,20 @@ export function lineupPath(red: MatchupSide, blue: MatchupSide): string {
 }
 
 /** Os dois radares sobrepostos e a vantagem de cada lado; `data` vem de `useLineup`. */
-export function MatchupRadar({ red, blue, data, mini = false }: { red: MatchupSide; blue: MatchupSide; data: Lineup | null | undefined; mini?: boolean }) {
+/** `compact` (lobby Ranked, OG-506): radar com legenda e o arquétipo de cada lado, sem a lista de vantagens. */
+export function MatchupRadar({
+  red,
+  blue,
+  data,
+  mini = false,
+  compact = false,
+}: {
+  red: MatchupSide;
+  blue: MatchupSide;
+  data: Lineup | null | undefined;
+  mini?: boolean;
+  compact?: boolean;
+}) {
   const { t } = usePrefs();
   if (!data) return null;
   const [r, b] = data.sides;
@@ -48,8 +61,8 @@ export function MatchupRadar({ red, blue, data, mini = false }: { red: MatchupSi
   const edges = r.median && b.median ? axisEdges(r.median.axes, b.median.axes) : null;
   return (
     <div className="ui-stack matchup-radar">
-      <StyleRadar caption={t('$1 vs $2', red.label, blue.label)} series={list} mini={mini} empty={t('No radar yet on either side')} />
-      {edges && !mini && (
+      <StyleRadar caption={t('$1 vs $2', red.label, blue.label)} series={list} mini={mini} compact={compact} empty={t('No radar yet on either side')} />
+      {edges && !mini && !compact && (
         <ul className="matchup-edges">
           {STYLE_AXES.map((axis) => (
             <li key={axis} className={edges[axis]}>
@@ -59,7 +72,19 @@ export function MatchupRadar({ red, blue, data, mini = false }: { red: MatchupSi
           ))}
         </ul>
       )}
-      {!mini && (
+      {compact && (
+        <p className="ui-muted matchup-archetypes">
+          {[r, b].map((side, i) => {
+            const s = i === 0 ? red : blue;
+            return (
+              <span key={s.label}>
+                {s.label}: {side.median ? t(ARCHETYPE_LABELS[side.median.archetype]) : t('no radar yet')}
+              </span>
+            );
+          })}
+        </p>
+      )}
+      {!mini && !compact && (
         <p className="ui-muted">
           {[r, b]
             .map((side, i) => {

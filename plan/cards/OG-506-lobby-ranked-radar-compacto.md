@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-477 |
 | Regras de negócio | RN-RAD-01..05 |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,10 @@ Como jogador no lobby Ranked, quero ver o radar dos dois times de forma simples,
 - Série e relatório da partida mantêm o radar completo.
 
 ## Critérios de aceite
-- [ ] Sem barra de rolagem no lobby Ranked em 1280×720 e 1600×900, com o radar aparecendo.
-- [ ] Radar do lobby legível: dois times, legenda e arquétipo, sem a tabela de vantagens.
+- [x] Sem barra de rolagem no lobby Ranked em 1280×720 e 1600×900, com o radar aparecendo.
+- [x] Radar do lobby legível: dois times, legenda e arquétipo, sem a tabela de vantagens.
 - [ ] PO confere.
 
 ## Notas de implementação
+- `StyleRadar compact` (rótulos, pontos e legenda, sem "Ver em tabela") e `MatchupRadar compact` (sem a lista de vantagens; arquétipo de cada lado numa linha curta). Série e relatório seguem com o radar completo.
+- O lobby não rola mais a página: linhas `minmax(0, 1fr) auto` e `overflow: hidden`; times e centro rolam por dentro só se a janela for muito baixa. O gráfico tem no máximo 28vh. No celular (≤ 52rem) continua empilhado e rolando.
