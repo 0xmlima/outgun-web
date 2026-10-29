@@ -71,7 +71,7 @@ export interface RoomSpawn {
   /** Sala da plataforma: não é encerrada quando fica vazia. */
   persistent: boolean;
   /** Formato e série da sala Ranked (OG-250); `maxPlayers` = 2 × N. Ausente nas salas antigas. */
-  ranked?: { format: '3x3' | '4x4' | '5x5'; bestOf: 1 | 3 | 5 };
+  ranked?: { format: '2x2' | '3x3' | '4x4' | '5x5'; bestOf: 1 | 3 | 5 };
   /** Bots escolhidos pelo dono ao criar a sala privada Casual (OG-289): quantidade e nível (0 = variável). */
   casualBots?: { bots: number; level: number };
   /** Sala de treino (OG-492, D-86): modo e opções (`TrainingOptions` de @outgun/settings). */

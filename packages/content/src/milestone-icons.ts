@@ -53,7 +53,7 @@ export const MILESTONE_ICON_SYMBOLS: Readonly<Record<string, MilestoneSymbol>> =
   kills_100: 'crosshair', kills_1000: 'crosshair', kills_10000: 'crosshair', accuracy_50: 'crosshair', accuracy_70: 'crosshair',
   streak_10: 'flame', streak_20: 'flame', kills_match_30: 'skull', flawless: 'star', multi_kill: 'bolt', triple_kill: 'bolt',
   deathbringer_1: 'skull', deathbringer_50: 'skull', trades_50: 'players', first_kills_50: 'bolt', assists_100: 'players', enemy_base_kills_100: 'flag',
-  ranked_first: 'medal', ranked_win: 'medal', ranked_wins_100: 'medal', win_3x3: 'players', win_4x4: 'players', win_5x5: 'players',
+  ranked_first: 'medal', ranked_win: 'medal', ranked_wins_100: 'medal', win_2x2: 'players', win_3x3: 'players', win_4x4: 'players', win_5x5: 'players',
   series_bo5: 'trophy', season_champion: 'trophy', comeback: 'bolt',
   beta: 'star', duo_50: 'players',
   humor_today_yes: 'flag', humor_customer: 'skull', humor_butterfingers: 'flag', humor_ball_hog: 'player', humor_punching_bag: 'skull', humor_sightseeing: 'map', humor_runner_up: 'medal',

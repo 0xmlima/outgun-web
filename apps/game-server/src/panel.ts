@@ -10,7 +10,7 @@ import { setPanelBotChat } from './bot-chat.js';
 import { setPanelBotNames } from './bots.js';
 import { setPanelPresets } from './presets.js';
 import { ROTATION_KEYS, rotationKey } from '@outgun/settings';
-import { isRotationEntry, panelRotationKeys, resolveRotation, withinRotation, type Rotations } from './maps.js';
+import { casualChoices, isRotationEntry, panelRotationKeys, resolveRotation, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
 import type { PanelMaps } from './panel-maps.js';
 import type { RoomManager } from './rooms.js';
@@ -89,7 +89,7 @@ export class AdminPanelLink implements PanelHandlers {
       for (const h of this.options.manager.hosted()) {
         const room = this.options.manager.get(h.id);
         if (!room || room.training || rotationKey(h.mode, room.rankedSeries?.format) !== key) continue; // treino: mapa próprio (D-87)
-        const chosen = h.mode === 'casual' ? withinRotation(this.options.manager.chosenMaps(h.id) ?? [], files) : [];
+        const chosen = h.mode === 'casual' ? withinRotation(this.options.manager.chosenMaps(h.id) ?? [], casualChoices(this.options.rotations, h.maxPlayers)) : [];
         room.setRotation(resolveRotation(chosen.length > 0 ? chosen : files, this.options.map, this.options.generatedMaps));
       }
     }

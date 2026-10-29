@@ -34,7 +34,7 @@ export type GameMode = (typeof gameMode.enumValues)[number];
 export const LOBBY_PHASES = ['lobby', 'vote', 'ready', 'countdown', 'game', 'finished'] as const;
 export type LobbyPhase = (typeof LOBBY_PHASES)[number];
 /** Formato do Ranked (OG-250, RN-RKL-01). */
-export const rankedFormat = pgEnum('ranked_format', ['3x3', '4x4', '5x5']);
+export const rankedFormat = pgEnum('ranked_format', ['2x2', '3x3', '4x4', '5x5']);
 
 export const users = pgTable(
   'users',
@@ -688,7 +688,7 @@ export const panelMapVersions = pgTable(
 );
 
 export const mapRotations = pgTable('map_rotations', {
-  /** casual | ranked | ranked:3x3 | ranked:4x4 | ranked:5x5 (OG-251, `RotationKey`). */
+  /** casual | ranked | ranked:2x2 | ranked:3x3 | ranked:4x4 | ranked:5x5 (OG-251, `RotationKey`). */
   key: text('key').$type<RotationKey>().primaryKey(),
   maps: text('maps').array().notNull(),
   version: integer('version').notNull().default(1),

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { GameMap } from '@outgun/sim';
 import { clampTraining, formatPlayers, isRankedFormat, isSeriesBestOf, TRAINING_MAPS, TRAINING_MAX_PLAYERS } from '@outgun/settings';
 import type { RoomSpawn } from '@outgun/tickets';
-import { loadMaps, panelRotationKeys, resolveRotation, rotationFor, withinRotation, type Rotations } from './maps.js';
+import { casualChoices, loadMaps, panelRotationKeys, resolveRotation, rotationFor, withinRotation, type Rotations } from './maps.js';
 import type { GeneratedMaps } from './generated-maps.js';
 import { findPreset } from './presets.js';
 import type { Room } from './room.js';
@@ -63,7 +63,7 @@ export function makeSpawner(manager: RoomManager, options: SpawnerOptions): (id:
       ? (spec.maps ?? []).filter((m) => TRAINING_MAPS.includes(m)).slice(0, 1)
       : spec.mode === 'casual' && spec.maps
         ? panelRotationKeys.has('casual')
-          ? withinRotation(spec.maps, options.rotations.casual)
+          ? withinRotation(spec.maps, casualChoices(options.rotations, spec.maxPlayers))
           : spec.maps
         : [];
     if (training && chosen.length === 0) return undefined;

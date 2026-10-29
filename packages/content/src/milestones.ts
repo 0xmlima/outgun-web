@@ -25,7 +25,7 @@ export interface MilestoneMatch {
   stats?: Readonly<Record<string, number>>;
   /** Contexto da partida (OG-391). */
   ranked?: boolean;
-  /** Formato da ranqueada (`3x3`, `4x4`, `5x5`). */
+  /** Formato da ranqueada (`2x2`, `3x3`, `4x4`, `5x5`). */
   format?: string;
   /** Arquivo do mapa; os gerados (`mapgen_*`) contam como um mapa só. */
   map?: string;
@@ -133,6 +133,7 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'ranked_first', group: 'ranked', name: b('Estreia ranqueada', 'Ranked debut'), description: b('Jogou a primeira ranqueada', 'Played the first ranked match') },
   { id: 'ranked_win', group: 'ranked', name: b('Primeira vitória ranqueada', 'First ranked win'), description: b('Venceu a primeira ranqueada', 'Won the first ranked match') },
   { id: 'ranked_wins_100', group: 'ranked', name: b('Ranqueado', 'Ranked regular'), description: b('100 vitórias ranqueadas', '100 ranked wins') },
+  { id: 'win_2x2', group: 'ranked', name: b('Dupla de ataque', 'Strike pair'), description: b('Venceu uma ranqueada 2x2', 'Won a 2v2 ranked match') },
   { id: 'win_3x3', group: 'ranked', name: b('Trio', 'Trio'), description: b('Venceu uma ranqueada 3x3', 'Won a 3v3 ranked match') },
   { id: 'win_4x4', group: 'ranked', name: b('Quarteto', 'Quartet'), description: b('Venceu uma ranqueada 4x4', 'Won a 4v4 ranked match') },
   { id: 'win_5x5', group: 'ranked', name: b('Quinteto', 'Quintet'), description: b('Venceu uma ranqueada 5x5', 'Won a 5v5 ranked match') },
@@ -244,6 +245,7 @@ const FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
   triple_kill: (m) => m.events !== undefined && longestKillChain(m.events) >= 3,
   ranked_first: (m) => m.ranked === true,
   ranked_win: (m) => m.ranked === true && m.result > 0,
+  win_2x2: (m) => m.ranked === true && m.result > 0 && m.format === '2x2',
   win_3x3: (m) => m.ranked === true && m.result > 0 && m.format === '3x3',
   win_4x4: (m) => m.ranked === true && m.result > 0 && m.format === '4x4',
   win_5x5: (m) => m.ranked === true && m.result > 0 && m.format === '5x5',

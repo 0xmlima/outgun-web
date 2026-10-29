@@ -59,6 +59,15 @@ export function withinRotation(chosen: readonly string[], rotation: readonly str
   return chosen.filter((m) => rotation.includes(m));
 }
 
+/**
+ * Mapas que uma sala Casual pode escolher (D-69): os da rotação Casual e, numa sala de 4 vagas, também
+ * os da rotação 2x2 (OG-519, D-88).
+ */
+export function casualChoices(rotations: Rotations, maxPlayers: number): readonly string[] {
+  const twos = maxPlayers === 4 ? (rotations['ranked:2x2'] ?? []) : [];
+  return [...rotations.casual, ...twos.filter((m) => !rotations.casual.includes(m))];
+}
+
 /** Rotação que uma sala nova usa (a do formato, se houver). */
 export function rotationFor(rotations: Rotations, mode: 'casual' | 'ranked', format?: RankedFormat): readonly string[] {
   return rotations[rotationKey(mode, format)] ?? rotations[mode];

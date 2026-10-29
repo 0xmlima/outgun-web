@@ -9,7 +9,7 @@ import { Dialog, InfoButton } from '../ui/Dialog.js';
 /** Regras mostradas no "i" (chaves em inglês, traduzidas em `@outgun/i18n`). */
 export const RATING_RULES = [
   'Everyone starts at 0. The first matches move the rating fast; with fewer than 10 Ranked matches you are still calibrating.',
-  'One rating for all formats (3x3, 4x4, 5x5), kept for good: it does not restart each month and does not drop if you stop playing.',
+  'One rating for all formats (2x2, 3x3, 4x4, 5x5), kept for good: it does not restart each month and does not drop if you stop playing.',
   'Only the result counts (win, loss or draw), not the score margin.',
   'Everyone who started the match gets the team result, even if they left. Substitute bots have no rating.',
   'Only Ranked counts. Casual matches and cancelled matches do not change your rating.',

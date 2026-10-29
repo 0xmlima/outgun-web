@@ -424,6 +424,14 @@ export function CreateRoomScreen() {
   const [bots, setBots] = useState(prefs.casualBots);
   const [botLevel, setBotLevel] = useState(prefs.casualBotLevel);
   const [allMaps, setAllMaps] = useState<readonly string[]>([]);
+  // atalho 2x2 (OG-519, D-88): 4 vagas e os mapas da rotação 2x2
+  const [duoMaps, setDuoMaps] = useState<readonly string[]>([]);
+  const [duo, setDuo] = useState(false);
+  const pickDuo = (on: boolean) => {
+    setDuo(on);
+    setMaxPlayers(on ? 4 : 16);
+    setMaps(on ? duoMaps : []);
+  };
   // miniaturas só com a lista aberta (cada uma lê o mapa)
   const [mapsOpen, setMapsOpen] = useState(false);
   const [presets, setPresets] =
@@ -448,12 +456,16 @@ export function CreateRoomScreen() {
     );
     // sem rotação: os mapas do jogo + os publicados no painel (OG-377)
     void Promise.all([
-      api<{ maps: string[] | null; published?: string[] }>('/rotation').catch(() => ({
-        maps: null,
-        published: [],
-      })),
+      api<{ maps: string[] | null; published?: string[]; duo?: string[] }>('/rotation').catch(
+        () => ({
+          maps: null,
+          published: [],
+          duo: [],
+        }),
+      ),
       loadManifest(),
-    ]).then(([rotation, m]) =>
+    ]).then(([rotation, m]) => {
+      setDuoMaps(rotation.duo ?? []);
       setAllMaps(
         rotation.maps ?? [
           ...new Set([
@@ -465,11 +477,13 @@ export function CreateRoomScreen() {
             ...(rotation.published ?? []),
           ]),
         ],
-      ),
-    );
+      );
+    });
   }, []);
   const duel = preset === 'duel';
   const slots = duel ? 2 : maxPlayers;
+  // na sala 2x2 os mapas da rotação 2x2 também aparecem na lista
+  const mapChoices = duo ? [...allMaps, ...duoMaps.filter((m) => !allMaps.includes(m))] : allMaps;
   const mapsLabel = useMemo(
     () =>
       maps.length === 0
@@ -496,7 +510,7 @@ export function CreateRoomScreen() {
           name: name.trim(),
           preset,
           ...(password ? { password } : {}),
-          ...(duel ? {} : { maxPlayers }),
+          ...(duel ? {} : { maxPlayers: duo ? 4 : maxPlayers }),
           ...(maps.length ? { maps } : {}),
           ...(customBots ? { bots: { count: Math.min(bots, slots - 1), level: botLevel } } : {}),
         };
@@ -616,13 +630,21 @@ export function CreateRoomScreen() {
           </>
         ) : (
           <>
+            {!duel && (
+              <ToggleField
+                label={t('2x2')}
+                checked={duo}
+                onChange={pickDuo}
+                hint={duo ? t('4 players and the small maps of the 2x2 rotation.') : undefined}
+              />
+            )}
             <SliderField
               label={t('Players')}
               value={duel ? 2 : maxPlayers}
               min={2}
               max={32}
               step={2}
-              disabled={duel}
+              disabled={duel || duo}
               onChange={setMaxPlayers}
             />
             <ToggleField
@@ -664,7 +686,7 @@ export function CreateRoomScreen() {
             </Button>
           </div>
           <ul>
-            {allMaps.map((m) => (
+            {mapChoices.map((m) => (
               <li key={m}>
                 <label>
                   <input type="checkbox" checked={maps.includes(m)} onChange={() => toggleMap(m)} />

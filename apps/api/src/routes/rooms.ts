@@ -3,7 +3,7 @@
 // privada Casual (OG-086, RN-CFG-03) e de sala de lobby Ranked (OG-252, RN-RKL-05/06, D-44).
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { clampTraining, formatPlayers, isSeriesBestOf, PRESETS, settingsOf, TRAINING_MAPS, TRAINING_MAX_PLAYERS } from '@outgun/settings';
-import { casualRotation, findPreset, panelPresets } from '../platform-config.js';
+import { casualRotation, findPreset, panelPresets, rotationMaps } from '../platform-config.js';
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import type { AppDeps, Services } from '../app.js';
@@ -164,11 +164,13 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
           tags: ['salas'],
           summary:
             'Rotação Casual do painel (D-69): os mapas que a sala privada pode escolher; null = sem rotação no painel (escolha livre entre os mapas do jogo e os publicados, OG-377)',
-          response: { 200: Type.Object({ maps: Type.Union([Type.Null(), Type.Array(Type.String())]), published: Type.Array(Type.String()) }) },
+          response: { 200: Type.Object({ maps: Type.Union([Type.Null(), Type.Array(Type.String())]), published: Type.Array(Type.String()), duo: Type.Array(Type.String()) }) },
         },
       },
       async () => ({
         maps: await casualRotation(db),
+        /** Rotação 2x2 (OG-519): mapas do atalho 2x2, que valem em sala de 4 vagas. */
+        duo: (await rotationMaps(db, 'ranked:2x2')) ?? [],
         published: (await db.select({ name: panelMaps.name }).from(panelMaps).where(isNull(panelMaps.deletedAt)).orderBy(asc(panelMaps.name))).map((m) => m.name),
       }),
     );
@@ -238,7 +240,9 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
           if (mine.length > 0) await db.delete(rooms).where(and(eq(rooms.ownerId, user.id), isNotNull(rooms.training)));
         } else {
           // rotação do painel sempre respeitada (D-69): a sala escolhe só entre os mapas dela
-          const rotation = await casualRotation(db);
+          // sala de 4 vagas (atalho 2x2, OG-519): os mapas da rotação 2x2 também valem
+          const casual = await casualRotation(db);
+          const rotation = casual && body.maxPlayers === 4 ? [...casual, ...((await rotationMaps(db, 'ranked:2x2')) ?? [])] : casual;
           const outside = rotation && body.maps ? body.maps.filter((m) => !rotation.includes(m)) : [];
           if (outside.length > 0) return reply.code(422).send({ error: 'map_not_in_rotation', message: `not in the casual rotation: ${outside.join(', ')}` });
         }

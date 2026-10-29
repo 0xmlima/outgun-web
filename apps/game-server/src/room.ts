@@ -4,7 +4,7 @@
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
 import { chatName, encodeFrame, isMedalColor, medalColor, message, PERSONAL_COLORS, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
-import { applyGamemod, formatPlayers, newSeries, recordSeriesGame, seriesOver, seriesWinner, settingsOf, type GameMode, type GameSettings, type Preset, type RankedRoomFormat, type SeriesScore } from '@outgun/settings';
+import { applyGamemod, formatGamemod, formatPlayers, MAX_SUBSTITUTES, maxSubstitutesPerSide, newSeries, recordSeriesGame, seriesOver, seriesWinner, settingsOf, type GameMode, type GameSettings, type Preset, type RankedRoomFormat, type SeriesScore } from '@outgun/settings';
 import { findPreset } from './presets.js';
 import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
 import { randomUUID } from 'node:crypto';
@@ -19,7 +19,6 @@ import { SpectatorStream } from './spectators.js';
 import { RankedLobby } from './ranked-lobby.js';
 import { PAUSE_REQUESTS, RANKED_RECONNECT_FRAMES, RankedPause, type PauseRefusal } from './pause.js';
 /** Bots substitutos por partida Ranked, somando os dois times (RN-RKL-19). */
-const MAX_SUBSTITUTES = 2;
 import { MatchEventRecorder, type EventFlag } from './match-events.js';
 import { TRAINEE_TEAM, TrainingSession, type BotSlot, type TrainingConfig, type TrainingEvent, type TrainingPlayer, type TrainingRole, type TrainingAnnouncement } from './training.js';
 import { TRAINING_MODES } from './training-modes.js';
@@ -291,6 +290,8 @@ export class Room {
   private nextUid = 1;
   private readonly bans = new Map<string, number>();
   private setLines: string[] = [];
+  /** Linhas do formato Ranked (`formatGamemod`); sobrevivem ao `/reset`. */
+  private readonly formatLines: string;
   private uptimeFrames = 0;
   /** Início da partida atual (relógio de parede) e quantas partidas a sala já teve. */
   private matchStartedAt: number;
@@ -383,8 +384,11 @@ export class Room {
       if (options.maxPlayers !== formatPlayers(options.ranked.format)) throw new Error(`sala ${options.ranked.format} precisa de ${formatPlayers(options.ranked.format)} vagas`);
       this.series = { no: 1, score: newSeries(options.ranked.bestOf) };
     }
-    this.settings = options.gamemod ? applyGamemod(settingsOf(preset), options.gamemod).settings : settingsOf(preset);
-    if (options.gamemod) this.setLines = [options.gamemod];
+    // duração do formato (2x2 com 15 min, D-88) sobre o preset travado, antes do gamemod da sala
+    this.formatLines = formatGamemod(options.ranked?.format);
+    const lines = [this.formatLines, options.gamemod].filter((l): l is string => !!l);
+    this.settings = lines.length > 0 ? applyGamemod(settingsOf(preset), lines.join('\n')).settings : settingsOf(preset);
+    this.setLines = lines;
 
     this.now = options.now ?? (() => performance.now());
     this.createdAt = this.matchStartedAt = this.wallClock();
@@ -1392,7 +1396,7 @@ export class Room {
     if (this.abandonedSide()) this.cancelGame();
     const inGame = this.inGame;
     for (let r = this.pause?.decide(this.uptimeFrames); r; r = this.pause?.decide(this.uptimeFrames)) {
-      if (r.bot && this.substitutes < MAX_SUBSTITUTES) this.substitute(r.pid);
+      if (r.bot && this.substitutes < MAX_SUBSTITUTES && this.sideSubstitutes(this.world.teamOf(r.pid) as 0 | 1) < maxSubstitutesPerSide(this.options.ranked?.format)) this.substitute(r.pid);
       else this.goShort(r.pid);
     }
     if (this.pause?.tick(this.uptimeFrames)) this.broadcast(this.mapTimeMessage()); // retomou: relógio do cliente no lugar
@@ -1458,16 +1462,17 @@ export class Room {
 
   /**
    * Desconexão permanente no jogo Ranked (OG-262, RN-RKL-18/19): o time desfalcado vota entre bot e
-   * um a menos; sem bot disponível (limite de 2 por partida), segue direto com um a menos.
+   * um a menos; sem bot disponível (limite de 2 por partida; no 2x2, 1 por lado, D-88), segue direto com um a menos.
    */
   private depart(pid: number): void {
     const c = this.clients.get(pid);
     const pause = this.pause;
     if (!c || !pause) return;
-    const offered = this.substitutes + pause.votes.length;
-    if (offered >= MAX_SUBSTITUTES) return this.goShort(pid);
-    c.departing = true;
     const team = this.world.teamOf(pid) as 0 | 1;
+    const offered = this.substitutes + pause.votes.length;
+    const offeredSide = this.sideSubstitutes(team) + pause.votes.filter((v) => v.team === team).length;
+    if (offered >= MAX_SUBSTITUTES || offeredSide >= maxSubstitutesPerSide(this.options.ranked?.format)) return this.goShort(pid);
+    c.departing = true;
     const voters = [...this.clients].filter(([p, o]) => p !== pid && !o.bot && o.conn !== OFFLINE && this.world.teamOf(p) === team).map(([p]) => p);
     pause.depart(pid, team, voters, this.uptimeFrames);
   }
@@ -1500,6 +1505,11 @@ export class Room {
     bot.attach(pid);
     this.send(pid, this.welcomeMessages(pid));
     this.broadcast(message('playerName', { pid, name: c.identity.name }));
+  }
+
+  /** Bots substitutos que entraram por um lado neste jogo. */
+  private sideSubstitutes(team: 0 | 1): number {
+    return this.substitutions.filter((s) => s.kind === 'bot' && s.team === team).length;
   }
 
   /** O time segue com um a menos (OG-262/263). */
@@ -1770,11 +1780,11 @@ export class Room {
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
       },
       resetSettings: () => {
-        const fresh = settingsOf(this.preset);
+        const fresh = this.formatLines ? applyGamemod(settingsOf(this.preset), this.formatLines).settings : settingsOf(this.preset);
         for (const group of ['world', 'powerups', 'physics', 'server'] as const) Object.assign(this.settings[group], fresh[group]);
         if (this.mode === 'casual' && this.options.botsFill !== undefined) this.settings.server.botsFill = this.options.botsFill;
         this.checkBotsPending = true;
-        this.setLines = [];
+        this.setLines = this.formatLines ? [this.formatLines] : [];
         this.broadcast(this.serverSettingsMessage(), this.mapTimeMessage());
         this.sendCasualConfig();
       },
