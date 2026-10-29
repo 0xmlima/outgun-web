@@ -829,6 +829,7 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Pause': 'Pausar',
     'Copy link': 'Copiar link',
     'Link copied': 'Link copiado',
+    'Could not copy': 'Não deu para copiar',
     'Back': 'Voltar',
     'PgUp/PgDn speed · Home normal · P pause · arrows room · F follow player · keypad +/- zoom · M sound':
       'PgUp/PgDn velocidade · Home normal · P pausa · setas sala · F seguir jogador · +/- do teclado numérico zoom · M som',

@@ -983,7 +983,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Em revisão |
 | [OG-509](cards/OG-509-travou-o-jogo-apos-acessar-the.md) | Travou o jogo após acessar The Blunt Mini com as cores do Dk (issue #25) | E11 | 2 | Must | S54 | — | Em revisão |
 | [OG-510](cards/OG-510-sentry-estouro-de-pilha-script-de-fora.md) | Sentry: estouro de pilha no portal vindo de um script de fora da página (OUTGUN-WEB-5) | E11 | 1 | Should | S54 | OG-434 | Pronto |
-| [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Pronto |
+| [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Em revisão |
 | [OG-512](cards/OG-512-heartbeat-falha-ao-ler-presets.md) | Heartbeat das salas falha ao ler os presets Casual (OUTGUN-SERVER-2) | E11 | 2 | Should | S54 | OG-087 | Pronto |
 
 **Total:** 352 cards, 1119 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 283 cards, 824 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).

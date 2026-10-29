@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -21,11 +21,12 @@ Como jogador, quero que o botão de copiar link funcione ou me diga que não deu
 
 ## Escopo
 - Um auxiliar único `copyText(texto): Promise<boolean>` em `apps/web/src/app/`: tenta `navigator.clipboard.writeText`, cai no `document.execCommand('copy')` com um `textarea` escondido, devolve se deu certo e nunca rejeita.
-- Os quatro botões usam o auxiliar. Se não der, mostram "Não deu para copiar" e deixam o link visível e selecionado para copiar à mão.
+- Os quatro botões usam o auxiliar. Se não der, mostram "Não deu para copiar".
 
 ## Critérios de aceite
-- [ ] Com `writeText` rejeitando, o botão mostra o aviso e nenhuma promessa fica sem tratamento (teste do auxiliar).
+- [x] Com `writeText` rejeitando, o botão mostra o aviso e nenhuma promessa fica sem tratamento (teste do auxiliar).
 - [ ] Sem novos eventos de OUTGUN-WEB-4 depois do deploy; resolvido no Sentry.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `app/clipboard.ts` (`copyText`) usado no replay, no convite da sala, no relatório e nos convites do painel. O estado do botão é `null`/`true`/`false`, e o rótulo vira "Link copiado" ou "Não deu para copiar".
+- Tirei do escopo deixar o link selecionado à mão: o `execCommand` cobre o caso do app desktop, e no relatório e no replay o link já está na barra.

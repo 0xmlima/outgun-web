@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { Link, useNavigate } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, API_URL, ApiError } from '../app/api.js';
+import { copyText } from '../app/clipboard.js';
 import { isPhone, PHONE_ADMIN_TABS } from '../app/phone.js';
 import { areaLabels, frequencyLabels, severityLabels, type BugReport } from '../app/bug-report.js';
 import { usePrefs } from '../app/prefs.js';
@@ -1793,7 +1794,7 @@ function InvitesTab() {
               !i.revoked &&
               i.uses < i.maxUses && (
                 <span className="admin-row-actions">
-                  <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(link(i.code))}>
+                  <Button variant="ghost" onClick={() => void copyText(link(i.code))}>
                     {t('Copy link')}
                   </Button>
                   <Button variant="ghost" onClick={() => void revoke(i.code)}>

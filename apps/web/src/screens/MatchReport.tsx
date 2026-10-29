@@ -9,6 +9,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { api } from '../app/api.js';
 import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
+import { copyText } from '../app/clipboard.js';
 import { Badge, Button } from '../ui/Button.js';
 import { Page } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
@@ -320,7 +321,7 @@ export function MatchScreen() {
   const { id = '' } = useParams();
   const page = useApi<MatchPage>(`/matches/${encodeURIComponent(id)}`);
   const events = useApi<MatchEvents>(`/matches/${encodeURIComponent(id)}/events`);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<boolean | null>(null);
   const m = page.data;
   if (!m) {
     return (
@@ -426,8 +427,8 @@ export function MatchScreen() {
           </Button>
         )}
         <PdfButton make={async (pdf) => pdf.matchPdf(m, events.data ?? null, t, prefs.locale)} />
-        <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(location.href).then(() => setCopied(true))}>
-          {copied ? t('Link copied') : t('Copy link')}
+        <Button variant="ghost" onClick={() => void copyText(location.href).then(setCopied)}>
+          {copied === null ? t('Copy link') : copied ? t('Link copied') : t('Could not copy')}
         </Button>
       </div>
       <div className="report-grid">
