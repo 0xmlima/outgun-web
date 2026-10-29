@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { Writable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { createLogger, ErrorReporter, metricsAuthorized, parseDsn, parseStack, Registry, requestId } from './index.js';
+import { createLogger, ErrorReporter, exceptionChain, metricsAuthorized, parseDsn, parseStack, Registry, requestId } from './index.js';
 
 describe('Registry', () => {
   it('exporta contadores, medidores e histogramas no formato do Prometheus', () => {
@@ -131,6 +131,13 @@ describe('ErrorReporter', () => {
     expect(item).toEqual({ type: 'event' });
     expect(head?.event_id).toBe((event as { event_id: string }).event_id);
     expect(event).toMatchObject({ environment: 'staging', release: '0.1.0', tags: { service: 'api', room: 'main' }, exception: { values: [{ type: 'TypeError', value: 'quebrou' }] } });
+  });
+
+  it('leva a causa encadeada, da mais interna para a de fora (OG-512)', () => {
+    const pg = Object.assign(new Error('terminating connection due to administrator command'), { code: '57P01' });
+    const values = exceptionChain(new Error('Failed query: select "id" from "casual_presets"', { cause: pg }));
+    expect(values.map((v) => v.value)).toEqual(['terminating connection due to administrator command (57P01)', 'Failed query: select "id" from "casual_presets"']);
+    expect(exceptionChain(new Error('só'))).toHaveLength(1);
   });
 
   it('sem DSN não envia nada', () => {

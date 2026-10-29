@@ -15,7 +15,7 @@ import { awardMilestones } from '../milestones.js';
 import { recordMatchSocial } from '../social-stats.js';
 import { verifyInternalRequest } from '@outgun/tickets';
 import { ONLINE_MS } from '../registry.js';
-import { applyAcks, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
+import { applyAcks, lastGoodRead, panelPresets, platformConfig, takeCommands } from '../platform-config.js';
 import { ErrorSchema, GameModeSchema, LobbyPhaseSchema, RankedFormatSchema, RoomId, SeriesBestOfSchema } from './schemas.js';
 import { liveBus } from '../live.js';
 
@@ -334,7 +334,9 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
       },
       async (request, reply) => {
         const serverId = request.serverId!;
-        const panel = await panelPresets(database.db);
+        // falha momentânea do banco não derruba a batida: vale a última leitura boa (OG-512)
+        const warn = (what: string) => (err: unknown) => request.log.warn({ err }, `heartbeat: ${what} da última leitura boa`);
+        const panel = await lastGoodRead(database.db, 'panel', () => panelPresets(database.db), warn('presets'));
         for (const r of request.body.rooms) {
           const preset = PRESETS.find((p) => p.id === r.preset) ?? panel.find((p) => p.id === r.preset);
           if (!preset || preset.mode !== r.mode) {
@@ -397,7 +399,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         }
         await applyAcks(database.db, serverId, request.body.acks ?? [], now);
         const commands = await takeCommands(database.db, serverId, now);
-        return { updated: request.body.rooms.length, commands, config: await platformConfig(database.db) };
+        return { updated: request.body.rooms.length, commands, config: await lastGoodRead(database.db, 'config', () => platformConfig(database.db), warn('configuração')) };
       },
     );
 

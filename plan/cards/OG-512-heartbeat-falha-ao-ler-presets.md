@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-087 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -27,9 +27,10 @@ Como PO, quero que uma falha momentânea do banco não derrube o heartbeat das s
 - Resolver o OUTGUN-SERVER-2 no Sentry depois do deploy.
 
 ## Critérios de aceite
-- [ ] Com o banco falhando na leitura dos presets, o heartbeat responde 200 com a configuração anterior (teste).
-- [ ] O evento do Sentry traz a causa encadeada (teste do reporter).
+- [x] Com o banco falhando na leitura dos presets, o heartbeat responde 200 com a configuração anterior (teste).
+- [x] O evento do Sentry traz a causa encadeada (teste do reporter).
 - [ ] Causa do episódio de 27/10 anotada no card.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- `lastGoodRead` (`platform-config.ts`) guarda a última leitura boa por banco e por chave. O heartbeat usa isso nos presets do painel e na configuração; quando a leitura falha, vai um `warn` no log e a `version` antiga. O `ErrorReporter` manda as causas encadeadas (`exceptionChain`, até 3, com o `code` do Postgres/Node).
+- Pendente: a causa do episódio de 27/10. Só 8 de muitas batidas falharam em 52 min, o que aponta conexão do pool caída, e não banco fora do ar. Não consegui ler os logs da VM (acesso de produção negado nesta sessão). Com a causa encadeada, o próximo evento já vai dizer.

@@ -63,6 +63,28 @@ export async function platformConfig(db: Db): Promise<PlatformConfig> {
   return { version, presets, rotations, maps, bots, botChat: chat };
 }
 
+/** Última leitura boa de cada banco, por chave: presets do painel e configuração (OG-512). */
+const lastGood = new WeakMap<Db, Map<string, unknown>>();
+
+/**
+ * Leitura para o heartbeat (OG-512): se o banco falhar (conexão do pool caída, banco reiniciando),
+ * responde com a última leitura boa e avisa no log; sem nenhuma ainda, o erro sobe. A `version` da
+ * configuração anterior vai junto, então o game server não reaplica nada.
+ */
+export async function lastGoodRead<T>(db: Db, key: string, read: () => Promise<T>, warn: (err: unknown) => void): Promise<T> {
+  let cache = lastGood.get(db);
+  if (!cache) lastGood.set(db, (cache = new Map()));
+  try {
+    const value = await read();
+    cache.set(key, value);
+    return value;
+  } catch (err) {
+    if (!cache.has(key)) throw err;
+    warn(err);
+    return cache.get(key) as T;
+  }
+}
+
 export interface CommandForServer {
   id: number;
   roomId: string;
