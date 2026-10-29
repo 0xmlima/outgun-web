@@ -30,3 +30,4 @@ Como atacante, quero treinar entrar numa base defendida e sair com a bandeira.
 
 ## Notas de implementação
 - Quem treina começa na sala vizinha da base inimiga, no caminho de casa; guardas espalhados na sala da base, puxados para perto da bandeira. Sucesso por `flagOut` ou `defendersDown`; morto não renasce na tentativa.
+- Achado do PO (2026-10-29): guardas sempre no centro. Agora nascem em pontos sorteados da sala da base e, sem inimigo à vista, patrulham de ponto em ponto (longe das bordas) com pausas curtas.

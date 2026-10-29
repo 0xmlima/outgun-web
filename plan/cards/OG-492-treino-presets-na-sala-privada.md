@@ -33,3 +33,4 @@ Como jogador, quero escolher um treino na tela de criar sala privada, para come�
 - Opções compartilhadas em `packages/settings/src/training.ts` (modos, limites, `TRAINING_MAPS`, 16 vagas). Migração 0047 (`rooms.training` jsonb); spawn → servidor ignora a rotação do painel e o `casualBots` na sala de treino.
 - "Criar sala privada": o grupo Treino entra no fim da lista de Regras ("Treino · Ataque"...); com ele, escolhe-se um dos cinco mapas (com miniatura), a quantidade do outro lado, aliados (Defesa), nível 1–5 ou progressivo, power-ups e "mesmo início".
 - RN-TRN-06: a sala de treino fora do ar é apagada ao criar outra; com uma no ar, a API recusa (409) e o cliente avisa. Teste em `apps/api/src/routes/training-rooms.test.ts`.
+- Achado do PO (2026-10-29): ao sair, a sala de treino ficava aberta (os bots contavam como gente) e bloqueava outro treino. Agora fecha quando o último humano sai; a API só recusa outra sala se a anterior tiver alguém dentro.
