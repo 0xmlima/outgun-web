@@ -51,14 +51,22 @@ function msPercentile(values: readonly number[], p: number): number | null {
   return values.length ? Math.round(percentile(values, p)) : null;
 }
 
-/** "Chrome 130", "Firefox 131", "Safari 18"... (só o navegador e a versão principal). */
+/** Navegador embutido de app (OG-510): Instagram, Facebook, WhatsApp, webview do Android. */
+const WEBVIEW = /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/;
+
+/** "Chrome 130", "Firefox 131", "Safari 18"... (só o navegador e a versão principal); " webview" no navegador de um app. */
 export function browserName(ua: string): string {
-  // ordem importa: o Edge e o Opera também dizem "Chrome"; o Chrome também diz "Safari"
-  for (const [token, name] of [['Edg', 'Edge'], ['OPR', 'Opera'], ['Firefox', 'Firefox'], ['Chrome', 'Chrome'], ['Version', 'Safari']] as const) {
+  const webview = WEBVIEW.test(ua) ? ' webview' : '';
+  // ordem importa: o Edge e o Opera também dizem "Chrome"; o Chrome também diz "Safari"; no iOS
+  // todos são Safari por dentro e se identificam por EdgiOS/CriOS/FxiOS (OG-510)
+  const tokens = [['EdgiOS', 'Edge'], ['Edg', 'Edge'], ['OPR', 'Opera'], ['FxiOS', 'Firefox'], ['Firefox', 'Firefox'], ['CriOS', 'Chrome'], ['Chrome', 'Chrome'], ['Version', 'Safari']] as const;
+  for (const [token, name] of tokens) {
     const m = new RegExp(`${token}/(\\d+)`).exec(ua);
-    if (m && (token !== 'Version' || /Safari/.test(ua))) return `${name} ${m[1]}`;
+    if (m && (token !== 'Version' || /Safari/.test(ua))) return `${name} ${m[1]}${webview}`;
   }
-  return 'outro';
+  // webview do iOS sem "Version/": só o motor
+  if (/iPhone|iPad/.test(ua) && /AppleWebKit/.test(ua)) return `Safari${webview || ' webview'}`;
+  return webview ? `outro${webview}` : 'outro';
 }
 
 /** Junta as amostras de um trecho da partida; `report()` devolve o resumo e recomeça. */
