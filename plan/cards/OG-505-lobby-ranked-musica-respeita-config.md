@@ -6,8 +6,8 @@
 | Tipo | Bug |
 | Prioridade | Must |
 | Estimativa | 1 pt |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S54 |
+| Status | Pronto |
 | Dependências | OG-461 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
