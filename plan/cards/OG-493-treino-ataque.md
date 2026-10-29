@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490, OG-491 |
 | Regras de negócio | RN-TRN-02, RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -26,6 +26,7 @@ Como atacante, quero treinar entrar numa base defendida e sair com a bandeira.
 - Sucesso: todos os defensores derrubados, ou o portador sai da sala da base com a bandeira.
 
 ## Critérios de aceite
-- [ ] As três condições de fim funcionam e reiniciam a tentativa.
+- [x] As três condições de fim funcionam e reiniciam a tentativa.
 
 ## Notas de implementação
+- Quem treina começa na sala vizinha da base inimiga, no caminho de casa; guardas espalhados na sala da base, puxados para perto da bandeira. Sucesso por `flagOut` ou `defendersDown`; morto não renasce na tentativa.

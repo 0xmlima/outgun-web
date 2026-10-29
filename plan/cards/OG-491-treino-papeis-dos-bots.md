@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 8 pts |
 | Sprint | S55 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-490 |
 | Regras de negócio | RN-TRN-03, RN-TRN-08, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -32,12 +32,16 @@ Como jogador treinando, quero que cada bot cumpra o papel do modo, para a situa�
 - Na Defesa, os atacantes saem juntos (RN-TRN-04).
 
 ## Critérios de aceite
-- [ ] Testes por papel com mapas de fixture e com os mapas de treino (RN-TRN-06): o guardião não sai da sala da base e nunca vai à outra bandeira; o perseguidor segue o portador entre salas; o portador vai à base; ninguém pega bandeira fora do papel.
-- [ ] Teste da trava: bot com papel guardar/perseguir/escoltar encostando numa bandeira não a pega.
-- [ ] `brain.ts` e os testes dos bots do Casual sem nenhuma mudança (garantia completa no OG-513).
+- [x] Testes por papel com mapas de fixture e com os mapas de treino (RN-TRN-06): o guardião não sai da sala da base e nunca vai à outra bandeira; o perseguidor segue o portador entre salas; o portador vai à base; ninguém pega bandeira fora do papel.
+- [x] Teste da trava: bot com papel guardar/perseguir/escoltar encostando numa bandeira não a pega.
+- [x] `brain.ts` e os testes dos bots do Casual sem nenhuma mudança (garantia completa no OG-513).
 
 ## Notas técnicas
 - Reaproveitar mira, combate e navegação do `RobotCore`/`Robot` por composição ou herança, trocando só o `chooseDestination` e acrescentando a trava; se precisar expor algo do `Robot`, só exportar, sem mudar o comportamento.
 - `apps/game-server/src/bot-client.ts:221` escolhe a classe pelo tipo da sala: `TrainingRobot` só com `room.kind === 'training'`; bots do Casual, do Ranked e os substitutos continuam no `Robot`.
 
 ## Notas de implementação
+- `packages/bots/src/training/training-robot.ts`: `TrainingRobot extends Robot`, troca só `getFlag`, `chooseDestination` e `followFlag` (guarda fica no posto em vez de passear). `BotClient` recebe o papel; sem papel continua `Robot`.
+- Trava: gancho opcional `mayTakeFlag` na sim (sem ele, nada muda; a referência do OG-513 confirma), usado só pela sala de treino com `roleMayTakeFlag`.
+- Achado: o bot só conhece posições que vê; na sala de treino `always_send_flag_location` fica ligado para o perseguidor e a escolta acharem o portador.
+- Testes em `training-room.test.ts` nos cinco mapas de treino (guardas nunca saem da base nem pegam bandeira; aliados idem; atacantes chegam à base; perseguidores alcançam; portador vai para casa).

@@ -967,17 +967,17 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-502](cards/OG-502-resumo-do-jogo-no-pdf.md) | Resumo do jogo no PDF da partida (lado a lado, nas cores dos clãs) | E9 | 3 | Should | S52 | OG-425, OG-485 | Concluído |
 | [OG-503](cards/OG-503-leaderboard-emblema-desalinhado.md) | Visão geral do leaderboard desalinhada com o emblema do clã | E9 | 1 | Must | S53 | OG-484 | Concluído |
 | [OG-490](cards/OG-490-treino-ciclo-da-tentativa.md) | Treino: sala de treino e ciclo da tentativa no servidor | E11 | 5 | Must | S55 | OG-289 | Em revisão |
-| [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | S55 | OG-490 | Em andamento |
+| [OG-491](cards/OG-491-treino-papeis-dos-bots.md) | Treino: papéis fixos dos bots (guardar base, atacar, perseguir, levar e escoltar a bandeira) | E11 | 8 | Must | S55 | OG-490 | Em revisão |
 | [OG-492](cards/OG-492-treino-presets-na-sala-privada.md) | Treino: presets de treino na criação da sala privada | E11 | 3 | Must | S55 | OG-490 | Pronto |
-| [OG-493](cards/OG-493-treino-ataque.md) | Treino Ataque: entrar na base e sair do quadrado com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Pronto |
-| [OG-494](cards/OG-494-treino-defesa.md) | Treino Defesa: segurar a onda de atacantes | E11 | 3 | Must | S55 | OG-490, OG-491 | Pronto |
-| [OG-495](cards/OG-495-treino-fuga.md) | Treino Fuga: da base inimiga até a sua com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Pronto |
-| [OG-496](cards/OG-496-treino-captura.md) | Treino Captura: alcançar o portador e devolver a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Pronto |
+| [OG-493](cards/OG-493-treino-ataque.md) | Treino Ataque: entrar na base e sair do quadrado com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
+| [OG-494](cards/OG-494-treino-defesa.md) | Treino Defesa: segurar a onda de atacantes | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
+| [OG-495](cards/OG-495-treino-fuga.md) | Treino Fuga: da base inimiga até a sua com a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
+| [OG-496](cards/OG-496-treino-captura.md) | Treino Captura: alcançar o portador e devolver a bandeira | E11 | 3 | Must | S55 | OG-490, OG-491 | Em revisão |
 | [OG-497](cards/OG-497-treino-com-convidados.md) | Treino com convidados: escolher o lado, junto ou contra | E11 | 5 | Must | S55 | OG-490, OG-492 | Pronto |
 | [OG-498](cards/OG-498-treino-fora-das-estatisticas.md) | Treino não conta para nada: estatísticas, ranking, radar, relatórios e marcos | E11 | 2 | Must | S55 | OG-490 | Pronto |
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | S55 | OG-490, OG-491 | Pronto |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | S55 | OG-493, OG-494, OG-495, OG-496 | Pronto |
-| [OG-513](cards/OG-513-treino-bots-isolados-do-casual.md) | Treino: bots do treino isolados dos bots do Casual (gravação de referência e fronteira de código) | E11 | 3 | Must | S55 | OG-491 | Em andamento |
+| [OG-513](cards/OG-513-treino-bots-isolados-do-casual.md) | Treino: bots do treino isolados dos bots do Casual (gravação de referência e fronteira de código) | E11 | 3 | Must | S55 | OG-491 | Em revisão |
 | [OG-504](cards/OG-504-emblema-botoes-de-download.md) | Botões "PNG 128/512 px" do emblema não dizem que baixam a imagem | E13 | 1 | Should | — | OG-489 | Backlog |
 | [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Concluído |
 | [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Concluído |

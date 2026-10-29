@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490, OG-491 |
 | Regras de negócio | RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -26,6 +26,7 @@ Como portador, quero treinar levar a bandeira para casa com inimigos no meu enca
 - Sucesso: você captura na sua base (com a sua bandeira em casa, regra normal de captura).
 
 ## Critérios de aceite
-- [ ] As condições de fim funcionam e reiniciam a tentativa.
+- [x] As condições de fim funcionam e reiniciam a tentativa.
 
 ## Notas de implementação
+- Quem treina nasce em cima da bandeira inimiga e a pega na contagem; perseguidores saem de uma sala vizinha da base inimiga (na mesma sala, derrubavam quem treina no primeiro segundo).

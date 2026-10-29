@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S55 |
-| Status | Em andamento |
+| Status | Em revisão |
 | Dependências | OG-491 |
 | Regras de negócio | RN-TRN-03, RN-TRN-08, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -25,8 +25,10 @@ Como comunidade que se diverte contra os bots do Casual, quero a garantia de que
 - Sem mudança de nível, de `botSkill` nem de `BOT_LEVELS` por causa do treino.
 
 ## Critérios de aceite
-- [ ] Gravação de referência dos bots do Casual igual antes e depois do épico de treino, no CI.
-- [ ] Lint/teste de import falha se o bot do Casual importar algo do treino.
-- [ ] Teste do servidor: só a sala de treino usa o bot de treino.
+- [x] Gravação de referência dos bots do Casual igual antes e depois do épico de treino, no CI.
+- [x] Lint/teste de import falha se o bot do Casual importar algo do treino.
+- [x] Teste do servidor: só a sala de treino usa o bot de treino.
 
 ## Notas de implementação
+- Referência: `apps/game-server/src/casual-bots-reference.test.ts` (outgun1, Pari2, The Cover 4 × níveis 1 a 5, 600 frames, hash do mundo a cada frame); conferida igual com o `room.ts` de antes da sprint.
+- Fronteira: `packages/bots/src/training/boundary.test.ts`; servidor: só a sala de treino cria bots com papel (`training-room.test.ts`).

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490, OG-491 |
 | Regras de negócio | RN-TRN-02, RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -26,6 +26,7 @@ Como defensor, quero treinar segurar a bandeira contra vários atacantes ao mesm
 - Sucesso: todos os atacantes da onda caem. Atacante abatido não renasce dentro da tentativa.
 
 ## Critérios de aceite
-- [ ] Onda saindo junta; as condições de fim funcionam e reiniciam a tentativa.
+- [x] Onda saindo junta; as condições de fim funcionam e reiniciam a tentativa.
 
 ## Notas de implementação
+- Atacantes nascem juntos a 2 salas da sua base (no caminho até a base deles; em mapas de bases vizinhas, na base deles). Falha também se um atacante captura (antes de sair do quadrado, impossível na prática).

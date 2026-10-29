@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S55 |
-| Status | Pronto |
+| Status | Em revisão |
 | Dependências | OG-490, OG-491 |
 | Regras de negócio | RN-TRN-04, D-86, D-87 |
 | Skills | `outgun-card-workflow` |
@@ -27,9 +27,10 @@ Como defensor, quero treinar alcançar quem levou a minha bandeira e devolvê-la
 - Sucesso: a bandeira volta (derrubar o portador e tocar nela).
 
 ## Critérios de aceite
-- [ ] As condições de fim funcionam; tentativas seguidas mostram cenários diferentes.
+- [x] As condições de fim funcionam; tentativas seguidas mostram cenários diferentes.
 
 ## Notas técnicas
 - Interpretação da P6 a confirmar na revisão: "cenários diversos" = escolta e saída do portador variando a cada tentativa. Morrer também reinicia (proposta da página, não contestada).
 
 ## Notas de implementação
+- Escolta sorteada de 0 ao máximo escolhido a cada tentativa; quem treina sai de uma sala a 1 ou 2 salas da sua base, em qualquer direção. Porta de saída do portador = o caminho dele (não há sorteio de porta).
