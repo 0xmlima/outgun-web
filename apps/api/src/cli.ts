@@ -12,11 +12,13 @@ import { backfillMilestones, calibrateMilestones } from './milestones.js';
 import { startSeason } from './ranking.js';
 import { createInvites } from './beta.js';
 import { usernameKey } from './db/keys.js';
-import { playerProfiles, users } from './db/schema.js';
-import { mailLocale, welcomeMail } from './mail/templates.js';
+import { notifications, playerProfiles, users } from './db/schema.js';
+import { launchMail, mailLocale, welcomeMail } from './mail/templates.js';
+import { createCup, editionAt } from './cup.js';
+import { notify } from './routes/notifications.js';
 import { mailerFor } from './app.js';
 import { SecurityWatch } from './security.js';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { exportSigningKey, generateSigningKey } from '@outgun/tickets';
 
 const [command, arg1, arg2] = process.argv.slice(2);
@@ -72,6 +74,36 @@ try {
       const [profile] = await database.db.select({ language: playerProfiles.language }).from(playerProfiles).where(eq(playerProfiles.userId, user.id));
       await mailerFor(config).send(welcomeMail(user.email, user.username, config.webUrl, mailLocale(profile?.language)));
       console.log(`boas-vindas enviadas para ${user.username}`);
+    }
+  } else if (command === 'announce-launch') {
+    // Anúncio do 2x2 e da primeira OutCup (S56): abre a edição do mês seguinte (sem o aviso automático de
+    // inscrição) e manda o e-mail e o aviso no sino a todas as contas; quem já recebeu o aviso fica de fora.
+    // `--dry` só conta.
+    const edition = editionAt(new Date(), 1);
+    const dry = arg1 === '--dry';
+    if (!dry) await createCup(database.db, edition);
+    const rows = await database.db
+      .select({ id: users.id, email: users.email, username: users.username, language: playerProfiles.language, cupEmails: playerProfiles.cupEmails })
+      .from(users)
+      .leftJoin(playerProfiles, eq(playerProfiles.userId, users.id));
+    const done = new Set(
+      (await database.db.select({ userId: notifications.userId }).from(notifications).where(and(eq(notifications.kind, 'cup'), sql`${notifications.data}->>'cupEvent' = 'launch'`))).map((r) => r.userId),
+    );
+    const todo = rows.filter((r) => !done.has(r.id));
+    console.log(`${todo.length} contas a avisar (${done.size} já avisadas), edição ${edition}`);
+    if (!dry) {
+      const mailer = mailerFor(config);
+      let sent = 0;
+      for (const u of todo) {
+        await notify(database.db, [u.id], 'cup', { cup: edition, cupEvent: 'launch' });
+        if (u.cupEmails === false) continue;
+        await mailer.send(launchMail(u.email, u.username, config.webUrl, mailLocale(u.language ?? undefined))).then(
+          () => sent++,
+          (err: unknown) => console.error(`falha no e-mail de ${u.username}:`, err),
+        );
+        await new Promise((r) => setTimeout(r, 600)); // limite de envios por segundo do Resend
+      }
+      console.log(`avisos no sino: ${todo.length}; e-mails enviados: ${sent}`);
     }
   } else if (command === 'milestones') {
     // Marcos retroativos (OG-213): idempotente, pode rodar de novo a qualquer momento.

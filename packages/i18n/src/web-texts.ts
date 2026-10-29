@@ -1464,5 +1464,6 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'E-mails': 'E-mails',
     'OutCup e-mails': 'E-mails da OutCup',
     'Draw, scheduled matches, room open and results. The notices in the portal stay on.': 'Sorteio, jogos marcados, sala aberta e resultados. Os avisos no portal continuam.',
+      '2v2 is here! To celebrate, sign up for the first OutCup.': 'Chegou o 2x2! Para comemorar, inscreva-se na primeira OutCup.',
   },
 };

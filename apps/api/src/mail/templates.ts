@@ -73,38 +73,60 @@ const WELCOME = {
   },
 } as const;
 
-// Cores do design system (apps/web/src/ui/tokens.css), inline porque os clientes de e-mail ignoram <style>.
-const C = { bg: '#0b1020', card: '#121a2b', border: '#2e3d58', text: '#eef2f8', muted: '#a3b0c4', accent: '#5cc8ff', onAccent: '#06121f' };
+// Cores do tema "Campo" do menu inicial (apps/web/src/ui/theme-campo.css: chão, parede e mastro), inline
+// porque os clientes de e-mail ignoram <style>. Cantos retos, como as paredes.
+const C = { bg: '#040a02', card: '#0a1606', border: '#23421a', text: '#eef7e8', muted: '#a3bd97', accent: '#30c000', onAccent: '#041200', pole: '#ffe81a', strong: '#8be36a' };
 const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const p = (html: string, color: string = C.text) => `<p style="margin:0 0 16px;${FONT};font-size:15px;line-height:1.55;color:${color}">${html}</p>`;
+
+/** Botão principal (a parede verde, como "Jogar agora" no menu). */
+const button = (url: string, label: string) =>
+  `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px"><tr><td style="border-radius:2px;background:${C.accent}">` +
+  `<a href="${escape(url)}" style="display:inline-block;padding:12px 28px;${FONT};font-size:16px;font-weight:700;color:${C.onAccent};text-decoration:none;border-radius:2px">${escape(label)}</a>` +
+  `</td></tr></table>`;
+
+/**
+ * Moldura comum dos e-mails, no visual do menu inicial: o logo do Outgun sobre o chão escuro, a faixa
+ * verde da parede, o cartão com cantos retos e o rodapé com o endereço do site.
+ */
+function layout(o: { locale: MailLocale; webUrl: string; title: string; eyebrow?: string; heading: string; body: string }): string {
+  const site = o.webUrl.replace(/\/$/, '');
+  return (
+    `<!doctype html><html lang="${o.locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${escape(o.title)}</title></head>` +
+    `<body style="margin:0;padding:0;background:${C.bg}">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">` +
+    `<tr><td align="center" style="padding:8px 0 20px"><a href="${escape(site)}"><img src="${escape(site)}/home-logo.png" width="180" height="95" alt="Outgun" style="display:block;border:0;width:180px;height:auto"></a></td></tr>` +
+    `<tr><td style="background:${C.card};border:1px solid ${C.border};border-top:3px solid ${C.accent};border-radius:2px">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">` +
+    (o.eyebrow ? `<tr><td style="padding:22px 28px 0;${FONT};font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${C.pole}">${escape(o.eyebrow)}</td></tr>` : '') +
+    `<tr><td style="padding:${o.eyebrow ? '8px' : '24px'} 28px 8px"><h1 style="margin:0 0 16px;${FONT};font-size:22px;line-height:1.3;color:${C.text}">${escape(o.heading)}</h1>${o.body}</td></tr>` +
+    `</table></td></tr>` +
+    `<tr><td align="center" style="padding:16px 28px;${FONT};font-size:13px;color:${C.muted}"><a href="${escape(site)}" style="color:${C.strong};text-decoration:none">${escape(site.replace(/^https?:\/\//, ''))}</a></td></tr>` +
+    `</table></td></tr></table></body></html>`
+  );
+}
 
 /** Boas-vindas depois do cadastro (D-23: Resend). */
 export function welcomeMail(to: string, username: string, webUrl: string, locale: MailLocale): Mail {
   const t = WELCOME[locale];
-  const url = escape(webUrl);
   const modes = t.modes
     .map(([name, desc]) => `<li style="margin:0 0 6px"><strong style="color:${C.text}">${escape(name)}:</strong> ${escape(desc)}</li>`)
     .join('');
-  const html =
-    `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(t.subject)}</title></head>` +
-    `<body style="margin:0;padding:0;background:${C.bg}">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:${C.card};border:1px solid ${C.border};border-radius:12px">` +
-    `<tr><td style="padding:24px 28px 8px;${FONT};font-size:22px;font-weight:700;letter-spacing:0.5px;color:${C.accent}">OUTGUN WEB</td></tr>` +
-    `<tr><td style="padding:16px 28px 8px">` +
-    `<h1 style="margin:0 0 16px;${FONT};font-size:20px;line-height:1.3;color:${C.text}">${escape(t.hello(username))}</h1>` +
-    p(escape(t.body)) +
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px"><tr><td style="border-radius:8px;background:${C.accent}">` +
-    `<a href="${url}" style="display:inline-block;padding:12px 28px;${FONT};font-size:16px;font-weight:700;color:${C.onAccent};text-decoration:none;border-radius:8px">${escape(t.play)}</a>` +
-    `</td></tr></table>` +
-    p(escape(t.start)) +
-    `<ul style="margin:0 0 16px;padding-left:20px;${FONT};font-size:15px;line-height:1.55;color:${C.muted}">${modes}</ul>` +
-    p(escape(t.social), C.muted) +
-    p(escape(t.feedback), C.muted) +
-    p(escape(t.bye)) +
-    `</td></tr>` +
-    `<tr><td style="padding:8px 28px 24px;${FONT};font-size:13px;color:${C.muted}"><a href="${url}" style="color:${C.accent};text-decoration:none">${escape(webUrl.replace(/^https?:\/\//, ''))}</a></td></tr>` +
-    `</table></td></tr></table></body></html>`;
+  const html = layout({
+    locale,
+    webUrl,
+    title: t.subject,
+    heading: t.hello(username),
+    body:
+      p(escape(t.body)) +
+      button(webUrl, t.play) +
+      p(escape(t.start)) +
+      `<ul style="margin:0 0 16px;padding-left:20px;${FONT};font-size:15px;line-height:1.55;color:${C.muted}">${modes}</ul>` +
+      p(escape(t.social), C.muted) +
+      p(escape(t.feedback), C.muted) +
+      p(escape(t.bye)),
+  });
   const text = [
     t.hello(username),
     t.body,
@@ -197,23 +219,75 @@ export function cupMail(to: string, username: string, data: CupMailData, webUrl:
   const title = cupTitle(data.cup, locale);
   const [heading, body] = (t.events[data.cupEvent] ?? t.events.drawn!)({ ...data, title, when: brasilia(data.at, locale) });
   const link = `${webUrl.replace(/\/$/, '')}/outcup${data.cup ? `/${data.cup}` : ''}${data.matchId ? `?confronto=${data.matchId}` : ''}`;
-  const url = escape(link);
   const subject = `${title}: ${heading}`;
-  const html =
-    `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(subject)}</title></head>` +
-    `<body style="margin:0;padding:0;background:${C.bg}">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:${C.card};border:1px solid ${C.border};border-radius:12px">` +
-    `<tr><td style="padding:24px 28px 8px;${FONT};font-size:22px;font-weight:700;letter-spacing:0.5px;color:${C.accent}">${escape(title.toUpperCase())}</td></tr>` +
-    `<tr><td style="padding:16px 28px 8px">` +
-    `<h1 style="margin:0 0 16px;${FONT};font-size:20px;line-height:1.3;color:${C.text}">${escape(heading)}</h1>` +
-    p(escape(t.hello(username))) +
-    p(escape(body)) +
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px"><tr><td style="border-radius:8px;background:${C.accent}">` +
-    `<a href="${url}" style="display:inline-block;padding:12px 28px;${FONT};font-size:16px;font-weight:700;color:${C.onAccent};text-decoration:none;border-radius:8px">${escape(t.open)}</a>` +
-    `</td></tr></table>` +
-    p(escape(t.off), C.muted) +
-    `</td></tr></table></td></tr></table></body></html>`;
+  const html = layout({ locale, webUrl, title: subject, eyebrow: title, heading, body: p(escape(t.hello(username))) + p(escape(body)) + button(link, t.open) + p(escape(t.off), C.muted) });
   const text = [t.hello(username), heading, body, `${t.open}: ${link}`, t.off].join('\n\n');
   return { to, subject, text: `${text}\n`, html };
+}
+
+const LAUNCH = {
+  'pt-BR': {
+    subject: 'Chegou o 2x2 e a primeira OutCup!',
+    eyebrow: 'Novidade no Outgun Web',
+    hello: (name: string) => `Olá, ${name}!`,
+    intro: 'O 2x2 frenético em mapas pequenos, que virou o jogo do dia a dia da comunidade, agora é oficial. E, para comemorar, vem aí a primeira OutCup: a copa mensal de duplas do Outgun.',
+    duoTitle: 'Modo 2x2',
+    duo: [
+      'Ranqueado 2x2: partidas de 15 minutos, séries md1, md3 ou md5, contando para o rating e com aba própria nas estatísticas e no ranking.',
+      'Casual 2x2: ao criar uma sala, ligue "2x2" e jogue com 4 vagas nos mapas pequenos.',
+      'Rotação com 2 versus 2, 3x3, Cebs Park, Pari2 e The Cover 4.',
+    ],
+    cupTitle: 'OutCup · Novembro',
+    cup: [
+      'Você se inscreve sozinho e o jogo sorteia as duplas.',
+      'Inscrições até sexta, 31/10, às 20h (Brasília). Mínimo de 4 duplas.',
+      'Mata-mata em séries md3 e final md5, uma fase por semana; os jogos são marcados pelas duplas na página da copa e a sala abre sozinha na hora.',
+      'Os jogos valem como ranqueadas; campeões ganham selo no perfil, lugar no hall da fama e marcos novos (também na Steam).',
+    ],
+    cta: 'Inscrever-me na OutCup',
+    play: 'Ou entre e jogue um 2x2 agora mesmo.',
+    off: 'Para não receber e-mails da OutCup, desligue a opção na sua conta.',
+    bye: 'Nos vemos na arena.',
+  },
+  en: {
+    subject: '2v2 is here, and so is the first OutCup!',
+    eyebrow: 'New in Outgun Web',
+    hello: (name: string) => `Hi, ${name}!`,
+    intro: 'The frantic 2v2 on small maps that became the community\'s daily game is now official. To celebrate, the first OutCup is coming: Outgun\'s monthly pairs cup.',
+    duoTitle: '2v2 mode',
+    duo: [
+      'Ranked 2v2: 15-minute matches, best-of-1, 3 or 5 series, counting for your rating, with its own tab in stats and ranking.',
+      'Casual 2v2: when creating a room, turn on "2x2" and play with 4 slots on the small maps.',
+      'Rotation with 2 versus 2, 3x3, Cebs Park, Pari2 and The Cover 4.',
+    ],
+    cupTitle: 'OutCup · November',
+    cup: [
+      'You sign up alone and the game draws the pairs.',
+      'Sign-ups until Friday, Oct 31, 8 pm (Brasília time). At least 4 pairs.',
+      'Knockout with best-of-3 series and a best-of-5 final, one round a week; pairs schedule their matches on the cup page and the room opens on its own.',
+      'Matches count as ranked; champions get a profile badge, a place in the hall of fame and new milestones (on Steam too).',
+    ],
+    cta: 'Sign me up for OutCup',
+    play: 'Or jump in and play a 2v2 right now.',
+    off: 'To stop OutCup e-mails, turn the option off in your account.',
+    bye: 'See you in the arena.',
+  },
+} as const;
+
+/** Anúncio do 2x2 e da primeira OutCup (S56), para todas as contas. */
+export function launchMail(to: string, username: string, webUrl: string, locale: MailLocale): Mail {
+  const t = LAUNCH[locale];
+  const site = webUrl.replace(/\/$/, '');
+  const list = (items: readonly string[]) => `<ul style="margin:0 0 16px;padding-left:20px;${FONT};font-size:15px;line-height:1.55;color:${C.muted}">${items.map((i) => `<li style="margin:0 0 6px">${escape(i)}</li>`).join('')}</ul>`;
+  const h2 = (text: string) => `<h2 style="margin:8px 0 10px;${FONT};font-size:17px;color:${C.pole}">${escape(text)}</h2>`;
+  const html = layout({
+    locale,
+    webUrl,
+    title: t.subject,
+    eyebrow: t.eyebrow,
+    heading: t.subject,
+    body: p(escape(t.hello(username))) + p(escape(t.intro)) + h2(t.duoTitle) + list(t.duo) + h2(t.cupTitle) + list(t.cup) + button(`${site}/outcup`, t.cta) + p(`<a href="${escape(site)}" style="color:${C.strong}">${escape(t.play)}</a>`) + p(escape(t.bye)) + p(escape(t.off), C.muted),
+  });
+  const text = [t.hello(username), t.intro, `${t.duoTitle}:\n${t.duo.map((x) => `- ${x}`).join('\n')}`, `${t.cupTitle}:\n${t.cup.map((x) => `- ${x}`).join('\n')}`, `${t.cta}: ${site}/outcup`, `${t.play} ${site}`, t.bye, t.off].join('\n\n');
+  return { to, subject: t.subject, text: `${text}\n`, html };
 }

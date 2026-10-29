@@ -80,6 +80,8 @@ function cupNotificationText(n: AppNotification, t: T, locale: string): string {
   switch (d.cupEvent) {
     case 'registration_open':
       return t('OutCup sign-ups are open.');
+    case 'launch':
+      return t('2v2 is here! To celebrate, sign up for the first OutCup.');
     case 'drawn':
       return d.bye ? t('OutCup: your pair skips the first round.') : d.partner ? t('OutCup: you play with $1 against $2.', d.partner, d.opponent ?? '?') : t('OutCup: your next opponent is $1.', d.opponent ?? '?');
     case 'left_out':
