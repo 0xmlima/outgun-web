@@ -78,8 +78,7 @@ export class MusicPlayer {
   setMode(mode: MusicMode): void {
     if (mode === this.mode) return;
     this.mode = mode;
-    // a pausa é do tocador da tela inicial: a partida casual volta a ter música
-    if (mode === 'match' && this.paused) this.resume();
+    // a pausa vale em todas as telas: o lobby Ranked e a partida não religam o que o jogador pausou (OG-505)
     this.update();
   }
 
@@ -223,7 +222,8 @@ export class MusicPlayer {
         this.update();
       }
     });
-    void audio.play().catch(() => undefined);
+    // pausado, a faixa nova (ex.: o tema do menu dá lugar à rotação da partida) fica pronta e calada até retomar
+    if (!this.paused) void audio.play().catch(() => undefined);
     return deck;
   }
 

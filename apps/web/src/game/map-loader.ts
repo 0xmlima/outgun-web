@@ -47,3 +47,12 @@ export async function loadMap(name: string, source: { text?: string | undefined;
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return { map: result.map, bytes };
 }
+
+/**
+ * Mapa a desenhar depois de uma carga: se for o mesmo que a sessão já joga (redesenho pelas cores do
+ * clã, OG-409), segue com o objeto dela. O laço de desenho só anda com `session.world.map ===
+ * worldMap`; um objeto novo do mesmo mapa congelava a tela até a troca seguinte (OG-509).
+ */
+export function sameMapOrLoaded(current: GameMap | null | undefined, loaded: GameMap): GameMap {
+  return current && current.crc === loaded.crc && current.title === loaded.title && current.width === loaded.width && current.height === loaded.height ? current : loaded;
+}

@@ -5,7 +5,6 @@
 // como `lobbyReady`/`lobbyVote`/`lobbySide`/`lobbySwapAnswer`.
 import type { MessageOf } from '@outgun/protocol';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { MusicButton } from '../app/music/MusicButton.js';
 import { usePrefs } from '../app/prefs.js';
 import type { GameHost } from '../game/host.js';
 import { Badge, Button } from '../ui/Button.js';
@@ -75,6 +74,31 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
   useEffect(() => {
     if (homeIn === 0) onFinished();
   }, [homeIn, onFinished]);
+  // sair: no fim da série é voltar ao menu (como o botão da fase); antes, sair da sala
+  const leave = homeIn !== null ? onFinished : onLeave;
+
+  // Esc sai da sala (OG-507), sem abrir o menu da partida (OG-461). Antes fecha o que estiver aberto:
+  // o campo do chat (limpa o texto, depois desfoca) e um pedido de troca recebido (recusa)
+  const escape = useRef({ leave, incoming, send });
+  escape.current = { leave, incoming, send };
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+      ev.preventDefault();
+      const target = ev.target as HTMLElement | null;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        if (target.value) setChat('');
+        else target.blur();
+        return;
+      }
+      const { leave, incoming, send } = escape.current;
+      const ask = incoming[0];
+      if (ask) send({ type: 'lobbySwapAnswer', from: ask.from, accept: false });
+      else leave();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
 
   // lado que vira o clã (OG-408, D-78): no Ranked já se sabe no lobby
   const identity = (s: 0 | 1) => host?.session()?.teamIdentity[s] ?? null;
@@ -137,12 +161,12 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
   return (
     // o lobby fica dentro da tela da partida, fora da moldura dos menus: leva o tema dos menus (OG-316)
     <div className="ranked-lobby" data-menu-theme={prefs.menuTheme} role="dialog" aria-label={t('Ranked lobby')}>
-      {/* a trilha toca no lobby: o mesmo botão da barra de cima, para pausar ou mudar (OG-461) */}
-      <div className="ranked-music">
-        <MusicButton />
-      </div>
       {team(0)}
       <section className="ranked-center">
+        {/* sempre no mesmo lugar, com cara de botão: o "Sair da sala" fantasma passava por texto (OG-507) */}
+        <Button className="ranked-leave" onClick={leave}>
+          {homeIn !== null ? t('Main menu') : t('Leave room')} <kbd>Esc</kbd>
+        </Button>
         <p className="ranked-series">
           {lobby.bestOf > 1
             ? `${t('Game $1 of $2', String(lobby.gameNo), String(lobby.bestOf))} · ${t('Red')} ${lobby.seriesRed} × ${lobby.seriesBlue} ${t('Blue')}`
@@ -207,7 +231,7 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
             {t('View match report')}
           </Button>
         )}
-        {homeIn !== null ? (
+        {homeIn !== null && (
           <>
             <p className="ui-muted" role="timer">
               {t('Back to the main menu in $1 s.', String(homeIn))}
@@ -216,14 +240,10 @@ export function RankedLobby({ view, host, onLeave, onFinished, onReport }: { vie
               {t('Main menu')}
             </Button>
           </>
-        ) : (
-          <Button variant="ghost" onClick={onLeave}>
-            {t('Leave room')}
-          </Button>
         )}
         {open && (red.players.length > 0 || blue.players.length > 0) && (
           <div className="ranked-radar">
-            <MatchupRadar red={red} blue={blue} data={lineup.data} />
+            <MatchupRadar red={red} blue={blue} data={lineup.data} compact />
           </div>
         )}
       </section>

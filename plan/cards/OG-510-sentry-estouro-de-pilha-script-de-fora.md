@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 1 pt |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | OG-434 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -27,9 +27,11 @@ Como PO, quero que o Sentry só mostre erros do nosso código, para não perder 
 - Resolver o OUTGUN-WEB-5 no Sentry depois do deploy.
 
 ## Critérios de aceite
-- [ ] Erro só com quadros de script injetado não é enviado (teste do filtro); erro com quadro nosso continua indo (teste).
-- [ ] `browserName` cobre os navegadores de iOS e as webviews (teste).
+- [x] Erro só com quadros de script injetado não é enviado (teste do filtro); erro com quadro nosso continua indo (teste).
+- [x] `browserName` cobre os navegadores de iOS e as webviews (teste).
 - [ ] OUTGUN-WEB-5 resolvido no Sentry.
 
 ## Notas de implementação
-(preenchido durante a execução)
+- Conferido: o `index.html` do beta tem 57 linhas e todos os quadros apontam para a página, não para `/assets/`. Os eventos são de um jogador só (coiote, Presidente Prudente), no portal (`/matches/:id`, `/players/coiote`). É script de fora da página, e o celular não joga partida (D-80).
+- `foreignError` (`app/errors.ts`) descarta erro e rejeição com pilha sem nenhum quadro da nossa origem em `/assets/`, `/src/`, `/@…/` ou `/node_modules/`. `browserName` reconhece `EdgiOS`/`CriOS`/`FxiOS` e marca " webview" (Instagram, Facebook, WhatsApp, Line, `wv` do Android).
+- Pendente: resolver o OUTGUN-WEB-5 no Sentry depois do deploy.

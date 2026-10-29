@@ -30,11 +30,13 @@ interface StyleRadarProps {
   /** Referência cinza por baixo das séries (média do clã, top 10 do mês). */
   readonly shadow?: RadarSeries;
   readonly mini?: boolean;
+  /** Rótulos, pontos e legenda, sem a troca para tabela (lobby Ranked, OG-506). */
+  readonly compact?: boolean;
   /** Texto no centro quando não há série. */
   readonly empty?: string;
 }
 
-export function StyleRadar({ caption, series: all, shadow, mini = false, empty }: StyleRadarProps) {
+export function StyleRadar({ caption, series: all, shadow, mini = false, compact = false, empty }: StyleRadarProps) {
   const { t, prefs } = usePrefs();
   const label = (a: (typeof STYLE_AXES)[number]) => t(AXIS_LABELS[a]);
   const valueText = (a: (typeof STYLE_AXES)[number], v: number) => axisValueText(a, v, prefs.locale);
@@ -80,7 +82,7 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty }
     );
 
   return (
-    <div className={mini ? 'ui-radar mini' : 'ui-radar ui-stack'}>
+    <div className={mini ? 'ui-radar mini' : compact ? 'ui-radar ui-stack compact' : 'ui-radar ui-stack'}>
       <div className="ui-radar-chart">
         <svg viewBox={`${-pad} 0 ${vb + 2 * pad} ${vb}`} role="img" aria-label={series.length ? `${caption}. ${summary}` : `${caption}. ${empty}`}>
           {RINGS.map((v) => (
@@ -169,9 +171,11 @@ export function StyleRadar({ caption, series: all, shadow, mini = false, empty }
               <i aria-hidden /> <span>{shadow.label}</span>
             </span>
           )}
-          <Button variant="ghost" onClick={() => setTable(true)}>
-            {t('See as table')}
-          </Button>
+          {!compact && (
+            <Button variant="ghost" onClick={() => setTable(true)}>
+              {t('See as table')}
+            </Button>
+          )}
         </div>
       )}
     </div>

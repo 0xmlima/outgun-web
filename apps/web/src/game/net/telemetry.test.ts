@@ -46,6 +46,11 @@ describe('telemetria de rede (OG-108)', () => {
     expect(browserName('Mozilla/5.0 Chrome/130.0 Safari/537.36 Edg/130.0')).toBe('Edge 130');
     expect(browserName('Mozilla/5.0 (Macintosh) Version/18.0 Safari/605.1.15')).toBe('Safari 18');
     expect(browserName('Mozilla/5.0 Gecko/20100101 Firefox/131.0')).toBe('Firefox 131');
+    // iOS e navegador de app (OG-510)
+    expect(browserName('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1')).toBe('Chrome 130');
+    expect(browserName('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 FxiOS/131.0 Mobile/15E148 Safari/605.1.15')).toBe('Firefox 131');
+    expect(browserName('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Instagram 350.0.0')).toBe('Safari webview');
+    expect(browserName('Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36 Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36')).toBe('Chrome 130 webview');
     expect(percentile([5, 1, 3], 50)).toBe(3);
   });
 });

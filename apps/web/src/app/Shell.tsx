@@ -155,11 +155,7 @@ function TopBar() {
         <MusicButton />
         {user && <NotificationBell />}
         <AccountChip />
-        {isDesktopClient() && (
-          <Button variant="secondary" onClick={quitDesktop}>
-            {t('Exit Outgun')}
-          </Button>
-        )}
+        <ExitDesktopButton />
         {phone && (
           <button type="button" className="app-bell-button app-menu-button" aria-label={t('Menu')} aria-expanded={open} aria-controls="app-nav" onClick={() => setOpen((v) => !v)}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true" focusable="false">
@@ -185,6 +181,17 @@ function Footer() {
         <SourceLink />
       </nav>
     </footer>
+  );
+}
+
+/** "Sair do Outgun" (OG-444), só no app desktop: na barra de cima e no topo da tela inicial (OG-508). */
+export function ExitDesktopButton() {
+  const { t } = usePrefs();
+  if (!isDesktopClient()) return null;
+  return (
+    <Button variant="secondary" onClick={quitDesktop}>
+      {t('Exit Outgun')}
+    </Button>
   );
 }
 

@@ -451,21 +451,16 @@ body {
 }
 
 /* Lobby Ranked (OG-256): times nas laterais, partida no centro, chat embaixo; empilha no celular */
-.ranked-music {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  z-index: 1;
-}
 .ranked-lobby {
   position: absolute;
   inset: 0;
   display: grid;
   grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 2fr) minmax(12rem, 1fr);
-  grid-template-rows: 1fr auto;
+  /* lobby competitivo sem rolagem da página (OG-506): cada coluna cabe na janela e rola por dentro só em último caso */
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: var(--space-4);
   padding: var(--space-5);
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--surface-0);
   color: var(--text);
   font-family: var(--font);
@@ -527,12 +522,42 @@ body {
   flex: 1 1 auto;
   font-weight: var(--weight-medium);
 }
+.ranked-team,
+.ranked-center {
+  min-height: 0;
+  overflow-y: auto;
+}
 .ranked-center {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
   text-align: center;
+}
+/* radar enxuto (OG-506): a altura do gráfico acompanha a janela */
+.ranked-radar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.ranked-radar .ui-radar.compact svg {
+  max-height: 28vh;
+}
+.matchup-archetypes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.ranked-leave {
+  align-self: flex-end;
+}
+.ranked-leave kbd {
+  margin-left: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 .ranked-series {
   margin: 0;
@@ -603,6 +628,11 @@ body {
     grid-template-columns: 1fr;
     grid-template-rows: none;
     padding: var(--space-3);
+    overflow-y: auto;
+  }
+  .ranked-team,
+  .ranked-center {
+    overflow-y: visible;
   }
   .ranked-center {
     order: -1;

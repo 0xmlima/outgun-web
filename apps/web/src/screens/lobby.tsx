@@ -12,6 +12,7 @@ import { joinName, useAccount } from '../app/account.js';
 import { deviceId } from '../app/device.js';
 import { api, ApiError } from '../app/api.js';
 import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
+import { copyText } from '../app/clipboard.js';
 import { joinErrorText } from '../game/net/ticket.js';
 import { Badge, Button } from '../ui/Button.js';
 import { ChoiceField, SliderField, TextField, ToggleField } from '../ui/Field.js';
@@ -248,7 +249,7 @@ export function JoinRoomScreen() {
   const { id = '' } = useParams();
   const [room, setRoom] = useState<RoomSummary | null | undefined>(undefined);
   const [password, setPassword] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
     api<{ room: RoomSummary }>(`/rooms/${encodeURIComponent(id)}`).then(
@@ -265,7 +266,7 @@ export function JoinRoomScreen() {
     if (room.mode === 'ranked' && !user) return void navigate('/login');
     void navigate(`/play?sala=${encodeURIComponent(room.id)}`, room.hasPassword ? { state: { password } } : undefined);
   };
-  const copy = () => void navigator.clipboard?.writeText(`${location.origin}/rooms/${room.id}`).then(() => setCopied(true));
+  const copy = () => void copyText(`${location.origin}/rooms/${room.id}`).then(setCopied);
   return (
     <Page
       title={room.name}
@@ -283,7 +284,7 @@ export function JoinRoomScreen() {
             </Button>
             {room.spectateUrl && <Button onClick={() => void navigate(`/spectate?src=${encodeURIComponent(room.spectateUrl!)}`)}>{t('Watch live')}</Button>}
             <Button variant="ghost" onClick={copy}>
-              {copied ? t('Link copied') : t('Copy invite link')}
+              {copied === null ? t('Copy invite link') : copied ? t('Link copied') : t('Could not copy')}
             </Button>
           </>
         }

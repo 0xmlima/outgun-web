@@ -8,6 +8,7 @@ import { fetchMapText, serverOnlyMap } from '../game/map-loader.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
+import { copyText } from '../app/clipboard.js';
 import { GAME_FONT } from '../ui/fonts.js';
 import { useMusicMode } from '../app/music/MusicProvider.js';
 import { decodeFrame, PROTOCOL_VERSION, type Replay } from '@outgun/protocol';
@@ -33,7 +34,7 @@ export default function ReplayScreen() {
   const host = useRef<ReplayHost | null>(null);
   const [status, setStatus] = useState<ReplayStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -77,7 +78,7 @@ export default function ReplayScreen() {
     if (!src || !status) return;
     const url = new URL(location.href);
     url.searchParams.set('t', String(Math.floor(status.position / 10)));
-    void navigator.clipboard?.writeText(url.toString()).then(() => setCopied(true));
+    void copyText(url.toString()).then(setCopied);
   };
 
   return (
@@ -110,7 +111,7 @@ export default function ReplayScreen() {
               </button>
               {src && (
                 <button type="button" onClick={link}>
-                  {copied ? t('Link copied') : t('Copy link')}
+                  {copied === null ? t('Copy link') : copied ? t('Link copied') : t('Could not copy')}
                 </button>
               )}
               <button type="button" onClick={() => void navigate(-1)}>

@@ -71,6 +71,25 @@ function hex(bytes: number): string {
   return s;
 }
 
+/** Código do erro de origem, quando houver (Postgres `57P01`, Node `ECONNRESET`). */
+const errorCode = (e: Error): string | undefined => {
+  const code = (e as { code?: unknown }).code;
+  return typeof code === 'string' || typeof code === 'number' ? String(code) : undefined;
+};
+
+/**
+ * O erro e as causas encadeadas (`error.cause`, até 3), da mais interna para a de fora, como o Sentry
+ * espera. O drizzle embrulha o erro do Postgres em "Failed query" e a causa só aparece assim (OG-512).
+ */
+export function exceptionChain(err: Error): { type: string; value: string; stacktrace: { frames: StackFrame[] } }[] {
+  const chain: Error[] = [err];
+  for (let c = err.cause; c instanceof Error && chain.length < 4 && !chain.includes(c); c = c.cause) chain.push(c);
+  return chain.reverse().map((e) => {
+    const code = errorCode(e);
+    return { type: e.name, value: code ? `${e.message} (${code})` : e.message, stacktrace: { frames: parseStack(e.stack) } };
+  });
+}
+
 export class ErrorReporter {
   private readonly target: ParsedDsn | null;
   private windowStart = 0;
@@ -102,7 +121,7 @@ export class ErrorReporter {
       ...(this.config.release ? { release: this.config.release } : {}),
       tags: { service: this.config.service, ...context.tags },
       ...(context.extra ? { extra: context.extra } : {}),
-      exception: { values: [{ type: err.name, value: err.message, stacktrace: { frames: parseStack(err.stack) } }] },
+      exception: { values: exceptionChain(err) },
     };
     return [JSON.stringify({ event_id: eventId, sent_at: new Date(now).toISOString() }), JSON.stringify({ type: 'event' }), JSON.stringify(event)].join('\n');
   }

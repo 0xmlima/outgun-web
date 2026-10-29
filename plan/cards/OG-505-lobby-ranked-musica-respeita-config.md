@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 1 pt |
 | Sprint | S54 |
-| Status | Pronto |
+| Status | Concluído |
 | Dependências | OG-461 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,8 +24,10 @@ Como jogador que deixou a música desligada no menu, quero que ela continue desl
 - A pausa da barra de cima vale também no lobby (e na partida que vem dele); trilha desligada ou muda nas opções continua desligada/muda.
 
 ## Critérios de aceite
-- [ ] Sem botão de som no lobby Ranked.
-- [ ] Música pausada ou muda no menu continua assim ao entrar no lobby Ranked.
+- [x] Sem botão de som no lobby Ranked.
+- [x] Música pausada ou muda no menu continua assim ao entrar no lobby Ranked.
 - [ ] PO confere.
 
 ## Notas de implementação
+- Causa: `setMode('match')` retomava a pausa de propósito, e a faixa nova da partida (o tema do menu não entra nela) sempre dava `play()`. Agora a pausa vale em todas as telas e a faixa nova fica pronta e calada até o jogador retomar (teste em `player.test.ts`).
+- Efeito colateral aceito: quem pausar no menu entra na partida Casual sem música e retoma pela barra de cima ou pelo tocador.

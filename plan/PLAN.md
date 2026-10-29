@@ -977,14 +977,14 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-499](cards/OG-499-treino-dificuldade-progressiva.md) | Treino: dificuldade que sobe sozinha | E11 | 2 | Should | — | OG-490, OG-491 | Backlog |
 | [OG-500](cards/OG-500-treino-inicio-variado.md) | Treino: início variado a cada tentativa | E11 | 3 | Should | — | OG-493, OG-494, OG-495, OG-496 | Backlog |
 | [OG-504](cards/OG-504-emblema-botoes-de-download.md) | Botões "PNG 128/512 px" do emblema não dizem que baixam a imagem | E13 | 1 | Should | — | OG-489 | Backlog |
-| [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Pronto |
-| [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Pronto |
-| [OG-507](cards/OG-507-lobby-ranked-esc-sai-da-sala.md) | Lobby Ranked: Esc não sai da sala e o botão "Sair da sala" não parece botão | E12 | 2 | Must | S54 | OG-461 | Pronto |
-| [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Pronto |
-| [OG-509](cards/OG-509-travou-o-jogo-apos-acessar-the.md) | Travou o jogo após acessar The Blunt Mini com as cores do Dk (issue #25) | E11 | 2 | Should | S54 | — | Pronto |
-| [OG-510](cards/OG-510-sentry-estouro-de-pilha-script-de-fora.md) | Sentry: estouro de pilha no portal vindo de um script de fora da página (OUTGUN-WEB-5) | E11 | 1 | Should | S54 | OG-434 | Pronto |
-| [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Pronto |
-| [OG-512](cards/OG-512-heartbeat-falha-ao-ler-presets.md) | Heartbeat das salas falha ao ler os presets Casual (OUTGUN-SERVER-2) | E11 | 2 | Should | S54 | OG-087 | Pronto |
+| [OG-505](cards/OG-505-lobby-ranked-musica-respeita-config.md) | Lobby Ranked: tirar o botão de som e respeitar a música pausada/mutada | E12 | 1 | Must | S54 | OG-461 | Concluído |
+| [OG-506](cards/OG-506-lobby-ranked-radar-compacto.md) | Lobby Ranked: radar confuso e barra de rolagem | E12 | 2 | Must | S54 | OG-477 | Concluído |
+| [OG-507](cards/OG-507-lobby-ranked-esc-sai-da-sala.md) | Lobby Ranked: Esc não sai da sala e o botão "Sair da sala" não parece botão | E12 | 2 | Must | S54 | OG-461 | Concluído |
+| [OG-508](cards/OG-508-tela-inicial-sem-sair-do-outgun.md) | App desktop: tela inicial sem o botão "Sair do Outgun" | E11 | 1 | Must | S54 | OG-444 | Concluído |
+| [OG-509](cards/OG-509-travou-o-jogo-apos-acessar-the.md) | Travou o jogo após acessar The Blunt Mini com as cores do Dk (issue #25) | E11 | 2 | Must | S54 | — | Concluído |
+| [OG-510](cards/OG-510-sentry-estouro-de-pilha-script-de-fora.md) | Sentry: estouro de pilha no portal vindo de um script de fora da página (OUTGUN-WEB-5) | E11 | 1 | Should | S54 | OG-434 | Concluído |
+| [OG-511](cards/OG-511-copiar-link-sem-permissao.md) | "Copiar link" sem permissão de área de transferência estoura erro (OUTGUN-WEB-4) | E11 | 1 | Should | S54 | — | Concluído |
+| [OG-512](cards/OG-512-heartbeat-falha-ao-ler-presets.md) | Heartbeat das salas falha ao ler os presets Casual (OUTGUN-SERVER-2) | E11 | 2 | Should | S54 | OG-087 | Concluído |
 
 **Total:** 352 cards, 1119 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 283 cards, 824 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
