@@ -254,7 +254,8 @@
                           "spectateUrl",
                           "format",
                           "bestOf",
-                          "phase"
+                          "phase",
+                          "training"
                         ],
                         "properties": {
                           "id": {
@@ -435,6 +436,37 @@
                                 ]
                               }
                             ]
+                          },
+                          "training": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "attack"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "defense"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "escape"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "capture"
+                                ]
+                              }
+                            ]
                           }
                         }
                       }
@@ -515,6 +547,68 @@
                   "region": {
                     "type": "string",
                     "pattern": "^[a-z0-9-]{1,32}$"
+                  },
+                  "training": {
+                    "type": "object",
+                    "required": [
+                      "mode",
+                      "bots",
+                      "allies",
+                      "level",
+                      "powerups",
+                      "sameStart"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "attack"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "defense"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "escape"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "capture"
+                            ]
+                          }
+                        ]
+                      },
+                      "bots": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      },
+                      "allies": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2
+                      },
+                      "level": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      },
+                      "powerups": {
+                        "type": "boolean"
+                      },
+                      "sameStart": {
+                        "type": "boolean"
+                      }
+                    }
                   }
                 }
               }
@@ -551,7 +645,8 @@
                         "spectateUrl",
                         "format",
                         "bestOf",
-                        "phase"
+                        "phase",
+                        "training"
                       ],
                       "properties": {
                         "id": {
@@ -732,6 +827,37 @@
                               ]
                             }
                           ]
+                        },
+                        "training": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "attack"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "defense"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "escape"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "capture"
+                              ]
+                            }
+                          ]
                         }
                       }
                     },
@@ -744,6 +870,28 @@
             }
           },
           "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -880,7 +1028,8 @@
                         "spectateUrl",
                         "format",
                         "bestOf",
-                        "phase"
+                        "phase",
+                        "training"
                       ],
                       "properties": {
                         "id": {
@@ -1058,6 +1207,37 @@
                                     "finished"
                                   ]
                                 }
+                              ]
+                            }
+                          ]
+                        },
+                        "training": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "attack"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "defense"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "escape"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "capture"
                               ]
                             }
                           ]
@@ -1362,7 +1542,8 @@
                         "spectateUrl",
                         "format",
                         "bestOf",
-                        "phase"
+                        "phase",
+                        "training"
                       ],
                       "properties": {
                         "id": {
@@ -1540,6 +1721,37 @@
                                     "finished"
                                   ]
                                 }
+                              ]
+                            }
+                          ]
+                        },
+                        "training": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "attack"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "defense"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "escape"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "capture"
                               ]
                             }
                           ]
