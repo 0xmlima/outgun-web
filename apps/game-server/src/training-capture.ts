@@ -9,14 +9,23 @@ export const captureMode: TrainingModeDef = {
     const escorts = ctx.config.bots === 0 ? 0 : ctx.rng.rand() % (ctx.config.bots + 1);
     return [{ team: OPPONENT_TEAM, role: 'carry' }, ...Array.from({ length: escorts }, (): BotSlot => ({ team: OPPONENT_TEAM, role: 'escort' }))];
   },
+  // o portador pega a sua bandeira no primeiro frame
+  pickup: (ctx, players) => {
+    const carrier = players.find((p) => p.role === 'carry');
+    return new Map(carrier ? [[carrier.pid, ctx.flagSpot(TRAINEE_TEAM)]] : []);
+  },
   place: (ctx, players) => {
     const out = new Map<number, ReturnType<typeof ctx.spot>>();
     const home = ctx.baseRoom(TRAINEE_TEAM);
     const start = ctx.roomAround(TRAINEE_TEAM, 1 + (ctx.rng.rand() % 2)); // vantagem do portador: 1 ou 2 salas
+    // o portador num ponto sorteado da sua base; a escolta perto dele
+    const carrier = players.find((p) => p.role === 'carry');
+    const carrierPos = carrier ? ctx.spot(home) : null;
+    if (carrier && carrierPos) out.set(carrier.pid, carrierPos);
     for (const p of players) {
+      if (p === carrier) continue;
       if (p.team === TRAINEE_TEAM) out.set(p.pid, ctx.spot(start));
-      else if (p.role === 'carry') out.set(p.pid, ctx.flagSpot(TRAINEE_TEAM)); // pega a sua bandeira na contagem
-      else out.set(p.pid, ctx.spot(home, ctx.map.teams[TRAINEE_TEAM].flags[0]));
+      else out.set(p.pid, ctx.spot(home, carrierPos ? { room: home, x: carrierPos.x, y: carrierPos.y } : undefined));
     }
     return out;
   },

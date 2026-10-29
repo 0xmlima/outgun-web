@@ -25,6 +25,9 @@ export const RESULT_FRAMES = 20;
 export const ATTEMPT_LIMIT_FRAMES = 1200;
 /** Resultados iguais seguidos que mudam o nível progressivo (OG-499). */
 export const PROGRESSIVE_STREAK = 3;
+/** Distância mínima entre dois pontos de partida sorteados na mesma sala, e o raio do "perto de". */
+const SPOT_GAP = 4 * PLAYER_RADIUS;
+const SPOT_NEAR = 150;
 
 /** Um bot que a tentativa precisa: time e papel. */
 export interface BotSlot {
@@ -86,6 +89,11 @@ export interface TrainingModeDef {
   roster(ctx: PlacementContext): BotSlot[];
   /** Onde cada jogador começa; quem não estiver no mapa fica onde está. */
   place(ctx: PlacementContext, players: TrainingPlayer[]): Map<number, Position>;
+  /**
+   * Quem começa com uma bandeira: aparece em cima dela no primeiro frame (pega) e daí vai para o ponto
+   * de `place` — assim o início varia mesmo com a bandeira sempre no mesmo lugar.
+   */
+  pickup?(ctx: PlacementContext, players: TrainingPlayer[]): Map<number, Position>;
   /** Fim da tentativa, ou null para seguir. */
   judge(world: TrainingWorld, ev: TrainingEvent, ctx: PlacementContext): TrainingOutcome | null;
 }
@@ -211,25 +219,31 @@ export class Placement implements PlacementContext {
 
   spot(room: { x: number; y: number }, near?: WorldCoords): Position {
     const r = PLAYER_RADIUS;
+    const gapOf = (x: number, y: number) => {
+      let g = Infinity;
+      for (const p of this.taken) if (p.roomX === room.x && p.roomY === room.y) g = Math.min(g, Math.hypot(p.x - x, p.y - y));
+      return g;
+    };
+    // sorteio de verdade: o primeiro ponto livre, a uma distância mínima dos outros (e perto de `near`)
     let best: Position | null = null;
-    let bestScore = -Infinity;
-    for (let i = 0; i < 60; i++) {
+    let bestGap = -1;
+    for (let i = 0; i < 80; i++) {
       const x = 2 * r + (this.rng.rand() % (ROOM_WIDTH - 4 * r));
       const y = 2 * r + (this.rng.rand() % (ROOM_HEIGHT - 4 * r));
       if (this.map.fallOnWallCirc({ room, x, y }, r + 2)) continue;
-      // longe dos outros já escolhidos; perto de `near` quando pedido
-      let minGap = Infinity;
-      for (const p of this.taken) if (p.roomX === room.x && p.roomY === room.y) minGap = Math.min(minGap, Math.hypot(p.x - x, p.y - y));
-      const gap = Math.min(minGap, 6 * r);
-      const pull = near ? -Math.hypot(near.x - x, near.y - y) / 4 : 0;
-      const score = gap + pull;
-      if (score > bestScore) {
-        bestScore = score;
+      if (near && Math.hypot(near.x - x, near.y - y) > SPOT_NEAR) continue;
+      const gap = gapOf(x, y);
+      if (gap >= SPOT_GAP) {
+        best = new Position(room.x, room.y, x, y);
+        break;
+      }
+      if (gap > bestGap) {
+        bestGap = gap;
         best = new Position(room.x, room.y, x, y);
       }
     }
-    const pos = best ?? this.fallback(room);
-    this.taken.push(pos);
+    const pos = best ?? (near ? this.spot(room) : this.fallback(room));
+    if (best) this.taken.push(pos);
     return pos;
   }
 
@@ -318,10 +332,12 @@ export class TrainingSession {
     const ctx = new Placement(this.world.map, rng, this.config);
     this.ctx = ctx;
     this.ops.setBots(this.mode.roster(ctx));
-    this.starts = this.mode.place(ctx, this.world.players().filter((p) => p.ready));
+    const ready = this.world.players().filter((p) => p.ready);
+    const grab = this.mode.pickup?.(ctx, ready) ?? new Map<number, Position>();
+    this.starts = this.mode.place(ctx, ready);
     this.phase = 'countdown';
     this.phaseUntil = this.world.frame + COUNTDOWN_FRAMES;
-    for (const [pid, pos] of this.starts) this.ops.place(pid, pos, this.phaseUntil, true);
+    for (const [pid, pos] of this.starts) this.ops.place(pid, grab.get(pid) ?? pos, this.phaseUntil, true);
     this.ops.resetFlags();
     this.announce();
   }

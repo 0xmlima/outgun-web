@@ -5,19 +5,18 @@ import { OPPONENT_TEAM, TRAINEE_TEAM, traineeDeath, type TrainingModeDef } from 
 
 export const escapeMode: TrainingModeDef = {
   roster: (ctx) => Array.from({ length: ctx.config.bots }, () => ({ team: OPPONENT_TEAM, role: 'chase' as const })),
+  // o primeiro de quem treina pega a bandeira inimiga no primeiro frame
+  pickup: (ctx, players) => {
+    const first = players.find((p) => p.team === TRAINEE_TEAM);
+    return new Map(first ? [[first.pid, ctx.flagSpot(OPPONENT_TEAM)]] : []);
+  },
   place: (ctx, players) => {
     const out = new Map<number, ReturnType<typeof ctx.spot>>();
     const base = ctx.baseRoom(OPPONENT_TEAM);
-    // os perseguidores saem de uma sala vizinha da base: quem foge tem um instante de vantagem
-    const behind = ctx.roomAround(OPPONENT_TEAM, 1);
-    let first = true;
-    for (const p of players) {
-      // o primeiro de quem treina nasce em cima da bandeira inimiga (pega na contagem); outros, na sala
-      if (p.team === TRAINEE_TEAM && first) {
-        out.set(p.pid, ctx.flagSpot(OPPONENT_TEAM));
-        first = false;
-      } else out.set(p.pid, ctx.spot(p.team === TRAINEE_TEAM ? base : behind));
-    }
+    // os perseguidores saem de uma sala sorteada a 1 ou 2 salas da base: quem foge tem um instante de
+    // vantagem, e a direção de onde vêm varia (OG-500)
+    const behind = ctx.roomAround(OPPONENT_TEAM, 1 + (ctx.rng.rand() % 2));
+    for (const p of players) out.set(p.pid, ctx.spot(p.team === TRAINEE_TEAM ? base : behind));
     return out;
   },
   judge: (world, ev) => {

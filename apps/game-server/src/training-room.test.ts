@@ -298,8 +298,22 @@ describe('início variado (OG-500)', () => {
   }
 
   it.each(['attack', 'defense', 'escape', 'capture'] as const)('%s: tentativas seguidas começam diferente; com "mesmo início", iguais', (mode) => {
-    expect(new Set(starts(false, mode)).size).toBeGreaterThan(2);
+    const varied = starts(false, mode);
+    // quem treina e os bots mudam de lugar a cada tentativa (não só um ou outro)
+    expect(new Set(varied.map((s) => s.split('|')[0])).size).toBeGreaterThanOrEqual(4);
+    expect(new Set(varied.map((s) => s.split('|').slice(1).join('|'))).size).toBeGreaterThanOrEqual(4);
     expect(new Set(starts(true, mode)).size).toBe(1);
+  });
+
+  it('Fuga e Captura: quem começa com a bandeira sai de cima dela para um ponto sorteado, já carregando', () => {
+    for (const mode of ['escape', 'capture'] as const) {
+      const t = setup(mode, 3, { bots: 1 });
+      t.tick(1 + COUNTDOWN_FRAMES);
+      const carrier = mode === 'escape' ? t.pl(t.me) : t.bots().find((b) => b.stats.carriedFlag !== CarriedFlag.None)!;
+      expect(carrier.stats.carriedFlag).toBe(CarriedFlag.Enemy);
+      const flag = t.room.world.map.teams[mode === 'escape' ? 1 : 0].flags[0]!;
+      expect(Math.hypot(carrier.pos.x - flag.x, carrier.pos.y - flag.y) > 1 || carrier.pos.roomX !== flag.room.x).toBe(true);
+    }
   });
 });
 

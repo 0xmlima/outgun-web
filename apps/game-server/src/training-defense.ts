@@ -11,10 +11,17 @@ export const defenseMode: TrainingModeDef = {
   place: (ctx, players) => {
     const out = new Map<number, ReturnType<typeof ctx.spot>>();
     const home = ctx.baseRoom(TRAINEE_TEAM);
-    const flag = ctx.map.teams[TRAINEE_TEAM].flags[0];
-    // a onda sai junta, de uma sala sorteada a 2 salas da base: a direção do ataque varia (OG-500)
-    const wave = ctx.roomAround(TRAINEE_TEAM, 2);
-    for (const p of players) out.set(p.pid, p.team === TRAINEE_TEAM ? ctx.spot(home, flag) : ctx.spot(wave));
+    // a onda sai junta, de uma sala sorteada a 1 ou 2 salas da base: a direção do ataque varia (OG-500)
+    const wave = ctx.roomAround(TRAINEE_TEAM, 1 + (ctx.rng.rand() % 2));
+    let leader: ReturnType<typeof ctx.spot> | null = null;
+    for (const p of players) {
+      if (p.team === TRAINEE_TEAM) out.set(p.pid, ctx.spot(home)); // você e os aliados em qualquer ponto da base
+      else {
+        const pos = ctx.spot(wave, leader ? { room: wave, x: leader.x, y: leader.y } : undefined);
+        leader ??= pos;
+        out.set(p.pid, pos);
+      }
+    }
     return out;
   },
   judge: (world, ev) => {
