@@ -10,7 +10,7 @@ import { Application, Assets, TilingSprite, UPDATE_PRIORITY, type BitmapFont, ty
 // sem `new Function`: o cliente roda com CSP sem 'unsafe-eval' (OG-104)
 import 'pixi.js/unsafe-eval';
 import { ASSETS, loadManifest } from '../assets.js';
-import { loadMap } from './map-loader.js';
+import { loadMap, sameMapOrLoaded } from './map-loader.js';
 import { LocalDemo } from './demo.js';
 import { guardFrame } from './frame-guard.js';
 import { captureError } from '../app/errors.js';
@@ -351,13 +351,13 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     }
     world?.destroy();
     world = new WorldRenderer(map.width, map.height, theme, source, app.renderer.resolution);
-    worldMap = map;
+    worldMap = sameMapOrLoaded(session?.world?.map, map);
     wraps = mapWraps(map);
     app.stage.addChildAt(world.stage, backTiles ? 1 : 0);
     announced = false;
     layout();
     applyDecals();
-    return map;
+    return worldMap;
   };
   /** Emblema de cada lado que virou o clã no chão das bases dele (OG-486); some quando o lado deixa de ser o clã. */
   const applyDecals = () => {
