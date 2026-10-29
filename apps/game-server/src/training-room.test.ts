@@ -302,3 +302,41 @@ describe('início variado (OG-500)', () => {
     expect(new Set(starts(true, mode)).size).toBe(1);
   });
 });
+
+describe('sala de treino vazia fecha (OG-492)', () => {
+  it('quem treinava sai: a sala fecha mesmo com os bots dentro', () => {
+    const t = setup('attack', 0, { bots: 2 });
+    t.tick(1 + COUNTDOWN_FRAMES);
+    expect(t.room.finished).toBe(false);
+    t.room.leave(t.me);
+    t.tick();
+    expect(t.room.finished).toBe(true);
+  });
+
+  it('antes do primeiro humano entrar, não fecha', () => {
+    const room = new Room({ id: 'v', preset: 'classic', maps: [maps[0]!], mapFiles: [MAP_NAMES[0]!], maxPlayers: 16, seed: 5, training: { mode: 'attack', bots: 2, allies: 0, level: 3, powerups: false, sameStart: false }, now: () => 0 });
+    for (let i = 0; i < 20; i++) room.tick();
+    expect(room.finished).toBe(false);
+  });
+});
+
+describe('guardas do Ataque espalhados e em movimento', () => {
+  it.each(MAP_NAMES.map((n, i) => [n, i] as const))('%s: começam em pontos diferentes e patrulham a sala da base', (_n, map) => {
+    const t = setup('attack', map, { bots: 2 });
+    t.tick(3);
+    const [a, b] = t.bots();
+    expect(Math.hypot(a!.pos.x - b!.pos.x, a!.pos.y - b!.pos.y)).toBeGreaterThan(40);
+    t.tick(COUNTDOWN_FRAMES);
+    const base = t.baseRoom(1);
+    const seen = t.bots().map(() => new Set<string>());
+    for (let i = 0; i < 150; i++) {
+      t.tick();
+      t.bots().forEach((g, k) => {
+        expect(inRoom(g, base)).toBe(true);
+        seen[k]!.add(`${Math.round(g.pos.x / 40)},${Math.round(g.pos.y / 40)}`);
+      });
+    }
+    // cada guarda passou por várias regiões da sala, não ficou parado no centro
+    for (const s of seen) expect(s.size).toBeGreaterThan(4);
+  });
+});

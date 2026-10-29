@@ -57,13 +57,19 @@ describe.skipIf(!pgAdminUrl)('sala de treino (OG-492)', () => {
     expect((await create({ training: training('attack') })).json().error).toBe('invalid_training_map');
   });
 
-  it('uma sala de treino aberta por conta: a fora do ar dá lugar à nova; com uma no ar, recusa', async () => {
+  it('uma sala de treino aberta por conta: a fora do ar ou vazia dá lugar à nova; com gente nela, recusa', async () => {
     await t.db.delete(rooms).where(eq(rooms.name, 'Treino'));
     const first = (await create({ maps: ['pari2'], training: training('escape') })).json().room.id as string;
     const second = await create({ maps: ['pari2'], training: training('capture') });
     expect(second.statusCode).toBe(201);
     expect(await t.db.select().from(rooms).where(eq(rooms.id, first))).toHaveLength(0);
-    await t.db.update(rooms).set({ lastHeartbeatAt: new Date() }).where(eq(rooms.id, second.json().room.id));
+    // no ar só com bots (quem treinava saiu): também dá lugar à nova
+    const bot = { uid: 2, name: 'Bot', team: 1, bot: true, muted: 0 };
+    await t.db.update(rooms).set({ lastHeartbeatAt: new Date(), roster: [bot] }).where(eq(rooms.id, second.json().room.id));
+    const replaced = await create({ maps: ['pari2'], training: training('defense') });
+    expect(replaced.statusCode).toBe(201);
+    // no ar com alguém dentro: recusa
+    await t.db.update(rooms).set({ lastHeartbeatAt: new Date(), roster: [bot, { uid: 1, name: 'Jogador1', team: 0, bot: false, muted: 0 }] }).where(eq(rooms.id, replaced.json().room.id));
     const third = await create({ maps: ['pari2'], training: training('attack') });
     expect(third.statusCode).toBe(409);
     expect(third.json().error).toBe('training_room_open');

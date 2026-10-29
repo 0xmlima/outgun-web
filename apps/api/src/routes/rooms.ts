@@ -232,9 +232,9 @@ export function roomRoutes({ config, database }: AppDeps, { sessions, rateLimit 
           if (!body.maps || body.maps.length !== 1 || !TRAINING_MAPS.includes(body.maps[0]!)) {
             return reply.code(422).send({ error: 'invalid_training_map', message: `training rooms take one of: ${TRAINING_MAPS.join(', ')}` });
           }
-          // uma sala de treino aberta por conta (RN-TRN-06): a fora do ar sai; com uma no ar, recusa
+          // uma sala de treino aberta por conta (RN-TRN-06): a fora do ar ou vazia sai; com gente nela, recusa
           const mine = await db.select().from(rooms).where(and(eq(rooms.ownerId, user.id), isNotNull(rooms.training)));
-          if (mine.some((r) => roomOnline(r, Date.now()))) return reply.code(409).send({ error: 'training_room_open', message: 'you already have a training room open; leave it first' });
+          if (mine.some((r) => roomOnline(r, Date.now()) && roomHumans(r) > 0)) return reply.code(409).send({ error: 'training_room_open', message: 'you already have a training room open; leave it first' });
           if (mine.length > 0) await db.delete(rooms).where(and(eq(rooms.ownerId, user.id), isNotNull(rooms.training)));
         } else {
           // rotação do painel sempre respeitada (D-69): a sala escolhe só entre os mapas dela

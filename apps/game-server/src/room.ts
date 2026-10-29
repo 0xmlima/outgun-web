@@ -365,6 +365,8 @@ export class Room {
   private readonly botRoles = new Map<number, TrainingRole>();
   /** Humanos do lado oposto do treino e o papel do bot cuja vaga assumiram (RN-TRN-05). */
   private readonly humanRoles = new Map<number, TrainingRole>();
+  /** A sala de treino já teve alguém: quando o último humano sai, ela fecha (OG-492). */
+  private trainingHadHumans = false;
   /** Eventos do frame para o juiz do treino, entregues depois da simulação. */
   private readonly trainingEvents: TrainingEvent[] = [];
 
@@ -1363,6 +1365,12 @@ export class Room {
       }
     }
     if (this.draining && ![...this.clients.values()].some((c) => !c.bot)) this.finished = true;
+    if (this.training) {
+      // sala de treino: os bots nunca saem sozinhos; sem humanos (depois do primeiro), a sala fecha
+      const humans = [...this.clients.values()].some((c) => !c.bot);
+      if (humans) this.trainingHadHumans = true;
+      else if (this.trainingHadHumans) this.finished = true;
+    }
     if (this.gameOverUntil !== null && world.frame >= this.gameOverUntil) {
       this.gameOverUntil = null;
       if (this.draining) {
