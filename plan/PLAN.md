@@ -991,19 +991,19 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-512](cards/OG-512-heartbeat-falha-ao-ler-presets.md) | Heartbeat das salas falha ao ler os presets Casual (OUTGUN-SERVER-2) | E11 | 2 | Should | S54 | OG-087 | Concluído |
 | [OG-514](cards/OG-514-erros-tratados-no-sentry.md) | Erros tratados (log.error) também vão ao Sentry | E11 | 2 | Must | — | OG-434, OG-512 | Backlog |
 | [OG-515](cards/OG-515-email-de-boas-vindas-atualizado.md) | E-mail de boas-vindas atualizado para a v2, com versão HTML | E11 | 1 | Should | — | — | Concluído |
-| [OG-516](cards/OG-516-formato-2x2-ranked.md) | Formato 2x2 no Ranked | E12 | 5 | Must | S56 | — | Em revisão |
-| [OG-517](cards/OG-517-rotacao-2x2.md) | Rotação de mapas 2x2 com os cinco mapas pequenos | E12 | 2 | Must | S56 | OG-516 | Em revisão |
-| [OG-518](cards/OG-518-ranked-2x2-duracao-e-bot.md) | Ranked 2x2: 15 minutos e bot substituto | E12 | 2 | Must | S56 | OG-516 | Em revisão |
-| [OG-519](cards/OG-519-casual-2x2-criacao-de-sala.md) | 2x2 na criação de sala Casual | E12 | 2 | Should | S56 | OG-517 | Em revisão |
-| [OG-520](cards/OG-520-outcup-cadastro-e-calendario.md) | OutCup: cadastro, calendário mensal e painel admin | E15 | 5 | Must | S56 | OG-516 | Em revisão |
-| [OG-521](cards/OG-521-outcup-inscricao-e-sorteio-de-duplas.md) | OutCup: inscrição individual e sorteio das duplas | E15 | 5 | Must | S56 | OG-520 | Em revisão |
-| [OG-522](cards/OG-522-outcup-chave.md) | OutCup: chave mata-mata com cabeças de chave e byes | E15 | 3 | Must | S56 | OG-521 | Em revisão |
-| [OG-523](cards/OG-523-outcup-pagina.md) | OutCup: página no portal (chave, calendário, minha dupla, arquivo) | E15 | 5 | Must | S56 | OG-522 | Em revisão |
-| [OG-524](cards/OG-524-outcup-marcar-horario.md) | OutCup: marcar o jogo pelo portal | E15 | 5 | Must | S56 | OG-522 | Em revisão |
-| [OG-525](cards/OG-525-outcup-sala-do-confronto.md) | OutCup: sala do confronto criada sozinha, só para os 4 | E15 | 5 | Must | S56 | OG-524, OG-518 | Em revisão |
-| [OG-526](cards/OG-526-outcup-prazos-wo-e-admin.md) | OutCup: prazos, W.O. e ferramentas do admin | E15 | 5 | Must | S56 | OG-525 | Em revisão |
-| [OG-527](cards/OG-527-outcup-avisos.md) | OutCup: avisos por e-mail e no portal | E15 | 3 | Must | S56 | OG-524 | Em revisão |
-| [OG-528](cards/OG-528-outcup-titulo-selos-e-marcos.md) | OutCup: selos, hall da fama e marcos | E15 | 3 | Should | S56 | OG-522 | Em revisão |
+| [OG-516](cards/OG-516-formato-2x2-ranked.md) | Formato 2x2 no Ranked | E12 | 5 | Must | S56 | — | Concluído |
+| [OG-517](cards/OG-517-rotacao-2x2.md) | Rotação de mapas 2x2 com os cinco mapas pequenos | E12 | 2 | Must | S56 | OG-516 | Concluído |
+| [OG-518](cards/OG-518-ranked-2x2-duracao-e-bot.md) | Ranked 2x2: 15 minutos e bot substituto | E12 | 2 | Must | S56 | OG-516 | Concluído |
+| [OG-519](cards/OG-519-casual-2x2-criacao-de-sala.md) | 2x2 na criação de sala Casual | E12 | 2 | Should | S56 | OG-517 | Concluído |
+| [OG-520](cards/OG-520-outcup-cadastro-e-calendario.md) | OutCup: cadastro, calendário mensal e painel admin | E15 | 5 | Must | S56 | OG-516 | Concluído |
+| [OG-521](cards/OG-521-outcup-inscricao-e-sorteio-de-duplas.md) | OutCup: inscrição individual e sorteio das duplas | E15 | 5 | Must | S56 | OG-520 | Concluído |
+| [OG-522](cards/OG-522-outcup-chave.md) | OutCup: chave mata-mata com cabeças de chave e byes | E15 | 3 | Must | S56 | OG-521 | Concluído |
+| [OG-523](cards/OG-523-outcup-pagina.md) | OutCup: página no portal (chave, calendário, minha dupla, arquivo) | E15 | 5 | Must | S56 | OG-522 | Concluído |
+| [OG-524](cards/OG-524-outcup-marcar-horario.md) | OutCup: marcar o jogo pelo portal | E15 | 5 | Must | S56 | OG-522 | Concluído |
+| [OG-525](cards/OG-525-outcup-sala-do-confronto.md) | OutCup: sala do confronto criada sozinha, só para os 4 | E15 | 5 | Must | S56 | OG-524, OG-518 | Concluído |
+| [OG-526](cards/OG-526-outcup-prazos-wo-e-admin.md) | OutCup: prazos, W.O. e ferramentas do admin | E15 | 5 | Must | S56 | OG-525 | Concluído |
+| [OG-527](cards/OG-527-outcup-avisos.md) | OutCup: avisos por e-mail e no portal | E15 | 3 | Must | S56 | OG-524 | Concluído |
+| [OG-528](cards/OG-528-outcup-titulo-selos-e-marcos.md) | OutCup: selos, hall da fama e marcos | E15 | 3 | Should | S56 | OG-522 | Concluído |
 
 **Total:** 368 cards, 1175 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 299 cards, 880 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

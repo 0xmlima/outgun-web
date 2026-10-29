@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | S56 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-521 |
 | Regras de negócio | RN-CUP-06, RN-CUP-07, D-88 |
 | Skills | `outgun-card-workflow` |

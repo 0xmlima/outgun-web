@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 5 pts |
 | Sprint | S56 |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | RN-RKL-01, RN-RKL-13, D-88 |
 | Skills | `outgun-card-workflow` |
