@@ -18,8 +18,25 @@ export const NOTIFICATIONS_POLL_MS = 30_000;
 
 export interface AppNotification {
   id: string;
-  kind: 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released';
-  data: { clanTag?: string; clanName?: string; from?: string; milestones?: string[]; secretNames?: Record<string, Bilingual>; number?: number };
+  kind: 'clan_invite' | 'clan_request' | 'milestone' | 'number_expiring' | 'number_released' | 'cup';
+  data: {
+    clanTag?: string;
+    clanName?: string;
+    from?: string;
+    milestones?: string[];
+    secretNames?: Record<string, Bilingual>;
+    number?: number;
+    /** OutCup (OG-527). */
+    cup?: string;
+    cupEvent?: string;
+    partner?: string;
+    opponent?: string;
+    matchId?: string;
+    at?: string;
+    won?: boolean;
+    bye?: boolean;
+    resolution?: string;
+  };
   createdAt: string;
   read: boolean;
 }
@@ -48,6 +65,7 @@ export function notificationText(n: AppNotification, t: T, locale = 'en'): strin
     const secret = ids.some((id) => n.data.secretNames?.[id]);
     return secret ? t('Secret milestone unlocked! $1', shown) : names.length === 1 ? t('New milestone: $1', shown) : t('New milestones: $1', shown);
   }
+  if (n.kind === 'cup') return cupNotificationText(n, t, locale);
   // número de jogador (OG-410)
   if (n.kind === 'number_expiring') return t('Your number $1 is freed in 7 days if you do not play.', String(n.data.number ?? '?'));
   if (n.kind === 'number_released') return t('Your number $1 was freed after 60 days without playing.', String(n.data.number ?? '?'));
@@ -55,9 +73,45 @@ export function notificationText(n: AppNotification, t: T, locale = 'en'): strin
   return n.kind === 'clan_invite' ? t('$1 invited you to the clan $2', n.data.from ?? '?', clan) : t('$1 asked to join $2', n.data.from ?? '?', clan);
 }
 
+/** Aviso da OutCup (OG-527): o que aconteceu, com o adversário e o horário quando houver. */
+function cupNotificationText(n: AppNotification, t: T, locale: string): string {
+  const d = n.data;
+  const at = d.at ? new Date(d.at).toLocaleString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  switch (d.cupEvent) {
+    case 'registration_open':
+      return t('OutCup sign-ups are open.');
+    case 'launch':
+      return t('2v2 is here! To celebrate, sign up for the first OutCup.');
+    case 'drawn':
+      return d.bye ? t('OutCup: your pair skips the first round.') : d.partner ? t('OutCup: you play with $1 against $2.', d.partner, d.opponent ?? '?') : t('OutCup: your next opponent is $1.', d.opponent ?? '?');
+    case 'left_out':
+      return t('OutCup: you were left out of the draw (odd number of sign-ups).');
+    case 'cancelled':
+      return t('OutCup: this edition was cancelled.');
+    case 'proposed':
+      return t('OutCup: $1 proposed $2.', d.opponent ?? '?', at);
+    case 'declined':
+      return t('OutCup: $1 declined the proposed time.', d.opponent ?? '?');
+    case 'scheduled':
+      return t('OutCup: match against $1 scheduled for $2.', d.opponent ?? '?', at);
+    case 'room_open':
+      return t('OutCup: the room for your match is open.');
+    case 'deadline':
+      return t('OutCup: the round window ends on $1 and your match is not scheduled.', at);
+    case 'result':
+      return d.won ? t('OutCup: your pair moves on!') : d.resolution === 'double_walkover' ? t('OutCup: both pairs are out by walkover.') : t('OutCup: $1 won the match.', d.opponent ?? '?');
+    case 'champion':
+      return t('OutCup: $1 won the cup!', d.opponent ?? '?');
+    default:
+      return 'OutCup';
+  }
+}
+
 /** Para onde a notificação leva: a caixa de convites ou a página do clã (onde a liderança aprova). */
 export const notificationPath = (n: AppNotification, username?: string) =>
-  n.kind === 'milestone' ? (username ? `/players/${encodeURIComponent(username)}` : '/') : n.kind === 'number_expiring' || n.kind === 'number_released' ? '/account' : n.kind === 'clan_invite' || !n.data.clanTag ? '/clans/inbox' : `/clans/${encodeURIComponent(n.data.clanTag)}`;
+  n.kind === 'cup'
+    ? `/outcup${n.data.cup ? `/${n.data.cup}` : ''}${n.data.matchId ? `?confronto=${n.data.matchId}` : ''}`
+    : n.kind === 'milestone' ? (username ? `/players/${encodeURIComponent(username)}` : '/') : n.kind === 'number_expiring' || n.kind === 'number_released' ? '/account' : n.kind === 'clan_invite' || !n.data.clanTag ? '/clans/inbox' : `/clans/${encodeURIComponent(n.data.clanTag)}`;
 
 export function NotificationsProvider({ children }: { readonly children: ReactNode }) {
   const { t, prefs } = usePrefs();

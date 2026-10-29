@@ -2,9 +2,9 @@
 // Portal ao vivo (OG-284): avisos do que mudou, para as telas abertas relerem na hora em vez de
 // esperar a próxima consulta periódica. Só o tópico vai (nada de dado): `rooms` (heartbeat com
 // salas diferentes), `matches` (partida gravada: ranking, perfis, últimas partidas) e
-// `notifications` (só para a conta avisada). Um processo de API só (o beta é uma VM): o barramento
+// `notifications` (só para a conta avisada) e `cup` (chave da OutCup mudou, OG-523). Um processo de API só (o beta é uma VM): o barramento
 // fica na memória. Avisos do mesmo tópico em 250 ms viram um (a transação já terminou até lá).
-export type LiveTopic = 'rooms' | 'matches' | 'notifications';
+export type LiveTopic = 'rooms' | 'matches' | 'notifications' | 'cup';
 
 type Listener = (topic: LiveTopic) => void;
 

@@ -47,7 +47,7 @@ interface TextFieldProps {
   readonly label: ReactNode;
   readonly value: string;
   readonly onChange: (value: string) => void;
-  readonly type?: 'text' | 'password' | 'email' | 'search';
+  readonly type?: 'text' | 'password' | 'email' | 'search' | 'datetime-local';
   readonly autoComplete?: string;
   readonly maxLength?: number;
   readonly placeholder?: string;

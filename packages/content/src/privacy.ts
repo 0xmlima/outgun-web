@@ -62,6 +62,11 @@ export const TABLES: Readonly<Record<string, 'personal' | 'none'>> = {
   casual_preset_versions: 'none',
   map_rotations: 'none',
   bot_settings: 'none',
+  cups: 'none',
+  cup_entries: 'personal',
+  cup_duos: 'personal',
+  cup_matches: 'none',
+  cup_availability: 'personal',
 };
 
 const b = (pt: string, en: string): Bilingual => ({ 'pt-BR': pt, en });
@@ -102,6 +107,12 @@ export const DATA_INVENTORY: readonly DataItem[] = [
     where: ['clan_members', 'clan_requests', 'notifications', 'users'],
     why: b('Mostrar a tag do clã no jogo e na página pública do clã', 'Showing the clan tag in game and on the public clan page'),
     retention: b('Até você sair do clã (convites e pedidos: 7 dias) ou excluir a conta', 'Until you leave the clan (invites and requests: 7 days) or delete the account'),
+  },
+  {
+    what: b('OutCup: inscrição, dupla sorteada, horários em que você marcou que pode jogar e a opção de receber os e-mails da copa', 'OutCup: sign-up, drawn pair, the hours you marked as available and whether you get the cup e-mails'),
+    where: ['cup_entries', 'cup_duos', 'cup_availability', 'player_profiles'],
+    why: b('Organizar a copa: sortear as duplas, marcar os jogos e mostrar a chave pública', 'Running the cup: drawing pairs, scheduling matches and showing the public bracket'),
+    retention: b('Chave e duplas enquanto o serviço existir (ao excluir a conta o nome vira "(anon)"); horários até a conta ser excluída', 'Bracket and pairs while the service exists (deleting the account replaces the name with "(anon)"); hours until the account is deleted'),
   },
   {
     what: b('Identificador aleatório do navegador (só o hash chega ao servidor)', 'Random browser identifier (only its hash reaches the server)'),

@@ -10,7 +10,7 @@ import { nameOwner, RESERVATION_MS, USERNAME_CHANGE_COOLDOWN_MS } from '../auth/
 import { hashPassword, MAX_PASSWORD, MIN_PASSWORD, verifyPassword } from '../auth/password.js';
 import type { SessionUser } from '../auth/sessions.js';
 import { usernameKey } from '../db/keys.js';
-import { feedback, matchEventPlayers, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users } from '../db/schema.js';
+import { feedback, matchEventPlayers, matchPlayers, matches, playerProfiles, playerReports, ratings, reservedNames, sessions as sessionsTable, users, cupDuos } from '../db/schema.js';
 import { PublicUser, throttleKeys, toPublic, tooMany } from './auth.js';
 import { leaveClan } from './clans.js';
 import { ErrorSchema } from './schemas.js';
@@ -223,6 +223,30 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
       },
     );
 
+    // e-mails da OutCup (RN-CUP-12): ligados por padrão; o aviso no portal continua
+    const CupEmails = Type.Object({ cupEmails: Type.Boolean() });
+    app.get(
+      '/cup-emails',
+      { schema: { tags: ['contas'], summary: 'Receber (ou não) os e-mails da OutCup', response: { 200: CupEmails, 401: ErrorSchema } } },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const [row] = await db.select({ cupEmails: playerProfiles.cupEmails }).from(playerProfiles).where(eq(playerProfiles.userId, user.id));
+        return { cupEmails: row?.cupEmails ?? true };
+      },
+    );
+    app.put(
+      '/cup-emails',
+      { schema: { tags: ['contas'], summary: 'Liga ou desliga os e-mails da OutCup', body: CupEmails, response: { 200: CupEmails, 401: ErrorSchema } } },
+      async (request, reply) => {
+        const user = await requireUser(request, reply);
+        if (!user) return reply;
+        const set = { cupEmails: request.body.cupEmails };
+        await db.insert(playerProfiles).values({ userId: user.id, ...set }).onConflictDoUpdate({ target: playerProfiles.userId, set });
+        return set;
+      },
+    );
+
     const Privacy = Type.Object({ hideCompanions: Type.Boolean(), hideHistory: Type.Boolean() });
 
     app.get(
@@ -336,6 +360,8 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
           await tx.update(matchPlayers).set({ name: ANONYMOUS_NAME }).where(eq(matchPlayers.userId, user.id));
           await tx.update(matchEventPlayers).set({ name: ANONYMOUS_NAME }).where(eq(matchEventPlayers.userId, user.id));
           await tx.update(feedback).set({ username: ANONYMOUS_NAME }).where(eq(feedback.userId, user.id));
+          await tx.update(cupDuos).set({ player1Name: ANONYMOUS_NAME }).where(eq(cupDuos.player1Id, user.id)); // chave da OutCup (OG-521)
+          await tx.update(cupDuos).set({ player2Name: ANONYMOUS_NAME }).where(eq(cupDuos.player2Id, user.id));
           await leaveClan(tx, user.id); // passa a liderança antes de a conta sumir (D-47)
           await tx.delete(users).where(eq(users.id, user.id));
         });

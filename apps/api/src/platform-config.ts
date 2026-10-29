@@ -36,7 +36,12 @@ export async function findPreset(db: Db, id: string): Promise<Preset | undefined
 
 /** Rotação Casual do painel (D-69); null = sem rotação no painel (vale a do servidor). */
 export async function casualRotation(db: Db): Promise<string[] | null> {
-  const [row] = await db.select({ maps: mapRotations.maps }).from(mapRotations).where(eq(mapRotations.key, 'casual'));
+  return rotationMaps(db, 'casual');
+}
+
+/** Mapas de uma rotação do painel; null = sem linha. */
+export async function rotationMaps(db: Db, key: RotationKey): Promise<string[] | null> {
+  const [row] = await db.select({ maps: mapRotations.maps }).from(mapRotations).where(eq(mapRotations.key, key));
   return row?.maps ?? null;
 }
 

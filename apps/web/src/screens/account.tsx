@@ -382,6 +382,7 @@ export function AccountScreen() {
       <FormMessageLine message={general} />
       <NumberPanel />
       <PrivacyPanel />
+      <CupEmailsPanel />
     </Page>
   );
 }
@@ -530,6 +531,34 @@ function PrivacyPanel() {
           onChange={(hideCompanions) => change({ hideCompanions })}
         />
         <ToggleField label={t('Hide my match history')} checked={privacy?.hideHistory ?? false} disabled={!privacy} onChange={(hideHistory) => change({ hideHistory })} />
+      </FieldGroup>
+    </Panel>
+  );
+}
+
+/** E-mails da OutCup (OG-527, RN-CUP-12): ligados por padrão; os avisos no portal continuam. */
+function CupEmailsPanel() {
+  const { t } = usePrefs();
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api<{ cupEmails: boolean }>('/account/cup-emails').then(
+      (r) => alive && setOn(r.cupEmails),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const change = (cupEmails: boolean) => {
+    const before = on;
+    setOn(cupEmails);
+    api('/account/cup-emails', { method: 'PUT', body: { cupEmails } }).catch(() => setOn(before));
+  };
+  return (
+    <Panel title={t('E-mails')}>
+      <FieldGroup>
+        <ToggleField label={t('OutCup e-mails')} hint={t('Draw, scheduled matches, room open and results. The notices in the portal stay on.')} checked={on ?? true} disabled={on === null} onChange={change} />
       </FieldGroup>
     </Panel>
   );

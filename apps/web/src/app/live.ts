@@ -6,8 +6,8 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { API_URL } from './api.js';
 
-export type LiveTopic = 'rooms' | 'matches' | 'notifications';
-const TOPICS: readonly LiveTopic[] = ['rooms', 'matches', 'notifications'];
+export type LiveTopic = 'rooms' | 'matches' | 'notifications' | 'cup';
+const TOPICS: readonly LiveTopic[] = ['rooms', 'matches', 'notifications', 'cup'];
 /** Consulta de reserva enquanto o canal está de pé. */
 export const LIVE_FALLBACK_MS = 60_000;
 

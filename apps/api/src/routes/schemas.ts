@@ -5,7 +5,7 @@ import { EMBLEM_FRAMES, EMBLEM_SYMBOLS, type ClanEmblem } from '@outgun/protocol
 
 export const GameModeSchema = Type.Union([Type.Literal('casual'), Type.Literal('ranked')]);
 /** Formato do Ranked (OG-250, RN-RKL-01). */
-export const RankedFormatSchema = Type.Union([Type.Literal('3x3'), Type.Literal('4x4'), Type.Literal('5x5')]);
+export const RankedFormatSchema = Type.Union([Type.Literal('2x2'), Type.Literal('3x3'), Type.Literal('4x4'), Type.Literal('5x5')]);
 /** Fase do lobby Ranked (OG-252). */
 export const LobbyPhaseSchema = Type.Union([Type.Literal('lobby'), Type.Literal('vote'), Type.Literal('ready'), Type.Literal('countdown'), Type.Literal('game'), Type.Literal('finished')]);
 /** Série md1/md3/md5 (OG-250, RN-RKL-02). */

@@ -11,6 +11,7 @@ import { isPhone, PHONE_ADMIN_TABS } from '../app/phone.js';
 import { areaLabels, frequencyLabels, severityLabels, type BugReport } from '../app/bug-report.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button } from '../ui/Button.js';
+import { CupTab } from './admin-cup.js';
 import { TextAreaField, TextField } from '../ui/Field.js';
 import { Dialog } from '../ui/Dialog.js';
 import { Page } from '../ui/Page.js';
@@ -44,7 +45,7 @@ import {
 } from '@outgun/settings';
 import { MapDrawing, MapPreview } from './MapPreview.js';
 
-type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'bots' | 'invites' | 'roles';
+type Tab = 'rooms' | 'feedback' | 'network' | 'reports' | 'clans' | 'bans' | 'audit' | 'presets' | 'maps' | 'rotations' | 'bots' | 'invites' | 'roles' | 'cup';
 
 interface RosterEntry {
   uid: number;
@@ -146,7 +147,7 @@ export default function AdminScreen() {
     ['maps', t('Maps')],
     ['rotations', t('Map rotations')],
     ['bots', t('Bots')],
-    ...(isAdmin ? ([['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
+    ...(isAdmin ? ([['cup', 'OutCup'], ['invites', t('Invites')], ['roles', t('Roles')]] as [Tab, string][]) : []),
     ] as [Tab, string][]
   ).filter(([id]) => !phone || PHONE_ADMIN_TABS.has(id)); // celular (OG-427): só as abas de moderação
   return (
@@ -177,6 +178,7 @@ export default function AdminScreen() {
           {tab === 'rotations' && <RotationsTab canEdit={allowed} />}
           {tab === 'bots' && <BotsTab />}
           {tab === 'roles' && isAdmin && <RolesTab />}
+          {tab === 'cup' && isAdmin && <CupTab />}
         </div>
       )}
     </Page>

@@ -33,6 +33,8 @@ const releaseNumbers = () => releaseIdleNumbers(database.db).then(
   (err: unknown) => app.log.error({ err }, 'falha ao liberar números'),
 );
 const numbersTimer = setInterval(() => void releaseNumbers(), 60 * 60_000);
+// OutCup (OG-520): abre a edição, sorteia, abre as salas e aplica os W.O. a cada minuto (idempotente)
+const cupTimer = setInterval(() => void app.cupTick().catch((err: unknown) => app.log.error({ err }, 'falha no relógio da OutCup')), 60_000);
 const watchTimer = statusDir ? setInterval(() => void app.security.check(statusDir), 15 * 60_000) : undefined;
 if (process.env.NODE_ENV === 'production' && !config.metricsToken) app.log.warn('METRICS_TOKEN vazio: /metrics aberto; deixe a porta só na rede interna ou defina o token');
 
@@ -48,6 +50,7 @@ const shutdown = async (graceS: number) => {
   clearInterval(seasonTimer);
   clearInterval(watchTimer);
   clearInterval(numbersTimer);
+  clearInterval(cupTimer);
   if (graceS > 0) await new Promise((r) => setTimeout(r, graceS * 1000));
   await app.close();
   redis?.disconnect();

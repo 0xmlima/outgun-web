@@ -2,7 +2,7 @@
 // Formatos e séries do Ranked (OG-250, RN-RKL-01..03, D-41): atributos da sala sobre o mesmo preset
 // travado. A série só agrupa jogos; cada jogo é uma ranqueada normal.
 
-export const RANKED_FORMATS = ['3x3', '4x4', '5x5'] as const;
+export const RANKED_FORMATS = ['2x2', '3x3', '4x4', '5x5'] as const;
 export type RankedFormat = (typeof RANKED_FORMATS)[number];
 
 export const SERIES_LENGTHS = [1, 3, 5] as const;
@@ -29,6 +29,20 @@ export function formatTeamSize(format: RankedFormat): number {
 /** Tamanho da sala: 2 × N (RN-RKL-01). */
 export function formatPlayers(format: RankedFormat): number {
   return 2 * formatTeamSize(format);
+}
+
+/**
+ * Linhas de gamemod do formato sobre o preset Ranked travado. 2x2 (D-88, RN-RKL-25): 15 min de tempo
+ * normal e a mesma prorrogação de 5 (até os 20); os outros formatos usam o preset como está.
+ */
+export function formatGamemod(format: RankedFormat | undefined): string {
+  return format === '2x2' ? 'time_limit 15\nextra_time 5' : '';
+}
+
+/** Bots substitutos por partida (RN-RKL-19): 2 somando os dois times; no 2x2, no máximo 1 por lado (D-88). */
+export const MAX_SUBSTITUTES = 2;
+export function maxSubstitutesPerSide(format: RankedFormat | undefined): number {
+  return format === '2x2' ? 1 : MAX_SUBSTITUTES;
 }
 
 /** Vitórias para levar a série: ⌈N/2⌉ (RN-RKL-02). */
@@ -72,7 +86,7 @@ export function recordSeriesGame(s: SeriesScore, winner: 0 | 1 | null): SeriesSc
  * Rotação oficial de mapas (OG-251, RN-RKL-04): uma do Casual, uma por formato do Ranked e a
  * `ranked` das salas Ranked sem formato (anteriores ao lobby).
  */
-export const ROTATION_KEYS = ['casual', 'ranked', 'ranked:3x3', 'ranked:4x4', 'ranked:5x5'] as const;
+export const ROTATION_KEYS = ['casual', 'ranked', 'ranked:2x2', 'ranked:3x3', 'ranked:4x4', 'ranked:5x5'] as const;
 export type RotationKey = (typeof ROTATION_KEYS)[number];
 
 export function isRotationKey(value: unknown): value is RotationKey {

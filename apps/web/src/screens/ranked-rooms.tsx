@@ -219,7 +219,7 @@ export function CreateRankedRoomScreen() {
   const { user } = useAccount();
   const navigate = useNavigate();
   const [name, setName] = useState(() => (user ? user.username : ''));
-  const [format, setFormat] = useState<RankedFormat>('3x3');
+  const [format, setFormat] = useState<RankedFormat>('2x2');
   const [bestOf, setBestOf] = useState<SeriesBestOf>(1);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);

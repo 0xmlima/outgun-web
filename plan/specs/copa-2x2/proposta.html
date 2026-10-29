@@ -1,0 +1,451 @@
+<title>Copa Outgun 2x2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mesma família visual das propostas do radar, do emblema e do treino; coluna de ~1040px, chave interativa da copa no centro, empilhando no celular. */
+:root {
+  --bg: #eef1ef;
+  --surface: #f8faf9;
+  --ink: #17201c;
+  --muted: #56635d;
+  --line: #c9d2cd;
+  --flag: #b07a0c;          /* dourado da taça: único acento */
+  --good: #1f8a6a;
+  --bad: #c2393f;
+  --wait: #8a6d1f;
+  --red: #d8463f;
+  --blue: #3f7ad8;
+  --display: "Chakra Petch", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832;
+    --flag: #e0a83a; --good: #43c29b; --bad: #f0646b; --wait: #d9b45a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101614; --surface: #172019; --ink: #e2eae6; --muted: #98a69f; --line: #2b3832;
+  --flag: #e0a83a; --good: #43c29b; --bad: #f0646b; --wait: #d9b45a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 700; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+ul, ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 72ch; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--flag); }
+.muted { color: var(--muted); }
+code { font-family: var(--mono); font-size: .86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+header.hero { padding-top: 48px; display: grid; gap: 16px; }
+.hero p.lede { font-size: 1.08rem; }
+.note-example { font-family: var(--mono); font-size: .78rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; max-width: none; }
+section { display: grid; gap: 24px; }
+.head { display: grid; gap: 10px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.tag { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* Simulador */
+.controls { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: end; }
+.controls label { display: grid; gap: 6px; font-size: .9rem; color: var(--muted); }
+.controls input[type=range] { width: 220px; max-width: 100%; accent-color: var(--flag); }
+.controls output { font-family: var(--display); font-size: 1.6rem; color: var(--ink); font-weight: 700; }
+.controls select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.cal { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.cal div { display: grid; grid-template-columns: 150px 1fr auto; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface); align-items: baseline; }
+.cal div:first-child { border-top: 0; }
+.cal .when { font-family: var(--mono); font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal .what { font-weight: 500; }
+.cal .fmt { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+.cal .now { box-shadow: inset 3px 0 0 var(--flag); }
+.cal .warn .what { color: var(--bad); }
+@media (max-width: 560px) { .cal div { grid-template-columns: 1fr; gap: 2px; } }
+
+.bracket-wrap { overflow-x: auto; padding-bottom: 8px; }
+.bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: 18px; min-width: min-content; }
+.round { display: grid; grid-template-rows: auto 1fr; gap: 10px; }
+.round h4 { margin: 0; font-family: var(--mono); font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.round .list { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; }
+.match { all: unset; cursor: pointer; display: grid; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); overflow: hidden; font-size: .88rem; }
+.match:focus-visible { outline: 2px solid var(--flag); outline-offset: 2px; }
+.match.sel { border-color: var(--flag); box-shadow: 0 0 0 1px var(--flag); }
+.match .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 5px 10px; }
+.match .row + .row { border-top: 1px solid var(--line); }
+.match .row.win { font-weight: 600; }
+.match .row.lose { color: var(--muted); }
+.match .sc { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.match .st { font-family: var(--mono); font-size: .7rem; padding: 3px 10px; border-top: 1px solid var(--line); color: var(--muted); }
+.st.done { color: var(--good); } .st.set { color: var(--blue); } .st.wait { color: var(--wait); } .st.wo { color: var(--bad); }
+.champ { border: 1px solid var(--flag); border-radius: 6px; padding: 10px; text-align: center; font-family: var(--display); font-weight: 600; color: var(--flag); }
+
+.detail { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 12px; }
+.detail .vs { font-family: var(--display); font-size: 1.3rem; font-weight: 600; }
+.detail .vs .r { color: var(--red); } .detail .vs .b { color: var(--blue); }
+.slots { display: flex; flex-wrap: wrap; gap: 8px; }
+.slot { font-family: var(--mono); font-size: .78rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.slot.ok { border-color: var(--good); color: var(--good); }
+.games { display: grid; gap: 4px; font-family: var(--mono); font-size: .84rem; font-variant-numeric: tabular-nums; }
+
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+th, td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { border-top: 0; font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+tr.sum td { font-weight: 600; }
+.qs { counter-reset: q; list-style: none; padding: 0; display: grid; gap: 14px; max-width: 78ch; }
+.qs li { display: grid; grid-template-columns: 52px 1fr; gap: 12px; }
+.qs li b.q { font-family: var(--display); color: var(--flag); font-size: 1.05rem; }
+.qs li span.s { display: block; color: var(--muted); font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .match { transition: border-color .15s; } }
+</style>
+
+<div class="wrap">
+<header class="hero">
+  <span class="eyebrow">Proposta · Outgun Web v2</span>
+  <h1>Copa Outgun 2x2</h1>
+  <p class="lede">Com a base de jogadores pequena, o 2x2 frenético em mapas pequenos virou o jogo do dia a dia, mas não existe um 2x2 oficial. A proposta tem duas partes: <b>tornar o 2x2 oficial</b> (no Casual e no Ranked) e, em cima dele, abrir <b>uma copa por mês</b> em mata-mata, com uma rodada por semana e jogos marcados pelas próprias duplas.</p>
+  <p class="lede">Na comparação com o FIFA: a temporada continua sendo o ranking e o leaderboard mensal; a copa é o torneio que abre de vez em quando, com chave, prazo e campeão.</p>
+  <p class="note-example">Aviso: duplas, nomes, ratings, placares e datas desta página são inventados para ilustrar. Nada aqui vem do banco do beta.</p>
+</header>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Parte 1</span>
+    <h2>O 2x2 oficial</h2>
+    <p>O Ranked já tem os formatos 3x3, 4x4 e 5x5, com séries md1/md3/md5, rotação de mapas por formato e lobby com voto e "Pronto". O 2x2 entra como um quarto formato. Quase tudo é reaproveitado.</p>
+  </div>
+  <div class="cols">
+    <div class="box">
+      <span class="tag">Casual</span>
+      <h3>Sala 2x2 oficial</h3>
+      <ul>
+        <li>Uma sala da plataforma 2x2 sempre aberta, com bots completando até 4, como a 4x4 de hoje.</li>
+        <li>"Jogar agora" ganha a escolha 2x2 ou 4x4.</li>
+        <li>Rotação própria só com mapas pequenos, definida pelo admin no painel.</li>
+        <li>Candidatos (já usados no treino): 2 versus 2 (Duel), 3x3 (Duel), Cebs Park, Pari2, The Cover 4.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <span class="tag">Ranked</span>
+      <h3>Formato 2x2</h3>
+      <ul>
+        <li>Sala completa = 4 contas, sem bots (regra D-40 e D-11). Com pouca gente online, juntar 4 é bem mais fácil que juntar 6.</li>
+        <li>Mesmo preset travado, sem power-ups; séries md1/md3/md5.</li>
+        <li>Aba 2x2 nas estatísticas, no leaderboard, nos marcos por formato e no filtro do radar.</li>
+        <li>Pausa, queda, bot substituto e cancelamento seguem as regras atuais; o limite de bots substitutos cai para 1 por partida.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="copa">
+  <div class="head">
+    <span class="eyebrow">Parte 2</span>
+    <h2>A copa do mês</h2>
+    <p>Mexa no número de duplas inscritas para ver como ficam a chave e o calendário. Clique num confronto para ver a página do jogo.</p>
+  </div>
+
+  <div class="controls">
+    <label for="n">Duplas inscritas <output id="nOut">12</output>
+      <input type="range" id="n" min="3" max="32" value="12">
+    </label>
+    <label for="pace">Ritmo
+      <select id="pace">
+        <option value="week">uma rodada por semana</option>
+        <option value="fit">caber no mês (comprime as primeiras)</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="cal" id="cal"></div>
+  <div class="bracket-wrap"><div class="bracket" id="bracket"></div></div>
+  <div class="detail" id="detail"></div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Como funciona</span>
+    <h2>Regras sugeridas</h2>
+  </div>
+  <div class="cols">
+    <div class="box">
+      <h3>Inscrição</h3>
+      <ul>
+        <li>O capitão inscreve a dupla e convida o parceiro, que aceita no portal. Duas contas quaisquer, com ou sem clã.</li>
+        <li>Inscrições na última semana do mês anterior; check-in até a hora do sorteio. Quem não confirma fica fora.</li>
+        <li>Abre no dia 1 se houver um mínimo de duplas; senão, a copa daquele mês é cancelada e todos são avisados.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>Chave</h3>
+      <ul>
+        <li>Mata-mata simples. Cabeças de chave pela soma do rating dos dois (o rating único do Ranked).</li>
+        <li>Número de duplas que não é potência de 2: as mais fortes passam direto da 1ª rodada (bye).</li>
+        <li>Séries md3; final md5. Mapas sorteados da rotação 2x2 com o voto que já existe no lobby.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>Marcar o jogo</h3>
+      <ul>
+        <li>Cada rodada tem uma janela de segunda 00:00 a domingo 23:59 (Brasília).</li>
+        <li>Na página do confronto, cada dupla marca os horários em que pode jogar. Quando os horários batem, o jogo fica marcado e todos recebem e-mail.</li>
+        <li>Na hora, qualquer um dos 4 abre a sala da copa: uma sala Ranked 2x2 travada, onde só esses 4 entram. Espectadores podem assistir.</li>
+        <li>O resultado da série vai sozinho para a chave, com links do relatório e do replay.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>Prazo e W.O.</h3>
+      <ul>
+        <li>Fim da janela sem jogo: vence quem marcou horários e compareceu. Nenhuma das duas marcou: o admin decide (sorteio ou a mais bem colocada).</li>
+        <li>Dupla que não aparece em 15 min do horário marcado perde por W.O.</li>
+        <li>Disputas (queda de servidor, suspeita de troca de jogador) vão para o painel admin, que pode remarcar ou dar o resultado.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>Título</h3>
+      <ul>
+        <li>Página da copa fica arquivada com a chave completa.</li>
+        <li>Selo "Campeão da Copa Outgun · Dez/2026" no perfil e no hall da fama; vice com selo próprio.</li>
+        <li>Marcos novos (primeira vitória em copa, campeão, bicampeão) espelhados nas conquistas da Steam.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>O que não muda</h3>
+      <ul>
+        <li>Física e taxa de 10 Hz iguais em todas as salas.</li>
+        <li>HUD da partida intocado: a informação da copa aparece no lobby e no portal, não dentro do jogo.</li>
+        <li>Nenhuma carga extra relevante no servidor: são salas de 4 jogadores.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Esforço</span>
+    <h2>Quanto custa construir</h2>
+    <p>Estimativa em pontos, na mesma escala dos cards. Para comparar: os modos de treino tinham 40 pontos e couberam numa sprint.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Bloco</th><th>O que inclui</th><th style="text-align:right">Pontos</th></tr></thead>
+    <tbody>
+      <tr><td>Formato 2x2 no Ranked</td><td>formato novo no banco, nas salas, no lobby, nas abas de estatística, leaderboard e marcos; limite de bot substituto</td><td class="n">5</td></tr>
+      <tr><td>Rotação 2x2</td><td>chave de rotação nova no painel, mapas iniciais</td><td class="n">2</td></tr>
+      <tr><td>2x2 no Casual</td><td>sala oficial com bots, escolha no "Jogar agora"</td><td class="n">3</td></tr>
+      <tr class="sum"><td colspan="2">Parte 1, 2x2 oficial (uma sprint curta)</td><td class="n">10</td></tr>
+      <tr><td>Copa: cadastro e admin</td><td>banco da copa, criação automática todo mês, painel para abrir, cancelar e editar</td><td class="n">5</td></tr>
+      <tr><td>Inscrição de duplas</td><td>convite e aceite do parceiro, prazo, check-in</td><td class="n">5</td></tr>
+      <tr><td>Chave</td><td>sorteio por rating, byes, avanço automático</td><td class="n">3</td></tr>
+      <tr><td>Página da copa</td><td>chave visual, calendário, rodada atual, arquivo das copas passadas</td><td class="n">5</td></tr>
+      <tr><td>Confronto</td><td>horários disponíveis, jogo marcado, sala da copa travada para os 4, resultado na chave</td><td class="n">8</td></tr>
+      <tr><td>Prazos, W.O. e disputas</td><td>viradas de rodada, W.O. automático, ferramentas do admin</td><td class="n">5</td></tr>
+      <tr><td>Avisos</td><td>e-mails (inscrição, sorteio, jogo marcado, prazo acabando) e aviso no portal</td><td class="n">3</td></tr>
+      <tr><td>Título</td><td>selos, hall da fama, marcos e conquistas da Steam</td><td class="n">3</td></tr>
+      <tr class="sum"><td colspan="2">Parte 2, Copa Outgun (duas sprints)</td><td class="n">37</td></tr>
+      <tr class="sum"><td colspan="2">Total</td><td class="n">47</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Operação mensal depois de pronta: a copa abre sozinha. O trabalho humano fica nas disputas e nos W.O. que o admin precisar decidir.</p>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Mais ideias</span>
+    <h2>Para depois</h2>
+  </div>
+  <ul>
+    <li><b>Copa de clãs 3x3</b> com a mesma estrutura: só muda o tamanho da equipe e quem inscreve (o líder do clã).</li>
+    <li><b>Copa relâmpago:</b> tudo num sábado, com horário fixo, para quando houver gente suficiente.</li>
+    <li><b>Final em destaque</b> na tela inicial, com o botão "Assistir" quando estiver ao vivo.</li>
+    <li><b>Bolão da comunidade</b> sem dinheiro: palpites na chave e um ranking de quem acertou mais.</li>
+    <li><b>Dupla com nome</b> e histórico próprio (copas jogadas, campanhas), reaproveitando a ideia do emblema.</li>
+    <li><b>Dupla eliminação</b> (chave dos perdedores) quando houver mais duplas, para ninguém sair depois de um jogo só.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Cuidados</span>
+    <h2>O que pode dar errado</h2>
+  </div>
+  <ul>
+    <li><b>Base pequena:</b> com 4 duplas a copa acaba em 2 semanas; com 3, nem fecha uma chave boa. Por isso o mínimo para abrir.</li>
+    <li><b>W.O. demais esvazia a copa.</b> A janela de uma semana e os horários marcados no portal servem para reduzir isso.</li>
+    <li><b>Mais de 16 duplas</b> pedem 5 rodadas, e a copa invade o mês seguinte se o ritmo for de uma por semana.</li>
+    <li><b>Dezembro:</b> a última semana cai no Natal. Talvez a final de dezembro precise de uma janela mais longa.</li>
+    <li><b>Troca de jogador:</b> só os 2 inscritos entram na sala da copa, então ninguém joga no lugar do outro sem a conta dele.</li>
+    <li><b>Fuso:</b> jogadores em Portugal e no Brasil cabem melhor numa janela semanal do que num horário fixo.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Perguntas para o grupo</span>
+    <h2>O que precisamos decidir</h2>
+  </div>
+  <ol class="qs">
+    <li><b class="q">P1</b><div>Casual 2x2: sala oficial sempre aberta com bots, ou só a opção 2x2 no "Jogar agora"? Ou as duas?<span class="s">A sala aberta ajuda quem chega sozinho a encontrar o 2x2.</span></div></li>
+    <li><b class="q">P2</b><div>O Ranked 2x2 entra no rating único de hoje, ou o 2x2 ganha um rating separado?<span class="s">O 2x2 frenético pede habilidades diferentes do 5x5; separar evita que um contamine o outro, mas divide a atenção.</span></div></li>
+    <li><b class="q">P3</b><div>Quais mapas entram na rotação 2x2? Os cinco candidatos servem? Falta algum?</div></li>
+    <li><b class="q">P4</b><div>Duração no 2x2: os mesmos 20 min com prorrogação do Ranked, ou algo mais curto (por exemplo 10 min)?<span class="s">Muda só o tempo de jogo, não a física.</span></div></li>
+    <li><b class="q">P5</b><div>Dupla da copa: quaisquer duas contas, ou só do mesmo clã? Pode ter reserva ou trocar o parceiro no meio?</div></li>
+    <li><b class="q">P6</b><div>Precisa de requisito para se inscrever (um número mínimo de ranqueadas, conta com e-mail confirmado)? Há limite de duplas?</div></li>
+    <li><b class="q">P7</b><div>Mata-mata simples com md3 e final md5? Ou outro formato (md1 nas primeiras rodadas, dupla eliminação)?</div></li>
+    <li><b class="q">P8</b><div>Ritmo: sempre uma rodada por semana (a copa pode passar do mês), ou comprimir as primeiras rodadas para caber no mês?</div></li>
+    <li><b class="q">P9</b><div>Marcar o jogo pelo portal (horários disponíveis), ou combinar fora (WhatsApp, Discord) e usar o portal só para abrir a sala e registrar o resultado?</div></li>
+    <li><b class="q">P10</b><div>Regra do W.O. quando a semana acaba sem jogo: a sugestão desta página está boa?</div></li>
+    <li><b class="q">P11</b><div>Queda durante jogo da copa: segue o Ranked (pausa de 120 s, depois voto de bot substituto) ou o jogo é remarcado?</div></li>
+    <li><b class="q">P12</b><div>Jogos da copa contam para o rating e para o leaderboard do mês, como uma ranqueada normal?</div></li>
+    <li><b class="q">P13</b><div>Premiação: selo, marcos e conquistas da Steam bastam? Alguma recompensa visível no jogo (cor do nome, moldura no perfil)?</div></li>
+    <li><b class="q">P14</b><div>Mínimo de duplas para a copa acontecer: 4? 6? 8?</div></li>
+    <li><b class="q">P15</b><div>Nome: "Copa Outgun · Dezembro 2026", ou cada edição ganha um nome próprio?</div></li>
+  </ol>
+</section>
+</div>
+
+<script>
+(() => {
+  const NAMES = ['zeca + lumen','Kraus + Bia','tonhão + pixel','Mira + Fael','dudu + Nyx','Rafa + Vento','Kiko + Juba','Lis + Tufão','grilo + Neto','Sasha + Ruivo','Bento + Zara','Malu + Tico','Caju + Remo','Iara + Dante','Pipo + Luna','Teco + Brisa','Yuri + Olga','Nina + Lobo','Vavá + Sol','Gabi + Trovão','Lua + Pedrão','Ravi + Mel','Tata + Coyote','Davi + Íris','Fofo + Raio','Leo + Cris','Kai + Duda','Babi + Ciro','Mano + Tina','Gil + Aurora','Rui + Pérola','Zé + Faísca'];
+  // ratings fictícios: soma dos dois, decrescente com ruído
+  const RATING = NAMES.map((_, i) => Math.round(5200 - i * 120 + ((i * 37) % 90)));
+  const $ = id => document.getElementById(id);
+  const fmt = d => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const START = new Date(2026, 10, 30); // segunda 30/11/2026: semana 1 da Copa de dezembro
+
+  function seedOrder(size) {
+    let a = [1];
+    while (a.length < size) { const m = a.length * 2 + 1; a = a.flatMap(x => [x, m - x]); }
+    return a;
+  }
+  const hash = (a, b) => ((a * 73856093) ^ (b * 19349663)) >>> 0;
+  const ROUND_NAME = (left) => ({ 1: 'Final', 2: 'Semifinal', 4: 'Quartas', 8: 'Oitavas', 16: '16 avos' })[left] || 'Rodada';
+
+  let selected = null;
+
+  function build(n) {
+    const rounds = Math.ceil(Math.log2(n));
+    const size = 2 ** rounds;
+    const order = seedOrder(size);
+    let cur = order.map(s => (s <= n ? s - 1 : null)); // índice da dupla ou bye
+    const all = [];
+    const statuses = ['done', 'set', 'wait', 'done', 'wo', 'set'];
+    let k = 0;
+    // a rodada "atual" do exemplo: a primeira com jogos reais, depois dos byes
+    const current = n === size ? 0 : 1 < rounds ? 1 : 0;
+    for (let r = 0; r < rounds; r++) {
+      const matches = [], next = [];
+      for (let i = 0; i < cur.length; i += 2) {
+        const a = cur[i], b = cur[i + 1];
+        const m = { r, a, b, id: `${r}-${i / 2}` };
+        if (a === null || b === null) { m.bye = true; m.w = a ?? b; m.status = 'bye'; }
+        else if (a === undefined || b === undefined) { m.status = 'tbd'; m.w = undefined; }
+        else if (r < current) { m.status = 'done'; }
+        else if (r === current) { m.status = statuses[k++ % statuses.length]; }
+        else { m.status = 'tbd'; m.w = undefined; }
+        if (m.status === 'done' || m.status === 'wo') {
+          const upset = hash(a + 1, b + 1) % 4 === 0;
+          const fav = RATING[a] >= RATING[b] ? a : b, dog = fav === a ? b : a;
+          m.w = upset ? dog : fav;
+          const best = r === rounds - 1 ? 5 : 3, need = Math.ceil(best / 2);
+          const lw = m.status === 'wo' ? 0 : hash(b + 3, a + 7) % need;
+          m.score = m.w === a ? [need, lw] : [lw, need];
+        }
+        if (m.status === 'set' || m.status === 'wait') m.w = undefined;
+        matches.push(m); next.push(m.w);
+      }
+      all.push(matches); cur = next;
+    }
+    return { rounds, all, current };
+  }
+
+  function weekLabel(w) { const s = addDays(START, 7 * w); return `${fmt(s)} – ${fmt(addDays(s, 6))}`; }
+
+  function render() {
+    const n = +$('n').value; $('nOut').textContent = n;
+    const pace = $('pace').value;
+    const { rounds, all, current } = build(n);
+    // semanas por rodada
+    const weekOf = [];
+    if (pace === 'fit' && rounds > 4) { const extra = rounds - 4; for (let r = 0; r < rounds; r++) weekOf.push(r <= extra ? 0 : r - extra); }
+    else for (let r = 0; r < rounds; r++) weekOf.push(r);
+    // calendário
+    const rows = [`<div><span class="when">${fmt(addDays(START, -7))} – ${fmt(addDays(START, -1))}</span><span class="what">Inscrições e check-in; sorteio no domingo 29/11 às 20h</span><span class="fmt">${n} duplas</span></div>`];
+    for (let r = 0; r < rounds; r++) {
+      const left = 2 ** (rounds - r - 1);
+      const late = weekOf[r] >= 4;
+      const realGames = all[r].filter(m => !m.bye).length;
+      rows.push(`<div class="${r === current ? 'now' : ''} ${late ? 'warn' : ''}"><span class="when">${weekLabel(weekOf[r])}</span><span class="what">${ROUND_NAME(left)}${late ? ' (passa para janeiro)' : ''}${weekOf[r] === weekOf[r - 1] ? ' (mesma semana da anterior)' : ''}</span><span class="fmt">${realGames} jogo${realGames > 1 ? 's' : ''} · ${r === rounds - 1 ? 'md5' : 'md3'}</span></div>`);
+    }
+    $('cal').innerHTML = rows.join('');
+    // chave
+    const name = i => (i === null ? '<span class="muted">passa direto</span>' : i === undefined ? '<span class="muted">a definir</span>' : NAMES[i]);
+    const ST = { done: ['done', 'jogado'], set: ['set', 'marcado: sex 21h'], wait: ['wait', 'aguardando horários'], wo: ['wo', 'W.O.'], bye: ['', 'bye'], tbd: ['', 'próxima rodada'] };
+    let html = '';
+    all.forEach((ms, r) => {
+      const left = 2 ** (rounds - r - 1);
+      html += `<div class="round"><h4>${ROUND_NAME(left)}</h4><div class="list">`;
+      for (const m of ms) {
+        if (m.bye && r === 0) { html += `<button class="match" data-id="${m.id}" aria-label="bye"><div class="row win"><span>${name(m.w)}</span><span class="sc"></span></div><div class="row lose"><span class="muted">passa direto</span><span></span></div><div class="st">bye</div></button>`; continue; }
+        const cls = side => m.w === undefined ? '' : m.w === side ? 'win' : 'lose';
+        const sc = m.score || ['', ''];
+        const [c, t] = ST[m.status];
+        html += `<button class="match ${selected === m.id ? 'sel' : ''}" data-id="${m.id}"><div class="row ${cls(m.a)}"><span>${name(m.a)}</span><span class="sc">${sc[0]}</span></div><div class="row ${cls(m.b)}"><span>${name(m.b)}</span><span class="sc">${sc[1]}</span></div><div class="st ${c}">${t}</div></button>`;
+      }
+      html += '</div></div>';
+    });
+    html += `<div class="round"><h4>Campeã</h4><div class="list"><div class="champ">Copa Outgun<br>Dezembro 2026</div></div></div>`;
+    $('bracket').innerHTML = html;
+    const flat = all.flat();
+    $('bracket').querySelectorAll('.match').forEach(b => b.addEventListener('click', () => { selected = b.dataset.id; render(); }));
+    const m = flat.find(x => x.id === selected) || flat.find(x => x.r === current && !x.bye) || flat[0];
+    detail(m, rounds, weekOf);
+  }
+
+  function detail(m, rounds, weekOf) {
+    const left = 2 ** (rounds - m.r - 1);
+    const head = `<span class="tag">${ROUND_NAME(left)} · janela ${weekLabel(weekOf[m.r])}</span>`;
+    if (m.bye) { $('detail').innerHTML = `${head}<div class="vs">${NAMES[m.w]}</div><p>Cabeça de chave: passa direto para a rodada seguinte, sem jogar.</p>`; return; }
+    if (m.a === undefined || m.b === undefined) { $('detail').innerHTML = `${head}<div class="vs muted">Confronto a definir</div><p>As duplas saem dos jogos da rodada anterior. Quando a chave andar, as duas recebem e-mail com a janela da semana.</p>`; return; }
+    const best = m.r === rounds - 1 ? 5 : 3;
+    const vs = `<div class="vs"><span class="r">${NAMES[m.a]}</span> <span class="muted">×</span> <span class="b">${NAMES[m.b]}</span></div><p class="muted">Rating somado ${RATING[m.a]} × ${RATING[m.b]} · série md${best}</p>`;
+    let body = '';
+    if (m.status === 'wait') {
+      body = `<p>Nenhum horário em comum ainda. Cada dupla marcou quando pode jogar:</p>
+      <div class="slots"><span class="slot">${NAMES[m.a].split(' + ')[0]}: qua 20h–23h</span><span class="slot">sáb 15h–19h</span></div>
+      <div class="slots"><span class="slot">${NAMES[m.b].split(' + ')[0]}: qui 21h–23h</span><span class="slot">dom 14h–17h</span></div>
+      <p class="muted">Prazo: domingo 23:59. Se a semana acabar assim, vale a regra do W.O. (P10).</p>`;
+    } else if (m.status === 'set') {
+      body = `<p>Jogo marcado para <b>sexta às 21h</b> (Brasília). Os 4 receberam e-mail; 15 min antes aparece o botão "Abrir sala da copa".</p><div class="slots"><span class="slot ok">sex 21h ✓ as duas duplas</span></div>`;
+    } else if (m.status === 'wo') {
+      body = `<p><b>${NAMES[m.w]}</b> avança por W.O.: a outra dupla não apareceu em 15 min do horário marcado.</p>`;
+    } else if (m.status === 'done') {
+      const games = []; let wa = 0, wb = 0; let g = 0; const maps = ['2 versus 2 (Duel)', 'Pari2', 'Cebs Park', 'The Cover 4', '3x3 (Duel)'];
+      while (wa < m.score[0] || wb < m.score[1]) {
+        const aWins = (wa < m.score[0] && (wb >= m.score[1] || (g % 2 === 0) === (m.w === m.a))) ;
+        const x = 3 + (hash(g, m.a) % 4), y = hash(m.b, g) % x;
+        games.push(`Jogo ${g + 1} · ${maps[g]} · ${aWins ? `${x} × ${y}` : `${y} × ${x}`} capturas`);
+        aWins ? wa++ : wb++; g++;
+      }
+      body = `<p><b>${NAMES[m.w]}</b> venceu a série por ${Math.max(...m.score)} × ${Math.min(...m.score)}.</p><div class="games">${games.map(s => `<span>${s}</span>`).join('')}</div><p class="muted">Cada jogo tem relatório e replay, como qualquer ranqueada.</p>`;
+    }
+    $('detail').innerHTML = head + vs + body;
+  }
+
+  $('n').addEventListener('input', () => { selected = null; render(); });
+  $('pace').addEventListener('change', render);
+  render();
+})();
+</script>

@@ -19,7 +19,7 @@ export const ratingExpr = sql<number>`(${ratings.score} + 1) / (${ratings.neg} +
 export const formatRatingExpr = sql<number>`(${formatRatings.score} + 1) / (${formatRatings.neg} + 1)`;
 
 /** Formato do Ranked (OG-250); o rating de cada um fica em `format_ratings` (OG-258, D-42). */
-export type RankedFormat = '3x3' | '4x4' | '5x5';
+export type RankedFormat = '2x2' | '3x3' | '4x4' | '5x5';
 
 export async function activeSeason(db: Db | Tx): Promise<{ id: number; name: string } | undefined> {
   const [season] = await db.select({ id: seasons.id, name: seasons.name }).from(seasons).where(eq(seasons.active, true));

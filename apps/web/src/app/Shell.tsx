@@ -113,6 +113,7 @@ export function useNavLinks(): readonly (readonly [string, string])[] {
   const links: (readonly [string, string])[] = [
     ['/rooms', t('Rooms')],
     ['/ranking', t('Ranking')],
+    ['/outcup', 'OutCup'],
     ['/players', t('Players')],
     [user?.clanTag ? `/clans/${encodeURIComponent(user.clanTag)}` : '/clans', t('Clans')],
     ['/replays', t('Replays')],

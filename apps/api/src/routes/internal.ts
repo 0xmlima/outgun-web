@@ -4,8 +4,9 @@
 import { Type, type FastifyPluginAsyncTypebox, type Static, type TArray, type TOptional, type TString } from '@fastify/type-provider-typebox';
 import { and, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or } from 'drizzle-orm';
 import { BOT_CHAT_MESSAGE_MAX_LENGTH, BOT_CHAT_MESSAGES_MAX, BOT_CHAT_PER_MINUTE_MAX, PRESETS, ROTATION_KEYS, seriesOver, seriesWinner, seriesWinsNeeded, type RotationKey } from '@outgun/settings';
-import type { AppDeps } from '../app.js';
+import type { AppDeps, Services } from '../app.js';
 import { EmblemSchema } from './schemas.js';
+import { CupOutbox, cupSeriesFinished, deliver } from '../cup.js';
 import { adminActions, bans, clanMembers, clans, gameServers, matchEventPlayers, matchEvents, matches, matchPlayers, playerReports, rankedSeries, rooms, users, type MatchEvent } from '../db/schema.js';
 import { clanWarSides } from '../clan-war.js';
 import { momentStats } from '../match-moments.js';
@@ -301,7 +302,7 @@ const security = [{ gameServerHmac: [] }];
 /** Sala privada sem ninguém por tanto tempo é apagada. */
 const ABANDONED_MS = 60 * 60_000;
 
-export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyncTypebox {
+export function internalRoutes({ config, database }: AppDeps, { mailer }: Pick<Services, 'mailer'>): FastifyPluginAsyncTypebox {
   /** Retrato das salas de cada servidor no último heartbeat: mudou, avisa o portal ao vivo (OG-284). */
   const roomSignatures = new Map<string, string>();
   return async (app) => {
@@ -425,6 +426,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
         const problem = validateMatch(body);
         if (problem) return reply.code(422).send({ error: 'invalid_match', message: problem });
 
+        const cupOutbox = new CupOutbox();
         const result = await database.db.transaction(async (tx) => {
           const [existing] = await tx
             .select({ id: matches.id })
@@ -466,6 +468,7 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               .set({ games: s.gameNo, redWins: s.redWins, blueWins: s.blueWins, winner: s.winner, finishedAt: s.finished ? new Date(body.endedAt) : null })
               .where(eq(rankedSeries.id, series.id));
           }
+          const seriesDone = s && series && s.finished && room ? { roomId: room.id, seriesId: series.id, winner: s.winner, redWins: s.redWins, blueWins: s.blueWins } : null;
           const [match] = await tx
             .insert(matches)
             .values({
@@ -537,6 +540,9 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
               );
             }
           }
+          // fim da série da sala de um confronto da OutCup (OG-525): a chave anda (depois da partida gravada,
+          // para o desempate por capturas enxergar o último jogo)
+          if (seriesDone) await cupSeriesFinished(tx, seriesDone.roomId, seriesDone.seriesId, seriesDone, cupOutbox);
           await recordMatchSocial(tx, match!.id);
           await awardMilestones(tx, [...known], { beta: config.beta, events: [match!.id], notify: true });
           // Rating de habilidade (OG-349, RN-SKL-02/03): pelo placar final, com quem saiu no meio
@@ -550,6 +556,10 @@ export function internalRoutes({ config, database }: AppDeps): FastifyPluginAsyn
           return { id: match!.id, duplicate: false as const };
         });
         if (!result.duplicate) liveBus.publish('matches'); // ranking, perfis e últimas partidas (OG-284)
+        if (cupOutbox.notices.length > 0) {
+          liveBus.publish('cup');
+          void deliver(database.db, mailer, config.webUrl, cupOutbox, (err) => request.log.error({ err }, 'falha no e-mail da OutCup'));
+        }
         return reply.code(result.duplicate ? 200 : 201).send(result);
       },
     );

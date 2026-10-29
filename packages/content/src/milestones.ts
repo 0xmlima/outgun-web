@@ -25,7 +25,7 @@ export interface MilestoneMatch {
   stats?: Readonly<Record<string, number>>;
   /** Contexto da partida (OG-391). */
   ranked?: boolean;
-  /** Formato da ranqueada (`3x3`, `4x4`, `5x5`). */
+  /** Formato da ranqueada (`2x2`, `3x3`, `4x4`, `5x5`). */
   format?: string;
   /** Arquivo do mapa; os gerados (`mapgen_*`) contam como um mapa só. */
   map?: string;
@@ -60,7 +60,7 @@ export interface ClanWarMatch {
 }
 
 /** Seções do perfil (OG-393). */
-export type MilestoneGroup = 'progress' | 'flag' | 'defense' | 'combat' | 'ranked' | 'social' | 'clan' | 'humor' | 'secret';
+export type MilestoneGroup = 'progress' | 'flag' | 'defense' | 'combat' | 'ranked' | 'social' | 'clan' | 'cup' | 'humor' | 'secret';
 
 export interface Milestone {
   readonly id: string;
@@ -133,6 +133,7 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'ranked_first', group: 'ranked', name: b('Estreia ranqueada', 'Ranked debut'), description: b('Jogou a primeira ranqueada', 'Played the first ranked match') },
   { id: 'ranked_win', group: 'ranked', name: b('Primeira vitória ranqueada', 'First ranked win'), description: b('Venceu a primeira ranqueada', 'Won the first ranked match') },
   { id: 'ranked_wins_100', group: 'ranked', name: b('Ranqueado', 'Ranked regular'), description: b('100 vitórias ranqueadas', '100 ranked wins') },
+  { id: 'win_2x2', group: 'ranked', name: b('Dupla de ataque', 'Strike pair'), description: b('Venceu uma ranqueada 2x2', 'Won a 2v2 ranked match') },
   { id: 'win_3x3', group: 'ranked', name: b('Trio', 'Trio'), description: b('Venceu uma ranqueada 3x3', 'Won a 3v3 ranked match') },
   { id: 'win_4x4', group: 'ranked', name: b('Quarteto', 'Quartet'), description: b('Venceu uma ranqueada 4x4', 'Won a 4v4 ranked match') },
   { id: 'win_5x5', group: 'ranked', name: b('Quinteto', 'Quintet'), description: b('Venceu uma ranqueada 5x5', 'Won a 5v5 ranked match') },
@@ -159,6 +160,14 @@ export const MILESTONES: readonly Milestone[] = [
   { id: 'clan_sweep', group: 'clan', name: b('Varrida', 'Clean sweep'), description: b('Venceu uma série clã x clã sem perder um jogo', 'Won a clan vs clan series without losing a game') },
   { id: 'clan_rivalry_5', group: 'clan', name: b('Rivalidade', 'Rivalry'), description: b('5 partidas clã x clã contra o mesmo clã', '5 clan vs clan matches against the same clan') },
   { id: 'clan_defender', group: 'clan', name: b('Defensor do clã', 'Clan defender'), description: b('Venceu uma partida clã x clã sem sofrer captura', 'Won a clan vs clan match without conceding a capture') },
+  // OutCup (OG-528, RN-CUP-13): concedidos ao fim de cada edição, a partir da chave (fora da partida)
+  { id: 'cup_first', group: 'cup', name: b('Estreia na OutCup', 'OutCup debut'), description: b('Jogou uma edição da OutCup', 'Played an OutCup edition') },
+  { id: 'cup_win_match', group: 'cup', name: b('Passou de fase', 'Through to the next round'), description: b('Venceu uma série da OutCup', 'Won an OutCup series') },
+  { id: 'cup_final', group: 'cup', name: b('Finalista', 'Finalist'), description: b('Chegou à final da OutCup', 'Reached the OutCup final') },
+  { id: 'cup_champion', group: 'cup', name: b('Campeão da OutCup', 'OutCup champion'), description: b('Venceu uma edição da OutCup', 'Won an OutCup edition') },
+  { id: 'cup_bicampeao', group: 'cup', name: b('Bicampeão', 'Two-time champion'), description: b('Venceu duas edições da OutCup', 'Won two OutCup editions') },
+  { id: 'cup_unbeaten', group: 'cup', name: b('Campeão invicto', 'Unbeaten champion'), description: b('Venceu a OutCup sem perder um jogo', 'Won OutCup without losing a single game') },
+  { id: 'cup_comeback', group: 'cup', name: b('Virada na copa', 'Cup comeback'), description: b('Venceu uma série da OutCup depois de perder o primeiro jogo', 'Won an OutCup series after losing the first game') },
 ];
 
 /** Contadores somados partida a partida; também mostram o progresso no perfil (OG-393). */
@@ -244,6 +253,7 @@ const FEATS: Readonly<Record<string, (m: MilestoneMatch) => boolean>> = {
   triple_kill: (m) => m.events !== undefined && longestKillChain(m.events) >= 3,
   ranked_first: (m) => m.ranked === true,
   ranked_win: (m) => m.ranked === true && m.result > 0,
+  win_2x2: (m) => m.ranked === true && m.result > 0 && m.format === '2x2',
   win_3x3: (m) => m.ranked === true && m.result > 0 && m.format === '3x3',
   win_4x4: (m) => m.ranked === true && m.result > 0 && m.format === '4x4',
   win_5x5: (m) => m.ranked === true && m.result > 0 && m.format === '5x5',
