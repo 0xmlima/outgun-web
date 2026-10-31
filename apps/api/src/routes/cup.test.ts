@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
-import { createCup, cupDates, cupSeriesFinished, CupOutbox, drawDuos, roundWindows, seedOrder } from '../cup.js';
+import { createCup, cupDates, cupSeriesFinished, CupOutbox, drawDuos, roundName, roundWindows, seedOrder } from '../cup.js';
 import { emailKey, usernameKey } from '../db/keys.js';
 import { migrateUp } from '../db/migrate.js';
 import { cupDuos, cupMatches, cups, playerMilestones, playerProfiles, rankedSeries, rooms, users } from '../db/schema.js';
@@ -40,6 +40,11 @@ describe('calendário e sorteio da OutCup (RN-CUP-02/03/05/06)', () => {
     expect(five[4]!.end).toEqual(endsAt);
     for (let i = 1; i < 5; i++) expect(five[i]!.start).toEqual(five[i - 1]!.end);
     expect(five.every((x) => x.end > x.start)).toBe(true);
+  });
+
+  it('nome da fase na sala do confronto', () => {
+    expect([0, 1].map((r) => roundName(r, 2))).toEqual(['Semifinal', 'Final']);
+    expect([0, 1, 2, 3].map((r) => roundName(r, 4))).toEqual(['Oitavas', 'Quartas', 'Semifinal', 'Final']);
   });
 
   it('cabeças de chave em lados opostos', () => {
@@ -120,6 +125,26 @@ describe.skipIf(!pgAdminUrl)('OutCup pela API (OG-520..528)', () => {
     const cup = await draw('2027-01');
     expect(cup.status).toBe('cancelled');
     expect(cup.cancelReason).toBe('min_duos');
+  });
+
+  it('5 duplas: as 3 cabeças passam direto e a edição segue em disputa', async () => {
+    const [base] = await t.db.select({ hash: users.passwordHash }).from(users).where(eq(users.usernameKey, usernameKey('Jogador1')));
+    const [extra] = await t.db
+      .insert(users)
+      .values({ username: 'Copa10', usernameKey: usernameKey('Copa10'), email: 'copa10@outgun.local', emailKey: emailKey('copa10@outgun.local'), passwordHash: base!.hash })
+      .returning({ id: users.id });
+    cookies.set(extra!.id, await login('Copa10'));
+    await openCup('2027-03');
+    await signUp('2027-03', [...ids, extra!.id]);
+    const cup = await draw('2027-03');
+    expect(cup.status).toBe('running');
+    expect(cup.rounds).toBe(3);
+    const ms = await t.db.select().from(cupMatches).where(eq(cupMatches.cupId, cup.id));
+    expect(ms.filter((m) => m.round === 0 && m.status === 'bye')).toHaveLength(3);
+    expect(ms.filter((m) => m.round === 0 && m.status === 'open')).toHaveLength(1);
+    // a cabeça 2 já tem adversário na semifinal (a 3, também bye); a 1 espera o vencedor de 4 × 5
+    expect(ms.filter((m) => m.round === 1 && m.status === 'open')).toHaveLength(1);
+    expect(ms.filter((m) => m.round === 1 && m.status === 'pending')).toHaveLength(1);
   });
 
   it('fluxo completo: sorteio, horário, sala, série, W.O. e resultado do admin até o título', async () => {

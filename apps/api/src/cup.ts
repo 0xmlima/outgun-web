@@ -293,10 +293,10 @@ export async function runDraw(tx: Tx, cup: CupRow, outbox: CupOutbox, seed = ran
     }
   }
   await tx.insert(cupMatches).values(values);
-  await tx.update(cups).set({ status: 'running', rounds, drawSeed: seed }).where(eq(cups.id, cup.id));
-  // byes andam já: as cabeças de chave entram na segunda fase
+  const [running] = await tx.update(cups).set({ status: 'running', rounds, drawSeed: seed }).where(eq(cups.id, cup.id)).returning();
+  // byes andam já: as cabeças de chave entram na segunda fase (com `rounds` gravado, senão o bye parece a final)
   const first = await tx.select().from(cupMatches).where(and(eq(cupMatches.cupId, cup.id), eq(cupMatches.round, 0)));
-  for (const m of first) if (m.status === 'bye') await settleNext(tx, cup, m, outbox);
+  for (const m of first) if (m.status === 'bye') await settleNext(tx, running!, m, outbox);
   // dupla e adversário de cada um
   const fresh = await tx.select().from(cupMatches).where(and(eq(cupMatches.cupId, cup.id), eq(cupMatches.round, 0)));
   const duoById = new Map(rows.map((d) => [d.id, d]));
@@ -476,7 +476,7 @@ const ROUND_NAMES_PT: Record<number, string> = { 1: 'Final', 2: 'Semifinal', 4: 
 
 /** Nome curto da fase pelo número de duplas que restam. */
 export function roundName(round: number, rounds: number): string {
-  return ROUND_NAMES_PT[2 ** (rounds - round)] ?? `Fase ${round + 1}`;
+  return ROUND_NAMES_PT[2 ** (rounds - round - 1)] ?? `Fase ${round + 1}`;
 }
 
 /** Abre a sala Ranked 2x2 travada para as 4 contas (RN-CUP-09); sem servidor, tenta no minuto seguinte. */

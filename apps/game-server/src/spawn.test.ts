@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import type { Connection } from './room.js';
 import { RoomManager } from './rooms.js';
 import { makeSpawner } from './spawn.js';
 
@@ -28,6 +29,18 @@ describe('abertura de sala sob demanda (OG-086)', () => {
     const room = spawn('c', { name: 'C', mode: 'casual', preset: 'classic', maxPlayers: 8, persistent: false, maps: ['../config/gamemod'] })!;
     expect(room).toBeDefined();
     expect(manager.list()).toHaveLength(1);
+  });
+
+  it('sala da OutCup aberta pelo ticket guarda os lados das duplas (OG-525)', () => {
+    const { spawn } = setup();
+    const sides = { a1: 0, a2: 0, b1: 1, b2: 1 } as const;
+    const room = spawn('c-x', { name: 'OutCup Semifinal', mode: 'ranked', preset: 'ranked', maxPlayers: 4, persistent: false, ranked: { format: '2x2', bestOf: 3 }, cup: { sides } })!;
+    const conn: Connection = { send: () => {}, close: () => {} };
+    expect(room.join(conn, { name: 'Intruso', accountId: 'x' })).toMatchObject({ ok: false, reason: 'roomClosed' });
+    for (const id of ['b1', 'a1', 'b2', 'a2'] as const) {
+      const res = room.join(conn, { name: id, accountId: id });
+      expect(res.ok && room.world.teamOf(res.pid)).toBe(sides[id]);
+    }
   });
 
   it('respeita o limite de salas do processo', () => {
