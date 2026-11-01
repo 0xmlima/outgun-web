@@ -29,8 +29,9 @@ export interface BarLabels {
  * `coluna`: telas largas (≥ 3:2), sala com a altura toda e chat no alto da coluna da direita (OG-295).
  * `livre`: sem minimapa e placar (F12), sala centralizada.
  * `componentes`: HUD Moderno ou Personalizado (D-55), cada componente no seu lugar (`hud`).
- * `celular`: celular em pé (experimental): sala na largura toda em cima, barra, minimapa e placar
- * lado a lado embaixo, com a mesma altura; o placar mostra um time ou o chat por vez, deslizando.
+ * `celular`: celular e tablet (experimental). Em pé: sala na largura toda em cima, barra, minimapa e
+ * placar lado a lado embaixo, com a mesma altura. Deitado: sala no meio e minimapa no alto da coluna
+ * da esquerda; placar e chat abrem por ícones. O placar mostra um time ou o chat por vez, deslizando.
  */
 export type HudMode = 'faixa' | 'coluna' | 'livre' | 'componentes' | 'celular';
 
@@ -83,6 +84,14 @@ export interface ScreenLayout {
   readonly timeY: number;
   /** Celular: largura das barras de vida e energia (no resto, `scr_mul · 100`). */
   readonly barW?: number;
+  /** Celular: fim das barras de vida e energia (no resto, o pé da tela). */
+  readonly barBottom?: number;
+  /** Celular: borda direita da arma e dos itens da barra. */
+  readonly itemsRight?: number;
+  /** Celular: altura da linha do FPS e do ping. */
+  readonly fpsY?: number;
+  /** Celular deitado: placar e chat abrem por ícones, por cima da sala; o minimapa fica na proporção. */
+  readonly landscape?: boolean;
 }
 
 /** `scale`: arredonda `scr_mul · v`. */
@@ -92,6 +101,14 @@ export const scaleBy = (mul: number, v: number) => iround(mul * v);
 export function autoHudScale(screenW: number, screenH: number): number {
   return Math.max(1, Math.round((Math.min(screenH, (screenW * 3) / 4) / 700) * 2) / 2);
 }
+
+/**
+ * Celular deitado: largura de cada coluna dos controles de toque e altura deles (px CSS; os tamanhos
+ * em rem de `.touch-controls` em ui/phone.css). A altura tem folga para a barra de início do iPhone
+ * (`safe-area-inset-bottom`), que sobe os controles: o minimapa e o FPS não invadem o botão de tiro.
+ */
+const TOUCH_SIDE_W = 140;
+const TOUCH_CONTROLS_H = 176 + 24;
 
 /** Linhas reservadas no placar empilhado: legenda + 8 jogadores, por time (maxplayers 16). */
 const SCOREBOARD_ROWS = 18;
@@ -142,7 +159,29 @@ export function screenLayout(
   let minimapPlace: Rect | null = null;
   let scoreboard: ScoreboardPlace | null = null;
 
-  if (phone) {
+  /** Celular deitado (tela mais larga que alta): os elementos vão para colunas dos lados da sala. */
+  const landscape = phone && screenW > screenH;
+  if (landscape) {
+    // celular deitado: a sala no meio com a altura toda e a barra embaixo dela; o minimapa (com FPS e
+    // ping) no alto da coluna da direita, os controles de toque (HTML) embaixo das colunas. O placar e
+    // o chat abrem por ícones na coluna da esquerda (PhoneBoard), por cima do canto de cima à esquerda
+    // da sala.
+    mode = 'celular';
+    mul = Math.min((screenH - bottombarH - 4 * u) / ROOM_HEIGHT, (screenW - 2 * TOUCH_SIDE_W) / ROOM_WIDTH);
+    const w = Math.round(mul * ROOM_WIDTH);
+    const h = Math.round(mul * ROOM_HEIGHT);
+    playfield = { x: Math.trunc((screenW - w) / 2), y: 0, w, h };
+    const colX = playfield.x + w + u;
+    const colW = screenW - colX - u;
+    const avail = Math.max(0, screenH - TOUCH_CONTROLS_H - fh - 8 * u);
+    const mapNatural = mapSize ? Math.trunc((colW * mapSize.h * 3) / (mapSize.w * 4)) + 1 : avail;
+    minimapPlace = { x: colX, y: 0, w: colW, h: Math.min(avail, mapNatural) };
+    const boardW = Math.min(w, 240 * u);
+    const boardH = Math.min(h, (SCOREBOARD_ROWS / 2) * rowH(u) + 1);
+    const x1 = playfield.x;
+    scoreboard = { x1, y1: 0, x2: x1 + boardW - 1, y2: boardH - 1, scale: u, side: false };
+    chat = { x: x1 + 2 * u, y: 2 * u, w: boardW - 4 * u, h: boardH - 2 * u };
+  } else if (phone) {
     // celular em pé: a sala na largura toda; abaixo da barra, minimapa à esquerda e placar à direita
     mode = 'celular';
     // a altura de um time do placar vem primeiro: em tela curta, a sala diminui para ele caber inteiro
@@ -282,9 +321,10 @@ export function screenLayout(
     space = Math.trunc((maxW - minW) / 4);
     timeY = indicatorsY;
   }
-  // celular: vida e energia com as pontas alinhadas às do minimapa e um espaço entre elas; os itens
-  // ficam à direita
-  const phoneBars = mode === 'celular' && minimapPlace ? { mm: minimapPlace, w: Math.trunc((minimapPlace.w - 16 * u) / 2) } : null;
+  // celular: vida e energia com as pontas alinhadas às do minimapa (deitado, na metade esquerda da
+  // sala) e um espaço entre elas; os itens ficam à direita, até a borda da tela (deitado, da sala)
+  const barSpan = mode !== 'celular' ? null : landscape ? { x: playfield.x, w: Math.trunc(playfield.w / 2) } : minimapPlace && { x: minimapPlace.x, w: minimapPlace.w };
+  const phoneBars = barSpan && { mm: barSpan, w: Math.trunc((barSpan.w - 16 * u) / 2) };
   const healthX = phoneBars ? phoneBars.mm.x : leftMargin;
   const energyX = phoneBars ? phoneBars.mm.x + phoneBars.mm.w - phoneBars.w : healthX + healthW + space;
   const pupsX = phoneBars ? phoneBars.mm.x + phoneBars.mm.w + 8 * u : energyX + energyW + space;
@@ -313,7 +353,17 @@ export function screenLayout(
     weaponX,
     timeX,
     timeY,
-    ...(phoneBars ? { barW: phoneBars.w } : {}),
+    ...(phoneBars
+      ? {
+          barW: phoneBars.w,
+          // em pé, o minimapa e o placar vêm embaixo da barra
+          barBottom: landscape || !minimapPlace ? screenH - 5 * u : minimapPlace.y - 6 * u,
+          itemsRight: landscape ? playfield.x + playfield.w - 2 * u : screenW - 2 * u,
+          // FPS e ping na linha dos pontos de página: em pé embaixo do placar, deitado do minimapa
+          fpsY: (landscape ? minimapPlace!.y + minimapPlace!.h : scoreboard!.y2 + 1) + 8 - Math.trunc(fh / 2),
+          ...(landscape ? { landscape: true } : {}),
+        }
+      : {}),
   };
 }
 

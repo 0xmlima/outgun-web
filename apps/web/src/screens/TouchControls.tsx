@@ -9,6 +9,8 @@ import { ACTION_LABELS } from '../game/input/bindings.js';
 
 /** Fração do raio do direcional em que o toque ainda não aponta direção. */
 const DEAD_ZONE = 0.25;
+/** Fração do raio a partir da qual o direcional corre junto (como segurar Shift). */
+const RUN_ZONE = 0.9;
 
 /** Direção (bits de `CONTROL`) em 8 setores de 45° a partir do deslocamento do dedo. */
 function stickBits(dx: number, dy: number, radius: number): number {
@@ -34,7 +36,9 @@ export function TouchControls({ host }: { readonly host: RefObject<GameHost | nu
   const stickPointer = useRef<number | null>(null);
 
   const dir = touchDir || (auto ? lastDir.current : 0);
-  const controls = dir | (run ? CONTROL.run : 0) | (strafe ? CONTROL.strafe : 0);
+  /** Direcional empurrado até a borda: corre junto, além do Shift fixo. */
+  const [edgeRun, setEdgeRun] = useState(false);
+  const controls = dir | (run || (edgeRun && touchDir) ? CONTROL.run : 0) | (strafe ? CONTROL.strafe : 0);
   useEffect(() => {
     host.current?.setTouch(controls, fire || autoFire);
   }, [host, controls, fire, autoFire]);
@@ -54,12 +58,14 @@ export function TouchControls({ host }: { readonly host: RefObject<GameHost | nu
     const bits = stickBits(dx, dy, radius);
     if (bits) lastDir.current = bits;
     setTouchDir(bits);
+    setEdgeRun(d >= RUN_ZONE * radius);
   };
   const releaseStick = (ev: PointerEvent<HTMLDivElement>) => {
     if (ev.pointerId !== stickPointer.current) return;
     stickPointer.current = null;
     setKnob(null);
     setTouchDir(0);
+    setEdgeRun(false);
   };
 
   const holdFire = (on: boolean) => (ev: PointerEvent<HTMLButtonElement>) => {
@@ -91,7 +97,7 @@ export function TouchControls({ host }: { readonly host: RefObject<GameHost | nu
           onPointerCancel={releaseStick}
           onLostPointerCapture={releaseStick}
         >
-          <div className="touch-knob" style={knob ? { transform: `translate(${knob.x}px, ${knob.y}px)` } : undefined} />
+          <div className={edgeRun && touchDir ? 'touch-knob touch-knob-run' : 'touch-knob'} style={knob ? { transform: `translate(${knob.x}px, ${knob.y}px)` } : undefined} />
         </div>
         <div className="touch-row">
           <button type="button" className="touch-toggle" aria-pressed={auto} aria-label={t('Auto move')} onPointerDown={toggle(setAuto)}>

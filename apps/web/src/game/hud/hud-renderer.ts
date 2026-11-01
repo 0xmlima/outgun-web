@@ -156,7 +156,10 @@ export class HudRenderer {
   private readonly list: DrawList;
   private readonly minimapSprite = new Sprite();
   private minimapKey = '';
-  /** Página do placar do celular (0 time vermelho, 1 azul, 2 chat), escolhida deslizando o dedo (`PhoneBoard`). */
+  /**
+   * Página do placar do celular (0 time vermelho, 1 azul, 2 chat), escolhida deslizando o dedo; deitado,
+   * -2 é fechado (os ícones abrem). `PhoneBoard` escolhe.
+   */
   scoreboardPage = 0;
   /** Opções do voto desenhadas no último `render` (para o clique). */
   voteTargets: VoteTarget[] = [];
@@ -259,9 +262,11 @@ export class HudRenderer {
       // celular: à esquerda (o canto da direita é dos pontos de página), com o ping ao lado
       const me = phone ? s.players.find((p) => p.me) : undefined;
       const fpsLine = me ? `${fps}  ${this.t('Ping')}: ${me.ping}` : fps;
-      // celular: na linha dos pontos de página, embaixo da caixa do placar (`.phone-board-dots`)
-      const fpsY = phone && L.scoreboard ? L.scoreboard.y2 + 9 - Math.trunc(fh / 2) : L.screenH - fh - 2;
-      this.text(fpsLine, phone ? 4 * L.ui : L.screenW - 2 - this.fw(fps), fpsY, this.c('fps'));
+      // celular: na linha dos pontos de página (`fpsY` da divisão da tela); deitado, centralizado embaixo
+      // do minimapa
+      const fpsY = L.fpsY ?? L.screenH - fh - 2;
+      const fpsX = !phone ? L.screenW - 2 - this.fw(fps) : L.landscape && L.minimapPlace ? L.minimapPlace.x + Math.trunc((L.minimapPlace.w - this.fw(fpsLine)) / 2) : 4 * L.ui;
+      this.text(fpsLine, fpsX, fpsY, this.c('fps'));
 
       if (s.mapTime && !phone) {
         const sec = Math.max(0, s.mapTime.seconds);
@@ -400,8 +405,8 @@ export class HudRenderer {
     const valX = Math.max(x + this.fw(caption) + this.fw(' '), x + width - this.fw(val));
     this.text(val, valX, y, col);
     const y1 = y + Math.trunc((3 * fh) / 2);
-    // celular: o minimapa e o placar ficam embaixo da barra, que termina antes deles
-    const y2 = L.mode === 'celular' && L.minimapPlace ? L.minimapPlace.y - 6 * L.ui : L.screenH - 5 * L.ui;
+    // celular: a barra termina onde a divisão da tela manda (em pé, antes do minimapa e do placar)
+    const y2 = L.barBottom ?? L.screenH - 5 * L.ui;
     this.rect(x, y1, x + width, y2, this.c('bar_0'));
     if (value <= 0) return;
     for (const [i, name] of [`${kind}_100`, `${kind}_200`, `${kind}_300`].entries()) {
@@ -428,7 +433,7 @@ export class HudRenderer {
       const sec = Math.max(0, s.mapTime.seconds);
       items.push([`${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, this.c('map_time')]);
     }
-    const right = L.screenW - 2 * L.ui;
+    const right = L.itemsRight ?? L.screenW - 2 * L.ui;
     const gap = this.fw('  ');
     let x = right;
     let line = 0;
@@ -474,7 +479,7 @@ export class HudRenderer {
     const rows = half + 1;
     // celular: um time por vez na coluna inteira (deslizar para o lado troca)
     const page = L.mode === 'celular' ? this.scoreboardPage : -1;
-    if (page === 2) return; // página do chat (HTML, no GameScreen)
+    if (page === 2 || page < -1) return; // página do chat (HTML, no PhoneBoard) ou fechado (deitado)
     const ySpace = y2 - y1 + 1;
     const rowH = page >= 0 ? this.phoneRowH(s) : Math.trunc(Math.min(2 * fh, Math.max(fh + 2 * k, side ? ySpace / rows : (ySpace - gap) / (2 * rows))));
     const vpad = Math.max(Math.trunc((rowH - fh) / 2), 1);
@@ -550,7 +555,7 @@ export class HudRenderer {
     // celular: na altura da caixa do placar ao lado; na coluna estreita estica, na larga (tablet
     // deitado) fica na proporção do mapa, centralizado
     let r = fit;
-    if (s.screen.mode === 'celular' && s.screen.scoreboard) {
+    if (s.screen.mode === 'celular' && !s.screen.landscape && s.screen.scoreboard) {
       const h = (s.maxPlayers / 2 + 1) * this.phoneRowH(s) + 1;
       const w = Math.min(place.w, Math.trunc((h * map.width * 4) / (map.height * 3)));
       r = { x: place.x + Math.trunc((place.w - w) / 2), y: place.y, w, h };

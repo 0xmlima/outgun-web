@@ -147,6 +147,16 @@ describe('screenLayout no celular (experimental)', () => {
     expect(l.scoreboard!.y2 - l.scoreboard!.y1 + 1).toBeGreaterThanOrEqual(9 * 18 + 1);
     expect(l.scoreboard!.y2).toBeLessThan(480);
   });
+  it('deitado: sala no meio com a altura toda, minimapa na coluna da direita acima dos controles, placar por cima da sala', () => {
+    const l = screenLayout(844, 360, font16, EN, true, 1, 'classic', undefined, false, true, { w: 6, h: 6 });
+    expect(l.landscape).toBe(true);
+    expect(l.playfield.y).toBe(0);
+    expect(l.playfield.x).toBeGreaterThanOrEqual(140);
+    expect(l.minimapPlace!.x).toBeGreaterThan(l.playfield.x + l.playfield.w);
+    expect(l.minimapPlace!.y + l.minimapPlace!.h).toBeLessThanOrEqual(360 - 200); // acima dos controles
+    expect(l.fpsY!).toBeLessThan(360 - 200);
+    expect(l.scoreboard!.x1).toBe(l.playfield.x); // abre por cima do canto de cima à esquerda da sala
+  });
   it('o chat escondido ainda tem largura (com 0 caracteres a quebra de linhas não termina)', () => {
     expect(screenLayout(360, 560, font16, EN, true, 1, 'classic', undefined, false, true).chatChars).toBeGreaterThan(0);
   });

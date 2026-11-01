@@ -5,7 +5,7 @@
 // ?server=ws://...&sala=ID&name=NOME&lag=MS&loss=PCT (partida; lag/loss simulam rede ruim; a senha
 // da sala vem do lobby no estado da navegação),
 // ?demo=JOGADORES (partida local) e ?map=NOME&theme=TEMA&rooms=N&room=X,Y (visualizador de mapa).
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
 import { joinName, useAccount } from '../app/account.js';
@@ -374,10 +374,20 @@ export default function GameScreen() {
   ];
 
   return (
-    <div ref={gameRef} className={phone ? 'game game-touch' : 'game'} data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
+    <div
+      ref={gameRef}
+      className={phone ? 'game game-touch' : 'game'}
+      // deitado: largura das colunas dos lados da sala, para centralizar os controles nelas (ui/phone.css)
+      style={phone && screen?.landscape ? ({ '--side-l': `${screen.playfield.x}px`, '--side-r': `${screen.screenW - screen.playfield.x - screen.playfield.w}px` } as CSSProperties) : undefined}
+      data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
       <div ref={hostRef} className="game-host" />
       {phone && !inLobby && !matchEnd && <TouchControls host={host} />}
-      {phone && screen?.scoreboard && <PhoneBoard host={host} place={screen.scoreboard} onTyping={setTyping} />}
+      {phone && screen?.scoreboard && <PhoneBoard
+          host={host}
+          place={screen.scoreboard}
+          onTyping={setTyping}
+          {...(screen.landscape ? { icons: { left: 0, width: screen.playfield.x } } : {})}
+        />}
       {phone && !menuOpen && screen && (
         <>
           <button type="button" className="touch-corner touch-vote"

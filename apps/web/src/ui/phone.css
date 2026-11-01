@@ -393,6 +393,15 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+/* sem o realce azul do toque do Android nem o contorno de foco: o dedo passa por cima dos botões
+   ao empurrar o direcional até a borda */
+.game-touch,
+.game-touch * {
+  -webkit-tap-highlight-color: transparent;
+}
+.game-touch .touch-controls button:focus {
+  outline: none;
+}
 .game-touch .game-host {
   bottom: var(--touch-h);
 }
@@ -453,6 +462,10 @@
   border-radius: 50%;
   background: rgb(255 255 255 / 0.35);
   pointer-events: none;
+}
+/* direcional na borda: corre junto (Shift) */
+.touch-knob-run {
+  background: var(--accent);
 }
 .touch-fire {
   width: 6.5rem;
@@ -574,4 +587,54 @@
    (z-index 3) segue por cima para fechar as telas F1–F5 */
 .game-touch .game-overlay {
   z-index: 2;
+}
+/* deitado: a sala com a altura toda e os controles nos cantos de baixo, nas colunas dos lados dela
+   (largura e altura reservadas em TOUCH_SIDE_W e TOUCH_CONTROLS_H, screen-layout.ts) */
+@media (orientation: landscape) {
+  .game-touch .game-host {
+    bottom: 0;
+  }
+  .game-touch .touch-controls {
+    height: auto;
+    padding: 0 max(var(--space-3), env(safe-area-inset-right)) calc(var(--space-3) + env(safe-area-inset-bottom)) max(var(--space-3), env(safe-area-inset-left));
+    background: none;
+    pointer-events: none;
+  }
+  .game-touch .touch-controls > * {
+    pointer-events: auto;
+  }
+  /* cada grupo centralizado na coluna dele (larguras vindas da divisão da tela, no GameScreen) */
+  .game-touch[style*='--side-l'] .touch-controls {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .game-touch[style*='--side-l'] .touch-side:first-child {
+    width: var(--side-l);
+  }
+  .game-touch[style*='--side-l'] .touch-side:last-child {
+    width: var(--side-r);
+  }
+}
+/* deitado: ícones do placar e do chat no alto da coluna da esquerda, meio transparentes */
+.phone-board-icons {
+  position: absolute;
+  top: calc(var(--space-2) + env(safe-area-inset-top));
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  z-index: 1;
+}
+.phone-board-icons button {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 0.08);
+  color: rgb(255 255 255 / 0.55);
+}
+.phone-board-icons button[aria-pressed='true'] {
+  border-color: rgb(255 255 255 / 0.6);
+  color: rgb(255 255 255 / 0.9);
 }
