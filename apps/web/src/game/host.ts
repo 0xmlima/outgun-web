@@ -238,6 +238,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
   const app = new Application();
   let destroyed = false;
   let ready = false;
+  /** Acompanha o tamanho do contêiner do canvas (ver o `init`). */
+  let containerSize: ResizeObserver | undefined;
   let world: WorldRenderer | undefined;
   let worldMap: GameMap | undefined;
   let entities: EntityRenderer | undefined;
@@ -628,6 +630,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       app.canvas.className = 'game-canvas';
       app.canvas.setAttribute('aria-label', 'Outgun');
       container.append(app.canvas);
+      // o `resizeTo` só segue a janela: o contêiner também muda sozinho (a faixa dos controles de toque
+      // entra quando a sala se mostra Casual, ou ao virar o aparelho), e o canvas tem de acompanhar
+      containerSize = new ResizeObserver(() => app.resize());
+      containerSize.observe(container);
       // clique numa opção do voto do bot substituto (OG-264)
       app.canvas.addEventListener('pointerdown', (ev) => {
         if (!hud?.voteTargets.length || !screen || !onlineHud || !session) return;
@@ -882,6 +888,7 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
       destroyed = true;
       telemetry?.stop();
       latencyBox.remove();
+      containerSize?.disconnect();
       clearTimeout(reconnectTimer);
       if (sendTimer !== null) clearTimeout(sendTimer);
       connection?.close();

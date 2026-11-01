@@ -373,6 +373,21 @@ export default function GameScreen() {
     { kind: 'action', label: t('Leave game'), onActivate: () => void navigate('/') },
   ];
 
+  // celular e tablet: sem Esc, sem "Esc abre o menu" (o × do canto abre)
+  const escHint = isTouchGame() ? null : t('Press Esc for the menu');
+  const hint =
+    status?.kind === 'error'
+      ? status.message
+      : status?.kind === 'ready'
+        ? escHint
+          ? `${status.map.title} - ${escHint}`
+          : status.map.title
+        : status?.kind === 'connecting'
+          ? t('Connecting to the game server...')
+          : status?.kind === 'reconnecting'
+            ? t('Connection lost. Reconnecting...')
+            : escHint;
+
   return (
     <div
       ref={gameRef}
@@ -431,21 +446,9 @@ export default function GameScreen() {
           <InGameOptions tab={optionsTab} onTab={setOptionsTab} onClose={() => setOptionsTab(null)} />
         ) : menuOpen ? (
           <Menu caption="Outgun" items={items} onBack={() => setMenuOpen(false)} />
-        ) : lobby || (onlineKey !== null && status?.kind === 'ready') ? null : (
+        ) : lobby || (onlineKey !== null && status?.kind === 'ready') || !hint ? null : (
           <p className="game-hint">
-            <BitmapText
-              text={
-                status?.kind === 'error'
-                  ? status.message
-                  : status?.kind === 'ready'
-                    ? `${status.map.title} - ${t('Press Esc for the menu')}`
-                    : status?.kind === 'connecting'
-                      ? t('Connecting to the game server...')
-                      : status?.kind === 'reconnecting'
-                        ? t('Connection lost. Reconnecting...')
-                        : t('Press Esc for the menu')
-              }
-            />
+            <BitmapText text={hint} />
           </p>
         )}
       </div>
