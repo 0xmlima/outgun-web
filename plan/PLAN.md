@@ -625,6 +625,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | S54 | v2: rodada de correções (achados do PO na 2.53.0: lobby Ranked e botão de sair do app; issue #25; Sentry OUTGUN-WEB-4, OUTGUN-WEB-5 e OUTGUN-SERVER-2) | OG-505, OG-506, OG-507, OG-508, OG-509, OG-510, OG-511, OG-512 | |
 | S55 | v2: modos de treino (D-86, D-87) — sala de treino e ciclo da tentativa, bots do treino separados dos do Casual (papéis e garantia), presets na sala privada, Ataque, Defesa, Fuga e Captura, convidados, fora das estatísticas, dificuldade progressiva e início variado | OG-490, OG-513, OG-491, OG-492, OG-493, OG-494, OG-495, OG-496, OG-497, OG-498, OG-499, OG-500 | |
 | S56 | v2: 2x2 oficial e OutCup (D-88) — formato 2x2 no Ranked, rotação 2x2, 15 min e bot por lado, atalho 2x2 no Casual; OutCup: calendário, inscrição e sorteio de duplas, chave, página, horário marcado, sala automática, W.O., avisos e títulos | OG-516, OG-517, OG-518, OG-519, OG-520, OG-521, OG-522, OG-523, OG-524, OG-525, OG-526, OG-527, OG-528 | |
+| S57 | v2: espectador para a transmissão da OutCup (D-89) — assistir até o fim, 15 s de atraso, som do jogo, modo transmissão | OG-533, OG-534, OG-535, OG-536 | |
 
 > Duração total estimada: **13 sprints (~26 semanas)**. Replanejar após S2 com a velocidade real.
 
@@ -1008,10 +1009,10 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-530](cards/OG-530-outcup-polimentos-do-teste.md) | OutCup: polimentos achados no teste de ponta a ponta | E15 | 3 | Should | — | OG-529 | Backlog |
 | [OG-531](cards/OG-531-medalhas-e-numero-1-de-outubro.md) | Medalhas e número 1 do top 3 de outubro: hall de outubro sem o "Melhor do mês" | E9 | 2 | Must | — | OG-410, OG-411, OG-354 | Concluído |
 | [OG-532](cards/OG-532-medalha-no-numero.md) | Medalha do top 3 no número do jogador (não mais na cor do boneco) | E9 | 3 | Must | — | OG-410, OG-411, OG-413, OG-531 | Concluído |
-| [OG-533](cards/OG-533-espectador-ate-o-fim-da-serie.md) | Espectador assiste até o fim: a sala não derruba quem ainda está no atraso | E6 | 3 | Must | — | — | Backlog |
-| [OG-534](cards/OG-534-espectador-atraso-15s.md) | Espectador com 15 s de atraso | E6 | 1 | Must | — | — | Backlog |
-| [OG-535](cards/OG-535-som-do-jogo-no-espectador.md) | Som do jogo no espectador, pronto para transmissão | E6 | 3 | Must | — | — | Backlog |
-| [OG-536](cards/OG-536-espectador-modo-transmissao.md) | Espectador em modo transmissão (tela limpa para OBS) | E6 | 2 | Should | — | OG-533, OG-535 | Backlog |
+| [OG-533](cards/OG-533-espectador-ate-o-fim-da-serie.md) | Espectador assiste até o fim: a sala não derruba quem ainda está no atraso | E6 | 3 | Must | S57 | — | Concluído |
+| [OG-534](cards/OG-534-espectador-atraso-15s.md) | Espectador com 15 s de atraso | E6 | 1 | Must | S57 | — | Concluído |
+| [OG-535](cards/OG-535-som-do-jogo-no-espectador.md) | Som do jogo no espectador, pronto para transmissão | E6 | 3 | Must | S57 | — | Concluído |
+| [OG-536](cards/OG-536-espectador-modo-transmissao.md) | Espectador em modo transmissão (tela limpa para OBS) | E6 | 2 | Should | S57 | OG-533, OG-535 | Concluído |
 
 **Total:** 374 cards, 1189 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 305 cards, 894 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

@@ -6,8 +6,8 @@
 | Tipo | Melhoria |
 | Prioridade | Should |
 | Estimativa | 2 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S57 |
+| Status | Concluído |
 | Dependências | OG-533, OG-535 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -24,8 +24,10 @@ Como quem transmite a OutCup, quero abrir o espectador numa tela limpa e com o n
 - Seguir automaticamente o portador da bandeira (opcional, tecla A), para quem transmite sozinho.
 
 ## Critérios de aceite
-- [ ] Link de transmissão abre sem barra nem dicas; H alterna.
-- [ ] Sala da OutCup mostra duplas, fase e placar da série.
-- [ ] Seguir automático troca para quem pega a bandeira.
+- [x] Link de transmissão abre sem barra nem dicas; H alterna.
+- [x] Sala da OutCup mostra duplas, fase e placar da série.
+- [x] Seguir automático troca para quem pega a bandeira.
 
 ## Notas de implementação
+- "Copiar link de transmissão" no painel do confronto ao vivo: `/spectate?src=…&copa=<id>&rodadas=N&transmissao=1`. No modo transmissão a barra começa escondida (H alterna), o fim não mostra Voltar e o espectador já segue a bandeira (A alterna; F/Esc desligam).
+- Faixa da OutCup (fase, md, duplas e placar da série) em qualquer link com `copa`; o placar só é rebuscado quando o stream começa um jogo novo ou termina, para não adiantar o resultado que a API já sabe.

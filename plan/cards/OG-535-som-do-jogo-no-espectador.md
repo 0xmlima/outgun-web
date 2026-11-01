@@ -6,8 +6,8 @@
 | Tipo | Melhoria |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S57 |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -31,12 +31,15 @@ Como quem transmite a OutCup, quero que o espectador toque os sons do jogo como 
 - Replays gravados antes do card continuam abrindo (sem os sons de sala).
 
 ## Critérios de aceite
-- [ ] Teste de `SoundEvents`: no espectador, quique e morte em outra sala não tocam; na sala mostrada tocam.
-- [ ] Teste do replay: `sound` de sala gravado com a sala e tocado só nela.
-- [ ] Aviso de áudio bloqueado aparece e some no primeiro clique.
-- [ ] Música e sons ligam/desligam separados no espectador.
+- [x] Teste de `SoundEvents`: no espectador, quique e morte em outra sala não tocam; na sala mostrada tocam.
+- [x] Teste do replay: `sound` de sala gravado com a sala e tocado só nela.
+- [x] Aviso de áudio bloqueado aparece e some no primeiro clique.
+- [x] Música e sons ligam/desligam separados no espectador.
 
 ## Notas técnicas
 - Mudança de protocolo do replay: versão nova do formato se o `sound` ganhar campos; manter leitura do formato antigo.
 
 ## Notas de implementação
+- Mensagem nova `roomSound` (135: amostra + sala), gravada só no replay/stream junto do `sound` de sala; o jogo ao vivo não muda. Replays antigos abrem sem esses sons.
+- `SoundContext.inView` (só replay/espectador): mortes, quiques e sons de sala só da sala mostrada (seguindo alguém, a sala dele).
+- Aviso "Clique para ligar o som." enquanto o `AudioContext` estiver suspenso; música do espectador começa desligada e a tecla N liga/desliga (M segue para os sons).

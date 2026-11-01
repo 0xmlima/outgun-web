@@ -251,7 +251,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
   for (const path of ['/rooms/:id', '/m/:machine/rooms/:id']) app.ws<SocketData>(path, playerSocket);
 
   // Espectadores ao vivo (OG-092): sem ticket, só recebem; o atraso é o `spectating_delay` da sala.
-  const spectatorSocket: uWS.WebSocketBehavior<{ roomId: string; ip: string; conn: Connection | null }> = {
+  const spectatorSocket: uWS.WebSocketBehavior<{ roomId: string; ip: string; conn: Connection | null; room: Room | null }> = {
     compression: uWS.DISABLED,
     maxPayloadLength: 1024,
     idleTimeout: 120,
@@ -269,7 +269,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         res.writeStatus('429 Too Many Requests').end('conexões demais deste endereço');
         return;
       }
-      res.upgrade({ roomId, ip, conn: null }, req.getHeader('sec-websocket-key'), req.getHeader('sec-websocket-protocol'), req.getHeader('sec-websocket-extensions'), context);
+      res.upgrade({ roomId, ip, conn: null, room: null }, req.getHeader('sec-websocket-key'), req.getHeader('sec-websocket-protocol'), req.getHeader('sec-websocket-extensions'), context);
     },
     open: (ws) => {
       const user = ws.getUserData();
@@ -283,6 +283,7 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
         return ws.end(4000, 'serverFull');
       }
       user.conn = conn;
+      user.room = room; // a sala encerrada sai do manager mas segue mandando o atraso (OG-533)
       telemetry.opened('spectator');
     },
     message: () => {},
@@ -291,9 +292,10 @@ export function startServer(options: ServerOptions): Promise<RunningServer> {
       ipClosed(user.ip);
       if (user.conn) {
         telemetry.closed('spectator', code);
-        manager.get(user.roomId)?.removeSpectator(user.conn);
+        user.room?.removeSpectator(user.conn);
       }
       user.conn = null;
+      user.room = null;
     },
   };
   for (const path of ['/rooms/:id/spectate', '/m/:machine/rooms/:id/spectate']) app.ws(path, spectatorSocket);

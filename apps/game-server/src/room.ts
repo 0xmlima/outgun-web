@@ -508,6 +508,8 @@ export class Room {
         if (!pl) return;
         const msg = message('sound', { sample: SAMPLES.indexOf(sample) });
         for (const other of this.viewers((p) => p.pos.sameRoom(pl.pos))) this.queueTo(other, msg);
+        // replay e espectador: o som com a sala de origem (OG-535)
+        this.recorder?.event(message('roomSound', { sample: msg.sample, roomX: pl.pos.roomX, roomY: pl.pos.roomY }));
       },
     });
     this.colors = new ColorPool(this.sim.rng);
@@ -1437,8 +1439,8 @@ export class Room {
     this.playerTimers(running);
     this.sendPauseState();
     this.flush();
-    if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()));
-    this.spectators.tick(world.frame, this.settings.server.spectatingDelay);
+    if (running && this.recorder) this.spectators.frame(this.recorder.frame(this.replayFrame()), this.uptimeFrames);
+    this.spectators.tick(this.uptimeFrames, this.settings.server.spectatingDelay);
     const views = minimapViews(world, this.settings);
     const ping = this.nextPing();
     for (const [pid, c] of this.clients) {
@@ -1846,7 +1848,7 @@ export class Room {
       },
       init,
     );
-    this.spectators.begin(this.recorder.replayHeader, this.recorder.initChunk);
+    this.spectators.begin(this.recorder.replayHeader, this.recorder.initChunk, this.uptimeFrames);
   }
 
   /**
@@ -1858,7 +1860,7 @@ export class Room {
     this.recorder = null;
     if (!recorder) return null;
     recorder.event(...this.outbox);
-    this.spectators.frame(recorder.frame(this.replayFrame()));
+    this.spectators.frame(recorder.frame(this.replayFrame()), this.uptimeFrames);
     if (!this.options.replays) return null;
     const humans = [...this.clients.values()].filter((c) => !c.bot).length;
     if (humans < Math.max(1, this.settings.server.recording)) return null;
@@ -2485,14 +2487,32 @@ export class Room {
     }
   }
 
-  /** Encerra a sala: avisa e fecha todas as conexões. */
-  close(): void {
+  /**
+   * Sala encerrada com espectadores (OG-533): o relógio da sala segue andando só para entregar o atraso
+   * (o fim da partida e o placar). False quando acabou e as conexões foram fechadas.
+   */
+  drainSpectators(): boolean {
+    this.uptimeFrames++;
+    const delay = this.settings.server.spectatingDelay;
+    this.spectators.tick(this.uptimeFrames, delay);
+    if (!this.spectators.drained(this.uptimeFrames, delay)) return true;
+    this.spectators.close(1000, 'partida encerrada');
+    return false;
+  }
+
+  /** Fecha os espectadores na hora (servidor desligando). */
+  closeSpectators(): void {
+    this.spectators.close();
+  }
+
+  /** Encerra a sala: avisa e fecha todas as conexões (`keepSpectators`: eles seguem no `drainSpectators`). */
+  close(keepSpectators = false): void {
     for (const pid of [...this.clients.keys()]) {
       const c = this.clients.get(pid) as Client;
       c.conn.send(encodeFrame(message('disconnecting', { reason: 'shutdown', seconds: 0 })));
       c.conn.close(1001, 'sala encerrada');
       this.leave(pid);
     }
-    this.spectators.close();
+    if (!keepSpectators) this.spectators.close();
   }
 }

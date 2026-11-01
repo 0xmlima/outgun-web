@@ -31,6 +31,18 @@ describe('SoundEvents', () => {
     expect(s.fromMessage(message('powerCollision', { pid: 1 }), ctx(), {})).toEqual(['hit']); // Visa não tem colldam
   });
 
+  it('espectador e replay: som de sala e quiques só da sala mostrada (OG-535)', () => {
+    const s = new SoundEvents(visa);
+    const sample = SAMPLES.indexOf('speedon');
+    expect(s.fromMessage(message('roomSound', { sample, roomX: 1, roomY: 1 }), ctx(), {})).toEqual(['speedon']);
+    expect(s.fromMessage(message('roomSound', { sample, roomX: 0, roomY: 1 }), ctx(), {})).toEqual([]);
+    const inView = (pid: number) => pid === 8;
+    expect(s.fromSession({ kind: 'playerHitWall', pid: 3 }, ctx({ inView }))).toEqual([]);
+    expect(s.fromSession({ kind: 'playerHitWall', pid: 8 }, ctx({ inView }))).toEqual(['wabounce']);
+    expect(s.fromSession({ kind: 'playerHitPlayer', pid1: 3, pid2: 4 }, ctx({ inView }))).toEqual([]);
+    expect(s.fromSession({ kind: 'playerHitPlayer', pid1: 3, pid2: 8 }, ctx({ inView }))).toEqual(['plbounce']);
+  });
+
   it('tiro e acerto só na sala atual; foguete com power', () => {
     const s = new SoundEvents(visa);
     expect(s.fromSession({ kind: 'rocketFired', pos: new Position(1, 1, 10, 10), power: true, owner: 0 }, ctx())).toEqual(['quadfire']);

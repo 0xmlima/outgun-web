@@ -956,6 +956,12 @@ export const MESSAGES = {
     number: u8,
     style: u8,
   }),
+  // --- som de sala no replay (OG-535): sem equivalente no original ---
+  roomSound: msg(135, 's2c', 'event', '— (web, OG-535)', 'Só no replay e no espectador: o `sound` que o servidor mandou a quem estava na sala (`screenSample`), com a sala de origem; toca só para quem está vendo essa sala.', {
+    sample: u8,
+    roomX,
+    roomY,
+  }),
 } as const;
 
 export type MessageName = keyof typeof MESSAGES;

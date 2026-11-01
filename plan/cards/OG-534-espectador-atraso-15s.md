@@ -6,8 +6,8 @@
 | Tipo | Melhoria |
 | Prioridade | Must |
 | Estimativa | 1 pt |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S57 |
+| Status | Concluído |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
@@ -23,7 +23,8 @@ Como quem transmite a OutCup, quero o espectador com 15 s de atraso, para a tran
 - Atualizar comentários que citam 30 s e o teste de `spectators.test.ts` (OG-318).
 
 ## Critérios de aceite
-- [ ] Sala nova manda `spectatorStart` com `delay: 15` e o espectador fica 150 frames atrás.
-- [ ] Teste atualizado.
+- [x] Sala nova manda `spectatorStart` com `delay: 15` e o espectador fica 150 frames atrás.
+- [x] Teste atualizado.
 
 ## Notas de implementação
+- `SPECTATING_DELAY = 15` (presets) e padrão do código 15; o `/set spectating_delay` segue valendo. D-89.

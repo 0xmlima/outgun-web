@@ -92,6 +92,8 @@ export interface HostedRoom {
 
 export class RoomManager {
   private readonly rooms = new Map<string, Entry>();
+  /** Salas encerradas que ainda entregam o atraso aos espectadores (OG-533). */
+  private readonly tails = new Set<Room>();
   private readonly clock: Clock;
   readonly loop: FixedRateLoop;
   /** Duração do processamento de cada tick (ms), para métricas. */
@@ -112,6 +114,8 @@ export class RoomManager {
   stop(): void {
     this.loop.stop();
     for (const id of [...this.rooms.keys()]) this.close(id, 'shutdown');
+    for (const room of this.tails) room.closeSpectators();
+    this.tails.clear();
   }
 
   create(spec: RoomSpec): Room {
@@ -185,7 +189,10 @@ export class RoomManager {
   close(id: string, reason: RoomCloseReason = 'shutdown'): void {
     const entry = this.rooms.get(id);
     if (!entry) return;
-    entry.room.close();
+    // fim de partida ou sala vazia: quem assiste ainda está no atraso e vê o fim (OG-533)
+    const keep = reason !== 'shutdown' && entry.room.spectatorCount > 0;
+    entry.room.close(keep);
+    if (keep) this.tails.add(entry.room);
     this.rooms.delete(id);
     this.observer?.roomClosed?.(id, reason);
   }
@@ -195,6 +202,7 @@ export class RoomManager {
     const begin = this.clock.now();
     const now = begin;
     const observer = this.observer;
+    for (const room of this.tails) if (!room.drainSpectators()) this.tails.delete(room);
     for (const [id, entry] of this.rooms) {
       if (entry.room.finished) {
         this.close(id, 'finished');
