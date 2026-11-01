@@ -14,6 +14,8 @@ export interface PlayerView {
   readonly number?: number;
   /** Estilo do número (OG-413). */
   readonly numberStyle?: number;
+  /** Medalha do pódio do mês anterior (1..3): o número sai dourado, prateado ou bronze (OG-532). */
+  readonly numberMedal?: number;
   readonly pos: WorldCoords;
   /** Direção da arma em oitavos (0 = direita, sentido horário); −1 = sem direção. */
   readonly gundir: number;

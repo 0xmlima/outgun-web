@@ -131,6 +131,7 @@ export function accountRoutes(deps: AppDeps, services: Services): FastifyPluginA
       number: Type.Union([Type.Integer(), Type.Null()]),
       canChangeAt: Type.Union([Type.String(), Type.Null()]),
       numberOneEligible: Type.Boolean(),
+      medal: Type.Union([Type.Integer({ minimum: 1, maximum: 3 }), Type.Null()]),
       usingNumberOne: Type.Boolean(),
       style: Type.Integer(),
       free: Type.Array(Type.Integer()),

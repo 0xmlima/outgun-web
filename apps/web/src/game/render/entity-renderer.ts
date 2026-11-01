@@ -37,7 +37,7 @@ import {
 import { pfScale, roomOffsetsX, roomOffsetsY, type RoomLayout } from './layout.js';
 import type { EntitySprites } from './sprites.js';
 import { colour, type RoomTheme } from './theme.js';
-import { ALL_COLORS, colourKey, isMedalColor } from '@outgun/protocol';
+import { ALL_COLORS, colourKey, isMedalColor, medalColor } from '@outgun/protocol';
 import { lightColour, NUMBER_BOX, NUMBER_STYLES, paintNumber } from './number-styles.js';
 
 interface Effect {
@@ -518,7 +518,8 @@ export class EntityRenderer {
 
   /**
    * Número no centro do boneco (OG-410, RN-NUM-01) no estilo escolhido (OG-413), com contraste
-   * automático; a textura de cada (estilo, número, claro/escuro) é montada uma vez. Some com o
+   * automático e, para o pódio do mês anterior, na cor da medalha (OG-532); a textura de cada
+   * (estilo, número, claro/escuro, medalha) é montada uma vez. Some com o
    * zoom muito afastado (vira borrão).
    */
   private drawNumber(p: PlayerView): void {
@@ -527,14 +528,15 @@ export class EntityRenderer {
     const style = NUMBER_STYLES[p.numberStyle ?? 0] ?? NUMBER_STYLES[0]!;
     const personal = p.color < ALL_COLORS ? this.c(colourKey(p.color)) : '#808080';
     const light = lightColour(personal);
-    const key = `${style.id}|${p.number}|${light ? 1 : 0}`;
+    const medal = p.numberMedal ? this.c(colourKey(medalColor(p.numberMedal)!)) : undefined;
+    const key = `${style.id}|${p.number}|${light ? 1 : 0}|${p.numberMedal ?? 0}`;
     let tex = this.numberTextures.get(key);
     if (!tex) {
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = NUMBER_TEXTURE;
       const ctx = canvas.getContext('2d')!;
       ctx.translate(NUMBER_TEXTURE / 2, NUMBER_TEXTURE / 2);
-      paintNumber(ctx, String(p.number), style, light, NUMBER_TEXTURE / NUMBER_BOX);
+      paintNumber(ctx, String(p.number), style, light, NUMBER_TEXTURE / NUMBER_BOX, medal);
       this.numberTextures.set(key, (tex = Texture.from(canvas)));
     }
     const size = R * 1.15 * NUMBER_BOX;

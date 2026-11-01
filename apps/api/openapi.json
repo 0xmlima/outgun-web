@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Outgun Web API",
-    "version": "2.56.2",
+    "version": "2.56.3",
     "description": "Contas, salas, partidas e ranking do Outgun Web. Rotas /internal: só game servers (HMAC).",
     "license": {
       "name": "GPL-2.0-or-later",
@@ -20932,6 +20932,7 @@
                     "number",
                     "canChangeAt",
                     "numberOneEligible",
+                    "medal",
                     "usingNumberOne",
                     "style",
                     "free"
@@ -20959,6 +20960,18 @@
                     },
                     "numberOneEligible": {
                       "type": "boolean"
+                    },
+                    "medal": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "usingNumberOne": {
                       "type": "boolean"
@@ -21044,6 +21057,7 @@
                     "number",
                     "canChangeAt",
                     "numberOneEligible",
+                    "medal",
                     "usingNumberOne",
                     "style",
                     "free"
@@ -21071,6 +21085,18 @@
                     },
                     "numberOneEligible": {
                       "type": "boolean"
+                    },
+                    "medal": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "usingNumberOne": {
                       "type": "boolean"
@@ -21217,6 +21243,7 @@
                     "number",
                     "canChangeAt",
                     "numberOneEligible",
+                    "medal",
                     "usingNumberOne",
                     "style",
                     "free"
@@ -21244,6 +21271,18 @@
                     },
                     "numberOneEligible": {
                       "type": "boolean"
+                    },
+                    "medal": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "usingNumberOne": {
                       "type": "boolean"
@@ -21322,6 +21361,7 @@
                     "number",
                     "canChangeAt",
                     "numberOneEligible",
+                    "medal",
                     "usingNumberOne",
                     "style",
                     "free"
@@ -21349,6 +21389,18 @@
                     },
                     "numberOneEligible": {
                       "type": "boolean"
+                    },
+                    "medal": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "usingNumberOne": {
                       "type": "boolean"

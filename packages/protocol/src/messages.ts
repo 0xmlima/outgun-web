@@ -951,7 +951,7 @@ export const MESSAGES = {
     },
   ),
   // --- números de jogador (OG-410, D-79): sem equivalente no original ---
-  playerNumber: msg(132, 's2c', 'event', '— (web, OG-410)', 'Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.', {
+  playerNumber: msg(132, 's2c', 'event', '— (web, OG-410)', 'Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil; nos bits 4–5, a medalha do pódio do mês anterior, OG-532: `packNumberStyle`). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.', {
     pid,
     number: u8,
     style: u8,

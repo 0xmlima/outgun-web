@@ -28,6 +28,12 @@ export function loadNumberFonts(): Promise<unknown> {
   return Promise.all(NUMBER_STYLES.map((s) => document.fonts.load(`32px ${s.font}`))).catch(() => undefined);
 }
 
+/** `hex` com o brilho multiplicado por `1 - amount`. */
+export function darken(hex: string, amount: number): string {
+  const v = [1, 3, 5].map((i) => Math.round(Number.parseInt(hex.slice(i, i + 2), 16) * (1 - amount)));
+  return `#${v.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
 /** Cor pessoal clara (número escuro por cima). */
 export function lightColour(hex: string): boolean {
   const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
@@ -36,12 +42,21 @@ export function lightColour(hex: string): boolean {
 
 /**
  * Desenha `text` centrado em (0, 0) do `ctx` com altura de letra `size`. `light` = a cor por baixo é
- * clara. Igual à prancha aprovada pelo PO.
+ * clara. Igual à prancha aprovada pelo PO. Com `medal` (cor da medalha do pódio, OG-532), a letra
+ * sai metálica (brilho branco no alto, como a medalha do OG-411) com contorno escuro, sobre qualquer cor.
  */
-export function paintNumber(ctx: CanvasRenderingContext2D, text: string, style: NumberStyle, light: boolean, size: number): void {
-  const ink = light ? '#111111' : '#FFFFFF';
-  const edge = light ? '#FFFFFF' : '#000000';
+export function paintNumber(ctx: CanvasRenderingContext2D, text: string, style: NumberStyle, light: boolean, size: number, medal?: string): void {
   const k = size / 17; // a prancha usa letra de 17 px num boneco de raio 15
+  let ink: string | CanvasGradient = light ? '#111111' : '#FFFFFF';
+  const edge = medal ? '#000000' : light ? '#FFFFFF' : '#000000';
+  if (medal) {
+    // metálico: reflexo claro no alto, a cor no meio e um tom escuro embaixo (a prata não vira branco)
+    const g = ctx.createLinearGradient(0, k - size / 2, 0, k + size / 2);
+    g.addColorStop(0.1, '#FFFFFF');
+    g.addColorStop(0.45, medal);
+    g.addColorStop(0.95, darken(medal, 0.45));
+    ink = g;
+  }
   ctx.save();
   ctx.transform(1, 0, style.skew, 1, 0, 0);
   ctx.font = `${Math.round(size)}px ${style.font}`;

@@ -27,6 +27,8 @@ export interface NumberState {
   canChangeAt: string | null;
   /** Líder do mês anterior: pode usar o 1. */
   numberOneEligible: boolean;
+  /** Pódio do "Melhor do mês" anterior (1..3): o número sai na cor da medalha (OG-532); null = nenhum. */
+  medal: number | null;
   usingNumberOne: boolean;
   /** Estilo do número (OG-413). */
   style: number;
@@ -36,8 +38,9 @@ export interface NumberState {
 export async function numberState(db: Db, userId: string, now = new Date()): Promise<NumberState> {
   const [u] = await db.select({ n: users.playerNumber, at: users.numberChangedAt, one: users.useNumberOne, style: users.numberStyle }).from(users).where(eq(users.id, userId));
   const until = u?.at && numberCooldownMs() > 0 ? new Date(u.at.getTime() + numberCooldownMs()) : null;
-  const eligible = (await previousPodium(db, userId)) === 1;
-  return { number: u?.n ?? null, canChangeAt: until && until > now ? until.toISOString() : null, numberOneEligible: eligible, usingNumberOne: eligible && (u?.one ?? false), style: u?.style ?? 0, free: await freeNumbers(db) };
+  const medal = await previousPodium(db, userId);
+  const eligible = medal === 1;
+  return { number: u?.n ?? null, canChangeAt: until && until > now ? until.toISOString() : null, numberOneEligible: eligible, medal, usingNumberOne: eligible && (u?.one ?? false), style: u?.style ?? 0, free: await freeNumbers(db) };
 }
 
 export type NumberChange = { ok: true } | { ok: false; error: 'invalid_number' | 'number_taken' | 'number_cooldown' };

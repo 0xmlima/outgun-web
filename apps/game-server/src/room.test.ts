@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { fileURLToPath } from 'node:url';
-import { decodeFrame, message, type AnyMessage } from '@outgun/protocol';
+import { decodeFrame, medalColor, message, unpackNumberStyle, type AnyMessage } from '@outgun/protocol';
 import { Position, PowerupKind, SAMPLES } from '@outgun/sim';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
@@ -371,6 +371,20 @@ describe('Room: número e estilo do número (OG-410, OG-413)', () => {
     const b = join(r, 'Bia');
     r.tick();
     expect(b.conn.of('playerNumber')).toContainEqual(expect.objectContaining({ pid: a.pid, number: 44, style: 2 }));
+  });
+
+  it('OG-532: o pódio do mês anterior leva a medalha no número; a cor de medalha no boneco não é aceita', () => {
+    const r = room();
+    const conn = new TestConnection();
+    const a = r.join(conn, { name: 'Ana', accountId: null, number: 1, numberStyle: 1, medal: 1 });
+    if (!a.ok) throw new Error(a.text);
+    const b = join(r, 'Bia');
+    r.tick();
+    const sent = b.conn.of('playerNumber').find((m) => m.pid === a.pid)!;
+    expect(unpackNumberStyle(sent.style)).toEqual({ style: 1, medal: 1 });
+    r.handle(a.pid, [message('favoriteColors', { colors: [medalColor(1)!, 5] })]);
+    r.tick();
+    expect(conn.of('playerInfo').at(-1)).toMatchObject({ pid: a.pid, color: 5 });
   });
 });
 

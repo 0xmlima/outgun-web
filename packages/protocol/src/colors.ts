@@ -16,6 +16,14 @@ export const isMedalColor = (color: number) => color >= PERSONAL_COLORS && color
 /** Índice da cor da medalha de quem ficou em `position` (1..3). */
 export const medalColor = (position: number) => MEDAL_COLORS[position - 1];
 
+/**
+ * Byte `style` do `playerNumber` (OG-532): o estilo (0..3, OG-413) nos 4 bits de baixo e a medalha
+ * do pódio do mês anterior (0 nenhuma, 1..3) nos de cima. O número fica dourado, prateado ou bronze;
+ * cliente antigo lê um estilo desconhecido e cai no Bloco, sem a medalha.
+ */
+export const packNumberStyle = (style = 0, medal = 0) => (style & 15) | ((medal & 3) << 4);
+export const unpackNumberStyle = (byte: number) => ({ style: byte & 15, medal: (byte >> 4) & 3 });
+
 /** Chave da cor no tema. */
 export function colourKey(color: number): string {
   if (color < PERSONAL_COLORS) return `player${String(color + 1).padStart(2, '0')}`;

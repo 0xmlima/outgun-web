@@ -16,6 +16,7 @@ import { Form, FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
 import { Panel } from '../ui/Panel.js';
 import { lightColour, loadNumberFonts, NUMBER_STYLES, paintNumber } from '../game/render/number-styles.js';
 import { PLAYER_COLOURS } from '../ui/icons.js';
+import { medalColor } from '@outgun/protocol';
 
 const MIN_PASSWORD = 8;
 
@@ -392,13 +393,16 @@ interface NumberState {
   canChangeAt: string | null;
   numberOneEligible: boolean;
   usingNumberOne: boolean;
+  /** Pódio do mês anterior (1..3): número na cor da medalha (OG-532). */
+  medal: number | null;
   style: number;
   free: number[];
 }
 
 /** Prévia do número no boneco (OG-413), desenhada como na partida: anel do time e miolo da cor favorita. */
-function NumberPreview({ number, style }: { number: number; style: number }) {
+function NumberPreview({ number, style, medal }: { number: number; style: number; medal?: number | null }) {
   const { prefs } = usePrefs();
+  const medalColour = medal ? PLAYER_COLOURS[medalColor(medal)!] : undefined;
   const ref = useRef<HTMLCanvasElement>(null);
   const colour = PLAYER_COLOURS[prefs.favoriteColors[0] ?? 0] ?? PLAYER_COLOURS[0]!;
   useEffect(() => {
@@ -420,13 +424,13 @@ function NumberPreview({ number, style }: { number: number; style: number }) {
       x.fill();
       x.save();
       x.translate(c.width / 2, c.height / 2);
-      paintNumber(x, String(number), NUMBER_STYLES[style]!, lightColour(colour), 17 * k);
+      paintNumber(x, String(number), NUMBER_STYLES[style]!, lightColour(colour), 17 * k, medalColour);
       x.restore();
     });
     return () => {
       alive = false;
     };
-  }, [number, style, colour]);
+  }, [number, style, colour, medalColour]);
   return <canvas ref={ref} width={80} height={80} aria-hidden="true" />;
 }
 
@@ -479,12 +483,15 @@ function NumberPanel() {
           <div className="account-number-styles" role="radiogroup" aria-labelledby="number-style">
             {NUMBER_STYLES.map((s, i) => (
               <button key={s.id} type="button" role="radio" aria-checked={state.style === i} className={state.style === i ? 'number-style selected' : 'number-style'} onClick={() => void api<NumberState>('/account/number-style', { method: 'PUT', body: { style: i } }).then(setState, () => undefined)}>
-                <NumberPreview number={state.usingNumberOne ? 1 : (state.number ?? 10)} style={i} />
+                <NumberPreview number={state.usingNumberOne ? 1 : (state.number ?? 10)} style={i} medal={state.medal} />
                 <span>{t(s.label)}</span>
               </button>
             ))}
           </div>
         </div>
+        {state.medal && (
+          <p className="ui-field-hint">{state.number ? t('Top 3 of last month: your number shows your medal colour this month.') : t('Top 3 of last month: choose a number to show your medal colour.')}</p>
+        )}
         {state.numberOneEligible && (
           <ToggleField
             label={t('Use number 1 (leader of last month)')}

@@ -3,7 +3,7 @@
 // original (src/server.cpp) para um único mapa em rotação. Times, votação, chat e validação de
 // entrada chegam nos cards OG-043..047; aqui ficam entrar, sair, aplicar entradas, simular a 10 Hz,
 // mandar a cada jogador só o que ele vê (OG-042, aoi.ts), fim de partida e troca de mapa.
-import { chatName, encodeFrame, isMedalColor, medalColor, message, PERSONAL_COLORS, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
+import { chatName, encodeFrame, message, packNumberStyle, PERSONAL_COLORS, PROTOCOL_VERSION, type AnyMessage, type MessageOf } from '@outgun/protocol';
 import { applyGamemod, formatGamemod, formatPlayers, MAX_SUBSTITUTES, maxSubstitutesPerSide, newSeries, recordSeriesGame, seriesOver, seriesWinner, settingsOf, type GameMode, type GameSettings, type Preset, type RankedRoomFormat, type SeriesScore } from '@outgun/settings';
 import { findPreset } from './presets.js';
 import type { GeneratedMaps, RandomMapParams } from './generated-maps.js';
@@ -82,7 +82,7 @@ export interface Identity {
   ip?: string;
   /** Nível do bot substituto desta conta (OG-266, do ticket Ranked); ausente = intermediário. */
   botLevel?: number;
-  /** Pódio do "Melhor do mês" anterior (1..3, OG-411): pode usar a cor da medalha. */
+  /** Pódio do "Melhor do mês" anterior (1..3): o número dele sai na cor da medalha (OG-532). */
   medal?: number;
   /** Número no boneco (OG-410). */
   number?: number;
@@ -605,7 +605,7 @@ export class Room {
     this.refreshIdentities(true);
     // clã no HUD (OG-206, RN-NOM-04): convidados e bots não têm tag
     if (identity.clanTag) this.broadcast(message('playerClan', { pid, tag: identity.clanTag }));
-    if (identity.number) this.broadcast(message('playerNumber', { pid, number: identity.number, style: identity.numberStyle ?? 0 }));
+    if (identity.number) this.broadcast(message('playerNumber', { pid, number: identity.number, style: packNumberStyle(identity.numberStyle, identity.medal) }));
     if (identity.accountId) this.broadcast(this.playerInfo(pid, this.clients.get(pid)!));
     this.sendCasualConfig(pid);
     if (this.lobby) {
@@ -649,7 +649,7 @@ export class Room {
       // o próprio jogador também recebe os frags (na volta de uma queda já pode ter alguns)
       if (other !== pid) out.push(message('playerJoined', { pid: other, name: c.identity.name, color: c.color, bot: c.bot }));
       if (other !== pid && c.identity.clanTag) out.push(message('playerClan', { pid: other, tag: c.identity.clanTag }));
-      if (other !== pid && c.identity.number) out.push(message('playerNumber', { pid: other, number: c.identity.number, style: c.identity.numberStyle ?? 0 }));
+      if (other !== pid && c.identity.number) out.push(message('playerNumber', { pid: other, number: c.identity.number, style: packNumberStyle(c.identity.numberStyle, c.identity.medal) }));
       // conta e ranking de quem já estava: o sublinhado de conta também para quem chega depois (OG-277)
       if (c.identity.accountId) out.push(this.playerInfo(other, c));
       out.push(message('frags', { pid: other, frags: (this.world.players[other] as PlayerState).stats.frags }));
@@ -743,7 +743,7 @@ export class Room {
       Object.assign(c, { identity: c.replaced.identity, bot: false, replaced: undefined });
       this.broadcast(message('playerName', { pid, name: c.identity.name }));
       // quem entrou durante a substituição viu o bot sem número (OG-443)
-      if (c.identity.number) this.broadcast(message('playerNumber', { pid, number: c.identity.number, style: c.identity.numberStyle ?? 0 }));
+      if (c.identity.number) this.broadcast(message('playerNumber', { pid, number: c.identity.number, style: packNumberStyle(c.identity.numberStyle, c.identity.medal) }));
       this.pause?.brief(this.world.teamOf(pid) as 0 | 1, pid, this.uptimeFrames); // volta com a contagem de 3 s
     } else if (c.conn !== OFFLINE) c.conn.close(4005, 'resumed'); // conexão antiga ainda não percebida como caída
     Object.assign(c, {
@@ -771,7 +771,7 @@ export class Room {
     const self = [
       message('playerName', { pid, name: c.identity.name }),
       ...(c.identity.clanTag ? [message('playerClan', { pid, tag: c.identity.clanTag })] : []),
-      ...(c.identity.number ? [message('playerNumber', { pid, number: c.identity.number, style: c.identity.numberStyle ?? 0 })] : []),
+      ...(c.identity.number ? [message('playerNumber', { pid, number: c.identity.number, style: packNumberStyle(c.identity.numberStyle, c.identity.medal) })] : []),
     ];
     this.send(pid, [...this.welcomeMessages(pid), ...self, message('resumeToken', { token: c.resumeToken })]);
     return { ok: true, pid };
@@ -1292,8 +1292,8 @@ export class Room {
           }
           break;
         case 'favoriteColors': {
-          // paleta comum e, para o pódio do mês anterior, a medalha dele (OG-411)
-          client.favColors = m.colors.filter((c) => c < PERSONAL_COLORS || (isMedalColor(c) && c === medalColor(client.identity.medal ?? 0)));
+          // só a paleta comum: a medalha do pódio vai no número (OG-532), não no boneco
+          client.favColors = m.colors.filter((c) => c < PERSONAL_COLORS);
           const color = this.colors.assign(this.world.teamOf(pid), client.color, client.favColors);
           if (color !== client.color) {
             client.color = color;

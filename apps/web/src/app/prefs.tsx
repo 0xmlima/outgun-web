@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { DEFAULT_HUD_CUSTOM, HUD_STYLES, parseHudCustom, type HudCustom, type HudStyle } from '../game/hud/hud-style.js';
 import { CHORD_WINDOW_DEFAULT_MS, CHORD_WINDOW_MAX_MS } from '../game/input/chord.js';
 import { CLASSIC_BINDINGS, parseBindings, type Bindings } from '../game/input/bindings.js';
-import { ALL_COLORS, PERSONAL_COLORS } from '@outgun/protocol';
+import { PERSONAL_COLORS } from '@outgun/protocol';
 
 export type ShowNames = 'never' | 'sameRoom' | 'always';
 export type ShowStats = 'off' | 'teams' | 'players';
@@ -126,10 +126,10 @@ export const QUICK_MESSAGE_LENGTH = 30;
 
 /**
  * As 32 cores da paleta (OG-411): as válidas da lista salva primeiro (sem repetir), depois as que
- * faltam. Uma medalha salva fica onde está (o servidor só a aceita de quem tem direito).
+ * faltam. Uma medalha salva sai da lista: desde o OG-532 a medalha vai no número, não no boneco.
  */
 export function completeColors(saved: unknown): number[] {
-  const list = Array.isArray(saved) ? saved.filter((c): c is number => Number.isInteger(c) && c >= 0 && c < ALL_COLORS) : [];
+  const list = Array.isArray(saved) ? saved.filter((c): c is number => Number.isInteger(c) && c >= 0 && c < PERSONAL_COLORS) : [];
   const out = [...new Set(list)];
   for (let c = 0; c < PERSONAL_COLORS; c++) if (!out.includes(c)) out.push(c);
   return out;

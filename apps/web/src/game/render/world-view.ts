@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Do estado do mundo (`WorldState` da sim local ou extrapolado do servidor) para o que o renderer de
 // entidades desenha (plan/specs/render-entidades.md).
+import { unpackNumberStyle } from '@outgun/protocol';
 import { ROOM_HEIGHT, Vec, type GameMap, type WorldCoords, type WorldState } from '@outgun/sim';
 import type { EntityFrame, FlagView, PlayerView, RocketView } from './entity-frame.js';
 
@@ -47,7 +48,11 @@ export function entityFrameFromWorld(w: WorldState, o: WorldViewOptions): Entity
       team: pl.team,
       color: o.color(pl.pid),
       name: o.name(pl.pid),
-      ...((n) => (n ? { number: n, numberStyle: o.numberStyle?.(pl.pid) ?? 0 } : {}))(o.number?.(pl.pid)),
+      ...((n) => {
+        if (!n) return {};
+        const { style, medal } = unpackNumberStyle(o.numberStyle?.(pl.pid) ?? 0);
+        return { number: n, numberStyle: style, ...(medal ? { numberMedal: medal } : {}) };
+      })(o.number?.(pl.pid)),
       pos: coords(pl.pos),
       gundir: pl.gundir,
       dead: pl.dead,
