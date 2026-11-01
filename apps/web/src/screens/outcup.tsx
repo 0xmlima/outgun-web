@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
 import { copyText } from '../app/clipboard.js';
+import { isPhone } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button, type Tone } from '../ui/Button.js';
 import { FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
@@ -400,7 +401,7 @@ function MatchPanel({ id, cup, onClose }: { id: string; cup: Cup; onClose: () =>
       </p>
       {m.status === 'live' && m.roomId && (
         <p className="ui-row">
-          {d.myDuo && (
+          {d.myDuo && !isPhone() && (
             <Button variant="primary" onClick={() => void navigate(`/play?sala=${encodeURIComponent(m.roomId!)}`)}>
               {t('Join the room')}
             </Button>

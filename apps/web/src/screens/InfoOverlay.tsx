@@ -6,6 +6,7 @@ import { loadManifest } from '../assets.js';
 import { catalog } from '@outgun/i18n';
 import { PRESETS } from '@outgun/settings';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { isTouchGame } from '../app/phone.js';
 import { usePrefs } from '../app/prefs.js';
 import type { GameHost } from '../game/host.js';
 import { MAP_SORTS, mapScreen, playerScreen, serverScreen, teamScreen, type InfoScreen, type MapSort } from '../game/hud/info-screens.js';
@@ -178,7 +179,7 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
                 key={r}
                 className={`tone-${row.tone}`}
                 // lista de mapas: tocar no mapa vota nele (no celular não há teclado para digitar o número)
-                {...(kind === 'maps' && i === 0 && host ? { onClick: () => host.voteMap(Number(row.cells[0]) - 1), style: { cursor: 'pointer' } } : {})}
+                {...(kind === 'maps' && i === 0 && host && isTouchGame() ? { onClick: () => host.voteMap(Number(row.cells[0]) - 1), style: { cursor: 'pointer' } } : {})}
               >
                 {row.cells.map((c, j) => (
                   <td key={j}>

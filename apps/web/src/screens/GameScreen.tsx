@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
 import { joinName, useAccount } from '../app/account.js';
-import { isTouchGame } from '../app/phone.js';
+import { isPhone, isTouchGame } from '../app/phone.js';
 import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
 import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
 import type { Prefs } from '../app/prefs.js';
@@ -103,7 +103,12 @@ export default function GameScreen() {
   const toggleInfo = useRef<(kind: InfoKind) => void>(() => {});
   toggleInfo.current = (kind) => setInfo((cur) => (cur?.kind === kind ? null : { kind, auto: false }));
   const host = useRef<GameHost | null>(null);
-  const phone = isTouchGame(); // celular e tablet (experimental)
+  /** Controles de toque (celular e tablet, experimental): só no Casual; no Ranked e na OutCup, não. */
+  const phone = isTouchGame() && roomMode === 'casual';
+  // celular: Ranked e OutCup seguem só no computador (D-80); a rota fora do portal mostra o aviso
+  useEffect(() => {
+    if (roomMode === 'ranked' && isPhone()) void navigate('/rooms', { replace: true });
+  }, [roomMode, navigate]);
   /** Divisão da tela (celular): F8, × e F2 nos cantos da sala (em cima da parede, em geral). */
   const [screen, setScreen] = useState<ScreenLayout | null>(null);
   const tRef = useRef(t);
@@ -371,7 +376,7 @@ export default function GameScreen() {
   return (
     <div ref={gameRef} className={phone ? 'game game-touch' : 'game'} data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
       <div ref={hostRef} className="game-host" />
-      {phone && <TouchControls host={host} />}
+      {phone && !inLobby && !matchEnd && <TouchControls host={host} />}
       {phone && screen?.scoreboard && <PhoneBoard host={host} place={screen.scoreboard} onTyping={setTyping} />}
       {phone && !menuOpen && screen && (
         <>

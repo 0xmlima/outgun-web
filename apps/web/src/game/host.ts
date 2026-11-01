@@ -320,6 +320,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     layout();
   };
 
+  /** Modo da sala, do `welcome` (o HUD do celular só vale no Casual). */
+  let roomMode: 'casual' | 'ranked' | null = null;
   const layout = () => {
     if (!world) return;
     let playfield = { x: 0, y: 0, w: app.screen.width, h: app.screen.height };
@@ -336,7 +338,8 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         graphics().hudStyle,
         graphics().hudCustom,
         graphics().classicFragsOnTab,
-        isTouchGame(),
+        // controles de toque só no Casual (no Ranked e na OutCup, o HUD do computador)
+        isTouchGame() && roomMode === 'casual',
         worldMap ? { w: worldMap.width, h: worldMap.height } : undefined,
       );
       playfield = screen.playfield;
@@ -500,6 +503,10 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
           else if (m.type === 'welcome') {
             container.dataset.pid = String(m.pid); // para os testes (tools/visual-compare/reconnect.mjs)
             opts.onRoomMode?.(m.mode);
+            if (roomMode !== m.mode) {
+              roomMode = m.mode;
+              layout();
+            }
             // `client_connected`: favoritas (se não for cor aleatória) e banda do minimapa
             sentClient = { colors: '', minimap: -1 };
             sendClientSettings();
