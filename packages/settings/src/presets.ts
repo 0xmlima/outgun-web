@@ -83,14 +83,14 @@ export const PRESETS: readonly Preset[] = [
 /** Intervalo entre o fim de uma partida e a próxima, em segundos (D-63). */
 export const GAME_END_DELAY = 10;
 
-/** Atraso padrão do espectador ao vivo, em segundos (D-56). */
-export const SPECTATING_DELAY = 30;
+/** Atraso padrão do espectador ao vivo, em segundos (D-56, D-89). */
+export const SPECTATING_DELAY = 15;
 
 /** Configurações do preset Clássico: defaults do código + `config/gamemod.txt`. */
 export function classicSettings(): GameSettings {
   const result = applyGamemod(codeDefaults(), CLASSIC_GAMEMOD);
   if (result.errors.length > 0) throw new Error(`gamemod clássico inválido: ${result.errors[0]?.message}`);
-  // espectador com 30 s de atraso em vez dos 120 do gamemod.txt (D-56, OG-318); 10 s entre partidas
+  // espectador com 15 s de atraso em vez dos 120 do gamemod.txt (D-89, OG-534); 10 s entre partidas
   // para o modal de fim de partida (D-63, OG-344)
   return { ...result.settings, server: { ...result.settings.server, spectatingDelay: SPECTATING_DELAY, gameEndDelay: GAME_END_DELAY } };
 }

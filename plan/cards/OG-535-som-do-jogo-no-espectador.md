@@ -6,8 +6,8 @@
 | Tipo | Melhoria |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S57 |
+| Status | Pronto |
 | Dependências | — |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

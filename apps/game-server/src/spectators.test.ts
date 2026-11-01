@@ -84,13 +84,13 @@ describe('OG-092: espectador ao vivo', () => {
     expect(v.messages().filter((m) => m.type === 'spectatorStart')).toHaveLength(2);
   });
 
-  it('sem gamemod, o atraso é de 30 s (D-56, OG-318)', () => {
+  it('sem gamemod, o atraso é de 15 s (D-89, OG-534)', () => {
     const r = room('');
     const v = new Viewer();
     r.addSpectator(v);
     for (let i = 0; i < 400; i++) r.tick();
-    expect(v.messages().find((m) => m.type === 'spectatorStart')).toMatchObject({ delay: 30 });
-    expect(v.lastFrame()).toBe(r.frame - 1 - 300);
+    expect(v.messages().find((m) => m.type === 'spectatorStart')).toMatchObject({ delay: 15 });
+    expect(v.lastFrame()).toBe(r.frame - 1 - 150);
   });
 
   it('limite de espectadores por sala', () => {

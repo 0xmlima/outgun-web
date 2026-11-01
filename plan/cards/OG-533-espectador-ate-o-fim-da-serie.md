@@ -6,8 +6,8 @@
 | Tipo | Bug |
 | Prioridade | Must |
 | Estimativa | 3 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S57 |
+| Status | Em andamento |
 | Dependências | — |
 | Regras de negócio | RN-CUP-09 |
 | Skills | `outgun-card-workflow` |

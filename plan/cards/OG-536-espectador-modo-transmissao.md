@@ -6,8 +6,8 @@
 | Tipo | Melhoria |
 | Prioridade | Should |
 | Estimativa | 2 pts |
-| Sprint | — |
-| Status | Backlog |
+| Sprint | S57 |
+| Status | Pronto |
 | Dependências | OG-533, OG-535 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |
