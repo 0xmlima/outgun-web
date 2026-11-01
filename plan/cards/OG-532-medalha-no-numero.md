@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 3 pts |
 | Sprint | — |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-410, OG-411, OG-413, OG-531 |
 | Regras de negócio | RN-NUM-01, D-79 |
 | Skills | `outgun-card-workflow` |

@@ -7,7 +7,7 @@
 | Prioridade | Must |
 | Estimativa | 2 pts |
 | Sprint | — |
-| Status | Em revisão |
+| Status | Concluído |
 | Dependências | OG-410, OG-411, OG-354 |
 | Regras de negócio | RN-NUM-01, D-79, D-66 |
 | Skills | `outgun-card-workflow` |
@@ -28,7 +28,7 @@ Como jogador do top 3 do "Melhor do mês" de outubro, quero o dourado, o pratead
 ## Critérios de aceite
 - [x] Teste: fechar outubro com partidas dá a medalha e o número 1 ao pódio do "Melhor do mês"; o pódio clássico não dá medalha.
 - [x] Teste: regravar outubro devolve o pódio sem duplicar; temporada ativa não se regrava.
-- [ ] No beta, depois do deploy: `node dist/cli.js season reclose 2026-10` (com a confirmação do PO).
+- [x] No beta, depois do deploy: `node dist/cli.js season reclose 2026-10` (rodado em 2026-11-01 com a ordem do PO).
 
 ## Notas de implementação
 - `STAT_HALL_SINCE = '2026-10'` em `ranking.ts`; `insertStatChampions` separado do apagar/clãs para outubro somar ao hall clássico.

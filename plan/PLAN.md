@@ -1006,8 +1006,8 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-528](cards/OG-528-outcup-titulo-selos-e-marcos.md) | OutCup: selos, hall da fama e marcos | E15 | 3 | Should | S56 | OG-522 | Concluído |
 | [OG-529](cards/OG-529-outcup-correcoes-antes-da-primeira-edicao.md) | OutCup: lados da dupla na sala, sorteio com byes e nome da fase (teste antes da 1ª edição) | E15 | 2 | Must | — | OG-521, OG-525 | Concluído |
 | [OG-530](cards/OG-530-outcup-polimentos-do-teste.md) | OutCup: polimentos achados no teste de ponta a ponta | E15 | 3 | Should | — | OG-529 | Backlog |
-| [OG-531](cards/OG-531-medalhas-e-numero-1-de-outubro.md) | Medalhas e número 1 do top 3 de outubro: hall de outubro sem o "Melhor do mês" | E9 | 2 | Must | — | OG-410, OG-411, OG-354 | Em revisão |
-| [OG-532](cards/OG-532-medalha-no-numero.md) | Medalha do top 3 no número do jogador (não mais na cor do boneco) | E9 | 3 | Must | — | OG-410, OG-411, OG-413, OG-531 | Em revisão |
+| [OG-531](cards/OG-531-medalhas-e-numero-1-de-outubro.md) | Medalhas e número 1 do top 3 de outubro: hall de outubro sem o "Melhor do mês" | E9 | 2 | Must | — | OG-410, OG-411, OG-354 | Concluído |
+| [OG-532](cards/OG-532-medalha-no-numero.md) | Medalha do top 3 no número do jogador (não mais na cor do boneco) | E9 | 3 | Must | — | OG-410, OG-411, OG-413, OG-531 | Concluído |
 
 **Total:** 370 cards, 1180 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 301 cards, 885 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 
