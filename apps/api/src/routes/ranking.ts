@@ -5,7 +5,7 @@ import { Type, type FastifyPluginAsyncTypebox, type Static } from '@fastify/type
 import { asc, desc, eq } from 'drizzle-orm';
 import type { AppDeps } from '../app.js';
 import { clans, seasonChampions, seasons, type ChampionBoard } from '../db/schema.js';
-import { activeSeason, LEADERBOARD_SINCE } from '../ranking.js';
+import { activeSeason, LEADERBOARD_SINCE, STAT_HALL_SINCE } from '../ranking.js';
 import { CLAN_MINIMUM_MATCHES, clanLeaderboard } from '../clan-stats.js';
 import { LEADERBOARD_MINIMUM_MATCHES, LEADERBOARD_STATS, OVERALL_WEIGHTS, overallBoard, STAT_IDS, statBoard, statLeaders, statSince, type StatId } from '../leaderboard.js';
 import { ErrorSchema, RankedFormatSchema } from './schemas.js';
@@ -241,7 +241,10 @@ export function rankingRoutes({ database }: AppDeps): FastifyPluginAsyncTypebox 
         return {
           seasons: closed.map((season) => {
             const classic = !season.month || season.month < LEADERBOARD_SINCE;
-            const empty: ChampionBoard[] = classic ? ['overall', '3x3', '4x4', '5x5', 'clans'] : ['stat:overall', ...LEADERBOARD_STATS.filter((s) => s.main).map((s) => `stat:${s.id}` as const), 'clans'];
+            const stat: ChampionBoard[] = ['stat:overall', ...LEADERBOARD_STATS.filter((s) => s.main).map((s) => `stat:${s.id}` as const)];
+            // outubro/2026 guarda os dois halls (OG-531)
+            const both = classic && !!season.month && season.month >= STAT_HALL_SINCE;
+            const empty: ChampionBoard[] = classic ? ['overall', '3x3', '4x4', '5x5', ...(both ? stat : []), 'clans'] : [...stat, 'clans'];
             const boards: Record<string, Static<typeof Champions>> = Object.fromEntries(empty.map((b) => [b, []]));
             for (const { c, tag } of rows) {
               if (c.seasonId === season.id) (boards[c.board] ??= []).push({ position: c.position, name: c.name, clanName: c.clanName, clanTag: tag, value: c.value });

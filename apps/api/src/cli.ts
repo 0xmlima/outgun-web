@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Utilitários: node dist/cli.js migrate up|down [N]|status, seed, openapi [arquivo], season start NOME, ticket-key [kid],
+// Utilitários: node dist/cli.js migrate up|down [N]|status, seed, openapi [arquivo], season start NOME, season reclose AAAA-MM, ticket-key [kid],
 // invite [usos] [observação] (convite do beta), role NOME admin|moderator|player, milestones (marcos retroativos), milestones-calibrate (contas por marco, sem gravar).
 import { writeFileSync } from 'node:fs';
 import { buildApp } from './app.js';
@@ -9,7 +9,7 @@ import { appliedVersions, loadMigrations, migrateDown, migrateUp } from './db/mi
 import { ensureAppRole, ensureMonitorRole } from './db/app-role.js';
 import { seed } from './db/seed.js';
 import { backfillMilestones, calibrateMilestones } from './milestones.js';
-import { startSeason } from './ranking.js';
+import { recloseSeason, startSeason } from './ranking.js';
 import { createInvites } from './beta.js';
 import { usernameKey } from './db/keys.js';
 import { notifications, playerProfiles, users } from './db/schema.js';
@@ -61,6 +61,10 @@ try {
     // Encerra a temporada ativa e abre outra (OG-084); o ranking recomeça do zero nela.
     const season = await startSeason(database.db, arg2);
     console.log(`temporada ${season.id} (${season.name}) ativa`);
+  } else if (command === 'season' && arg1 === 'reclose' && arg2) {
+    // Regrava o hall da fama de uma temporada encerrada (OG-531): idempotente; concede os marcos do pódio que faltarem.
+    const season = await recloseSeason(database.db, arg2);
+    console.log(season ? `hall da fama da temporada ${season.id} (${season.name}) regravado` : `nenhuma temporada encerrada em ${arg2}`);
   } else if (command === 'ticket-key') {
     // Nova chave Ed25519 para TICKET_SIGNING_KEYS (ponha na frente da atual para rotacionar).
     console.log(exportSigningKey(generateSigningKey(arg1 ?? `k${new Date().toISOString().slice(0, 10)}`)));
@@ -143,7 +147,7 @@ try {
       for (const [title, body] of cases) console.log(`${title}: ${(await watch.alert('test', title, body)) ? 'enviado' : 'não enviado'}`);
     }
   } else {
-    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player | welcome NOME | alert-test');
+    console.error('uso: cli.js migrate up|down [N]|status | seed | openapi [arquivo] | season start NOME | season reclose AAAA-MM | ticket-key [kid] | invite [usos] [observação] | role NOME admin|moderator|player | welcome NOME | alert-test');
     process.exitCode = 2;
   }
 } finally {

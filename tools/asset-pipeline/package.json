@@ -1,6 +1,6 @@
 {
   "name": "@outgun/asset-pipeline",
-  "version": "2.56.1",
+  "version": "2.56.2",
   "private": true,
   "description": "Converte gráficos (PCX) e sons (WAV) do Outgun original para a web e gera o manifesto (card OG-012).",
   "license": "GPL-2.0-or-later",

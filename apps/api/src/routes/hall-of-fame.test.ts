@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Hall da fama (OG-268, RN-RKL-24): guardado na virada da temporada junto da classificação final;
 // quadros com menos de 3 classificados mostram só os que houver; selos no perfil e no clã.
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, like } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
@@ -9,7 +9,7 @@ import { migrateUp } from '../db/migrate.js';
 import { clans, formatRatings, matches, matchPlayers, playerMilestones, ratings, seasonChampions, users } from '../db/schema.js';
 import { seed } from '../db/seed.js';
 import { MemoryMailer } from '../mail/mailer.js';
-import { activeSeason, closeSeason, rollSeason } from '../ranking.js';
+import { activeSeason, closeSeason, previousPodium, recloseSeason, rollSeason } from '../ranking.js';
 import { createTestDatabase, pgAdminUrl, type TestDatabase } from '../test/db.js';
 
 describe.skipIf(!pgAdminUrl)('hall da fama (OG-268)', () => {
@@ -120,5 +120,63 @@ describe.skipIf(!pgAdminUrl)('hall da fama (OG-268)', () => {
       .map((m) => `${m.users}:${m.milestone}`)
       .sort();
     expect(got).toEqual(expect.arrayContaining(['Admin:season_champion', 'Jogador1:humor_runner_up', 'Jogador1:season_champion']));
+  });
+});
+
+describe.skipIf(!pgAdminUrl)('outubro/2026: hall clássico e do leaderboard (OG-531)', () => {
+  let t: TestDatabase;
+  let app: App;
+
+  beforeAll(async () => {
+    t = await createTestDatabase();
+    await migrateUp(t.sql);
+    await seed(t.db);
+    const config = { ...loadConfig({}), databaseUrl: t.url };
+    app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false });
+  });
+  afterAll(async () => {
+    await app?.close();
+    await t?.drop();
+  });
+
+  it('o fechamento de outubro guarda o "Melhor do mês", que dá a medalha e o número 1 em novembro', async () => {
+    await rollSeason(t.db, new Date('2026-10-10T12:00:00Z'));
+    const october = (await activeSeason(t.db))!.id;
+    const ids = Object.fromEntries((await t.db.select({ id: users.id, name: users.username }).from(users)).map((u) => [u.name, u.id]));
+    await t.db.insert(ratings).values({ userId: ids.Jogador2!, seasonId: october, score: 300, neg: 2, matches: 5 });
+    for (let i = 0; i < 5; i++) {
+      const at = new Date(`2026-10-2${i}T12:00:00Z`);
+      const [m] = await t.db
+        .insert(matches)
+        .values({ serverId: 'gs-1', serverMatchId: `o${i}`, seasonId: october, mode: 'ranked', ranked: true, map: 'outgun1', redScore: 1, blueScore: 0, startedAt: at, endedAt: at })
+        .returning({ id: matches.id });
+      const line = (slot: number, name: string, team: number, kills: number, captures: number) => ({
+        matchId: m!.id, slot, userId: ids[name]!, name, team, kills, deaths: 1, captures, playSeconds: 600, stats: { hits: 5, shots: 10 },
+      });
+      await t.db.insert(matchPlayers).values([line(0, 'Admin', 0, 9, 3), line(1, 'Jogador1', 1, 1, 0)]);
+    }
+
+    await rollSeason(t.db, new Date('2026-11-01T03:00:01Z'));
+    const hall = (await app.inject('/hall-of-fame')).json();
+    const { boards, classic } = hall.seasons[0];
+    expect(classic).toBe(true);
+    expect(Object.keys(boards).slice(0, 5)).toEqual(['overall', '3x3', '4x4', '5x5', 'stat:overall']);
+    expect(boards.overall.map((c: { name: string }) => c.name)).toEqual(['Jogador2']);
+    expect(boards['stat:overall'].map((c: { name: string }) => c.name)).toEqual(['Admin', 'Jogador1']);
+    expect(await previousPodium(t.db, ids.Admin!)).toBe(1);
+    expect(await previousPodium(t.db, ids.Jogador1!)).toBe(2);
+    expect(await previousPodium(t.db, ids.Jogador2!)).toBeNull(); // o pódio clássico não dá medalha
+    expect((await app.inject('/players/Admin')).json().medal).toBe(1);
+
+    // o beta fechou outubro sem o "Melhor do mês": regravar devolve o pódio, sem duplicar
+    await t.db.delete(seasonChampions).where(and(eq(seasonChampions.seasonId, october), like(seasonChampions.board, 'stat:%')));
+    expect(await previousPodium(t.db, ids.Admin!)).toBeNull();
+    expect(await recloseSeason(t.db, '2026-10')).toMatchObject({ id: october });
+    await recloseSeason(t.db, '2026-10');
+    expect(await previousPodium(t.db, ids.Admin!)).toBe(1);
+    const rows = await t.db.select().from(seasonChampions).where(eq(seasonChampions.seasonId, october));
+    expect(rows.filter((c) => c.board === 'stat:overall')).toHaveLength(2);
+    expect(rows.filter((c) => c.board === 'overall')).toHaveLength(1);
+    expect(await recloseSeason(t.db, '2026-11')).toBeUndefined(); // temporada ativa não se regrava
   });
 });

@@ -91,22 +91,49 @@ export function monthStart(month: string): Date {
 
 /** Primeiro mês do leaderboard de atributos (D-66): dele em diante o hall da fama vem dos stats (OG-354). */
 export const LEADERBOARD_SINCE = '2026-11';
+/**
+ * Outubro/2026 teve os dois: o ranking clássico (última temporada dele) e, desde o OG-350, o
+ * leaderboard de atributos. O hall guarda os dois, e o pódio do "Melhor do mês" de outubro dá as
+ * medalhas e o número 1 em novembro (OG-531, D-79).
+ */
+export const STAT_HALL_SINCE = '2026-10';
 
 /**
  * Fecha a temporada: até outubro/2026, a classificação final e o hall da fama do score/neg; desde
- * novembro, o hall da fama pelo leaderboard. Regravar (partida que chega depois da virada) não duplica.
+ * outubro, também o hall da fama pelo leaderboard. Regravar (partida que chega depois da virada) não duplica.
  */
 export async function closeSeason(tx: Tx, seasonId: number): Promise<void> {
   const [season] = await tx.select({ month: seasons.month }).from(seasons).where(eq(seasons.id, seasonId));
   if (season?.month && season.month >= LEADERBOARD_SINCE) await snapshotStatChampions(tx, seasonId);
-  else await snapshotStandings(tx, seasonId);
+  else {
+    await snapshotStandings(tx, seasonId);
+    if (season?.month && season.month >= STAT_HALL_SINCE) await insertStatChampions(tx, seasonId);
+  }
   // Campeão da temporada e Vice (OG-392/399); a temporada já não está ativa aqui
   await awardSeasonMilestones(tx, seasonId);
+}
+
+/** Regrava o hall da fama de uma temporada encerrada (`cli.js season reclose AAAA-MM`, OG-531). */
+export async function recloseSeason(db: Db, month: string): Promise<{ id: number; name: string } | undefined> {
+  return db.transaction(async (tx) => {
+    const [season] = await tx
+      .select({ id: seasons.id, name: seasons.name })
+      .from(seasons)
+      .where(and(eq(seasons.month, month), eq(seasons.active, false)));
+    if (season) await closeSeason(tx, season.id);
+    return season;
+  });
 }
 
 /** Hall da fama pelo leaderboard (OG-354, RN-LDB-05): os 3 primeiros de cada stat principal no mês e os clãs. */
 async function snapshotStatChampions(tx: Tx, seasonId: number): Promise<void> {
   await tx.delete(seasonChampions).where(eq(seasonChampions.seasonId, seasonId));
+  await insertStatChampions(tx, seasonId);
+  await snapshotClanChampions(tx, seasonId);
+}
+
+/** Os 3 primeiros do "Melhor do mês" e de cada stat principal, sem apagar os outros quadros. */
+async function insertStatChampions(tx: Tx, seasonId: number): Promise<void> {
   const scope = { seasonId, format: null };
   const leaders = await statLeaders(tx, scope, 3, (s) => s.main);
   // melhor do mês (OG-358): os 3 primeiros do índice geral, no quadro "stat:overall"
@@ -114,7 +141,6 @@ async function snapshotStatChampions(tx: Tx, seasonId: number): Promise<void> {
   const rows = best.map((e) => ({ seasonId, board: 'stat:overall' as ChampionBoard, position: e.position, userId: e.userId, name: e.username, value: e.value }));
   rows.push(...leaders.flatMap((l) => l.entries.map((e) => ({ seasonId, board: `stat:${l.stat}` as const, position: e.position, userId: e.userId, name: e.username, value: e.value }))));
   if (rows.length > 0) await tx.insert(seasonChampions).values(rows);
-  await snapshotClanChampions(tx, seasonId);
 }
 
 /** Grava (de novo) a classificação final da temporada: mesma ordem e mínimo do leaderboard. */
