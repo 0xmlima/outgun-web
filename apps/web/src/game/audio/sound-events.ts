@@ -15,6 +15,11 @@ export interface SoundContext {
   readonly onscreen: ReadonlySet<number>;
   /** Tempo do jogo (s), para o intervalo mínimo dos quiques. */
   readonly time: number;
+  /**
+   * Espectador e replay (OG-535): o jogador está na sala mostrada? Sem isso (na partida), os quiques de
+   * todo jogador simulado tocam; com isso, só os da sala que está na tela.
+   */
+  readonly inView?: (pid: number) => boolean;
 }
 
 /** Intervalo mínimo entre sons de quique do mesmo jogador (s). */
@@ -41,6 +46,12 @@ export class SoundEvents {
       case 'sound': {
         const name = SAMPLES[m.sample];
         if (name) out.push(name);
+        break;
+      }
+      case 'roomSound': {
+        // replay e espectador: o som de sala só para quem vê a sala (OG-535)
+        const name = SAMPLES[m.sample];
+        if (name && c.room && m.roomX === c.room.x && m.roomY === c.room.y) out.push(name);
         break;
       }
       case 'playerJoined':
@@ -105,11 +116,13 @@ export class SoundEvents {
       case 'flagCarried':
         return ['got'];
       case 'playerHitWall': {
+        if (c.inView && !c.inView(ev.pid)) return [];
         if (c.time <= (this.wallTime.get(ev.pid) ?? -Infinity)) return [];
         this.wallTime.set(ev.pid, c.time + BOUNCE_INTERVAL);
         return ['wabounce'];
       }
       case 'playerHitPlayer': {
+        if (c.inView && !c.inView(ev.pid1) && !c.inView(ev.pid2)) return [];
         const t1 = this.playerTime.get(ev.pid1) ?? -Infinity;
         const t2 = this.playerTime.get(ev.pid2) ?? -Infinity;
         if (!(c.time > t1 || c.time > t2)) return [];

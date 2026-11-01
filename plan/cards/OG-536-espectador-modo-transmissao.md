@@ -7,7 +7,7 @@
 | Prioridade | Should |
 | Estimativa | 2 pts |
 | Sprint | S57 |
-| Status | Pronto |
+| Status | Em andamento |
 | Dependências | OG-533, OG-535 |
 | Regras de negócio | — |
 | Skills | `outgun-card-workflow` |

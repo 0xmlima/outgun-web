@@ -508,6 +508,8 @@ export class Room {
         if (!pl) return;
         const msg = message('sound', { sample: SAMPLES.indexOf(sample) });
         for (const other of this.viewers((p) => p.pos.sameRoom(pl.pos))) this.queueTo(other, msg);
+        // replay e espectador: o som com a sala de origem (OG-535)
+        this.recorder?.event(message('roomSound', { sample: msg.sample, roomX: pl.pos.roomX, roomY: pl.pos.roomY }));
       },
     });
     this.colors = new ColorPool(this.sim.rng);

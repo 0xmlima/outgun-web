@@ -153,6 +153,18 @@ describe('OG-092: espectador ao vivo', () => {
     expect(v.code).toBe(1001);
   });
 
+  it('sons de sala vão para o stream com a sala de origem (OG-535)', () => {
+    const r = room('spectating_delay 0');
+    const v = new Viewer();
+    r.addSpectator(v);
+    for (let i = 0; i < 6000 && !v.messages().some((m) => m.type === 'roomSound'); i++) r.tick();
+    const sound = v.messages().find((m) => m.type === 'roomSound');
+    expect(sound).toBeDefined();
+    if (sound?.type !== 'roomSound') return;
+    expect(sound.roomX).toBeLessThan(r.world.map.width);
+    expect(sound.roomY).toBeLessThan(r.world.map.height);
+  });
+
   it('limite de espectadores por sala', () => {
     const r = room('spectating_delay 0', 2);
     expect(r.addSpectator(new Viewer())).toBe(true);

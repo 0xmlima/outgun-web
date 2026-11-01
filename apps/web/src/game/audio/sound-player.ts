@@ -25,6 +25,16 @@ export class SoundPlayer {
     if (this.ctx?.state === 'suspended') void this.ctx.resume().catch(() => undefined);
   };
 
+  /** O navegador ainda segura o áudio (falta um gesto na página): o espectador avisa (OG-535). */
+  get blocked(): boolean {
+    return this.ctx?.state === 'suspended';
+  }
+
+  /** Avisa quando o áudio é liberado ou suspenso. */
+  onStateChange(fn: () => void): void {
+    if (this.ctx) this.ctx.onstatechange = fn;
+  }
+
   /** Carrega os samples do tema (os que o tema não tem ficam mudos, como no original). */
   async load(manifest: Manifest, theme = 'Visa'): Promise<void> {
     const ctx = this.ctx;

@@ -858,6 +858,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     '$1 s delay': 'atraso de $1 s',
     'Live with $1 s delay: the match appears after the delay.': 'Ao vivo com atraso de $1 s: a partida aparece depois do atraso.',
     'Arrows room · F follow player · keypad +/- zoom · M sound': 'Setas sala · F seguir jogador · +/- do teclado numérico zoom · M som',
+    'Arrows room · F follow player · keypad +/- zoom · M sound · N music': 'Setas sala · F seguir jogador · +/- do teclado numérico zoom · M som · N música',
+    'Click to turn on the sound.': 'Clique para ligar o som.',
     'Disconnected': 'Desconectado',
     'My matches': 'Minhas partidas',
     'No replay chosen.': 'Nenhum replay escolhido.',

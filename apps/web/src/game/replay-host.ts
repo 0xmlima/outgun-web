@@ -40,6 +40,8 @@ export interface ReplayStatus {
   readonly room: readonly [number, number];
   readonly mapTitle: string;
   readonly ended: boolean;
+  /** Som ligado, mas o navegador ainda espera um clique ou tecla para liberar o áudio (OG-535). */
+  readonly audioBlocked: boolean;
 }
 
 export interface ReplayHost {
@@ -184,6 +186,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       room,
       mapTitle: replay?.header.mapTitle ?? '',
       ended: !opts.live && !!player && player.position >= player.length,
+      audioBlocked: !!sounds && soundOn && sounds.blocked,
     };
     const key = JSON.stringify(st);
     if (key !== lastStatus) {
@@ -191,6 +194,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       opts.onStatus(st);
     }
   };
+  sounds?.onStateChange(status); // o aviso de áudio bloqueado some no primeiro gesto
 
   const layout = () => {
     let playfield = { x: 0, y: 0, w: app.screen.width, h: app.screen.height };
@@ -277,7 +281,14 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       if (sounds && soundEvents && soundOn && !seeking && rate <= 2) {
         const s = p.session;
         const seen = follow >= 0 ? s.world?.players[follow] : undefined;
-        const ctx = { me: follow, room: seen ? { x: seen.pos.roomX, y: seen.pos.roomY } : { x: room[0], y: room[1] }, onscreen: s.onscreen, time };
+        const shown = seen ? { x: seen.pos.roomX, y: seen.pos.roomY } : { x: room[0], y: room[1] };
+        // no replay todos vêm "na tela": mortes e quiques só da sala mostrada (OG-535)
+        const inView = (pid: number) => {
+          const pl = s.world?.players[pid];
+          return !!pl && pl.pos.roomX === shown.x && pl.pos.roomY === shown.y;
+        };
+        const onscreen = new Set([...s.onscreen].filter(inView));
+        const ctx = { me: follow, room: shown, onscreen, time, inView };
         for (const name of ev.kind === 'message' ? soundEvents.fromMessage(ev.message, ctx, facts) : soundEvents.fromSession(ev, ctx)) sounds.play(name);
       }
       if (ev.kind === 'rocketHitWall') fx.addEffect(ev.power ? 'powerWallExplosion' : 'wallExplosion', at(ev.pos), ev.team, time);

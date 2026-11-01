@@ -127,8 +127,20 @@ export default function ReplayScreen() {
 }
 
 export function SpectateScreen() {
-  useMusicMode('match'); // espectador ao vivo: a playlist do Casual (D-37)
   const { t, prefs } = usePrefs();
+  // espectador ao vivo: a playlist do Casual (D-37), mas desligada por padrão para a transmissão
+  // levar só o som do jogo; N liga e desliga (OG-535)
+  const [music, setMusic] = useState(false);
+  useMusicMode(music ? 'match' : 'off');
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== 'n' && ev.key !== 'N') return;
+      ev.preventDefault();
+      setMusic((m) => !m);
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const src = params.get('src') ?? `${defaultServerUrl()}/rooms/${encodeURIComponent(params.get('sala') ?? 'main')}/spectate`;
@@ -235,8 +247,13 @@ export function SpectateScreen() {
                 {t('Back')}
               </button>
             </span>
-            <small>{t('Arrows room · F follow player · keypad +/- zoom · M sound')}</small>
+            <small>{t('Arrows room · F follow player · keypad +/- zoom · M sound · N music')}</small>
           </div>
+        )}
+        {status?.audioBlocked && !error && (
+          <p className="game-toast" role="status">
+            {t('Click to turn on the sound.')}
+          </p>
         )}
       </div>
     </div>

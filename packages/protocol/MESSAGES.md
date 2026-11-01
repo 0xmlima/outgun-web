@@ -106,7 +106,8 @@ Canal `frame`: estado do frame, pode ser descartado se chegar um mais novo; `eve
 | 131 | [`teamIdentity`](#teamidentity) | servidor → cliente | event | — (web, OG-408) | Um lado virou o clã nesta rodada (≥ 2 humanos do mesmo clã e nenhum de outro clã): tag e nome do clã e a cor do lado (`#RRGGBB`; vazia = a cor padrão do lado). Tag vazia = o lado voltou a ser vermelho/azul. No `welcome` de quem entra e a cada rodada que muda. |
 | 133 | [`teamEmblem`](#teamemblem) | servidor → cliente | event | — (web, OG-486) | Emblema do clã do lado (`ClanEmblem` e as cores do clã), logo depois do `teamIdentity` que fez o lado virar o clã; o cliente desenha o emblema no chão das bases. Não vem para clã sem emblema gravado. |
 | 134 | [`trainingState`](#trainingstate) | servidor → cliente | event | — (web, OG-490) | Tentativa da sala de treino: fase (contagem, em jogo ou resultado), modo, segundos da contagem, resultado e motivo do fim, duração da tentativa (décimos de s), sucessos e tentativas da sessão, nível dos bots e se ele mudou (dificuldade progressiva, OG-499). |
-| 132 | [`playerNumber`](#playernumber) | servidor → cliente | event | — (web, OG-410) | Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem. |
+| 132 | [`playerNumber`](#playernumber) | servidor → cliente | event | — (web, OG-410) | Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil; nos bits 4–5, a medalha do pódio do mês anterior, OG-532: `packNumberStyle`). Logo depois do `playerJoined`; sem número (convidado, bot), não vem. |
+| 135 | [`roomSound`](#roomsound) | servidor → cliente | event | — (web, OG-535) | Só no replay e no espectador: o `sound` que o servidor mandou a quem estava na sala (`screenSample`), com a sala de origem; toca só para quem está vendo essa sala. |
 
 ## Campos
 
@@ -844,11 +845,19 @@ Código 134. Tentativa da sala de treino: fase (contagem, em jogo ou resultado),
 
 ### playerNumber
 
-Código 132. Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.
+Código 132. Número do jogador (1 a 99), no centro do boneco, e o estilo dele (OG-413: 0 Bloco, 1 Corrida, 2 Contorno, 3 Estêncil; nos bits 4–5, a medalha do pódio do mês anterior, OG-532: `packNumberStyle`). Logo depois do `playerJoined`; sem número (convidado, bot), não vem.
 
 - `pid`: pid (u8, 0..31)
 - `number`: u8
 - `style`: u8
+
+### roomSound
+
+Código 135. Só no replay e no espectador: o `sound` que o servidor mandou a quem estava na sala (`screenSample`), com a sala de origem; toca só para quem está vendo essa sala.
+
+- `sample`: u8
+- `roomX`: u8
+- `roomY`: u8
 
 ## Mensagens do original que não existem aqui
 
