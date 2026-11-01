@@ -72,6 +72,17 @@ GPL-2.0-or-later (texto em `COPYING`, créditos em `CREDITS.md`). `pnpm check:li
 - Contas (OG-081): as telas Entrar, Criar conta, Esqueceu a senha, Conta usam a API em `/api`; `vite dev` e `vite preview` repassam para `http://localhost:7800` (`API_URL` muda o destino; `VITE_API_URL` no build aponta para outro endereço). Suba a API conforme `apps/api/README.md`. Sem a API, o jogo segue como convidado.
 - `VITE_SOURCE_URL` (opcional, no build): endereço público do código-fonte para o link "Código-fonte (GPL)"; sem ele o link abre a página `/source`.
 
+## Celular e tablet pelo ngrok (experimental)
+
+No celular e no tablet sem mouse a partida do "Jogar agora" (Casual) abre com controles de toque e o HUD em pé (`isTouchGame` em `apps/web/src/app/phone.ts`). Para testar num aparelho de verdade, a página, a API e o WebSocket do game server passam por um endereço público só, o do ngrok:
+
+1. `ngrok http 5174` e anote o endereço (ex.: `https://abc-123.ngrok-free.dev`; abaixo, `H=abc-123.ngrok-free.dev`).
+2. Suba tudo anunciando esse endereço: `PUBLIC_WS_URL="wss://$H/gs" DEV_ROOM_WS_URL="wss://$H/gs/rooms/{id}" WEB_ORIGINS="https://$H,http://localhost:5173" WEB_URL="https://$H" pnpm dev:all` (com `ROTATION="outgun1,2 versus 2 (duel)"` para ter um mapa curto também).
+3. Em outro terminal, o cliente pela configuração do celular: `pnpm --filter @outgun/web exec vite --config vite.phone.config.ts` (porta 5174, aceita o host do túnel e repassa `/gs` para o game server na 7700).
+4. No aparelho, abra `https://$H`, toque em "Visit Site" no aviso do ngrok e em "Jogar agora (experimental)". O `localhost:5173` segue funcionando no computador.
+
+O endereço do ngrok gratuito muda a cada `ngrok http`: refaça o passo 2 com o novo. O erro de sintaxe do `manifest.webmanifest` no console vem do aviso do ngrok e não aparece fora do túnel.
+
 ## Testes E2E e de carga (OG-101)
 
 - `pnpm --filter @outgun/e2e e2e` (depois de `pnpm build`): Playwright com o Chrome instalado (no CI, o Chromium do Playwright). Sobe um PostgreSQL descartável no Docker (porta 55433; `E2E_DATABASE_URL` usa outro), a API (17800), o game server (17700, tickets de verdade, partidas de 1 minuto com 3 bots) e o `vite preview` (14173), e percorre cadastro → lobby → "Jogar agora" → partida até o fim → perfil com a partida → página da partida → ranking; também confere que convidado no Ranked vai para o login. Prints em `tools/parity/out/prints/og101/`, relatório e traces de falha em `tools/parity/out/e2e/`.

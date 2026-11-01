@@ -14,6 +14,7 @@ import { loadMap, sameMapOrLoaded } from './map-loader.js';
 import { LocalDemo } from './demo.js';
 import { guardFrame } from './frame-guard.js';
 import { captureError } from '../app/errors.js';
+import { isTouchGame } from '../app/phone.js';
 import type { Bindings, PressAction } from './input/bindings.js';
 import { GameInput, toggleFocusMode } from './input/input.js';
 import { chordLabel, isGameKey } from './input/bindings.js';
@@ -66,6 +67,12 @@ export interface GameHost {
   chat(count: number): { team: number; text: string }[];
   /** Manda uma linha de chat (ou comando /...), como a caixa de chat da partida. */
   say(text: string): void;
+  /** Controles de toque do celular (bits de `CONTROL` e tiro). */
+  setTouch(controls: number, fire: boolean): void;
+  /** Ação de tecla disparada por um botão da tela (celular). */
+  press(action: PressAction): void;
+  /** Página da caixa do placar no celular (0 time vermelho, 1 azul, 2 chat, que é HTML). */
+  setBoardPage(page: number): void;
   /** Teclas para uma tela aberta (antes do chat e dos controles); devolve true se usou a tecla. */
   setKeyInterceptor(fn: ((ev: KeyboardEvent) => boolean) | null): void;
   /** Para o laço e solta o canvas (e fecha a conexão). */
@@ -169,6 +176,8 @@ export interface GameOptions {
   readonly onAction?: (action: PressAction | 'menu') => void;
   /** Avisado quando o mapa e o tema terminam de carregar (ou falham). */
   readonly onStatus?: (status: GameStatus) => void;
+  /** Divisão da tela da partida online a cada mudança (celular: os botões da tela seguem o HUD). */
+  readonly onScreen?: (screen: ScreenLayout) => void;
   /** Modo da sala, ao ser aceito nela (a trilha toca só no Casual, D-37). */
   readonly onRoomMode?: (mode: 'casual' | 'ranked') => void;
 }
@@ -327,8 +336,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
         graphics().hudStyle,
         graphics().hudCustom,
         graphics().classicFragsOnTab,
+        isTouchGame(),
+        worldMap ? { w: worldMap.width, h: worldMap.height } : undefined,
       );
       playfield = screen.playfield;
+      opts.onScreen?.(screen);
     }
     const v = viewOptions(graphics(), wraps);
     world.setPlayfield(playfield, { visibleRooms: visible, continuousTextures: opts.continuousTextures, repeatX: v.repeatX, repeatY: v.repeatY, mapInfo: graphics().mapInfoMode });
@@ -832,6 +844,11 @@ export function mountGame(container: HTMLElement, opts: GameOptions): GameHost {
     say: (raw) => {
       const text = raw.trim().slice(0, MAX_CHAT_LENGTH);
       if (text && text !== '.') session?.send(message('chat', { text, teamOnly: text.startsWith('.') }));
+    },
+    setTouch: (controls, fire) => input.setTouch(controls, fire),
+    press: (action) => input.press(action),
+    setBoardPage: (page) => {
+      if (hud) hud.scoreboardPage = page;
     },
     setKeyInterceptor: (fn) => {
       interceptor = fn;

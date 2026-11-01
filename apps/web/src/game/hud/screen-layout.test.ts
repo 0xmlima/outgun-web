@@ -123,3 +123,31 @@ describe('screenLayout em coluna, telas largas (OG-295)', () => {
     expect(l.scoreboard?.side).toBe(true);
   });
 });
+
+describe('screenLayout no celular (experimental)', () => {
+  it('sala em cima na largura toda; minimapa e placar lado a lado embaixo, abaixo da barra', () => {
+    const l = screenLayout(412, 731, font16, EN, true, 1, 'modern', undefined, false, true);
+    expect(l.mode).toBe('celular');
+    expect(l.style).toBe('classic');
+    expect(l.playfield).toEqual({ x: 0, y: 0, w: 412, h: 309 });
+    expect(l.minimapPlace!.y).toBeGreaterThan(l.indicatorsY);
+    expect(l.scoreboard!.y1).toBe(l.minimapPlace!.y);
+    expect(l.minimapPlace!.x + l.minimapPlace!.w).toBeLessThan(l.scoreboard!.x1);
+  });
+  it('minimapa e placar com a mesma altura, pela proporção do mapa', () => {
+    const l = screenLayout(412, 731, font16, EN, true, 1, 'classic', undefined, false, true, { w: 4, h: 6 });
+    const block = l.scoreboard!.y2 - l.scoreboard!.y1 + 1;
+    expect(l.minimapPlace!.h).toBe(Math.trunc((l.minimapPlace!.w * 6 * 3) / (4 * 4)) + 1); // mapa na largura da coluna
+    expect(block).toBe(l.minimapPlace!.h);
+    expect(l.chat.x).toBeGreaterThanOrEqual(l.scoreboard!.x1); // chat na terceira página do placar
+    expect(l.chat.y + l.chat.h).toBeLessThanOrEqual(l.scoreboard!.y2 + 1);
+  });
+  it('tela curta: a sala diminui para um time do placar caber inteiro', () => {
+    const l = screenLayout(390, 480, font16, EN, true, 1, 'classic', undefined, false, true);
+    expect(l.scoreboard!.y2 - l.scoreboard!.y1 + 1).toBeGreaterThanOrEqual(9 * 18 + 1);
+    expect(l.scoreboard!.y2).toBeLessThan(480);
+  });
+  it('o chat escondido ainda tem largura (com 0 caracteres a quebra de linhas não termina)', () => {
+    expect(screenLayout(360, 560, font16, EN, true, 1, 'classic', undefined, false, true).chatChars).toBeGreaterThan(0);
+  });
+});
