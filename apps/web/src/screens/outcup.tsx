@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useAccount } from '../app/account.js';
 import { api, ApiError } from '../app/api.js';
+import { copyText } from '../app/clipboard.js';
 import { usePrefs } from '../app/prefs.js';
 import { Badge, Button, type Tone } from '../ui/Button.js';
 import { FormMessageLine, Page, type FormMessage } from '../ui/Page.js';
@@ -360,13 +361,21 @@ function MatchPanel({ id, cup, onClose }: { id: string; cup: Cup; onClose: () =>
     setMessage(null);
     api<MatchDetail>(`/cups/matches/${m.id}/${path}`, { method: path === 'availability' ? 'PUT' : 'POST', body }).then(() => setMessage({ text: ok, error: false }), failed);
   };
-  const watch = () => {
+  /** Link do espectador com a faixa do confronto (OG-536); `broadcast`: tela limpa para o OBS. */
+  const spectatePath = (url: string, broadcast: boolean) =>
+    `/spectate?src=${encodeURIComponent(url)}&copa=${encodeURIComponent(m.id)}&rodadas=${rounds}${broadcast ? '&transmissao=1' : ''}`;
+  const withRoom = (then: (url: string) => void) => {
     api<{ room: { spectateUrl: string | null } } | { spectateUrl: string | null }>(`/rooms/${m.roomId}`).then((r) => {
       const url = 'room' in r ? r.room.spectateUrl : r.spectateUrl;
-      if (url) void navigate(`/spectate?src=${encodeURIComponent(url)}`);
+      if (url) then(url);
       else setMessage({ text: t('The room is not on air yet.'), error: true });
     }, failed);
   };
+  const watch = () => withRoom((url) => void navigate(spectatePath(url, false)));
+  const copyBroadcast = () =>
+    withRoom((url) => {
+      void copyText(`${location.origin}${spectatePath(url, true)}`).then((ok) => ok && setMessage({ text: t('Broadcast link copied: open it in the OBS browser source.'), error: false }));
+    });
   const otherProposed = d.myDuo && m.proposedAt && m.proposedBy && m.proposedBy !== (d.myDuo === 'a' ? m.duoA : m.duoB);
   const mineProposed = d.myDuo && m.proposedAt && m.proposedBy === (d.myDuo === 'a' ? m.duoA : m.duoB);
   const scheduling = d.myDuo !== null && (m.status === 'open' || m.status === 'scheduled');
@@ -397,6 +406,9 @@ function MatchPanel({ id, cup, onClose }: { id: string; cup: Cup; onClose: () =>
             </Button>
           )}
           <Button onClick={watch}>{t('Watch')}</Button>
+          <Button variant="ghost" onClick={copyBroadcast}>
+            {t('Copy broadcast link')}
+          </Button>
         </p>
       )}
       {m.status === 'scheduled' && d.myDuo && <p className="ui-muted">{t('The room opens 15 minutes before. A pair that is not complete 15 minutes after the start loses by walkover.')}</p>}

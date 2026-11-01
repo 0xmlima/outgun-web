@@ -8,6 +8,8 @@ import { fetchMapText, serverOnlyMap } from '../game/map-loader.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { usePrefs } from '../app/prefs.js';
+import { api } from '../app/api.js';
+import { roundLabel } from './outcup.js';
 import { copyText } from '../app/clipboard.js';
 import { GAME_FONT } from '../ui/fonts.js';
 import { useMusicMode } from '../app/music/MusicProvider.js';
@@ -143,6 +145,22 @@ export function SpectateScreen() {
   }, []);
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  // modo transmissão (OG-536): sem a barra nem as dicas por cima do jogo (H mostra), seguindo o portador
+  const broadcast = params.get('transmissao') === '1';
+  const [bar, setBar] = useState(!broadcast);
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== 'h' && ev.key !== 'H') return;
+      ev.preventDefault();
+      setBar((b) => !b);
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+  const cupMatch = params.get('copa');
+  const cupRounds = Number(params.get('rodadas') ?? 0);
+  /** Partidas que o stream já começou: o placar da série só anda quando a próxima aparece (sem spoiler). */
+  const [segments, setSegments] = useState(0);
   const src = params.get('src') ?? `${defaultServerUrl()}/rooms/${encodeURIComponent(params.get('sala') ?? 'main')}/spectate`;
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<ReplayStatus | null>(null);
@@ -162,6 +180,7 @@ export function SpectateScreen() {
       preferThemeColours: prefs.preferThemeColours,
       sound: { enabled: prefs.soundEnabled, volume: prefs.soundVolume, theme: prefs.soundTheme },
       live: true,
+      autoFollow: broadcast,
       onStatus: setStatus,
       translate: (text, ...args) => t(text, ...args),
       onError: setError,
@@ -181,6 +200,7 @@ export function SpectateScreen() {
       if (start?.type === 'spectatorStart') {
         if (start.protocol !== PROTOCOL_VERSION) return setError(t('This server uses another version of the game.'));
         setDelay(start.delay);
+        setSegments((n) => n + 1);
         replay = {
           version: 1,
           protocol: start.protocol,
@@ -225,29 +245,36 @@ export function SpectateScreen() {
         )}
         {!error && ended && (
           <p className="game-toast" role="status">
-            {t('The match is over.')}{' '}
-            <button type="button" onClick={() => void navigate(-1)}>
-              {t('Back')}
-            </button>
+            {t('The match is over.')}
+            {!broadcast && (
+              <>
+                {' '}
+                <button type="button" onClick={() => void navigate(-1)}>
+                  {t('Back')}
+                </button>
+              </>
+            )}
           </p>
         )}
+        {cupMatch && <CupStrip id={cupMatch} rounds={cupRounds} refresh={`${segments}-${ended}`} />}
         {!error && !ended && !status && (
           <p className="game-toast" role="status">
             {delay !== null ? t('Live with $1 s delay: the match appears after the delay.', String(delay)) : t('Connecting to the live match: it appears after the delay.')}
           </p>
         )}
-        {status && (
+        {status && bar && (
           <div className="replay-bar">
             <span>
               {ended ? t('Match over') : t('Live')} · {status.mapTitle} · {t('$1 s delay', String(delay ?? 0))}
               {status.following ? ` · ${t('following $1', status.following)}` : ` · ${t('room $1', `${status.room[0]},${status.room[1]}`)}`}
+              {status.autoFollow && ` · ${t('following the flag')}`}
             </span>
             <span className="replay-buttons">
               <button type="button" onClick={() => void navigate(-1)}>
                 {t('Back')}
               </button>
             </span>
-            <small>{t('Arrows room · F follow player · keypad +/- zoom · M sound · N music')}</small>
+            <small>{t('Arrows room · F follow player · A follow the flag · keypad +/- zoom · M sound · N music · H hide this bar')}</small>
           </div>
         )}
         {status?.audioBlocked && !error && (
@@ -258,4 +285,45 @@ export function SpectateScreen() {
       </div>
     </div>
   );
+}
+
+/**
+ * Faixa do confronto da OutCup no espectador (OG-536): duplas, fase e placar da série. O placar vem da
+ * API, que está à frente do stream; por isso só é buscado de novo quando o stream começa um jogo novo ou
+ * termina, para a transmissão não contar o resultado antes da hora.
+ */
+function CupStrip({ id, rounds, refresh }: { readonly id: string; readonly rounds: number; readonly refresh: string }) {
+  const { t } = usePrefs();
+  const [d, setD] = useState<CupStripData | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api<CupStripData>(`/cups/matches/${encodeURIComponent(id)}`).then(
+      (r) => alive && setD(r),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [id, refresh]);
+  if (!d) return null;
+  const m = d.match;
+  // a dupla A joga de vermelho na sala do confronto (OG-529)
+  const wins = (a: boolean) => m.games.filter((g) => (a ? g.redScore > g.blueScore : g.blueScore > g.redScore)).length;
+  const names = (x: { players: string[] } | null) => x?.players.join(' + ') ?? '?';
+  return (
+    <div className="spectate-cup">
+      <span className="spectate-cup-title">
+        OutCup{rounds > 0 ? ` · ${roundLabel(m.round, rounds, t)}` : ''} · {t('best of $1', String(m.bestOf))}
+      </span>
+      <span>
+        <span className="outcup-red">{names(d.duoA)}</span> {wins(true)} × {wins(false)} <span className="outcup-blue">{names(d.duoB)}</span>
+      </span>
+    </div>
+  );
+}
+
+interface CupStripData {
+  match: { round: number; bestOf: number; games: { redScore: number; blueScore: number }[] };
+  duoA: { players: string[] } | null;
+  duoB: { players: string[] } | null;
 }

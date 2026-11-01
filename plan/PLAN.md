@@ -1012,7 +1012,7 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-533](cards/OG-533-espectador-ate-o-fim-da-serie.md) | Espectador assiste até o fim: a sala não derruba quem ainda está no atraso | E6 | 3 | Must | S57 | — | Em revisão |
 | [OG-534](cards/OG-534-espectador-atraso-15s.md) | Espectador com 15 s de atraso | E6 | 1 | Must | S57 | — | Em revisão |
 | [OG-535](cards/OG-535-som-do-jogo-no-espectador.md) | Som do jogo no espectador, pronto para transmissão | E6 | 3 | Must | S57 | — | Em revisão |
-| [OG-536](cards/OG-536-espectador-modo-transmissao.md) | Espectador em modo transmissão (tela limpa para OBS) | E6 | 2 | Should | S57 | OG-533, OG-535 | Em andamento |
+| [OG-536](cards/OG-536-espectador-modo-transmissao.md) | Espectador em modo transmissão (tela limpa para OBS) | E6 | 2 | Should | S57 | OG-533, OG-535 | Em revisão |
 
 **Total:** 374 cards, 1189 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 305 cards, 894 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).
 

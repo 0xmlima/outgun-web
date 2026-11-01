@@ -833,6 +833,20 @@ body {
 .outcup-vs { font-size: var(--text-lg); margin: 0; }
 .outcup-red { color: var(--text-team-red); }
 .outcup-blue { color: var(--text-team-blue); }
+/* faixa do confronto no espectador (OG-536): no rodapé das salas, acima do HUD */
+.spectate-cup {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--px) * 6px);
+  transform: translateX(-50%);
+  display: flex;
+  gap: calc(var(--px) * 10px);
+  padding: calc(var(--px) * 4px) calc(var(--px) * 10px);
+  background: rgb(0 0 0 / 70%);
+  color: var(--menu-value);
+  white-space: nowrap;
+}
+.spectate-cup-title { color: var(--menu-disabled); }
 .outcup-games { margin: 0; padding-left: 1.2em; font-variant-numeric: tabular-nums; }
 .outcup-availability h3 { margin: var(--space-4) 0 var(--space-2); font-size: var(--text-md); }
 .outcup-grid-wrap { overflow-x: auto; }

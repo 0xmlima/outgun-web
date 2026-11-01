@@ -42,6 +42,8 @@ export interface ReplayStatus {
   readonly ended: boolean;
   /** Som ligado, mas o navegador ainda espera um clique ou tecla para liberar o áudio (OG-535). */
   readonly audioBlocked: boolean;
+  /** Seguindo sozinho quem pega a bandeira (OG-536). */
+  readonly autoFollow: boolean;
 }
 
 export interface ReplayHost {
@@ -69,6 +71,8 @@ export interface ReplayOptions {
   readonly translate?: Translate;
   /** Efeitos sonoros da partida (OG-468), com o volume e o tema das Opções; M liga e desliga. */
   readonly sound?: { readonly enabled: boolean; readonly volume: number; readonly theme: string };
+  /** Começa seguindo quem está com a bandeira (OG-536, modo transmissão). */
+  readonly autoFollow?: boolean;
 }
 
 /** Lê um `.ogr`: prefixo, gzip (DecompressionStream) e blocos. */
@@ -102,6 +106,8 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
   let visible = opts.visibleRooms;
   let room: [number, number] = [0, 0];
   let follow = -1;
+  /** Seguir quem está com a bandeira (OG-536, tecla A): para quem transmite sozinho. */
+  let autoFollow = opts.autoFollow ?? false;
   // som (OG-468): os eventos da partida viram os mesmos efeitos; mudo no seek (não toca o que pulou)
   // e acima de 2x, quando os sons se amontoam
   const sounds = opts.sound ? new SoundPlayer() : undefined;
@@ -187,6 +193,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       mapTitle: replay?.header.mapTitle ?? '',
       ended: !opts.live && !!player && player.position >= player.length,
       audioBlocked: !!sounds && soundOn && sounds.blocked,
+      autoFollow,
     };
     const key = JSON.stringify(st);
     if (key !== lastStatus) {
@@ -205,6 +212,17 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
       playfield = screen.playfield;
     }
     world?.setPlayfield(playfield, { visibleRooms: visible, continuousTextures: opts.continuousTextures });
+  };
+
+  /** Seguir automático: fica com o portador seguido; senão o primeiro portador; sem portador, não muda. */
+  const followCarrier = () => {
+    const w = player?.session.world;
+    if (!w) return;
+    const flags = [...w.teams[0].flags, ...w.teams[1].flags, ...w.wildFlags];
+    const carriers = flags.map((f) => f.carrier).filter((pid) => pid >= 0 && w.players[pid]);
+    if (carriers.length === 0 || carriers.includes(follow)) return;
+    follow = carriers[0]!;
+    status();
   };
 
   /** Próximo jogador presente depois de `follow` (−1 volta à sala fixa). */
@@ -230,12 +248,21 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
     else if ((ev.key === 'p' || ev.key === 'P') && !opts.live) paused = !paused;
     else if (ev.code === 'NumpadAdd') visible = zoom(visible, -1);
     else if (ev.code === 'NumpadSubtract') visible = zoom(visible, 1);
-    else if (ev.key === 'f' || ev.key === 'F') nextFollow();
+    else if (ev.key === 'f' || ev.key === 'F') {
+      autoFollow = false;
+      nextFollow();
+    } else if (ev.key === 'a' || ev.key === 'A') {
+      autoFollow = !autoFollow;
+      followCarrier();
+    }
     else if ((ev.key === 'm' || ev.key === 'M') && sounds && opts.sound) {
       soundOn = !soundOn;
       sounds.configure(soundOn, opts.sound.volume);
     }
-    else if (ev.key === 'Escape' && follow >= 0) follow = -1;
+    else if (ev.key === 'Escape' && (follow >= 0 || autoFollow)) {
+      autoFollow = false;
+      follow = -1;
+    }
     else return;
     ev.preventDefault();
     layout();
@@ -344,6 +371,7 @@ export function mountReplay(container: HTMLElement, initial: Replay | null, opts
         }
         // ao vivo, não extrapola além do último frame recebido
         if (p.position >= p.length) subFrame = Math.min(subFrame, 1);
+        if (autoFollow) followCarrier();
         const s = p.session;
         if (s !== identityFor || s.teamIdentityVersion !== identitySeen) {
           identityFor = s;
