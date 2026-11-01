@@ -36,7 +36,7 @@ export function PhoneHome() {
         <p className="home-tagline">{t('Capture the flag with friends, right in the browser.')}</p>
       </section>
       <p className="phone-home-play" role="note">
-        {t('To play, open Outgun on a computer. Here you follow stats, profiles, clans and match reports.')}
+        {t('Casual matches work here with touch controls (experimental); Ranked and the OutCup are played on a computer. Here you also follow stats, profiles, clans and match reports.')}
       </p>
       {/* partida no celular (experimental): o Casual do "Jogar agora", com controles de toque */}
       <Button variant="primary" className="phone-home-playnow" onClick={playNow}>

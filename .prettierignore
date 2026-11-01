@@ -21,3 +21,6 @@ coverage/
 
 # Gerado a partir do catálogo (teste confere byte a byte).
 packages/protocol/MESSAGES.md
+
+# Gerado por `pnpm --filter @outgun/api openapi` (JSON.stringify); o teste compara o conteúdo, não a formatação.
+apps/api/openapi.json
