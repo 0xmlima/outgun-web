@@ -29,8 +29,10 @@ export interface BarLabels {
  * `coluna`: telas largas (≥ 3:2), sala com a altura toda e chat no alto da coluna da direita (OG-295).
  * `livre`: sem minimapa e placar (F12), sala centralizada.
  * `componentes`: HUD Moderno ou Personalizado (D-55), cada componente no seu lugar (`hud`).
+ * `celular`: celular em pé (experimental): sala na largura toda em cima, barra, minimapa e placar
+ * lado a lado embaixo, com a mesma altura; o placar mostra um time ou o chat por vez, deslizando.
  */
-export type HudMode = 'faixa' | 'coluna' | 'livre' | 'componentes';
+export type HudMode = 'faixa' | 'coluna' | 'livre' | 'componentes' | 'celular';
 
 export interface ScoreboardPlace {
   /** Área do placar (x1..x2, y1..y2 inclusivos). */
@@ -79,6 +81,8 @@ export interface ScreenLayout {
   /** Fim (à direita) do relógio. */
   readonly timeX: number;
   readonly timeY: number;
+  /** Celular: largura das barras de vida e energia (no resto, `scr_mul · 100`). */
+  readonly barW?: number;
 }
 
 /** `scale`: arredonda `scr_mul · v`. */
@@ -111,7 +115,14 @@ export function screenLayout(
   style: HudStyle = 'classic',
   custom: HudCustom = DEFAULT_HUD_CUSTOM,
   fragsOnTab = false,
+  phone = false,
+  /** Tamanho do mapa em salas (celular: a altura do minimapa e do placar segue a proporção do mapa). */
+  mapSize?: { readonly w: number; readonly h: number },
 ): ScreenLayout {
+  if (phone) {
+    style = 'classic';
+    fragsOnTab = false;
+  }
   if (style !== 'classic') return componentsLayout(screenW, screenH, style, custom, full, ui);
   const u = ui;
   const font = scaledFont(baseFont, u);
@@ -131,7 +142,29 @@ export function screenLayout(
   let minimapPlace: Rect | null = null;
   let scoreboard: ScoreboardPlace | null = null;
 
-  if (!full) {
+  if (phone) {
+    // celular em pé: a sala na largura toda; abaixo da barra, minimapa à esquerda e placar à direita
+    mode = 'celular';
+    // a altura de um time do placar vem primeiro: em tela curta, a sala diminui para ele caber inteiro
+    const boardH = (SCOREBOARD_ROWS / 2) * rowH(u) + 1;
+    const roomMax = screenH - bottombarH - 4 * u - boardH - fpsH - 4 * u;
+    mul = Math.min(screenW / ROOM_WIDTH, (0.6 * screenH) / ROOM_HEIGHT, roomMax / ROOM_HEIGHT);
+    const w = Math.round(mul * ROOM_WIDTH);
+    const h = Math.round(mul * ROOM_HEIGHT);
+    playfield = { x: Math.trunc((screenW - w) / 2), y: 0, w, h };
+    const top = h + bottombarH + 4 * u;
+    const half = Math.trunc(screenW / 2);
+    // minimapa e placar quase encostados nas bordas da tela
+    const mmW = half - 3 * u;
+    // minimapa e placar (um time ou o chat por vez) com a mesma altura: a do mapa na largura da
+    // coluna, mas no mínimo a de um time do placar
+    const avail = Math.max(0, screenH - fpsH - 4 * u - top);
+    const mapNatural = mapSize ? Math.trunc((mmW * mapSize.h * 3) / (mapSize.w * 4)) + 1 : avail;
+    const blockH = Math.min(avail, Math.max(mapNatural, boardH));
+    minimapPlace = { x: u, y: top, w: mmW, h: blockH };
+    chat = { x: half + 2 * u, y: top + 2 * u, w: screenW - half - 4 * u, h: blockH - 2 * u };
+    scoreboard = { x1: half + u, y1: top, x2: screenW - 1 - u, y2: top + blockH - 1, scale: u, side: false };
+  } else if (!full) {
     // F12: a sala o maior possível, centralizada; o chat fica com o que sobra em cima (mín. 3 mensagens)
     mode = 'livre';
     mul = Math.min(screenW / ROOM_WIDTH, (screenH - (4 * lineH + 6 * u) - bottombarH) / ROOM_HEIGHT);
@@ -227,8 +260,10 @@ export function screenLayout(
   }
 
   const indicatorsY = playfield.y + playfield.h + 5 * u;
-  const leftMargin = playfield.x + 10 * u;
-  const maxW = playfield.x + playfield.w - 5 * u - leftMargin;
+  // celular: a barra na largura da tela (a sala pode ficar mais estreita para o placar caber)
+  const bar = mode === 'celular' ? { x: 0, w: screenW } : playfield;
+  const leftMargin = bar.x + 10 * u;
+  const maxW = bar.x + bar.w - 5 * u - leftMargin;
   const numLen = font.width('0000');
   const healthW = Math.max(font.width(labels.health) + numLen, scaleBy(mul, 100));
   const energyW = Math.max(font.width(labels.energy) + numLen, scaleBy(mul, 100));
@@ -247,9 +282,12 @@ export function screenLayout(
     space = Math.trunc((maxW - minW) / 4);
     timeY = indicatorsY;
   }
-  const healthX = leftMargin;
-  const energyX = healthX + healthW + space;
-  const pupsX = energyX + energyW + space;
+  // celular: vida e energia com as pontas alinhadas às do minimapa e um espaço entre elas; os itens
+  // ficam à direita
+  const phoneBars = mode === 'celular' && minimapPlace ? { mm: minimapPlace, w: Math.trunc((minimapPlace.w - 16 * u) / 2) } : null;
+  const healthX = phoneBars ? phoneBars.mm.x : leftMargin;
+  const energyX = phoneBars ? phoneBars.mm.x + phoneBars.mm.w - phoneBars.w : healthX + healthW + space;
+  const pupsX = phoneBars ? phoneBars.mm.x + phoneBars.mm.w + 8 * u : energyX + energyW + space;
   const weaponX = pupsX + pupsW + space;
   const timeX = timeY === indicatorsY ? weaponX + weaponW + space + timeW : weaponX + timeW;
   return {
@@ -275,6 +313,7 @@ export function screenLayout(
     weaponX,
     timeX,
     timeY,
+    ...(phoneBars ? { barW: phoneBars.w } : {}),
   };
 }
 
@@ -321,6 +360,6 @@ function componentsLayout(screenW: number, screenH: number, style: HudStyle, cus
 /** Linhas de mensagem no chat (sem a de digitação); com Insert, até o fim da área de jogo. */
 export function chatLines(layout: ScreenLayout, all: boolean): number {
   if (layout.mode === 'componentes') return Math.max(1, Math.trunc(layout.chat.h / layout.lineH) - 1);
-  const bottom = all ? layout.playfield.y + layout.playfield.h : layout.chat.y + layout.chat.h;
+  const bottom = all && layout.mode !== 'celular' ? layout.playfield.y + layout.playfield.h : layout.chat.y + layout.chat.h;
   return Math.max(1, Math.trunc((bottom - layout.chat.y) / layout.lineH) - 1);
 }

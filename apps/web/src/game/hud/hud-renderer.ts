@@ -156,6 +156,8 @@ export class HudRenderer {
   private readonly list: DrawList;
   private readonly minimapSprite = new Sprite();
   private minimapKey = '';
+  /** Página do placar do celular (0 time vermelho, 1 azul, 2 chat), escolhida deslizando o dedo (`PhoneBoard`). */
+  scoreboardPage = 0;
   /** Opções do voto desenhadas no último `render` (para o clique). */
   voteTargets: VoteTarget[] = [];
   private minimapTexture: Texture | null = null;
@@ -235,6 +237,7 @@ export class HudRenderer {
     const L = s.screen;
     this.k = L.ui;
     const fh = this.fh;
+    const phone = L.mode === 'celular';
     if (!s.hidden) {
       this.drawMinimap(s);
       this.drawPlayfieldMarks(s);
@@ -253,15 +256,25 @@ export class HudRenderer {
 
       // FPS no canto de baixo à direita
       const fps = this.t('FPS:$1', String(Math.trunc(s.fps)).padStart(3, ' '));
-      this.text(fps, L.screenW - 2 - this.fw(fps), L.screenH - fh - 2, this.c('fps'));
+      // celular: à esquerda (o canto da direita é dos pontos de página), com o ping ao lado
+      const me = phone ? s.players.find((p) => p.me) : undefined;
+      const fpsLine = me ? `${fps}  ${this.t('Ping')}: ${me.ping}` : fps;
+      // celular: na linha dos pontos de página, embaixo da caixa do placar (`.phone-board-dots`)
+      const fpsY = phone && L.scoreboard ? L.scoreboard.y2 + 9 - Math.trunc(fh / 2) : L.screenH - fh - 2;
+      this.text(fpsLine, phone ? 4 * L.ui : L.screenW - 2 - this.fw(fps), fpsY, this.c('fps'));
 
-      if (s.mapTime) {
+      if (s.mapTime && !phone) {
         const sec = Math.max(0, s.mapTime.seconds);
         const str = `${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
         this.text(str, L.timeX - this.fw(str), L.timeY, this.c('map_time'));
       }
 
-      if (s.self) {
+      if (s.self && phone) {
+        this.drawPhoneItems(s);
+        this.drawChangeMessages(s);
+        this.drawBar(s, L.healthX, this.t('Health'), s.self.health, 'health');
+        this.drawBar(s, L.energyX, this.t('Energy'), s.self.energy, 'energy');
+      } else if (s.self) {
         const pups = [
           ['Power', s.self.power, 'power'],
           ['Turbo', s.self.turbo, 'turbo'],
@@ -280,7 +293,7 @@ export class HudRenderer {
         this.drawBar(s, L.energyX, this.t('Energy'), s.self.energy, 'energy');
       }
 
-      this.drawChat(s);
+      if (!phone) this.drawChat(s); // celular: o chat é HTML, na terceira página do placar
       if (tab) this.drawTabScoreboard(s);
     }
     this.drawPause(s);
@@ -383,17 +396,57 @@ export class HudRenderer {
     const col = this.c('bar_text');
     this.text(caption, x, y, col);
     const val = String(value).padStart(3, ' ');
-    const width = scaleBy(L.mul, 100);
+    const width = L.barW ?? scaleBy(L.mul, 100);
     const valX = Math.max(x + this.fw(caption) + this.fw(' '), x + width - this.fw(val));
     this.text(val, valX, y, col);
     const y1 = y + Math.trunc((3 * fh) / 2);
-    const y2 = L.screenH - 5 * L.ui;
+    // celular: o minimapa e o placar ficam embaixo da barra, que termina antes deles
+    const y2 = L.mode === 'celular' && L.minimapPlace ? L.minimapPlace.y - 6 * L.ui : L.screenH - 5 * L.ui;
     this.rect(x, y1, x + width, y2, this.c('bar_0'));
     if (value <= 0) return;
     for (const [i, name] of [`${kind}_100`, `${kind}_200`, `${kind}_300`].entries()) {
       const targ = Math.trunc((Math.min(value - 100 * i, 100) * width) / 100);
       if (i === 0 || targ > 0) this.rect(x, y1, x + targ, y2, this.c(name));
     }
+  }
+
+  /**
+   * Celular: a arma na ponta direita da barra e, à esquerda dela, os power-ups ativos e o relógio,
+   * lado a lado como num flex; o que não cabe até a energia desce para a linha de baixo.
+   */
+  private drawPhoneItems(s: HudState): void {
+    const L = s.screen;
+    const self = s.self!;
+    const items: [string, string][] = [[this.t('Weapon $1', String(self.weapon)), this.c('weapon')]];
+    for (const [caption, val, col] of [
+      ['Power', self.power, 'power'],
+      ['Turbo', self.turbo, 'turbo'],
+      ['Shadow', self.shadow, 'shadow'],
+    ] as const)
+      if (val > 0) items.push([`${this.t(caption)} ${iround(val)}`, this.c(col)]);
+    if (s.mapTime) {
+      const sec = Math.max(0, s.mapTime.seconds);
+      items.push([`${s.mapTime.extra ? this.t('ET') + ' ' : ''}${Math.trunc(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, this.c('map_time')]);
+    }
+    const right = L.screenW - 2 * L.ui;
+    const gap = this.fw('  ');
+    let x = right;
+    let line = 0;
+    for (const [text, col] of items) {
+      const w = this.fw(text);
+      if (x !== right && x - w < L.pupsX) {
+        line++;
+        x = right;
+      }
+      this.text(text, x - w, L.indicatorsY + line * (this.fh + 2 * L.ui), col);
+      x -= w + gap;
+    }
+  }
+
+  /** Celular: linha do placar com um time por vez na altura toda (o minimapa estica até o fim da caixa). */
+  private phoneRowH(s: HudState): number {
+    const b = s.screen.scoreboard!;
+    return Math.trunc(Math.min(2 * this.fh, Math.max(this.fh + 2 * this.k, (b.y2 - b.y1 + 1) / (s.maxPlayers / 2 + 1))));
   }
 
   /** `draw_scoreboard`. */
@@ -414,18 +467,23 @@ export class HudRenderer {
     const u = L.ui;
     const fh = this.fh;
     const charW = this.fw('M');
-    const margin = 4 * u;
+    const margin = L.mode === 'celular' ? 0 : 4 * u; // celular: a caixa encosta nas bordas do lugar dela
     const gap = 6 * u;
     const hpad = Math.round(6 * k);
     const half = s.maxPlayers / 2;
     const rows = half + 1;
+    // celular: um time por vez na coluna inteira (deslizar para o lado troca)
+    const page = L.mode === 'celular' ? this.scoreboardPage : -1;
+    if (page === 2) return; // página do chat (HTML, no GameScreen)
     const ySpace = y2 - y1 + 1;
-    const rowH = Math.trunc(Math.min(2 * fh, Math.max(fh + 2 * k, side ? ySpace / rows : (ySpace - gap) / (2 * rows))));
+    const rowH = page >= 0 ? this.phoneRowH(s) : Math.trunc(Math.min(2 * fh, Math.max(fh + 2 * k, side ? ySpace / rows : (ySpace - gap) / (2 * rows))));
     const vpad = Math.max(Math.trunc((rowH - fh) / 2), 1);
     const blockW = side ? Math.trunc((x2 - x1 + 1 - 2 * margin - gap) / 2) : x2 - x1 + 1 - 2 * margin;
     const blocks = side
       ? [[x1 + margin, y1], [x1 + margin + blockW + gap, y1]]
-      : [[x1 + margin, y1], [x1 + margin, y1 + rows * rowH + gap]];
+      : page >= 0
+        ? [[x1 + margin, y1], [x1 + margin, y1]]
+        : [[x1 + margin, y1], [x1 + margin, y1 + rows * rowH + gap]];
     const bg = [this.c('scoreboard_bg_redteam'), this.c('scoreboard_bg_blueteam')];
     const lineCol = [this.c('scoreboard_line_redteam'), this.c('scoreboard_line_blueteam')];
     const dark = [this.c('team_red_dark'), this.c('team_blue_dark')];
@@ -438,6 +496,7 @@ export class HudRenderer {
       return { bx1, bx2, by: by as number, textX: bx1 + hpad, divider: right - fragsW - Math.round(5 * k), right };
     });
     for (const i of [0, 1] as const) {
+      if (page >= 0 && i !== page) continue;
       const { bx1, bx2, by, textX, divider, right } = cols[i] as (typeof cols)[number];
       const lc = lineCol[i] as string;
       this.rect(bx1 + 1, by + rowH + 1, bx2 - 1, by + rows * rowH - 1, bg[i] as string);
@@ -454,6 +513,7 @@ export class HudRenderer {
     }
     const line = [1, 1];
     for (const p of s.players) {
+      if (page >= 0 && p.team !== page) continue;
       const { by, textX, divider, right } = cols[p.team] as (typeof cols)[number];
       const pc = Number.parseInt(this.c(PLAYER_COLOURS[p.color] ?? 'player_unknown').slice(1), 16);
       const light = (v: number) => 40 + Math.trunc((v * 215) / 255);
@@ -486,13 +546,21 @@ export class HudRenderer {
       return;
     }
     const map = s.map;
-    const r = minimapRect(place, map.width, map.height);
+    const fit = minimapRect(place, map.width, map.height);
+    // celular: na altura da caixa do placar ao lado; na coluna estreita estica, na larga (tablet
+    // deitado) fica na proporção do mapa, centralizado
+    let r = fit;
+    if (s.screen.mode === 'celular' && s.screen.scoreboard) {
+      const h = (s.maxPlayers / 2 + 1) * this.phoneRowH(s) + 1;
+      const w = Math.min(place.w, Math.trunc((h * map.width * 4) / (map.height * 3)));
+      r = { x: place.x + Math.trunc((place.w - w) / 2), y: place.y, w, h };
+    }
     // as cores dos lados entram na chave: o lado que vira o clã repinta as bases (OG-409)
-    const key = `${map.title}|${map.crc}|${r.w}x${r.h}|${place.w}|${this.resolution}|${this.c('team_red_dark')}${this.c('team_blue_dark')}${this.teamCol(0)}${this.teamCol(1)}`;
+    const key = `${map.title}|${map.crc}|${fit.w}x${fit.h}|${place.w}|${this.resolution}|${this.c('team_red_dark')}${this.c('team_blue_dark')}${this.teamCol(0)}${this.teamCol(1)}`;
     if (key !== this.minimapKey) {
       this.minimapKey = key;
       this.minimapTexture?.destroy(true);
-      const canvas = paintMinimap(map, r.w, r.h, place.w, {
+      const canvas = paintMinimap(map, fit.w, fit.h, place.w, {
         ground: this.c('map_ground'),
         wall: this.c('map_wall'),
         roomBorder: this.c('map_room_border'),

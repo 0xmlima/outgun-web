@@ -334,7 +334,9 @@ export class OnlineHud {
     this.scoreOrder = ordered.map((p) => p.pid);
     const hiddenGame = s.skipped || s.gameOver !== null || !opts.fd;
     const playing = players.length > 1;
-    const chatCount = chatLines(opts.screen, this.showAll);
+    // celular: o chat fica numa página própria (deslizando o minimapa) e mostra as últimas linhas, sem sumir
+    const allChat = this.showAll || opts.screen.mode === 'celular';
+    const chatCount = chatLines(opts.screen, allChat);
     if (s.lastServerFrame >= 0) this.feed.stamp(s.lastServerFrame / 10);
     return {
       screen: opts.screen,
@@ -365,7 +367,7 @@ export class OnlineHud {
         : null,
       mapTime: s.mapEnd !== null && s.gameOver === null && playing ? { seconds: s.mapEnd - Math.trunc(time), extra: s.extraTime } : null,
       fps: opts.fps,
-      chat: this.feed.visible(chatCount, time, this.showAll, opts.screen.chatChars),
+      chat: this.feed.visible(chatCount, time, allChat, opts.screen.chatChars),
       prompt: chatPrompt(this.chat, this.t),
       // com o mapa carregado, "Waiting game start - next map is" aparece também junto do placar
       hidden: hiddenGame ? { gameOver: s.gameOver, waitingMap: s.world?.map.title ?? null } : null,

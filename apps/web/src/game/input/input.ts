@@ -51,6 +51,8 @@ export class GameInput {
   private readonly listeners: ((action: PressAction | 'menu') => void)[] = [];
   private readonly changeListeners: (() => void)[] = [];
   private enabled = true;
+  /** Controles da tela de toque do celular (bits de `CONTROL` e tiro), somados aos do teclado. */
+  private touch = { controls: 0, fire: false };
   /** Momento (`performance.now()`) da última tecla do jogo apertada ou solta (OG-369). */
   lastChangeAt = 0;
 
@@ -114,6 +116,18 @@ export class GameInput {
     if (this.enabled && (ev.code === 'AltLeft' || ev.code === 'AltRight')) ev.preventDefault();
   };
 
+  /** Ação de toque como se a tecla dela fosse apertada (botões da tela no celular). */
+  press(action: PressAction): void {
+    if (this.enabled) this.emit(action);
+  }
+
+  /** Controles de toque (celular): entram em `sample()` junto com o teclado e o gamepad. */
+  setTouch(controls: number, fire: boolean): void {
+    if (controls === this.touch.controls && fire === this.touch.fire) return;
+    this.touch = { controls, fire };
+    this.changed(performance.now());
+  }
+
   /** Solta tudo (perda de foco: troca de aba, menu aberto). */
   private readonly release = () => {
     if (!this.pressed.size) return;
@@ -126,6 +140,10 @@ export class GameInput {
     const held: Set<HeldAction> = this.enabled ? heldActions(this.bindings, this.pressed) : new Set();
     let controls = controlBits(held);
     let fire = held.has('fire');
+    if (this.enabled) {
+      controls |= this.touch.controls;
+      fire ||= this.touch.fire;
+    }
     let start = false;
     const padPressed = new Set<number>();
     for (const pad of typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : []) {

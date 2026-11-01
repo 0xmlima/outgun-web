@@ -11,6 +11,15 @@ export function isPhone(): boolean {
   return matchMedia('(pointer: coarse) and (hover: none)').matches && Math.min(screen.width, screen.height) < 600;
 }
 
+/**
+ * Partida com os controles de toque (experimental): toque sem mouse em qualquer tamanho, celular ou
+ * tablet. O portal segue `isPhone`; um tablet com teclado e trackpad continua com o jogo do computador.
+ */
+export function isTouchGame(): boolean {
+  if (typeof matchMedia !== 'function') return false;
+  return matchMedia('(pointer: coarse) and (hover: none)').matches;
+}
+
 /** Rotas do portal (RN-UI-08): o resto (partida, salas, replays, opções) mostra o aviso no celular. */
 const PORTAL = [
   /^\/$/,
@@ -22,6 +31,7 @@ const PORTAL = [
   /^\/players\/[^/]+\/?$/,
   /^\/(matches|series)\/[^/]+\/?$/,
   /^\/rooms\/[^/]+\/report\/?$/,
+  /^\/play\/?$/, // partida no celular (experimental): controles de toque
 ];
 
 export function isPortalPath(pathname: string): boolean {

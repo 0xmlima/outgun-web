@@ -4,7 +4,9 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useAccount } from '../app/account.js';
+import { usePlayNow } from '../app/play-now.js';
 import { usePrefs } from '../app/prefs.js';
+import { Button } from '../ui/Button.js';
 import { Icon, type IconName } from '../ui/icons.js';
 import { Panel } from '../ui/Panel.js';
 import { MonthRanking, NowPlaying } from './home-panels.js';
@@ -24,6 +26,7 @@ function Shortcut({ to, icon, children }: { readonly to: string; readonly icon: 
 export function PhoneHome() {
   const { t } = usePrefs();
   const { user } = useAccount();
+  const playNow = usePlayNow();
   return (
     <div className="ui-container phone-home">
       <section className="phone-home-hero">
@@ -35,6 +38,10 @@ export function PhoneHome() {
       <p className="phone-home-play" role="note">
         {t('To play, open Outgun on a computer. Here you follow stats, profiles, clans and match reports.')}
       </p>
+      {/* partida no celular (experimental): o Casual do "Jogar agora", com controles de toque */}
+      <Button variant="primary" className="phone-home-playnow" onClick={playNow}>
+        {t('Play now (experimental)')}
+      </Button>
       {user ? (
         <Panel title={user.username}>
           <ul className="home-stats">

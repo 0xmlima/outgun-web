@@ -193,6 +193,10 @@
   background: var(--surface-1);
   font-size: var(--text-sm);
 }
+.phone-home-playnow {
+  width: 100%;
+  min-height: 2.75rem;
+}
 .phone-home-guest {
   display: flex;
   flex-direction: column;
@@ -379,4 +383,195 @@
 }
 :root[data-phone] .admin-roster li {
   flex-wrap: wrap;
+}
+
+/* Partida no celular (experimental): canvas em cima, faixa dos controles de toque embaixo */
+.game-touch {
+  --touch-h: 11.5rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.game-touch .game-host {
+  bottom: var(--touch-h);
+}
+.touch-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--touch-h);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: var(--space-2) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: #000;
+  z-index: 1;
+}
+.touch-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* direcional e tiro centralizados sobre os dois botões de baixo */
+  gap: var(--space-2);
+}
+.touch-toggle {
+  min-width: 3.5rem;
+  min-height: 2.75rem;
+  padding: 0 var(--space-2);
+  border: 1px solid #555;
+  border-radius: var(--radius-md);
+  background: #1a1a1a;
+  color: #aaa;
+  font: 600 0.75rem/1 var(--font);
+}
+.touch-toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+.touch-row {
+  display: flex;
+  gap: var(--space-2);
+}
+.touch-stick {
+  position: relative;
+  width: 7rem;
+  height: 7rem;
+  border: 2px solid #555;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.06);
+  touch-action: none;
+}
+.touch-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3rem;
+  height: 3rem;
+  margin: -1.5rem 0 0 -1.5rem;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.35);
+  pointer-events: none;
+}
+.touch-fire {
+  width: 6.5rem;
+  height: 6.5rem;
+  margin: 0.25rem 0; /* centro na altura do centro do direcional (7rem) */
+  border: 2px solid #a33;
+  border-radius: 50%;
+  background: #4a1010;
+  color: #fff;
+  font: 700 0.9rem/1 var(--font);
+  text-transform: uppercase;
+  touch-action: none;
+}
+.touch-fire[aria-pressed='true'] {
+  background: #c22;
+}
+/* botões discretos nos cantos da sala (posição pela divisão da tela, no GameScreen): F8 (votar troca de
+   mapa) e o menu (no celular não há Esc) em cima, F2 (lista de mapas) embaixo à direita */
+.touch-corner {
+  position: absolute;
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 2px 3px;
+  border: 0;
+  background: none;
+  color: rgb(255 255 255 / 0.45);
+  z-index: 1;
+}
+/* o texto encostado no canto (em cima da parede do mapa, em geral); o alvo de toque segue com 44 px */
+.touch-vote {
+  align-items: flex-start;
+  justify-content: flex-start;
+  font: 600 0.7rem/1 var(--font);
+}
+.touch-menu {
+  align-items: flex-start;
+  justify-content: flex-end;
+  font: 400 1.1rem/0.8 var(--font);
+  z-index: 3; /* por cima das telas F1–F5, que ela fecha */
+}
+.touch-maps {
+  align-items: flex-end;
+  justify-content: flex-end;
+  font: 600 0.7rem/1 var(--font);
+}
+/* telas F1–F5 na partida do celular: a tela inteira, por cima dos controles */
+.game-touch .info-screen {
+  position: fixed;
+  inset: 0;
+  max-width: none;
+  max-height: none;
+  z-index: 2;
+}
+/* caixa do placar (deslizar troca a página) e o chat, a terceira página */
+.phone-board {
+  position: absolute;
+  z-index: 1;
+  touch-action: pan-y;
+}
+.phone-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0 4px;
+  background: #000;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.phone-chat-log {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  list-style: none;
+  color: #ddd;
+  font: 0.75rem/1.3 var(--font);
+  overflow-wrap: anywhere;
+}
+.phone-chat-log .red {
+  color: #ff8080;
+}
+.phone-chat-log .blue {
+  color: #8fb0ff;
+}
+.phone-chat-form input {
+  width: 100%;
+  height: 2rem;
+  padding: 0 6px;
+  border: 1px solid #555;
+  border-radius: var(--radius-md);
+  background: #111;
+  color: #fff;
+  font: 1rem var(--font); /* 16 px: o iOS não dá zoom ao focar */
+}
+/* páginas da caixa do placar (time vermelho, azul, chat): pontos sutis logo abaixo dela */
+.phone-board-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 5px;
+  pointer-events: none;
+}
+.phone-board-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.2);
+}
+.phone-board-dots span[aria-current='true'] {
+  background: rgb(255 255 255 / 0.6);
+}
+/* menu do Esc, fim da partida e telas F1–F5 por cima da caixa do placar (chat) e dos controles; o ×
+   (z-index 3) segue por cima para fechar as telas F1–F5 */
+.game-touch .game-overlay {
+  z-index: 2;
 }

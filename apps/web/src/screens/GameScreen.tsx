@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { message } from '@outgun/protocol';
 import { joinName, useAccount } from '../app/account.js';
+import { isTouchGame } from '../app/phone.js';
 import { BOT_LEVEL_CHOICES, usePrefs } from '../app/prefs.js';
 import { DEFAULT_MAP, mountGame, type ClientOptions, type GameHost, type GameStatus, type OnlineOptions } from '../game/host.js';
 import type { Prefs } from '../app/prefs.js';
@@ -23,6 +24,9 @@ import { RankedLobby, type LobbyView } from './RankedLobby.js';
 import { InfoOverlay, type InfoKind } from './InfoOverlay.js';
 import { MatchEndDialog, matchSummary, type MatchSummary } from './match-end.js';
 import { OptionsBody, SaveStatusLine, type OptionsTab } from './options.js';
+import { TouchControls } from './TouchControls.js';
+import { PhoneBoard } from './PhoneBoard.js';
+import type { ScreenLayout } from '../game/hud/screen-layout.js';
 
 /** Opções do jogador que valem na partida (OG-068). */
 function clientOptions(p: Prefs): ClientOptions {
@@ -99,6 +103,9 @@ export default function GameScreen() {
   const toggleInfo = useRef<(kind: InfoKind) => void>(() => {});
   toggleInfo.current = (kind) => setInfo((cur) => (cur?.kind === kind ? null : { kind, auto: false }));
   const host = useRef<GameHost | null>(null);
+  const phone = isTouchGame(); // celular e tablet (experimental)
+  /** Divisão da tela (celular): F8, × e F2 nos cantos da sala (em cima da parede, em geral). */
+  const [screen, setScreen] = useState<ScreenLayout | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
 
@@ -146,6 +153,7 @@ export default function GameScreen() {
       preferThemeColours: prefs.preferThemeColours,
       client: clientOptions(prefs),
       onStatus: setStatus,
+      onScreen: setScreen,
       onRoomMode: setRoomMode,
       onAction: (action) => {
         const t = tRef.current;
@@ -173,7 +181,8 @@ export default function GameScreen() {
     const confirmLeave = (ev: BeforeUnloadEvent) => ev.preventDefault();
     addEventListener('beforeunload', confirmLeave);
     try {
-      if (!localStorage.getItem(FOCUS_HINT_KEY)) {
+      // celular e tablet: sem F10, sem a dica (e ela segue para quando entrar pelo computador)
+      if (!isTouchGame() && !localStorage.getItem(FOCUS_HINT_KEY)) {
         localStorage.setItem(FOCUS_HINT_KEY, '1');
         setToast(tRef.current('Tip: F10 plays in focus mode, which keeps browser shortcuts inside the game.'));
       }
@@ -240,7 +249,9 @@ export default function GameScreen() {
     return () => clearInterval(id);
   }, [onlineKey]);
   const inLobby = lobby !== null;
-  useEffect(() => host.current?.setInputEnabled(!menuOpen && !inLobby && !matchEnd), [menuOpen, inLobby, matchEnd]);
+  /** Celular: digitando no chat (o jogo não lê teclas). */
+  const [typing, setTyping] = useState(false);
+  useEffect(() => host.current?.setInputEnabled(!menuOpen && !inLobby && !matchEnd && !typing), [menuOpen, inLobby, matchEnd, typing]);
   // fechou o modal: fim da série ou md1 vai ao menu; jogo da série que não acaba vai ao lobby; Casual segue
   const closeMatchEnd = useCallback(() => {
     matchEndOpen.current = false;
@@ -358,8 +369,27 @@ export default function GameScreen() {
   ];
 
   return (
-    <div ref={gameRef} className="game" data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
+    <div ref={gameRef} className={phone ? 'game game-touch' : 'game'} data-status={status?.kind ?? 'loading'} data-game-over={gameOver ? '1' : '0'} data-map={status?.kind === 'ready' ? status.map.title : ''}>
       <div ref={hostRef} className="game-host" />
+      {phone && <TouchControls host={host} />}
+      {phone && screen?.scoreboard && <PhoneBoard host={host} place={screen.scoreboard} onTyping={setTyping} />}
+      {phone && !menuOpen && screen && (
+        <>
+          <button type="button" className="touch-corner touch-vote"
+            style={{ left: screen.playfield.x, top: screen.playfield.y }} aria-label={t(ACTION_LABELS.voteMapChange)} onClick={() => host.current?.press('voteMapChange')}>
+            F8
+          </button>
+          {/* com uma tela F1–F5 aberta (em tela cheia no celular), o × fecha a tela */}
+          <button type="button" className="touch-corner touch-menu"
+            style={info ? { right: 0, top: 0 } : { left: screen.playfield.x + screen.playfield.w, top: screen.playfield.y, transform: 'translateX(-100%)' }} aria-label={info ? t('Close') : t('Menu')} onClick={() => (info ? setInfo(null) : setMenuOpen(true))}>
+            ×
+          </button>
+          <button type="button" className="touch-corner touch-maps"
+            style={{ left: screen.playfield.x + screen.playfield.w, top: screen.playfield.y + screen.playfield.h, transform: 'translate(-100%, -100%)' }} aria-label={t(ACTION_LABELS.mapList)} onClick={() => toggleInfo.current('maps')}>
+            F2
+          </button>
+        </>
+      )}
       <div className="game-overlay">
         {toast && !menuOpen && (
           <p className="game-toast" role="status">

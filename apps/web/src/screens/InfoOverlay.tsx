@@ -174,7 +174,12 @@ export function InfoOverlay({ kind, host, onClose }: Props) {
           )}
           <tbody>
             {visibleRows(i, table.rows).map((row, r) => (
-              <tr key={r} className={`tone-${row.tone}`}>
+              <tr
+                key={r}
+                className={`tone-${row.tone}`}
+                // lista de mapas: tocar no mapa vota nele (no celular não há teclado para digitar o número)
+                {...(kind === 'maps' && i === 0 && host ? { onClick: () => host.voteMap(Number(row.cells[0]) - 1), style: { cursor: 'pointer' } } : {})}
+              >
                 {row.cells.map((c, j) => (
                   <td key={j}>
                     {c && j === 1 && row.profile ? (
