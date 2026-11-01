@@ -46,7 +46,11 @@ const colours = [
       extra[`player${String(i + 1).padStart(2, '0')}`],
   ),
 ];
-const medals = [['Ouro', '#FFD700'], ['Prata', '#D9D9D9'], ['Bronze', '#CD7F32']];
+const medals = [
+  ['Ouro', '#FFD700'],
+  ['Prata', '#D9D9D9'],
+  ['Bronze', '#CD7F32'],
+];
 
 const page = `<!doctype html><meta charset="utf-8"><style>${Object.entries(FACES)
   .map(([f, src]) => `@font-face{font-family:${f};src:url(${src})}`)

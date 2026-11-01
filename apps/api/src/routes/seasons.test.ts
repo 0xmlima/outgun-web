@@ -3,7 +3,7 @@
 // repetida, partida que termina depois da virada e o ranking geral (soma das temporadas).
 import { signInternalRequest } from '@outgun/tickets';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp, type App } from '../app.js';
 import { loadConfig } from '../config.js';
 import { migrateUp } from '../db/migrate.js';
@@ -28,14 +28,20 @@ describe.skipIf(!pgAdminUrl)('temporadas mensais (OG-267)', () => {
   let ids: Record<string, string>;
 
   beforeAll(async () => {
+    // o cenário é a virada de outubro para novembro de 2026: a API sobe em outubro, como quando o
+    // teste foi escrito (depois de 01/11 a temporada de novembro já nasceria no boot)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-20T12:00:00Z') });
     t = await createTestDatabase();
     await migrateUp(t.sql);
     await seed(t.db);
+    // a temporada do seed nasce com o now() do Postgres (relógio de verdade): começa em outubro
+    await t.db.update(seasons).set({ startsAt: new Date('2026-10-01T03:00:00Z') }).where(eq(seasons.active, true));
     const config = { ...loadConfig({ INTERNAL_SECRETS: `gs-1:${SECRET}` }), databaseUrl: t.url };
     app = await buildApp({ config, database: t, mailer: new MemoryMailer(), logger: false });
     ids = Object.fromEntries((await t.db.select({ id: users.id, name: users.username }).from(users)).map((u) => [u.name, u.id]));
   });
   afterAll(async () => {
+    vi.useRealTimers();
     await app?.close();
     await t?.drop();
   });
