@@ -6,19 +6,22 @@ import { decodeFrame, type AnyMessage, type Replay } from '@outgun/protocol';
 import { describe, expect, it } from 'vitest';
 import { loadMaps } from './maps.js';
 import { Room, type Connection } from './room.js';
+import { RoomManager } from './rooms.js';
 
 const maps = loadMaps(fileURLToPath(new URL('../../../_legacy/maps', import.meta.url)), ['outgun1']);
 
 class Viewer implements Connection {
   packets: AnyMessage[][] = [];
   closed = false;
+  code = 0;
   send(data: Uint8Array): void {
     const r = decodeFrame(data, 's2c');
     if (!r.ok) throw new Error(r.error);
     this.packets.push(r.messages);
   }
-  close(): void {
+  close(code: number): void {
     this.closed = true;
+    this.code = code;
   }
   messages(): AnyMessage[] {
     return this.packets.flat();
@@ -91,6 +94,63 @@ describe('OG-092: espectador ao vivo', () => {
     for (let i = 0; i < 400; i++) r.tick();
     expect(v.messages().find((m) => m.type === 'spectatorStart')).toMatchObject({ delay: 15 });
     expect(v.lastFrame()).toBe(r.frame - 1 - 150);
+  });
+
+  it('sala encerrada no fim da partida: o espectador vê o fim e o placar antes de fechar (OG-533)', () => {
+    const r = room('spectating_delay 15\ntime_limit 1');
+    const v = new Viewer();
+    r.addSpectator(v);
+    for (let i = 0; i < 2000 && r.results.length === 0; i++) r.tick();
+    expect(r.results.length).toBe(1);
+    const last = r.frame - 1; // último frame gravado da partida
+    expect(v.lastFrame()).toBeLessThan(last - 100); // ainda no atraso
+    r.close(true);
+    expect(v.closed).toBe(false);
+    let ticks = 0;
+    while (r.drainSpectators()) ticks++;
+    expect(v.lastFrame()).toBe(last);
+    expect(v.closed).toBe(true);
+    expect(v.code).toBe(1000);
+    expect(ticks).toBeGreaterThanOrEqual(150); // o atraso inteiro, mais a folga do placar
+  });
+
+  it('o atraso é de tempo de verdade: segue andando com o jogo parado (OG-533)', () => {
+    const r = room('spectating_delay 3\ntime_limit 1');
+    const v = new Viewer();
+    r.addSpectator(v);
+    for (let i = 0; i < 2000 && r.results.length === 0; i++) r.tick();
+    const last = r.frame - 1;
+    r.close(true);
+    // sem tick da sala (o mundo parado), o dreno ainda entrega o fim
+    for (let i = 0; i < 31; i++) r.drainSpectators();
+    expect(v.lastFrame()).toBe(last);
+  });
+
+  it('RoomManager: sala esvaziada com espectador sai da lista, mas ele segue até o fim (OG-533)', () => {
+    let now = 0;
+    const manager = new RoomManager({ emptyTimeoutMs: 1000, seed: () => 5, clock: { now: () => now } as never });
+    const r = manager.create({ id: 'x', preset: 'classic', maps, mapFiles: ['outgun1'], maxPlayers: 16 });
+    const v = new Viewer();
+    r.addSpectator(v);
+    manager.close('x', 'empty');
+    expect(manager.get('x')).toBeUndefined();
+    expect(v.closed).toBe(false);
+    for (let i = 0; i < 400 && !v.closed; i++) {
+      now += 100;
+      manager.tickAll();
+    }
+    expect(v.closed).toBe(true);
+    expect(v.code).toBe(1000);
+  });
+
+  it('RoomManager: desligar o servidor fecha os espectadores na hora', () => {
+    const manager = new RoomManager({ emptyTimeoutMs: 1000, seed: () => 5 });
+    const r = manager.create({ id: 'y', preset: 'classic', maps, mapFiles: ['outgun1'], maxPlayers: 16 });
+    const v = new Viewer();
+    r.addSpectator(v);
+    manager.stop();
+    expect(v.closed).toBe(true);
+    expect(v.code).toBe(1001);
   });
 
   it('limite de espectadores por sala', () => {

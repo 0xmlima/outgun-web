@@ -1009,9 +1009,9 @@ Como <persona>, quero <ação>, para <benefício>.
 | [OG-530](cards/OG-530-outcup-polimentos-do-teste.md) | OutCup: polimentos achados no teste de ponta a ponta | E15 | 3 | Should | — | OG-529 | Backlog |
 | [OG-531](cards/OG-531-medalhas-e-numero-1-de-outubro.md) | Medalhas e número 1 do top 3 de outubro: hall de outubro sem o "Melhor do mês" | E9 | 2 | Must | — | OG-410, OG-411, OG-354 | Concluído |
 | [OG-532](cards/OG-532-medalha-no-numero.md) | Medalha do top 3 no número do jogador (não mais na cor do boneco) | E9 | 3 | Must | — | OG-410, OG-411, OG-413, OG-531 | Concluído |
-| [OG-533](cards/OG-533-espectador-ate-o-fim-da-serie.md) | Espectador assiste até o fim: a sala não derruba quem ainda está no atraso | E6 | 3 | Must | S57 | — | Em andamento |
+| [OG-533](cards/OG-533-espectador-ate-o-fim-da-serie.md) | Espectador assiste até o fim: a sala não derruba quem ainda está no atraso | E6 | 3 | Must | S57 | — | Em revisão |
 | [OG-534](cards/OG-534-espectador-atraso-15s.md) | Espectador com 15 s de atraso | E6 | 1 | Must | S57 | — | Em revisão |
-| [OG-535](cards/OG-535-som-do-jogo-no-espectador.md) | Som do jogo no espectador, pronto para transmissão | E6 | 3 | Must | S57 | — | Pronto |
+| [OG-535](cards/OG-535-som-do-jogo-no-espectador.md) | Som do jogo no espectador, pronto para transmissão | E6 | 3 | Must | S57 | — | Em andamento |
 | [OG-536](cards/OG-536-espectador-modo-transmissao.md) | Espectador em modo transmissão (tela limpa para OBS) | E6 | 2 | Should | S57 | OG-533, OG-535 | Pronto |
 
 **Total:** 374 cards, 1189 pontos — v1: 69 cards, 295 pts (OG-048 quebrado em OG-050 a OG-054, seus 13 pts saem da soma; OG-105 quebrado na S12 em OG-106 a OG-109 e reestimado em 3 pts); v2: 305 cards, 894 pts (OG-210, OG-216, OG-205 e OG-459 cancelados, 14 pts fora da soma; OG-356 quebrado em OG-362 a OG-364, seus 8 pts saem da soma).

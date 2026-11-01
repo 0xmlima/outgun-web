@@ -853,6 +853,8 @@ export const WEB_TEXTS: Partial<Record<Locale, Readonly<Record<string, string>>>
     'Watch live': 'Assistir ao vivo',
     'Connecting to the live match: it appears after the delay.': 'Conectando à partida ao vivo: ela aparece depois do atraso.',
     'Live': 'Ao vivo',
+    'Match over': 'Partida encerrada',
+    'The match is over.': 'A partida terminou.',
     '$1 s delay': 'atraso de $1 s',
     'Live with $1 s delay: the match appears after the delay.': 'Ao vivo com atraso de $1 s: a partida aparece depois do atraso.',
     'Arrows room · F follow player · keypad +/- zoom · M sound': 'Setas sala · F seguir jogador · +/- do teclado numérico zoom · M som',

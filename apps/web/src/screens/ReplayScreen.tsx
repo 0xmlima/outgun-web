@@ -136,6 +136,8 @@ export function SpectateScreen() {
   const [status, setStatus] = useState<ReplayStatus | null>(null);
   const [delay, setDelay] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** O servidor fechou o stream depois do fim da partida (OG-533): a última imagem fica na tela. */
+  const [ended, setEnded] = useState(false);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -188,7 +190,10 @@ export function SpectateScreen() {
         void mapText.then(() => host.setReplay(ready));
       } else replay?.frames.push(r.messages);
     };
-    ws.onclose = (ev) => ev.code !== 1000 && setError(`${t('Disconnected')} (${ev.code}${ev.reason ? `: ${ev.reason}` : ''})`);
+    ws.onclose = (ev) => {
+      if (ev.code === 1000) setEnded(true);
+      else setError(`${t('Disconnected')} (${ev.code}${ev.reason ? `: ${ev.reason}` : ''})`);
+    };
     return () => {
       ws.onclose = null;
       ws.close();
@@ -206,7 +211,15 @@ export function SpectateScreen() {
             {error}
           </p>
         )}
-        {!error && !status && (
+        {!error && ended && (
+          <p className="game-toast" role="status">
+            {t('The match is over.')}{' '}
+            <button type="button" onClick={() => void navigate(-1)}>
+              {t('Back')}
+            </button>
+          </p>
+        )}
+        {!error && !ended && !status && (
           <p className="game-toast" role="status">
             {delay !== null ? t('Live with $1 s delay: the match appears after the delay.', String(delay)) : t('Connecting to the live match: it appears after the delay.')}
           </p>
@@ -214,7 +227,7 @@ export function SpectateScreen() {
         {status && (
           <div className="replay-bar">
             <span>
-              {t('Live')} · {status.mapTitle} · {t('$1 s delay', String(delay ?? 0))}
+              {ended ? t('Match over') : t('Live')} · {status.mapTitle} · {t('$1 s delay', String(delay ?? 0))}
               {status.following ? ` · ${t('following $1', status.following)}` : ` · ${t('room $1', `${status.room[0]},${status.room[1]}`)}`}
             </span>
             <span className="replay-buttons">
